@@ -93,7 +93,8 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
     MD::EENCODE, // BLC_energy
     MD::EENCODE, // BLC_status
     // extra slot was added in the end
-    MD::EENCODE // BLC_trigger
+    MD::EENCODE, // BLC_trigger
+    MD::EENCODE  // BLC_chi2
   };
 
   CTFHelper helper(trigData, cellData);
@@ -108,7 +109,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->getANSHeader().minorVersion = 2;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
 #define ENCODEEMC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
@@ -123,6 +124,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   iosize += ENCODEEMC(helper.begin_status(),      helper.end_status(),       CTF::BLC_status,      0);
   // extra slot was added in the end
   iosize += ENCODEEMC(helper.begin_trigger(),  helper.end_trigger(),         CTF::BLC_trigger,     0);
+  iosize += ENCODEEMC(helper.begin_chi2(),      helper.end_chi2(),           CTF::BLC_chi2,        0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
   finaliseCTFOutput<CTF>(buff);
@@ -137,7 +139,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   const auto& header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc, entries, energy, cellTime, tower, trigger;
+  std::vector<uint16_t> bcInc, entries, energy, cellTime, tower, trigger, chi2;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> status;
 
@@ -154,6 +156,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   iosize += DECODEEMCAL(status,      CTF::BLC_status);
   // extra slot was added in the end
   iosize += DECODEEMCAL(trigger,     CTF::BLC_trigger);
+  iosize += DECODEEMCAL(chi2,        CTF::BLC_chi2);
   // triggers were added later, in old data they are absent:
   if (trigger.empty()) {
     trigger.resize(header.nTriggers);
@@ -182,7 +185,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
 
     firstEntry = cellVec.size();
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
-      cell.setPacked(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount]);
+      cell.setPacked(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount], chi2[cellCount]);
       cellVec.emplace_back(cell);
       cellCount++;
     }

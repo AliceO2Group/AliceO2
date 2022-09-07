@@ -23,23 +23,28 @@ const float TIME_SHIFT = 600.,
             ENERGY_BITS = static_cast<float>(0x3FFF),
             HGLGTRANSITION = o2::emcal::constants::EMCAL_HGLGTRANSITION * o2::emcal::constants::EMCAL_ADCENERGY,
             ENERGY_TRUNCATION = 250.,
-            ENERGY_RESOLUTION_LG = (ENERGY_TRUNCATION - HGLGTRANSITION) / ENERGY_BITS,
-            ENERGY_RESOLUTION_HG = HGLGTRANSITION / ENERGY_BITS,
+            ENERGY_BUFFER = 0.1, // 10% buffer in case calibrations shift the energy out of HG/LG range
+  ENERGY_RESOLUTION_LG = (ENERGY_TRUNCATION - (HGLGTRANSITION * (1 - ENERGY_BUFFER))) / ENERGY_BITS,
+            ENERGY_RESOLUTION_HG = HGLGTRANSITION * (1 + ENERGY_BUFFER) / ENERGY_BITS,
             ENERGY_RESOLUTION_TRU = ENERGY_TRUNCATION / ENERGY_BITS,
-            ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS;
+            ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS,
+            CHI2_TRUNCATION = 10.,
+            CHI_2BITS = static_cast<float>(0x3F),
+            CHI2_RESOLUTION = CHI2_TRUNCATION / CHI_2BITS;
 
 Cell::Cell()
 {
   memset(mCellWords, 0, sizeof(uint16_t) * 3);
 }
 
-Cell::Cell(short tower, float energy, float time, ChannelType_t ctype)
+Cell::Cell(short tower, float energy, float time, ChannelType_t ctype, float chi2)
 {
   memset(mCellWords, 0, sizeof(uint16_t) * 3);
   setTower(tower);
   setTimeStamp(time);
   setType(ctype); // type needs to be set before energy to allow for proper conversion
   setEnergy(energy);
+  setChi2(chi2);
 }
 
 void Cell::setTimeStamp(float timestamp)
@@ -106,9 +111,24 @@ float Cell::getEnergy() const
   }
 }
 
+void Cell::setChi2(float chi2)
+{
+  if (chi2 < 0.) {
+    chi2 = 0.;
+  } else if (chi2 > CHI2_TRUNCATION) {
+    chi2 = CHI2_TRUNCATION;
+  }
+  getDataRepresentation()->mChi2 = static_cast<uint16_t>(std::round(chi2 / CHI2_RESOLUTION));
+}
+
+float Cell::getChi2() const
+{
+  return static_cast<float>(getDataRepresentation()->mChi2) * CHI2_RESOLUTION;
+}
+
 void Cell::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Cell: Type " << getType() << ", Energy " << getEnergy() << ", Time " << getTimeStamp() << ", Tower " << getTower();
+  stream << "EMCAL Cell: Type " << getType() << ", Energy " << getEnergy() << ", Time " << getTimeStamp() << ", Tower " << getTower() << ", Chi2 " << getChi2();
 }
 
 std::ostream& operator<<(std::ostream& stream, const Cell& c)

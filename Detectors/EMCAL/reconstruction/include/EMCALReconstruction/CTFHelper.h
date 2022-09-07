@@ -232,6 +232,14 @@ class CTFHelper
     value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedCellStatus(); }
   };
 
+  //_______________________________________________
+  class Iter_chi2 : public _Iter<Iter_chi2, Cell, uint16_t>
+  {
+   public:
+    using _Iter<Iter_chi2, Cell, uint16_t>::_Iter;
+    value_type operator*() const { return mData[mIndex].getPackedChi2(); }
+  };
+
   //<<< =========================== ITERATORS ========================================
 
   Iter_bcIncTrig begin_bcIncTrig() const { return Iter_bcIncTrig(mTrigData, false); }
@@ -257,6 +265,9 @@ class CTFHelper
 
   Iter_status begin_status() const { return Iter_status(mCellData, false); }
   Iter_status end_status() const { return Iter_status(mCellData, true); }
+
+  Iter_chi2 begin_chi2() const { return Iter_chi2(mCellData, false); }
+  Iter_chi2 end_chi2() const { return Iter_chi2(mCellData, true); }
 
  private:
   const gsl::span<const o2::emcal::TriggerRecord> mTrigData;

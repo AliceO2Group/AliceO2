@@ -41,7 +41,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   // just to get types
-  uint16_t bcInc = 0, entries = 0, cellTime = 0, energy = 0, tower = 0, trigger = 0;
+  uint16_t bcInc = 0, entries = 0, cellTime = 0, energy = 0, tower = 0, trigger = 0, chi2 = 0;
   uint32_t orbitInc = 0;
   uint8_t status = 0;
 #define MAKECODER(part, slot) createCoder<decltype(part)>(op, ctf.getFrequencyTable(slot), int(slot))
@@ -55,5 +55,6 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   MAKECODER(status,     CTF::BLC_status);
   // extra slot was added in the end
   MAKECODER(trigger,    CTF::BLC_trigger);
+  MAKECODER(chi2,       CTF::BLC_chi2);
   // clang-format on
 }

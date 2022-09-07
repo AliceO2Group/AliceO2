@@ -38,7 +38,7 @@ struct CTFHeader : public o2::ctf::CTFDictHeader {
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 9, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots { BLC_bcIncTrig,
@@ -49,9 +49,10 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
                BLC_energy,
                BLC_status,
                // extra slot added, should not alter the order of previous ones
-               BLC_trigger // trigger bits
+               BLC_trigger, // trigger bits
+               BLC_chi2     // chi2 of the trigger (added later)
   };
-  ClassDefNV(CTF, 2);
+  ClassDefNV(CTF, 3);
 };
 
 } // namespace emcal

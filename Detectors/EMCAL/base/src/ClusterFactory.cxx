@@ -84,6 +84,7 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   clusterAnalysis.setNCells(inputsIndices.size());
 
   std::vector<unsigned short> cellsIdices;
+  std::vector<float> ampfractions;
 
   for (auto cellIndex : inputsIndices) {
     cellsIdices.push_back(cellIndex);
@@ -101,6 +102,21 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 
   evalCoreEnergy(inputsIndices, clusterAnalysis);
   evalTime(inputsIndices, clusterAnalysis);
+
+  // set amp fractions
+  float cellenergy = 0;
+  for (auto cellIndex : inputsIndices) {
+    if (cellIndex >= mInputsContainer.size()) {
+      throw CellIndexRangeException(cellIndex, mInputsContainer.size());
+    }
+    cellenergy = mInputsContainer[cellIndex].getEnergy();
+    if (clusterAnalysis.E() > 0) {
+      ampfractions.push_back(cellenergy / clusterAnalysis.E());
+    } else {
+      LOG(fatal) << "Division by cluster energy 0! This should not happen";
+    }
+  }
+  clusterAnalysis.setCellsAmplitudeFraction(ampfractions);
 
   // TODO to be added at a later stage
   //evalPrimaries(inputsIndices, clusterAnalysis);

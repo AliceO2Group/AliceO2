@@ -53,13 +53,13 @@ namespace emcal
 /// | 15-26 | Time (ns)     | 0.73 ns       | -600 to 900 ns              |
 /// | 27-40 | Energy (GeV)  | 0.0153 GeV    | 0 to 250 GeV                |
 /// | 41-42 | Cell type     | -             | 0=LG, 1=HG, 2=LEMon, 4=TRU  |
-///
+/// | 42-47 | Chi2 of raw fit | 0.159        | 0 to 10                 |
 /// The remaining bits are 0
 class Cell
 {
  public:
   Cell();
-  Cell(short tower, float energy, float time, ChannelType_t ctype = ChannelType_t::LOW_GAIN);
+  Cell(short tower, float energy, float time, ChannelType_t ctype = ChannelType_t::LOW_GAIN, float chi2 = 10.);
   ~Cell() = default; // override
 
   void setTower(short tower) { getDataRepresentation()->mTowerID = tower; }
@@ -154,22 +154,32 @@ class Cell
   /// \return True if the cell type is TRU, false otherwise
   Bool_t getTRU() const { return isChannelType(ChannelType_t::TRU); }
 
+  /// \brief Set the chi2 of the raw fitter
+  /// \param chi2 Chi2 of the raw fitter
+  void setChi2(float chi2);
+
+  /// \brief Get the chi2 of the raw fitter
+  /// \return Chi2 of the raw fitter
+  float getChi2() const;
+
   void PrintStream(std::ostream& stream) const;
 
   /// used for CTF encoding/decoding: access to packed data
-  void setPacked(uint16_t tower, uint16_t t, uint16_t en, uint16_t status)
+  void setPacked(uint16_t tower, uint16_t t, uint16_t en, uint16_t status, uint16_t chi2)
   {
     auto dt = getDataRepresentation();
     dt->mTowerID = tower;
     dt->mTime = t;
     dt->mEnergy = en;
     dt->mCellStatus = status;
+    dt->mChi2 = chi2;
   }
 
   auto getPackedTowerID() const { return getDataRepresentation()->mTowerID; }
   auto getPackedTime() const { return getDataRepresentation()->mTime; }
   auto getPackedEnergy() const { return getDataRepresentation()->mEnergy; }
   auto getPackedCellStatus() const { return getDataRepresentation()->mCellStatus; }
+  auto getPackedChi2() const { return getDataRepresentation()->mChi2; }
 
  private:
   struct __attribute__((packed)) CellData {
@@ -177,7 +187,7 @@ class Cell
     uint16_t mTime : 11;      ///< bits 15-25: Time (signed, can become negative after calibration)
     uint16_t mEnergy : 14;    ///< bits 26-39: Energy
     uint16_t mCellStatus : 2; ///< bits 40-41: Cell status
-    uint16_t mZerod : 6;      ///< bits 42-47: Zerod
+    uint16_t mChi2 : 6;       ///< bits 42-47: chi2 of raw fitter
   };
 
   CellData* getDataRepresentation() { return reinterpret_cast<CellData*>(mCellWords); }
