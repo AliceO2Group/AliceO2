@@ -151,12 +151,16 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     // selected the TFN input and
     // create list of requested tables
     header::DataHeader TFNumberHeader;
+    header::DataHeader TFFileNameHeader;
     std::vector<OutputRoute> requestedTables;
     std::vector<OutputRoute> routes(spec.outputs);
     for (auto route : routes) {
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+      } else if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFF"))) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        TFFileNameHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
       } else {
         requestedTables.emplace_back(route);
       }
@@ -165,6 +169,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
     return adaptStateless([TFNumberHeader,
+                           TFFileNameHeader,
                            requestedTables,
                            fileCounter,
                            numTF,
@@ -210,7 +215,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-        if (!didir->readTree(outputs, dh, fcnt, ntf, (first) ? &TFNumberHeader : nullptr, totalSizeCompressed, totalSizeUncompressed)) {
+        if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed)) {
           if (first) {
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
@@ -224,7 +229,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             }
             // get first folder of next file
             ntf = 0;
-            if (!didir->readTree(outputs, dh, fcnt, ntf, (first) ? &TFNumberHeader : nullptr, totalSizeCompressed, totalSizeUncompressed)) {
+            if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed)) {
               LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
               throw std::runtime_error("Processing is stopped!");
             }
@@ -232,6 +237,19 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
           }
+        }
+
+        if (first) {
+          // TF number
+          auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+          auto o = Output(TFNumberHeader);
+          outputs.make<uint64_t>(o) = timeFrameNumber;
+
+          // Origin file name for derived output map
+          auto o2 = Output(TFFileNameHeader);
+          auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
+          // TODO this needs to be converted into an absolute path
+          outputs.make<std::string>(o2) = fileAndFolder.file->GetName();
         }
 
         first = false;

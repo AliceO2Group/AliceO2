@@ -329,7 +329,7 @@ int DataInputDescriptor::fillInputfiles()
   return getNumberInputfiles();
 }
 
-bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
 {
   auto ioStart = uv_hrtime();
 
@@ -346,15 +346,9 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
     auto parentFile = getParentFile(counter, numTF);
     if (parentFile != nullptr) {
       // first argument is 0 as the parent file object contains only 1 file
-      return parentFile->readTree(outputs, dh, 0, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
+      return parentFile->readTree(outputs, dh, 0, numTF, treename, totalSizeCompressed, totalSizeUncompressed);
     }
     throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
-  }
-
-  if (tfHeader) {
-    auto timeFrameNumber = getTimeFrameNumber(counter, numTF);
-    auto o = Output(*tfHeader);
-    outputs.make<uint64_t>(o) = timeFrameNumber;
   }
 
   // create table output
@@ -735,7 +729,7 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   return didesc->getTimeFrameNumber(counter, numTF);
 }
 
-bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
 {
   std::string treename;
 
@@ -751,7 +745,7 @@ bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, 
     treename = aod::datamodel::getTreeName(dh);
   }
 
-  return didesc->readTree(outputs, dh, counter, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
+  return didesc->readTree(outputs, dh, counter, numTF, treename, totalSizeCompressed, totalSizeUncompressed);
 }
 
 void DataInputDirector::closeInputFiles()
