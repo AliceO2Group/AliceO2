@@ -266,6 +266,23 @@ bool halfCRUHeaderSanityCheck(const o2::trd::HalfCRUHeader& header)
   return true;
 }
 
+bool sanityCheckTrackletHCHeader(const o2::trd::TrackletHCHeader& header)
+{
+  if (header.one != 1) {
+    return false;
+  }
+  if (((~header.supermodule) & 0x1f) >= NSECTOR) {
+    return false;
+  }
+  if (((~header.stack) & 0x7) >= NSTACK) {
+    return false;
+  }
+  if (((~header.layer) & 0x7) >= NLAYER) {
+    return false;
+  }
+  return true;
+}
+
 bool sanityCheckTrackletMCMHeader(const o2::trd::TrackletMCMHeader& header)
 {
   // a bit limited to what we can check.
@@ -298,7 +315,7 @@ bool sanityCheckDigitMCMADCMask(const o2::trd::DigitMCMADCMask& mask)
   if (mask.j != 0xc) {
     return false;
   }
-  int counter = (~mask.c) & 0x1f;
+  unsigned int counter = (~mask.c) & 0x1f;
   std::bitset<NADCMCM> headerMask(mask.adcmask);
   return (counter == headerMask.count());
 }
@@ -376,7 +393,6 @@ void printDigitHCHeaders(o2::trd::DigitHCHeader& header, uint32_t headers[3], in
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
 {
   printDigitHCHeaders(header, headers, -1, 0, true);
-  int countheaderwords = header.numberHCW;
   int index;
   //for the currently 3 implemented other header words, they can come in any order, and are identified by their reserved portion
   for (int countheaderwords = 0; countheaderwords < header.numberHCW; ++countheaderwords) {

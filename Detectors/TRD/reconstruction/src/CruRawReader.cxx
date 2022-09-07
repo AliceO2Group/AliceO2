@@ -203,6 +203,7 @@ int CruRawReader::processHBFs()
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
   int iteration = 0;
   mHBFoffset32 = 0;
+  mPreviousHalfCRUHeaderSet = false;
   while (mHBFoffset32 < (mTotalHBFPayLoad / 4)) {
     if (mOptions[TRDVerboseBit]) {
       LOGP(info, "Current half-CRU iteration {}, current offset in the HBF payload {}, total payload in number of 32-bit words {}", iteration, mHBFoffset32, mTotalHBFPayLoad / 4);
@@ -305,8 +306,10 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
           }
           incrementErrors(DigitHCHeader2Problem, hcid);
         }
+        /* Currently we don't do anything with the information stored in DigitHCHeader2
         DigitHCHeader2 header2;
         header2.word = headers[headerwordcount];
+        */
         headersfound.set(1);
         break;
 
@@ -407,7 +410,7 @@ bool CruRawReader::processHalfCRU(int iteration)
     return true;
   }
 
-  if (iteration > 0) {
+  if (mPreviousHalfCRUHeaderSet) {
     // for the second trigger (and thus second HalfCRUHeader we see) we can do some more sanity checks
     // in case one check fails, we try to go to the next HalfCRUHeader
     if (mCurrentHalfCRUHeader.EndPoint != mPreviousHalfCRUHeader.EndPoint) {
@@ -432,6 +435,7 @@ bool CruRawReader::processHalfCRU(int iteration)
     }
   }
   mPreviousHalfCRUHeader = mCurrentHalfCRUHeader;
+  mPreviousHalfCRUHeaderSet = true;
 
   //can this half cru length fit into the available space of the rdh accumulated payload
   if (totalHalfCRUDataLength32 > (mTotalHBFPayLoad / 4) - mHBFoffset32) {
@@ -466,19 +470,17 @@ bool CruRawReader::processHalfCRU(int iteration)
     int cruIdx = mFEEID.supermodule * 2 + mFEEID.side;                    // 2 CRUs per SM, side defining A/C-side CRU
     int halfCruIdx = cruIdx * 2 + mFEEID.endpoint;                        // endpoint (0 or 1) defines half-CRU
     int linkIdxGlobal = halfCruIdx * NLINKSPERHALFCRU + currentlinkindex; // global link ID [0..1079]
-    int halfChamberId = HelperMethods::getHCIDFromLinkID(linkIdxGlobal);
-    // int halfChamberId = mLinkMap->getHCID(linkIdxGlobal); FIXME: uncomment, when object available in CCDB
-    // TODO we keep detector, stack, layer, sector, side for now to be compatible to the current code state,
+    int halfChamberId = mLinkMap->getHCID(linkIdxGlobal);
+    // TODO we keep detector, stack, layer, side for now to be compatible to the current code state,
     // but halfChamberId contains everything we need to know... More cleanup to be done in second step
     int detectorId = halfChamberId / 2;
     int stack = HelperMethods::getStack(detectorId);
     int layer = HelperMethods::getLayer(detectorId);
-    int sector = HelperMethods::getSector(detectorId);
     int side = halfChamberId % 2;
     int stack_layer = stack * NLAYER + layer; // similarly this is also only for graphing so just use the rdh ones for now.
     mEventRecords.incLinkErrorFlags(mFEEID.supermodule, side, stack_layer, mCurrentHalfCRULinkErrorFlags[currentlinkindex]);
-    int currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
-    int endOfCurrentLink = mHBFoffset32 + currentlinksize32;
+    uint32_t currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
+    uint32_t endOfCurrentLink = mHBFoffset32 + currentlinksize32;
 
     linksizeAccum32 += currentlinksize32;
     if (currentlinksize32 == 0) {
@@ -500,15 +502,10 @@ bool CruRawReader::processHalfCRU(int iteration)
         LOGF(info, "Tracklet parser starting at offset %u and processing up to %u words", mHBFoffset32, currentlinksize32);
       }
       int trackletWordsRejected = 0;
-      // LOGF(warn, "Starting tracklet parsing for HCID %i", halfChamberId);
       int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected);
       std::chrono::duration<double, std::micro> trackletparsingtime = std::chrono::high_resolution_clock::now() - trackletparsingstart;
       if (trackletWordsRead == -1) {
-        //something went wrong bailout of here.
-        if (mMaxWarnPrinted > 0) {
-          LOG(warn) << "Tracklet parser returned -1 for link " << currentlinkindex;
-          checkNoWarn();
-        }
+        // something went wrong bailout of here.
         mHBFoffset32 = hbfOffsetTmp + linksizeAccum32;
         incrementErrors(TrackletsReturnedMinusOne, halfChamberId);
         continue; // move to next link of this half-CRU
@@ -516,11 +513,14 @@ bool CruRawReader::processHalfCRU(int iteration)
       mHBFoffset32 += trackletWordsRead;
       if (mCurrentHalfCRUHeader.EventType == ETYPEPHYSICSTRIGGER &&
           endOfCurrentLink - mHBFoffset32 >= 8) {
+        /*
+        // disabled for the same reason as for the warning after the digits parsing below
         if (mMaxWarnPrinted > 0) {
-          LOGF(warn, "After successfully parsing the tracklet data for link %i there are %i words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
+          LOGF(warn, "After successfully parsing the tracklet data for link %i there are %u words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
           checkNoWarn();
         }
         incrementErrors(UnparsedTrackletDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
+        */
       }
       mEventRecords.getCurrentEventRecord().incTrackletTime((double)std::chrono::duration_cast<std::chrono::microseconds>(trackletparsingtime).count());
       if (mOptions[TRDVerboseBit]) {
@@ -581,10 +581,14 @@ bool CruRawReader::processHalfCRU(int iteration)
           if (endOfCurrentLink - mHBFoffset32 >= 8) {
             // check if some data is lost (probably due to bug in CRU user logic)
             // we should have max 7 padding words to align the link to 256 bits
+            /*
+            // due to the current CRU bug this is almost always the case
+            // TODO enable warning again when CRU UL is fixed
             if (mMaxWarnPrinted > 0) {
-              LOGF(warn, "After successfully parsing the digit data for link %i there are %i words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
+              LOGF(warn, "After successfully parsing the digit data for link %i there are %u words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
               checkNoWarn();
             }
+            */
             incrementErrors(UnparsedDigitDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
           }
           mEventRecords.getCurrentEventRecord().incDigitTime((double)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());
@@ -630,7 +634,7 @@ bool CruRawReader::processHalfCRU(int iteration)
 
 bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hcid)
 {
-  if (header.one != 1) {
+  if (!sanityCheckTrackletHCHeader(header)) {
     return false;
   }
   int detHeader = HelperMethods::getDetector(((~header.supermodule) & 0x1f), ((~header.stack) & 0x7), ((~header.layer) & 0x7));
@@ -644,12 +648,10 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
   }
 
   if (hcid != hcidHeader) {
-    /* FIXME currently would be flooded by these messages, as long as CCDB object not available
     if (mMaxWarnPrinted > 0) {
       LOGF(alarm, "RDH HCID %i, TrackletHCHeader HCID %i. Taking the TrackletHCHedaer as authority", hcid, hcidHeader);
       checkNoWarn();
     }
-    */
     hcid = hcidHeader;
   }
   return (hcid == hcidHeader);
@@ -658,7 +660,6 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
 int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejected)
 {
   int wordsRead = 0;
-  int numberOfDigitsFound = 0;
   int state = StateDigitMCMHeader;
   DigitMCMHeader mcmHeader;
   DigitMCMADCMask adcMask;
@@ -806,11 +807,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
     else if (state == StateSecondEndmarker) {
       ++wordsRead;
       if (currWord != DIGITENDMARKER) {
-        if (mMaxWarnPrinted > 0) {
-          LOGF(warn, "Expected second digit end marker, but found 0x%08x instead", currWord);
-          checkNoWarn();
-        }
-        incrementErrors(DigitParsingNoSecondEndmarker, hcid, "No second digit end marker found");
+        incrementErrors(DigitParsingNoSecondEndmarker, hcid, fmt::format("Expected second digit end marker, but found {:#010x} instead", currWord));
         return -1;
       }
       state = StateFinished;
@@ -825,11 +822,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
     // not good, something went wrong with digit parsing
     // e.g. we tried to move to the end marker but reached the link size
     //      without finding one.
-    if (mMaxWarnPrinted > 0) {
-      LOGF(warn, "We exited the digit parser state machine in the state %i and not in the proper finished state", state);
-      checkNoWarn();
-    }
-    incrementErrors(DigitParsingExitInWrongState, hcid, "Done with digit parsing but state is not StateFinished");
+    incrementErrors(DigitParsingExitInWrongState, hcid, fmt::format("Done with digit parsing but state is not StateFinished but in state {}", state));
     return -1;
   }
 }
@@ -919,16 +912,14 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
         if (currWord == TRACKLETENDMARKER) {
           if ((hcHeader.format & 0x2) == 0x2) {
             // format indicates no empty MCM headers are sent, so we should not see an end marker here
-            // TODO add error message/counter for QC
-            LOGF(warn, "For the MCM Header 0x%08x we expected a tracklet from CPU %i, but got an endmarker instead", mcmHeader.word, iCpu);
+            incrementErrors(TrackletDataMissing, hcid, fmt::format("For the MCM Header {:#010x} we expected a tracklet from CPU {}, but got an endmarker instead", mcmHeader.word, iCpu));
           }
           state = StateSecondEndmarker; // we expect a second tracklet end marker to follow
           break;
         }
         if ((currWord & 0x1) == 0x1) {
           // the reserved bit of the trackler MCM data is set
-          // TODO add error message/counter for QC
-          LOGF(warn, "Invalid word 0x%08x for the expected TrackletMCMData", currWord);
+          incrementErrors(TrackletMCMDataFailure, hcid, fmt::format("Invalid word {:#010x} for the expected TrackletMCMData", currWord));
           ++wordsRejected;
         }
         TrackletMCMData mcmData;
@@ -971,10 +962,7 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
     else if (state == StateSecondEndmarker) {
       ++wordsRead;
       if (currWord != TRACKLETENDMARKER) {
-        if (mMaxWarnPrinted > 0) {
-          LOGF(warn, "Expected second tracklet end marker, but found 0x%08x instead", currWord);
-          checkNoWarn();
-        }
+        incrementErrors(TrackletNoSecondEndMarker, hcid, fmt::format("Expected second tracklet end marker, but found {:#010x} instead", currWord));
         return -1;
       }
       state = StateFinished;
@@ -1028,7 +1016,9 @@ Tracklet64 CruRawReader::assembleTracklet64(int format, TrackletMCMHeader& mcmHe
   slope ^= 0x80;
   uint32_t hpid = (mcmHeader.word >> (1 + cpu * 8)) & 0xff;
   uint32_t lpid = mcmData.pid;
-  uint32_t pid = (hpid << 12) | lpid;
+  // The combined 20 bit PID information from the MCM header and the tracklet word
+  // is given by ((hpid << 12) | lpid).
+  // hpid holds the upper 8 bit and lpid the lower 12 bit.
   int q0, q1, q2;
   if (format & 0x1) {
     // DQR enabled
@@ -1060,12 +1050,10 @@ void CruRawReader::dumpInputPayload() const
 
 void CruRawReader::run()
 {
-  /* FIXME: uncomment, when object available in CCDB
   if (!mLinkMap) {
     LOG(error) << "No mapping for Link ID to HCID provided from CCDB";
     return;
   }
-  */
   if (mOptions[TRDVerboseBit]) {
     dumpInputPayload();
   }

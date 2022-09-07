@@ -435,16 +435,6 @@ uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
-std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
-std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
-std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet);
-void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
-std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
-bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
-bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
-bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
-bool digitMCMADCMaskSanityCheck(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
-bool digitMCMWordSanityCheck(o2::trd::DigitMCMData* word, int adcchannel);
 bool halfCRUHeaderSanityCheck(const o2::trd::HalfCRUHeader& header);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3]);
 
@@ -480,6 +470,7 @@ void printDigitMCMADCMask(const o2::trd::DigitMCMADCMask& digitmcmadcmask);
 
 void printHalfCRUHeader(const o2::trd::HalfCRUHeader& halfcru);
 void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
+bool sanityCheckTrackletHCHeader(const o2::trd::TrackletHCHeader& header);
 bool sanityCheckTrackletMCMHeader(const o2::trd::TrackletMCMHeader& header);
 bool sanityCheckDigitMCMHeader(const o2::trd::DigitMCMHeader& header);
 bool sanityCheckDigitMCMADCMask(const o2::trd::DigitMCMADCMask& mask);

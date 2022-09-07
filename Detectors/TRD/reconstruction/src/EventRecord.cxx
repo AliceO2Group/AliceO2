@@ -82,8 +82,9 @@ void EventRecordContainer::accumulateStats()
   int eventcount = mEventRecords.size();
   int sumtracklets = 0;
   int sumdigits = 0;
-  int sumdigittime = 0;
-  int sumtracklettime = 0;
+  double sumdigittime = 0;
+  double sumtracklettime = 0;
+  double sumtime = 0;
   uint64_t sumwordsrejected = 0;
   uint64_t sumwordsread = 0;
   for (auto event : mEventRecords) {
@@ -91,15 +92,14 @@ void EventRecordContainer::accumulateStats()
     sumdigits += event.getEventStats().mDigitsFound;
     sumtracklettime += event.getEventStats().mTimeTakenForTracklets;
     sumdigittime += event.getEventStats().mTimeTakenForDigits;
-    // OS: the two counters below are not even used anymore, are they needed?
-    sumwordsrejected += event.getEventStats().mWordsRejected;
-    sumwordsread += event.getEventStats().mWordsRead;
+    sumtime += event.getEventStats().mTimeTaken;
   }
   if (eventcount != 0) {
     mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;
     mTFStats.mDigitsPerEvent = sumdigits / eventcount;
     mTFStats.mTimeTakenForTracklets = sumtracklettime;
     mTFStats.mTimeTakenForDigits = sumdigittime;
+    mTFStats.mTimeTaken = sumtime;
   }
 }
 
@@ -107,7 +107,7 @@ void EventRecordContainer::setCurrentEventRecord(const InteractionRecord& ir)
 {
   // check if we already have an EventRecord for given interaction
   bool foundEventRecord = false;
-  for (int idx = 0; idx < mEventRecords.size(); ++idx) {
+  for (int idx = 0; idx < (int)mEventRecords.size(); ++idx) {
     if (mEventRecords.at(idx).getBCData() == ir) {
       mCurrEventRecord = idx;
       foundEventRecord = true;

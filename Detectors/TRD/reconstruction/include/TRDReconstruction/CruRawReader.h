@@ -160,6 +160,7 @@ class CruRawReader
 
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
+  bool mPreviousHalfCRUHeaderSet;       // flag, whether we can use mPreviousHalfCRUHeader for additional sanity checks
   DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
   uint16_t mTimeBins{constants::TIMEBINS}; // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
   bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
