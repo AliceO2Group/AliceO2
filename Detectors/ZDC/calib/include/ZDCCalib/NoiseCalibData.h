@@ -73,8 +73,10 @@ struct NoiseCalibSummaryData {
 // Working representation of channel data
 struct NoiseCalibChData {
   NoiseCalibChData() = default;
-  std::map<uint32_t, uint32_t> mData; /// Map container
-  bool mOverflow = false;                   /// Overflow flag (cannot accept more data)
+  // Variance intermediate data are uint32_t and sparse (~25% channels are filled)
+  // and histogram limits are not known in advance -> use map
+  std::map<uint32_t, uint32_t> mData; /// Map histogram container
+  bool mOverflow = false;             /// Overflow flag (cannot accept more data)
   uint64_t getEntries() const;
   uint32_t getMaxBin() const;
   int getStat(uint64_t& en, double& mean, double& var) const;

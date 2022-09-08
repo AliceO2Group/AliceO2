@@ -26,8 +26,8 @@ void NoiseCalibData::print() const
     uint64_t en = 0;
     double mean = 0, var = 0;
     if (getStat(is, en, mean, var) == 0) {
-      LOGF(info, "Noise %2d %s with %10llu events %smean %8.1f rms %8.1f (ch) max=%d", is, ChannelNames[is].data(), en,mHisto[isig].mOverflow?" IN_OVERFLOW",
-        mean, TMath::Sqrt(var), getMaxBin());
+      LOGF(info, "Noise %2d %s with %10llu events %smean %8.1f rms %8.1f (ch) max=%d", is, ChannelNames[is].data(), en, mHisto[is].mOverflow ? " IN_OVERFLOW" : "",
+           mean, TMath::Sqrt(var), mHisto[is].getMaxBin());
     }
   }
 }
@@ -188,7 +188,7 @@ uint32_t NoiseCalibChData::getMaxBin() const
 {
   uint32_t max = 0;
   for (const auto& [key, value] : mData) {
-    if (max > key)
+    if (key > max)
       max = key;
   }
   return max;
