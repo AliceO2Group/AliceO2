@@ -310,7 +310,7 @@ struct TriggerInfoV3 {
   uint64_t word0 = 0;
   uint64_t word1 = 0;
 
-  bool hasTrigger() const { return word0 & TriggerWord::HasTrigger; }
+  bool hasTrigger() const { return word0 != 0x0; }
   uint16_t getFirstBC() const { return word0 & 0xFFF; }
 };
 #endif // !defined(GPUCA_GPUCODE)
