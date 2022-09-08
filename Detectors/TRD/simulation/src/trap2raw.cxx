@@ -40,7 +40,7 @@ namespace bpo = boost::program_options;
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
               const std::string& outDir, int verbosity, std::string filePerLink,
-              uint32_t rdhV = 6, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024);
+              uint32_t rdhV = 6, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024, long startTime = 1547590800000);
 
 int main(int argc, char** argv)
 {
@@ -89,12 +89,14 @@ int main(int argc, char** argv)
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
-  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(), vm["file-per"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>());
+  const auto& hbfu = o2::raw::HBFUtils::Instance(); // we need the creation time for the link mapping from CCDB
+
+  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(), vm["file-per"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>(), 1024 * 1024, hbfu.startTime);
 
   return 0;
 }
 
-void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int verbosity, std::string filePer, uint32_t rdhV, bool noEmptyHBF, int trackletHCHeader, int superPageSizeInB)
+void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int verbosity, std::string filePer, uint32_t rdhV, bool noEmptyHBF, int trackletHCHeader, int superPageSizeInB, long startTime)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -104,11 +106,11 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   mc2raw.setFilePer(filePer);
   mc2raw.setVerbosity(verbosity);
   mc2raw.setTrackletHCHeader(trackletHCHeader); // run3 or run2
+  mc2raw.setTimeStamp(startTime);
   auto& wr = mc2raw.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-  // wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TRD)); // must be set explicitly
-  wr.setContinuousReadout(false); // above should work, but I know this is correct, come back TODO
+  wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TRD)); // must be set explicitly
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
@@ -120,7 +122,6 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
     outDirName += '/';
   }
 
-  mc2raw.setTrackletHCHeader(trackletHCHeader);
   mc2raw.readTrapData();
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //

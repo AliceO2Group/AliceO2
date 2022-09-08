@@ -55,6 +55,7 @@ class Trap2CRU
   void setOutputDir(std::string outdir) { mOutputDir = outdir; };
   void setVerbosity(int verbosity) { mVerbosity = verbosity; }
   void setTrackletHCHeader(int tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
+  void setTimeStamp(long ts) { mTimeStamp = ts; }
 
   // make the writer available in trap2raw.cxx for configuration
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
@@ -64,7 +65,7 @@ class Trap2CRU
   // write digits for single MCM into raw stream (include DigitMCMHeader and ADC mask)
   int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);
   // write tracklets for single MCM into raw stream (includes TrackletMCMHeader)
-  int buildTrackletRawData(int trackletIndexStart);
+  int buildTrackletRawData(unsigned int trackletIndexStart);
   // write two digit end markers
   void writeDigitEndMarkers();
   // write two tracklet end markers
@@ -100,6 +101,8 @@ class Trap2CRU
   std::vector<o2::trd::TriggerRecord> mTrackletTriggerRecords, *mTrackletTriggerRecordsPtr{&mTrackletTriggerRecords};
 
   // helpers
+  long mTimeStamp{0};                          // used to retrieve the correct link to HCID mapping from CCDB
+  const LinkToHCIDMapping* mLinkMap = nullptr; // to retrieve HCID from Link ID
   std::vector<uint32_t> mDigitsIndex; // input digits are sorted using this index array
   char* mRawDataPtr{nullptr};         // points to the current position in the raw data where we are writing
   uint64_t mCurrentTracklet{0}; //the tracklet we are currently busy adding

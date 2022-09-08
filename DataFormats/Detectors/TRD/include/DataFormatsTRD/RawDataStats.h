@@ -44,6 +44,9 @@ enum ParsingErrors {
   TrackletDataWrongOrdering,           // the tracklet data is not arriving in increasing MCM order
   TrackletDataDuplicateMCM,            // we see more than one TrackletMCMHeader for the same MCM
   TrackletNoTrackletEndMarker,         // got to the end of the buffer with out finding a tracklet end marker.
+  TrackletNoSecondEndMarker,           // we expected to see a second tracklet end marker, but found something else instead
+  TrackletMCMDataFailure,              // invalid word for TrackletMCMData detected
+  TrackletDataMissing,                 // we expected tracklet data but got an endmarker instead
   TrackletExitingNoTrackletEndMarker,  // got to the end of the buffer exiting tracklet parsing with no tracklet end marker
   UnparsedTrackletDataRemaining,       // the tracklet parsing has finished correctly, but there is still data left on the link (CRU puts incorrect link size or corrupt data?)
   UnparsedDigitDataRemaining,          // the digit parsing has finished correctly, but there is still data left on the link (CRU puts incorrect link size or corrupt data? RDH > 8kByte before?)
@@ -84,6 +87,9 @@ static const std::unordered_map<int, std::string> ParsingErrorsString = {
   {TrackletDataWrongOrdering, "TrackletDataWrongOrdering"},
   {TrackletDataDuplicateMCM, "TrackletDataDuplicateMCM"},
   {TrackletNoTrackletEndMarker, "TrackletNoTrackletEndMarker"},
+  {TrackletNoSecondEndMarker, "TrackletNoSecondEndMarker"},
+  {TrackletMCMDataFailure, "TrackletMCMDataFailure"},
+  {TrackletDataMissing, "TrackletDataMissing"},
   {TrackletExitingNoTrackletEndMarker, "TrackletExitingNoTrackletEndMarker"},
   {UnparsedTrackletDataRemaining, "UnparsedTrackletDataRemaining"},
   {UnparsedDigitDataRemaining, "UnparsedDigitDataRemaining"},

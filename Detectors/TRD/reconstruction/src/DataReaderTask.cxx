@@ -49,14 +49,11 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << " CTP/Config/TriggerOffsets updated.";
     o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
     return;
-  }
-  /* FIXME uncomment when CCDB object is available
-  else if (matcher == ConcreteDataMatcher("TRD", "LinkToHcid", 0)) {
+  } else if (matcher == ConcreteDataMatcher("TRD", "LinkToHcid", 0)) {
     LOG(info) << "Updated Link ID to HCID mapping";
     mReader.setLinkMap((const o2::trd::LinkToHCIDMapping*)obj);
     return;
   }
-  */
 }
 
 void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
@@ -64,7 +61,7 @@ void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
   static bool updateOnlyOnce = false;
   if (!updateOnlyOnce) {
     pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
-    // pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");  FIXME uncomment when CCDB object is available
+    pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");
     updateOnlyOnce = true;
   }
 }
