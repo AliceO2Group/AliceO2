@@ -12,6 +12,7 @@
 o2_add_library(ZDCCalib
                SOURCES
                  src/NoiseCalibData.cxx
+                 src/NoiseCalibEPN.cxx
                  src/BaselineCalibData.cxx
                  src/BaselineCalibConfig.cxx
                  src/BaselineCalibEPN.cxx
