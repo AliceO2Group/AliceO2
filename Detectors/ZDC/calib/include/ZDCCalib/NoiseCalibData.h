@@ -70,7 +70,7 @@ struct NoiseCalibSummaryData {
   ClassDefNV(NoiseCalibSummaryData, 1);
 };
 
-// Working representation of channel data
+// Working representation of noise channel data
 struct NoiseCalibChData {
   NoiseCalibChData() = default;
   // Variance intermediate data are uint32_t and sparse (~25% channels are filled)
