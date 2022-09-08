@@ -11,6 +11,7 @@
 
 o2_add_library(ZDCCalib
                SOURCES
+                 src/NoiseCalibData.cxx
                  src/BaselineCalibData.cxx
                  src/BaselineCalibConfig.cxx
                  src/BaselineCalibEPN.cxx
@@ -56,6 +57,7 @@ o2_add_library(ZDCCalib
 
 o2_target_root_dictionary(ZDCCalib
                           HEADERS
+                            include/ZDCCalib/NoiseCalibData.h
                             include/ZDCCalib/BaselineCalibData.h
                             include/ZDCCalib/BaselineCalibConfig.h
                             include/ZDCCalib/InterCalibData.h
