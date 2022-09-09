@@ -29,6 +29,7 @@ struct FileNameHolder {
   int numberOfTimeFrames = 0;
   std::vector<uint64_t> listOfTimeFrameNumbers;
   std::vector<std::string> listOfTimeFrameKeys;
+  std::vector<bool> alreadyRead;
 };
 FileNameHolder* makeFileNameHolder(std::string fileName);
 
@@ -71,11 +72,13 @@ class DataInputDescriptor
   std::regex getFilenamesRegex();
   int getNumberInputfiles() { return mfilenames.size(); }
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
+  int findDFNumber(int file, std::string dfName);
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
   DataInputDescriptor* getParentFile(int counter, int numTF);
   int getTimeFramesInFile(int counter);
+  int getReadTimeFramesInFile(int counter);
 
   bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, size_t& totalSizeCompressed, size_t& totalSizeUncompressed);
 
@@ -101,7 +104,6 @@ class DataInputDescriptor
   int mLevel = 0; // level of parent files
 
   int mtotalNumberTimeFrames = 0;
-  int mCurrentFileHighestTFRead = -1;
 
   uint64_t mIOTime = 0;
   uint64_t mCurrentFileStartedAt = 0;
