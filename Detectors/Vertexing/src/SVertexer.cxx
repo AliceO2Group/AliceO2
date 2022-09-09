@@ -123,10 +123,9 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   std::vector<DecayNbody> buf3body;
   buf3body.reserve(n3body);
   for (const auto& id : nbodySortID) {
-    auto& v0 = m3bodyTmp[id.thrID][id.entry];
+    auto& decay3body = m3bodyTmp[id.thrID][id.entry];
     int pos = bufV0.size();
-    buf3body.push_back(v0);
-    v0.setVertexID(pos); // this v0 copy will be discarded, use its vertexID to store the new position of final V0
+    buf3body.push_back(decay3body);
   }
   //
   mV0sTmp[0].swap(bufV0);               // the final result is fetched from here
@@ -143,14 +142,10 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   }
   LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
 
-  LOG(info) << "mV0DebugPosTrack size:" << mV0DebugPosTrack.size();
-  LOG(info) << "mV0DebugNegTrack size:" << mV0DebugNegTrack.size();
-  LOG(info) << "mV0DebugPosTrack2 size:" << mV0DebugPosTrack2.size();
-  LOG(info) << "mV0DebugNegTrack2 size:" << mV0DebugNegTrack2.size();
-  LOG(info) << "mVtxDebugTrack0 size:" << mVtxDebugTrack0.size();
-  LOG(info) << "mVtxDebugTrack1 size:" << mVtxDebugTrack1.size();
-  LOG(info) << "mVtxDebugTrack2 size:" << mVtxDebugTrack2.size();
-  LOG(info) << "mVtxDebugTrack0_2 size:" << mVtxDebugTrack0_2.size();
+  LOG(info) << "mV0Debug size:" << mV0DebugPosTrack.size();
+  LOG(info) << "mV0Debug2 size:" << mV0DebugPosTrack2.size();
+  LOG(info) << "mVtxDebug size:" << mVtxDebugTrack0.size();
+  LOG(info) << "mVtxDebug2 size:" << mVtxDebugTrack0_2.size();
 
   mV0PoolTree->Fill();
   mV0PoolAfterCutTree->Fill();
@@ -231,7 +226,8 @@ void SVertexer::updateTimeDependentParams()
   mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
   mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
 
-  m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Deuteron, PID::Proton, PID::Pion, mSVParams->pidCutsH3L3body, bz);
+  m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
+  m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
 
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
@@ -798,9 +794,6 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     auto mclabel0 = recoData.getTrackMCLabel(v0.getProngID(0));
     auto mclabel1 = recoData.getTrackMCLabel(v0.getProngID(1));
     auto mclabel2 = recoData.getTrackMCLabel(bach.gid);
-    mVtxDebugTrack0.emplace_back(mclabel0);
-    mVtxDebugTrack1.emplace_back(mclabel1);
-    mVtxDebugTrack2.emplace_back(mclabel2);
 
     int n3bodyVtx = fitter3body.process(v0.getProng(0), v0.getProng(1), bach);
     if (n3bodyVtx == 0) { // discard this pair
@@ -809,6 +802,10 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     num3bodyCandidates[4]++;
     int cand3B = 0;
     const auto& vertexXYZ = fitter3body.getPCACandidatePos(cand3B);
+
+    mVtxDebugTrack0.emplace_back(mclabel0);
+    mVtxDebugTrack1.emplace_back(mclabel1);
+    mVtxDebugTrack2.emplace_back(mclabel2);
 
     // make sure the 3 body vertex radius is close to that of the mean vertex
     float dxc = vertexXYZ[0] - mMeanVertex.getX(), dyc = vertexXYZ[1] - mMeanVertex.getY(), dzc = vertexXYZ[2] - mMeanVertex.getZ(), r2vertex = dxc * dxc + dyc * dyc;
@@ -867,7 +864,7 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     }
     num3bodyCandidates[9]++;
 
-    const auto& decay3bodyPv = mPVertices[v0.getVertexID()];
+    const auto& decay3bodyPv = mPVertices[decay3bodyVtxID];
     float dx3body = vertexXYZ[0] - decay3bodyPv.getX(), dy3body = vertexXYZ[1] - decay3bodyPv.getY(), dz3body = vertexXYZ[2] - decay3bodyPv.getZ();
     auto prodPPos = pV0[0] * dx3body + pV0[1] * dy3body + pV0[2] * dz3body;
     if (prodPPos < 0.) { // causality cut
@@ -881,18 +878,17 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     }
     num3bodyCandidates[11]++;
     float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
-    float sqPtot = p3B[0] * p3B[0] + p3B[1] * p3B[1] + p3B[2] * p3B[2];
     float pt3B = std::sqrt(pt2candidate);
-    /*bool goodHyp = false;
-    for (int ipid = 0; ipid < 1; ipid++) { // TODO: expand this loop to cover all the 3body cases
-      if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B)) {
+    bool goodHyp = false;
+    for (int ipid = 0; ipid < 2; ipid++) { // TODO: expand this loop to cover all the 3body casesif (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B)) {
+      if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, p2candidate, pt3B)) {
         goodHyp = true;
         break;
       }
     }
     if (!goodHyp) {
       continue;
-    }*/
+    }
     num3bodyCandidates[12]++;
     auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
     o2::track::TrackParCov trc = candidate3B;
@@ -904,8 +900,26 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     }*/
     num3bodyCandidates[13]++;
     candidate3B.setCosPA(cosPA);
-    candidate3B.setVertexID(v0.getVertexID());
+    candidate3B.setVertexID(decay3bodyVtxID);
     candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
+
+    // clone the V0, set new cosPA and VerteXID, add it to the list of V0s
+    if (decay3bodyVtxID != v0.getVertexID()) {
+      auto v0clone = v0;
+      const auto& pv = mPVertices[decay3bodyVtxID];
+
+      float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
+      float cosPA = prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+      v0clone.setCosPA(cosPA);
+      v0clone.setVertexID(decay3bodyVtxID);
+
+      //Fix:clone thw V0, is it needed for 3-body decay?
+      auto pvIdx = pvMap.find(decay3bodyVtxID);
+      if (pvIdx == pvMap.end()) {
+        mV0sTmp[ithread].push_back(v0clone);
+        pvMap[decay3bodyVtxID] = mV0sTmp[ithread].size() - 1; // add the new V0 index to the map
+      }
+    }
 
     mVtxDebugTrack0_2.emplace_back(mclabel0);
     mVtxDebugTrack1_2.emplace_back(mclabel1);

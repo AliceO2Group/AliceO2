@@ -99,8 +99,8 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   //
   // cuts on different 3 body PID params
   bool check3bodyHypothesis = true;
-  float pidCutsH3L3body[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};   // H3L -> d p pi-
-  float pidCutsHe4L3body[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};  // He4L -> He3 p pi-
+  float pidCutsH3L3body[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5};   // H3L -> d p pi-
+  float pidCutsHe4L3body[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5};  // He4L -> He3 p pi-
 
   O2ParamDef(SVertexerParams, "svertexer");
 };

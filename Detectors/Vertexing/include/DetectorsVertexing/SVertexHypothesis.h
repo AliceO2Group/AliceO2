@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file SVertexHypothesis.h
-/// \brief V0 or Cascade hypothesis checker
+/// \brief V0 or Cascade and 3-body decay hypothesis checker
 /// \author ruben.shahoyan@cern.ch
 
 #ifndef ALICEO2_SVERTEX_HYPOTHESIS_H
@@ -91,26 +91,26 @@ class SVertex3Hypothesis
 
   static constexpr int NPIDParams = 4;
 
-  void set(PID v0, PID ppos0, PID ppos1, PID pneg, float sig, float nSig, float margin, float cpt, float bz = 0.f);
-  void set(PID v0, PID ppos0, PID ppos1, PID pneg, const float pars[NPIDParams], float bz = 0.f);
+  void set(PID v0, PID ppos, PID pneg, PID pbach, float sig, float nSig, float margin, float cpt, float bz = 0.f);
+  void set(PID v0, PID ppos, PID pneg, PID pbach, const float pars[NPIDParams], float bz = 0.f);
 
   float getMassV0Hyp() const { return PID::getMass(mPIDV0); }
-  float getMassPosProng0() const { return PID::getMass(mPIDPosProng0); }
-  float getMassPosProng1() const { return PID::getMass(mPIDPosProng1); }
+  float getMassPosProng() const { return PID::getMass(mPIDPosProng); }
   float getMassNegProng() const { return PID::getMass(mPIDNegProng); }
+  float getMassBachProng() const { return PID::getMass(mPIDBachProng); }
 
-  float calcMass2(float p2Pos0, float p2Pos1, float p2Neg, float p2tot) const
+  float calcMass2(float p2Pos, float p2Neg, float p2Bach, float p2Tot) const
   {
     // calculate v0 mass from squared momentum of its prongs and total momentum
-    float ePos0 = std::sqrt(p2Pos0 + getMass2PosProng0()), ePos1 = std::sqrt(p2Pos1 + getMass2PosProng1()) , eNeg = std::sqrt(p2Neg + getMass2NegProng()), eV0 = ePos0 + ePos1 + eNeg;
-    return eV0 * eV0 - p2tot;
+    float ePos = std::sqrt(p2Pos + getMass2PosProng()), eNeg = std::sqrt(p2Neg + getMass2NegProng()) , eBach = std::sqrt(p2Bach + getMass2BachProng()), eVtx = ePos + eNeg + eBach;
+    return eVtx * eVtx - p2Tot;
   }
 
-  float calcMass(float p2Pos0, float p2Pos1, float p2Neg, float p2tot) const { return std::sqrt(calcMass2(p2Pos0, p2Pos1, p2Neg, p2tot)); }
+  float calcMass(float p2Pos, float p2Neg, float p2Bach, float p2Tot) const { return std::sqrt(calcMass2(p2Pos, p2Neg, p2Bach, p2Tot)); }
 
-  bool check(float p2Pos0, float p2Pos1, float p2Neg, float p2tot, float ptV0) const
+  bool check(float p2Pos, float p2Neg, float p2Bach, float p2Tot, float ptV0) const
   { // check if given mass and pt is matching to hypothesis
-    return check(calcMass(p2Pos0, p2Pos1, p2Neg, p2tot), ptV0);
+    return check(calcMass(p2Pos, p2Neg, p2Bach, p2Tot), ptV0);
   }
 
   bool check(float mass, float pt) const
@@ -122,14 +122,14 @@ class SVertex3Hypothesis
   float getMargin(float pt) const { return mPars[NSigmaM] * getSigma(pt) + mPars[MarginM]; }
 
  private:
-  float getMass2PosProng0() const { return PID::getMass2(mPIDPosProng0); }
-  float getMass2PosProng1() const { return PID::getMass2(mPIDPosProng1); }
+  float getMass2PosProng() const { return PID::getMass2(mPIDPosProng); }
   float getMass2NegProng() const { return PID::getMass2(mPIDNegProng); }
+  float getMass2BachProng() const { return PID::getMass2(mPIDBachProng); }
 
   PID mPIDV0{PID::HyperTriton};
-  PID mPIDPosProng0{PID::Deuteron};
-  PID mPIDPosProng1{PID::Proton};
+  PID mPIDPosProng{PID::Proton};
   PID mPIDNegProng{PID::Pion};
+  PID mPIDBachProng{PID::Deuteron};
 
   std::array<float, NPIDParams> mPars{};
 
