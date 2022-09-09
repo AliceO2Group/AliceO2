@@ -36,13 +36,6 @@ class NoiseCalib
 
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
-  void setConfig(const NoiseCalibConfig* param) { mConfig = param; };
-  const NoiseCalibConfig* getConfig() const { return mConfig; };
-  void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
-  const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-  void setNoiseParam(const NoiseParam* param) { mParam = param; };
-  const NoiseParam* getNoiseParam() const { return mParam; };
-
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
 
@@ -50,12 +43,11 @@ class NoiseCalib
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   NoiseCalibData& getData() { return mData; }
-  NoiseParam& getParamUpd() { return mParamUpd; }
+  NoiseParam& getParam() { return mParam; }
 
  private:
   NoiseCalibData mData;
-  const NoiseParam* mParam = nullptr;
-  NoiseParam mParamUpd;
+  NoiseParam mParam;
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;

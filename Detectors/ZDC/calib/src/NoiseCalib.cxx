@@ -66,47 +66,33 @@ int NoiseCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
     LOGF(info, "Finalizing NoiseCalibData object");
+    mData.print();
   }
 
 
-  // Compute average baseline
-  float factor = mModuleConfig->baselineFactor;
-  for (int ic = 0; ic < NChannels; ic++) {
-    double sum = 0;
-    double nsum = 0;
-    double bmin = mConfig->cutLow[ic];
-    double bmax = mConfig->cutHigh[ic];
-    for (int ib = 0; ib < NoiseRange; ib++) {
-      double bval = (NoiseMin + ib) * factor;
-      if (bval >= bmin && bval <= bmax) {
-        nsum += mData.mHisto[ic].mData[ib];
-        sum += bval * mData.mHisto[ic].mData[ib];
-      }
-    }
-    if (nsum > 0 && mConfig->min_e[ic]) {
-      float ave = sum / nsum;
-      LOGF(info, "Noise %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
-      mParamUpd.setCalib(ic, ave, true);
-    } else {
-      if (mParam == nullptr) {
-        LOGF(error, "Noise %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
-        mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
-      } else {
-        float val = mParam->getCalib(ic);
-        LOGF(info, "Noise %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
-        mParamUpd.setCalib(ic, val, false);
-      }
+  for (int isig = 0; isig < NChannels; isig++) {
+    uint64_t en = 0;
+    double mean = 0, var = 0;
+    mData.getStat(isig, en, mean, var);
+    if (en > 0) {
+      double stdev = std::sqrt(var / double(NTimeBinsPerBC) / double(NTimeBinsPerBC - 1));
+      mParam.setCalib(isig, stdev);
+      mParam.entries[isig] = en;
     }
   }
+
+  mParam.print();
 
   // Creating calibration object and info
-  auto clName = o2::utils::MemFileHelper::getClassName(mParamUpd);
+  auto clName = o2::utils::MemFileHelper::getClassName(mParam);
   mInfo.setObjectType(clName);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfo.setFileName(flName);
   mInfo.setPath(CCDBPathNoiseCalib);
+
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   std::map<std::string, std::string> md;
-  md["config"] = mConfig->desc;
+  md["config"] = opt.descr;
   mInfo.setMetaData(md);
   uint64_t starting = mData.mCTimeBeg;
   if (starting >= 10000) {
@@ -128,5 +114,5 @@ int NoiseCalib::endOfRun()
 //______________________________________________________________________________
 int NoiseCalib::saveDebugHistos(const std::string fn)
 {
-  return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
+  return mData.saveDebugHistos(fn);
 }

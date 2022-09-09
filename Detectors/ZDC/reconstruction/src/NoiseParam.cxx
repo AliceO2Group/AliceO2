@@ -17,7 +17,7 @@
 
 using namespace o2::zdc;
 
-void NoiseParam::setCalib(uint32_t ich, float val, bool ismodified)
+void NoiseParam::setCalib(uint32_t ich, float val)
 {
   if (ich >= NChannels) {
     LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
@@ -36,7 +36,7 @@ float NoiseParam::getCalib(uint32_t ich) const
   }
 }
 
-void NoiseParam::print(bool printall) const
+void NoiseParam::print() const
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     LOG(info) << ChannelNames[ich] << " Noise = " << noise[ich];

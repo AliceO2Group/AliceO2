@@ -80,7 +80,6 @@ int NoiseCalibEPN::process(const gsl::span<const o2::zdc::BCData>& bcdata, const
     if (bcc.ir.bc != 0 || bcp.ir.bc != 3563 || (bcp.ir.orbit + 1) != bcc.ir.orbit) {
       continue;
     }
-    printf("processing orbit: %u\n", bcc.ir.orbit);
     auto chEnt = bcc.ref.getFirstEntry();
     auto nch = bcc.ref.getEntries();
     for (int ich = 0; ich < nch; ich++) {

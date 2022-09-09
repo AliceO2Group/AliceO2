@@ -27,8 +27,9 @@ namespace zdc
 
 struct NoiseParam {
   NoiseParam() = default;
-  float noise[NChannels] = {0}; // RMS of noise
-  void setCalib(uint32_t ich);
+  float noise[NChannels] = {0};      // RMS of noise
+  uint64_t entries[NChannels] = {0}; // Number of processed entries
+  void setCalib(uint32_t ich, float val);
   float getCalib(uint32_t ich) const;
   void print() const;
 

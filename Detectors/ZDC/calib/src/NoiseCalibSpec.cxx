@@ -26,7 +26,6 @@
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -61,15 +60,10 @@ void NoiseCalibSpec::init(o2::framework::InitContext& ic)
 
 void NoiseCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  // we call these methods just to trigger finaliseCCDB callback
-  //pc.inputs().get<o2::zdc::NoiseCalibConfig*>("calibconfig");
 }
 
 void NoiseCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-//   if (matcher == ConcreteDataMatcher("ZDC", "NOISECALIBCONFIG", 0)) {
-//     mWorker.setConfig((const o2::zdc::NoiseCalibConfig*)obj);
-//   }
 }
 
 void NoiseCalibSpec::run(ProcessingContext& pc)
@@ -81,7 +75,7 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
     mTimer.Reset();
     mTimer.Start(false);
   }
-  auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("basecalibdata");
+  auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("noisecalibdata");
   mWorker.process(data.get());
 }
 
@@ -99,7 +93,7 @@ void NoiseCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mWorker.getParamUpd();
+  const auto& payload = mWorker.getParam();
   auto& info = mWorker.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<NoiseParam>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
@@ -120,7 +114,6 @@ framework::DataProcessorSpec getNoiseCalibSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
-//  inputs.emplace_back("calibconfig", "ZDC", "BASECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathNoiseCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib"}, Lifetime::Sporadic);
