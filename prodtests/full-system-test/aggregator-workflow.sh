@@ -17,7 +17,11 @@ if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
   if [[ $RUNTYPE == "SYNTHETIC" ]]; then
     CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
   elif [[ $RUNTYPE == "PHYSICS" ]]; then
-    CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
+    if [[ $$EPNSYNCMODE == 1 ]]; then
+      CCDB_POPULATOR_UPLOAD_PATH="http://localhost:8084"
+    else
+      CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
+    fi
   else
     CCDB_POPULATOR_UPLOAD_PATH="none"
   fi
