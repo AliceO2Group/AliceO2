@@ -267,9 +267,9 @@ int DataInputDescriptor::getReadTimeFramesInFile(int counter)
 
 void DataInputDescriptor::printFileStatistics()
 {
-  uint64_t wait_time = 0;
-  if (uv_hrtime() > mCurrentFileStartedAt - mIOTime) {
-    wait_time = uv_hrtime() - mCurrentFileStartedAt - mIOTime;
+  int64_t wait_time = (int64_t) uv_hrtime() - (int64_t) mCurrentFileStartedAt - (int64_t) mIOTime;
+  if (wait_time < 0) {
+    wait_time = 0;
   }
   std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", mcurrentFile->GetName(),
                                          mcurrentFile->GetSize(), getTimeFramesInFile(mCurrentFileID), getReadTimeFramesInFile(mCurrentFileID), mcurrentFile->GetBytesRead(), mcurrentFile->GetReadCalls(),
