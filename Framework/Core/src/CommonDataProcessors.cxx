@@ -295,11 +295,10 @@ DataProcessorSpec
 
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
-
-    std::string aodInputFile;
+    std::map<uint64_t, std::string> tfFilenames;
 
     // this functor is called once per time frame
-    return [dod, tfNumbers, aodInputFile](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers, tfFilenames](ProcessingContext& pc) mutable -> void {
       LOGP(debug, "======== getGlobalAODSink::processing ==========");
       LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
@@ -318,9 +317,13 @@ DataProcessorSpec
         tfNumber = pc.inputs().get<uint64_t>("tfn");
         tfNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, tfNumber));
       }
+      // update tfFilenames
+      std::string aodInputFile;
       auto ref2 = pc.inputs().get("tff");
       if (ref2.spec && ref2.payload) {
+        startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref2)->startTime;
         aodInputFile = pc.inputs().get<std::string>("tff");
+        tfFilenames.insert(std::pair<uint64_t, std::string>(startTime, aodInputFile));
       }
 
       // loop over the DataRefs which are contained in pc.inputs()
@@ -344,13 +347,18 @@ DataProcessorSpec
           continue;
         }
 
-        // get TF number fro startTime
+        // get TF number from startTime
         auto it = tfNumbers.find(startTime);
         if (it != tfNumbers.end()) {
           tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
         } else {
           LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");
+        }
+        // get aod input file from startTime
+        auto it2 = tfFilenames.find(startTime);
+        if (it2 != tfFilenames.end()) {
+          aodInputFile = it2->second;
         }
 
         // get the TableConsumer and corresponding arrow table
