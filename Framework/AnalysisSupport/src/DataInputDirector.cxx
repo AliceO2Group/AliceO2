@@ -267,7 +267,7 @@ int DataInputDescriptor::getReadTimeFramesInFile(int counter)
 
 void DataInputDescriptor::printFileStatistics()
 {
-  int64_t wait_time = (int64_t) uv_hrtime() - (int64_t) mCurrentFileStartedAt - (int64_t) mIOTime;
+  int64_t wait_time = (int64_t)uv_hrtime() - (int64_t)mCurrentFileStartedAt - (int64_t)mIOTime;
   if (wait_time < 0) {
     wait_time = 0;
   }
