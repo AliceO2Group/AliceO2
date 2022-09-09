@@ -66,7 +66,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dropTFsRange", VariantType::String, "", {"Drop range of TFs"}},
     {"hbfutils-config", VariantType::String, "hbfutils", {"config file for HBFUtils (or none) to get number of orbits per TF"}},
     {"nthreads", VariantType::Int, 1, {"Number of threads."}},
-    {"iter", VariantType::Int, 0, {"Iteration for testing the workflow (.....)"}}};
+    {"iter", VariantType::Int, 0, {"Iteration for testing the workflow (.....)"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -88,6 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
   const auto rangeTFsDrop = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("dropTFsRange"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   const auto nCRUs = tpcCRUs.size();
   const auto first = tpcCRUs.begin();
   const auto last = std::min(tpcCRUs.end(), first + nCRUs);
@@ -211,6 +213,7 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
         const unsigned int additionalInterval = (tf % 3) ? 1 : 0; // in each integration inerval are either 10 or 11 values when having 128 orbits per TF and 12 orbits integration length
         const unsigned int intervals = (nIDCs + additionalInterval);
         const bool generateIDCs = mIDCs.front().empty();
+        const float irVar = 1 + 0.1 * std::sin(tf * 0.0035); // IR variations
 
         std::vector<int> intervalsRand;
         std::vector<float> normFac;
@@ -234,9 +237,9 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
             const int offset = intervalsRand[interval] * nPads;
             for (int iPad = 0; iPad < nPads; ++iPad) {
               if (generateIDCs) {
-                idcs.emplace_back(gRandom->Gaus(1000, 20) / normFac[interval]);
+                idcs.emplace_back(irVar * gRandom->Gaus(1000, 20) / normFac[interval]);
               } else {
-                idcs.emplace_back(mIDCs[cru][offset + iPad] / normFac[interval]);
+                idcs.emplace_back(irVar * mIDCs[cru][offset + iPad] / normFac[interval]);
               }
             }
           }
