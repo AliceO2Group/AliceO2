@@ -1724,8 +1724,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
           deviceExecutions.resize(runningWorkflow.devices.size());
 
-          // Options  which should be uniform across all
-          // teh subworkflow invokations.
+          // Options which should be uniform across all
+          // the subworkflow invokations.
           const auto uniformOptions = {
             "--aod-file",
             "--aod-memory-rate-limit",
@@ -1734,6 +1734,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-writer-resfile",
             "--aod-writer-resmode",
             "--aod-writer-keep",
+            "--aod-parent-base-path-replacement",
             "--driver-client-backend",
             "--fairmq-ipc-prefix",
             "--readers",
