@@ -119,7 +119,6 @@ enum OptionBits {
   TRDVerboseBit,
   TRDVerboseErrorsBit,
   TRDIgnore2StageTrigger,
-  TRDIgnoreBogusTrackletHCHeaders,
   TRDGenerateStats,
   TRDOnlyCalibrationTriggerBit
 }; // this is currently 16 options, the array is 16, if you add here you need to change the 16;
