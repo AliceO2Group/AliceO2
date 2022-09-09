@@ -107,7 +107,7 @@ auto setEOSCallback(InitContext& ic)
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
+  /// FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
   return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
 }
 
@@ -248,8 +248,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           // Origin file name for derived output map
           auto o2 = Output(TFFileNameHeader);
           auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-          // TODO this needs to be converted into an absolute path
-          outputs.make<std::string>(o2) = fileAndFolder.file->GetName();
+          std::string currentFilename(fileAndFolder.file->GetName());
+          if (strcmp(fileAndFolder.file->GetEndpointUrl()->GetProtocol(), "file") == 0 && fileAndFolder.file->GetEndpointUrl()->GetFile()[0] != '/') {
+            // This is not an absolute local path. Make it absolute.
+            currentFilename = gSystem->pwd() + std::string("/") + std::string(fileAndFolder.file->GetName());
+          }
+          outputs.make<std::string>(o2) = currentFilename;
         }
 
         first = false;
