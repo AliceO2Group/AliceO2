@@ -31,6 +31,10 @@ int NoiseCalibEPN::init()
     mModuleConfig->print();
   }
 
+  for(int isig=0; isig<NChannels; isig++){
+    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096,-2048.7, 2047.5);
+  }
+
   // Update reconstruction parameters
   // auto& ropt=RecoParamZDC::Instance();
   o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
@@ -112,6 +116,7 @@ int NoiseCalibEPN::process(const gsl::span<const o2::zdc::BCData>& bcdata, const
         int sq = 0;
         for (int is = 0; is < NTimeBinsPerBC; is++) {
           auto s = chd.data[is];
+          mH[chd.id]->fill(s);
           ss += s;
           sq += s * s;
         }
@@ -141,5 +146,22 @@ int NoiseCalibEPN::endOfRun()
 //______________________________________________________________________________
 int NoiseCalibEPN::saveDebugHistos(const std::string fn)
 {
-  return mData.saveDebugHistos(fn);
+  int ierr = mData.saveDebugHistos(fn);
+  if(ierr!=0){
+    return ierr;
+  }
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "update");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot update file: " << fn;
+    return 1;
+  }
+  for (int32_t is = 0; is < NChannels; is++) {
+    auto p = mH[is]->createTH1F(TString::Format("hs%d",is).Data());
+    p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
+    p->Write("", TObject::kOverwrite);
+  }
+  f->Close();
+  cwd->cd();
+  return 0;
 }

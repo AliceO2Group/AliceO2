@@ -12,6 +12,7 @@
 #include <memory>
 #include <gsl/span>
 #include "ZDCBase/Constants.h"
+#include "CommonDataFormat/FlatHisto1D.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -39,6 +40,7 @@ class NoiseCalibEPN
   void setVerbosity(int val) { mVerbosity = val; }
   NoiseCalibData mData;
   NoiseCalibData& getData() { return mData; }
+  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
 
  private:
   bool mInitDone = false;

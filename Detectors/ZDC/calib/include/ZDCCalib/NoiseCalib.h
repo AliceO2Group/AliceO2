@@ -12,6 +12,7 @@
 #include <memory>
 #include <gsl/span>
 #include "ZDCBase/Constants.h"
+#include "CommonDataFormat/FlatHisto1D.h"
 #include "ZDCCalib/NoiseCalibData.h"
 #include "ZDCReconstruction/NoiseParam.h"
 #include "CCDB/CcdbObjectInfo.h"
@@ -31,6 +32,7 @@ class NoiseCalib
   void clear();
   // int process(const o2::zdc::NoiseCalibSummaryData& data);
   int process(const o2::zdc::NoiseCalibSummaryData* data);
+  void add(int ih, o2::dataformats::FlatHisto1D<double>& h1);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCNoiseCalib.root");
 
@@ -44,6 +46,7 @@ class NoiseCalib
 
   NoiseCalibData& getData() { return mData; }
   NoiseParam& getParam() { return mParam; }
+  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
 
  private:
   NoiseCalibData mData;

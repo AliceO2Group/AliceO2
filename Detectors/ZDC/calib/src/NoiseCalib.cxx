@@ -29,6 +29,10 @@ int NoiseCalib::init()
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
 
+  for(int isig=0; isig<NChannels; isig++){
+    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096,-2048.7, 2047.5);
+  }
+
   if (opt.debug_output > 0) {
     setSaveDebugHistos();
   }
@@ -60,6 +64,21 @@ int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
   return 0;
 }
 
+
+//______________________________________________________________________________
+// Add histograms
+void NoiseCalib::add(int ih, o2::dataformats::FlatHisto1D<double>& h1)
+{
+  if (!mInitDone) {
+    init();
+  }
+  if (ih >= 0 && ih < NChannels) {
+    mH[ih]->add(h1);
+  } else {
+    LOG(error) << "InterCalib::add: unsupported FlatHisto1D " << ih;
+  }
+}
+
 //______________________________________________________________________________
 // Create calibration object
 int NoiseCalib::endOfRun()
@@ -69,13 +88,13 @@ int NoiseCalib::endOfRun()
     mData.print();
   }
 
-
   for (int isig = 0; isig < NChannels; isig++) {
     uint64_t en = 0;
     double mean = 0, var = 0;
+    // N.B. Histogram is used to evaluate mean variance -> OK to use mean!
     mData.getStat(isig, en, mean, var);
     if (en > 0) {
-      double stdev = std::sqrt(var / double(NTimeBinsPerBC) / double(NTimeBinsPerBC - 1));
+      double stdev = std::sqrt(mean / double(NTimeBinsPerBC) / double(NTimeBinsPerBC - 1));
       mParam.setCalib(isig, stdev);
       mParam.entries[isig] = en;
     }
@@ -114,5 +133,22 @@ int NoiseCalib::endOfRun()
 //______________________________________________________________________________
 int NoiseCalib::saveDebugHistos(const std::string fn)
 {
-  return mData.saveDebugHistos(fn);
+  int ierr = mData.saveDebugHistos(fn);
+  if(ierr!=0){
+    return ierr;
+  }
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "update");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot update file: " << fn;
+    return 1;
+  }
+  for (int32_t is = 0; is < NChannels; is++) {
+    auto p = mH[is]->createTH1F(TString::Format("hs%d",is).Data());
+    p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
+    p->Write("", TObject::kOverwrite);
+  }
+  f->Close();
+  cwd->cd();
+  return 0;
 }

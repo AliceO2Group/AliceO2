@@ -77,6 +77,11 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
   }
   auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("noisecalibdata");
   mWorker.process(data.get());
+  for (int ih = 0; ih < NChannels; ih++) {
+    o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(fmt::format("noise_1dh{}", ih).data()));
+    mWorker.add(ih, histoView);
+  }
+
 }
 
 void NoiseCalibSpec::endOfStream(EndOfStreamContext& ec)
@@ -114,6 +119,13 @@ framework::DataProcessorSpec getNoiseCalibSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
+  char inputa[o2::header::gSizeDataDescriptionString];
+  char inputd[o2::header::gSizeDataDescriptionString];
+  for (int ih = 0; ih < NChannels; ih++) {
+    snprintf(inputa, o2::header::gSizeDataDescriptionString, "noise_1dh%d", ih);
+    snprintf(inputd, o2::header::gSizeDataDescriptionString, "NOISE_1DH%d", ih);
+    inputs.emplace_back(inputa, "ZDC", inputd, 0, Lifetime::Timeframe);
+  }
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib"}, Lifetime::Sporadic);
