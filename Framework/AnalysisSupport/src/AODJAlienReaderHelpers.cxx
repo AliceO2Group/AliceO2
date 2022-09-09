@@ -32,6 +32,7 @@
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
+#include <TSystem.h>
 
 #include <arrow/ipc/reader.h>
 #include <arrow/ipc/writer.h>
