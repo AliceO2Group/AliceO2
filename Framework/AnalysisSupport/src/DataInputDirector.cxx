@@ -125,6 +125,10 @@ bool DataInputDescriptor::setFile(int counter)
   }
   mcurrentFile->SetReadaheadSize(50 * 1024 * 1024);
 
+  // get the parent file map if exists
+  mParentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
+  // TODO needs configurable to replace part of absolute files if they have been relocated after producing them (e.g. local cluster)
+
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
     std::regex TFRegex = std::regex("DF_[0-9]+");
@@ -137,22 +141,28 @@ bool DataInputDescriptor::setFile(int counter)
         mfilenames[counter]->listOfTimeFrameNumbers.emplace_back(folderNumber);
       }
     }
-    std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
+    if (mParentFileMap != nullptr) {
+      // If we have a parent map, we should not process in DF alphabetical order but according to parent file to avoid swapping between files
+      std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end(),
+                [this](long const& l1, long const& l2) -> bool {
+                  auto p1 = (TObjString*)this->mParentFileMap->GetValue(("DF_" + std::to_string(l1)).c_str());
+                  auto p2 = (TObjString*)this->mParentFileMap->GetValue(("DF_" + std::to_string(l2)).c_str());
+                  return p1->GetString().CompareTo(p2->GetString()) < 0;
+                });
+    } else {
+      std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
+    }
 
     for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
       auto folderName = "DF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
+      mfilenames[counter]->alreadyRead.emplace_back(false);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
 
   mCurrentFileID = counter;
-  mCurrentFileHighestTFRead = -1;
   mCurrentFileStartedAt = uv_hrtime();
-
-  // get the parent file map if exists
-  mParentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
-  // TODO needs configurable to replace part of absolute files if they have been relocated after producing them (e.g. local cluster)
 
   return true;
 }
@@ -190,7 +200,7 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   fileAndFolder.file = mcurrentFile;
   fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
-  mCurrentFileHighestTFRead = numTF;
+  mfilenames[counter]->alreadyRead[numTF] = true;
 
   return fileAndFolder;
 }
@@ -212,7 +222,6 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
   if (mParentFile) {
     // Is this still the corresponding to the correct file?
     if (parentFileName->GetString().CompareTo(mParentFile->mcurrentFile->GetName()) == 0) {
-      mParentFile->mCurrentFileHighestTFRead = numTF;
       return mParentFile;
     } else {
       mParentFile->closeInputFile();
@@ -221,19 +230,24 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
     }
   }
 
-  LOGP(info, "Opening parent file {}", parentFileName->GetString().Data());
+  LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
   mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring);
   mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
   mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
   mParentFile->setFile(0);
-  mParentFile->mCurrentFileHighestTFRead = numTF;
   return mParentFile;
 }
 
 int DataInputDescriptor::getTimeFramesInFile(int counter)
 {
   return mfilenames.at(counter)->numberOfTimeFrames;
+}
+
+int DataInputDescriptor::getReadTimeFramesInFile(int counter)
+{
+  auto& list = mfilenames.at(counter)->alreadyRead;
+  return std::count(list.begin(), list.end(), true);
 }
 
 void DataInputDescriptor::printFileStatistics()
@@ -243,7 +257,7 @@ void DataInputDescriptor::printFileStatistics()
     wait_time = uv_hrtime() - mCurrentFileStartedAt - mIOTime;
   }
   std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", mcurrentFile->GetName(),
-                                         mcurrentFile->GetSize(), getTimeFramesInFile(mCurrentFileID), mCurrentFileHighestTFRead + 1, mcurrentFile->GetBytesRead(), mcurrentFile->GetReadCalls(),
+                                         mcurrentFile->GetSize(), getTimeFramesInFile(mCurrentFileID), getReadTimeFramesInFile(mCurrentFileID), mcurrentFile->GetBytesRead(), mcurrentFile->GetReadCalls(),
                                          ((float)mIOTime / 1e9), ((float)wait_time / 1e9), mLevel));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(mcurrentFile);
@@ -316,6 +330,16 @@ int DataInputDescriptor::fillInputfiles()
   return getNumberInputfiles();
 }
 
+int DataInputDescriptor::findDFNumber(int file, std::string dfName)
+{
+  auto dfList = mfilenames[file]->listOfTimeFrameKeys;
+  auto it = std::find(dfList.begin(), dfList.end(), dfName);
+  if (it == dfList.end()) {
+    return -1;
+  }
+  return it - dfList.begin();
+}
+
 bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
 {
   auto ioStart = uv_hrtime();
@@ -332,8 +356,12 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.c_str());
     auto parentFile = getParentFile(counter, numTF);
     if (parentFile != nullptr) {
+      int parentNumTF = parentFile->findDFNumber(0, fileAndFolder.folderName);
+      if (parentNumTF == -1) {
+        throw std::runtime_error(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", fileAndFolder.folderName, parentFile->mcurrentFile->GetName()));
+      }
       // first argument is 0 as the parent file object contains only 1 file
-      return parentFile->readTree(outputs, dh, 0, numTF, treename, totalSizeCompressed, totalSizeUncompressed);
+      return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
     }
     throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
   }
