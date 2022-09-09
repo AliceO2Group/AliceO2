@@ -31,6 +31,34 @@ int NoiseCalibEPN::init()
     mModuleConfig->print();
   }
 
+  // Update reconstruction parameters
+  // auto& ropt=RecoParamZDC::Instance();
+  o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
+  ropt.print();
+  mRopt = (o2::zdc::RecoParamZDC*)&ropt;
+
+  // Fill maps to decode the pattern of channels with hit
+  for (int ich = 0; ich < NChannels; ich++) {
+    // If the reconstruction parameters were not manually set
+    if (ropt.amod[ich] < 0 || ropt.ach[ich] < 0) {
+      for (int im = 0; im < NModules; im++) {
+        for (uint32_t ic = 0; ic < NChPerModule; ic++) {
+          if (mModuleConfig->modules[im].channelID[ic] == ich && mModuleConfig->modules[im].readChannel[ic]) {
+            ropt.amod[ich] = im;
+            ropt.ach[ich] = ic;
+            // Fill mask to identify all channels
+            mChMask[ich] = (0x1 << (4 * im + ic));
+            goto next_ich;
+          }
+        }
+      }
+    }
+  next_ich:;
+    if (mVerbosity > DbgZero) {
+      LOG(info) << "Channel " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
+    }
+  }
+
   if (opt.debug_output > 0) {
     setSaveDebugHistos();
   }
@@ -40,10 +68,61 @@ int NoiseCalibEPN::init()
 }
 
 //______________________________________________________________________________
-int NoiseCalibEPN::process(int process(const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
+int NoiseCalibEPN::process(const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
 {
   if (!mInitDone) {
     init();
+  }
+  auto nbc = bcdata.size();
+  for (int ibc = 1; ibc < nbc; ibc++) {
+    auto& bcp = bcdata[ibc - 1];
+    auto& bcc = bcdata[ibc];
+    if (bcc.ir.bc != 0 || bcp.ir.bc != 3563 || (bcp.ir.orbit + 1) != bcc.ir.orbit) {
+      continue;
+    }
+    printf("processing orbit: %u\n", bcc.ir.orbit);
+    auto chEnt = bcc.ref.getFirstEntry();
+    auto nch = bcc.ref.getEntries();
+    for (int ich = 0; ich < nch; ich++) {
+      const auto& chd = chdata[chEnt++];
+      if (chd.id < NChannels) {
+        // Check trigger flags
+        ModuleTriggerMapData mtc, mtp;
+        mtp.w = bcp.moduleTriggers[mRopt->amod[chd.id]];
+        mtc.w = bcc.moduleTriggers[mRopt->amod[chd.id]];
+        if (mtp.f.Auto_m                                                         // Auto trigger in bunch -2
+            || mtp.f.Auto_0 || mtp.f.Alice_0 || (bcp.triggers & mChMask[chd.id]) // Trigger or hit in bunch -1
+            || mtc.f.Auto_0 || mtc.f.Alice_0 || (bcc.triggers & mChMask[chd.id]) // Trigger or hit in bunch -2
+            || mtc.f.Auto_1 || mtc.f.Alice_1                                     // Trigger in bunch +1
+        ) {
+#ifdef O2_ZDC_DEBUG
+          printf("%u.%04u SKIP %s%s%s%s%s%s%s%s%s\n",
+                 mtp.f.Auto_m ? "p.Auto_m" : "",
+                 mtp.f.Auto_0 ? "p.Auto_0" : "",
+                 mtp.f.Alice_0 ? "p.Alice_0" : "",
+                 (bcp.triggers & mChMask[chd.id]) ? "p.HIT" : "",
+                 mtc.f.Auto_0 ? "c.Auto_0" : "",
+                 mtc.f.Alice_0 ? "c.Alice_0" : "",
+                 (bcc.triggers & mChMask[chd.id]) ? "c.HIT" : "",
+                 mtc.f.Auto_1 ? "c.Auto_1" : "",
+                 mtc.f.Alice_1 ? "c.Alice_1" : "");
+#endif
+          continue;
+        }
+        int ss = 0;
+        int sq = 0;
+        for (int is = 0; is < NTimeBinsPerBC; is++) {
+          auto s = chd.data[is];
+          ss += s;
+          sq += s * s;
+        }
+        int v = NTimeBinsPerBC * sq - ss * ss;
+        if (v > 0) {
+          // This should always be the case
+          mData.addEntry(chd.id, v);
+        }
+      }
+    }
   }
   return 0;
 }
@@ -63,5 +142,5 @@ int NoiseCalibEPN::endOfRun()
 //______________________________________________________________________________
 int NoiseCalibEPN::saveDebugHistos(const std::string fn)
 {
-  return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
+  return mData.saveDebugHistos(fn);
 }

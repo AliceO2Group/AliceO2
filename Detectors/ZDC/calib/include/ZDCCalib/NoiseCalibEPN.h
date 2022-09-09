@@ -15,6 +15,7 @@
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
+#include "ZDCReconstruction/RecoParamZDC.h"
 #include "ZDCCalib/NoiseCalibData.h"
 #ifndef ALICEO2_ZDC_NOISECALIBEPN_H
 #define ALICEO2_ZDC_NOISECALIBEPN_H
@@ -30,8 +31,7 @@ class NoiseCalibEPN
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
   void clear(int ih = -1);
-  int process(const gsl::span<const o2::zdc::BCData>& bcdata,
-              const gsl::span<const o2::zdc::ChannelData>& chdata);
+  int process(const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCNoiseCalibEPN.root");
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
@@ -44,6 +44,8 @@ class NoiseCalibEPN
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
   const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
+  const RecoParamZDC* mRopt = nullptr;
+  uint32_t mChMask[NChannels] = {0}; /// Identify all channels in readout pattern
   int32_t mVerbosity = DbgMinimal;
 };
 } // namespace zdc

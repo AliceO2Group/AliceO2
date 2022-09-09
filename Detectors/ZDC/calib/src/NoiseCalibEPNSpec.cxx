@@ -93,11 +93,11 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   NoiseCalibData& data = mWorker.getData();
   data.setCreationTime(creationTime);
 
-  auto trig = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("trig");
-  auto chan = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("chan");
+  auto trig = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
+  auto chan = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
 
   // Process reconstructed data
-  mWorker.process(peds);
+  mWorker.process(trig, chan);
 
   // Send intermediate calibration data
   auto& summary = mWorker.mData.getSummary();
@@ -116,7 +116,6 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
 {
   using device = o2::zdc::NoiseCalibEPNSpec;
   std::vector<InputSpec> inputs;
-  std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("chan", "ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
@@ -124,7 +123,7 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
-    "zdc-calib-noise-epn",
+    "zdc-noisecalib-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
