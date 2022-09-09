@@ -70,7 +70,7 @@ class TimeSlotCalibration
   void checkSlotLength()
   {
     if (mSlotLengthInSeconds > 0) {
-      TFType ntf = mSlotLengthInSeconds / (long(o2::base::GRPGeomHelper::getNHBFPerTF()) * o2::constants::lhc::LHCOrbitMUS / 1000000);
+      TFType ntf = mSlotLengthInSeconds / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
       LOGP(info, "Redefining slot duration from {} s. to {} TFs", mSlotLengthInSeconds, ntf);
       setSlotLength(ntf);
       mSlotLengthInSeconds = 0;
@@ -343,6 +343,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
     } else if (mSlots.empty()) {
       auto& sl = emplaceNewSlot(true, mFirstTF, tf);
       sl.setRunStartOrbit(getRunStartOrbit());
+      sl.setStaticStartTimeMS(sl.getStartTimeMS());
     }
     return mSlots.back();
   }
@@ -356,6 +357,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
       LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
       auto& sl = emplaceNewSlot(true, tfmn, tfmx);
       sl.setRunStartOrbit(getRunStartOrbit());
+      sl.setStaticStartTimeMS(sl.getStartTimeMS());
       if (!tfmn) {
         break;
       }
@@ -377,6 +379,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
     LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
     auto& sl = emplaceNewSlot(false, tfmn, tfmx);
     sl.setRunStartOrbit(getRunStartOrbit());
+    sl.setStaticStartTimeMS(sl.getStartTimeMS());
     tfmn = tf2SlotMin(mSlots.back().getTFEnd() + 1);
   } while (tf > mSlots.back().getTFEnd());
 

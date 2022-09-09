@@ -627,7 +627,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
 
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  auto startValidity = slot.getStartTimeMS();
+  auto startValidity = slot.getStaticStartTimeMS() - o2::ccdb::CcdbObjectInfo::SECOND * 10; // adding a marging, in case some TFs were not processed
   auto endValidity = o2::ccdb::CcdbObjectInfo::MONTH * 2;
   ts.setStartValidity(startValidity);
   ts.setEndValidity(endValidity);
@@ -734,7 +734,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
 
       double fitres = fitGaus(nbinsUsed, histoValues.data(), minRange, maxRange, fitValues, nullptr, 2., false);
       LOG(info) << "channel = " << ich << " fitted by thread = " << ithread;
-      if (fitres > -3) {
+      if (fitres > -10) {
         LOG(info) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
       } else {
 #ifdef DEBUGGING
@@ -801,7 +801,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   }   // end loop over sectors
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  auto startValidity = slot.getStartTimeMS();
+  auto startValidity = slot.getStaticStartTimeMS() - o2::ccdb::CcdbObjectInfo::SECOND * 10; // adding a marging, in case some TFs were not processed
   auto endValidity = startValidity + o2::ccdb::CcdbObjectInfo::MONTH * 2;
   ts.setStartValidity(startValidity);
   ts.setEndValidity(endValidity);
