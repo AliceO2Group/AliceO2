@@ -77,7 +77,7 @@ void createGRPECSObject(const std::string& dataPeriod,
   auto flpsVec = o2::utils::Str::tokenize(flpList, ',');
   for (const auto& s : flpsVec) {
     try {
-      grpecs.addFlp((unsigned short)std::stoi(s));
+      grpecs.addFLP((unsigned short)std::stoi(s));
     } catch (const std::exception& e) {
       LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what();
     }
