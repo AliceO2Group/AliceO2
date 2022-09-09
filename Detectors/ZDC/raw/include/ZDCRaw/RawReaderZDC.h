@@ -49,6 +49,8 @@ class RawReaderZDC
   bool mDumpData = false;                          // Enable printout of all data
   int mVerbosity = 0;                              // Verbosity level
   uint32_t mEvents[NModules][NChPerModule] = {0};  // Debug words per module
+  uint32_t mDupOK[NModules][NChPerModule] = {0};   // Duplicate channels in bunches where it is expected
+  uint32_t mDupKO[NModules][NChPerModule] = {0};   // Duplicate channels in bunches where it is NOT expected
 
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
@@ -84,6 +86,8 @@ class RawReaderZDC
   }
 
   int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData);
+
+  void inspectDup(); // Check duplicate channels in raw data
 
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
