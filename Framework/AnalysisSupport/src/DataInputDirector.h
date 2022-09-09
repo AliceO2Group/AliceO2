@@ -50,7 +50,7 @@ class DataInputDescriptor
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor() = default;
-  DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr);
+  DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr, std::string parentFileReplacement = "");
 
   void printOut();
 
@@ -91,6 +91,7 @@ class DataInputDescriptor
   std::string* minputfilesFilePtr = nullptr;
   std::string mFilenameRegex = "";
   std::string* mFilenameRegexPtr = nullptr;
+  std::string mParentFileReplacement;
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
@@ -117,8 +118,8 @@ class DataInputDirector
 
  public:
   DataInputDirector();
-  DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr);
-  DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr);
+  DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr, std::string parentFileReplacement = "");
+  DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr, std::string parentFileReplacement = "");
   ~DataInputDirector();
 
   void reset();
@@ -149,6 +150,7 @@ class DataInputDirector
   std::string minputfilesFile;
   std::string* const minputfilesFilePtr = &minputfilesFile;
   std::string mFilenameRegex;
+  std::string mParentFileReplacement;
   std::string* const mFilenameRegexPtr = &mFilenameRegex;
   DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
   std::vector<FileNameHolder*> mdefaultInputFiles;

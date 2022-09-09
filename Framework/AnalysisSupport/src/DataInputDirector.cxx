@@ -54,9 +54,10 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   return fileNameHolder;
 }
 
-DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring) : mAlienSupport(alienSupport),
-                                                                                                                 mMonitoring(monitoring),
-                                                                                                                 mLevel(level)
+DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mAlienSupport(alienSupport),
+                                                                                                                                                    mMonitoring(monitoring),
+                                                                                                                                                    mParentFileReplacement(parentFileReplacement),
+                                                                                                                                                    mLevel(level)
 {
 }
 
@@ -127,7 +128,21 @@ bool DataInputDescriptor::setFile(int counter)
 
   // get the parent file map if exists
   mParentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
-  // TODO needs configurable to replace part of absolute files if they have been relocated after producing them (e.g. local cluster)
+  if (mParentFileMap && !mParentFileReplacement.empty()) {
+    auto pos = mParentFileReplacement.find(';');
+    if (pos == std::string::npos) {
+      throw std::runtime_error(fmt::format("Invalid syntax in aod-parent-base-path-replacement: \"{}\"", mParentFileReplacement.c_str()));
+    }
+    auto from = mParentFileReplacement.substr(0, pos);
+    auto to = mParentFileReplacement.substr(pos + 1);
+
+    auto it = mParentFileMap->MakeIterator();
+    while (auto obj = it->Next()) {
+      auto objString = (TObjString*)mParentFileMap->GetValue(obj);
+      objString->String().ReplaceAll(from.c_str(), to.c_str());
+    }
+    delete it;
+  }
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
@@ -231,7 +246,7 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
   }
 
   LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
-  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring);
+  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring, mParentFileReplacement);
   mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
   mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
@@ -399,7 +414,7 @@ DataInputDirector::DataInputDirector()
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring) : mMonitoring(monitoring)
+DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mMonitoring(monitoring), mParentFileReplacement(parentFileReplacement)
 {
   if (inputFile.size() && inputFile[0] == '@') {
     inputFile.erase(0, 1);
@@ -411,7 +426,7 @@ DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Moni
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring) : mMonitoring(monitoring)
+DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mMonitoring(monitoring), mParentFileReplacement(parentFileReplacement)
 {
   for (auto inputFile : inputFiles) {
     mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
@@ -446,7 +461,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring);
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mParentFileReplacement);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -571,7 +586,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring);
+      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mParentFileReplacement);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";
