@@ -16,28 +16,18 @@
 #include <TStyle.h>
 #include <TDirectory.h>
 #include "ZDCCalib/CalibParamZDC.h"
-#include "ZDCCalib/BaselineCalib.h"
+#include "ZDCCalib/NoiseCalib.h"
 #include "Framework/Logger.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 
 using namespace o2::zdc;
 
-int BaselineCalib::init()
+int NoiseCalib::init()
 {
   // Inspect reconstruction parameters
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
-
-  if (mConfig == nullptr) {
-    LOG(fatal) << "o2::zdc::BaselineCalib: missing configuration object";
-    return -1;
-  }
-
-  if (mVerbosity > DbgZero) {
-    mModuleConfig->print();
-    mConfig->print();
-  }
 
   if (opt.debug_output > 0) {
     setSaveDebugHistos();
@@ -49,13 +39,13 @@ int BaselineCalib::init()
 }
 
 //______________________________________________________________________________
-void BaselineCalib::clear()
+void NoiseCalib::clear()
 {
   mData.clear();
 }
 
 //______________________________________________________________________________
-int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
+int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
 {
   if (!mInitDone) {
     init();
@@ -72,11 +62,12 @@ int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 
 //______________________________________________________________________________
 // Create calibration object
-int BaselineCalib::endOfRun()
+int NoiseCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
-    LOGF(info, "Finalizing BaselineCalibData object");
+    LOGF(info, "Finalizing NoiseCalibData object");
   }
+
 
   // Compute average baseline
   float factor = mModuleConfig->baselineFactor;
@@ -85,8 +76,8 @@ int BaselineCalib::endOfRun()
     double nsum = 0;
     double bmin = mConfig->cutLow[ic];
     double bmax = mConfig->cutHigh[ic];
-    for (int ib = 0; ib < BaselineRange; ib++) {
-      double bval = (BaselineMin + ib) * factor;
+    for (int ib = 0; ib < NoiseRange; ib++) {
+      double bval = (NoiseMin + ib) * factor;
       if (bval >= bmin && bval <= bmax) {
         nsum += mData.mHisto[ic].mData[ib];
         sum += bval * mData.mHisto[ic].mData[ib];
@@ -94,15 +85,15 @@ int BaselineCalib::endOfRun()
     }
     if (nsum > 0 && mConfig->min_e[ic]) {
       float ave = sum / nsum;
-      LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      LOGF(info, "Noise %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
       mParamUpd.setCalib(ic, ave, true);
     } else {
       if (mParam == nullptr) {
-        LOGF(error, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
+        LOGF(error, "Noise %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
         mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
       } else {
         float val = mParam->getCalib(ic);
-        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
+        LOGF(info, "Noise %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
         mParamUpd.setCalib(ic, val, false);
       }
     }
@@ -113,7 +104,7 @@ int BaselineCalib::endOfRun()
   mInfo.setObjectType(clName);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfo.setFileName(flName);
-  mInfo.setPath(CCDBPathBaselineCalib);
+  mInfo.setPath(CCDBPathNoiseCalib);
   std::map<std::string, std::string> md;
   md["config"] = mConfig->desc;
   mInfo.setMetaData(md);
@@ -135,7 +126,7 @@ int BaselineCalib::endOfRun()
 }
 
 //______________________________________________________________________________
-int BaselineCalib::saveDebugHistos(const std::string fn)
+int NoiseCalib::saveDebugHistos(const std::string fn)
 {
   return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
 }

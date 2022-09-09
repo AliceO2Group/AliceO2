@@ -13,8 +13,8 @@
 /// @brief  ZDC baseline calibration
 /// @author pietro.cortese@cern.ch
 
-#ifndef O2_ZDC_BASELINECALIB_SPEC
-#define O2_ZDC_BASELINECALIB_SPEC
+#ifndef O2_ZDC_NOISECALIB_SPEC
+#define O2_ZDC_NOISECALIB_SPEC
 
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
@@ -23,9 +23,8 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
-#include "ZDCCalib/BaselineCalib.h"
-#include "ZDCCalib/BaselineCalibConfig.h"
-#include "ZDCReconstruction/BaselineParam.h"
+#include "ZDCCalib/NoiseCalib.h"
+#include "ZDCReconstruction/NoiseParam.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -34,12 +33,12 @@ namespace o2
 namespace zdc
 {
 
-class BaselineCalibSpec : public o2::framework::Task
+class NoiseCalibSpec : public o2::framework::Task
 {
  public:
-  BaselineCalibSpec();
-  BaselineCalibSpec(const int verbosity);
-  ~BaselineCalibSpec() override = default;
+  NoiseCalibSpec();
+  NoiseCalibSpec(const int verbosity);
+  ~NoiseCalibSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
@@ -50,11 +49,11 @@ class BaselineCalibSpec : public o2::framework::Task
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
   bool mInitialized = false;   // Connect once to CCDB during initialization
-  BaselineCalib mWorker;       // Baseline calibration object
+  NoiseCalib mWorker;          // Noise calibration object
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getBaselineCalibSpec();
+framework::DataProcessorSpec getNoiseCalibSpec();
 
 } // namespace zdc
 } // namespace o2

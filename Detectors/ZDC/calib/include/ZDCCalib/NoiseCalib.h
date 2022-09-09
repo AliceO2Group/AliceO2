@@ -12,38 +12,36 @@
 #include <memory>
 #include <gsl/span>
 #include "ZDCBase/Constants.h"
-#include "ZDCBase/ModuleConfig.h"
-#include "ZDCCalib/BaselineCalibData.h"
-#include "ZDCCalib/BaselineCalibConfig.h"
-#include "ZDCReconstruction/BaselineParam.h"
+#include "ZDCCalib/NoiseCalibData.h"
+#include "ZDCReconstruction/NoiseParam.h"
 #include "CCDB/CcdbObjectInfo.h"
-#ifndef ALICEO2_ZDC_BASELINECALIB_H
-#define ALICEO2_ZDC_BASELINECALIB_H
+#ifndef ALICEO2_ZDC_NOISECALIB_H
+#define ALICEO2_ZDC_NOISECALIB_H
 namespace o2
 {
 namespace zdc
 {
-class BaselineCalib
+class NoiseCalib
 {
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 
  public:
-  BaselineCalib() = default;
+  NoiseCalib() = default;
   int init();
   void clear();
-  //int process(const o2::zdc::BaselineCalibSummaryData& data);
-  int process(const o2::zdc::BaselineCalibSummaryData* data);
+  // int process(const o2::zdc::NoiseCalibSummaryData& data);
+  int process(const o2::zdc::NoiseCalibSummaryData* data);
   int endOfRun();
-  int saveDebugHistos(const std::string fn = "ZDCBaselineCalib.root");
+  int saveDebugHistos(const std::string fn = "ZDCNoiseCalib.root");
 
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
-  void setConfig(const BaselineCalibConfig* param) { mConfig = param; };
-  const BaselineCalibConfig* getConfig() const { return mConfig; };
+  void setConfig(const NoiseCalibConfig* param) { mConfig = param; };
+  const NoiseCalibConfig* getConfig() const { return mConfig; };
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-  void setBaselineParam(const BaselineParam* param) { mParam = param; };
-  const BaselineParam* getBaselineParam() const { return mParam; };
+  void setNoiseParam(const NoiseParam* param) { mParam = param; };
+  const NoiseParam* getNoiseParam() const { return mParam; };
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
@@ -51,19 +49,17 @@ class BaselineCalib
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
-  BaselineCalibData& getData() { return mData; }
-  BaselineParam& getParamUpd() { return mParamUpd; }
+  NoiseCalibData& getData() { return mData; }
+  NoiseParam& getParamUpd() { return mParamUpd; }
 
  private:
-  BaselineCalibData mData;
-  const BaselineParam* mParam = nullptr;
-  BaselineParam mParamUpd;
+  NoiseCalibData mData;
+  const NoiseParam* mParam = nullptr;
+  NoiseParam mParamUpd;
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
-  const BaselineCalibConfig* mConfig = nullptr; /// Configuration of intercalibration
-  const ModuleConfig* mModuleConfig = nullptr;  /// Trigger/readout configuration object
-  CcdbObjectInfo mInfo;                         /// CCDB Info
+  CcdbObjectInfo mInfo; /// CCDB Info
 };
 } // namespace zdc
 } // namespace o2

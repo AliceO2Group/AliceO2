@@ -9,19 +9,33 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef ZDC_NOISECALIB_PARAM_H
+#define ZDC_NOISECALIB_PARAM_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "ZDCBase/Constants.h"
+#include <Rtypes.h>
+#include <vector>
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
-#pragma link C++ class o2::zdc::BaselineParam + ;
-#pragma link C++ class o2::zdc::NoiseParam + ;
-#pragma link C++ class o2::zdc::ZDCTDCCorr + ;
+/// \file NoiseParam.h
+/// \brief Noise calibration data
+/// \author pietro.cortese@cern.ch
+
+namespace o2
+{
+namespace zdc
+{
+
+struct NoiseParam {
+  NoiseParam() = default;
+  float noise[NChannels] = {0}; // RMS of noise
+  void setCalib(uint32_t ich);
+  float getCalib(uint32_t ich) const;
+  void print() const;
+
+  ClassDefNV(NoiseParam, 1);
+};
+
+} // namespace zdc
+} // namespace o2
 
 #endif

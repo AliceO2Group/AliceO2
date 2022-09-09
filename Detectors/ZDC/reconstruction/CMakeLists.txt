@@ -18,6 +18,7 @@ o2_add_library(ZDCReconstruction
                        src/ZDCEnergyParam.cxx
                        src/ZDCTowerParam.cxx
                        src/BaselineParam.cxx
+                       src/NoiseParam.cxx
                        src/RecoConfigZDC.cxx
                        src/DigiRecoTest.cxx
                        src/ZDCTDCCorr.cxx
