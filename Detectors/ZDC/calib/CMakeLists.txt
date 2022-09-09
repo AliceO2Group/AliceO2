@@ -38,12 +38,17 @@ o2_add_library(ZDCCalib
                  src/WaveformCalibData.cxx
                  src/WaveformCalibParam.cxx
                  src/CalibParamZDC.cxx
+                 src/ZDCDCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES
                  O2::CCDB
+                 O2::CommonUtils
+                 O2::DetectorsCalibration
+                 O2::DetectorsDCS
                  O2::DPLUtils
                  O2::DataFormatsZDC
                  O2::DetectorsRaw
                  O2::Headers
+                 O2::Steer
                  O2::SimConfig
                  O2::SimulationDataFormat
                  O2::ZDCBase
@@ -65,7 +70,8 @@ o2_target_root_dictionary(ZDCCalib
                             include/ZDCCalib/WaveformCalibConfig.h
                             include/ZDCCalib/WaveformCalibData.h
                             include/ZDCCalib/WaveformCalibParam.h
-                            include/ZDCCalib/CalibParamZDC.h)
+                            include/ZDCCalib/CalibParamZDC.h
+                            include/ZDCCalib/ZDCDCSProcessor.h)
 
 o2_add_executable(intercalib-workflow
                   COMPONENT_NAME zdc
@@ -101,3 +107,29 @@ o2_add_executable(tdccalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-tdccalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
+
+o2_add_executable(zdc-dummy-ccdb-for-calib
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/zdc-dummy-ccdb-for-calib.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  O2::ZDCCalib
+                  O2::DetectorsCalibration)
+
+o2_add_executable(zdc-dcs-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/zdc-dcs-data-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::ZDCCalib  O2::DetectorsDCS)
+
+o2_add_executable(zdc-dcs-sim-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/zdc-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
+o2_add_executable(zdc-dcs-config-processor-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/zdc-dcs-config-processor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::ZDCCalib O2::DetectorsCalibration)
+
+#o2_add_test_root_macro(macros/makeZDCCCDBEntryForDCS.C
+#                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB
+#                       LABELS zdc COMPILE_ONLY)
