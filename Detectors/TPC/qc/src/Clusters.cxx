@@ -11,12 +11,12 @@
 
 #include <string>
 
-//root includes
+// root includes
 #include "TH1.h"
 #include "TH2.h"
 #include "TFile.h"
 
-//o2 includes
+// o2 includes
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/ROC.h"
@@ -38,10 +38,26 @@ bool Clusters::processCluster(const T& cluster, const o2::tpc::Sector sector, co
     LOGP(warning, "calling denormalize() before filling");
   }
 
+  const auto& mapper = Mapper::instance();
+
   const int nROC = row < 63 ? int(sector) : int(sector) + 36;
   const int rocRow = row < 63 ? row : row - 63;
 
   const float pad = cluster.getPad();
+
+  size_t position = mapper.getPadNumber(mNClusters.getCalArray(nROC).getPadSubset(), mNClusters.getCalArray(nROC).getPadSubsetNumber(), rocRow, pad);
+
+  if ((nROC < mapper.getNumberOfIROCs())) { // IROC
+    if (position >= mapper.getPadsInIROC()) {
+      LOG(error) << "IROC out of range: pad position " << position << "\tROC " << nROC << "\tIROC has " << mapper.getPadsInIROC() << " pads";
+      return false;
+    }
+  } else { // OROC
+    if (position >= mapper.getPadsInOROC()) {
+      LOG(error) << "OROC out of range: pad position " << position << "\tROC " << nROC << "\tOROC has " << mapper.getPadsInOROC() << " pads";
+      return false;
+    }
+  }
 
   const auto qMax = cluster.getQmax();
   const auto qTot = cluster.getQtot();
