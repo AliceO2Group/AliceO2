@@ -52,6 +52,11 @@ void GRPECSObject::print() const
     printf("%7s ", isDetTriggers(DetID(i)) ? "   +   " : "   -   ");
     printf("\n");
   }
+  printf("List of FLPs used\n");
+  for (auto flp : mFLPs) {
+    printf("%3hu ", flp);
+  }
+  printf("\n");
 }
 
 //_______________________________________________
