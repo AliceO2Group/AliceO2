@@ -52,7 +52,7 @@ bool Clusters::processCluster(const T& cluster, const o2::tpc::Sector sector, co
       LOG(error) << "IROC out of range: pad position " << position << "\tROC " << nROC << "\tIROC has " << mapper.getPadsInIROC() << " pads";
       return false;
     }
-  } else if ((nROC >= mapper.getNumberOfIROCs())) { // OROC
+  } else { // OROC
     if (position >= mapper.getPadsInOROC()) {
       LOG(error) << "OROC out of range: pad position " << position << "\tROC " << nROC << "\tOROC has " << mapper.getPadsInOROC() << " pads";
       return false;
