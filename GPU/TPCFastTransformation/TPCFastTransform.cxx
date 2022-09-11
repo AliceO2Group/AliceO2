@@ -184,6 +184,11 @@ int TPCFastTransform::writeToFile(std::string outFName, std::string name)
   return 0;
 }
 
+void TPCFastTransform::rectifyAfterReadingFromFile()
+{
+  setActualBufferAddress(mFlatBufferContainer);
+}
+
 TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::string name)
 {
   /// load from file
@@ -208,7 +213,7 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
     LOG(error) << "Failed to load " << name << " from " << inpFName << ": empty flat buffer container";
     return nullptr;
   }
-  transform->setActualBufferAddress(transform->mFlatBufferContainer);
+  transform->rectifyAfterReadingFromFile(); // ==   transform->setActualBufferAddress(transform->mFlatBufferContainer);
   return transform;
 }
 

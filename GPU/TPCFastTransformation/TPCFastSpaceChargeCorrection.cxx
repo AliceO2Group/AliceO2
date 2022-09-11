@@ -204,32 +204,38 @@ void TPCFastSpaceChargeCorrection::print() const
   mGeo.print();
   LOG(info) << "  mNumberOfScenarios = " << mNumberOfScenarios;
   LOG(info) << "  mTimeStamp = " << mTimeStamp;
-  LOG(info) << "  mSliceDataSizeBytes = " << mSliceDataSizeBytes;
-  LOG(info) << "  TPC rows: ";
-  for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
-    RowInfo& r = mRowInfoPtr[i];
-    LOG(info) << " tpc row " << i << ": splineScenarioID = " << r.splineScenarioID << " dataOffsetBytes = " << r.dataOffsetBytes;
-  }
-  for (int i = 0; i < mNumberOfScenarios; i++) {
-    LOG(info) << " SplineScenario " << i << ": ";
-    mScenarioPtr[i].print();
-  }
-  LOG(info) << " Spline Data: ";
-  for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
-    for (int ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
-      LOG(info) << "slice " << is << " row " << ir << ": ";
-      const SplineType& spline = getSpline(is, ir);
-      const float* d = getSplineData(is, ir);
-      int k = 0;
-      for (int i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
-        for (int j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
-          LOG(info) << d[k] << " ";
-        }
-        LOG(info) << "";
-      }
+  LOG(info) << "  mSliceDataSizeBytes = " << mSliceDataSizeBytes[0] << " " << mSliceDataSizeBytes[1] << " " << mSliceDataSizeBytes[2];
+  if (mRowInfoPtr) {
+    LOG(info) << "  TPC rows: ";
+    for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
+      RowInfo& r = mRowInfoPtr[i];
+      LOG(info) << " tpc row " << i << ": splineScenarioID = " << r.splineScenarioID << " dataOffsetBytes = " << r.dataOffsetBytes;
     }
-    //    LOG(info) << "inverse correction: slice " << slice
-    //            << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] ;
+  }
+  if (mScenarioPtr) {
+    for (int i = 0; i < mNumberOfScenarios; i++) {
+      LOG(info) << " SplineScenario " << i << ": ";
+      mScenarioPtr[i].print();
+    }
+  }
+  if (mRowInfoPtr && mScenarioPtr && mSliceRowInfoPtr) {
+    LOG(info) << " Spline Data: ";
+    for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
+      for (int ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
+        LOG(info) << "slice " << is << " row " << ir << ": ";
+        const SplineType& spline = getSpline(is, ir);
+        const float* d = getSplineData(is, ir);
+        int k = 0;
+        for (int i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
+          for (int j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
+            LOG(info) << d[k] << " ";
+          }
+          LOG(info) << "";
+        }
+      }
+      //    LOG(info) << "inverse correction: slice " << slice
+      //            << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] ;
+    }
   }
 }
 
