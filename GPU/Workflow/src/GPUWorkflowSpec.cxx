@@ -58,6 +58,7 @@
 #include "TPCBase/Utils.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
+#include "TPCCalibration/CorrectionMapsHelper.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -205,22 +206,15 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
     mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Skip GPU-formatted output if QA is not requested
 
-    // Create and forward data objects for TPC transformation, material LUT, ...
-    if (mConfParam->transformationFile.size()) {
-      mFastTransform = nullptr;
-      LOG(info) << "Reading TPC transformation map from file " << mConfParam->transformationFile;
-      mConfig->configCalib.fastTransform = TPCFastTransform::loadFromFile(mConfParam->transformationFile.c_str());
-    } else {
-      mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
-
-      if (mConfParam->transformationSCFile.size()) {
-        LOG(info) << "Reading TPC space charge corrections from file " << mConfParam->transformationSCFile;
-        TFile fInp(mConfParam->transformationSCFile.data(), "READ");
-        mFastTransform->setSlowTPCSCCorrection(fInp);
-      }
-
-      mConfig->configCalib.fastTransform = mFastTransform.get();
+    if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
+      LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
+                 << "Instead, link the corresponding file as <somedir>/TPC/Calib/CorrectionMap/snapshot.root and use it via\n"
+                 << "--condition-remap file://<somdir>=TPC/Calib/CorrectionMap option";
     }
+
+    // initialize TPC calib objects
+    initFunctionTPC();
+    mConfig->configCalib.fastTransform = mTPCCorrMapsHelper->getCorrMap(); // eventually need to account also the reference map
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
     }
@@ -241,9 +235,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
 
     mConfig->configProcessing.internalO2PropagatorGPUField = true;
-
-    // initialize TPC calib objects
-    initFunctionTPC();
 
     if (mConfParam->printSettings) {
       mConfig->PrintParam();
@@ -824,6 +815,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
+    o2::tpc::CorrectionMapsHelper::requestCCDBInputs(inputs);
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -928,6 +920,9 @@ void GPURecoWorkflowSpec::initFunctionTPC()
 {
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
+  mTPCCorrMapsHelper.reset(new o2::tpc::CorrectionMapsHelper());
+  mTPCCorrMapsHelper->setCorrMap(std::move(TPCFastTransformHelperO2::instance()->create(0))); // just to reserve the space
+  mTPCCorrMapsHelper->setCorrMapRef(std::move(TPCFastTransformHelperO2::instance()->create(0)));
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -1083,6 +1078,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
   } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
+  } else if (mTPCCorrMapsHelper->accountCCDBInputs(matcher, obj)) {
   }
 }
 
@@ -1118,14 +1114,18 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
         pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
       }
 
-      o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-
-      if (mTPCVDriftHelper->isUpdated() && mConfParam->transformationFile.size() == 0 && mConfParam->transformationSCFile.size() == 0) {
-        LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+      if (mSpecConfig.outputTracks) {
+        o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+        o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
+      }
+      if (mTPCVDriftHelper->isUpdated() || mTPCCorrMapsHelper->isUpdated()) {
+        LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} from source {}",
+             mTPCCorrMapsHelper->isUpdated() ? " new " : " old ",
              mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
         mTPCVDriftHelper->acknowledgeUpdate();
+        mTPCCorrMapsHelper->acknowledgeUpdate();
         mFastTransformNew.reset(new TPCFastTransform);
-        mFastTransformNew->cloneFromObject(*mFastTransform, nullptr);
+        mFastTransformNew->cloneFromObject(*mTPCCorrMapsHelper->getCorrMap(), nullptr);
         TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
         newCalibObjects.fastTransform = mFastTransformNew.get();
         mMustUpdateFastTransform = true;
@@ -1156,7 +1156,7 @@ void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
   }
 
   if (mFastTransformNew) {
-    mFastTransform = std::move(mFastTransformNew);
+    mTPCCorrMapsHelper->setCorrMap(std::move(mFastTransformNew)); // eventually handle also reference map
   }
 }
 
