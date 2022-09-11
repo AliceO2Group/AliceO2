@@ -236,6 +236,8 @@ class TPCFastTransform : public FlatObject
 
   int writeToFile(std::string outFName = "", std::string name = "");
 
+  void rectifyAfterReadingFromFile();
+
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
   /// setting the reference corrections
