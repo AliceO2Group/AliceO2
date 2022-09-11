@@ -76,6 +76,9 @@ enum class CDBType {
   CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   CalSACFourier,       ///< Fourier coefficients of CalSAC1
+
+  CalCorrMap,    ///< Cluster correction map
+  CalCorrMapRef, ///< Cluster correction reference map (static distortions)
 };
 
 /// Upload intervention type
@@ -125,6 +128,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalSAC1, "TPC/Calib/SAC/SAC1"},
   {CDBType::CalSACDelta, "TPC/Calib/SAC/SACDELTA"},
   {CDBType::CalSACFourier, "TPC/Calib/SAC/FOURIER"},
+  // correction maps
+  {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
+  {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
 };
 
 /// Poor enum reflection ...
