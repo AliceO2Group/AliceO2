@@ -176,8 +176,20 @@ void MatchTPCITS::clear()
 void MatchTPCITS::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
   mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+  if (mTPCCorrMapsHelper) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
+}
+
+//______________________________________________
+void MatchTPCITS::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
+  if (mTPCVDrift > 0.f) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
 }
 
 //______________________________________________
@@ -213,7 +225,6 @@ void MatchTPCITS::init()
     mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mDebugTreeFileName.data(), "recreate");
   }
 #endif
-  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
 
@@ -514,7 +525,7 @@ bool MatchTPCITS::prepareTPCData()
     mITSROFofTPCBin[ib] = itsROF;
   }
 */
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper->getCorrMap(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 
   mTimer[SWPrepTPC].Stop();
   return mTPCWork.size() > 0;

@@ -37,6 +37,7 @@ namespace o2
 namespace tpc
 {
 class VDriftCorrFact;
+class CorrectionMapsHelper;
 }
 
 namespace vertexing
@@ -93,10 +94,10 @@ class SVertexer
     mMUS2TPCBin = 1.f / (nbc * o2::constants::lhc::LHCBunchSpacingMUS);
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+  void setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph);
 
   template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
-  void initTPCTransform();
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
@@ -114,7 +115,7 @@ class SVertexer
   }
 
   // at the moment not used
-  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;   ///< TPC cluster transformation
+  o2::tpc::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   gsl::span<const PVertex> mPVertices;
@@ -143,6 +144,7 @@ class SVertexer
   float mMUS2TPCBin = 1.f / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   float mTPCBin2Z = 0;
   float mTPCVDrift = 0;
+  float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
   float mTPCVDriftRef = 0;
 
   bool mEnableCascades = true;
