@@ -58,7 +58,6 @@ class TOFDPLRecoWorkflowTask
   void init(framework::InitContext& ic)
   {
     o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-    mMatcher.initTPCTransform();
     mTimer.Stop();
     mTimer.Reset();
   }
