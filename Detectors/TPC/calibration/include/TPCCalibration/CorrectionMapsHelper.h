@@ -42,6 +42,12 @@ class CorrectionMapsHelper
   o2::gpu::TPCFastTransform* getCorrMap() { return mCorrMap.get(); }
   o2::gpu::TPCFastTransform* getCorrMapRef() { return mCorrMapRef.get(); }
 
+  void setCorrMap(std::unique_ptr<o2::gpu::TPCFastTransform> m) { mCorrMap = std::move(m); }
+  void setCorrMapRef(std::unique_ptr<o2::gpu::TPCFastTransform> m) { mCorrMapRef = std::move(m); }
+
+  void adoptCorrMap(o2::gpu::TPCFastTransform* m) { mCorrMap.reset(m); }
+  void adoptCorrMapRef(o2::gpu::TPCFastTransform* m) { mCorrMapRef.reset(m); }
+
   bool isUpdated() const { return mUpdated; }
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
   void acknowledgeUpdate() { mUpdated = false; }
