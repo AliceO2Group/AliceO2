@@ -639,14 +639,6 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
   }
   int detHeader = HelperMethods::getDetector(((~header.supermodule) & 0x1f), ((~header.stack) & 0x7), ((~header.layer) & 0x7));
   int hcidHeader = (detHeader * 2 + ((~header.side) & 0x1));
-
-  if (mOptions[TRDIgnoreBogusTrackletHCHeaders]) {
-    // in the current synthetic data sample the tracklet HC headers are screwed up
-    // this option should be removed when we have new synthetic data samples available
-    // with fixed headers
-    return true;
-  }
-
   if (hcid != hcidHeader) {
     if (mMaxWarnPrinted > 0) {
       LOGF(alarm, "RDH HCID %i, TrackletHCHeader HCID %i. Taking the TrackletHCHedaer as authority", hcid, hcidHeader);
