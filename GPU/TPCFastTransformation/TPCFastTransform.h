@@ -46,7 +46,7 @@ struct TPCSlowSpaceChargeCorrection {
     mCorr.getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
   }
 
-  o2::tpc::SpaceCharge<float> mCorr; ///<! reference space charge corrections
+  o2::tpc::SpaceCharge<float> mCorr; ///< reference space charge corrections
 #else
   /// setting dummy corrections for GPU
   GPUd() void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
@@ -55,6 +55,10 @@ struct TPCSlowSpaceChargeCorrection {
     gdyC = 0;
     gdzC = 0;
   }
+#endif
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCSlowSpaceChargeCorrection, 1);
 #endif
 };
 
@@ -304,7 +308,7 @@ class TPCFastTransform : public FlatObject
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
-  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///<! reference space charge corrections
+  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastTransform, 1);
