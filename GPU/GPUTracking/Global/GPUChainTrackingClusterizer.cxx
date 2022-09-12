@@ -219,7 +219,6 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
   }
   mCFContext->nPagesTotal += nPages;
   mCFContext->nPagesSector[iSlice] = nPages;
-  mCFContext->nPagesSectorMax = std::max(mCFContext->nPagesSectorMax, nPages);
 
   mCFContext->nDigitsEndpointMax[iSlice] = 0;
   for (unsigned int i = 0; i < GPUTrackingInOutZS::NENDPOINTS; i++) {
@@ -229,14 +228,14 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
   }
   unsigned int nDigitsFragmentMax = 0;
   for (unsigned int i = 0; i < mCFContext->nFragments; i++) {
-    unsigned int pages = 0;
-    unsigned int digits = 0;
+    unsigned int pagesInFragment = 0;
+    unsigned int digitsInFragment = 0;
     for (unsigned short j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-      pages += mCFContext->fragmentData[i].nPages[iSlice][j];
-      digits += mCFContext->fragmentData[i].nDigits[iSlice][j];
+      pagesInFragment += mCFContext->fragmentData[i].nPages[iSlice][j];
+      digitsInFragment += mCFContext->fragmentData[i].nDigits[iSlice][j];
     }
-    mCFContext->nPagesFragmentMax = std::max(mCFContext->nPagesSectorMax, pages);
-    nDigitsFragmentMax = std::max(nDigitsFragmentMax, digits);
+    mCFContext->nPagesFragmentMax = std::max(mCFContext->nPagesFragmentMax, pagesInFragment);
+    nDigitsFragmentMax = std::max(nDigitsFragmentMax, digitsInFragment);
   }
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Stop();
   return {nDigits, nDigitsFragmentMax};
