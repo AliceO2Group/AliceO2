@@ -17,12 +17,12 @@ O2ParamImpl(o2::zdc::CalibParamZDC);
 void o2::zdc::CalibParamZDC::print()
 {
   bool printed = false;
-  if (debug_output >= 0) {
+  if (rootOutput >= 0) {
     if(!printed){
       LOG(info) << "CalibParamZDC::print()";
       printed = true;
     }
-    printf(" debug_output=%d\n", debug_output);
+    printf(" rootOutput=%d\n", rootOutput);
   }
   if (descr.size()>0){
     if(!printed){

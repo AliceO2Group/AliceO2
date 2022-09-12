@@ -63,7 +63,7 @@ int NoiseCalibEPN::init()
     }
   }
 
-  if (opt.debug_output > 0) {
+  if (opt.rootOutput == true) {
     setSaveDebugHistos();
   }
 

@@ -33,10 +33,6 @@ int NoiseCalib::init()
     mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096,-2048.7, 2047.5);
   }
 
-  if (opt.debug_output > 0) {
-    setSaveDebugHistos();
-  }
-
   clear();
   mInitDone = true;
   return 0;

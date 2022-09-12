@@ -37,7 +37,7 @@ int WaveformCalibEPN::init()
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
 
-  if (opt.debug_output > 0) {
+  if (opt.rootOutput == true) {
     setSaveDebugHistos();
   }
 
