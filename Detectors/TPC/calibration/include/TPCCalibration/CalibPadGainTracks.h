@@ -43,6 +43,8 @@ namespace tpc
 
 class ClusterNativeAccess;
 class ClusterNative;
+class VDriftCorrFact;
+class CorrectionMapsHelper;
 
 /// \brief Gain calibration class
 ///
@@ -208,6 +210,12 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param outName name of the object in the output file
   void dumpReferenceExtractedGainMap(const char* outFileName = "GainMapRefExtracted.root", const char* outName = "GainMap") const;
 
+  /// set VDrift correction
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+
+  /// set cluster correction maps helper
+  void setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph);
+
  private:
   gsl::span<const TrackTPC>* mTracks{nullptr};                                        ///<! vector containing the tpc tracks which will be processed. Cant be const due to the propagate function
   gsl::span<const TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                     ///<! input vector with TPC tracks cluster indicies
@@ -222,16 +230,19 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   float mDedxMin{0.f};                                                                ///< minimum accepted dE/dx
   float mDedxMax{-1.f};                                                               ///< maximum accepted dE/dx
   float mEtaMax{1.f};                                                                 ///< maximum accpeted eta of tracks
+  float mTPCVDriftRef = -1.;                                                          ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDriftCorrFact = 1.;                                                      ///< TPC nominal correction factort (wrt ref)
+  float mTPCVDrift = -1.;                                                             ///< TPC drift speed in cm/microseconds
   int mMinClusters{50};                                                               ///< minimum number of clusters the tracks require
   bool mPropagateTrack{false};                                                        ///< propagating the track instead of performing a refit
   bool mDoNotNormCharge{false};                                                       ///< do not normalize the cluster charge to the dE/dx
   ChargeType mChargeType{ChargeType::Max};                                            ///< charge type which is used for calculating the dE/dx and filling the pad-by-pad histograms
+  o2::tpc::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;                        ///< cluster corrections map helper
   std::vector<std::vector<float>> mDEdxBuffer{};                                      ///<! memory for dE/dx
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
   std::vector<float> mDedxTmp{};                                                      ///<! memory for dE/dx calculation
   std::unique_ptr<CalPad> mGainMapRef;                                                ///<! static Gain map object used for correcting the cluster charge
   std::unique_ptr<CalibdEdxTrackTopologyPol> mCalibTrackTopologyPol;                  ///<! calibration container for the cluster charge
-  std::unique_ptr<o2::gpu::TPCFastTransform> mFastTransform;                          ///<! fast transform for refitting the track
 
   /// calculate truncated mean for track
   /// \param track input track which will be processed
