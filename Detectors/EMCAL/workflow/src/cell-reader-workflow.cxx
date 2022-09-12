@@ -44,6 +44,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableMC = cfgc.options().get<bool>("disable-mc");
   auto subspec = cfgc.options().get<uint32_t>("subspec");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  LOG(info) << "Cell reader: publishing on subspec " << subspec << std::endl;
 
   WorkflowSpec specs;
   specs.emplace_back(o2::emcal::getPublisherSpec<std::vector<o2::emcal::Cell>>(PublisherConf{
@@ -53,10 +54,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                                                  {"cellbranch", "EMCALCell", "Cell branch"},
                                                                                  {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
                                                                                  {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLS", subspec},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSTRGR", subspec},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSMCTR", subspec}},
-                                                                               !disableMC));
+                                                                                 o2::framework::OutputSpec{{"cells"}, "EMC", "CELLS", subspec, o2::framework::Lifetime::Timeframe},
+                                                                                 o2::framework::OutputSpec{{"triggerrecords"}, "EMC", "CELLSTRGR", subspec, o2::framework::Lifetime::Timeframe},
+                                                                                 o2::framework::OutputSpec{{"mclabels"}, "EMC", "CELLSMCTR", subspec, o2::framework::Lifetime::Timeframe}},
+                                                                               subspec, !disableMC));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
