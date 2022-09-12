@@ -136,7 +136,7 @@ o2::framework::DataProcessorSpec o2::emcal::getCellRecalibratorSpec(uint32_t inp
     inputs = {{"cells", o2::header::gDataOriginEMC, "CELLS", inputSubspec, o2::framework::Lifetime::Timeframe},
               {"triggerrecords", o2::header::gDataOriginEMC, "CELLSTRGR", inputSubspec, o2::framework::Lifetime::Timeframe}};
   std::vector<o2::framework::OutputSpec> outputs = {{o2::header::gDataOriginEMC, "CELLS", outputSubspec, o2::framework::Lifetime::Timeframe},
-                                                    {o2::header::gDataOriginEMC, "CELLSTRGR", inputSubspec, o2::framework::Lifetime::Timeframe}};
+                                                    {o2::header::gDataOriginEMC, "CELLSTRGR", outputSubspec, o2::framework::Lifetime::Timeframe}};
   calibhandler->defineInputSpecs(inputs);
 
   return o2::framework::DataProcessorSpec{"EMCALCellRecalibrator",
