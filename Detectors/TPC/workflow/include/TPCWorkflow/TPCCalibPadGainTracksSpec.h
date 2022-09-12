@@ -26,6 +26,8 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "Framework/CCDBParamSpec.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCCalibration/VDriftHelper.h"
+#include "TPCCalibration/CorrectionMapsHelper.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -133,6 +135,8 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "Updating Q topology correction from CCDB");
       const auto* topologyCorr = static_cast<o2::tpc::CalibdEdxTrackTopologyPolContainer*>(obj);
       mPadGainTracks.setPolTopologyCorrectionFromContainer(*topologyCorr);
+    } else if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+    } else if (mTPCCorrMapsHelper.accountCCDBInputs(matcher, obj)) {
     }
   }
 
@@ -161,6 +165,18 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "fetching residual gain map");
       pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcresidualgainmap");
     }
+    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+    o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
+    if (mTPCCorrMapsHelper.isUpdated()) {
+      mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsHelper);
+      mTPCCorrMapsHelper.acknowledgeUpdate();
+    }
+    if (mTPCVDriftHelper.isUpdated()) {
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+           mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+      mPadGainTracks.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+      mTPCVDriftHelper.acknowledgeUpdate();
+    }
 
     mPadGainTracks.setMembers(&tracks, &clRefs, clusters->clusterIndex);
     mPadGainTracks.processTracks(mMaxTracksPerTF);
@@ -186,6 +202,8 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   bool mUsingDefaultGainMapForFirstIter{true};       ///< using no reference gain map for the first iteration
   unsigned int mUseEveryNthTF{1};                    ///< process every Nth TF only
   int mMaxTracksPerTF{-1};                           ///< max number of tracks processed per TF
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
+  o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
 
   void sendOutput(DataAllocator& output)
   {
@@ -212,6 +230,9 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
   if (useLastExtractedMapAsReference) {
     inputs.emplace_back("tpcresidualgainmap", gDataOriginTPC, "RESIDUALGAINMAP", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalPadGainResidual)));
   }
+
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
+  o2::tpc::CorrectionMapsHelper::requestCCDBInputs(inputs);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(gDataOriginTPC, "TRACKGAINHISTOS", 0, o2::framework::Lifetime::Sporadic);
