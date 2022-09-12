@@ -94,7 +94,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
       const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
 
-      for (int l = 0; l < hdr->nTimeBins; l++) { // TODO: Parallelize over time bins
+      for (int l = 0; l < hdr->nTimeBinSpan; l++) { // TODO: Parallelize over time bins
         pagePtr += (pagePtr - page) & 1;         // Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);
         if ((tbHdr->rowMask & 0x7FFF) == 0) {

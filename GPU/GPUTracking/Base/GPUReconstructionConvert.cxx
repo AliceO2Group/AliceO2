@@ -164,7 +164,7 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
         for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
           o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
           TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
-          unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + hdr->nTimeBins;
+          unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + hdr->nTimeBinSpan;
           if (timeBin > retVal) {
             retVal = timeBin;
           }
@@ -306,7 +306,7 @@ bool zsEncoderRow::checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned i
       break;
     }
   }
-  if (lastEndpoint >= 0 && lastTime != -1 && (int)hdr->nTimeBins + tmpBuffer[k].getTimeStamp() - lastTime >= 256) {
+  if (lastEndpoint >= 0 && lastTime != -1 && (int)hdr->nTimeBinSpan + tmpBuffer[k].getTimeStamp() - lastTime >= 256) {
     lastEndpoint = -1;
   }
   if (endpoint == lastEndpoint) {
@@ -350,10 +350,10 @@ unsigned int zsEncoderRow::encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer
 {
   if (tmpBuffer[k].getTimeStamp() != lastTime) {
     if (lastTime != -1) {
-      hdr->nTimeBins += tmpBuffer[k].getTimeStamp() - lastTime - 1;
+      hdr->nTimeBinSpan += tmpBuffer[k].getTimeStamp() - lastTime - 1;
       pagePtr += (tmpBuffer[k].getTimeStamp() - lastTime - 1) * 2;
     }
-    hdr->nTimeBins++;
+    hdr->nTimeBinSpan++;
     if ((pagePtr - reinterpret_cast<unsigned char*>(page)) & 1) {
       pagePtr++;
     }
@@ -408,7 +408,7 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
   int nRowsRegion = param->tpcGeometry.GetRegionRows(region);
 
   int timeBin = (decHDR->timeOffset + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
-  for (int l = 0; l < decHDR->nTimeBins; l++) {
+  for (int l = 0; l < decHDR->nTimeBinSpan; l++) {
     if ((decPagePtr - reinterpret_cast<const unsigned char*>(decPage)) & 1) {
       decPagePtr++;
     }
@@ -536,7 +536,7 @@ void zsEncoderLinkBased::createBitmask(std::vector<o2::tpc::Digit>& tmpBuffer, u
   }
   nSamples = l - k;
   finishPage = endpoint != lastEndpoint || (firstTimebinInPage != -1 && tmpBuffer[k].getTimeStamp() - firstTimebinInPage >= (1 << 8));
-  if (tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1 > (1 << (sizeof(hdr->nTimeBins) * 8)) - 1) {
+  if (tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1 > (1 << (sizeof(hdr->nTimeBinSpan) * 8)) - 1) {
     finishPage = true;
   }
 }
@@ -611,7 +611,7 @@ unsigned int zsEncoderImprovedLinkBased::encodeSequence(std::vector<o2::tpc::Dig
   tbHdr->bitMaskLow = (bitmask & std::bitset<80>(0xFFFFFFFFFFFFFFFFlu)).to_ulong();
   tbHdr->syncOffsetBC = 0;
   tbHdr->fecInPartition = link;
-  hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
+  hdr->nTimeBinSpan = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
   hdr->nTimebinHeaders++;
   if (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
     tbHdr->numWordsPayload = (nSamples * TPCZSHDRV2::TPC_ZS_NBITS_V3 + 127) / 128; // tightly packed ADC samples
@@ -751,7 +751,7 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
     free4bitPointer = nullptr;
     curTimeBin = newTimeBin;
     pagePtr += sizeof(unsigned char);
-    hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
+    hdr->nTimeBinSpan = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
     hdr->nTimebinHeaders++;
   } else {
     (*linkCounter)++;

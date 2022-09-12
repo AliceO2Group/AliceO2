@@ -153,15 +153,22 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         nDigits += hdr->nADCsamples;
         endpointAdcSamples[j] += hdr->nADCsamples;
         unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
-        if (timeBin + hdr->nTimeBins > mCFContext->tpcMaxTimeBin) {
-          mCFContext->tpcMaxTimeBin = timeBin + hdr->nTimeBins;
+        unsigned int maxTimeBin = timeBin + hdr->nTimeBinSpan;
+        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+          const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*) hdr;
+          if (hdr2->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) {
+            maxTimeBin += 256;
+          }
+        }
+        if (maxTimeBin > mCFContext->tpcMaxTimeBin) {
+          mCFContext->tpcMaxTimeBin = maxTimeBin;
         }
         while (firstPossibleFragment && (unsigned int)fragments[firstPossibleFragment - 1].first.last() > timeBin) {
           firstPossibleFragment--;
         }
         for (unsigned int f = firstPossibleFragment; f < mCFContext->nFragments; f++) {
           if (timeBin < (unsigned int)fragments[f].first.last()) {
-            if ((unsigned int)fragments[f].first.first() <= timeBin + hdr->nTimeBins) {
+            if ((unsigned int)fragments[f].first.first() <= maxTimeBin) {
               if (!fragments[f].second[4]) {
                 fragments[f].second[4] = 1;
                 fragments[f].second[0] = k;
