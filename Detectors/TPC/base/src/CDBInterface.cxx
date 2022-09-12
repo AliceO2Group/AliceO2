@@ -98,16 +98,20 @@ const CalPad& CDBInterface::getNoise()
 //______________________________________________________________________________
 const CalPad& CDBInterface::getZeroSuppressionThreshold()
 {
-  if (mUseDefaults) {
+  // ===| load gain map from file if requested |=====================
+  if (mThresholdMapFileName.size()) {
+    if (!mZeroSuppression) {
+      loadThresholdMapFromFile();
+    }
+  } else if (mUseDefaults) {
     if (!mZeroSuppression) {
       createDefaultZeroSuppression();
     }
-    return *mZeroSuppression;
   } else {
     // return from CDB, assume that check for object existence are done there
     return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ThresholdMap");
-    ;
   }
+  return *mZeroSuppression;
 }
 
 //______________________________________________________________________________
@@ -222,6 +226,23 @@ void CDBInterface::loadGainMapFromFile()
 
   LOG(info) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
+
+//______________________________________________________________________________
+void CDBInterface::loadThresholdMapFromFile()
+{
+  if (mThresholdMapFileName.empty()) {
+    return;
+  }
+
+  auto calPads = o2::tpc::utils::readCalPads(mThresholdMapFileName, "ThresholdMap");
+
+  if (calPads.size() != 1) {
+    LOGP(fatal, "Missing 'ThresholdMap' object in file {}", mThresholdMapFileName);
+  }
+
+  mZeroSuppression.reset(calPads[0]);
+}
+
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
 {
@@ -281,13 +302,14 @@ void CDBInterface::createDefaultNoise()
 //______________________________________________________________________________
 void CDBInterface::createDefaultZeroSuppression()
 {
-  // default map is 3*noise
+  // default map is mDefaultZSsigma * noise
   mZeroSuppression = std::unique_ptr<CalPad>(new CalPad(getNoise()));
   mZeroSuppression->setName("ThresholdMap");
 
+  const auto zsSigma = mDefaultZSsigma;
   for (auto& calArray : mZeroSuppression->getData()) {
     auto& data = calArray.getData();
-    std::transform(data.begin(), data.end(), data.begin(), [](const auto value) { return 3.f * value; });
+    std::transform(data.begin(), data.end(), data.begin(), [zsSigma](const auto value) { return zsSigma * value; });
   }
 }
 
