@@ -109,7 +109,7 @@ float Calibrations::getGainFactor(int det, int col, int row) const
 float Calibrations::getPadGainFactor(int det, int col, int row) const
 {
   if (mLocalGainFactor) {
-    return mLocalGainFactor->getValue(det, col, row);
+    return TMath::Abs(mLocalGainFactor->getValue(det, col, row));
   } else {
     return -1;
   }
