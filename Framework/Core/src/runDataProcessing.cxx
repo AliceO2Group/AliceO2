@@ -323,7 +323,7 @@ static void handle_sigint(int)
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
   using namespace fair::mq::shmem;
-  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
+  fair::mq::shmem::Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
