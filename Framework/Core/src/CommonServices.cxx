@@ -715,12 +715,12 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
     auto device = registry.get<RawDeviceService>().device();
     long freeMemory = -1;
     try {
-      freeMemory = Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
+      freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
     } catch (...) {
     }
     if (freeMemory == -1) {
       try {
-        freeMemory = Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+        freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
       } catch (...) {
       }
     }
