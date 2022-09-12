@@ -189,14 +189,16 @@ int main(int argc, char** argv)
   o2::emcal::CalibDB calibdb(ccdbServerPath);
 
   if (doBadChannelCalib) {
+    std::map<std::string, std::string> dummymeta;
+    CalibExtractor.setBCMScaleFactors(calibdb.readChannelScaleFactors(1546300800001, dummymeta));
     printf("perform bad channel analysis\n");
     o2::emcal::BadChannelMap BCMap;
 
     BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
     // store bad channel map in ccdb via emcal calibdb
     if (doLocal) {
-      std::unique_ptr<TFile> writer(TFile::Open("bcm.root", "RECREATE"));
-      writer->WriteObjectAny(&BCMap, "o2::emcal::BadChannelMap", "BadChannelMap");
+      std::unique_ptr<TFile> writer(TFile::Open(Form("bcm_%lu.root", rangestart), "RECREATE"));
+      writer->WriteObjectAny(&BCMap, "o2::emcal::BadChannelMap", "ccdb_object");
     } else {
       std::map<std::string, std::string> metadata;
       calibdb.storeBadChannelMap(&BCMap, metadata, rangestart, rangeend);
@@ -210,8 +212,8 @@ int main(int argc, char** argv)
     TCparams = CalibExtractor.calibrateTime(hCalibInputHist, timeRangeLow, timeRangeHigh);
 
     if (doLocal) {
-      std::unique_ptr<TFile> writer(TFile::Open("timecalib.root", "RECREATE"));
-      writer->WriteObjectAny(&TCparams, "o2::emcal::TimeCalibrationParams", "TimeCalibrationParams");
+      std::unique_ptr<TFile> writer(TFile::Open(Form("timecalib_%lu.root", rangestart), "RECREATE"));
+      writer->WriteObjectAny(&TCparams, "o2::emcal::TimeCalibrationParams", "ccdb_object");
     } else {
       // store parameters in ccdb via emcal calibdb
       std::map<std::string, std::string> metadata;

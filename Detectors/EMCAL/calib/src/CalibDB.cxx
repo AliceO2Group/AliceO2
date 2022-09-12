@@ -15,6 +15,7 @@
 #include "EMCALCalib/TimeCalibParamL1Phase.h"
 #include "EMCALCalib/TempCalibParamSM.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
+#include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalib/FeeDCS.h"
 #include "EMCALCalib/CalibDB.h"
 #include "EMCALCalib/ElmbData.h"
@@ -164,6 +165,18 @@ GainCalibrationFactors* CalibDB::readGainCalibFactors(ULong_t timestamp, const s
   GainCalibrationFactors* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::GainCalibrationFactors>(getCDBPathGainCalibrationParams(), metadata, timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathGainCalibrationParams(), metadata, timestamp);
+  }
+  return result;
+}
+
+EMCALChannelScaleFactors* CalibDB::readChannelScaleFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+{
+  if (!mInit) {
+    init();
+  }
+  EMCALChannelScaleFactors* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::EMCALChannelScaleFactors>(getCDBPathChannelScaleFactors(), metadata, timestamp);
+  if (!result) {
+    throw ObjectNotFoundException(mCCDBServer, getCDBPathChannelScaleFactors(), metadata, timestamp);
   }
   return result;
 }
