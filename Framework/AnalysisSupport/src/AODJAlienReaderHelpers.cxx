@@ -257,7 +257,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           std::string currentFilename(fileAndFolder.file->GetName());
           if (strcmp(fileAndFolder.file->GetEndpointUrl()->GetProtocol(), "file") == 0 && fileAndFolder.file->GetEndpointUrl()->GetFile()[0] != '/') {
             // This is not an absolute local path. Make it absolute.
-            currentFilename = gSystem->pwd() + std::string("/") + std::string(fileAndFolder.file->GetName());
+            static std::string pwd = gSystem->pwd() + std::string("/");
+            currentFilename = pwd + std::string(fileAndFolder.file->GetName());
           }
           outputs.make<std::string>(o2) = currentFilename;
         }

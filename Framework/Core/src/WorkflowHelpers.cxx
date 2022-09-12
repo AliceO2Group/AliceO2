@@ -289,6 +289,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     AlgorithmSpec::dummyAlgorithm(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {"Replace base path of parent files. Syntax: FROM;TO. E.g. alien:///path/in/alien;/local/path"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
      ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},

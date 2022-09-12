@@ -127,7 +127,7 @@ bool DataInputDescriptor::setFile(int counter)
   mcurrentFile->SetReadaheadSize(50 * 1024 * 1024);
 
   // get the parent file map if exists
-  mParentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
+  mParentFileMap = (TMap*)mcurrentFile->Get("parentFiles"); // folder name (DF_XXX) --> parent file (absolute path)
   if (mParentFileMap && !mParentFileReplacement.empty()) {
     auto pos = mParentFileReplacement.find(';');
     if (pos == std::string::npos) {
