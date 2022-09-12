@@ -323,12 +323,12 @@ void Digitizer::storeBC(BCCache& bc,
   }
   // Debug output -------------------------------------------------------------
 
-  LOG(info) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
-  LOG(info) << "N hit A: " << int(triggers.getNChanA()) << " N hit C: " << int(triggers.getNChanC()) << " summ ampl A: " << int(triggers.getAmplA())
-            << " summ ampl C: " << int(triggers.getAmplC()) << " mean time A: " << triggers.getTimeA()
-            << " mean time C: " << triggers.getTimeC() << " nStored " << nStored;
+  LOG(debug) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
+  LOG(debug) << "N hit A: " << int(triggers.getNChanA()) << " N hit C: " << int(triggers.getNChanC()) << " summ ampl A: " << int(triggers.getAmplA())
+             << " summ ampl C: " << int(triggers.getAmplC()) << " mean time A: " << triggers.getTimeA()
+             << " mean time C: " << triggers.getTimeC() << " nStored " << nStored;
 
-  LOG(info) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
+  LOG(debug) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
 }
 
 //------------------------------------------------------------------------
