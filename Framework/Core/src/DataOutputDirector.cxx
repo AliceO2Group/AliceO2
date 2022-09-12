@@ -474,7 +474,7 @@ void DataOutputDirector::closeDataFiles()
     if (filePtr) {
       if (filePtr->IsOpen() && mParentMaps[i]->GetEntries() > 0) {
         filePtr->cd("/");
-        filePtr->WriteObject(mParentMaps[i], "parent_files");
+        filePtr->WriteObject(mParentMaps[i], "parentFiles");
       }
       filePtr->Close();
     }
