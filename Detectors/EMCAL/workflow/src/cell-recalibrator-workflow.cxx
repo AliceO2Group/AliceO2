@@ -29,8 +29,8 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{{"input-subspec", VariantType::UInt32, 1, {"Subspecification for input objects"}},
-                                       {"output-subspec", VariantType::UInt32, 0, {"Subspecification for output objects"}},
+  std::vector<ConfigParamSpec> options{{"input-subspec", VariantType::UInt32, 1U, {"Subspecification for input objects"}},
+                                       {"output-subspec", VariantType::UInt32, 0U, {"Subspecification for output objects"}},
                                        {"no-badchannelcalib", VariantType::Bool, false, {"Disable bad channel calibration"}},
                                        {"no-timecalib", VariantType::Bool, false, {"Disable time calibration"}},
                                        {"no-gaincalib", VariantType::Bool, false, {"Disable gain calibration"}},
