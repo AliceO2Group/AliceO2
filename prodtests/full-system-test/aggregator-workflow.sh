@@ -212,10 +212,10 @@ fi
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "" "EMCALCalibParams.calibType=\"badchannels\""
+    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"badchannels\""
   fi
   if [[ $CALIB_EMC_TIMECALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "" "EMCALCalibParams.calibType=\"time\""
+    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"time\""
   fi
 
   # PHS
