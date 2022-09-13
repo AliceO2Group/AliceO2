@@ -116,6 +116,8 @@ o2_add_test_command(NAME o2sim_G4
                                       2
                                       --skipModules
                                       MFT ZDC
+                                      --configKeyValues
+                                      "align-geom.mDetectors=none"
                     ENVIRONMENT "${SIMENV}"
                     LABELS "g4;sim;long")
 
@@ -174,6 +176,8 @@ o2_add_test_command(NAME o2sim_G3
                                       pythia8pp
                                       --chunkSize
                                       10
+                                      --configKeyValues
+                                      "align-geom.mDetectors=none"
                     LABELS g3 sim long
                     ENVIRONMENT "${SIMENV}"
 )
@@ -213,7 +217,7 @@ o2_add_test_command(NAME o2sim_hepmc
                                       -g
                                    hepmc
                        --configKeyValues
-"HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2"
+"HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
                                       -o
                               o2simhepmc
                     LABELS long sim hepmc3
