@@ -47,8 +47,10 @@ class EMCALCalibExtractor
 
   /// \brief Stuct for the maps needed for the bad channel calibration
   struct BadChannelCalibInfo {
-    std::map<slice_t, std::array<double, 17664>> energyPerHitMap;   // energy/per hit per cell per slice
-    std::map<slice_t, std::pair<double, double>> goodCellWindowMap; // for each slice, the emin and the emax of the good cell window
+    std::map<slice_t, std::array<double, 17664>> energyPerHitMap;        // energy/per hit per cell per slice
+    std::map<slice_t, std::array<double, 17664>> nHitsMap;               // number of hits per cell per slice
+    std::map<slice_t, std::pair<double, double>> goodCellWindowMap;      // for each slice, the emin and the emax of the good cell window
+    std::map<slice_t, std::pair<double, double>> goodCellWindowNHitsMap; // for each slice, the nHitsMin and the mHitsMax of the good cell window
   };
 
  public:
@@ -72,8 +74,6 @@ class EMCALCalibExtractor
   int getNThreads() const { return mNThreads; }
 
   void setBCMScaleFactors(EMCALChannelScaleFactors* scalefactors) { mBCMScaleFactors = scalefactors; }
-
-  // void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
 
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
@@ -125,9 +125,12 @@ class EMCALCalibExtractor
         bool failed = false;
         for (auto& [sliceIndex, slice] : slices) {
           auto ranges = calibrationInformation.goodCellWindowMap[sliceIndex];
+          auto rangesNHits = calibrationInformation.goodCellWindowNHitsMap[sliceIndex];
           auto meanPerCell = calibrationInformation.energyPerHitMap[sliceIndex][cellID];
-          LOG(debug) << "Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
-          if (meanPerCell < ranges.first || meanPerCell > ranges.second) {
+          auto meanPerCellNHits = calibrationInformation.nHitsMap[sliceIndex][cellID];
+          LOG(debug) << "Energy Per Hit: Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
+          LOG(debug) << "NHits: Mean per cell is " << meanPerCellNHits << " Good Cell Window: [ " << rangesNHits.first << " , " << rangesNHits.second << " ]";
+          if (meanPerCell < ranges.first || meanPerCell > ranges.second || meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
             LOG(debug) << "********* FAILED **********";
             failed = true;
             break;
@@ -161,13 +164,14 @@ class EMCALCalibExtractor
     // create the output histo
     BadChannelCalibInfo outputInfo;
     std::map<slice_t, std::array<double, mNcells>> outputMapEnergyPerHit;
+    std::map<slice_t, std::array<double, mNcells>> outputMapNHits;
     // initialize the output maps with 0
     for (const auto& [sliceIndex, sliceLimits] : sliceMap) {
       std::array<double, mNcells> energyPerHit, nHits;
       std::fill(energyPerHit.begin(), energyPerHit.end(), 0.);
       std::fill(nHits.begin(), nHits.end(), 0.);
       outputMapEnergyPerHit[sliceIndex] = energyPerHit;
-      //outputMapNHits[sliceIndex] = nHits;
+      outputMapNHits[sliceIndex] = nHits;
     }
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
     if (mNThreads < 1) {
@@ -197,6 +201,7 @@ class EMCALCalibExtractor
         if (sumVal > 0.) {
           // fill the output map with the desired slicing etc.
           outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal));
+          outputMapNHits[sliceIndex][cellID] = sumVal;
         }
 
       } // end loop over the slices
@@ -208,15 +213,26 @@ class EMCALCalibExtractor
       auto& means = outputMapEnergyPerHit[sliceIndex];
       robustEstimator.EvaluateUni(means.size(), means.data(), meanPerSlice, sigmaPerSlice, 0);
 
-      LOG(debug) << "Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      Double_t meanPerSlice_NHits = 0.0;  // mean energy per slice to be compared to the cell
+      Double_t sigmaPerSlice_NHits = 0.0; // sigma energy per slice to be compared to the cell
+      TRobustEstimator robustEstimatorNHits;
+      auto& meansNHits = outputMapNHits[sliceIndex];
+      robustEstimatorNHits.EvaluateUni(meansNHits.size(), meansNHits.data(), meanPerSlice_NHits, sigmaPerSlice_NHits, 0);
+
+      LOG(debug) << "Energy Per hit: Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      LOG(debug) << "NHits: Mean per slice is: " << meanPerSlice_NHits << " Sigma Per Slice: " << sigmaPerSlice_NHits << " with size " << outputMapNHits[sliceIndex].size();
       // calculate the "good cell window from the mean"
-      double maxVal = meanPerSlice + 4.0 * sigmaPerSlice;
-      double minVal = meanPerSlice - 4.0 * sigmaPerSlice;
-      // we need to change this
+      double maxVal = meanPerSlice + mSigma * sigmaPerSlice;
+      double minVal = meanPerSlice - mSigma * sigmaPerSlice;
+      double maxValNHits = meanPerSlice_NHits + mSigma * sigmaPerSlice_NHits;
+      double minValNHits = meanPerSlice_NHits - mSigma * sigmaPerSlice_NHits;
+      // store in the output maps
       outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
+      outputInfo.goodCellWindowNHitsMap[sliceIndex] = {minValNHits, maxValNHits};
     }
     // now add these to the calib info struct
     outputInfo.energyPerHitMap = outputMapEnergyPerHit;
+    outputInfo.nHitsMap = outputMapNHits;
 
     return outputInfo;
   }
@@ -279,9 +295,8 @@ class EMCALCalibExtractor
   }
 
  private:
-  //bool mUseScaledHistoForBadChannels = false; ///< variable to specify whether or not we want to use the scaled histo for the claibration of bad channels.
   EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
-  int mSigma = 4;                                       ///< number of sigma used in the calibration to define outliers
+  int mSigma = 5;                                       ///< number of sigma used in the calibration to define outliers
   int mNThreads = 1;                                    ///< number of threads used for calibration
 
   o2::emcal::Geometry* mGeometry = nullptr;
