@@ -71,20 +71,29 @@ void CalibLoader::static_load()
 {
   if (hasLocalBadChannelMap()) {
     if (std::filesystem::exists(std::filesystem::path(mPathBadChannelMap))) {
+      LOG(info) << "Static load: Bad channel map taken from file " << mPathBadChannelMap;
       std::unique_ptr<TFile> reader(TFile::Open(mPathBadChannelMap.data(), "READ"));
       mBadChannelMap = ManagedObject<o2::emcal::BadChannelMap>(new o2::emcal::BadChannelMap(*(reader->Get<o2::emcal::BadChannelMap>("ccdb_object"))), true);
+    } else {
+      LOG(error) << "Static load: Path to bad channel map (" << mPathBadChannelMap << ") not existing";
     }
   }
   if (hasLocalTimeCalib()) {
     if (std::filesystem::exists(std::filesystem::path(mPathTimeCalib))) {
+      LOG(info) << "Static load: Time calibration coefficients taken from file " << mPathTimeCalib;
       std::unique_ptr<TFile> reader(TFile::Open(mPathTimeCalib.data(), "READ"));
       mTimeCalibParams = ManagedObject<o2::emcal::TimeCalibrationParams>(new o2::emcal::TimeCalibrationParams(*(reader->Get<o2::emcal::TimeCalibrationParams>("ccdb_object"))), true);
+    } else {
+      LOG(error) << "Static load: Path to time calibration params (" << mPathTimeCalib << ") not existing";
     }
   }
   if (hasLocalGainCalib()) {
     if (std::filesystem::exists(std::filesystem::path(mPathGainCalib))) {
+      LOG(info) << "Static load: Gain calibration coefficients taken from file " << mPathGainCalib;
       std::unique_ptr<TFile> reader(TFile::Open(mPathGainCalib.data(), "READ"));
       mGainCalibParams = ManagedObject<o2::emcal::GainCalibrationFactors>(new o2::emcal::GainCalibrationFactors(*(reader->Get<o2::emcal::GainCalibrationFactors>("ccdb_object"))), true);
+    } else {
+      LOG(error) << "Static load: Path to gain calibration params (" << mPathGainCalib << ") not existing";
     }
   }
 }
