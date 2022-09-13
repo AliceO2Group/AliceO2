@@ -28,7 +28,7 @@ namespace zdc
 struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
   bool rootOutput = true;                // Debug output
   std::string outputDir = "./";          // ROOT files output directory
-  std::string metaFileDir = "/dev/null"; // metafile output directory
+  std::string metaFileDir = "/dev/null"; // Metafile output directory
   std::string descr;                     // Calibration description
   void print();
   O2ParamDef(CalibParamZDC, "CalibParamZDC");

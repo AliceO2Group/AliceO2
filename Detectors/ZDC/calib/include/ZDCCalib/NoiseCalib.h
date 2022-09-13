@@ -13,6 +13,7 @@
 #include <gsl/span>
 #include "ZDCBase/Constants.h"
 #include "CommonDataFormat/FlatHisto1D.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "ZDCCalib/NoiseCalibData.h"
 #include "ZDCReconstruction/NoiseParam.h"
 #include "CCDB/CcdbObjectInfo.h"
@@ -29,6 +30,8 @@ class NoiseCalib
  public:
   NoiseCalib() = default;
   int init();
+  void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
+  const ModuleConfig* getModuleConfig() { return mModuleConfig; };
   void clear();
   // int process(const o2::zdc::NoiseCalibSummaryData& data);
   int process(const o2::zdc::NoiseCalibSummaryData* data);
@@ -49,6 +52,7 @@ class NoiseCalib
   NoiseCalibData mData;
   NoiseParam mParam;
   bool mInitDone = false;
+  const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
   int32_t mVerbosity = DbgMinimal;
   CcdbObjectInfo mInfo; /// CCDB Info
 };

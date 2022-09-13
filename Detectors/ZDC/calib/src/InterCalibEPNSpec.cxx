@@ -101,7 +101,7 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   // Process reconstructed data
   mWorker.process(bcrec, energy, tdc, info);
 
-  // Send intermediate calibration data and debug histograms
+  // Send intermediate calibration data and histograms
   o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
   char outputd[o2::header::gSizeDataDescriptionString];
@@ -149,7 +149,7 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<InterCalibEPNSpec>()},
-    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

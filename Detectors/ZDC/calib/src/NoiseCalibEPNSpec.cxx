@@ -31,7 +31,6 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
-#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCCalib/NoiseCalibData.h"
@@ -90,8 +89,7 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   }
 
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
-  NoiseCalibData& data = mWorker.getData();
-  data.setCreationTime(creationTime);
+  mWorker.getData().setCreationTime(creationTime);
 
   auto trig = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
   auto chan = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
@@ -99,9 +97,9 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   // Process reconstructed data
   mWorker.process(trig, chan);
 
-  // Send intermediate calibration data
-  auto& summary = mWorker.mData.getSummary();
+  // Send intermediate calibration data and histograms
   o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
+  auto& summary = mWorker.mData.getSummary();
   pc.outputs().snapshot(outputData, summary);
   char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < NChannels; ih++) {
@@ -120,7 +118,6 @@ void NoiseCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 
 framework::DataProcessorSpec getNoiseCalibEPNSpec()
 {
-  using device = o2::zdc::NoiseCalibEPNSpec;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("chan", "ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
@@ -137,7 +134,7 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
     "zdc-noisecalib-epn",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<NoiseCalibEPNSpec>()},
     Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 

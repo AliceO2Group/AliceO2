@@ -63,10 +63,19 @@ void NoiseCalibSpec::init(o2::framework::InitContext& ic)
 
 void NoiseCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  // we call these methods just to trigger finaliseCCDB callback
+  pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
 }
 
 void NoiseCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
+  if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
+    auto* config = (const o2::zdc::ModuleConfig*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
+    }
+    mWorker.setModuleConfig(config);
+  }
 }
 
 void NoiseCalibSpec::run(ProcessingContext& pc)
