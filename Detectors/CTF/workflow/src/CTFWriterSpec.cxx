@@ -211,16 +211,22 @@ void CTFWriterSpec::init(InitContext& ic)
 
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
   mCTFAutoSave = ic.options().get<int>("save-ctf-after");
-  mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
-  mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("output-dir"));
-  mCTFDirFallBack = ic.options().get<std::string>("output-dir-alt");
-  if (mCTFDirFallBack != "/dev/null") {
-    mCTFDirFallBack = o2::utils::Str::rectifyDirectory(mCTFDirFallBack);
-  }
   mCTFMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   if (mCTFMetaFileDir != "/dev/null") {
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
+  }
+  mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
+  mCTFDir = ic.options().get<std::string>("output-dir");
+  if (mCTFDir != "/dev/null") {
+    mCTFDir = o2::utils::Str::rectifyDirectory(mCTFDir);
+  } else {
+    mWriteCTF = false;
+    mStoreMetaFile = false;
+  }
+  mCTFDirFallBack = ic.options().get<std::string>("output-dir-alt");
+  if (mCTFDirFallBack != "/dev/null") {
+    mCTFDirFallBack = o2::utils::Str::rectifyDirectory(mCTFDirFallBack);
   }
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
