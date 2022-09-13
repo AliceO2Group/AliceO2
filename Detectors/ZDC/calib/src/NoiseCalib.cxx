@@ -29,8 +29,8 @@ int NoiseCalib::init()
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
 
-  for(int isig=0; isig<NChannels; isig++){
-    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096,-2048.7, 2047.5);
+  for (int isig = 0; isig < NChannels; isig++) {
+    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
   }
 
   clear();
@@ -59,7 +59,6 @@ int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
   }
   return 0;
 }
-
 
 //______________________________________________________________________________
 // Add histograms
@@ -130,7 +129,7 @@ int NoiseCalib::endOfRun()
 int NoiseCalib::saveDebugHistos(const std::string fn)
 {
   int ierr = mData.saveDebugHistos(fn);
-  if(ierr!=0){
+  if (ierr != 0) {
     return ierr;
   }
   TDirectory* cwd = gDirectory;
@@ -140,7 +139,7 @@ int NoiseCalib::saveDebugHistos(const std::string fn)
     return 1;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    auto p = mH[is]->createTH1F(TString::Format("hs%d",is).Data());
+    auto p = mH[is]->createTH1F(TString::Format("hs%d", is).Data());
     p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
     p->Write("", TObject::kOverwrite);
   }
