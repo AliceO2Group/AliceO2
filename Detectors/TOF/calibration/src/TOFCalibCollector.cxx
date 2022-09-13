@@ -43,7 +43,7 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
       continue;
     }
 
-    mTOFCollectedCalibInfoSlot.emplace_back(data[i].getTOFChIndex(), data[i].getTimestamp(), data[i].getDeltaTimePi(), data[i].getTot(), data[i].getFlags());
+    mTOFCollectedCalibInfoSlot.emplace_back(data[i].getTOFChIndex(), data[i].getTimestamp(), data[i].getDeltaTimePi() - mLHCphase, data[i].getTot(), data[i].getFlags());
     mEntriesSlot[data[i].getTOFChIndex()]++;
   }
 }
@@ -204,7 +204,7 @@ Slot& TOFCalibCollector::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<TOFCalibInfoSlot>());
+  slot.setContainer(std::make_unique<TOFCalibInfoSlot>(mLHCphase));
   return slot;
 }
 
