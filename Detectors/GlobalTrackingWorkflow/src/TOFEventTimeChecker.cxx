@@ -82,7 +82,7 @@ using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF && tr.mSource == 1);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF && tr.mSource >= 0);
 } // accept all
 
 namespace o2
@@ -396,7 +396,7 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
 
     if (info.getL() < 370) {
-      //      trk.mHasTOF = false;
+      trk.mHasTOF = false;
     }
 
     trk.mExpDe = info.getTOF(5);      // el
