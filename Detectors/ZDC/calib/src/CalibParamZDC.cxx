@@ -17,18 +17,32 @@ O2ParamImpl(o2::zdc::CalibParamZDC);
 void o2::zdc::CalibParamZDC::print()
 {
   bool printed = false;
-  if (rootOutput >= 0) {
-    if(!printed){
+  if (rootOutput) {
+    if (!printed) {
       LOG(info) << "CalibParamZDC::print()";
       printed = true;
     }
-    printf(" rootOutput=%d\n", rootOutput);
+    printf("rootOutput=%b\n", rootOutput);
   }
-  if (descr.size()>0){
-    if(!printed){
+  if (outputDir.compare("./")) {
+    if (!printed) {
       LOG(info) << "CalibParamZDC::print()";
       printed = true;
     }
-    printf(" descr=%s\n", descr.data());
+    printf("outputDir=%s\n", outputDir.data());
+  }
+  if (metaFileDir.compare("/dev/null")) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("metaFileDir=%s\n", metaFileDir.data());
+  }
+  if (descr.size() > 0) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("descr=%s\n", descr.data());
   }
 }
