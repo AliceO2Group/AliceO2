@@ -118,16 +118,13 @@ int NoiseCalib::endOfRun()
   mInfo.setAdjustableEOV();
   LOGF(info, "Validity: %llu:%llu", starting, stopping);
 
-  if (mSaveDebugHistos) {
-    LOG(info) << "Saving debug histograms";
-    saveDebugHistos();
-  }
   return 0;
 }
 
 //______________________________________________________________________________
 int NoiseCalib::saveDebugHistos(const std::string fn)
 {
+  LOG(info) << "Saving debug histograms on file " << fn;
   int ierr = mData.saveDebugHistos(fn);
   if (ierr != 0) {
     return ierr;

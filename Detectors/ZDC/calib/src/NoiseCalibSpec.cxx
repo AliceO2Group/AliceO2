@@ -147,7 +147,7 @@ void NoiseCalibSpec::sendOutput(o2::framework::DataAllocator& output)
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
         }
-        LOG(info) << "Stored metadate file " << metaFileName << ".done";
+        LOG(info) << "Stored metadata file " << metaFileName << ".done";
       } else {
         LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
       }

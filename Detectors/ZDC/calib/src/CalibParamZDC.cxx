@@ -22,7 +22,7 @@ void o2::zdc::CalibParamZDC::print()
       LOG(info) << "CalibParamZDC::print()";
       printed = true;
     }
-    printf("rootOutput=%b\n", rootOutput);
+    printf("rootOutput=%s\n", rootOutput ? "true" : "false");
   }
   if (outputDir.compare("./")) {
     if (!printed) {

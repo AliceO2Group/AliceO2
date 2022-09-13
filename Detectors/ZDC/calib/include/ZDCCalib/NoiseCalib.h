@@ -41,9 +41,6 @@ class NoiseCalib
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
 
-  void setSaveDebugHistos() { mSaveDebugHistos = true; }
-  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
-
   NoiseCalibData& getData() { return mData; }
   NoiseParam& getParam() { return mParam; }
   std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
@@ -52,7 +49,6 @@ class NoiseCalib
   NoiseCalibData mData;
   NoiseParam mParam;
   bool mInitDone = false;
-  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   CcdbObjectInfo mInfo; /// CCDB Info
 };
