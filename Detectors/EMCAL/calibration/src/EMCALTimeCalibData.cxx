@@ -61,13 +61,13 @@ bool EMCALTimeCalibData::hasEnoughData() const
 {
   bool enough = false;
 
-  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries_tc << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().useNEventsForCalib_tc && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries_tc) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration
-  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+  if (EMCALCalibParams::Instance().useNEventsForCalib_tc && mEvents > EMCALCalibParams::Instance().minNEvents_tc) {
     enough = true;
   }
 
@@ -83,7 +83,7 @@ void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
     double cellEnergy = cell.getEnergy();
     double cellTime = cell.getTimeStamp();
     int id = cell.getTower();
-    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergyForTimeCalib) {
+    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergy_tc) {
       LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
       mTimeHisto(cellTime, id);
       mNEntriesInHisto++;

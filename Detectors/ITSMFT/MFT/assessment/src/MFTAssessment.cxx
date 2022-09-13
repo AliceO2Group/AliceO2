@@ -38,7 +38,7 @@ void MFTAssessment::reset()
   mTrackNumberOfClusters->Reset();
   mCATrackNumberOfClusters->Reset();
   mLTFTrackNumberOfClusters->Reset();
-  mTrackOnvQPt->Reset();
+  mTrackInvQPt->Reset();
   mTrackChi2->Reset();
   mTrackCharge->Reset();
   mTrackPhi->Reset();
@@ -109,12 +109,12 @@ void MFTAssessment::reset()
 //__________________________________________________________
 void MFTAssessment::createHistos()
 {
-  auto MaxClusterROFSize = 5000;
-  auto MaxTrackROFSize = 1000;
+  auto MaxClusterROFSize = 25000;
+  auto MaxTrackROFSize = 5000;
   auto ROFLengthInBC = 198;
   auto ROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / ROFLengthInBC;
-  auto MaxDuration = 60.f;
-  auto TimeBinSize = 0.01f;
+  auto MaxDuration = 60000.f;
+  auto TimeBinSize = 0.1f;
   auto NofTimeBins = static_cast<int>(MaxDuration / TimeBinSize);
 
   // Creating data-only histos
@@ -127,7 +127,7 @@ void MFTAssessment::createHistos()
   mLTFTrackNumberOfClusters = std::make_unique<TH1F>("mMFTLTFTrackNumberOfClusters",
                                                      "Number Of Clusters Per LTF Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackOnvQPt = std::make_unique<TH1F>("mMFTTrackOnvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
 
   mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}; #chi^{2}; # entries", 21, -0.5, 20.5);
 
@@ -392,12 +392,12 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 
     if (oneTrack.getCharge() == +1) {
       mPositiveTrackPhi->Fill(oneTrack.getPhi());
-      mTrackOnvQPt->Fill(1 / oneTrack.getPt());
+      mTrackInvQPt->Fill(1 / oneTrack.getPt());
     }
 
     if (oneTrack.getCharge() == -1) {
       mNegativeTrackPhi->Fill(oneTrack.getPhi());
-      mTrackOnvQPt->Fill(-1 / oneTrack.getPt());
+      mTrackInvQPt->Fill(-1 / oneTrack.getPt());
     }
 
     if (oneTrack.isCA()) {
@@ -556,7 +556,12 @@ void MFTAssessment::processTrueTracks()
           auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
           auto invQPtGen = 1.0 * Q_Gen / ptGen;
 
-          mftTrack.propagateToZ(vzGen, mBz);
+          if (std::abs(mftTrack.getInvQPt()) > o2::constants::math::Almost0) {
+            mftTrack.propagateToZ(vzGen, mBz);
+          } else {
+            mftTrack.propagateToZlinear(vzGen);
+          }
+
           const auto& pt_Rec = mftTrack.getPt();
           const auto& invQPt_Rec = mftTrack.getInvQPt();
           const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
@@ -626,7 +631,7 @@ void MFTAssessment::getHistos(TObjArray& objar)
   objar.Add(mTrackNumberOfClusters.get());
   objar.Add(mCATrackNumberOfClusters.get());
   objar.Add(mLTFTrackNumberOfClusters.get());
-  objar.Add(mTrackOnvQPt.get());
+  objar.Add(mTrackInvQPt.get());
   objar.Add(mTrackChi2.get());
   objar.Add(mTrackCharge.get());
   objar.Add(mTrackPhi.get());
@@ -661,6 +666,10 @@ void MFTAssessment::getHistos(TObjArray& objar)
 
   objar.Add(mTrackROFNEntries.get());
   objar.Add(mClusterROFNEntries.get());
+
+  objar.Add(mTracksBC.get());
+  objar.Add(mNOfTracksTime.get());
+  objar.Add(mNOfClustersTime.get());
 
   objar.Add(mClusterSensorIndex.get());
   objar.Add(mClusterPatternIndex.get());
@@ -801,7 +810,7 @@ bool MFTAssessment::loadHistos()
 
   mLTFTrackNumberOfClusters = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTLTFTrackNumberOfClusters"));
 
-  mTrackOnvQPt = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackOnvQPt"));
+  mTrackInvQPt = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackInvQPt"));
 
   mTrackChi2 = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackChi2"));
 

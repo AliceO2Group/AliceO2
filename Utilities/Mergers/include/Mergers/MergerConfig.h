@@ -18,6 +18,8 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include <string>
+#include <vector>
+#include <variant>
 
 namespace o2::mergers
 {
@@ -47,8 +49,14 @@ enum class PublicationDecision {
 };
 
 enum class TopologySize {
-  NumberOfLayers, // User specifies the number of layers in topology.
-  ReductionFactor // User specifies how many sources should be handled by one merger (by maximum).
+  NumberOfLayers,  // User specifies the number of layers in topology.
+  ReductionFactor, // User specifies how many sources should be handled by one merger (by maximum).
+  MergersPerLayer  // User specifies how many Mergers should be spawned in each layer.
+};
+
+enum class ParallelismType {
+  SplitInputs, // Splits the provided vector of InputSpecs evenly among Mergers.
+  RoundRobin   // Mergers receive their input messages in round robin order. Useful when there is one InputSpec with a wildcard.
 };
 
 template <typename V, typename P = double>
@@ -57,14 +65,16 @@ struct ConfigEntry {
   P param = P();
 };
 
+// todo rework configuration in a way that user cannot create an invalid configuration
 // \brief MergerAlgorithm configuration structure. Default configuration should work in most cases, out of the box.
 struct MergerConfig {
   ConfigEntry<InputObjectsTimespan> inputObjectTimespan = {InputObjectsTimespan::FullHistory};
   ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
-  ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
+  ConfigEntry<TopologySize, std::variant<int, std::vector<size_t>>> topologySize = {TopologySize::NumberOfLayers, 1};
   std::string monitoringUrl = "infologger:///debug?qc";
-  std::string detectorName;
+  std::string detectorName = "TST";
+  ConfigEntry<ParallelismType> parallelismType = {ParallelismType::SplitInputs};
 };
 
 } // namespace o2::mergers

@@ -94,7 +94,7 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity, int reportInterval);
+  CTFWriterSpec(DetID::mask_t dm, const std::string& outType, int verbosity, int reportInterval);
   ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -124,6 +124,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
   bool mRejectCurrentTF = false;
+  bool mFallBackDirUsed = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
@@ -179,7 +180,7 @@ class CTFWriterSpec : public o2::framework::Task
 const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
-CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity, int reportInterval)
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, const std::string& outType, int verbosity, int reportInterval)
   : mDets(dm), mOutputType(outType), mReportInterval(reportInterval), mVerbosity(verbosity)
 {
   std::for_each(mIsSaturatedFrequencyTable.begin(), mIsSaturatedFrequencyTable.end(), [](auto& bitset) { bitset.reset(); });
@@ -488,6 +489,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
   }
   if (needToOpen) {
     closeTFTreeAndFile();
+    mFallBackDirUsed = false;
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
       createLockFile(0);
@@ -496,6 +498,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         removeLockFile();
         LOG(warning) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
         ctfDir = mCTFDirFallBack;
+        mFallBackDirUsed = true;
       }
     }
     if (mCreateRunEnvDir && !mDataTakingContext.envId.empty() && (mDataTakingContext.envId != o2::framework::DataTakingContext::UNKNOWN)) {
@@ -533,7 +536,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
         ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
         ctfMetaData.setDataTakingContext(mDataTakingContext);
         ctfMetaData.type = mMetaDataType;
-        ctfMetaData.priority = "high";
+        ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
         ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
@@ -690,7 +693,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 }
 
 //___________________________________________________________________
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType, int verbosity, int reportInterval)
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outType, int verbosity, int reportInterval)
 {
   std::vector<InputSpec> inputs;
   LOG(debug) << "Detectors list:";
@@ -704,8 +707,8 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
-    Options{                                                                                    //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
+    Options{                                                                               //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
             {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
             {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},

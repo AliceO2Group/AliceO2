@@ -22,6 +22,7 @@
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
+#include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
@@ -70,7 +71,9 @@ class EMCALCalibExtractor
   void setNThreads(int n) { mNThreads = std::min(n, mNcells); }
   int getNThreads() const { return mNThreads; }
 
-  void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
+  void setBCMScaleFactors(EMCALChannelScaleFactors* scalefactors) { mBCMScaleFactors = scalefactors; }
+
+  // void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
 
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
@@ -83,6 +86,19 @@ class EMCALCalibExtractor
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}};
+
+    if (mBCMScaleFactors) {
+      LOG(info) << "Rescaling BCM histo";
+      // rescale the histogram
+      for (int icell = 0; icell < 17644; icell++) {
+        for (int ebin = 0; ebin < hist.axis(0).size(); ebin++) {
+          double lowerE = hist.axis(0).bin(ebin).lower();
+          double upperE = hist.axis(0).bin(ebin).upper();
+          double midE = (lowerE + upperE) / 2.;
+          hist.at(ebin, icell) = hist.at(ebin, icell) / mBCMScaleFactors->getScaleVal(icell, midE);
+        }
+      }
+    }
 
     // get all ofthe calibration information that we need in a struct
     BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
@@ -151,7 +167,7 @@ class EMCALCalibExtractor
       std::fill(energyPerHit.begin(), energyPerHit.end(), 0.);
       std::fill(nHits.begin(), nHits.end(), 0.);
       outputMapEnergyPerHit[sliceIndex] = energyPerHit;
-      // outputMapNHits[sliceIndex] = nHits;
+      //outputMapNHits[sliceIndex] = nHits;
     }
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
     if (mNThreads < 1) {
@@ -263,9 +279,10 @@ class EMCALCalibExtractor
   }
 
  private:
-  bool mUseScaledHistoForBadChannels = false; ///< variable to specify whether or not we want to use the scaled histo for the claibration of bad channels.
-  int mSigma = 4;                             ///< number of sigma used in the calibration to define outliers
-  int mNThreads = 1;                          ///< number of threads used for calibration
+  //bool mUseScaledHistoForBadChannels = false; ///< variable to specify whether or not we want to use the scaled histo for the claibration of bad channels.
+  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
+  int mSigma = 4;                                       ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                                    ///< number of threads used for calibration
 
   o2::emcal::Geometry* mGeometry = nullptr;
   static constexpr int mNcells = 17664;

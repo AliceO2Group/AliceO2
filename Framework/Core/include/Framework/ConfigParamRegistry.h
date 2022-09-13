@@ -85,11 +85,11 @@ class ConfigParamRegistry
         return mStore->store().get<std::string>(key);
       } else if constexpr (std::is_same_v<T, std::string_view>) {
         return std::string_view{mStore->store().get<std::string>(key)};
-      } else if constexpr (is_base_of_template<std::vector, T>::value) {
+      } else if constexpr (is_base_of_template_v<std::vector, T>) {
         return vectorFromBranch<typename T::value_type>(mStore->store().get_child(key));
-      } else if constexpr (is_base_of_template<o2::framework::Array2D, T>::value) {
+      } else if constexpr (is_base_of_template_v<o2::framework::Array2D, T>) {
         return array2DFromBranch<typename T::element_t>(mStore->store().get_child(key));
-      } else if constexpr (is_base_of_template<o2::framework::LabeledArray, T>::value) {
+      } else if constexpr (is_base_of_template_v<o2::framework::LabeledArray, T>) {
         return labeledArrayFromBranch<typename T::element_t>(mStore->store().get_child(key));
       } else if constexpr (std::is_same_v<T, boost::property_tree::ptree>) {
         return mStore->store().get_child(key);

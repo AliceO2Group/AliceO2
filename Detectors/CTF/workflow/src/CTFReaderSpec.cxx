@@ -23,6 +23,7 @@
 #include "Framework/RateLimiter.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
+#include "CommonUtils/IRFrameSelector.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "CommonUtils/NameConf.h"
@@ -88,6 +89,7 @@ class CTFReaderSpec : public o2::framework::Task
   void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec) const; // keep just for the reference
   void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
+  o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
   std::unique_ptr<TTree> mCTFTree;
@@ -146,6 +148,9 @@ void CTFReaderSpec::init(InitContext& ic)
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
   mFileFetcher->start();
+  if (!mInput.fileIRFrames.empty()) {
+    mIRFrameSelector.loadIRFrames(mInput.fileIRFrames);
+  }
 }
 
 ///_______________________________________
@@ -274,6 +279,14 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   processDetector<o2::zdc::CTF>(DetID::ZDC, ctfHeader, pc);
   processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
 
+  if (mIRFrameSelector.isSet()) {
+    o2::InteractionRecord ir0(0, timingInfo.firstTForbit);
+    // we cannot have GRPECS via DPL CCDB fetcher in the CTFReader, so we take max possible TF length of 256 orbits
+    o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, timingInfo.firstTForbit < 0xffffffff - 255 ? timingInfo.firstTForbit + 255 : 0xffffffff);
+    auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
+    auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
+  }
+
   // send sTF acknowledge message
   if (!mInput.sup0xccdb) {
     auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"TFDist", 0xccdb});
@@ -395,6 +408,7 @@ void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
 ///_______________________________________
 DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
 {
+  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
   std::vector<ConfigParamSpec> options;
 
@@ -404,6 +418,9 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
       DetID det(id);
       outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec, Lifetime::Timeframe);
     }
+  }
+  if (!inp.fileIRFrames.empty()) {
+    outputs.emplace_back(OutputLabel{"selIRFrames"}, "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
   if (!inp.sup0xccdb) {
     outputs.emplace_back(OutputSpec{{"TFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
@@ -418,7 +435,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
 
   return DataProcessorSpec{
     "ctf-reader",
-    Inputs{},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
     options};

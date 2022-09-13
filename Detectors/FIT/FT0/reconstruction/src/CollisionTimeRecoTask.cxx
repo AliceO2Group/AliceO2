@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file  CollisionTimeRecoTask.cxx
-/// \brief Implementation of the FIT reconstruction task
+/// \brief Implementation of the FT0 reconstruction task
 
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "FairLogger.h" // for LOG
@@ -27,21 +27,23 @@
 #include <Framework/Logger.h>
 
 using namespace o2::ft0;
+using RP = o2::ft0::RecPoints;
 
-o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
-                                                  gsl::span<const o2::ft0::ChannelData> inChData,
-                                                  gsl::span<o2::ft0::ChannelDataFloat> outChData)
+RP CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
+                                  gsl::span<const o2::ft0::ChannelData> inChData,
+                                  gsl::span<o2::ft0::ChannelDataFloat> outChData)
 {
   LOG(debug) << "Running reconstruction on new event";
 
-  Int_t ndigitsC = 0, ndigitsA = 0;
+  Int_t ndigitsA = 0;
+  Int_t ndigitsC = 0;
+  Float_t sideAtime = 0;
+  Float_t sideCtime = 0;
 
   constexpr Int_t nMCPsA = 4 * Geometry::NCellsA;
-
-  Float_t sideAtime = 0, sideCtime = 0;
+  const auto parInv = FT0DigParam::Instance().mMV_2_NchannelsInverse;
 
   int nch = inChData.size();
-  const auto parInv = FT0DigParam::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
     int offsetChannel = getOffset(int(inChData[ich].ChId), inChData[ich].QTCAmpl);
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
@@ -61,11 +63,10 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
       }
     }
   }
-  auto sDummyCollissionTime = o2::ft0::RecPoints::sDummyCollissionTime;
-  std::array<short, 4> mCollisionTime = {sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime};
+  std::array<short, 4> mCollisionTime = {RP::sDummyCollissionTime, RP::sDummyCollissionTime, RP::sDummyCollissionTime, RP::sDummyCollissionTime};
   // !!!! tobe done::should be fix with ITS vertex
-  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / ndigitsA : sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
-  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / ndigitsC : sDummyCollissionTime; //2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / ndigitsA : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / ndigitsC : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
 
   if (ndigitsA > 0 && ndigitsC > 0) {
     mCollisionTime[Vertex] = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;

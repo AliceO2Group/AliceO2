@@ -145,6 +145,7 @@ AddOption(memoryAllocationStrategy, char, 0, "", 0, "Memory Allocation Stragegy 
 AddOption(forceMemoryPoolSize, unsigned long, 1, "memSize", 0, "Force size of allocated GPU / page locked host memory", min(0ul))
 AddOption(forceHostMemoryPoolSize, unsigned long, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(0ul))
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
+AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
 AddOption(forceMaxMemScalers, unsigned long, 0, "", 0, "Force using the maximum values for all buffers, Set a value n > 1 to rescale all maximums to a memory size of n")
 AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
 AddOption(ompThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: all)", min(-1), message("Using %s OMP threads"))
@@ -153,6 +154,7 @@ AddOption(ompAutoNThreads, bool, true, "", 0, "Auto-adjust number of OMP threads
 AddOption(nDeviceHelperThreads, int, 1, "", 0, "Number of CPU helper threads for CPU processing")
 AddOption(nStreams, char, 8, "", 0, "Number of GPU streams / command queues")
 AddOption(nTPCClustererLanes, char, -1, "", 0, "Number of TPC clusterers that can run in parallel (-1 = autoset)")
+AddOption(overrideClusterizerFragmentLen, int, -1, "", 0, "Force the cluster max fragment len to a certain value (-1 = autodetect)")
 AddOption(trackletSelectorSlices, char, -1, "", 0, "Number of slices to processes in parallel at max")
 AddOption(trackletConstructorInPipeline, char, -1, "", 0, "Run tracklet constructor in the pipeline")
 AddOption(trackletSelectorInPipeline, char, -1, "", 0, "Run tracklet selector in the pipeline")
@@ -444,6 +446,7 @@ AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific 
 AddOption(disableCalibUpdates, bool, false, "", 0, "Disable all calibration updates")
 AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-fatal error that is ignored (ignoreNonFatalGPUErrors=true), forward the partial output that was created instead of shipping an empty TF")
 AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
+AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits filter during zs encoding")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

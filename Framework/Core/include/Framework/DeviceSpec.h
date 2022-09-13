@@ -40,6 +40,11 @@ namespace o2::framework
 
 /// Concrete description of the device which will actually run
 /// a DataProcessor.
+///
+/// You can get a reference to this by retrieving it from the
+/// ServiceRegistry. E.g.:
+///
+/// auto &deviceSpec = ctx.services().get<DeviceSpec const>();
 struct DeviceSpec {
   /// The name of the associated DataProcessorSpec
   std::string name;

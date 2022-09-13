@@ -26,18 +26,49 @@
 
 using namespace o2::ccdb;
 
+static string basePath;
+std::string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+bool hostReachable = false;
+
+/**
+ * Global fixture, ie general setup and teardown
+ */
+struct Fixture {
+  Fixture()
+  {
+    CcdbApi api;
+    api.init(ccdbUrl);
+    std::cout << "ccdb url: " << ccdbUrl << std::endl;
+    hostReachable = api.isHostReachable();
+    std::cout << "Is host reachable ? --> " << hostReachable << std::endl;
+    char hostname[_POSIX_HOST_NAME_MAX];
+    gethostname(hostname, _POSIX_HOST_NAME_MAX);
+    basePath = string("Test/") + hostname + "/pid" + getpid() + "/BasicCCDBManager/";
+    std::cout << "Path we will use in this test suite : " + basePath << std::endl;
+  }
+  ~Fixture()
+  {
+    if (hostReachable) {
+      CcdbApi api;
+      api.init(ccdbUrl);
+      api.truncate(basePath + "*");
+      std::cout << "Test data truncated (" << basePath << ")" << std::endl;
+    }
+  }
+};
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
 {
   CcdbApi api;
-  const std::string uri = "http://ccdb-test.cern.ch:8080";
-  api.init(uri);
+  api.init(ccdbUrl);
   if (!api.isHostReachable()) {
-    LOG(warning) << "Host " << uri << " is not reacheable, abandoning the test";
+    LOG(warning) << "Host " << ccdbUrl << " is not reacheable, abandoning the test";
     return;
   }
   //
-  std::string pathA = "Test/CachingA";
-  std::string pathB = "Test/CachingB";
+  std::string pathA = basePath + "CachingA";
+  std::string pathB = basePath + "CachingB";
   std::string ccdbObjO = "testObjectO";
   std::string ccdbObjN = "testObjectN";
   std::map<std::string, std::string> md;
@@ -48,7 +79,7 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
 
   // test reading
   auto& cdb = o2::ccdb::BasicCCDBManager::instance();
-  cdb.setURL(uri);
+  cdb.setURL(ccdbUrl);
   cdb.setTimestamp((start + stop) / 2);
   cdb.setCaching(true);
 

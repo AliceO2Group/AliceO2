@@ -511,22 +511,21 @@ gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr r
 void updatePlaceholders(Filter& filter, InitContext& context);
 
 template <typename... C>
-std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
+std::vector<expressions::Projector> makeProjectors(framework::pack<C...>)
 {
-  std::shared_ptr<gandiva::Projector> projector;
-  auto s = gandiva::Projector::Make(
-    schema,
-    {makeExpression(
-      framework::expressions::createExpressionTree(
-        framework::expressions::createOperations(C::Projector()),
-        schema),
-      C::asArrowField())...},
-    &projector);
-  if (s.ok()) {
-    return projector;
-  } else {
-    throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
-  }
+  return {C::Projector()...};
+}
+
+std::shared_ptr<gandiva::Projector> createProjectorHelper(size_t nColumns, expressions::Projector* projectors,
+                                                          std::shared_ptr<arrow::Schema> schema,
+                                                          std::vector<std::shared_ptr<arrow::Field>> const& fields);
+
+template <typename... C>
+std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Field>> const& fields, gandiva::SchemaPtr schema)
+{
+  std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
+
+  return createProjectorHelper(sizeof...(C), projectors.data(), schema, fields);
 }
 } // namespace o2::framework::expressions
 

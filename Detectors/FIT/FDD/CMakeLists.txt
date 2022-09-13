@@ -10,6 +10,10 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(base)
+add_subdirectory(dcsmonitoring)
+if(BUILD_TESTING)
+    add_subdirectory(dcsmonitoring/macros)
+endif()
 add_subdirectory(raw)
 add_subdirectory(simulation)
 add_subdirectory(reconstruction)

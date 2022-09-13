@@ -289,6 +289,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     AlgorithmSpec::dummyAlgorithm(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {"Replace base path of parent files. Syntax: FROM;TO. E.g. alien:///path/in/alien;/local/path"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
      ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
@@ -504,6 +505,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
     aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+    aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
@@ -621,8 +623,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // file sink for any AOD output
   if (outputsInputsAOD.size() > 0) {
-    // add TFNumber as input to the writer
+    // add TFNumber and TFFilename as input to the writer
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
+    outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
 

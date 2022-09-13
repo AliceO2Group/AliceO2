@@ -31,7 +31,7 @@ namespace mch
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec();
+  EntropyEncoderSpec(bool selIR);
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -40,10 +40,11 @@ class EntropyEncoderSpec : public o2::framework::Task
 
  private:
   o2::mch::CTFCoder mCTFCoder;
+  bool mSelIR = false;
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -68,7 +69,9 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc);
   auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs", 0);
   auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits", 0);
-
+  if (mSelIR) {
+    mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+  }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"MCH", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, rofs, digits);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
@@ -82,20 +85,24 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(const char* specName)
+DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("rofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionary"));
-
+  if (selIR) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     specName,
     inputs,
     Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "MCH", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+            {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
@@ -108,7 +115,9 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName)
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  std::vector<ConfigParamSpec> options{ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  std::vector<ConfigParamSpec> options{
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -122,6 +131,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::mch::getEntropyEncoderSpec("mch-entropy-encoder"));
+  bool selIR = cfgc.options().get<bool>("select-ir-frames");
+  wf.emplace_back(o2::mch::getEntropyEncoderSpec("mch-entropy-encoder", selIR));
   return wf;
 }

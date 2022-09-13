@@ -22,6 +22,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TRDSimulation/Trap2CRU.h"
 #include "CommonUtils/StringUtils.h"
@@ -219,6 +220,13 @@ void Trap2CRU::readTrapData()
   // first 15 links go to cru0a, second 15 links go to cru0b, 3rd 15 links go to cru1a ... first 90 links to flp0 and then repeat for 12 flp
   // then do next event
 
+  // request the mapping from CCDB, if not yet available
+  if (!mLinkMap) {
+    LOG(info) << "Retrieving LinkToHCIDMapping for time stamp " << mTimeStamp;
+    auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+    mLinkMap = ccdbmgr.getForTimeStamp<LinkToHCIDMapping>("TRD/Config/LinkToHCIDMapping", mTimeStamp);
+  }
+
   // lets register our links
   std::string prefix = mOutputDir;
   if (!prefix.empty() && prefix.back() != '/') {
@@ -279,7 +287,6 @@ void Trap2CRU::readTrapData()
     nTriggerRecordsTotal += mTrackletTriggerRecords.size();
     sortDataToLinks();
     // each entry is a timeframe
-    uint32_t linkcount = 0;
     for (auto tracklettrigger : mTrackletTriggerRecords) {
       convertTrapData(tracklettrigger, triggercount); // tracklettrigger assumed to be authoritive
       triggercount++;
@@ -297,9 +304,7 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
   int crurdhversion = 6;
   int feeid = 0;
   int cruid = 0;
-  uint32_t crudatasize = 0; //link size in units of 256 bits.
   int endpoint = halfcru % 2 ? 1 : 0;
-  uint32_t padding = 0;
   //lets first clear it out.
   clearHalfCRUHeader(header);
   //this bunchcrossing is not the same as the bunchcrossing in the rdh, which is the bc coming in the parameter list to this function. See explanation in rawdata.h
@@ -323,8 +328,8 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
   header.yearflag = 1; // >10.2007
   header.eventcount = triggerrecordcount;
   memcpy(mRawDataPtr, (char*)&header, sizeof(DigitMCMHeader)); // uint32 -- 4 bytes.
-  DigitMCMHeader* headerptr = (DigitMCMHeader*)mRawDataPtr;
-  //LOG(info) << "Digt Header word: 0x" << std::hex << headerptr->word;
+  // DigitMCMHeader* headerptr = (DigitMCMHeader*)mRawDataPtr;
+  // LOG(info) << "Digt Header word: 0x" << std::hex << headerptr->word;
   mRawDataPtr += 4;
   digitwordswritten++;
   // we are writing zero suppressed so we need adcmask
@@ -344,7 +349,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
       data.z = adcdata[timebin];
       data.y = adcdata[timebin + 1];
       data.x = adcdata[timebin + 2];
-      data.c = (channel % 2 == 0) ? 0x3 : 0x2;                 // 3 for even channel 2 for odd channel
+      data.f = (channel % 2 == 0) ? 0x3 : 0x2;                 // 3 for even channel 2 for odd channel
       memcpy(mRawDataPtr, (char*)&data, sizeof(DigitMCMData)); // uint32 -- 4 bytes.
       mRawDataPtr += sizeof(DigitMCMData);
       digitwordswritten++;
@@ -366,7 +371,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
   return digitwordswritten;
 }
 
-int Trap2CRU::buildTrackletRawData(int trackletIndexStart)
+int Trap2CRU::buildTrackletRawData(unsigned int trackletIndexStart)
 {
   int hcid = mTracklets[trackletIndexStart].getHCID();
   TrackletMCMHeader header;                 // header with common tracklet information and upper 8 bit of PID information for each tracklet
@@ -384,7 +389,7 @@ int Trap2CRU::buildTrackletRawData(int trackletIndexStart)
   while (hcid == mTracklets[trackletIndexStart + iCurrTracklet].getHCID() &&
          header.col == mTracklets[trackletIndexStart + iCurrTracklet].getColumn() &&
          header.padrow == mTracklets[trackletIndexStart + iCurrTracklet].getPadRow()) { // we are still on the same MCM
-    int trackletIndex = trackletIndexStart + iCurrTracklet;
+    unsigned int trackletIndex = trackletIndexStart + iCurrTracklet;
     auto& trackletData = tracklets[iCurrTracklet];
     trackletData.word = 0;
     // slope and position have the 8-th bit flipped each
@@ -526,8 +531,8 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     LOG(info) << "BUNCH CROSSING : " << triggerrecord.getBCData().bc << " with orbit : " << triggerrecord.getBCData().orbit;
   }
 
-  int endtrackletindex = triggerrecord.getFirstTracklet() + triggerrecord.getNumberOfTracklets();
-  int64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
+  uint64_t endtrackletindex = triggerrecord.getFirstTracklet() + triggerrecord.getNumberOfTracklets();
+  uint64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
   // with digit downscaling enabled there will be triggers with only tracklets
   bool isCalibTrigger = triggerrecord.getNumberOfDigits() > 0 ? true : false;
   const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
@@ -569,7 +574,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     for (int halfcrulink = 0; halfcrulink < constants::NLINKSPERHALFCRU; halfcrulink++) {
       //links run from 0 to 14, so linkid offset is halfcru*15;
       int linkid = halfcrulink + halfcru * constants::NLINKSPERHALFCRU;
-      int hcid = HelperMethods::getHCIDFromLinkID(linkid);
+      int hcid = mLinkMap->getHCID(linkid);
       int linkwordswritten = 0; // number of 32 bit words for this link
       int errors = 0;           // put no errors in for now.
       uint32_t crudatasize = 0; // in 256 bit words.

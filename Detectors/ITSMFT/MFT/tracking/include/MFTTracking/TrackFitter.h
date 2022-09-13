@@ -48,8 +48,9 @@ class TrackFitter
 
   void setBz(float bZ) { mBZField = bZ; }
   void setMFTRadLength(float MFT_x2X0) { mMFTDiskThicknessInX0 = MFT_x2X0 / 5.0; }
-  void setVerbosity(float v) { mVerbose = v; }
-  void setTrackModel(float m) { mTrackModel = m; }
+  void setVerbosity(bool v) { mVerbose = v; }
+  void setTrackModel(Int_t m) { mTrackModel = m; }
+  void setAlignResiduals(Float_t res) { mAlignResidual = res; }
 
   bool initTrack(T& track, bool outward = false);
   bool fit(T& track, bool outward = false);
@@ -66,6 +67,7 @@ class TrackFitter
   Float_t mBZField; // kiloGauss.
   Float_t mMFTDiskThicknessInX0 = 0.042 / 5;
   Int_t mTrackModel = MFTTrackModel::Optimized;
+  Float_t mAlignResidual = 0.f;
 
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   bool mVerbose = false;

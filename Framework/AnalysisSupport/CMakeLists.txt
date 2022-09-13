@@ -18,6 +18,13 @@ endif()
 
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
+                       src/DataInputDirector.cxx
                        src/AODJAlienReaderHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS})
+
+o2_add_test(DataInputDirector NAME test_Framework_test_DataInputDirector
+               SOURCES test/test_DataInputDirector.cxx
+               COMPONENT_NAME Framework
+               LABELS framework
+               PUBLIC_LINK_LIBRARIES O2::FrameworkAnalysisSupport)

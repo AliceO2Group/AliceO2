@@ -21,6 +21,7 @@
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/IRFrameSelector.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
@@ -60,6 +61,12 @@ class CTFCoderBase
 
   // detector coder need to redefine this method if uses no default version, see comment in the cxx file
   virtual void assignDictVersion(CTFDictHeader& h) const;
+
+  template <typename SPAN>
+  void setSelectedIRFrames(const SPAN& sp)
+  {
+    mIRFrameSelector.setSelectedIRFrames(sp, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd, true);
+  }
 
   template <typename CTF>
   std::vector<char> readDictionaryFromFile(const std::string& dictPath, bool mayFail = false);
@@ -114,17 +121,23 @@ class CTFCoderBase
 
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
 
+  o2::utils::IRFrameSelector& getIRFramesSelector() { return mIRFrameSelector; }
+  size_t getIRFrameSelMarginBwd() const { return mIRFrameSelMarginBwd; }
+  size_t getIRFrameSelMarginFwd() const { return mIRFrameSelMarginFwd; }
+
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
 
   void checkDictVersion(const CTFDictHeader& h) const;
-
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
   CTFDictHeader mExtHeader;      // external dictionary header
+  o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
   OpType mOpType; // Encoder or Decoder
+  size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
+  size_t mIRFrameSelMarginFwd = 0; // margin in BC to add to the IRFrame upper boundary when selection is requested
   int mVerbosity = 0;
 };
 
@@ -218,6 +231,12 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
 {
   if (ic.options().hasOption("mem-factor")) {
     setMemMarginFactor(ic.options().get<float>("mem-factor"));
+  }
+  if (ic.options().hasOption("irframe-margin-bwd")) {
+    mIRFrameSelMarginBwd = ic.options().get<uint32_t>("irframe-margin-bwd");
+  }
+  if (ic.options().hasOption("irframe-margin-fwd")) {
+    mIRFrameSelMarginFwd = ic.options().get<uint32_t>("irframe-margin-fwd");
   }
   auto dict = ic.options().get<std::string>("ctf-dict");
   if (dict.empty() || dict == "ccdb") { // load from CCDB

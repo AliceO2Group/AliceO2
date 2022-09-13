@@ -285,6 +285,10 @@ class GPUQA
   TPad* mPNCl;
   TLegend* mLNCl;
 
+  TH2F* mClXY;
+  TCanvas* mCClXY;
+  TPad* mPClXY;
+
   std::vector<TH2F*> mHistClusterCount;
 
   std::vector<TH1F>* mHist1D = nullptr;

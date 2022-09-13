@@ -86,13 +86,12 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
     return slot;
   }
 
-  CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, TFType starting, TFType stopping)
+  CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, long starting, long stopping)
   {
     std::map<std::string, std::string> metaData;
     CalibObjWithInfoType result;
     auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    stopping = stopping + 86400000; // +1 day
     LOG(info) << " clName " << clName << " flName " << flName;
     result.first = o2::ccdb::CcdbObjectInfo(CalibrationObjectType::getObjectPath(), clName, flName, metaData, starting, stopping);
     result.second = o2::ccdb::CcdbApi::createObjectImage(&calibrationObject, &result.first);

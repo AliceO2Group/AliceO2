@@ -15,7 +15,7 @@
 #define O2_ITS_CLUSTERERDPL
 
 #include <fstream>
-
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -36,7 +36,7 @@ namespace its
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL(bool useMC) : mUseMC(useMC) {}
+  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -47,11 +47,11 @@ class ClustererDPL : public Task
 
   int mState = 0;
   bool mUseMC = true;
-  bool mPatterns = true;
   bool mUseClusterDictionary = true;
   int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 
 /// create a processor spec

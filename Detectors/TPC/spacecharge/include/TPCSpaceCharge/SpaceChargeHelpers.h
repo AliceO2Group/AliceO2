@@ -155,42 +155,34 @@ class NumericalFields
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Er for given coordinate
-  DataT evalEr(DataT z, DataT r, DataT phi) const { return mInterpolatorEr(z, r, phi, mInterpolType); }
+  DataT evalEr(DataT z, DataT r, DataT phi) const { return mInterpolatorEr(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ez for given coordinate
-  DataT evalEz(DataT z, DataT r, DataT phi) const { return mInterpolatorEz(z, r, phi, mInterpolType); }
+  DataT evalEz(DataT z, DataT r, DataT phi) const { return mInterpolatorEz(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ephi for given coordinate
-  DataT evalEphi(DataT z, DataT r, DataT phi) const { return mInterpolatorEphi(z, r, phi, mInterpolType); }
+  DataT evalEphi(DataT z, DataT r, DataT phi) const { return mInterpolatorEphi(z, r, phi); }
 
   o2::tpc::Side getSide() const { return mSide; }
 
   static constexpr unsigned int getID() { return ID; }
 
-  /// set which kind of TriCubic interpolation algorithm is used
-  void setInterpolationType(const typename TriCubic::InterpolationType type) { mInterpolType = type; }
-
-  // \return returns which kind of TriCubic interpolation algorithm is used
-  typename TriCubic::InterpolationType getInterpolationType() const { return mInterpolType; }
-
  private:
-  const DataContainer& mDataEr{};       ///< adress to the data container of the grid
-  const DataContainer& mDataEz{};       ///< adress to the data container of the grid
-  const DataContainer& mDataEphi{};     ///< adress to the data container of the grid
-  const RegularGrid& mGridProperties{}; ///< properties of the regular grid
-  const o2::tpc::Side mSide{};          ///< side of the TPC
-
-  TriCubic mInterpolatorEr{mDataEr, mGridProperties};                                       ///< TriCubic interpolator of the electric field Er
-  TriCubic mInterpolatorEz{mDataEz, mGridProperties};                                       ///< TriCubic interpolator of the electric field Ez
-  TriCubic mInterpolatorEphi{mDataEphi, mGridProperties};                                   ///< TriCubic interpolator of the electric field Ephi
-  typename TriCubic::InterpolationType mInterpolType = TriCubic::InterpolationType::Sparse; ///< type of TriCubic interpolation
-  static constexpr unsigned int ID = 1;                                                     ///< needed to distinguish between the different classes
+  const DataContainer& mDataEr{};                         ///< adress to the data container of the grid
+  const DataContainer& mDataEz{};                         ///< adress to the data container of the grid
+  const DataContainer& mDataEphi{};                       ///< adress to the data container of the grid
+  const RegularGrid& mGridProperties{};                   ///< properties of the regular grid
+  const o2::tpc::Side mSide{};                            ///< side of the TPC
+  TriCubic mInterpolatorEr{mDataEr, mGridProperties};     ///< TriCubic interpolator of the electric field Er
+  TriCubic mInterpolatorEz{mDataEz, mGridProperties};     ///< TriCubic interpolator of the electric field Ez
+  TriCubic mInterpolatorEphi{mDataEphi, mGridProperties}; ///< TriCubic interpolator of the electric field Ephi
+  static constexpr unsigned int ID = 1;                   ///< needed to distinguish between the different classes
 };
 
 ///
@@ -217,42 +209,34 @@ class DistCorrInterpolator
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dR for given coordinate
-  DataT evaldR(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdR(z, r, phi, mInterpolType); }
+  DataT evaldR(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdR(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dZ for given coordinate
-  DataT evaldZ(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdZ(z, r, phi, mInterpolType); }
+  DataT evaldZ(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdZ(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dRPhi for given coordinate
-  DataT evaldRPhi(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdRPhi(z, r, phi, mInterpolType); }
+  DataT evaldRPhi(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdRPhi(z, r, phi); }
 
   o2::tpc::Side getSide() const { return mSide; }
 
   static constexpr unsigned int getID() { return ID; }
 
-  /// set which kind of TriCubic interpolation algorithm is used
-  void setInterpolationType(const typename TriCubic::InterpolationType type) { mInterpolType = type; }
-
-  /// \return returns which kind of TriCubic interpolation algorithm is used
-  typename TriCubic::InterpolationType getInterpolationType() const { return mInterpolType; }
-
  private:
-  const DataContainer& mDataDistCorrdR{};    ///< adress to the data container of the grid
-  const DataContainer& mDataDistCorrdZ{};    ///< adress to the data container of the grid
-  const DataContainer& mDataDistCorrdRPhi{}; ///< adress to the data container of the grid
-  const RegularGrid& mGridProperties{};      ///< properties of the regular grid
-  const o2::tpc::Side mSide{};               ///< side of the TPC.
-
-  TriCubic interpolatorDistCorrdR{mDataDistCorrdR, mGridProperties};                        ///< TriCubic interpolator of distortion or correction dR
-  TriCubic interpolatorDistCorrdZ{mDataDistCorrdZ, mGridProperties};                        ///< TriCubic interpolator of distortion or correction dZ
-  TriCubic interpolatorDistCorrdRPhi{mDataDistCorrdRPhi, mGridProperties};                  ///< TriCubic interpolator of distortion or correction dRPhi
-  typename TriCubic::InterpolationType mInterpolType = TriCubic::InterpolationType::Sparse; ///< type of TriCubic interpolation
-  static constexpr unsigned int ID = 2;                                                     ///< needed to distinguish between the different classes
+  const DataContainer& mDataDistCorrdR{};                                  ///< adress to the data container of the grid
+  const DataContainer& mDataDistCorrdZ{};                                  ///< adress to the data container of the grid
+  const DataContainer& mDataDistCorrdRPhi{};                               ///< adress to the data container of the grid
+  const RegularGrid& mGridProperties{};                                    ///< properties of the regular grid
+  const o2::tpc::Side mSide{};                                             ///< side of the TPC.
+  TriCubic interpolatorDistCorrdR{mDataDistCorrdR, mGridProperties};       ///< TriCubic interpolator of distortion or correction dR
+  TriCubic interpolatorDistCorrdZ{mDataDistCorrdZ, mGridProperties};       ///< TriCubic interpolator of distortion or correction dZ
+  TriCubic interpolatorDistCorrdRPhi{mDataDistCorrdRPhi, mGridProperties}; ///< TriCubic interpolator of distortion or correction dRPhi
+  static constexpr unsigned int ID = 2;                                    ///< needed to distinguish between the different classes
 };
 
 } // namespace tpc

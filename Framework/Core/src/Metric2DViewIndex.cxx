@@ -41,11 +41,11 @@ Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater(std::vector<Metric2DVie
       extra.erase(0, view.prefix.size() + 1);
       if (extra == "w") {
         view.w = value;
-        view.indexes.resize(view.w * view.h);
+        view.indexes.resize(view.w * view.h, -1);
         return;
       } else if (extra == "h") {
         view.h = value;
-        view.indexes.resize(view.w * view.h);
+        view.indexes.resize(view.w * view.h, -1);
         return;
       }
       int idx = -1;
@@ -59,7 +59,7 @@ Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater(std::vector<Metric2DVie
         return;
       }
       if (view.indexes.size() <= idx) {
-        view.indexes.resize(std::max(idx + 1, view.w * view.h));
+        view.indexes.resize(std::max(idx + 1, view.w * view.h), -1);
       }
       view.indexes[idx] = metricsIndex;
     }

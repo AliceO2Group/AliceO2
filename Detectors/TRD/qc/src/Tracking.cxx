@@ -58,12 +58,13 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.nLayers = trkTrd.getNlayersFindable();
   qcStruct.chi2 = trkTrd.getChi2();
   qcStruct.reducedChi2 = trkTrd.getReducedChi2();
+  qcStruct.p = trkTrd.getP();
   qcStruct.pt = trkTrd.getPt();
   qcStruct.ptSigma2 = trkTrd.getSigma1Pt2();
-  qcStruct.pid = trkTrd.getPID();
 
   LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), trkTrd.getRefGlobalTrackId());
   const auto& trkSeed = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getParamOut() : mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getParamOut();
+  qcStruct.dEdxTotTPC = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getdEdx().dEdxTotTPC : mTracksTPC[mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getRefTPC()].getdEdx().dEdxTotTPC;
   auto trk = trkSeed;
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
     qcStruct.findable[iLayer] = trkTrd.getIsFindable(iLayer);

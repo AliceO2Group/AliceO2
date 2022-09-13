@@ -75,13 +75,13 @@ bool EMCALChannelData::hasEnoughData() const
 {
   bool enough = false;
 
-  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries_bc << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().useNEventsForCalib_bc && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries_bc) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration
-  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+  if (EMCALCalibParams::Instance().useNEventsForCalib_bc && mEvents > EMCALCalibParams::Instance().minNEvents_bc) {
     enough = true;
   }
 

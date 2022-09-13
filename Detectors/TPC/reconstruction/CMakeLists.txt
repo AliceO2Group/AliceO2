@@ -30,6 +30,8 @@ o2_add_library(TPCReconstruction
                        src/TPCFastTransformHelperO2.cxx
                        src/CTFCoder.cxx
                        src/RawProcessingHelpers.cxx
+                       src/IonTailCorrection.cxx
+                       src/IonTailCorrectionSettings.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::SimulationDataFormat
                                      O2::TPCBase
@@ -57,7 +59,9 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
-          include/TPCReconstruction/RawProcessingHelpers.h)
+          include/TPCReconstruction/RawProcessingHelpers.h
+          include/TPCReconstruction/IonTailCorrection.h
+          include/TPCReconstruction/IonTailCorrectionSettings.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc
@@ -134,6 +138,11 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                        LABELS tpc)
 
 o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      COMPILE_ONLY
+                      PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                      LABELS tpc)
+
+o2_add_test_root_macro(macro/makeIonTail.C
                       COMPILE_ONLY
                       PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                       LABELS tpc)

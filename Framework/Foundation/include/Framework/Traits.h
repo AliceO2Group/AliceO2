@@ -52,6 +52,9 @@ struct is_base_of_template_impl {
 template <template <typename...> class base, typename derived>
 using is_base_of_template = typename is_base_of_template_impl<base, derived>::type;
 
+template <template <typename...> class base, typename derived>
+inline constexpr bool is_base_of_template_v = is_base_of_template<base, derived>::value;
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_TRAITS_H_

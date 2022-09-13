@@ -65,7 +65,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"no-tpc-zs-on-the-fly", VariantType::Bool, false, {"Do not use TPC zero suppression on the fly"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
-    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -153,7 +154,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   for (auto s : tpcSectors) {
     gTpcSectorMask |= (1ul << s);
   }
-
   bool doMC = not cfgc.options().get<bool>("disable-mc");
   auto wf = o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
                                                 tpcSectors,                                        // sector configuration
@@ -166,8 +166,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 cfgc.options().get<bool>("disable-root-input"),    //
                                                 !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
-                                                !cfgc.options().get<bool>("ignore-dist-stf")       //
-  );
+                                                !cfgc.options().get<bool>("ignore-dist-stf"),      //
+                                                cfgc.options().get<bool>("select-ir-frames"));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

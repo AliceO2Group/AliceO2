@@ -44,6 +44,7 @@ int main(int argc, char** argv)
   std::string ccdbServerPath;
   bool doBadChannelCalib;
   bool debugMode = false;
+  bool doLocal = false;
   std::string nameCalibInputHist; // hCellIdVsTimeAbove300 for time, hCellIdVsEnergy for bad channel
   std::string namePathStoreLocal; // name for path + histogram to store the calibration locally in root TH1 format
 
@@ -57,7 +58,7 @@ int main(int argc, char** argv)
 
   try {
     bpo::options_description desc("Allowed options");
-    desc.add_options()("help", "Print this help message")("CalibInputPath", bpo::value<std::string>()->required(), "Set root input histogram")("ccdbServerPath", bpo::value<std::string>()->default_value(o2::base::NameConf::getCCDBServer()), "Set path to ccdb server")("debug", bpo::value<bool>()->default_value(false), "Enable debug statements")("mode", bpo::value<std::string>()->required(), "Set if time or bad channel calib")("nameInputHisto", bpo::value<std::string>()->default_value("hCellIdVsTimeAbove300"), "Set name of input histogram")("nthreads", bpo::value<unsigned int>()->default_value(1), "Set number of threads for OpenMP")("timestampStart", bpo::value<unsigned long>()->default_value(1635548552000), "Set timestamp from start of run")("timestampEnd", bpo::value<unsigned long>()->default_value(1635553870000), "Set timestamp from end of run")("namePathStoreLocal", bpo::value<std::string>()->default_value(""), "Set path to store histo of time calib locally")("timeRangeLow", bpo::value<double>()->default_value(1), "Set lower boundary of fit interval for time calibration (in ns)")("timeRangeHigh", bpo::value<double>()->default_value(1000), "Set upper boundary of fit interval for time calibration (in ns)");
+    desc.add_options()("help", "Print this help message")("CalibInputPath", bpo::value<std::string>()->required(), "Set root input histogram")("ccdbServerPath", bpo::value<std::string>()->default_value(o2::base::NameConf::getCCDBServer()), "Set path to ccdb server")("debug", bpo::value<bool>()->default_value(false), "Enable debug statements")("storeCalibLocally", bpo::value<bool>()->default_value(false), "Enable local storage of calib")("mode", bpo::value<std::string>()->required(), "Set if time or bad channel calib")("nameInputHisto", bpo::value<std::string>()->default_value("hCellIdVsTimeAbove300"), "Set name of input histogram")("nthreads", bpo::value<unsigned int>()->default_value(1), "Set number of threads for OpenMP")("timestampStart", bpo::value<unsigned long>()->default_value(1635548552000), "Set timestamp from start of run")("timestampEnd", bpo::value<unsigned long>()->default_value(1635553870000), "Set timestamp from end of run")("namePathStoreLocal", bpo::value<std::string>()->default_value(""), "Set path to store histo of time calib locally")("timeRangeLow", bpo::value<double>()->default_value(1), "Set lower boundary of fit interval for time calibration (in ns)")("timeRangeHigh", bpo::value<double>()->default_value(1000), "Set upper boundary of fit interval for time calibration (in ns)");
 
     bpo::store(bpo::parse_command_line(argc, argv, desc), vm);
 
@@ -84,6 +85,11 @@ int main(int argc, char** argv)
     if (vm.count("debug")) {
       std::cout << "Enable debug mode" << std::endl;
       debugMode = vm["debug"].as<bool>();
+    }
+
+    if (vm.count("storeCalibLocally")) {
+      std::cout << "Enable local storage of calib" << std::endl;
+      doLocal = vm["storeCalibLocally"].as<bool>();
     }
 
     if (vm.count("mode")) {
@@ -183,14 +189,21 @@ int main(int argc, char** argv)
   o2::emcal::CalibDB calibdb(ccdbServerPath);
 
   if (doBadChannelCalib) {
+    std::map<std::string, std::string> dummymeta;
+    CalibExtractor.setBCMScaleFactors(calibdb.readChannelScaleFactors(1546300800001, dummymeta));
     printf("perform bad channel analysis\n");
     o2::emcal::BadChannelMap BCMap;
 
     BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
-
     // store bad channel map in ccdb via emcal calibdb
-    std::map<std::string, std::string> metadata;
-    calibdb.storeBadChannelMap(&BCMap, metadata, rangestart, rangeend);
+    if (doLocal) {
+      std::unique_ptr<TFile> writer(TFile::Open(Form("bcm_%lu.root", rangestart), "RECREATE"));
+      writer->WriteObjectAny(&BCMap, "o2::emcal::BadChannelMap", "ccdb_object");
+    } else {
+      std::map<std::string, std::string> metadata;
+      calibdb.storeBadChannelMap(&BCMap, metadata, rangestart, rangeend);
+    }
+
   } else {
     printf("perform time calibration analysis\n");
 
@@ -198,9 +211,14 @@ int main(int argc, char** argv)
     o2::emcal::TimeCalibrationParams TCparams;
     TCparams = CalibExtractor.calibrateTime(hCalibInputHist, timeRangeLow, timeRangeHigh);
 
-    // store parameters in ccdb via emcal calibdb
-    std::map<std::string, std::string> metadata;
-    calibdb.storeTimeCalibParam(&TCparams, metadata, rangestart, rangeend);
+    if (doLocal) {
+      std::unique_ptr<TFile> writer(TFile::Open(Form("timecalib_%lu.root", rangestart), "RECREATE"));
+      writer->WriteObjectAny(&TCparams, "o2::emcal::TimeCalibrationParams", "ccdb_object");
+    } else {
+      // store parameters in ccdb via emcal calibdb
+      std::map<std::string, std::string> metadata;
+      calibdb.storeTimeCalibParam(&TCparams, metadata, rangestart, rangeend);
+    }
 
     if (namePathStoreLocal.find(".root") != std::string::npos) {
       TFile fLocalStorage(namePathStoreLocal.c_str(), "update");

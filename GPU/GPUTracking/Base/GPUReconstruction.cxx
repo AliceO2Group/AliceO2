@@ -271,9 +271,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
-  if (mProcessingSettings.nTPCClustererLanes == -1) {
-    mProcessingSettings.nTPCClustererLanes = IsGPU() ? 3 : 1;
-  }
   if (!IsGPU()) {
     mProcessingSettings.nDeviceHelperThreads = 0;
   }
@@ -304,6 +301,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
 
   mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;
+  mMemoryScalers->conservative = mProcessingSettings.conservativeMemoryEstimate;
   mMemoryScalers->returnMaxVal = mProcessingSettings.forceMaxMemScalers != 0;
   if (mProcessingSettings.forceMaxMemScalers > 1) {
     mMemoryScalers->rescaleMaxMem(mProcessingSettings.forceMaxMemScalers);
@@ -316,6 +314,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings.ompAutoNThreads = false;
     omp_set_num_threads(mProcessingSettings.ompThreads);
   }
+  if (mProcessingSettings.ompKernels) {
+    if (omp_get_max_active_levels() < 2) {
+      omp_set_max_active_levels(2);
+    }
+  }
 #else
   mProcessingSettings.ompThreads = 1;
 #endif
@@ -323,6 +326,13 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mMaxThreads = std::max(mMaxThreads, mProcessingSettings.ompThreads);
   if (IsGPU()) {
     mNStreams = std::max<int>(mProcessingSettings.nStreams, 3);
+  }
+
+  if (mProcessingSettings.nTPCClustererLanes == -1) {
+    mProcessingSettings.nTPCClustererLanes = (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) ? 3 : std::max<int>(1, std::min<int>(GPUCA_NSLICES, mProcessingSettings.ompKernels ? (mProcessingSettings.ompThreads >= 4 ? std::min<int>(mProcessingSettings.ompThreads / 2, mProcessingSettings.ompThreads >= 32 ? GPUCA_NSLICES : 4) : 1) : mProcessingSettings.ompThreads));
+  }
+  if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
+    mProcessingSettings.overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mProcessingSettings.ompThreads / mProcessingSettings.nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
   }
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {

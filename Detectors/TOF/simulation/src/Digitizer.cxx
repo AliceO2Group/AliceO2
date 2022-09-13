@@ -69,7 +69,7 @@ void Digitizer::init()
 {
 
   // set first readout window in MC production getting
-  mReadoutWindowCurrent = o2::raw::HBFUtils::Instance().orbitFirstSampled * Geo::NWINDOW_IN_ORBIT;
+  mReadoutWindowCurrent = uint64_t(o2::raw::HBFUtils::Instance().orbitFirstSampled) * Geo::NWINDOW_IN_ORBIT;
 
   // method to initialize the parameters neede to digitize and the array of strip objects containing
   // the digits belonging to a strip

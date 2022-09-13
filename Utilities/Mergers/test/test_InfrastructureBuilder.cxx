@@ -175,4 +175,149 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderReductionFactor)
     BOOST_CHECK_EQUAL(concrete.description.str, "test");
     BOOST_CHECK_EQUAL(concrete.subSpec, 0);
   }
+
+  {
+    config.topologySize = {TopologySize::ReductionFactor, 3};
+    config.parallelismType = {ParallelismType::RoundRobin, 3};
+    config.inputObjectTimespan = {InputObjectsTimespan::LastDifference};
+    builder.setConfig(config);
+    auto mergersTopology = builder.generateInfrastructure();
+
+    BOOST_REQUIRE_EQUAL(mergersTopology.size(), 2);
+
+    // the first layer
+    BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 8);
+    BOOST_CHECK_EQUAL(mergersTopology[0].outputs.size(), 1);
+
+    // the second layer
+    BOOST_CHECK_EQUAL(mergersTopology[1].inputs.size(), 2);
+    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 1);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[1].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(InfrastructureBuilderMergersPerLayer)
+{
+  MergerInfrastructureBuilder builder;
+  builder.setInfrastructureName("name");
+  builder.setInputSpecs({{"one", "TST", "test", 1},
+                         {"two", "TST", "test", 2},
+                         {"thr", "TST", "test", 3},
+                         {"fou", "TST", "test", 4},
+                         {"fiv", "TST", "test", 5},
+                         {"six", "TST", "test", 6},
+                         {"sev", "TST", "test", 7}});
+  builder.setOutputSpec({{"main"}, "TST", "test", 0});
+  MergerConfig config;
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, 1}; // int instead of std::vector<size_t>
+    builder.setConfig(config);
+    BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
+  }
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{10, 4, 2}}; // last layer is not 1
+    builder.setConfig(config);
+    BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
+  }
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{1}};
+    builder.setConfig(config);
+    auto mergersTopology = builder.generateInfrastructure();
+
+    BOOST_REQUIRE_EQUAL(mergersTopology.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 8); // 7 inputs + 1 timer
+    BOOST_REQUIRE_EQUAL(mergersTopology[0].outputs.size(), 1);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[0].outputs[0]);
+    BOOST_CHECK_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+  }
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{3, 1}};
+    builder.setConfig(config);
+    auto mergersTopology = builder.generateInfrastructure();
+
+    BOOST_REQUIRE_EQUAL(mergersTopology.size(), 4);
+
+    // the first layer
+    BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 4); // 3 inputs + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[0].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[1].inputs.size(), 3); // 2 inputs + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[2].inputs.size(), 3); // 2 inputs + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[2].outputs.size(), 1);
+
+    // the second layer
+    BOOST_CHECK_EQUAL(mergersTopology[3].inputs.size(), 4);
+    BOOST_CHECK_EQUAL(mergersTopology[3].outputs.size(), 1);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[3].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+  }
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{10, 2, 1}};
+    config.parallelismType = {ParallelismType::RoundRobin};
+    config.inputObjectTimespan = {InputObjectsTimespan::LastDifference};
+    builder.setConfig(config);
+    auto mergersTopology = builder.generateInfrastructure();
+
+    BOOST_REQUIRE_EQUAL(mergersTopology.size(), 3);
+
+    // the first layer
+    BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 8); // 7 inputs + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[0].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[0].maxInputTimeslices, 10);
+
+    // the second layer
+    BOOST_CHECK_EQUAL(mergersTopology[1].inputs.size(), 2); // 1 input + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[1].maxInputTimeslices, 2);
+
+    // the third layer
+    BOOST_CHECK_EQUAL(mergersTopology[2].inputs.size(), 2); // 1 input + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[2].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[2].maxInputTimeslices, 1);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[2].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+  }
+
+  {
+    config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{10, 1}};
+    config.parallelismType = {ParallelismType::RoundRobin};
+    builder.setInputSpecs({{"one", "TST", "test", 1}});
+    builder.setConfig(config);
+    auto mergersTopology = builder.generateInfrastructure();
+
+    BOOST_REQUIRE_EQUAL(mergersTopology.size(), 2);
+
+    // the first layer
+    BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 2); // 1 input + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[0].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[0].maxInputTimeslices, 10);
+
+    // the second layer
+    BOOST_CHECK_EQUAL(mergersTopology[1].inputs.size(), 2); // 1 input + 1 timer
+    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[1].maxInputTimeslices, 1);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[1].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+  }
 }

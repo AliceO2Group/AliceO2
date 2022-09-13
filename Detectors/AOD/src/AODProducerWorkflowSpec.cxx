@@ -98,22 +98,25 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
 {
   // Extraxt CTP Config from CCDB
   const auto ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+  ctpcfg->printStream(std::cout);
   // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
   //  Extract inputs from recoData
   std::map<uint64_t, uint64_t> bcsMapT0triggers;
   std::map<uint64_t, bool> bcsMapTRDreadout;
   // const auto& fddRecPoints = recoData.getFDDRecPoints();
   // const auto& fv0RecPoints = recoData.getFV0RecPoints();
-  const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
-  const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+  // const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
+  // const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
   const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
+  // const auto& triggerrecordTRD =recoData.getITSTPCTRDTriggers()
   //
   const auto& ft0RecPoints = recoData.getFT0RecPoints();
   for (auto& ft0RecPoint : ft0RecPoints) {
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVX");
+      uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
+      // std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
@@ -596,6 +599,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTimeRes = time.getTimeStampError() * 1.e3;
   } else { // This is a GlobalMuonTrack or a GlobalForwardTrack
     const auto& track = data.getGlobalFwdTrack(trackID);
+    if (!extrapMCHTrack(track.getMCHTrackID())) {
+      LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", track.getMCHTrackID());
+    }
     fwdInfo.x = track.getX();
     fwdInfo.y = track.getY();
     fwdInfo.z = track.getZ();
@@ -698,6 +704,17 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const o2::globaltracking::RecoContainer& data,
                                                   const std::map<std::pair<int, int>, int>& mcColToEvSrc)
 {
+  auto markMCTrackForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
+    auto mcLabel = data.getTrackMCLabel(contributorsGID[src]);
+    if (!mcLabel.isValid()) {
+      return;
+    }
+    int source = mcLabel.getSourceID();
+    int event = mcLabel.getEventID();
+    int particle = mcLabel.getTrackID();
+    mToStore[Triplet_t(source, event, particle)] = 1;
+  };
+
   // mark reconstructed MC particles to store them into the table
   for (auto& trackRef : primVer2TRefs) {
     for (int src = GIndex::NSources; src--;) {
@@ -716,19 +733,21 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           mToStore[Triplet_t(source, event, particle)] = 1;
           // treating contributors of global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
-            if (mcTruthITS.isValid()) {
-              source = mcTruthITS.getSourceID();
-              event = mcTruthITS.getEventID();
-              particle = mcTruthITS.getTrackID();
-              mToStore[Triplet_t(source, event, particle)] = 1;
-            }
-            auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
-            if (mcTruthTPC.isValid()) {
-              source = mcTruthTPC.getSourceID();
-              event = mcTruthTPC.getEventID();
-              particle = mcTruthTPC.getTrackID();
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            markMCTrackForSrc(contributorsGID, GIndex::Source::TPC);
+          }
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            markMCTrackForSrc(contributorsGID, GIndex::Source::ITS);
+          }
+          if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
+            const auto& labelsTOF = data.getTOFClustersMCLabels()->getLabels(contributorsGID[GIndex::Source::TOF]);
+            for (auto& mcLabel : labelsTOF) {
+              if (!mcLabel.isValid()) {
+                continue;
+              }
+              int contribSource = mcLabel.getSourceID();
+              int contribEvent = mcLabel.getEventID();
+              int contribParticle = mcLabel.getTrackID();
               mToStore[Triplet_t(source, event, particle)] = 1;
             }
           }
@@ -880,7 +899,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
                                                     const o2::globaltracking::RecoContainer& data)
 {
   // labelMask (temporary) usage:
-  //   bit 13 -- ITS and TPC labels are not equal
+  //   bit 13 -- ITS/TPC or TPC/TOF labels are not equal
   //   bit 14 -- isNoise() == true
   //   bit 15 -- isFake() == true
   // labelID = -1 -- label is not set
@@ -933,24 +952,42 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
           if (mcTruth.isValid()) { // if not set, -1 will be stored
             labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
           }
-          // treating possible mismatches for global tracks
+          // treating possible mismatches and fakes for global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
-            if (mcTruthITS.isValid()) {
-              labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-            }
+          bool isSetTPC = contributorsGID[GIndex::Source::TPC].isIndexSet();
+          bool isSetITS = contributorsGID[GIndex::Source::ITS].isIndexSet();
+          bool isSetTOF = contributorsGID[GIndex::Source::TOF].isIndexSet();
+          bool isTOFFake = true;
+          if (isSetTPC && (isSetITS || isSetTOF)) {
             auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
             if (mcTruthTPC.isValid()) {
               labelHolder.labelTPC = mToStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
               labelHolder.labelID = labelHolder.labelTPC;
             }
-            if (labelHolder.labelITS != labelHolder.labelTPC) {
-              LOG(debug) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
-              labelHolder.labelMask |= (0x1 << 13);
+            if (isSetITS) {
+              auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
+              if (mcTruthITS.isValid()) {
+                labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+              }
+              if (labelHolder.labelITS != labelHolder.labelTPC) {
+                LOG(debug) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+                labelHolder.labelMask |= (0x1 << 13);
+              }
+            }
+            if (isSetTOF) {
+              const auto& labelsTOF = data.getTOFClustersMCLabels()->getLabels(contributorsGID[GIndex::Source::TOF]);
+              for (auto& mcLabel : labelsTOF) {
+                if (!mcLabel.isValid()) {
+                  continue;
+                }
+                if (mcLabel == labelHolder.labelTPC) {
+                  isTOFFake = false;
+                  break;
+                }
+              }
             }
           }
-          if (mcTruth.isFake()) {
+          if (mcTruth.isFake() || (isSetTOF && isTOFFake)) {
             labelHolder.labelMask |= (0x1 << 15);
           }
           if (mcTruth.isNoise()) {
@@ -1077,7 +1114,7 @@ void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
 uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 {
   uint8_t pattern = 0;
-  for (int il = o2::trd::TrackTRD::EGPUTRDTrack::kNLayers; il >= 0; il--) {
+  for (int il = o2::trd::TrackTRD::EGPUTRDTrack::kNLayers - 1; il >= 0; il--) {
     if (track.getTrackletIndex(il) != -1) {
       pattern |= 0x1 << il;
     }
@@ -1149,7 +1186,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
   mCTPReadout = ic.options().get<int>("ctpreadout-create");
-
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
   }
@@ -1269,7 +1305,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
   if (mCTPReadout == 1) {
+    LOG(info) << "CTP : creating ctpreadout in AOD producer";
     createCTPReadout(recoData, ctpDigitsCreated, pc);
+    LOG(info) << "CTP : ctpreadout created from AOD";
     ctpDigits = gsl::span<o2::ctp::CTPDigit>(ctpDigitsCreated);
   }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
@@ -1662,10 +1700,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
   if (mInputSources[GID::CTP]) {
+    LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
       bcToClassMask[bc] = classMask;
+      // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
@@ -1744,6 +1784,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   originCursor(0, tfNumber);
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
 
   mTimer.Stop();
 }
@@ -2080,12 +2121,11 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile, bool CTPConfigPerRun)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-
-  dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config"));
+  dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
@@ -2099,8 +2139,14 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
   }
+  if (src[GID::TOF]) {
+    dataRequest->requestTOFClusters(useMC);
+  }
   if (src[GID::PHS]) {
     dataRequest->requestPHOSCells(useMC);
+  }
+  if (src[GID::TRD]) {
+    dataRequest->requestTRDTracklets(false);
   }
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
@@ -2141,6 +2187,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
 
   return DataProcessorSpec{
     "aod-producer-workflow",

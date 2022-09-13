@@ -77,11 +77,13 @@ struct Preslice {
 
 namespace o2::soa
 {
+
 template <typename... C>
-auto createSchemaFromColumns(framework::pack<C...>)
+auto createFieldsFromColumns(framework::pack<C...>)
 {
-  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...});
+  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
 }
+
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -1015,20 +1017,15 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
+//! Helper to check if a type T is an iterator
 template <typename T>
-using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
-
-template <typename T>
-constexpr bool is_soa_iterator_v()
-{
-  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
-}
+inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 
 template <typename T>
-using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
+inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -1048,7 +1045,11 @@ auto select(T const& t, framework::expressions::Filter const& f)
   return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
-arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
+template <typename C, typename... Cs>
+arrow::ChunkedArray* getColumnByType(framework::pack<Cs...> columns, arrow::Table* table)
+{
+  return table->column(framework::has_type_at_v<C>(columns)).get();
+}
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
@@ -1348,8 +1349,7 @@ class Table
   arrow::ChunkedArray* lookupColumn()
   {
     if constexpr (T::persistent::value) {
-      auto label = T::columnLabel();
-      return getIndexFromLabel(mTable.get(), label);
+      return getColumnByType<T>(persistent_columns_t{}, mTable.get());
     } else {
       return nullptr;
     }
@@ -1498,18 +1498,21 @@ void notBoundTable(const char* tableName);
 
 namespace row_helpers
 {
-template <typename... Cs>
-std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
+template <typename T, typename... Cs>
+std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumnsTyped(const T& table, framework::pack<Cs...>)
 {
   static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow columns: only persistent columns accepted (not dynamic and not index ones");
-  return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
+  return {o2::soa::getColumnByType<Cs>(typename T::persistent_columns_t{}, table.asArrowTable().get())...};
 }
 
-template <typename... Cs>
-std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
+template <size_t N>
+auto getChunksFromColumns(std::array<arrow::ChunkedArray*, N>& columns, uint64_t ci)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow chunks: only persistent columns accepted (not dynamic and not index ones");
-  return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
+  std::array<std::shared_ptr<arrow::Array>, N> chunks;
+  for (size_t i = 0; i < N; ++i) {
+    chunks[i] = columns[i]->chunk(ci);
+  }
+  return chunks;
 }
 
 template <typename T, typename C>
@@ -1520,7 +1523,7 @@ typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator,
     ci = colIterator.mCurrentChunk;
     ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
   }
-  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
+  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getColumnByType<C>(typename T::parent_t::persistent_columns_t{}, table)->chunk(ci))->raw_values()[ai];
 }
 
 template <typename T, typename C>
@@ -2921,7 +2924,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredBase, T>;
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
@@ -2953,7 +2956,7 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 };
 
 template <typename T>
-using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
 
 template <typename T>
 struct SmallGroups : public Filtered<T> {

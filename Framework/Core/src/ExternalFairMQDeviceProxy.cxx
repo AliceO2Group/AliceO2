@@ -258,6 +258,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
+      static size_t currentRunNumber = -1;
+      if (dh->runNumber != currentRunNumber) {
+        LOGP(detail, "Run number changed from {} to {}. Resetting DPL timeslice counter", currentRunNumber, dh->runNumber);
+        currentRunNumber = dh->runNumber;
+        dplCounter = 0;
+      }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       if (override_creation) {
         const_cast<DataProcessingHeader*>(dph)->creation = creationVal + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
@@ -502,6 +508,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
         }
+        numberOfEoS = 0;
         control->endOfStream();
       }
     };

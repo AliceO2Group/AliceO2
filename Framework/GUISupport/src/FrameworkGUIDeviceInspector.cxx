@@ -19,6 +19,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include <DebugGUI/icons_font_awesome.h>
 
 #include "DebugGUI/imgui.h"
 #include <cinttypes>
@@ -224,7 +225,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
 #endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
-  if (ImGui::Button("Attach debugger")) {
+  if (ImGui::Button(ICON_FA_BUG "Attach debugger")) {
     std::string pid = std::to_string(info.pid);
     setenv("O2DEBUGGEDPID", pid.c_str(), 1);
 #ifdef __APPLE__
@@ -288,8 +289,12 @@ void displayDeviceInspector(DeviceSpec const& spec,
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
+    static ImGuiTextFilter filter;
+    filter.Draw(ICON_FA_SEARCH);
     for (auto& arg : metadata.cmdLineArgs) {
-      ImGui::Text("%s", arg.c_str());
+      if (filter.PassFilter(arg.c_str())) {
+        ImGui::TextUnformatted(arg.c_str());
+      }
     }
   }
 

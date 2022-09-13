@@ -47,9 +47,10 @@ struct TrackQC {
   int nLayers;       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
   float chi2;        ///< total chi2 value for the track
   float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
+  float p;           ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float ptSigma2;    //< Sigma2 of pt
-  track::PID pid;    //< assigned particle id from TPC
+  float dEdxTotTPC;  //< raw total dEdx information for seeding track in TPC
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
@@ -79,7 +80,7 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 1);
+  ClassDefNV(TrackQC, 2);
 };
 
 class Tracking

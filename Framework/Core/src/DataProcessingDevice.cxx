@@ -1004,6 +1004,10 @@ void DataProcessingDevice::Run()
           }
         }
       }
+      // If we are Idle, we can then consider the transition to be expired.
+      if (mState.transitionHandling == TransitionHandlingState::Requested && mState.streaming == StreamingState::Idle) {
+        mState.transitionHandling = TransitionHandlingState::Expired;
+      }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
       if (mState.severityStack.empty() == false) {
         fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
@@ -1145,6 +1149,9 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   }
   // Whether or not we had something to do.
 
+  // Initialise the value for context.allDone. It will possibly be updated
+  // below if any of the channels is not done.
+  //
   // Notice that fake input channels (InputChannelState::Pull) cannot possibly
   // expect to receive an EndOfStream signal. Thus we do not wait for these
   // to be completed. In the case of data source devices, as they do not have

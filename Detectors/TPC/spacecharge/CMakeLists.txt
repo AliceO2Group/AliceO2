@@ -62,6 +62,14 @@ o2_add_test(PoissonSolver
             LABELS tpc
             CONFIGURATIONS RelWithDebInfo Release MinRelSize)
 
+o2_add_test(TriCubic
+            COMPONENT_NAME spacecharge
+            PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+            SOURCES test/testO2TPCTricubic.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc
+            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)

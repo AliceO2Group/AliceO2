@@ -61,6 +61,8 @@ class CcdbApi //: public DatabaseInterface
   /// \brief Default destructor
   virtual ~CcdbApi();
 
+  const std::string getUniqueAgentID() const { return mUniqueAgentID; }
+
   /**
    * Initialize connection to CCDB
    *
@@ -515,7 +517,6 @@ class CcdbApi //: public DatabaseInterface
   {
     return getSnapshotDir(topdir, path) + '/' + sfile;
   }
-
   /// Base URL of the CCDB (with port)
   std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};

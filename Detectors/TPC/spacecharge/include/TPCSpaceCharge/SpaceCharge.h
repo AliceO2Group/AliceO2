@@ -703,11 +703,7 @@ class SpaceCharge
   static int getNThreads() { return sNThreads; }
 
   /// set the number of threads used for some of the calculations
-  static void setNThreads(const int nThreads)
-  {
-    sNThreads = nThreads;
-    TriCubic::setNThreads(nThreads);
-  }
+  static void setNThreads(const int nThreads) { sNThreads = nThreads; }
 
   /// set which kind of numerical integration is used for calcution of the integrals int Er/Ez dz, int Ephi/Ez dz, int Ez dz
   /// \param strategy numerical integration strategy. see enum IntegrationStrategy for the different types
@@ -910,102 +906,64 @@ class SpaceCharge
   /// \param histoIonsPhiRZ histogram which will be normalized to the sapce charge density
   static void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
 
+  /// \return returns max threads
+  static int getOMPMaxThreads();
+
  private:
-  inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
-  inline static int sNThreads{TriCubic::getOMPMaxThreads()};         ///< number of threads which are used during the calculations
+  inline static auto& mParamGrid = ParameterSpaceCharge::Instance();                                      ///<! parameters of the grid on which the calculations are performed
+  inline static int sNThreads{getOMPMaxThreads()};                                                        ///<! number of threads which are used during the calculations
+  inline static IntegrationStrategy sNumericalIntegrationStrategy{IntegrationStrategy::SimpsonIterative}; ///<! numerical integration strategy of integration of the E-Field: 0: trapezoidal, 1: Simpson, 2: Root (only for analytical formula case)
+  inline static int sSimpsonNIteratives{3};                                                               ///<! number of iterations which are performed in the iterative simpson calculation of distortions/corrections
+  inline static int sSteps{1};                                                                            ///<! during the calculation of the corrections/distortions it is assumed that the electron drifts on a line from deltaZ = z0 -> z1. The value sets the deltaZ width: 1: deltaZ=zBin/1, 5: deltaZ=zBin/5
+  inline static GlobalDistType sGlobalDistType{GlobalDistType::Fast};                                     ///<! setting for global distortions: 0: standard method,      1: interpolation of global corrections
+  inline static GlobalDistCorrMethod sGlobalDistCorrCalcMethod{GlobalDistCorrMethod::LocalDistCorr};      ///<! setting for  global distortions/corrections: 0: using electric field, 1: using local dis/corr interpolator
+  inline static SCDistortionType sSCDistortionType{SCDistortionType::SCDistortionsConstant};              ///<! Type of space-charge distortions
+
+  DataT mC0 = 0;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ///< coefficient C0 (compare Jim Thomas's notes for definitions)
+  DataT mC1 = 0;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ///< coefficient C1 (compare Jim Thomas's notes for definitions)
+  static constexpr int FNSIDES = SIDES;                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ///< number of sides of the TPC
+  bool mIsEfieldSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ///< flag if E-fields are set
+  bool mIsLocalCorrSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ///< flag if local corrections are set
+  bool mIsLocalDistSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ///< flag if local distortions are set
+  bool mIsLocalVecDistSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ///< flag if local distortions vectors are set
+  bool mIsGlobalCorrSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///< flag if global corrections are set
+  bool mIsGlobalDistSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///< flag if global distortions are set
+  bool mIsChargeSet[FNSIDES]{};                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ///< flag if the charge is set
+  bool mUseInitialSCDensity{false};                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///< Flag for the use of an initial space-charge density at the beginning of the simulation
+  bool mInitLookUpTables{false};                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ///< Flag to indicate if lookup tables have been calculated
+  const RegularGrid mGrid3D[FNSIDES]{{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)}, {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)}}; ///<! grid properties
+  DataContainer mLocalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                      ///< data storage for local distortions dR
+  DataContainer mLocalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                      ///< data storage for local distortions dZ
+  DataContainer mLocalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                   ///< data storage for local distortions dRPhi
+  DataContainer mLocalVecDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                   ///< data storage for local distortions vector dR
+  DataContainer mLocalVecDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                   ///< data storage for local distortions vector dZ
+  DataContainer mLocalVecDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                ///< data storage for local distortions vector dRPhi
+  DataContainer mLocalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                      ///< data storage for local corrections dR
+  DataContainer mLocalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                      ///< data storage for local corrections dZ
+  DataContainer mLocalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                   ///< data storage for local corrections dRPhi
+  DataContainer mGlobalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                     ///< data storage for global distortions dR
+  DataContainer mGlobalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                     ///< data storage for global distortions dZ
+  DataContainer mGlobalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                  ///< data storage for global distortions dRPhi
+  DataContainer mGlobalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                     ///< data storage for global corrections dR
+  DataContainer mGlobalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                     ///< data storage for global corrections dZ
+  DataContainer mGlobalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                  ///< data storage for global corrections dRPhi
+  DataContainer mDensity[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                          ///< data storage for space charge density
+  DataContainer mPotential[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                        ///< data storage for the potential
+  DataContainer mElectricFieldEr[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                  ///< data storage for the electric field Er
+  DataContainer mElectricFieldEz[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                  ///< data storage for the electric field Ez
+  DataContainer mElectricFieldEphi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};                                                                                                                                                                                                                                                                                ///< data storage for the electric field Ephi
+  TriCubic mInterpolatorPotential[FNSIDES]{{mPotential[Side::A], mGrid3D[Side::A]}, {mPotential[Side::C], mGrid3D[Side::C]}};                                                                                                                                                                                                                                                                                                                                                                           ///<! interpolator for the potenial
+  TriCubic mInterpolatorDensity[FNSIDES]{{mDensity[Side::A], mGrid3D[Side::A]}, {mDensity[Side::C], mGrid3D[Side::C]}};                                                                                                                                                                                                                                                                                                                                                                                 ///<! interpolator for the charge
+  DistCorrInterpolator<DataT> mInterpolatorGlobalCorr[FNSIDES]{{mGlobalCorrdR[Side::A], mGlobalCorrdZ[Side::A], mGlobalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mGlobalCorrdR[Side::C], mGlobalCorrdZ[Side::C], mGlobalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                         ///<! interpolator for the global corrections
+  DistCorrInterpolator<DataT> mInterpolatorLocalCorr[FNSIDES]{{mLocalCorrdR[Side::A], mLocalCorrdZ[Side::A], mLocalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mLocalCorrdR[Side::C], mLocalCorrdZ[Side::C], mLocalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                                ///<! interpolator for the local corrections
+  DistCorrInterpolator<DataT> mInterpolatorGlobalDist[FNSIDES]{{mGlobalDistdR[Side::A], mGlobalDistdZ[Side::A], mGlobalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mGlobalDistdR[Side::C], mGlobalDistdZ[Side::C], mGlobalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                         ///<! interpolator for the global distortions
+  DistCorrInterpolator<DataT> mInterpolatorLocalDist[FNSIDES]{{mLocalDistdR[Side::A], mLocalDistdZ[Side::A], mLocalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mLocalDistdR[Side::C], mLocalDistdZ[Side::C], mLocalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                                ///<! interpolator for the local distortions
+  DistCorrInterpolator<DataT> mInterpolatorLocalVecDist[FNSIDES]{{mLocalVecDistdR[Side::A], mLocalVecDistdZ[Side::A], mLocalVecDistdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mLocalVecDistdR[Side::C], mLocalVecDistdZ[Side::C], mLocalVecDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                           ///<! interpolator for the local distortion vectors
+  NumericalFields<DataT> mInterpolatorEField[FNSIDES]{{mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A}, {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                  ///<! interpolator for the electric fields
 
   /// check if the addition of two values are close to zero.
   /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
-  bool isCloseToZero(const DataT valA, const DataT valB) const
-  {
-    return std::abs(valA + valB) < static_cast<DataT>(0.01);
-  }
-
-  inline static IntegrationStrategy sNumericalIntegrationStrategy{IntegrationStrategy::SimpsonIterative}; ///< numerical integration strategy of integration of the E-Field: 0: trapezoidal, 1: Simpson, 2: Root (only for analytical formula case)
-  inline static int sSimpsonNIteratives{3};                                                               ///< number of iterations which are performed in the iterative simpson calculation of distortions/corrections
-  inline static int sSteps{1};                                                                            ///< during the calculation of the corrections/distortions it is assumed that the electron drifts on a line from deltaZ = z0 -> z1. The value sets the deltaZ width: 1: deltaZ=zBin/1, 5: deltaZ=zBin/5
-  inline static GlobalDistType sGlobalDistType{GlobalDistType::Fast};                                     ///< setting for global distortions: 0: standard method,      1: interpolation of global corrections
-  inline static GlobalDistCorrMethod sGlobalDistCorrCalcMethod{GlobalDistCorrMethod::LocalDistCorr};      ///< setting for  global distortions/corrections: 0: using electric field, 1: using local dis/corr interpolator
-  inline static SCDistortionType sSCDistortionType{SCDistortionType::SCDistortionsConstant};              ///< Type of space-charge distortions
-
-  DataT mC0 = 0; ///< coefficient C0 (compare Jim Thomas's notes for definitions)
-  DataT mC1 = 0; ///< coefficient C1 (compare Jim Thomas's notes for definitions)
-
-  static constexpr int FNSIDES = SIDES; ///< number of sides of the TPC
-  bool mIsEfieldSet[FNSIDES]{};         ///< flag if E-fields are set
-  bool mIsLocalCorrSet[FNSIDES]{};      ///< flag if local corrections are set
-  bool mIsLocalDistSet[FNSIDES]{};      ///< flag if local distortions are set
-  bool mIsLocalVecDistSet[FNSIDES]{};   ///< flag if local distortions vectors are set
-  bool mIsGlobalCorrSet[FNSIDES]{};     ///< flag if global corrections are set
-  bool mIsGlobalDistSet[FNSIDES]{};     ///< flag if global distortions are set
-  bool mIsChargeSet[FNSIDES]{};         ///< flag if the charge is set
-
-  bool mUseInitialSCDensity{false}; ///< Flag for the use of an initial space-charge density at the beginning of the simulation
-  bool mInitLookUpTables{false};    ///< Flag to indicate if lookup tables have been calculated
-
-  const RegularGrid mGrid3D[FNSIDES]{
-    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)},
-    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)}}; ///< grid properties
-
-  DataContainer mLocalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions dR
-  DataContainer mLocalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions dZ
-  DataContainer mLocalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local distortions dRPhi
-
-  // local distortion vectors.
-  DataContainer mLocalVecDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions vector dR
-  DataContainer mLocalVecDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions vector dZ
-  DataContainer mLocalVecDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local distortions vector dRPhi
-
-  DataContainer mLocalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local corrections dR
-  DataContainer mLocalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local corrections dZ
-  DataContainer mLocalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local corrections dRPhi
-
-  DataContainer mGlobalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global distortions dR
-  DataContainer mGlobalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global distortions dZ
-  DataContainer mGlobalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for global distortions dRPhi
-
-  DataContainer mGlobalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global corrections dR
-  DataContainer mGlobalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global corrections dZ
-  DataContainer mGlobalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for global corrections dRPhi
-
-  DataContainer mDensity[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for space charge density
-  DataContainer mPotential[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for the potential
-
-  DataContainer mElectricFieldEr[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for the electric field Er
-  DataContainer mElectricFieldEz[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for the electric field Ez
-  DataContainer mElectricFieldEphi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for the electric field Ephi
-
-  TriCubic mInterpolatorPotential[FNSIDES]{
-    {mPotential[Side::A], mGrid3D[Side::A]},
-    {mPotential[Side::C], mGrid3D[Side::C]}}; ///< interpolator for the potenial
-
-  TriCubic mInterpolatorDensity[FNSIDES]{
-    {mDensity[Side::A], mGrid3D[Side::A]},
-    {mDensity[Side::C], mGrid3D[Side::C]}}; ///< interpolator for the charge
-
-  DistCorrInterpolator<DataT> mInterpolatorGlobalCorr[FNSIDES]{
-    {mGlobalCorrdR[Side::A], mGlobalCorrdZ[Side::A], mGlobalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A},
-    {mGlobalCorrdR[Side::C], mGlobalCorrdZ[Side::C], mGlobalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the global corrections
-
-  DistCorrInterpolator<DataT> mInterpolatorLocalCorr[FNSIDES]{
-    {mLocalCorrdR[Side::A], mLocalCorrdZ[Side::A], mLocalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A},
-    {mLocalCorrdR[Side::C], mLocalCorrdZ[Side::C], mLocalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local corrections
-
-  DistCorrInterpolator<DataT> mInterpolatorGlobalDist[FNSIDES]{
-    {mGlobalDistdR[Side::A], mGlobalDistdZ[Side::A], mGlobalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
-    {mGlobalDistdR[Side::C], mGlobalDistdZ[Side::C], mGlobalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the global distortions
-
-  DistCorrInterpolator<DataT> mInterpolatorLocalDist[FNSIDES]{
-    {mLocalDistdR[Side::A], mLocalDistdZ[Side::A], mLocalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
-    {mLocalDistdR[Side::C], mLocalDistdZ[Side::C], mLocalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortions
-
-  DistCorrInterpolator<DataT> mInterpolatorLocalVecDist[FNSIDES]{
-    {mLocalVecDistdR[Side::A], mLocalVecDistdZ[Side::A], mLocalVecDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
-    {mLocalVecDistdR[Side::C], mLocalVecDistdZ[Side::C], mLocalVecDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortion vectors
-
-  NumericalFields<DataT> mInterpolatorEField[FNSIDES]{
-    {mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A},
-    {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the electric fields
+  bool isCloseToZero(const DataT valA, const DataT valB) const { return std::abs(valA + valB) < static_cast<DataT>(0.01); }
 
   static int getSign(const Side side) { return side == Side::C ? -1 : 1; }
 
@@ -1017,6 +975,12 @@ class SpaceCharge
 
   /// get inverse spacing in phi direction
   DataT getInvSpacingPhi(const Side side) const { return mGrid3D[side].getInvSpacingPhi(); }
+
+  /// \return returns minimum r coordinate up to distortions and corrections are being calculated
+  DataT getRMinSim(const Side side) const { return getRMin(side) - 4 * getGridSpacingR(side); }
+
+  /// \return returns maximum r coordinate up to distortions and corrections are being calculated
+  DataT getRMaxSim(const Side side) const { return getRMax(side) + 2 * getGridSpacingR(side); }
 
   std::string getSideName(const Side side) const { return side == Side::A ? "A" : "C"; }
 
@@ -1044,16 +1008,10 @@ class SpaceCharge
   void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const;
 
   /// calculate distortions/corrections using analytical electric fields
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const
-  {
-    calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false);
-  }
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false); }
 
   /// calculate distortions/corrections using electric fields from tricubic interpolator
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT>& formulaStruct) const
-  {
-    calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false);
-  }
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false); }
 
   /// calculate distortions/corrections by interpolation of local distortions/corrections
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT>& localDistCorr) const
@@ -1077,6 +1035,8 @@ class SpaceCharge
 
   /// \return setting the boundary potential for given GEM stack
   void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame = false);
+
+  ClassDefNV(SpaceCharge, 1)
 };
 
 ///

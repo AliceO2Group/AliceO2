@@ -134,7 +134,10 @@ int InteractionSampler::simulateInteractingBC()
 void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
 {
   // load bunch filling from the file
-  auto* bc = o2::BunchFilling::loadFrom(bcFillingFile);
+  auto* bc = o2::BunchFilling::loadFrom(bcFillingFile, "ccdb_object");
+  if (!bc) {
+    bc = o2::BunchFilling::loadFrom(bcFillingFile); // retry with default naming in case of failure
+  }
   if (!bc) {
     LOG(fatal) << "Failed to load bunch filling from " << bcFillingFile;
   }

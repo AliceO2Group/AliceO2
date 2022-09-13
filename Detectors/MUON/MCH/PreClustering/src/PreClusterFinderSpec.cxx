@@ -200,7 +200,7 @@ class PreClusterFinderTask
 
     LOGP(info, "Processed {} digit rofs with {} digits and output {} precluster rofs with {} preclusters and {} digits",
          digitROFs.size(),
-         digits.size(),
+         nDigitsInRofs,
          preClusterROFs.size(),
          mPreClusters.size(), mUsedDigits.size());
   }

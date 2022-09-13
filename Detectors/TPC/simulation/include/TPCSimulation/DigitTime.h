@@ -19,11 +19,10 @@
 #include "TPCBase/Mapper.h"
 #include "TPCSimulation/DigitGlobalPad.h"
 #include "SimulationDataFormat/LabelContainer.h"
+#include "CommonUtils/DebugStreamer.h"
 #include "TPCSimulation/CommonMode.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 class Digit;
@@ -37,6 +36,9 @@ class Digit;
 class DigitTime
 {
  public:
+  using Streamer = o2::utils::DebugStreamer;
+  using PrevDigitInfoArray = std::array<PrevDigitInfo, Mapper::getPadsInSector()>;
+
   /// Constructor
   DigitTime();
 
@@ -71,9 +73,10 @@ class DigitTime
   /// \param cru CRU ID
   /// \param timeBin Time bin
   /// \param commonMode Common mode value of that specific ROC
+  /// \param prevTime Previous time bin to calculate CM and ToT
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, float commonMode = 0.f);
+                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -98,8 +101,10 @@ inline void DigitTime::addDigit(const MCCompLabel& label, const CRU& cru, Global
     paddigit.setID(mDigitCounter++);
     // could also register this pad in a vector of digits
   }
+
+  // previous digit for CM and ToT calculation
   paddigit.addDigit(label, signal, mLabels);
-  mCommonMode[cru.gemStack()] += signal;
+  // mCommonMode[cru.gemStack()] += signal * 0.5; // TODO: Replace 0.5 by k-factor, take into account ion tail
 }
 
 inline void DigitTime::reset()
@@ -121,25 +126,46 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           float commonMode)
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream)
 {
-  Mapper& mapper = Mapper::instance();
-  GlobalPadNumber globalPad = 0;
+  const auto& mapper = Mapper::instance();
+  const auto& eleParam = ParameterElectronics::Instance();
+
+  // at this point we only have the pure signals from tracks
+  // loop over all pads to calculated ion tail, common mode and ToT for saturated signals
+  for (size_t iPad = 0; iPad < mGlobalPads.size(); ++iPad) {
+    auto& digit = mGlobalPads[iPad];
+    if (prevTime) {
+      auto& prevDigit = (*prevTime)[iPad];
+      if (prevDigit.hasSignal()) {
+        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream);
+      }
+      prevDigit.signal = digit.getChargePad(); // to make hasSignal() check work in next time bin
+    }
+    const CRU cru = mapper.getCRU(sector, iPad);
+    mCommonMode[cru.gemStack()] += digit.getChargePad() * 0.5; // TODO: Replace 0.5 by k-factor, take into account ion tail
+  }
+
+  // fill common mode output container
   for (size_t i = 0; i < mCommonMode.size(); ++i) {
     const float cm = getCommonMode(GEMstack(i));
     if (cm > 0.) {
       commonModeOutput.push_back({cm, timeBin, static_cast<unsigned char>(i)});
     }
   }
-  for (auto& pad : mGlobalPads) {
-    if (pad.getChargePad() > 0.) {
-      const CRU cru = mapper.getCRU(sector, globalPad);
-      pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, mLabels, getCommonMode(cru));
+
+  for (size_t iPad = 0; iPad < mGlobalPads.size(); ++iPad) {
+    auto& digit = mGlobalPads[iPad];
+    if (eleParam.doNoiseEmptyPads || (digit.getChargePad() > 0.f)) {
+      PrevDigitInfo prevDigit;
+      if (prevTime) {
+        prevDigit = (*prevTime)[iPad];
+      }
+      const CRU cru = mapper.getCRU(sector, iPad);
+      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit, debugStream);
     }
-    ++globalPad;
   }
 }
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_DigitTime_H_

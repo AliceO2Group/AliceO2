@@ -132,7 +132,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                        o2::framework::OutputSpec{"EMC", "DIGITS"},
                                                                        o2::framework::OutputSpec{"EMC", "DIGITSTRGR"},
                                                                        o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
-                                                                     propagateMC));
+                                                                     0, propagateMC));
     }
 
     if (enableDigitsPrinter) {
@@ -155,7 +155,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       o2::framework::OutputSpec{"EMC", "CELLS"},
                                                                       o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
                                                                       o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
-                                                                    propagateMC));
+                                                                    0, propagateMC));
     }
     if (enableDigitsPrinter) {
       try {

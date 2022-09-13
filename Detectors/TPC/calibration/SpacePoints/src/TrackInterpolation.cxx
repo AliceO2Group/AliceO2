@@ -136,7 +136,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[iRow].sy2[ExtOut] = trkWork.getSigmaY2();
     mCache[iRow].szy[ExtOut] = trkWork.getSigmaZY();
     mCache[iRow].sz2[ExtOut] = trkWork.getSigmaZ2();
-    mCache[iRow].phi[ExtOut] = trkWork.getSnp();
+    mCache[iRow].snp[ExtOut] = trkWork.getSnp();
     mCache[iRow].tgl[ExtOut] = trkWork.getTgl();
     //printf("Track alpha at row %i: %.2f, Y(%.2f), Z(%.2f)\n", iRow, trkWork.getAlpha(), trkWork.getY(), trkWork.getZ());
   }
@@ -226,7 +226,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[iRow].sy2[ExtIn] = trkWork.getSigmaY2();
     mCache[iRow].szy[ExtIn] = trkWork.getSigmaZY();
     mCache[iRow].sz2[ExtIn] = trkWork.getSigmaZ2();
-    mCache[iRow].phi[ExtIn] = trkWork.getSnp();
+    mCache[iRow].snp[ExtIn] = trkWork.getSnp();
     mCache[iRow].tgl[ExtIn] = trkWork.getTgl();
   }
 
@@ -244,7 +244,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[iRow].z[Int] = (mCache[iRow].z[ExtOut] / mCache[iRow].sz2[ExtOut] + mCache[iRow].z[ExtIn] / mCache[iRow].sz2[ExtIn]) / wTotZ;
 
     // simple average w/o weighting for angles
-    mCache[iRow].phi[Int] = (mCache[iRow].phi[ExtOut] + mCache[iRow].phi[ExtIn]) / 2.f;
+    mCache[iRow].snp[Int] = (mCache[iRow].snp[ExtOut] + mCache[iRow].snp[ExtIn]) / 2.f;
     mCache[iRow].tgl[Int] = (mCache[iRow].tgl[ExtOut] + mCache[iRow].tgl[ExtIn]) / 2.f;
 
     TPCClusterResiduals res;
@@ -252,7 +252,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     res.setDZ(mCache[iRow].clZ - mCache[iRow].z[Int]);
     res.setY(mCache[iRow].y[Int]);
     res.setZ(mCache[iRow].z[Int]);
-    res.setPhi(mCache[iRow].phi[Int]);
+    res.setSnp(mCache[iRow].snp[Int]);
     res.setTgl(mCache[iRow].tgl[Int]);
     res.sec = mCache[iRow].clSec;
     res.dRow = deltaRow;
@@ -267,6 +267,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   for (int i = 0; i < o2::track::kNParams; ++i) {
     trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
   }
+  trackData.chi2TRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getChi2() : 0;
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
@@ -309,7 +310,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     res.setDY(z - trkWork.getZ());
     res.setY(trkWork.getY());
     res.setZ(trkWork.getZ());
-    res.setPhi(trkWork.getSnp());
+    res.setSnp(trkWork.getSnp());
     res.setTgl(trkWork.getTgl());
     res.sec = sector;
     res.dRow = row - rowPrev;

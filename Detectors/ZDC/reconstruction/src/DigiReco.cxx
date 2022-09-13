@@ -336,6 +336,30 @@ void DigiReco::init()
   }
 } // init
 
+void DigiReco::eor()
+{
+  if (mTreeDbg) {
+    LOG(info) << "o2::zdc::DigiReco: closing debug output";
+    mTDbg->Write();
+    mTDbg.reset();
+    mDbg->Close();
+    mDbg.reset();
+  }
+  if (mNLonely > 0) {
+    LOG(warn) << "Detected " << mNLonely << " lonely bunches";
+    for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+      if (mLonely[ib]) {
+        LOG(warn) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+      }
+    }
+  }
+  for (int ich = 0; ich < NChannels; ich++) {
+    if (mMissingPed[ich] > 0) {
+      LOGF(error, "Missing pedestal for ch %2d %s: %u", ich, ChannelNames[ich], mMissingPed[ich]);
+    }
+  }
+}
+
 void DigiReco::prepareInterpolation()
 {
   // Prepare tapered sinc function
@@ -399,7 +423,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   }
   for (int ich = 0; ich < NChannels; ich++) {
     if (mVerbosity > DbgZero) {
-      LOG(info) << ChannelNames[ich] << ": " << scaler[ich];
+      LOG(info) << ChannelNames[ich] << " cnt: " << scaler[ich];
     }
   }
 
@@ -514,6 +538,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in TDC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
@@ -550,6 +575,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in ADC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
@@ -978,7 +1004,10 @@ void DigiReco::updateOffsets(int ibun)
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
-      LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      mMissingPed[ich]++;
+      if (mVerbosity > DbgMinimal) {
+        LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      }
     }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
     LOGF(info, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
@@ -1022,7 +1051,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     auto ref_s = mReco[b2].ref[TDCSignal[itdc]]; // reference to subtrahend
     // Check data consistency before computing difference
     if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
       return;
     }
     // Check that bunch crossings are indeed the same or consecutive
@@ -1124,7 +1153,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     int s1 = is1 % NTimeBinsPerBC;
     if (is1 < 0) {
       if (ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
+        LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
         return;
       }
       diff = mOffset[isig] - mChData[ref_s].data[s2];
@@ -1137,7 +1166,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       auto ref_m = mReco[b1].ref[TDCSignal[itdc]]; // reference to minuend
       // Check data consistency before computing difference
       if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
+        LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
         return;
       }
       // Check that bunch crossings are indeed the same or consecutive
@@ -1304,7 +1333,7 @@ void DigiReco::fullInterpolation(int isig, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
     }
   }
 
@@ -1349,7 +1378,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
     }
   }
 
@@ -1382,7 +1411,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   int ip[nsp] = {-1, -1, -1, -1, -1};
   // N.B. Points at the extremes are constant therefore no local maximum
   // can occur in these two regions
-  for (int i = 0; i < mNint; i++) {
+  for (int i = 0; i < mNint; i += mInterpolationStep) {
     int isam = i + TSNH;
     // Check if trigger is fired for this point
     // For the moment we don't take into account possible extensions of the search zone
@@ -1489,6 +1518,31 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     // If we exit from searching zone
     if (was_searchable && !is_searchable) {
       if (amp <= ADCMax) {
+        if (mInterpolationStep > 1) {
+          // Refine peak search
+          int sbeg = (isam_amp - TSNH);
+          int send = (isam_amp + TSNH);
+          if (sbeg < 0) {
+            sbeg = 0;
+            send = sbeg + TSN;
+          }
+          if (send > (mNint + TSNH)) {
+            send = mNint + TSNH;
+            sbeg = send - TSN;
+          }
+          if (sbeg < 0) {
+            sbeg = 0;
+          }
+          for (int spos = sbeg; spos < send; spos++) {
+            // Perform interpolation for the searched point
+            O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
+            // Get local minimum of waveform
+            if (myval < amp) {
+              amp = myval;
+              isam_amp = spos;
+            }
+          }
+        }
         // Store identified peak
         int ibun = ibeg + isam_amp / nsbun;
         updateOffsets(ibun);
@@ -1525,11 +1579,36 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         isam_amp = isam;
       }
     }
-  }
+  } // Loop on interpolated points
   // Trigger flag still present at the of the scan
   if (is_searchable) {
     // Add last identified peak
     if (amp <= ADCMax) {
+      if (mInterpolationStep > 1) {
+        // Refine peak search
+        int sbeg = (isam_amp - TSNH);
+        int send = (isam_amp + TSNH);
+        if (sbeg < 0) {
+          sbeg = 0;
+          send = sbeg + TSN;
+        }
+        if (send > (mNint + TSNH)) {
+          send = mNint + TSNH;
+          sbeg = send - TSN;
+        }
+        if (sbeg < 0) {
+          sbeg = 0;
+        }
+        for (int spos = sbeg; spos < send; spos++) {
+          // Perform interpolation for the searched point
+          O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
+          // Get local minimum of waveform
+          if (myval < amp) {
+            amp = myval;
+            isam_amp = spos;
+          }
+        }
+      }
       // Store identified peak
       int ibun = ibeg + isam_amp / nsbun;
       updateOffsets(ibun);

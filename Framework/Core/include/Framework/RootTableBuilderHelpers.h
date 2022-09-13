@@ -205,7 +205,7 @@ struct RootTableBuilderHelpers {
                            TTreeReader& reader,
                            ReaderHolder<T>... holders)
   {
-    std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
+    std::array<char const*, sizeof...(T)> branchNames = {holders.reader->GetBranchName()...};
     TTree* tree = reader.GetTree();
     size_t maxExtries = reader.GetEntries(true);
     tree->SetCacheSize(maxExtries * (holders.itemSize + ...));

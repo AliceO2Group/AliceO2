@@ -138,6 +138,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       // storing to CCDB
       const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
       const long timestampStart = mUsePrecisetimeStamp ? (mTFInfo.first + (tinfo.firstTForbit - relTF * mTFInfo.second) * o2::constants::lhc::LHCOrbitMUS * 0.001) : tinfo.creation;
+      LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}", mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF);
 
       sendOutput(pc.outputs(), timestampStart);
       mTFFirst = -1;

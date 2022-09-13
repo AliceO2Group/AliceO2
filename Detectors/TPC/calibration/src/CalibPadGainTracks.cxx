@@ -19,10 +19,12 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "GPUO2InterfaceRefit.h"
+#include "TPCCalibration/CorrectionMapsHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "GPUO2InterfaceRefit.h"
 #include "GPUO2Interface.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 // root includes
 #include "TFile.h"
@@ -32,16 +34,12 @@ using namespace o2::tpc;
 
 void CalibPadGainTracks::processTracks(const int nMaxTracks)
 {
-  if (!mPropagateTrack && !mFastTransform) {
-    mFastTransform = TPCFastTransformHelperO2::instance()->create(0);
-  }
-
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> refit;
   if (!mPropagateTrack) {
     mBufVec.resize(mClusterIndex->nClustersTotal);
     o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
     mClusterShMapTPC = mBufVec.data();
-    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mFastTransform.get(), mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
+    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper->getCorrMap(), mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
   }
 
   const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
@@ -402,4 +400,24 @@ void CalibPadGainTracks::dumpReferenceExtractedGainMap(const char* outFileName, 
 int CalibPadGainTracks::getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad)
 {
   return Mapper::instance().getPadNumber(padSub, padSubsetNumber, row, pad);
+}
+
+//______________________________________________
+void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftCorrFact = v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  if (mTPCCorrMapsHelper) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
+}
+
+//______________________________________________
+void CalibPadGainTracks::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
+  if (mTPCVDrift > 0.f) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
 }

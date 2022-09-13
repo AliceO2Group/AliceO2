@@ -84,10 +84,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(useMC));
   }
 
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
+
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
-
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
 
   return specs;
 }

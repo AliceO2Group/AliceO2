@@ -15,6 +15,9 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
+#include "TMap.h"
+#include "TObjString.h"
+
 namespace o2
 {
 namespace framework
@@ -190,6 +193,7 @@ void DataOutputDirector::readString(std::string const& keepString)
   // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
+    mParentMaps.emplace_back(new TMap());
   }
 }
 
@@ -431,7 +435,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber)
+FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber, std::string parentFileName)
 {
   // initialisation
   FileAndFolder fileAndFolder;
@@ -442,15 +446,20 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
     int ind = std::distance(mfilenameBases.begin(), it);
     if (!mfilePtrs[ind]->IsOpen()) {
       auto fn = mfilenameBases[ind] + ".root";
-      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str(), "", 501);
+      delete mfilePtrs[ind];
+      mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 501);
     }
     fileAndFolder.file = mfilePtrs[ind];
 
     // check if folder DF_* exists
-    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber) + "/";
+    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber);
     auto key = fileAndFolder.file->GetKey(fileAndFolder.folderName.c_str());
     if (!key) {
       fileAndFolder.file->mkdir(fileAndFolder.folderName.c_str());
+      // TODO not clear why we get a " " in case we sent empty over DPL, put the limit to 1 for now
+      if (parentFileName.length() > 1) {
+        mParentMaps[ind]->Add(new TObjString(fileAndFolder.folderName.c_str()), new TObjString(parentFileName.c_str()));
+      }
     }
     fileAndFolder.file->cd(fileAndFolder.folderName.c_str());
   }
@@ -460,8 +469,13 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
 
 void DataOutputDirector::closeDataFiles()
 {
-  for (auto filePtr : mfilePtrs) {
+  for (int i = 0; i < mfilePtrs.size(); i++) {
+    auto filePtr = mfilePtrs[i];
     if (filePtr) {
+      if (filePtr->IsOpen() && mParentMaps[i]->GetEntries() > 0) {
+        filePtr->cd("/");
+        filePtr->WriteObject(mParentMaps[i], "parentFiles");
+      }
       filePtr->Close();
     }
   }
@@ -516,6 +530,7 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
+    mParentMaps.emplace_back(new TMap());
   }
 }
 

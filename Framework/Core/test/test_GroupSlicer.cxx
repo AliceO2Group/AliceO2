@@ -387,6 +387,11 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnsortedFilteredGroups)
     }
   }
   auto trkTable = builderT.finalize();
+
+  TableBuilder builderTE;
+  auto trksWriterE = builderTE.cursor<aod::TrksXU>();
+  auto trkTableE = builderTE.finalize();
+
   using FilteredEvents = soa::Filtered<aod::Events>;
   soa::SelectionVector rows{2, 4, 10, 9, 15};
   FilteredEvents e{{evtTable}, {2, 4, 10, 9, 15}};
@@ -412,6 +417,21 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnsortedFilteredGroups)
     for (auto& trk : trks) {
       BOOST_CHECK_EQUAL(trk.eventId(), rows[count]);
     }
+    ++count;
+  }
+
+  std::vector<int64_t> sele;
+  soa::SmallGroups<aod::TrksXU> te{{trkTableE}, std::move(sele)};
+  auto tte = std::make_tuple(te);
+  o2::framework::GroupSlicer ge(e, tte);
+
+  count = 0;
+  for (auto& slice : ge) {
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    BOOST_CHECK_EQUAL(gg.globalIndex(), rows[count]);
+    auto trks = std::get<soa::SmallGroups<aod::TrksXU>>(as);
+    BOOST_CHECK_EQUAL(trks.size(), 0);
     ++count;
   }
 }

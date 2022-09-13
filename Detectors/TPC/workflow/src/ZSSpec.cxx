@@ -46,6 +46,7 @@
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "TPCReconstruction/IonTailCorrection.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -95,13 +96,17 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       GPUParam _GPUParam;
       GPUO2InterfaceConfiguration config;
       config.configGRP.solenoidBz = 5.00668;
-      config.ReadConfigurableParam();
+      auto globalConfig = config.ReadConfigurableParam();
       _GPUParam.SetDefaults(&config.configGRP, &config.configReconstruction, &config.configProcessing, nullptr);
+      std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr;
+      if (globalConfig.zsOnTheFlyDigitsFilter) {
+        digitsFilter = [](std::vector<o2::tpc::Digit>& digits) { LOG(info) << "Running TPC digits IonTail filter"; IonTailCorrection itCorr; itCorr.filterDigitsDirect(digits); };
+      }
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
       sizes.resize(NSectors * NEndpoints);
       o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
-      o2::gpu::GPUReconstructionConvert::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, 2, verify, config.configReconstruction.tpc.zsThreshold);
+      o2::gpu::GPUReconstructionConvert::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, 2, verify, config.configReconstruction.tpc.zsThreshold, false, digitsFilter);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
       for (unsigned int i = 0; i < NSectors; i++) {
@@ -154,7 +159,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
           writer.useCaching();
         }
         ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
-        o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, 2, false, config.configReconstruction.tpc.zsThreshold);
+        o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, 2, false, config.configReconstruction.tpc.zsThreshold, false, digitsFilter);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);

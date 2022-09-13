@@ -320,7 +320,7 @@ struct RecoContainer {
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
   void createTracks(std::function<bool(const o2::track::TrackParCov&, GTrackID)> const& creator) const;
   template <class T>
-  void createTracksVariadic(T creator) const;
+  void createTracksVariadic(T creator, GTrackID::mask_t srcSel = GTrackID::getSourcesMask("all")) const;
   void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;
 
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);

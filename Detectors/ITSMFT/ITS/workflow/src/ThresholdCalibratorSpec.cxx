@@ -906,10 +906,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   sprintf(stave, "L%d_%02d", lay, sta);
 
   if (isQC) {
-    o2::dcs::addConfigItem(this->mChipDoneQc, "Stave", std::string(stave));
-    o2::dcs::addConfigItem(this->mChipDoneQc, "Hs_pos", std::to_string(ssta));
-    o2::dcs::addConfigItem(this->mChipDoneQc, "Hic_Pos", std::to_string(mod));
-    o2::dcs::addConfigItem(this->mChipDoneQc, "ChipID", std::to_string(chipInMod));
+    o2::dcs::addConfigItem(this->mChipDoneQc, "O2ChipID", std::to_string(chipID));
     return;
   }
 
@@ -923,28 +920,26 @@ void ITSThresholdCalibrator::addDatabaseEntry(
     std::string pixIDs_Noisy = "";
     std::string pixIDs_Dead = "";
     std::string pixIDs_Ineff = "";
-    std::vector<int>& v = mNoisyPixID[chipID];
-    std::vector<int>& v_Dead = mDeadPixID[chipID];
-    std::vector<int>& v_Ineff = mIneffPixID[chipID];
+    std::vector<int>& v = PixelType == "Noisy" ? mNoisyPixID[chipID] : PixelType == "Dead" ? mDeadPixID[chipID]
+                                                                                           : mIneffPixID[chipID];
 
     std::string ds = "-1"; // dummy string
     // find bad dcols and add them one by one
-    for (int i = 0; i < v.size(); i++) {
-      short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
-      vPixDcolCounter[dcol]++;
-    }
-    for (int i = 0; i < 512; i++) {
-      if (vPixDcolCounter[i] > N_PIX_DCOL) {
-        o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
-        o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
-        o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
-        o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
-        o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
-        o2::dcs::addConfigItem(this->mTuning, "Dcol", std::to_string(i));
-        o2::dcs::addConfigItem(this->mTuning, "Row", ds);
-        o2::dcs::addConfigItem(this->mTuning, "Col", ds);
+    if (PixelType == "Noisy") {
+      for (int i = 0; i < v.size(); i++) {
+        short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
+        vPixDcolCounter[dcol]++;
+      }
+      for (int i = 0; i < 512; i++) {
+        if (vPixDcolCounter[i] > N_PIX_DCOL) {
+          o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
+          o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
+          o2::dcs::addConfigItem(this->mTuning, "Dcol", std::to_string(i));
+          o2::dcs::addConfigItem(this->mTuning, "Row", ds);
+          o2::dcs::addConfigItem(this->mTuning, "Col", ds);
 
-        dcolIDs += std::to_string(i) + '|'; // prepare string for second object for ccdb prod
+          dcolIDs += std::to_string(i) + '|'; // prepare string for second object for ccdb prod
+        }
       }
     }
 
@@ -963,10 +958,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
             pixIDs_Noisy += '|';
           }
 
-          o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
-          o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
-          o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
-          o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+          o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
           o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
           o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
           o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
@@ -975,18 +967,18 @@ void ITSThresholdCalibrator::addDatabaseEntry(
       }
 
       if (PixelType == "Dead") {
-        for (int i = 0; i < v_Dead.size(); i++) {
-          pixIDs_Dead += std::to_string(v_Dead[i]);
-          if (i + 1 < v_Dead.size()) {
+        for (int i = 0; i < v.size(); i++) {
+          pixIDs_Dead += std::to_string(v[i]);
+          if (i + 1 < v.size()) {
             pixIDs_Dead += '|';
           }
         }
       }
 
       if (PixelType == "Ineff") {
-        for (int i = 0; i < v_Ineff.size(); i++) {
-          pixIDs_Ineff += std::to_string(v_Ineff[i]);
-          if (i + 1 < v_Ineff.size()) {
+        for (int i = 0; i < v.size(); i++) {
+          pixIDs_Ineff += std::to_string(v[i]);
+          if (i + 1 < v.size()) {
             pixIDs_Ineff += '|';
           }
         }
@@ -1011,20 +1003,14 @@ void ITSThresholdCalibrator::addDatabaseEntry(
       pixIDs_Ineff = "-1";
     }
 
-    o2::dcs::addConfigItem(this->mPixStat, "Stave", std::string(stave));
-    o2::dcs::addConfigItem(this->mPixStat, "Hs_pos", std::to_string(ssta));
-    o2::dcs::addConfigItem(this->mPixStat, "Hic_Pos", std::to_string(mod));
-    o2::dcs::addConfigItem(this->mPixStat, "ChipID", std::to_string(chipInMod));
+    o2::dcs::addConfigItem(this->mPixStat, "O2ChipID", std::to_string(chipID));
     o2::dcs::addConfigItem(this->mPixStat, "Dcol", dcolIDs);
     o2::dcs::addConfigItem(this->mPixStat, "NoisyPixID", pixIDs_Noisy);
     o2::dcs::addConfigItem(this->mPixStat, "DeadPixID", pixIDs_Dead);
     o2::dcs::addConfigItem(this->mPixStat, "IneffPixID", pixIDs_Ineff);
   }
   if (this->mScanType != 'D' && this->mScanType != 'A') {
-    o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
-    o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
-    o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
-    o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+    o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
     o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
     o2::dcs::addConfigItem(this->mTuning, name, std::to_string(avgT));
     o2::dcs::addConfigItem(this->mTuning, "Rms", std::to_string(rmsT));

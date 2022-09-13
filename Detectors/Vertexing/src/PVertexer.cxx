@@ -28,6 +28,13 @@ constexpr double PVertexer::kAlmost0D;
 constexpr float PVertexer::kHugeF;
 
 //___________________________________________________________________
+PVertexer::PVertexer()
+{
+  mMeanVertex.setSigma({0.5f, 0.5f, 6.0f});
+  initMeanVertexConstraint();
+}
+
+//___________________________________________________________________
 int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
                             std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                             gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
@@ -50,7 +57,9 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   std::vector<float> validationTimes;
   std::vector<o2::MCEventLabel> lblVtxLoc;
   mTimeVertexing.Start();
+  int cntTZ = 0;
   for (auto tc : mTimeZClusters) {
+    size_t nnold = verticesLoc.size();
     VertexingInput inp;
     inp.idRange = gsl::span<int>(tc.trackIDs);
     inp.scaleSigma2 = mPVParams->iniScale2;
@@ -174,7 +183,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound << " mult=" << mult;
 
     PVertex vtx;
-    vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
+    mMeanVertex.setMeanXYVertexAtZ(vtx, zv);
     vtx.setTimeStamp({tv, 0.f});
     if (findVertex(input, vtx)) {
       finalizeVertex(input, vtx, vertices, v2tRefs, trackIDs, &seedHistoTZ);
@@ -454,7 +463,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 //___________________________________________________________________
 void PVertexer::reAttach(std::vector<PVertex>& vertices, std::vector<int>& timeSort, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs)
 {
-  float tRange = 0.5 * std::max(mITSROFrameLengthMUS, mPVParams->dbscanDeltaT) + mPVParams->timeMarginReattach; // consider only vertices in this proximity to tracks
+  float tRange = 0.5 * std::max(mITSROFrameLengthMUS, mDBScanDeltaT) + mPVParams->timeMarginReattach;           // consider only vertices in this proximity to tracks
   std::vector<std::pair<int, TimeEst>> vtvec;                                                                   // valid vertex times and indices
   int nvtOrig = vertices.size();
   vtvec.reserve(nvtOrig);
@@ -661,9 +670,10 @@ void PVertexer::init()
 {
   mPVParams = &PVertexerParams::Instance();
   setTukey(mPVParams->tukey);
-  initMeanVertexConstraint();
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
+  mDBScanDeltaT = mPVParams->dbscanDeltaT > 0.f ? mPVParams->dbscanDeltaT : mITSROFrameLengthMUS - mPVParams->dbscanDeltaT;
+  mDBSMaxZ2InvCorePoint = mPVParams->dbscanMaxSigZCorPoint > 0 ? 1. / (mPVParams->dbscanMaxSigZCorPoint * mPVParams->dbscanMaxSigZCorPoint) : 1e6;
 
 #ifdef _PV_DEBUG_TREE_
   mDebugDumpFile = std::make_unique<TFile>("pvtxDebug.root", "recreate");
@@ -695,18 +705,20 @@ void PVertexer::init()
 void PVertexer::end()
 {
 #ifdef _PV_DEBUG_TREE_
-  mDebugPoolTree->Write();
-  mDebugDBScanTree->Write();
-  mDebugVtxCompTree->Write();
-  mDebugVtxTree->Write();
+  if (mDebugDumpFile) {
+    mDebugPoolTree->Write();
+    mDebugDBScanTree->Write();
+    mDebugVtxCompTree->Write();
+    mDebugVtxTree->Write();
 
-  mDebugPoolTree.reset();
-  mDebugDBScanTree.reset();
-  mDebugVtxCompTree.reset();
-  mDebugVtxTree.reset();
+    mDebugPoolTree.reset();
+    mDebugDBScanTree.reset();
+    mDebugVtxCompTree.reset();
+    mDebugVtxTree.reset();
 
-  mDebugDumpFile->Close();
-  mDebugDumpFile.reset();
+    mDebugDumpFile->Close();
+    mDebugDumpFile.reset();
+  }
 #endif
 }
 
@@ -856,11 +868,14 @@ int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, std::vector<int
   // Since we use asymmetric distance definition, is it bit more complex than simple search within chi2 proximity
   int nFound = 0;
   const auto& tI = mTracksPool[id];
+  if (tI.sig2ZI < mDBSMaxZ2InvCorePoint) {
+    return nFound;
+  }
   int ntr = mTracksPool.size();
 
   auto procPnt = [this, &tI, &status, &cand, &nFound, id](int idN) {
     const auto& tL = this->mTracksPool[idN];
-    if (std::abs(tI.timeEst.getTimeStamp() - tL.timeEst.getTimeStamp()) > this->mPVParams->dbscanDeltaT) {
+    if (std::abs(tI.timeEst.getTimeStamp() - tL.timeEst.getTimeStamp()) > this->mDBScanDeltaT) {
       return -1;
     }
     auto statN = status[idN], stat = status[id];
@@ -1030,9 +1045,14 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
 }
 
 //______________________________________________
-bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const
+bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2)
 {
   o2d::DCA dca;
+  auto z = trc.getZAt(0., mBz);
+  if (z < -999.) {
+    z = mMeanVertex.getZ();
+  }
+  mMeanVertex.setMeanXYVertexAtZ(mMeanVertexSeed, z);
   return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
                                                           o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
          (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
@@ -1145,6 +1165,19 @@ PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::Vert
     vtxRes.setChi2(-1.);
   }
   return vtxRes;
+}
+
+//______________________________________________
+void PVertexer::printInpuTracksStatus(const VertexingInput& input) const
+{
+  int cnt = 0;
+  for (int i : input.idRange) {
+    if (mTracksPool[i].canUse()) {
+      LOGP(info, "#{}: {} z:{:.3f}/{:.3f} t:{:.3f}/{:.3f} w:{:.3f} gid:{}", cnt, i, mTracksPool[i].z, std::sqrt(1. / mTracksPool[i].sig2ZI),
+           mTracksPool[i].timeEst.getTimeStamp(), mTracksPool[i].timeEst.getTimeStampError(), mTracksPool[i].wgh, mTracksPool[i].gid.asString());
+    }
+    cnt++;
+  }
 }
 
 //______________________________________________

@@ -57,7 +57,7 @@ namespace o2::aodproducer
 
 typedef boost::tuple<int, int, int> Triplet_t;
 
-struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
+struct TripletHash {
   std::size_t operator()(Triplet_t const& e) const
   {
     std::size_t seed = 0;
@@ -68,7 +68,7 @@ struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
   }
 };
 
-struct TripletEqualTo : std::binary_function<Triplet_t, Triplet_t, bool> {
+struct TripletEqualTo {
   bool operator()(Triplet_t const& x, Triplet_t const& y) const
   {
     return (x.get<0>() == y.get<0>() &&
@@ -203,6 +203,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
   int mCTPReadout = 0;                         // 0 = use CTP readout from CTP; 1 = create CTP readout
+  bool mCTPConfigPerRun = false;               // 0 = use common CTPconfig as for MC; 1 = run dependent CTP config
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
@@ -374,7 +375,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile, bool CTPConfigPerRun);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

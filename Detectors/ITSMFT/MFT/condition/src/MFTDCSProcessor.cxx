@@ -85,17 +85,11 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
       LOG(info) << "DP " << it.id << " not found in MFTDCSProcessor, we will not process it";
       continue;
     }
-    /*
-    //it.id = DataPointIdentifier
-    //id.data = DataPointValue
-    const DPCOM new_it(new_id,it.data);
-    processDP(new_it);
-    */
+
     processDP(it);
     mPids[it.id] = true;
   }
 
-  //updateCurrentAnalogCCDB();
   updateDPsCCDB();
 
   return 0;
@@ -144,8 +138,18 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
 
 //______________________________________________________________________
 
+bool MFTDCSProcessor::sendDPsCCDB()
+{
+  if (mSendToCCDB) {
+    LOG(info) << "Detect larger change than threshold...";
+  }
+  return mSendToCCDB;
+}
+
 void MFTDCSProcessor::updateDPsCCDB()
 {
+
+  mSendToCCDB = false;
 
   // here we create the object to then be sent to CCDB
   if (mVerbose) {
@@ -158,6 +162,7 @@ void MFTDCSProcessor::updateDPsCCDB()
 
   for (auto& it : mPids) {
     const auto& type = it.first.get_type();
+
     if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& mftdcs = mMFTDCS[it.first];
       if (it.second) {     // we processed the DP at least 1x
@@ -172,30 +177,19 @@ void MFTDCSProcessor::updateDPsCCDB()
         // now I will look for the max change
         if (dpvect.size() > 1) {
           auto deltatime = dpvect.back().get_epoch_time() - dpvect[0].get_epoch_time();
-          if (deltatime < 60000) {
-            // if we did not cover at least 1 minute,
-            // max variation is defined as the difference between first and last value
-            converter0.raw_data = dpvect[0].payload_pt1;
-            converter1.raw_data = dpvect.back().payload_pt1;
-            double delta = std::abs(converter0.double_value - converter1.double_value);
-            mftdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
-            mftdcs.maxChange.second = delta;
-          } else {
-            for (auto i = 0; i < dpvect.size() - 1; ++i) {
-              for (auto j = i + 1; j < dpvect.size(); ++j) {
-                auto deltatime = dpvect[j].get_epoch_time() - dpvect[i].get_epoch_time();
-                if (deltatime >= 60000) { // we check every min; epoch_time in ms
-                  converter0.raw_data = dpvect[i].payload_pt1;
-                  converter1.raw_data = dpvect[j].payload_pt1;
-                  double delta = std::abs(converter0.double_value - converter1.double_value);
-                  if (delta > mftdcs.maxChange.second) {
-                    mftdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
-                    mftdcs.maxChange.second = delta;
-                  }
-                }
+          for (auto i = 0; i < dpvect.size() - 1; ++i) {
+            for (auto j = i + 1; j < dpvect.size(); ++j) {
+              auto deltatime = dpvect[j].get_epoch_time() - dpvect[i].get_epoch_time();
+              converter0.raw_data = dpvect[i].payload_pt1;
+              converter1.raw_data = dpvect[j].payload_pt1;
+              double delta = std::abs(converter0.double_value - converter1.double_value);
+              if (delta > mftdcs.maxChange.second) {
+                mftdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
+                mftdcs.maxChange.second = delta;
               }
             }
           }
+
           // mid point
           auto midIdx = dpvect.size() / 2 - 1;
           mftdcs.midValue.first = dpvect[midIdx].get_epoch_time();
@@ -213,6 +207,26 @@ void MFTDCSProcessor::updateDPsCCDB()
       if (mVerbose) {
         LOG(info) << "PID = " << it.first.get_alias();
         mftdcs.print();
+      }
+      if (strstr(it.first.get_alias(), "MFT_RU_LV") &&
+          mftdcs.maxChange.second > mThresholdRULV) {
+        mSendToCCDB = true;
+      }
+      if (strstr(it.first.get_alias(), "Current/Analog") &&
+          mftdcs.maxChange.second > mThresholdAnalogCurrent) {
+        mSendToCCDB = true;
+      }
+      if (strstr(it.first.get_alias(), "Current/Digit") &&
+          mftdcs.maxChange.second > mThresholdDigitalCurrent) {
+        mSendToCCDB = true;
+      }
+      if (strstr(it.first.get_alias(), "Current/BackBias") &&
+          mftdcs.maxChange.second > mThresholdBackBiasCurrent) {
+        mSendToCCDB = true;
+      }
+      if (strstr(it.first.get_alias(), "Voltage/BackBias") &&
+          mftdcs.maxChange.second > mThresholdBackBiasVoltage) {
+        mSendToCCDB = true;
       }
     }
   }

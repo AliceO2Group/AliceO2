@@ -47,6 +47,11 @@ void MergerBuilder::setTopologyPosition(size_t layer, size_t id)
   mId = id;
 }
 
+void MergerBuilder::setTimePipeline(size_t timepipeline)
+{
+  mTimePipeline = timepipeline;
+}
+
 void MergerBuilder::setInputSpecs(const framework::Inputs& inputs)
 {
   mInputSpecs = inputs;
@@ -94,6 +99,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
   merger.inputs.push_back({"timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer});
   merger.options.push_back({"period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), {"timer period"}});
   merger.labels.push_back(mergerLabel());
+  merger.maxInputTimeslices = mTimePipeline;
 
   return std::move(merger);
 }

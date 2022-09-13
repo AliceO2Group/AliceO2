@@ -31,6 +31,8 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "Framework/CCDBParamSpec.h"
+
 // for time measurements
 #include <chrono>
 
@@ -47,7 +49,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
 
  public:
-  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -58,28 +60,25 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) { // time calibration
       isBadChannelCalib = false;
       if (!mTimeCalibrator) {
-        mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>>();
+        mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams>>();
       }
       mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
-      mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
-      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+      mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_tc);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_tc) {
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
 
     } else { // bad cell calibration
       isBadChannelCalib = true;
       if (!mBadChannelCalibrator) {
-        mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
+        mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>>();
       }
       mBadChannelCalibrator->SetCalibExtractor(mCalibExtractor);
-      mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
-      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+      mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_bc);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_bc) {
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
-      mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode);
-      if (EMCALCalibParams::Instance().useScaledHistoForBadChannelMap) {
-        mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
-      }
+      mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode_bc);
     }
   }
 
@@ -87,8 +86,19 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    // check if calib params need to be updated
+    if (matcher == ConcreteDataMatcher("EMC", "EMCALCALIBPARAM", 0)) {
+      LOG(info) << "EMCal CalibParams updated";
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("EMC", "SCALEFACTORS", 0)) {
+      if (mBadChannelCalibrator && EMCALCalibParams::Instance().useScaledHisto_bc) {
+        mBadChannelCalibrator->getCalibExtractor()->setBCMScaleFactors(reinterpret_cast<o2::emcal::EMCALChannelScaleFactors*>(obj));
+      }
+    }
   }
 
+  //_________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
     if (EMCALCalibParams::Instance().enableTimeProfiling) {
@@ -96,7 +106,16 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     }
 
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    if (mTimeCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    } else if (mBadChannelCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mBadChannelCalibrator->getCurrentTFInfo());
+    }
+
+    if (mLoadCalibParamsFromCCDB) {
+      // for reading the calib objects from the ccdb
+      pc.inputs().get<o2::emcal::EMCALCalibParams*>("EMC_CalibParam");
+    }
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
@@ -152,11 +171,12 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   static const char* getCellTriggerRecordBinding() { return "EMCCellsTrgR"; }
 
  private:
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>> mBadChannelCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams>> mTimeCalibrator;
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool isBadChannelCalib = true;
+  bool mLoadCalibParamsFromCCDB = true;
   std::array<double, 2> timeMeas;
 
   //________________________________________________________________
@@ -209,17 +229,21 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec()
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const bool loadCalibParamsFromCCDB)
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
+  using CalibDB = o2::emcal::CalibDB;
 
   std::vector<OutputSpec> outputs;
-  if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) {                                                        // time calibration
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-  } else {                                                                                                                               // bad channel calibration
+  std::string processorName;
+  if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) { // time calibration
+    processorName = "calib-emcalchannel-time";
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+  } else {                                                                                                                             // bad channel calibration
+    processorName = "calib-emcalchannel-badchannel";
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
   }
@@ -227,6 +251,13 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back(device::getCellBinding(), o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back(device::getCellTriggerRecordBinding(), o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  // for loading the channelCalibParams from the ccdb
+  if (loadCalibParamsFromCCDB) {
+    inputs.emplace_back("EMC_CalibParam", o2::header::gDataOriginEMC, "EMCALCALIBPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/CalibParam"));
+  }
+  if (EMCALCalibParams::Instance().calibType.find("badchannel") == std::string::npos) {
+    inputs.emplace_back("EMC_Scalefactors", o2::header::gDataOriginEMC, "SCALEFACTORS", 0, Lifetime::Condition, ccdbParamSpec(CalibDB::getCDBPathChannelScaleFactors()));
+  }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -235,10 +266,10 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
   return DataProcessorSpec{
-    "calib-emcalchannel-calibration",
+    processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB)},
     Options{}};
 }
 
