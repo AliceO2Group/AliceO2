@@ -101,21 +101,21 @@ if workflow_has_parameter CALIB_PROXIES; then
   elif [[ $AGGREGATOR_TASKS == TPCIDC_BOTH ]]; then
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
       if [[ $FLP_TPC_IDC == 1 ]]; then # IDCs are coming from FLPs
-  if [[ $EPNSYNCMODE != 1 ]]; then
-    echo "ERROR: You cannot run the TPC IDCs in FLP mode if you are not in EPNSYNCMODE" 1>&2
-    exit 2
-  fi
-  # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
-  [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
-  # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
-  for flp in $(seq -f "%03g" 1 144)
+        if [[ $EPNSYNCMODE != 1 ]]; then
+          echo "ERROR: You cannot run the TPC IDCs in FLP mode if you are not in EPNSYNCMODE" 1>&2
+          exit 2
+        fi
+        # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
+        [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
+        # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
+        for flp in $(seq -f "%03g" 1 144)
   do
-    FLP_ADDRESS="tcp://alicr1-flp-ib${flp}:${TPC_IDC_FLP_PORT}"
-    CHANNELS_LIST+=" --channel-config \"type=pull,name=tpcidc_flp${flp},transport=zmq,address=$FLP_ADDRESS,method=connect,rateLogging=10\""
-  done
-  add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;CALIBDATASPEC_TPCIDC_C\" $CHANNELS_LIST --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+            FLP_ADDRESS="tcp://alicr1-flp-ib${flp}:${TPC_IDC_FLP_PORT}"
+            CHANNELS_LIST+=" --channel-config \"type=pull,name=tpcidc_flp${flp},transport=zmq,address=$FLP_ADDRESS,method=connect,rateLogging=10\""
+        done
+        add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;CALIBDATASPEC_TPCIDC_C\" $CHANNELS_LIST --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
       else
-  add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both input)" "" 0
+        add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both input)" "" 0
       fi
     fi
   elif [[ $AGGREGATOR_TASKS == TPCIDC_A ]]; then
