@@ -31,8 +31,8 @@ int NoiseCalibEPN::init()
     mModuleConfig->print();
   }
 
-  for(int isig=0; isig<NChannels; isig++){
-    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096,-2048.7, 2047.5);
+  for (int isig = 0; isig < NChannels; isig++) {
+    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
   }
 
   // Update reconstruction parameters
@@ -147,7 +147,7 @@ int NoiseCalibEPN::endOfRun()
 int NoiseCalibEPN::saveDebugHistos(const std::string fn)
 {
   int ierr = mData.saveDebugHistos(fn);
-  if(ierr!=0){
+  if (ierr != 0) {
     return ierr;
   }
   TDirectory* cwd = gDirectory;
@@ -157,7 +157,7 @@ int NoiseCalibEPN::saveDebugHistos(const std::string fn)
     return 1;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    auto p = mH[is]->createTH1F(TString::Format("hs%d",is).Data());
+    auto p = mH[is]->createTH1F(TString::Format("hs%d", is).Data());
     p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
     p->Write("", TObject::kOverwrite);
   }
