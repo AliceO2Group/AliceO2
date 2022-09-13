@@ -43,6 +43,7 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
 {
   auto inputcells = ctx.inputs().get<gsl::span<o2::emcal::Cell>>("cells");
   auto intputtriggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecords");
+  LOG(info) << "Received " << inputcells.size() << " cells from " << intputtriggers.size() << " triggers";
 
   updateCalibObjects();
 
@@ -70,6 +71,8 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
     outputtriggers.push_back(nexttrigger);
     currentfirst = outputcells.size();
   }
+
+  LOG(info) << "Timeframe: " << inputcells.size() << " cells read, " << outputcells.size() << " cells kept";
 
   // send recalibrated objects
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputcells);
