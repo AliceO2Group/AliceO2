@@ -34,6 +34,7 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "Framework/AsyncQueue.h"
+#include "Framework/Plugins.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -55,6 +56,7 @@
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <fairmq/ProgOptions.h>
+#include <uv.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -907,6 +909,22 @@ o2::framework::ServiceSpec CommonServices::objectCache()
     .kind = ServiceKind::Serial};
 }
 
+struct LoadableService {
+  std::string name;
+  std::string library;
+};
+
+struct LoadedDSO {
+  std::string library;
+  uv_lib_t handle;
+};
+
+struct LoadedPlugin {
+  std::string name;
+  ServicePlugin* factory;
+};
+
+/// Split a string into a vector of strings using : as a separator.
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
@@ -935,6 +953,58 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
 
+  // Load plugins depending on the environment
+  std::vector<LoadableService> loadableServices = {};
+  std::vector<LoadedDSO> loadedDSOs;
+  std::vector<LoadedPlugin> loadedPlugins;
+  for (auto& loadableService : loadableServices) {
+    auto loadedDSO = std::find_if(loadedDSOs.begin(), loadedDSOs.end(), [&loadableService](auto& dso) {
+      return dso.library == loadableService.library;
+    });
+
+    if (loadedDSO == loadedDSOs.end()) {
+      uv_lib_t handle;
+#ifdef __APPLE__
+      auto libraryName = fmt::format("lib{}.dylib", loadableService.library);
+#else
+      auto libraryName = fmt::format("lib{}.so", loadableService.library);
+#endif
+      auto ret = uv_dlopen(libraryName.c_str(), &handle);
+      if (ret != 0) {
+        LOGP(error, "Could not load library {}", loadableService.library);
+        LOG(error) << uv_dlerror(&handle);
+        continue;
+      }
+      loadedDSOs.push_back({loadableService.library, handle});
+      loadedDSO = loadedDSOs.end() - 1;
+    }
+    int result = 0;
+
+    auto loadedPlugin = std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&loadableService](auto& plugin) {
+      return plugin.name == loadableService.name;
+    });
+
+    if (loadedPlugin == loadedPlugins.end()) {
+      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+      result = uv_dlsym(&loadedDSO->handle, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+      if (result == -1) {
+        LOG(error) << uv_dlerror(&loadedDSO->handle);
+        continue;
+      }
+
+      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+      ServicePlugin* factory = PluginManager::getByName<ServicePlugin>(pluginInstance, loadableService.name.c_str());
+      loadedPlugins.push_back({loadableService.name, factory});
+      loadedPlugin = loadedPlugins.end() - 1;
+    }
+
+    ServiceSpec* spec = loadedPlugin->factory->create();
+    if (!spec) {
+      LOG(error) << "Plugin " << loadableService.name << " could not be created";
+      continue;
+    }
+    specs.push_back(*spec);
+  }
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {
