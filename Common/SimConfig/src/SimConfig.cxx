@@ -66,6 +66,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   // input args is a vector of module strings as obtained from the -m,--modules options
   // of SimConfig
   activeModules = inputargs;
+  #ifdef ENABLE_UPGRADES
   if (activeModules[0] != "all") {
     if (mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
@@ -82,8 +83,10 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       }
     }
   }
+  #endif
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
+    #ifdef ENABLE_UPGRADES
     if (mIsRun5) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
         if (d == DetID::IT3 || d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
@@ -91,6 +94,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
         }
       }
     } else {
+    #endif
       // add passive components manually (make a PassiveDetID for them!)
       activeModules.emplace_back("HALL");
       activeModules.emplace_back("MAG");
@@ -100,10 +104,14 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       activeModules.emplace_back("ABSO");
       activeModules.emplace_back("SHIL");
       for (int d = DetID::First; d <= DetID::Last; ++d) {
+      #ifdef ENABLE_UPGRADES
         if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
+      #else
+        activeModules.emplace_back(DetID::getName(d));
+      #endif
     }
   }
   // now we take out detectors listed as skipped
