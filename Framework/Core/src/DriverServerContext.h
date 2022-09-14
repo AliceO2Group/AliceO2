@@ -39,6 +39,11 @@ struct DriverServerContext {
   std::vector<ServiceMetricHandling>* metricProcessingCallbacks = nullptr;
   DriverInfo* driver = nullptr;
   GuiCallbackContext* gui = nullptr;
+  /// Whether or not this server is associated to
+  /// the DPL driver or one of the devices.
+  /// FIXME: we should probably rename this completely and simply call it "DPLServerContext"
+  ///        or something like that.
+  bool isDriver = false;
 };
 } // namespace o2::framework
 

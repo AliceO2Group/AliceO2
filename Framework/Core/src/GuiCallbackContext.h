@@ -16,6 +16,7 @@
 #include "Framework/DeviceState.h"
 
 #include <functional>
+#include <uv.h>
 
 namespace o2::framework
 {
@@ -27,6 +28,7 @@ struct GuiRenderer {
   uv_timer_t drawTimer;
   WSDPLHandler* handler = nullptr;
   GuiCallbackContext* gui = nullptr;
+  bool guiConnected = false;
 };
 
 struct GuiCallbackContext {
