@@ -173,6 +173,7 @@ framework::DataProcessorSpec getNoiseCalibSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
   char inputa[o2::header::gSizeDataDescriptionString];
   char inputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < NChannels; ih++) {
