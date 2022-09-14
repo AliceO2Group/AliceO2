@@ -80,7 +80,8 @@ class FilteringDeviceDPL
 
   void run(of::ProcessingContext& pc)
   {
-    const auto badChannels = pc.inputs().get<std::vector<ColumnData>*>("mid_bad_channels");
+    // Triggers finalizeCCDB
+    pc.inputs().get<std::vector<ColumnData>*>("mid_bad_channels");
 
     auto data = specs::getData(pc, "mid_filter_in", EventType::Standard);
     auto inROFRecords = specs::getRofs(pc, "mid_filter_in", EventType::Standard);
