@@ -238,8 +238,8 @@ void remoteGuiCallback(uv_timer_s* ctx)
 
   if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
-    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000;
-    *(renderer->gui->frameLatency) = frameLatency / 1000000;
+    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+    *(renderer->gui->frameLatency) = frameLatency / 1000000.f;
     renderer->gui->frameLast = frameStart;
     renderer->gui->lastFrame = draw_data;
   }
