@@ -14,12 +14,33 @@
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   10 December 2021
 #include "MIDTracking/HitMapBuilder.h"
+
+#include <array>
 namespace o2
 {
 namespace mid
 {
 
 HitMapBuilder::HitMapBuilder(const GeometryTransformer& geoTrans) : mMapping(), mHitFinder(geoTrans) {}
+
+void HitMapBuilder::setMaskedChannels(const std::vector<ColumnData>& maskedChannels)
+{
+  mMaskedChannels.clear();
+  std::array<int, 2> nLines{4, 1};
+  for (auto& mask : maskedChannels) {
+    for (int icath = 0; icath < 2; ++icath) {
+      for (int iline = 0; iline < nLines[icath]; ++iline) {
+        auto pat = mask.getPattern(icath, iline);
+        for (int istrip = 0; istrip < detparams::NStripsBP; ++istrip) {
+          if (pat & (1 << istrip)) {
+            auto area = mMapping.stripByLocation(istrip, icath, iline, mask.columnId, mask.deId);
+            mMaskedChannels[mask.deId].emplace_back(area);
+          }
+        }
+      }
+    }
+  }
+}
 
 bool HitMapBuilder::crossCommonElement(const std::vector<int>& fired, const std::vector<int>& nonFired) const
 {
@@ -75,35 +96,55 @@ int HitMapBuilder::getFEEIdMT11(double xp, double yp, uint8_t deId) const
   return -1;
 }
 
+bool HitMapBuilder::matchesMaskedChannel(const Cluster& cl) const
+{
+  auto found = mMaskedChannels.find(cl.deId);
+  if (found == mMaskedChannels.end()) {
+    return false;
+  }
+
+  double nSigmas = 4.;
+
+  for (auto& area : found->second) {
+    if (std::abs(cl.xCoor - area.getCenterX()) < nSigmas * cl.getEX() + area.getHalfSizeX() &&
+        std::abs(cl.yCoor - area.getCenterY()) < nSigmas * cl.getEY() + area.getHalfSizeY()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> clusters) const
 {
   std::vector<int> firedFEEIdMT11, nonFiredFEEIdMT11;
-  bool outsideAcceptance = false;
+  bool badForEff = false;
   for (int ich = 0; ich < 4; ++ich) {
     auto icl = track.getClusterMatchedUnchecked(ich);
     if (icl >= 0) {
       auto& cl = clusters[icl];
       firedFEEIdMT11.emplace_back(getFEEIdMT11(cl.xCoor, cl.yCoor, cl.deId));
-      // auto localPt = mHitFinder.getGeometryTransformer().globalToLocal(cl.deId, cl.xCoor, cl.yCoor, cl.zCoor);
       for (int icath = 0; icath < 2; ++icath) {
         if (cl.isFired(icath)) {
           track.setFiredChamber(ich, icath);
         }
       }
     } else {
-      auto impactPts = mHitFinder.getLocalPositions(track, ich);
+      auto impactPts = mHitFinder.getLocalPositions(track, ich, true);
       for (auto& impactPt : impactPts) {
         auto feeIdMT11 = getFEEIdMT11(impactPt.xCoor, impactPt.yCoor, impactPt.deId);
         if (feeIdMT11 >= 0) {
           nonFiredFEEIdMT11.emplace_back(feeIdMT11);
+          if (matchesMaskedChannel(impactPt)) {
+            badForEff = true;
+          }
         } else {
-          outsideAcceptance = true;
+          badForEff = true;
         }
       }
     }
   }
   track.setFiredFEEId(firedFEEIdMT11.front());
-  int effFlag = outsideAcceptance ? 0 : getEffFlag(firedFEEIdMT11, nonFiredFEEIdMT11);
+  int effFlag = badForEff ? 0 : getEffFlag(firedFEEIdMT11, nonFiredFEEIdMT11);
   track.setEfficiencyFlag(effFlag);
 }
 

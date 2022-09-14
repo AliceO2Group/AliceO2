@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
@@ -43,7 +44,7 @@ namespace mid
 class TrackerDeviceDPL
 {
  public:
-  TrackerDeviceDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mGGCCDBRequest(gr), mIsMC(isMC) {}
+  TrackerDeviceDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, bool checkMasked) : mGGCCDBRequest(gr), mIsMC(isMC), mCheckMasked(checkMasked) {}
   ~TrackerDeviceDPL() = default;
 
   void init(o2::framework::InitContext& ic)
@@ -101,6 +102,12 @@ class TrackerDeviceDPL
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
   {
+    if (mCheckMasked && matcher == of::ConcreteDataMatcher(header::gDataOriginMID, "MASKED_CHANNELS", 0)) {
+      LOG(info) << "Update MID_MASKED_CHANNELS";
+      auto* badChannels = static_cast<std::vector<ColumnData>*>(obj);
+      mHitMapBuilder->setMaskedChannels(*badChannels);
+      return;
+    }
     if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
       return;
     }
@@ -109,6 +116,7 @@ class TrackerDeviceDPL
  private:
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc)
   {
+    // Triggers finalizeCCDB
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     static bool initOnceDone = false;
     if (!initOnceDone) {
@@ -120,10 +128,12 @@ class TrackerDeviceDPL
       }
       mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
     }
+    pc.inputs().get<std::vector<ColumnData>*>("mid_bad_channels_forTracks");
   }
 
   bool mIsMC = false;
   bool mKeepAll = false;
+  bool mCheckMasked = false;
   TrackLabeler mTrackLabeler{};
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<Tracker> mTracker{nullptr};
@@ -134,9 +144,12 @@ class TrackerDeviceDPL
   unsigned int mNROFs{0};                         /// Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool isMC)
+framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked)
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_clusters", "MID", "CLUSTERS"}, of::InputSpec{"mid_clusters_rof", "MID", "CLUSTERSROF"}};
+  std::vector<of::InputSpec> inputSpecs;
+  inputSpecs.emplace_back("mid_clusters", header::gDataOriginMID, "CLUSTERS");
+  inputSpecs.emplace_back("mid_clusters_rof", header::gDataOriginMID, "CLUSTERSROF");
+  inputSpecs.emplace_back("mid_bad_channels_forTracks", header::gDataOriginMID, "MASKED_CHANNELS", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/BadChannels"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
@@ -146,23 +159,23 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC)
                                                               inputSpecs,
                                                               true);
   std::vector<of::OutputSpec> outputSpecs{
-    of::OutputSpec{"MID", "TRACKS"},
-    of::OutputSpec{"MID", "TRACKCLUSTERS"},
-    of::OutputSpec{"MID", "TRACKROFS"},
-    of::OutputSpec{"MID", "TRCLUSROFS"}};
+    of::OutputSpec{header::gDataOriginMID, "TRACKS"},
+    of::OutputSpec{header::gDataOriginMID, "TRACKCLUSTERS"},
+    of::OutputSpec{header::gDataOriginMID, "TRACKROFS"},
+    of::OutputSpec{header::gDataOriginMID, "TRCLUSROFS"}};
 
   if (isMC) {
-    inputSpecs.emplace_back(of::InputSpec{"mid_clusterlabels", "MID", "CLUSTERSLABELS"});
+    inputSpecs.emplace_back(of::InputSpec{"mid_clusterlabels", header::gDataOriginMID, "CLUSTERSLABELS"});
 
-    outputSpecs.emplace_back(of::OutputSpec{"MID", "TRACKLABELS"});
-    outputSpecs.emplace_back(of::OutputSpec{"MID", "TRCLUSLABELS"});
+    outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "TRACKLABELS"});
+    outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "TRCLUSLABELS"});
   }
 
   return of::DataProcessorSpec{
     "MIDTracker",
     {inputSpecs},
     {outputSpecs},
-    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(ggRequest, isMC),
+    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(ggRequest, isMC, checkMasked),
     of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}}}};
 }
 } // namespace mid

@@ -18,9 +18,10 @@
 #define O2_MID_HITMAPBUILDER_H
 
 #include <vector>
-#include <unordered_set>
+#include <unordered_map>
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -52,6 +53,10 @@ class HitMapBuilder
   /// \param clusters gsl::span of associated clusters (in local coordinates)
   void process(std::vector<Track>& tracks, gsl::span<const Cluster> clusters) const;
 
+  /// Sets the masked channels
+  /// \param maskedChannels vector of masked channels
+  void setMaskedChannels(const std::vector<ColumnData>& maskedChannels);
+
  private:
   /// Checks if the track crossed the same element
   /// \param fired Vector of fired elements
@@ -74,8 +79,14 @@ class HitMapBuilder
   /// \return The FEE ID in MT11
   int getFEEIdMT11(double xp, double yp, uint8_t deId) const;
 
-  Mapping mMapping;     ///< Mapping
-  HitFinder mHitFinder; ///< Hit finder
+  /// Cluster matches masked channel
+  /// \param cl Cluster
+  /// \return true if the cluster matches the masked channel
+  bool matchesMaskedChannel(const Cluster& cl) const;
+
+  Mapping mMapping;                                             ///< Mapping
+  HitFinder mHitFinder;                                         ///< Hit finder
+  std::unordered_map<int, std::vector<MpArea>> mMaskedChannels; ///< Masked channels
 };
 } // namespace mid
 } // namespace o2
