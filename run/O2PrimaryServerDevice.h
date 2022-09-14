@@ -195,8 +195,11 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     LOG(info) << "Init Server device ";
 
     // init sim config
-    auto& conf = o2::conf::SimConfig::Instance();
     auto& vm = GetConfig()->GetVarMap();
+    auto& conf = o2::conf::SimConfig::Instance();
+    if (vm.count("isRun5")) {
+      conf.setRun5();
+    }
     conf.resetFromParsedMap(vm);
     // output varmap
     // for (auto& keyvalue : vm) {

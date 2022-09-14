@@ -58,6 +58,7 @@ struct Options {
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
   std::string ccdbhost = "http://alice-ccdb.cern.ch";
+  bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
 };
 
 void print_globalHelp(int argc, char* argv[])
@@ -226,7 +227,7 @@ bool create_GRPs(Options const& opts)
     grp.setTimeEnd(runStart + 3600000);
     grp.setNHBFPerTF(opts.orbitsPerTF);
     std::vector<std::string> modules{};
-    o2::conf::SimConfig::determineActiveModules(opts.readout, std::vector<std::string>(), modules);
+    o2::conf::SimConfig::determineActiveModules(opts.readout, std::vector<std::string>(), modules, opts.isRun5);
     std::vector<std::string> readout{};
     o2::conf::SimConfig::determineReadoutDetectors(modules, std::vector<std::string>(), opts.skipreadout, readout);
     for (auto& detstr : readout) {
@@ -476,6 +477,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("lhcif-CCDB", "take GRPLHCIF directly from CCDB");
     desc.add_options()("print", "print resulting GRPs");
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
+    desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration.");
     if (!subparse(desc, vm, "createGRPs")) {
       return false;
     }

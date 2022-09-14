@@ -59,32 +59,60 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool mIsRun5)
 {
   using o2::detectors::DetID;
 
   // input args is a vector of module strings as obtained from the -m,--modules options
   // of SimConfig
   activeModules = inputargs;
+#ifdef ENABLE_UPGRADES
+  if (activeModules[0] != "all") {
+    if (mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT") {
+          LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 5 module!";
+        }
+      }
+    }
+    if (!mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
+        if (activeModules[i] == "IT3" || activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
+          LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 3 module!";
+        }
+      }
+    }
+  }
+#endif
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
-    for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
-        activeModules.emplace_back(DetID::getName(d));
+    if (mIsRun5) {
+      for (int d = DetID::First; d <= DetID::Last; ++d) {
+        if (d == DetID::IT3 || d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
+          activeModules.emplace_back(DetID::getName(d));
+        }
+      }
+    } else {
+#endif
+      // add passive components manually (make a PassiveDetID for them!)
+      activeModules.emplace_back("HALL");
+      activeModules.emplace_back("MAG");
+      activeModules.emplace_back("DIPO");
+      activeModules.emplace_back("COMP");
+      activeModules.emplace_back("PIPE");
+      activeModules.emplace_back("ABSO");
+      activeModules.emplace_back("SHIL");
+      for (int d = DetID::First; d <= DetID::Last; ++d) {
+#ifdef ENABLE_UPGRADES
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
+          activeModules.emplace_back(DetID::getName(d));
+        }
       }
 #else
       activeModules.emplace_back(DetID::getName(d));
 #endif
     }
-    // add passive components manually (make a PassiveDetID for them!)
-    activeModules.emplace_back("HALL");
-    activeModules.emplace_back("MAG");
-    activeModules.emplace_back("DIPO");
-    activeModules.emplace_back("COMP");
-    activeModules.emplace_back("PIPE");
-    activeModules.emplace_back("ABSO");
-    activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
   for (auto& s : skippedModules) {
@@ -150,7 +178,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
 
   // get final set of active Modules
-  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules);
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsRun5);
   const auto& activeModules = mConfigData.mActiveModules;
 
   // get final set of detectors which are readout
