@@ -1128,7 +1128,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
     }
     if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
+      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
     }
   };
 
