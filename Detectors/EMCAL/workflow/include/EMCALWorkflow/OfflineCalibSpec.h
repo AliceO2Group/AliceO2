@@ -36,7 +36,8 @@ class OfflineCalibSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param makeCellIDTimeEnergy If true the THnSparseF of cell ID, time, and energy is made
-  OfflineCalibSpec(bool makeCellIDTimeEnergy) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy){};
+  /// \param rejectCalibTriggers if true, only events which have the o2::trigger::PhT flag will be taken into account
+  OfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy), mRejectCalibTriggers(rejectCalibTriggers){};
 
   /// \brief Destructor
   ~OfflineCalibSpec() override = default;
@@ -61,12 +62,13 @@ class OfflineCalibSpec : public framework::Task
   std::unique_ptr<TH1> mNevents;               ///< Number of events
   std::unique_ptr<THnSparseF> mCellTimeEnergy; ///< ID, time, energy
   bool mMakeCellIDTimeEnergy = true;           ///< Switch whether or not to make a THnSparseF of cell ID, time, and energy
+  bool mRejectCalibTriggers = true;            ///< Switch to select if calib triggerred events should be rejected
 };
 
 /// \brief Creating offline calib spec
 /// \ingroup EMCALworkflow
 ///
-o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy);
+o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers);
 
 } // namespace emcal
 
