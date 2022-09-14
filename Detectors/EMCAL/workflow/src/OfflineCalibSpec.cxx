@@ -18,6 +18,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
+#include "CommonConstants/Triggers.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/OfflineCalibSpec.h"
@@ -52,6 +53,16 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
         LOG(debug) << "[EMCALOfflineCalib - run] Trigger does not contain cells, skipping ...";
         continue;
       }
+
+      // reject calibration triggers (EMCAL LED events etc.)
+      if (mRejectCalibTriggers) {
+        LOG(debug) << "Trigger: " << trg.getTriggerBits() << "   o2::trigger::Cal " << o2::trigger::Cal;
+        if (trg.getTriggerBits() & o2::trigger::Cal) {
+          LOG(debug) << "skipping triggered events due to wrong trigger (no Physics trigger)";
+          continue;
+        }
+      }
+
       LOG(debug) << "[EMCALOfflineCalib - run] Trigger has " << trg.getNumberOfObjects() << " cells  ..." << std::endl;
       gsl::span<const o2::emcal::Cell> objectsTrigger(cells.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
       for (const auto& c : objectsTrigger) {
@@ -85,11 +96,11 @@ void OfflineCalibSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   outputFile->Close();
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy)
+o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers)
 {
   return o2::framework::DataProcessorSpec{"EMCALOfflineCalib",
                                           {{"cells", o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe},
                                            {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}},
                                           {},
-                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy)};
+                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers)};
 }

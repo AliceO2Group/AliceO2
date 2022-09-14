@@ -22,6 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{{"makeCellIDTimeEnergy", VariantType::Bool, true, {"list whether or not to make the cell ID, time, energy THnSparse"}},
+                                       {"no-rejectCalibTrigg", VariantType::Bool, false, {"if set to true, all events, including calibration triggered events, will be accepted"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
@@ -35,7 +36,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   bool makeCellIDTimeEnergy = cfgc.options().get<bool>("makeCellIDTimeEnergy");
+  bool rejectCalibTrigg = !cfgc.options().get<bool>("no-rejectCalibTrigg");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy));
+  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg));
   return wf;
 }
