@@ -955,6 +955,56 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 
   // Load plugins depending on the environment
   std::vector<LoadableService> loadableServices = {};
+  char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
+  enum struct ParserState : int {
+    IN_LIBRARY,
+    IN_NAME,
+    IN_END,
+    IN_ERROR,
+  };
+  // String to define the services to load is:
+  //
+  // library1:name1,library2:name2,...
+  if (loadableServicesEnv) {
+    char* cur = loadableServicesEnv;
+    char* next = cur;
+    ParserState state = ParserState::IN_LIBRARY;
+    std::string_view library;
+    std::string_view name;
+    while (cur && *cur != '\0') {
+      ParserState previousState = state;
+      state = ParserState::IN_ERROR;
+      switch (previousState) {
+        case ParserState::IN_LIBRARY:
+          next = strchr(cur, ':');
+          if (next != nullptr) {
+            state = ParserState::IN_NAME;
+            library = std::string_view(cur, next - cur);
+          }
+          break;
+        case ParserState::IN_NAME:
+          next = strchr(cur, ',');
+          if (next == nullptr) {
+            state = ParserState::IN_END;
+            name = std::string_view(cur, strlen(cur));
+          } else {
+            name = std::string_view(cur, next - cur);
+            state = ParserState::IN_LIBRARY;
+          }
+          loadableServices.push_back({std::string(name), std::string(library)});
+          break;
+        case ParserState::IN_END:
+          break;
+        case ParserState::IN_ERROR:
+          LOG(error) << "Error while parsing DPL_LOAD_SERVICES";
+          break;
+      }
+      if (!next) {
+        break;
+      }
+      cur = next + 1;
+    };
+  }
   std::vector<LoadedDSO> loadedDSOs;
   std::vector<LoadedPlugin> loadedPlugins;
   for (auto& loadableService : loadableServices) {
@@ -994,15 +1044,23 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 
       DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
       ServicePlugin* factory = PluginManager::getByName<ServicePlugin>(pluginInstance, loadableService.name.c_str());
+      if (factory == nullptr) {
+        LOGP(error, "Could not find service {} in library {}", loadableService.name, loadableService.library);
+        continue;
+      }
+
       loadedPlugins.push_back({loadableService.name, factory});
-      loadedPlugin = loadedPlugins.end() - 1;
+      loadedPlugin = loadedPlugins.begin() + loadedPlugins.size() - 1;
     }
+    assert(loadedPlugin != loadedPlugins.end());
+    assert(loadedPlugin->factory != nullptr);
 
     ServiceSpec* spec = loadedPlugin->factory->create();
     if (!spec) {
       LOG(error) << "Plugin " << loadableService.name << " could not be created";
       continue;
     }
+    LOGP(debug, "Loading service {} from {}", loadableService.name, loadableService.library);
     specs.push_back(*spec);
   }
   // I should make it optional depending wether the GUI is there or not...
