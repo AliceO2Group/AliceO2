@@ -59,7 +59,10 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   mOutputTriggers.clear();
   auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");
   auto triggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggers");
-  auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>*>("digitsmctr");
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> truthcont = nullptr;
+  if (mPropagateMC) {
+    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>*>("digitsmctr");
+  }
 
   LOG(debug) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
   int currentstart = mOutputCells.size(), ncellsTrigger = 0;
@@ -178,45 +181,81 @@ std::vector<o2::emcal::SRUBunchContainer> CellConverterSpec::digitsToBunches(gsl
   std::vector<gsl::span<const o2::emcal::MCLabel>>* bunchLabels;
   int lasttower = -1;
   // for (auto& dig : digits) {
-  for (const auto& [dig, labels] : boost::combine(digits, mcLabels)) {
-    auto tower = dig.getTower();
-    if (tower != lasttower) {
-      lasttower = tower;
-      if (tower > 20000) {
-        std::cout << "Wrong cell ID " << tower << std::endl;
-      }
 
-      auto onlineindices = mGeometry->getOnlineID(tower);
-      int sruID = std::get<0>(onlineindices);
-
-      auto towerdata = sruDigitContainer[sruID].mChannelsDigits.find(tower);
-      if (towerdata == sruDigitContainer[sruID].mChannelsDigits.end()) {
-        sruDigitContainer[sruID].mChannelsDigits[tower] = {dig.getType(), std::vector<const o2::emcal::Digit*>(o2::emcal::constants::EMCAL_MAXTIMEBINS), mPropagateMC ? std::vector<gsl::span<const o2::emcal::MCLabel>>(o2::emcal::constants::EMCAL_MAXTIMEBINS) : std::vector<gsl::span<const o2::emcal::MCLabel>>()};
-        bunchDigits = &(sruDigitContainer[sruID].mChannelsDigits[tower].mChannelDigits);
-        memset(bunchDigits->data(), 0, sizeof(o2::emcal::Digit*) * o2::emcal::constants::EMCAL_MAXTIMEBINS);
-        if (mPropagateMC) {
-          bunchLabels = &(sruDigitContainer[sruID].mChannelsDigits[tower].mChannelLabels);
-          memset(bunchLabels->data(), 0, sizeof(gsl::span<const o2::emcal::MCLabel>) * o2::emcal::constants::EMCAL_MAXTIMEBINS);
+  if (!mPropagateMC) {
+    for (const auto& dig : digits) {
+      auto tower = dig.getTower();
+      if (tower != lasttower) {
+        lasttower = tower;
+        if (tower > 20000) {
+          std::cout << "Wrong cell ID " << tower << std::endl;
         }
-      } else {
-        bunchDigits = &(towerdata->second.mChannelDigits);
-        if (mPropagateMC) {
-          bunchLabels = &(towerdata->second.mChannelLabels);
+
+        auto onlineindices = mGeometry->getOnlineID(tower);
+        int sruID = std::get<0>(onlineindices);
+
+        auto towerdata = sruDigitContainer[sruID].mChannelsDigits.find(tower);
+        if (towerdata == sruDigitContainer[sruID].mChannelsDigits.end()) {
+          sruDigitContainer[sruID].mChannelsDigits[tower] = {dig.getType(), std::vector<const o2::emcal::Digit*>(o2::emcal::constants::EMCAL_MAXTIMEBINS), std::vector<gsl::span<const o2::emcal::MCLabel>>()};
+          bunchDigits = &(sruDigitContainer[sruID].mChannelsDigits[tower].mChannelDigits);
+          memset(bunchDigits->data(), 0, sizeof(o2::emcal::Digit*) * o2::emcal::constants::EMCAL_MAXTIMEBINS);
+        } else {
+          bunchDigits = &(towerdata->second.mChannelDigits);
         }
       }
-    }
 
-    // Get time sample of the digit:
-    // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
-    // by the length of the time sample
-    auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
-    if (timesample >= o2::emcal::constants::EMCAL_MAXTIMEBINS) {
-      LOG(error) << "Digit time sample " << timesample << " outside range [0," << o2::emcal::constants::EMCAL_MAXTIMEBINS << "]";
-      continue;
+      // Get time sample of the digit:
+      // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
+      // by the length of the time sample
+      auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
+      if (timesample >= o2::emcal::constants::EMCAL_MAXTIMEBINS) {
+        LOG(error) << "Digit time sample " << timesample << " outside range [0," << o2::emcal::constants::EMCAL_MAXTIMEBINS << "]";
+        continue;
+      }
+      (*bunchDigits)[timesample] = &dig;
     }
-    (*bunchDigits)[timesample] = &dig;
-    if (mPropagateMC) {
-      (*bunchLabels)[timesample] = labels;
+  } else {
+
+    for (const auto& [dig, labels] : boost::combine(digits, mcLabels)) {
+      auto tower = dig.getTower();
+      if (tower != lasttower) {
+        lasttower = tower;
+        if (tower > 20000) {
+          std::cout << "Wrong cell ID " << tower << std::endl;
+        }
+
+        auto onlineindices = mGeometry->getOnlineID(tower);
+        int sruID = std::get<0>(onlineindices);
+
+        auto towerdata = sruDigitContainer[sruID].mChannelsDigits.find(tower);
+        if (towerdata == sruDigitContainer[sruID].mChannelsDigits.end()) {
+          sruDigitContainer[sruID].mChannelsDigits[tower] = {dig.getType(), std::vector<const o2::emcal::Digit*>(o2::emcal::constants::EMCAL_MAXTIMEBINS), mPropagateMC ? std::vector<gsl::span<const o2::emcal::MCLabel>>(o2::emcal::constants::EMCAL_MAXTIMEBINS) : std::vector<gsl::span<const o2::emcal::MCLabel>>()};
+          bunchDigits = &(sruDigitContainer[sruID].mChannelsDigits[tower].mChannelDigits);
+          memset(bunchDigits->data(), 0, sizeof(o2::emcal::Digit*) * o2::emcal::constants::EMCAL_MAXTIMEBINS);
+          if (mPropagateMC) {
+            bunchLabels = &(sruDigitContainer[sruID].mChannelsDigits[tower].mChannelLabels);
+            memset(bunchLabels->data(), 0, sizeof(gsl::span<const o2::emcal::MCLabel>) * o2::emcal::constants::EMCAL_MAXTIMEBINS);
+          }
+        } else {
+          bunchDigits = &(towerdata->second.mChannelDigits);
+          if (mPropagateMC) {
+            bunchLabels = &(towerdata->second.mChannelLabels);
+          }
+        }
+      }
+
+      // Get time sample of the digit:
+      // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
+      // by the length of the time sample
+      auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
+      if (timesample >= o2::emcal::constants::EMCAL_MAXTIMEBINS) {
+        LOG(error) << "Digit time sample " << timesample << " outside range [0," << o2::emcal::constants::EMCAL_MAXTIMEBINS << "]";
+        continue;
+      }
+      (*bunchDigits)[timesample] = &dig;
+      if (mPropagateMC) {
+        (*bunchLabels)[timesample] = labels;
+      }
     }
   }
 
@@ -278,7 +317,10 @@ std::vector<o2::emcal::AltroBunch> CellConverterSpec::findBunches(const std::vec
   int itime;
   for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
     auto dig = channelDigits[itime];
-    auto labels = mcLabels[itime];
+    gsl::span<const o2::emcal::MCLabel> labels;
+    if (mPropagateMC) {
+      labels = mcLabels[itime];
+    }
     if (!dig) {
       if (bunchStarted) {
         // we have a bunch which is started and needs to be closed
