@@ -251,17 +251,21 @@ void Trap2CRU::readTrapData()
     // filename structure of trd_cru_[CRU#]_[upper/lower].raw
     auto flpid = trdHWMap[mCruID].flpid;
     auto cruhwid = trdHWMap[mCruID].cruHWID;
-    if (mFilePer == "all") { // single file for all links
+    if (mFilePer == "all") {
+      // single file for all links
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, outSuffix);
     } else if (mFilePer == "sm") {
+      // one file per supermodule
       int sm = link / 4;
       std::stringstream ss;
       ss << std::setw(2) << std::setfill('0') << sm;
       std::string supermodule = ss.str();
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_sm_", supermodule, outSuffix);
-    } else if (mFilePer == "cru") {
+    } else if (mFilePer == "fullcru") {
+      // one file per CRU (both end points combined)
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), outSuffix);
-    } else if (mFilePer == "halfcru") {
+    } else if (mFilePer == "cru") {
+      // one file per CRU end point
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), "_", std::to_string(mEndPointID), outSuffix);
     } else {
       throw std::runtime_error("invalid option provided for file grouping");
