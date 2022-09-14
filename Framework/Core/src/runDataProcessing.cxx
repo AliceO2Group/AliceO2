@@ -51,13 +51,13 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
 #include "Framework/WorkflowSpecNode.h"
+#include "Framework/GuiCallbackContext.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
-#include "GuiCallbackContext.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -1266,13 +1266,17 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
   };
 
+  // We initialise this in the driver, because different drivers might have
+  // different versions of the service
+  ServiceRegistry serviceRegistry;
+
   if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
     if (debugGUI) {
       if (driverInfo.batch == false) {
-        window = debugGUI->initGUI("O2 Framework debug GUI");
+        window = debugGUI->initGUI("O2 Framework debug GUI", serviceRegistry);
       } else {
-        window = debugGUI->initGUI(nullptr);
+        window = debugGUI->initGUI(nullptr, serviceRegistry);
       }
     }
   } else if (getenv("DPL_DEVICE_REMOTE_GUI") && !frameworkId.empty()) {
@@ -1284,7 +1288,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     // FIXME: maybe this is not what we want, but it should
     //        be ok for now.
     if (debugGUI) {
-      window = debugGUI->initGUI(nullptr);
+      window = debugGUI->initGUI(nullptr, serviceRegistry);
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
@@ -1308,9 +1312,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     uv_timer_init(loop, gui_timer);
   }
 
-  // We initialise this in the driver, because different drivers might have
-  // different versions of the service
-  ServiceRegistry serviceRegistry;
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
