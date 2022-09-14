@@ -185,7 +185,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TRD
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
-    add_W o2-calibration-trd-vdrift-exb ""
+    add_W o2-calibration-trd-workflow "--vDriftAndExB"
   fi
 fi
 

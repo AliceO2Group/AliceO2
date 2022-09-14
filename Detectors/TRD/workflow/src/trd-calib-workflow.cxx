@@ -11,7 +11,9 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
+#include "TRDWorkflow/NoiseCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -21,6 +23,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
+    {"vDriftAndExB", o2::framework::VariantType::Bool, false, {"enable vDrift and ExB calibration"}},
+    {"noise", o2::framework::VariantType::Bool, false, {"enable noise and pad status calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -33,10 +37,23 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto enableRootInp = configcontext.options().get<bool>("enable-root-input");
+
   WorkflowSpec specs;
-  if (enableRootInp) {
-    specs.emplace_back(o2::trd::getTRDCalibReaderSpec());
+
+  if (configcontext.options().get<bool>("vDriftAndExB")) {
+    if (enableRootInp) {
+      specs.emplace_back(o2::trd::getTRDCalibReaderSpec());
+    }
+    specs.emplace_back(getTRDVdAndExBCalibSpec());
   }
-  specs.emplace_back(getTRDVdAndExBCalibSpec());
+
+  if (configcontext.options().get<bool>("noise")) {
+    if (enableRootInp) {
+      specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
+      specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
+    }
+    // specs.emplace_back(o2::trd::getTRDNoiseCalibAggregatorSpec());
+  }
+
   return specs;
 }

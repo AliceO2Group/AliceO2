@@ -9,12 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file CalibratorNoise.cxx
+/// \brief TRD pad calibration
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "TRDCalibration/CalibratorNoise.h"
 
-//#pragma link C++ class o2::trd::TRDDPLDigitizerTask + ;
-#pragma link C++ class gsl::span < uint32_t > +;
-#endif
+namespace o2::trd
+{
+
+using Slot = o2::calibration::TimeSlot<PadAdcInfo>;
+
+Slot& CalibratorNoise::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
+{
+  auto& container = getSlots();
+  auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);
+  slot.setContainer(std::make_unique<PadAdcInfo>());
+  return slot;
+}
+
+} // namespace o2::trd
