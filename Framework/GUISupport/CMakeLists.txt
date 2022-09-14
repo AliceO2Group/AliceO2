@@ -20,6 +20,7 @@ o2_add_library(FrameworkGUISupport
                        src/PaletteHelpers.cxx
                        src/SpyService.cxx
                        src/SpyServiceHelpers.cxx
+                       src/LibUVInspector.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::DebugGUI)
 

@@ -24,6 +24,7 @@
 #include "SpyService.h"
 #include "SpyServiceHelpers.h"
 #include <fairmq/Channel.h>
+#include "LibUVInspector.h"
 
 using namespace o2::framework;
 
@@ -105,4 +106,5 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
 DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(ImGUIDebugGUI, DebugGUIImpl);
 DEFINE_DPL_PLUGIN_INSTANCE(SpyGUIPlugin, CustomService);
+DEFINE_DPL_PLUGIN_INSTANCE(LibUVInspectorGUIPlugin, CustomService);
 DEFINE_DPL_PLUGINS_END
