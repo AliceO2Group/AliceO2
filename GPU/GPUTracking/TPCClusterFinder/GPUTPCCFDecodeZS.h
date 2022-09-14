@@ -67,7 +67,7 @@ class GPUTPCCFDecodeZSLink : public GPUKernelTemplate
 {
  public:
   // constants for decoding
-  static inline constexpr int DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V3;
+  static inline constexpr int DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
   static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
   static inline constexpr unsigned int DECODE_MASK = (1 << DECODE_BITS) - 1;
 

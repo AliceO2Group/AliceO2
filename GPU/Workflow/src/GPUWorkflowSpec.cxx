@@ -412,7 +412,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
       int rawcru = rdh_utils::getCRU(ptr);
       int rawendpoint = rdh_utils::getEndPoint(ptr);
-      if ((rdh_utils::getLink(ptr) == rdh_utils::UserLogicLinkID || rdh_utils::getLink(ptr) == rdh_utils::ILBZSLinkID) && o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
+      if ((rdh_utils::getLink(ptr) == rdh_utils::UserLogicLinkID || rdh_utils::getLink(ptr) == rdh_utils::ILBZSLinkID || rdh_utils::getLink(ptr) == rdh_utils::DLBZSLinkID) && o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
         tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
         tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
       }
