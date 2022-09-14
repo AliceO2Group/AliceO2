@@ -105,10 +105,8 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
   // Send debug histograms and intermediate calibration data
   o2::framework::Output output("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
-  char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "TDC_1DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "TDC_1DH", ih, Lifetime::Timeframe);
     pc.outputs().snapshot(output, mWorker.mTDC[ih]->getBase());
   }
 }

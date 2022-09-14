@@ -52,6 +52,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_IDC = $CALIB_TPC_IDC" 1>&2
   echo "CALIB_TPC_IDC_BOTH = $CALIB_TPC_IDC_BOTH" 1>&2
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
+  echo "CALIB_ZDC_TDC = $CALIB_ZDC_TDC" 1>&2
 fi
 
 # beamtype dependent settings
@@ -234,6 +235,14 @@ if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # CPV
   if [[ $CALIB_CPV_GAIN == 1 ]]; then
     add_W o2-calibration-cpv-calib-workflow "--gains"
+  fi
+fi
+
+# Forward detectors
+if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
+  # ZDC
+  if [[ $CALIB_ZDC_TDC == 1 ]]; then
+    add_W o2-zdc-tdccalib-workflow
   fi
 fi
 
