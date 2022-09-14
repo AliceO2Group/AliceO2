@@ -23,6 +23,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -101,13 +102,14 @@ void TDCCalibSpec::run(ProcessingContext& pc)
     mTimer.Reset();
     mTimer.Start(false);
   }
-
+  std::vector<InputSpec> filterHisto = {{"tdc_1dh", ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Timeframe}};
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+    o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(inputRef));
+    mWorker.add(dh->subSpecification, histoView);
+  }
   auto data = pc.inputs().get<TDCCalibData>("tdccalibdata");
   mWorker.process(data);
-  for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("tdc_1dh{}", ih).data()));
-    mWorker.add(ih, histoView);
-  }
 }
 
 void TDCCalibSpec::endOfStream(EndOfStreamContext& ec)
@@ -147,14 +149,7 @@ framework::DataProcessorSpec getTDCCalibSpec()
   inputs.emplace_back("tdccalibconfig", "ZDC", "TDCCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalibConfig.data())));
   inputs.emplace_back("tdccalib", "ZDC", "TDCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalib.data())));
   inputs.emplace_back("tdccalibdata", "ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
-
-  char outputa[o2::header::gSizeDataDescriptionString];
-  char outputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    snprintf(outputa, o2::header::gSizeDataDescriptionString, "tdc_1dh%d", ih);
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "TDC_1DH%d", ih);
-    inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("tdc_1dh", ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_TDCcalib"}, Lifetime::Sporadic);
