@@ -109,6 +109,9 @@ using ServiceTopologyAdjust = void (*)(WorkflowSpecNode&, ConfigContext const&);
 /// Callback invoked whenever we get updated about the oldest possible timeslice we can process
 using ServiceDomainInfoUpdated = void (*)(ServiceRegistry&, size_t tileslice, ChannelIndex channel);
 
+/// Callback invoked whenever we are about sending a message
+using ServicePreSendingMessages = void (*)(ServiceRegistry&, fair::mq::Parts&, ChannelIndex channel);
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -176,6 +179,9 @@ struct ServiceSpec {
 
   /// Callback invoked when we get updated about the oldest possible timeslice we can process
   ServiceDomainInfoUpdated domainInfoUpdated = nullptr;
+
+  /// Callback invoked when we are about sending a message
+  ServicePreSendingMessages preSendingMessages = nullptr;
 
   /// Active flag. If set to false, the service will not be used by default.
   bool active = true;
@@ -254,6 +260,12 @@ struct ServiceExitHandle {
 struct ServiceDomainInfoHandle {
   ServiceSpec const& spec;
   ServiceDomainInfoUpdated callback;
+  void* service;
+};
+
+struct ServicePreSendingMessagesHandle {
+  ServiceSpec const& spec;
+  ServicePreSendingMessages callback;
   void* service;
 };
 
