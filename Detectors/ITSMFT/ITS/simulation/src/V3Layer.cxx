@@ -269,9 +269,6 @@ V3Layer::V3Layer()
     mIsTurbo(0),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy),
-    mAddGammaConv(kFALSE),
-    mGammaConvDiam(0),
-    mGammaConvXPos(0),
     mIBModuleZLength(0),
     mOBModuleZLength(0)
 {
@@ -296,9 +293,6 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mIsTurbo(turbo),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy),
-    mAddGammaConv(kFALSE),
-    mGammaConvDiam(0),
-    mGammaConvXPos(0),
     mIBModuleZLength(0),
     mOBModuleZLength(0)
 {
@@ -1914,11 +1908,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   TGeoTubeSeg* fleectub =
     new TGeoTubeSeg("FleecTube", rCoolMax + yGraph, rCoolMax + yCFleece + yGraph, zlen, 180., 360.);
 
-  TGeoTube* gammaConvRod;
-  if (mAddGammaConv) {
-    gammaConvRod = new TGeoTube("GammaConver", 0, 0.5 * mGammaConvDiam, zlen - sOBCPConnHollowZLen);
-  }
-
   //  TGeoBBox* flex1_5cm = new TGeoBBox("Flex1MV_5cm", xHalfSt, yFlex1 / 2, flexOverlap / 2);
   //  TGeoBBox* flex2_5cm = new TGeoBBox("Flex2MV_5cm", xHalfSt, yFlex2 / 2, flexOverlap / 2);
 
@@ -1930,9 +1919,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   // The half stave container (an XTru to avoid overlaps between neightbours)
   xHalfSt = xmod; // add the cross cables when done!
   yHalfSt = ypowbus + ymod + coldPlate->GetDY() + 2 * fleeccent->GetDY() + graphlat->GetDY() + fleeclat->GetDY();
-  if (mAddGammaConv) {
-    yHalfSt += mGammaConvDiam;
-  }
 
   xtru[0] = xHalfSt;
   ytru[0] = 0;
@@ -1942,9 +1928,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   ytru[2] = ytru[1];
   xtru[3] = xtru[2];
   ytru[3] = ytru[2] - (coolTube->GetRmax() + fleectub->GetRmax());
-  if (mAddGammaConv) {
-    ytru[3] -= mGammaConvDiam;
-  }
   xtru[4] = sOBCoolTubeXDist / 2 - fleectub->GetRmax();
   ytru[4] = ytru[3];
   xtru[5] = xtru[4];
@@ -1968,9 +1951,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     new TGeoBBox("connCsideOB", sOBCPConnectorXWidth / 2, sOBCPConnBlockYHei / 2, sOBCPConnBlockZLen / 2);
 
   // The StaveStruct container, a Composite Shape
-  if (mAddGammaConv) {
-    yHalfSt -= mGammaConvDiam;
-  }
   ypos = 2 * yHalfSt + connAside->GetDY() - sOBCPConnHollowYHei;
   zpos = zlen + connAside->GetDZ() - sOBCPConnHollowZLen;
   snprintf(volname, nameLen, "transAsideOB%d", mLayerNumber);
@@ -2059,14 +2039,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   fleectubVol->SetLineColor(kViolet);
   fleectubVol->SetFillColor(fleectubVol->GetLineColor());
   fleectubVol->SetFillStyle(4000); // 0% transparent
-
-  TGeoVolume* gammaConvRodVol;
-  if (mAddGammaConv) {
-    gammaConvRodVol = new TGeoVolume("GammaConversionRod", gammaConvRod, medTungsten);
-    gammaConvRodVol->SetLineColor(kBlack);
-    gammaConvRodVol->SetFillColor(gammaConvRodVol->GetLineColor());
-    gammaConvRodVol->SetFillStyle(4000); // 0% transparent
-  }
 
   snprintf(volname, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume* halfStaveVol = new TGeoVolume(volname, halfStave, medAir);
@@ -2166,13 +2138,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     xpos = fleecmid->GetDX() - fleecvert->GetDX();
     halfStaveVol->AddNode(fleecvertVol, 3, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(fleecvertVol, 4, new TGeoTranslation(xpos, ypos1, 0));
-  }
-
-  // Add the Gamma Converter Rod (only on Layer 3) - M.S. 17 Oct 2016
-  if (mAddGammaConv) {
-    xpos = mGammaConvXPos;
-    ypos1 = ypos - (fleeccent->GetDY() + 2 * graphlat->GetDY() + 2 * fleeclat->GetDY() + gammaConvRod->GetRmax());
-    halfStaveVol->AddNode(gammaConvRodVol, 1, new TGeoTranslation(xpos, ypos1, 0));
   }
 
   // Add the end-stave connectors
@@ -3653,51 +3618,6 @@ TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* 
   }
 
   return soldmaskVol;
-}
-
-Double_t V3Layer::getGammaConversionRodDiam()
-{
-  //
-  // Gets the diameter of the gamma conversion rods, if defined
-  //
-  //
-  // Input:
-  //
-  // Output:
-  //
-  // Return:
-  //         the diameter of the gamma conversion rods for this layer
-  //
-  // Created:      26 Oct 2016  Mario Sitta
-  //
-
-  if (!mAddGammaConv) {
-    LOG(warning) << "Gamma Conversion rods not defined for this layer";
-  }
-  return mGammaConvDiam;
-}
-
-Double_t V3Layer::getGammaConversionRodXPos()
-{
-  //
-  // Gets the X position of the gamma conversion rods, if defined
-  //
-  //
-  // Input:
-  //
-  // Output:
-  //
-  // Return:
-  //         the X position of the gamma conversion rods for this layer
-  //         in the Half Stave reference system
-  //
-  // Created:      26 Oct 2016  Mario Sitta
-  //
-
-  if (!mAddGammaConv) {
-    LOG(warning) << "Gamma Conversion rods not defined for this layer";
-  }
-  return mGammaConvXPos;
 }
 
 Double_t V3Layer::radiusOmTurboContainer()
