@@ -441,6 +441,12 @@ void Detector::createMaterials()
   Float_t wRohac[4] = {9., 13., 1., 2.};
   Float_t dRohac = 0.05;
 
+  // Brass CuZn39Pb3 (Cu Zn Pb)
+  Float_t aBrass[3] = {63.55, 65.41, 207.2};
+  Float_t zBrass[3] = {29., 30., 82.};
+  Float_t wBrass[3] = {0.58, 0.39, 0.03};
+  Float_t dBrass = 8.46;
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
@@ -545,6 +551,14 @@ void Detector::createMaterials()
   // Tungsten (for gamma converter rods)
   o2::base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
   o2::base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Brass CuZn39Pb3
+  o2::base::Detector::Mixture(34, "BRASS$", aBrass, zBrass, dBrass, 3, wBrass);
+  o2::base::Detector::Medium(34, "BRASS$", 34, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
+
+  // Titanium
+  o2::base::Detector::Material(35, "TITANIUM$", 47.867, 22, 4.506, 999, 999);
+  o2::base::Detector::Medium(35, "TITANIUM$", 35, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -892,6 +906,8 @@ void Detector::constructDetectorGeometry()
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
+
+  mServicesGeometry->createOBGammaConvWire(vITSV);
 
   // Finally create and place the cage
   V3Cage* cagePtr = new V3Cage();

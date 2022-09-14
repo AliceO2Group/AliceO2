@@ -97,6 +97,11 @@ class V3Services : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   void createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Outer Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
  private:
   /// Creates a single Inner Barrel End Wheel on Side A
   /// \param iLay  the layer number
@@ -171,6 +176,11 @@ class V3Services : public V11Geometry
   /// \param mother  the volume containing the created wheel
   /// \param mgr  The GeoManager (used only to get the proper material)
   void obCYSS11(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
   // Parameters
   static constexpr Int_t sNumberInnerLayers = 3; ///< Number of inner layers in ITSU
