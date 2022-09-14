@@ -18,7 +18,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ServiceSpec.h"
-#include "GuiCallbackContext.h"
+#include "Framework/GuiCallbackContext.h"
 
 #include <uv.h>
 #include <vector>

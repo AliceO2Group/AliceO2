@@ -112,6 +112,11 @@ using ServiceDomainInfoUpdated = void (*)(ServiceRegistry&, size_t tileslice, Ch
 /// Callback invoked whenever we are about sending a message
 using ServicePreSendingMessages = void (*)(ServiceRegistry&, fair::mq::Parts&, ChannelIndex channel);
 
+/// Callback invoked right after the main gui is drawn
+/// this can be used to draw additional gui elements,
+/// which are service specific
+using ServicePostRenderGUI = void (*)(ServiceRegistry&);
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -182,6 +187,9 @@ struct ServiceSpec {
 
   /// Callback invoked when we are about sending a message
   ServicePreSendingMessages preSendingMessages = nullptr;
+
+  /// Callback invoked after the main GUI has been drawn
+  ServicePostRenderGUI postRenderGUI = nullptr;
 
   /// Active flag. If set to false, the service will not be used by default.
   bool active = true;
@@ -266,6 +274,12 @@ struct ServiceDomainInfoHandle {
 struct ServicePreSendingMessagesHandle {
   ServiceSpec const& spec;
   ServicePreSendingMessages callback;
+  void* service;
+};
+
+struct ServicePostRenderGUIHandle {
+  ServiceSpec const& spec;
+  ServicePostRenderGUI callback;
   void* service;
 };
 

@@ -143,6 +143,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.preSendingMessages) {
     mPreSendingMessagesHandles.push_back(ServicePreSendingMessagesHandle{spec, spec.preSendingMessages, service});
   }
+  if (spec.postRenderGUI) {
+    mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
+  }
 }
 
 /// Invoke callbacks to be executed before every process method invokation
@@ -248,6 +251,13 @@ void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fai
 {
   for (auto& handle : mPreSendingMessagesHandles) {
     handle.callback(*this, parts, channelIndex);
+  }
+}
+
+void ServiceRegistry::postRenderGUICallbacks()
+{
+  for (auto& handle : mPostRenderGUIHandles) {
+    handle.callback(*this);
   }
 }
 
