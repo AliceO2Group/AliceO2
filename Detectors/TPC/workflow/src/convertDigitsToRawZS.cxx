@@ -138,12 +138,12 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   writer.useRDHVersion(rdhV);
   writer.setAddSeparateHBFStopPage(stopPage);
   writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
-  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   for (unsigned int i = 0; i < NSectors + 1; i++) {
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
+      const unsigned int defaultLink = i == NSectors ? rdh_utils::SACLinkID : zsV <= 2 ? rdh_utils::UserLogicLinkID : zsV == 3 ? rdh_utils::ILBZSLinkID : rdh_utils::DLBZSLinkID;
       const rdh_utils::FEEIDType feeid = i == NSectors ? 46208 : rdh_utils::getFEEID(cruID, j & 1, defaultLink);
       std::string outfname;
       if (fileFor == "all") { // single file for all links

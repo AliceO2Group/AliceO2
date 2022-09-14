@@ -51,12 +51,14 @@ struct TPCZSHDR {
   unsigned short nADCsamples; // Total number of ADC samples in this raw page
 };
 struct TPCZSHDRV2 : public TPCZSHDR {
-  static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
+  static constexpr unsigned int TPC_ZS_NBITS_V34 = 12;
   static constexpr bool TIGHTLY_PACKED_V3 = false;
-  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V3; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
+  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V34; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
+  static constexpr unsigned int TRIGGER_WORD_SIZE = 16;                  // trigger word size in bytes
   enum ZSFlags : unsigned char {
     TriggerWordPresent = 1,
-    nTimeBinSpanBit8 = 2
+    nTimeBinSpanBit8 = 2,
+    payloadExtendsToNextPage = 4
   };
 
   unsigned short firstZSDataOffset; // zs Version 3: Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
