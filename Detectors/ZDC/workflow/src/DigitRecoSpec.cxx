@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstdlib>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/Logger.h"
@@ -64,6 +65,14 @@ void DigitRecoSpec::init(o2::framework::InitContext& ic)
   mMaxWave = ic.options().get<int>("max-wave");
   if (mMaxWave > 0) {
     LOG(warning) << "Limiting the number of waveforms in ourput to " << mMaxWave;
+  }
+  mRecoFraction = ic.options().get<double>("tf-fraction");
+  if (mRecoFraction < 0 || mRecoFraction > 1) {
+    LOG(error) << "Unphysical reconstructed fraction " << mRecoFraction << " set to 1.0";
+    mRecoFraction = 1.0;
+  }
+  if (mRecoFraction < 1) {
+    LOG(warning) << "Target fraction for reconstructed TFs = " << mRecoFraction;
   }
 }
 
@@ -165,7 +174,20 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-  mWorker.process(peds, bcdata, chans);
+  // Reduce load by dropping random time frames
+  bool toProcess = true;
+  if (mRecoFraction <= 0.) {
+    toProcess = false;
+  } else if (mRecoFraction < 1.0) {
+    double frac = std::rand() / double(RAND_MAX);
+    if (frac > mRecoFraction) {
+      toProcess = false;
+    }
+  }
+
+  if (toProcess) {
+    mWorker.process(peds, bcdata, chans);
+  }
   const std::vector<o2::zdc::RecEventAux>& recAux = mWorker.getReco();
 
   // Transfer wafeform
@@ -176,6 +198,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   }
   uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
   for (auto reca : recAux) {
+    if (!toProcess) {
+      break;
+    }
     bool toAddBC = true;
     int32_t ne = reca.ezdc.size();
     int32_t nt = 0;
@@ -290,7 +315,8 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut, enableZDCTDCCorr, enableZDCEnergyParam, enableZDCTowerParam, enableBaselineParam)},
-    o2::framework::Options{{"max-wave", o2::framework::VariantType::Int, 0, {"Maximum number of waveforms per TF in output"}}}};
+    o2::framework::Options{{"max-wave", o2::framework::VariantType::Int, 0, {"Maximum number of waveforms per TF in output"}},
+                           {"tf-fraction", o2::framework::VariantType::Double, 1.0, {"Fraction of reconstructed TFs"}}}};
 }
 
 } // namespace zdc

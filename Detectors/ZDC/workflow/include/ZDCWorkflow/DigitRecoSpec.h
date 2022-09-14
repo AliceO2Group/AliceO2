@@ -53,6 +53,7 @@ class DigitRecoSpec : public o2::framework::Task
   bool mEnableZDCTowerParam = true;  // Get ZDCTowerParam object
   bool mEnableBaselineParam = true;  // Get BaselineParam object
   bool mInitialized = false;         // Connect once to CCDB during initialization
+  double mRecoFraction = 1.0;        // Fraction of time frames to be reconstructed
   TStopwatch mTimer;
 };
 
