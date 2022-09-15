@@ -12,7 +12,6 @@
 #include <bitset>
 #include <cstdint>
 #include <optional>
-#include <string_view>
 #include "EMCALWorkflow/CalibLoader.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessorSpec.h"
@@ -141,7 +140,7 @@ class CellRecalibratorSpec : public framework::Task
 /// \param badChannelCalib If true the bad channel calibration is enabled
 /// \param timeCalib If true the time calibration is enabled
 /// \param gainCalib If true the gain (energy) calibration is enabled
-framework::DataProcessorSpec getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, bool badChannelCalib, bool timeCalib, bool gainCalib, const std::string_view pathBadChannelMap, const std::string_view pathTimeCalib, std::string_view pathGainCalib);
+framework::DataProcessorSpec getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, bool badChannelCalib, bool timeCalib, bool gainCalib);
 
 } // namespace emcal
 

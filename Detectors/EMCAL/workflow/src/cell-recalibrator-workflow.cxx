@@ -34,9 +34,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                        {"no-badchannelcalib", VariantType::Bool, false, {"Disable bad channel calibration"}},
                                        {"no-timecalib", VariantType::Bool, false, {"Disable time calibration"}},
                                        {"no-gaincalib", VariantType::Bool, false, {"Disable gain calibration"}},
-                                       {"local-badchannelmap", VariantType::String, "", {"path to local file with bad channel map"}},
-                                       {"local-timecalib", VariantType::String, "", {"path to local file with time calibration params"}},
-                                       {"local-gaincalib", VariantType::String, "", {"path to local file with gain calibration params"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -55,14 +52,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto inputsubspec = cfgc.options().get<uint32_t>("input-subspec"),
        outputsubspec = cfgc.options().get<uint32_t>("output-subspec");
 
-  std::string pathBadChannelMap = cfgc.options().get<std::string>("local-badchannelmap"),
-              pathTimeCalib = cfgc.options().get<std::string>("local-timecalib"),
-              pathGainCalib = cfgc.options().get<std::string>("local-gaincalib");
-
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::emcal::getCellRecalibratorSpec(inputsubspec, outputsubspec, !disableBadchannels, !disableTime, !disableEnergy, pathBadChannelMap, pathTimeCalib, pathGainCalib));
+  specs.emplace_back(o2::emcal::getCellRecalibratorSpec(inputsubspec, outputsubspec, !disableBadchannels, !disableTime, !disableEnergy));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
