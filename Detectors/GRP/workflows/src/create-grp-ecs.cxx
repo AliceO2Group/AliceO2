@@ -30,7 +30,7 @@ enum CCDBRefreshMode { NONE,
 
 void createGRPECSObject(const std::string& dataPeriod,
                         int run,
-                        int runType,
+                        int runTypeI,
                         int nHBPerTF,
                         const std::string& detsReadout,
                         const std::string& detsContinuousRO,
@@ -44,15 +44,16 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& metaDataStr = "",
                         CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
-  auto detMask = o2::detectors::DetID::getMask(detsReadout);
+  auto detMask = DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
     throw std::runtime_error("empty detectors list is provided");
   }
-  if (runType < 0 || runType >= int(GRPECSObject::RunType::NRUNTYPES)) {
-    LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runType);
+  if (runTypeI < 0 || runTypeI >= int(GRPECSObject::RunType::NRUNTYPES)) {
+    LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runTypeI);
   }
-  auto detMaskCont = detMask & o2::detectors::DetID::getMask(detsContinuousRO);
-  auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
+  GRPECSObject::RunType runType = (GRPECSObject::RunType)runTypeI;
+  auto detMaskCont = detMask & DetID::getMask(detsContinuousRO);
+  auto detMaskTrig = detMask & DetID::getMask(detsTrigger);
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -66,7 +67,10 @@ void createGRPECSObject(const std::string& dataPeriod,
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
   grpecs.setTimeEnd(tend);
-
+  if (runType == GRPECSObject::RunType::LASER && detMask[DetID::TPC] && detMaskCont[DetID::TPC]) {
+    LOGP(important, "Overriding TPC readout mode to triggered for runType={}", o2::parameters::GRPECS::RunTypeNames[runTypeI]);
+    detMaskCont.reset(DetID::TPC);
+  }
   grpecs.setNHBFPerTF(nHBPerTF);
   grpecs.setDetsReadOut(detMask);
   grpecs.setDetsContinuousReadOut(detMaskCont);
