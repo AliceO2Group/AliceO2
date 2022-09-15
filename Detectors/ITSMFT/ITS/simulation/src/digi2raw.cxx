@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbosity,v", bpo::value<uint32_t>()->default_value(0), "verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->default_value("itsdigits.root"), "input ITS digits file");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cru,link");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cruendpoint,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(DefRDHVersion), "RDH version to use");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
@@ -446,7 +446,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
         outFileLink += fmt::format("_{}", ruhw.flp);
         if (fileFor != "flp") {
           outFileLink += fmt::format("_cru{}_{}", ruhw.cruHWID, link->endPointID);
-          if (fileFor != "cru") {
+          if (fileFor != "cruendpoint") {
             outFileLink += fmt::format("_lnk{}_feeid{}", link->idInCRU, link->feeID);
             if (fileFor != "link") {
               throw std::runtime_error("invalid option provided for file grouping");

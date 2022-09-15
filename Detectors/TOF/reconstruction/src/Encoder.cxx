@@ -82,7 +82,7 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
     if (mCrateOn[crateid]) {
       if (fileFor == "all") { // single file for all links
         outFileLink = o2::utils::Str::concat_string(path, "/TOF.raw");
-      } else if (fileFor == "cru") {
+      } else if (fileFor == "cruendpoint") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), ".raw");
       } else if (fileFor == "link") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), "_link", std::to_string(RDHUtils::getLinkID(rdh)), ".raw");
