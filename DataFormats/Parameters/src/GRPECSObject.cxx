@@ -39,7 +39,7 @@ void GRPECSObject::print() const
     }
     return {"        N / A        "};
   };
-  printf("Run %d of type %d, period %s, isMC: %d\n", mRun, int(mRunType), mDataPeriod.c_str(), isMC());
+  printf("Run %d of type %s, period %s, isMC: %d\n", mRun, GRPECS::RunTypeNames[int(mRunType)].data(), mDataPeriod.c_str(), isMC());
   printf("Start: %s | End: %s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeEnd).c_str());
   printf("Number of HBF per timframe: %d\n", mNHBFPerTF);
   printf("Detectors: Cont.RO Triggers\n");
