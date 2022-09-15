@@ -14,7 +14,6 @@
 
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/RoutingIndices.h"
-#include "CommonUtils/BoostSerializer.h"
 #include <vector>
 #include <string>
 #include <memory>
