@@ -24,8 +24,6 @@
 
 #include "Headers/DataHeader.h"
 
-#include "CommonUtils/BoostSerializer.h"
-
 #include <gsl/gsl>
 
 #include <iterator>
@@ -60,7 +58,6 @@ class CallbackService;
 ///       this is meant for C-style strings which are 0 terminated, there is no length
 ///       information
 /// - (d) @ref TableConsumer
-/// - (e) boost serializable types
 /// - (f) span over messageable type T
 /// - (g) std::vector of messageable type or type with ROOT dictionary
 /// - (h) messageable type T
@@ -272,20 +269,6 @@ class InputRecord
       auto data = reinterpret_cast<uint8_t const*>(ref.payload);
       return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
 
-      // implementation (e)
-    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization_v<T, BoostSerialized>) {
-      // substitution for boost-serialized entities
-      // We have to deserialize the ostringstream.
-      // FIXME: check that the string is null terminated.
-      // @return deserialized copy of payload
-      auto str = std::string(ref.payload, DataRefUtils::getPayloadSize(ref));
-      assert(DataRefUtils::getPayloadSize(ref) == sizeof(T));
-      if constexpr (is_specialization_v<T, BoostSerialized>) {
-        return o2::utils::BoostDeserialize<typename T::wrapped_type>(str);
-      } else {
-        return o2::utils::BoostDeserialize<T>(str);
-      }
-
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
@@ -473,15 +456,6 @@ class InputRecord
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
-  }
-
-  template <typename T>
-  T get_boost(char const* binding) const
-  {
-    DataRef ref = get<DataRef>(binding);
-    auto str = std::string(ref.payload, DataRefUtils::getPayloadSize(ref));
-    auto desData = o2::utils::BoostDeserialize<T>(str);
-    return std::move(desData);
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
