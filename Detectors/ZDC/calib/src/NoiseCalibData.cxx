@@ -188,8 +188,9 @@ uint32_t NoiseCalibChData::getMaxBin() const
 {
   uint32_t max = 0;
   for (const auto& [key, value] : mData) {
-    if (key > max)
+    if (key > max) {
       max = key;
+    }
   }
   return max;
 }
