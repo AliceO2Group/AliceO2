@@ -33,10 +33,10 @@ class InvalidEnergyIntervalException final : public std::exception
  public:
   /// \brief Constructor
   /// \param E Cell energy requested
-  InvalidEnergyIntervalException(float E, int cellID) : std::exception(),
-                                                        mE(E),
-                                                        mCellID(cellID),
-                                                        mMessage("Invalid energy " + std::to_string(mE) + "for cell " + std::to_string(mCellID) + "]")
+  InvalidEnergyIntervalException(float E, unsigned int cellID) : std::exception(),
+                                                                 mE(E),
+                                                                 mCellID(cellID),
+                                                                 mMessage("Invalid energy " + std::to_string(mE) + "for cell " + std::to_string(mCellID) + "]")
   {
   }
 
@@ -49,7 +49,7 @@ class InvalidEnergyIntervalException final : public std::exception
 
  private:
   float mE;             ///< Cell energy requested
-  int mCellID;          ///< Cell ID
+  unsigned int mCellID; ///< Cell ID
   std::string mMessage; ///< Message to be printed
 };
 
@@ -136,13 +136,16 @@ class EMCALChannelScaleFactors
   /// \param E_min Minimum energy of the interval
   /// \param E_max Maximum energy of the interval
   /// \param scale Scale factor for number of hits in bad channel calibration
-  void insertVal(const int cellID, float E_min, float E_max, float scale);
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
+  void insertVal(unsigned int cellID, float E_min, float E_max, float scale);
 
   /// Get the scale factor for a given cell and energy
   /// \param cell The cell number
   /// \param E The energy
   /// \return The scale factor
-  float getScaleVal(const int cellID, float E) const;
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
+  /// \throw InvalidEnergyIntervalException in case no energy interval is found for the requested energy value and cell ID
+  float getScaleVal(unsigned int cellID, float E) const;
 
  private:
   static constexpr int NCells = 17664;                               ///< Number of cells in the EMCal

@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "EMCALCalib/CalibContainerErrors.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
 
 #include "FairLogger.h"
@@ -21,6 +22,9 @@ using namespace o2::emcal;
 
 void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, short time, bool isLowGain)
 {
+  if (cellID >= 17664) {
+    throw CalibContainerIndexException(cellID);
+  }
   if (!isLowGain) {
     mTimeCalibParamsHG[cellID] = time;
   } else {
@@ -30,6 +34,9 @@ void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, short time,
 
 short TimeCalibrationParams::getTimeCalibParam(unsigned short cellID, bool isLowGain) const
 {
+  if (cellID >= 17664) {
+    throw CalibContainerIndexException(cellID);
+  }
   if (isLowGain) {
     return mTimeCalibParamsLG[cellID];
   } else {
