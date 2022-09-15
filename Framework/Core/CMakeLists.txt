@@ -146,7 +146,6 @@ o2_add_library(Framework
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
-                                     O2::CommonUtils
                                      O2::MathUtils
                                      O2::CCDB
                                      O2::FrameworkFoundation
