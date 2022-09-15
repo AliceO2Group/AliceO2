@@ -1036,7 +1036,7 @@ class SpaceCharge
   /// \return setting the boundary potential for given GEM stack
   void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame = false);
 
-  ClassDefNV(SpaceCharge, 1)
+  ClassDefNV(SpaceCharge, 2);
 };
 
 ///
