@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "EMCALCalib/CalibContainerErrors.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
 
 #include "FairLogger.h"
@@ -21,11 +22,17 @@ using namespace o2::emcal;
 
 void GainCalibrationFactors::addGainCalibFactor(unsigned short iCell, float gainFactor)
 {
+  if (iCell >= 17664) {
+    throw CalibContainerIndexException(iCell);
+  }
   mGainCalibFactors[iCell] = gainFactor;
 }
 
 float GainCalibrationFactors::getGainCalibFactors(unsigned short iCell) const
 {
+  if (iCell >= 17664) {
+    throw CalibContainerIndexException(iCell);
+  }
   return mGainCalibFactors[iCell];
 }
 

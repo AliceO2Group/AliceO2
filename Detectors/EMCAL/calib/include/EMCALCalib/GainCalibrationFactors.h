@@ -9,6 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef GAINCALIBRATIONFACTORS_H_
+#define GAINCALIBRATIONFACTORS_H_
+
+#include <iosfwd>
+#include <array>
+#include <Rtypes.h>
+
+class TH1;
+
+namespace o2
+{
+
+namespace emcal
+{
+
 /// \class GainCalibrationFactors
 /// \brief CCDB container for the gain calibration factors
 /// \ingroup EMCALcalib
@@ -27,22 +42,6 @@
 /// This will return the gain calibration factor for a certain channel.
 /// ~~~
 ///
-
-#ifndef GAINCALIBRATIONFACTORS_H_
-#define GAINCALIBRATIONFACTORS_H_
-
-#include <iosfwd>
-#include <array>
-#include <Rtypes.h>
-
-class TH1;
-
-namespace o2
-{
-
-namespace emcal
-{
-
 class GainCalibrationFactors
 {
  public:
@@ -54,11 +53,13 @@ class GainCalibrationFactors
 
   /// \brief Comparison of two gain calibration factors containers
   /// \return true if the two list of gain calibration factors are the same, false otherwise
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
   bool operator==(const GainCalibrationFactors& other) const;
 
   /// \brief Add gain calibration factors to the container
   /// \param iCell is the cell index
   /// \param gainFactor is the gain calibration factor
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
   void addGainCalibFactor(unsigned short iCell, float gainFactor);
 
   /// \brief Get the gain calibration factor for a certain cell
