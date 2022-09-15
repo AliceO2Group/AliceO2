@@ -1750,7 +1750,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             uv_timer_stop(gui_timer);
           }
 
-          guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
+            callback();
+            for (auto& service : driverServices) {
+              if (service.postRenderGUI) {
+                service.postRenderGUI(serviceRegistry);
+              }
+            }
+          };
           guiContext.window = window;
 
           if (gui_timer) {
