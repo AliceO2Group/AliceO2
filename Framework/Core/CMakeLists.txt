@@ -158,7 +158,6 @@ o2_add_library(Framework
                                      Microsoft.GSL::GSL
                                      ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
-                                     Boost::serialization
                                      ${BOOST_FILESYSTEM}
                                      arrow::gandiva_shared
                                      LibUV::LibUV
@@ -304,7 +303,6 @@ endforeach()
 # #####################################################@
 
 foreach(w
-        BoostSerializedProcessing
         CallbackService
         RegionInfoCallbackService
         DanglingInputs
@@ -343,9 +341,6 @@ if (BUILD_TESTING)
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem and re-enable
-set_property(TEST test_Framework_test_BoostSerializedProcessing
-             PROPERTY DISABLED TRUE)
 endif()
 
 # specific tests which needs command line options
