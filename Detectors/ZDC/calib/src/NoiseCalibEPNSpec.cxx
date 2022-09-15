@@ -97,14 +97,13 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   // Process reconstructed data
   mWorker.process(trig, chan);
 
+  auto& summary = mWorker.mData.getSummary();
+
   // Send intermediate calibration data and histograms
   o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
-  auto& summary = mWorker.mData.getSummary();
   pc.outputs().snapshot(outputData, summary);
-  char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < NChannels; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "NOISE_1DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
     pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
   }
 }
@@ -125,10 +124,8 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
-  char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < NChannels; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "NOISE_1DH%d", ih);
-    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
+    outputs.emplace_back("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
     "zdc-noisecalib-epn",

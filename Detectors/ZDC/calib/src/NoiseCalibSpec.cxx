@@ -27,6 +27,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -94,12 +95,14 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
     mRunStartTime = tinfo.creation; // approximate time in ms
     mRunNumber = tinfo.runNumber;
   }
+  std::vector<InputSpec> filterHisto = {{"noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe}};
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+    o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+    mWorker.add(dh->subSpecification, histoView);
+  }
   auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("noisecalibdata");
   mWorker.process(data.get());
-  for (int ih = 0; ih < NChannels; ih++) {
-    o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(fmt::format("noise_1dh{}", ih).data()));
-    mWorker.add(ih, histoView);
-  }
 }
 
 void NoiseCalibSpec::endOfStream(EndOfStreamContext& ec)
@@ -174,13 +177,7 @@ framework::DataProcessorSpec getNoiseCalibSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
-  char inputa[o2::header::gSizeDataDescriptionString];
-  char inputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < NChannels; ih++) {
-    snprintf(inputa, o2::header::gSizeDataDescriptionString, "noise_1dh%d", ih);
-    snprintf(inputd, o2::header::gSizeDataDescriptionString, "NOISE_1DH%d", ih);
-    inputs.emplace_back(inputa, "ZDC", inputd, 0, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib"}, Lifetime::Sporadic);
