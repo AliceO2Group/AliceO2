@@ -23,23 +23,25 @@ using namespace o2::zdc;
 
 int NoiseCalibEPN::init()
 {
-  // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
-  opt.print();
-
   if (mVerbosity > DbgZero) {
     mModuleConfig->print();
+  }
+
+  // Inspect reconstruction parameters
+  o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
+  ropt.print();
+  mRopt = (o2::zdc::RecoParamZDC*)&ropt;
+
+  // Inspect calibration parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+  if (opt.rootOutput == true) {
+    setSaveDebugHistos();
   }
 
   for (int isig = 0; isig < NChannels; isig++) {
     mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
   }
-
-  // Update reconstruction parameters
-  // auto& ropt=RecoParamZDC::Instance();
-  o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
-  ropt.print();
-  mRopt = (o2::zdc::RecoParamZDC*)&ropt;
 
   // Fill maps to decode the pattern of channels with hit
   for (int ich = 0; ich < NChannels; ich++) {
@@ -61,10 +63,6 @@ int NoiseCalibEPN::init()
     if (mVerbosity > DbgZero) {
       LOG(info) << "Channel " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
     }
-  }
-
-  if (opt.rootOutput == true) {
-    setSaveDebugHistos();
   }
 
   mInitDone = true;

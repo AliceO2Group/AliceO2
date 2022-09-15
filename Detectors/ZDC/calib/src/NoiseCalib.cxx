@@ -25,7 +25,7 @@ using namespace o2::zdc;
 
 int NoiseCalib::init()
 {
-  // Inspect reconstruction parameters
+  // Inspect calibration parameters
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
 

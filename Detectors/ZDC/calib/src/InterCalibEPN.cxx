@@ -15,6 +15,7 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "ZDCCalib/InterCalibData.h"
@@ -32,6 +33,14 @@ int InterCalibEPN::init()
     LOG(fatal) << "o2::zdc::InterCalibEPN: missing configuration object";
     return -1;
   }
+
+  // Inspect calibration parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+  if (opt.rootOutput == true) {
+    setSaveDebugHistos();
+  }
+
   clear();
   auto* cfg = mInterCalibConfig;
   int ih;
