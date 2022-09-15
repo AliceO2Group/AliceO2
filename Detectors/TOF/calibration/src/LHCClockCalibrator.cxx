@@ -57,9 +57,12 @@ void LHCClockDataHisto::fill(const gsl::span<const o2::dataformats::CalibInfoTOF
 
     //    printf("ch=%d - tot=%f - corr=%f -> dtcorr = %f (range=%f, bin=%d)\n",ch,tot,corr,dt,range,int((dt+range)*v2Bin));
 
-    dt += range;
-    if (dt > 0 && dt < 2 * range) {
-      histo[int(dt * v2Bin)]++;
+    float dtRange = dt + range;
+    if (dtRange > 0 && dtRange < 2 * range) {
+      histo[int(dtRange * v2Bin)]++;
+#ifdef DEBUGGING
+      mTimeHist->Fill(mSlot, dt);
+#endif
       entries++;
     }
   }
@@ -104,7 +107,37 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
   std::array<double, 3> fitValues;
-  double fitres = fitGaus(c->nbins, c->histo.data(), -(c->range), c->range, fitValues, nullptr, 2., true);
+  std::vector<float> histoValues;
+  int imax = c->nbins / 2;
+  double maxval = 0;
+  for (unsigned i = 0; i < c->nbins; ++i) { // find peak
+    const auto& v = c->histo.at(i);
+    if (v > maxval) {
+      maxval = v;
+      imax = i;
+    }
+  }
+
+  float renorm = 1.; // to avoid fit problem when stats is too large (bad chi2)
+  if (maxval > 10) {
+    renorm = 10. / maxval;
+  }
+
+  int nbinsUsed = 0;
+  double binwidth = 2 * c->range / c->nbins;
+  int binrange = int(1500 / binwidth) + 1;
+  for (unsigned i = 0; i < c->nbins; ++i) {
+    const auto& v = c->histo.at(i);
+    if (i >= imax - binrange && i < imax + binrange) {
+      histoValues.push_back(v * renorm);
+      nbinsUsed++;
+    }
+  }
+
+  float minRange = (imax - c->nbins / 2 - binrange) * binwidth;
+  float maxRange = (imax - c->nbins / 2 + binrange) * binwidth;
+
+  double fitres = fitGaus(nbinsUsed, histoValues.data(), minRange, maxRange, fitValues, nullptr, 2., false);
   if (fitres >= 0) {
     LOG(info) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {
@@ -130,6 +163,11 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   mLHCphaseVector.emplace_back(l);
 
   slot.print();
+#ifdef DEBUGGING
+  TFile fout("debug_tof_phase.root", "RECREATE");
+  mTimeHist->Write();
+  fout.Close();
+#endif
 }
 
 //_____________________________________________
@@ -137,7 +175,12 @@ Slot& LHCClockCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
+#ifndef DEBUGGING
   slot.setContainer(std::make_unique<LHCClockDataHisto>(mNBins, mRange, mCalibTOFapi));
+#else
+  slot.setContainer(std::make_unique<LHCClockDataHisto>(mNBins, mRange, mCalibTOFapi, mNslot, mTimeHist));
+  mNslot++;
+#endif
   return slot;
 }
 
