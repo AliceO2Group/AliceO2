@@ -690,7 +690,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     }
   }
   //
-  if(mNew == 0) {
+  if (mNew == 0) {
     scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   } else {
     scalrec.intRecord.orbit = mCounters[mScalerName2Position[orbitid]];
@@ -854,7 +854,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   }
   return *ctpconfigdb;
 }
-CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool *ok)
+CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool* ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
