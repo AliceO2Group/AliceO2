@@ -289,7 +289,12 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
   // Decalibrate
-  time -= mCalibApi->getTimeDecalibration(channel, tot); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+  float tsCorr = mCalibApi->getTimeDecalibration(channel, tot);
+  if (TMath::Abs(tsCorr) > 200E3) { // accept correction up to 200 ns
+    LOG(error) << "Wrong de-calibration correction for ch = " << channel << ", tot = " << tot << " (Skip it)";
+    return;
+  }
+  time -= tsCorr; // TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
   // let's move from time to bc, tdc
 
