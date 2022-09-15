@@ -11,6 +11,7 @@
 
 #include "MIDDigitizerSpec.h"
 #include "TChain.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -23,6 +24,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ChEffCounter.h"
 #include "MIDSimulation/Digitizer.h"
 #include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/ChamberResponse.h"
@@ -50,6 +52,15 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer = std::make_unique<Digitizer>(createDefaultChamberResponse(), createDefaultChamberEfficiencyResponse(), createTransformationFromManager(gGeoManager));
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher(header::gDataOriginMID, "CHAMBER_EFF", 0)) {
+      auto* chEffCounters = static_cast<std::vector<ChEffCounter>*>(obj);
+      mDigitizer->setChamberEfficiency(*chEffCounters);
+      return;
+    }
+  }
+
   void run(framework::ProcessingContext& pc)
   {
     static bool finished = false;
@@ -60,6 +71,8 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    // Triggers reading from CCDB
+    pc.inputs().get<std::vector<ChEffCounter>*>("mid_ch_eff");
     context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
@@ -126,6 +139,10 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
 
+  std::vector<InputSpec> inputSpecs;
+  inputSpecs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputSpecs.emplace_back("mid_ch_eff", header::gDataOriginMID, "CHAMBER_EFF", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/ChamberEfficiency"));
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MID", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MID", "DIGITSROF", 0, Lifetime::Timeframe);
@@ -136,10 +153,8 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)
 
   return DataProcessorSpec{
     "MIDDigitizer",
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
+    inputSpecs,
     outputs,
-
     AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
     Options{}};
 }
