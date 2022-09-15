@@ -355,7 +355,7 @@ void DataProcessingDevice::Init()
     } else {
       str = entry.second.get_value<std::string>();
     }
-    std::string configString = fmt::format("[CONFIG];{}={};1;{}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
+    std::string configString = fmt::format("[CONFIG] {}={} 1 {}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
     mServiceRegistry.get<DriverClient>().tell(configString.c_str());
   }
 
