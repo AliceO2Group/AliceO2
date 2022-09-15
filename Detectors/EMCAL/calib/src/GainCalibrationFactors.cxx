@@ -22,7 +22,7 @@ using namespace o2::emcal;
 
 void GainCalibrationFactors::addGainCalibFactor(unsigned short iCell, float gainFactor)
 {
-  if (iCell >= 17664) {
+  if (iCell >= mGainCalibFactors.size()) {
     throw CalibContainerIndexException(iCell);
   }
   mGainCalibFactors[iCell] = gainFactor;
@@ -30,7 +30,7 @@ void GainCalibrationFactors::addGainCalibFactor(unsigned short iCell, float gain
 
 float GainCalibrationFactors::getGainCalibFactors(unsigned short iCell) const
 {
-  if (iCell >= 17664) {
+  if (iCell >= mGainCalibFactors.size()) {
     throw CalibContainerIndexException(iCell);
   }
   return mGainCalibFactors[iCell];

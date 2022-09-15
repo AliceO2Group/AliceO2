@@ -22,7 +22,7 @@ using namespace o2::emcal;
 
 void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, short time, bool isLowGain)
 {
-  if (cellID >= 17664) {
+  if (cellID >= mTimeCalibParamsHG.size()) {
     throw CalibContainerIndexException(cellID);
   }
   if (!isLowGain) {
@@ -34,7 +34,7 @@ void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, short time,
 
 short TimeCalibrationParams::getTimeCalibParam(unsigned short cellID, bool isLowGain) const
 {
-  if (cellID >= 17664) {
+  if (cellID >= mTimeCalibParamsHG.size()) {
     throw CalibContainerIndexException(cellID);
   }
   if (isLowGain) {
