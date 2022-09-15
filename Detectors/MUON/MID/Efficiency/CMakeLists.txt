@@ -11,7 +11,7 @@
 
 o2_add_library(
   MIDEfficiency
-  SOURCES src/ChamberEfficiency.cxx
+  SOURCES src/ChamberEfficiency.cxx src/Efficiency.cxx
   PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase
                         Microsoft.GSL::GSL)
 
