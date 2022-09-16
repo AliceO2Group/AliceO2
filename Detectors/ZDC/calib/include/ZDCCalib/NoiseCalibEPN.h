@@ -45,9 +45,9 @@ class NoiseCalibEPN
  private:
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
-  const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
+  const ModuleConfig* mModuleConfig = nullptr; ///< Trigger/readout configuration object
   const RecoParamZDC* mRopt = nullptr;
-  uint32_t mChMask[NChannels] = {0}; /// Identify all channels in readout pattern
+  uint32_t mChMask[NChannels] = {0}; ///< Identify all channels in readout pattern
   int32_t mVerbosity = DbgMinimal;
 };
 } // namespace zdc
