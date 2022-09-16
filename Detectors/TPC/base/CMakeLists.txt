@@ -34,6 +34,7 @@ o2_add_library(TPCBase
                        src/Sector.cxx
                        src/Utils.cxx
                        src/ZeroSuppress.cxx
+                       src/CRUCalibHelpers.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
@@ -61,8 +62,8 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/ROC.h
                                   include/TPCBase/Sector.h
                                   include/TPCBase/ZeroSuppress.h
-                                  include/TPCBase/Utils.h)
-
+                                  include/TPCBase/Utils.h
+                                  include/TPCBase/CRUCalibHelpers.h)
 o2_add_test(Base
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase
