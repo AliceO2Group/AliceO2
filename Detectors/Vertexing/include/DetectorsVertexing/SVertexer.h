@@ -160,10 +160,10 @@ class SVertexer
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
+  float mMaxDCAXY2ToMeanVertex3bodyV0 = 0;
   float mMinR2DiffV0Casc = 0;
   float mMaxR2Diff3bodyV0 = 0;
   float mMaxR2ToMeanVertexCascV0 = 0;
-  float mMaxDCAXY2ToMeanVertex3bodyV0 = 0;
   float mMinPt2V0 = 1e-6;
   float mMaxTgl2V0 = 2. * 2.;
   float mMinPt2Casc = 1e-4;

@@ -52,7 +52,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRToMeanVertex = 0.5;          ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;      ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
   float maxDCAXYToMeanVertexV0Casc = 2.; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
-  float maxDCAXYToMeanVertex3bodyV0 = 0.5;///< max DCA of V0 from beam line (mean vertex) for 3body V0 candidates
+  float maxDCAXYToMeanVertex3bodyV0 = 2;///< max DCA of V0 from beam line (mean vertex) for 3body V0 candidates
   float minPtV0 = 0.01;                  ///< v0 minimum pT
   float maxTglV0 = 2.;                   ///< maximum tgLambda of V0
 
@@ -65,6 +65,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
+  float minCosPA3bodyV0 = 0.7; // min cos of PA to PV for 3body V0
   float minCosPA = 0.9;              ///< min cos of PA to PV for prompt V0 candidates
 
   float minRDiffV0Casc = 0.2;  ///< cascade should be at least this radial distance below V0
@@ -76,7 +77,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float maxDCAXY3Body = 0.3; // max DCA of 3 body decay to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZ3Body = 1.;  // max DCA of 3 body decay to PV in Z
   float minCosPACasc = 0.7; // min cos of PA to PV for cascade candidates
-  float minCosPA3body = 0.7; // min cos of PA to PV for 3body V0
+  float minCosPA3body = 0.7; // min cos of PA to PV for 3body decay candidates
   float minPtCasc = 0.01;   // cascade minimum pT
   float maxTglCasc = 2.;    // maximum tgLambda of cascade
   float minPt3Body = 0.01;  // minimum pT of 3body V0
