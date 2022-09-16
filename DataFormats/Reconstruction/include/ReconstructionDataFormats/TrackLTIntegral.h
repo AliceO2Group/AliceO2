@@ -51,6 +51,18 @@ class TrackLTIntegral
     }
   }
 
+  GPUd() void clearFast()
+  {
+    mL = 0.f;
+    mX2X0 = 0.f;
+    mXRho = 0.f;
+    if (!isTimeNotNeeded()) {
+      for (int i = getNTOFs(); i--;) {
+        mT[i] = 0.f;
+      }
+    }
+  }
+
   GPUd() void addStep(float dL, float p2Inv);
   GPUd() void addX2X0(float d) { mX2X0 += d; }
   GPUd() void addXRho(float d) { mXRho += d; }
