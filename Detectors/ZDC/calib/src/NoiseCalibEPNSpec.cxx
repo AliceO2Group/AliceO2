@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   BaselineCalibEPNSpec.cxx
+/// @file   NoiseCalibEPNSpec.cxx
 /// @brief  ZDC baseline calibration
 /// @author pietro.cortese@cern.ch
 
@@ -31,11 +31,10 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
-#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
-#include "ZDCCalib/BaselineCalibData.h"
-#include "ZDCCalib/BaselineCalibEPNSpec.h"
+#include "ZDCCalib/NoiseCalibData.h"
+#include "ZDCCalib/NoiseCalibEPNSpec.h"
 
 using namespace o2::framework;
 
@@ -44,31 +43,31 @@ namespace o2
 namespace zdc
 {
 
-BaselineCalibEPNSpec::BaselineCalibEPNSpec()
+NoiseCalibEPNSpec::NoiseCalibEPNSpec()
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-BaselineCalibEPNSpec::BaselineCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
+NoiseCalibEPNSpec::NoiseCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
+void NoiseCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
 }
 
-void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
+void NoiseCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
 }
 
-void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+void NoiseCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
     auto* config = (const o2::zdc::ModuleConfig*)obj;
@@ -79,7 +78,7 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
   }
 }
 
-void BaselineCalibEPNSpec::run(ProcessingContext& pc)
+void NoiseCalibEPNSpec::run(ProcessingContext& pc)
 {
   if (!mInitialized) {
     mInitialized = true;
@@ -92,38 +91,47 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   mWorker.getData().setCreationTime(creationTime);
 
-  auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
+  auto trig = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
+  auto chan = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
 
   // Process reconstructed data
-  mWorker.process(peds);
+  mWorker.process(trig, chan);
 
-  // Send intermediate calibration data
   auto& summary = mWorker.mData.getSummary();
-  o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+
+  // Send intermediate calibration data and histograms
+  o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(outputData, summary);
+  for (int ih = 0; ih < NChannels; ih++) {
+    o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
+    pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
+  }
 }
 
-void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
+void NoiseCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(info, "ZDC EPN Noise calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getBaselineCalibEPNSpec()
+framework::DataProcessorSpec getNoiseCalibEPNSpec()
 {
-  using device = o2::zdc::BaselineCalibEPNSpec;
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("peds", "ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
+  inputs.emplace_back("chan", "ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
+  for (int ih = 0; ih < NChannels; ih++) {
+    outputs.emplace_back("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
-    "zdc-calib-baseline-epn",
+    "zdc-noisecalib-epn",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<NoiseCalibEPNSpec>()},
     Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 

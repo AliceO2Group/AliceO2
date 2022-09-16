@@ -139,6 +139,11 @@ void DumpRaw::init()
       TString htit = TString::Format("Bunch mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
       mBunchT[i] = std::make_unique<TH2F>(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
     }
+    if (mBunchH[i] == nullptr) {
+      TString hname = TString::Format("hbh%d%d", imod, ich);
+      TString htit = TString::Format("Bunch mod. %d ch. %d AUTOT Hit; Sample; ADC", imod, ich);
+      mBunchH[i] = std::make_unique<TH2F>(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
+    }
   }
   // Word id not present in payload
   mCh.f.fixed_0 = Id_wn;
@@ -163,6 +168,12 @@ void DumpRaw::write()
     if (mBunchT[i] && mBunchT[i]->GetEntries() > 0) {
       setStat(mBunchT[i].get());
       mBunchT[i]->Write();
+    }
+  }
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
+    if (mBunchH[i] && mBunchH[i]->GetEntries() > 0) {
+      setStat(mBunchH[i].get());
+      mBunchH[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
@@ -391,6 +402,11 @@ int DumpRaw::process(const EventChData& ch)
     if (f.Hit) {
       mBitsH->Fill(ih, 0);
     }
+  }
+  if (f.Hit) {
+    double bc_d = uint32_t(f.bc / 100);
+    double bc_m = uint32_t(f.bc % 100);
+    mBunchH[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc >= o2::constants::lhc::LHCMaxBunches) {
     mOve->Fill(ih);

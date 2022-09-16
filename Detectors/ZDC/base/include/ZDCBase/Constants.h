@@ -257,6 +257,7 @@ const std::string CCDBPathWaveformCalib = "ZDC/Calib/WaveformCalib";
 const std::string CCDBPathWaveformCalibConfig = "ZDC/Calib/WaveformCalibConfig";
 const std::string CCDBPathBaselineCalib = "ZDC/Calib/BaselineCalib";
 const std::string CCDBPathBaselineCalibConfig = "ZDC/Calib/BaselineCalibConfig";
+const std::string CCDBPathNoiseCalib = "ZDC/Calib/NoiseCalib";
 
 enum Ped { PedND = 0,
            PedEv = 1,

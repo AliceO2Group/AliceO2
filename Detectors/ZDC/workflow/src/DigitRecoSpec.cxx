@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstdlib>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/Logger.h"
@@ -64,6 +65,14 @@ void DigitRecoSpec::init(o2::framework::InitContext& ic)
   mMaxWave = ic.options().get<int>("max-wave");
   if (mMaxWave > 0) {
     LOG(warning) << "Limiting the number of waveforms in ourput to " << mMaxWave;
+  }
+  mRecoFraction = ic.options().get<double>("tf-fraction");
+  if (mRecoFraction < 0 || mRecoFraction > 1) {
+    LOG(error) << "Unphysical reconstructed fraction " << mRecoFraction << " set to 1.0";
+    mRecoFraction = 1.0;
+  }
+  if (mRecoFraction < 1) {
+    LOG(warning) << "Target fraction for reconstructed TFs = " << mRecoFraction;
   }
 }
 
@@ -165,71 +174,88 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-  mWorker.process(peds, bcdata, chans);
-  const std::vector<o2::zdc::RecEventAux>& recAux = mWorker.getReco();
-
-  // Transfer wafeform
-  bool fullinter = mWorker.getFullInterpolation();
-  RecEvent recEvent;
-  if (mVerbosity > 0 || fullinter) {
-    LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
-  }
-  uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
-  for (auto reca : recAux) {
-    bool toAddBC = true;
-    int32_t ne = reca.ezdc.size();
-    int32_t nt = 0;
-    // Store TDC hits
-    for (int32_t it = 0; it < o2::zdc::NTDCChannels; it++) {
-      for (int32_t ih = 0; ih < reca.ntdc[it]; ih++) {
-        if (toAddBC) {
-          recEvent.addBC(reca);
-          toAddBC = false;
-        }
-        nt++;
-        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
-      }
+  // Reduce load by dropping random time frames
+  bool toProcess = true;
+  if (mRecoFraction <= 0.) {
+    toProcess = false;
+  } else if (mRecoFraction < 1.0) {
+    double frac = std::rand() / double(RAND_MAX);
+    if (frac > mRecoFraction) {
+      toProcess = false;
     }
-    // Add waveform information
-    if (fullinter) {
-      for (int32_t isig = 0; isig < o2::zdc::NChannels; isig++) {
-        if (reca.inter[isig].size() == NIS) {
+  }
+
+  RecEvent recEvent;
+
+  if (toProcess) {
+    mWorker.process(peds, bcdata, chans);
+    const std::vector<o2::zdc::RecEventAux>& recAux = mWorker.getReco();
+
+    // Transfer wafeform
+    bool fullinter = mWorker.getFullInterpolation();
+    if (mVerbosity > 0 || fullinter) {
+      LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+    }
+    uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
+    for (auto reca : recAux) {
+      bool toAddBC = true;
+      int32_t ne = reca.ezdc.size();
+      int32_t nt = 0;
+      // Store TDC hits
+      for (int32_t it = 0; it < o2::zdc::NTDCChannels; it++) {
+        for (int32_t ih = 0; ih < reca.ntdc[it]; ih++) {
           if (toAddBC) {
             recEvent.addBC(reca);
             toAddBC = false;
           }
-          recEvent.addWaveform(isig, reca.inter[isig]);
-          ntw++;
+          nt++;
+          recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
         }
       }
-      // Limit the number of waveforms in output message
-      if (mMaxWave > 0 && ntw >= mMaxWave) {
-        LOG(warning) << "Maximum number of output waveforms per TF reached: " << mMaxWave;
-        break;
+      // Add waveform information
+      if (fullinter) {
+        for (int32_t isig = 0; isig < o2::zdc::NChannels; isig++) {
+          if (reca.inter[isig].size() == NIS) {
+            if (toAddBC) {
+              recEvent.addBC(reca);
+              toAddBC = false;
+            }
+            recEvent.addWaveform(isig, reca.inter[isig]);
+            ntw++;
+          }
+        }
+        // Limit the number of waveforms in output message
+        if (mMaxWave > 0 && ntw >= mMaxWave) {
+          LOG(warning) << "Maximum number of output waveforms per TF reached: " << mMaxWave;
+          break;
+        }
       }
-    }
-    if (ne > 0) {
-      if (toAddBC) {
-        recEvent.addBC(reca);
-        toAddBC = false;
+      if (ne > 0) {
+        if (toAddBC) {
+          recEvent.addBC(reca);
+          toAddBC = false;
+        }
+        std::map<uint8_t, float>::iterator it;
+        for (it = reca.ezdc.begin(); it != reca.ezdc.end(); it++) {
+          recEvent.addEnergy(it->first, it->second);
+        }
       }
-      std::map<uint8_t, float>::iterator it;
-      for (it = reca.ezdc.begin(); it != reca.ezdc.end(); it++) {
-        recEvent.addEnergy(it->first, it->second);
+      nte += ne;
+      ntt += nt;
+      if (mVerbosity > 1 && (nt > 0 || ne > 0)) {
+        printf("Orbit %9u bc %4u ntdc %2d ne %2d channels=0x%08x\n", reca.ir.orbit, reca.ir.bc, nt, ne, reca.channels);
       }
+      // Event information
+      nti += recEvent.addInfos(reca);
     }
-    nte += ne;
-    ntt += nt;
-    if (mVerbosity > 1 && (nt > 0 || ne > 0)) {
-      printf("Orbit %9u bc %4u ntdc %2d ne %2d channels=0x%08x\n", reca.ir.orbit, reca.ir.bc, nt, ne, reca.channels);
-    }
-    // Event information
-    nti += recEvent.addInfos(reca);
+    LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
+              << "-> Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
+              << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
+              << ntw << " waveform chunks";
+  } else {
+    LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
+              << "-> SKIPPED because of requested reconstruction fraction = " << mRecoFraction;
   }
-  LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
-            << " Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
-            << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
-            << ntw << " waveform chunks";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
@@ -290,7 +316,8 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut, enableZDCTDCCorr, enableZDCEnergyParam, enableZDCTowerParam, enableBaselineParam)},
-    o2::framework::Options{{"max-wave", o2::framework::VariantType::Int, 0, {"Maximum number of waveforms per TF in output"}}}};
+    o2::framework::Options{{"max-wave", o2::framework::VariantType::Int, 0, {"Maximum number of waveforms per TF in output"}},
+                           {"tf-fraction", o2::framework::VariantType::Double, 1.0, {"Fraction of reconstructed TFs"}}}};
 }
 
 } // namespace zdc

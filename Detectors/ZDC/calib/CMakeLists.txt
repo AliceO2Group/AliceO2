@@ -11,6 +11,11 @@
 
 o2_add_library(ZDCCalib
                SOURCES
+                 src/NoiseCalibData.cxx
+                 src/NoiseCalibEPN.cxx
+                 src/NoiseCalibEPNSpec.cxx
+                 src/NoiseCalib.cxx
+                 src/NoiseCalibSpec.cxx
                  src/BaselineCalibData.cxx
                  src/BaselineCalibConfig.cxx
                  src/BaselineCalibEPN.cxx
@@ -61,6 +66,7 @@ o2_add_library(ZDCCalib
 
 o2_target_root_dictionary(ZDCCalib
                           HEADERS
+                            include/ZDCCalib/NoiseCalibData.h
                             include/ZDCCalib/BaselineCalibData.h
                             include/ZDCCalib/BaselineCalibConfig.h
                             include/ZDCCalib/InterCalibData.h
@@ -96,6 +102,16 @@ o2_add_executable(waveformcalib-workflow
 o2_add_executable(baselinecalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-baselinecalib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
+
+o2_add_executable(noisecalib-epn-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-noisecalib-epn-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
+
+o2_add_executable(noisecalib-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-noisecalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
 
 o2_add_executable(tdccalib-epn-workflow

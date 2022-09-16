@@ -11,6 +11,7 @@
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include "ZDCCalib/WaveformCalibParam.h"
 #include "ZDCReconstruction/BaselineParam.h"
+#include "ZDCReconstruction/NoiseParam.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTDCCorr.h"
@@ -89,6 +90,10 @@ void InspectCCDBFile()
     } else if (cn.EqualTo("o2::zdc::BaselineParam")) {
       o2::zdc::BaselineParam* ob = (o2::zdc::BaselineParam*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalib.data());
+      ob->print();
+    } else if (cn.EqualTo("o2::zdc::NoiseParam")) {
+      o2::zdc::NoiseParam* ob = (o2::zdc::NoiseParam*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathNoiseCalib.data());
       ob->print();
     } else if (cn.EqualTo("o2::zdc::WaveformCalibConfig")) {
       o2::zdc::WaveformCalibConfig* ob = (o2::zdc::WaveformCalibConfig*)key->ReadObj();

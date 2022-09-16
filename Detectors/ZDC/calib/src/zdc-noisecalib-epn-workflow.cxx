@@ -11,9 +11,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "Framework/CallbacksPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "ZDCCalib/InterCalibSpec.h"
+#include "ZDCCalib/NoiseCalibEPNSpec.h"
 
 using namespace o2::framework;
 
@@ -41,6 +40,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
-  specs.emplace_back(o2::zdc::getInterCalibSpec());
+  specs.emplace_back(o2::zdc::getNoiseCalibEPNSpec());
   return specs;
 }

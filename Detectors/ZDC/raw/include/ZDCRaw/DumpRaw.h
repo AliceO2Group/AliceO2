@@ -53,8 +53,9 @@ class DumpRaw
   std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mSignalA[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mSignalT[NDigiChannels] = {nullptr};
-  std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr};
-  std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr}; // Bunch pattern ALICE
+  std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr}; // Bunch pattern Autotrigger
+  std::unique_ptr<TH2> mBunchH[NDigiChannels] = {nullptr}; // Bunch pattern Hit
   EventChData mCh;
 };
 } // namespace zdc

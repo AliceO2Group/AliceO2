@@ -18,9 +18,12 @@ namespace zdc
 
 void RawReaderZDC::clear()
 {
+  LOG(info) << __func__;
   for (int im = 0; im < NModules; im++) {
     for (int ic = 0; ic < NChPerModule; ic++) {
       mEvents[im][ic] = 0;
+      mDupOK[im][ic] = 0;
+      mDupKO[im][ic] = 0;
     }
   }
   mDigitsBC.clear();
@@ -189,6 +192,15 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Check if payload is present for channel
         if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
+          if (mModuleConfig->modules[im].readChannel[ic] == false) {
+            // Channel should not be present in payload. It may happen for bc=0 and bc=3563
+            if (bcdata.ir.bc == 0 || bcdata.ir.bc == 3563) {
+              mDupOK[im][ic]++;
+            } else {
+              mDupKO[im][ic]++;
+            }
+            continue;
+          }
           bcdata.channels |= (0x1 << (NChPerModule * im + ic)); // Flag channel as present
           auto& ch = ev.data[im][ic];
           uint16_t us[12];
@@ -314,8 +326,28 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     }
   } // Loop on bunch crossings
 
+  inspectDup();
+
   mMapData.clear();
   return bcCounter;
+}
+
+//______________________________________________________________________________
+void RawReaderZDC::inspectDup()
+{
+  LOG(info) << __func__;
+  for (int32_t im = 0; im < NModules; im++) {
+    for (int32_t ic = 0; ic < NChPerModule; ic++) {
+      if (mVerbosity > DbgMinimal) {
+        if (mDupOK[im][ic] > 0) {
+          LOG(info) << "DupOK module " << im << " ch " << ic << " = " << mDupOK[im][ic];
+        }
+      }
+      if (mDupKO[im][ic] > 0) {
+        LOG(error) << "DupKO module " << im << " ch " << ic << " = " << mDupKO[im][ic];
+      }
+    }
+  }
 }
 
 //______________________________________________________________________________
