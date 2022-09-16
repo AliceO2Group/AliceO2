@@ -49,9 +49,22 @@ void Digitizer::init()
     }
   }
   // initializing for both collection tables
-  for (int i = 0; i < 2; i++) {
+  /*for (int i = 0; i < 2; i++) {
     mAlpSimResp[i].initData(i);
-  }
+  }*/
+  
+  // importing the charge collection tables
+  // (initialized while building O2)
+  auto file = TFile::Open(mdataFile.data());
+  /*std::string response = "response";
+  for (int i=0; i<2; i++) {
+    response.append(std::to_string(i));
+    mAlpSimResp[i] = *(o2::itsmft::AlpideSimResponse*)file->Get(response.data());
+  }*/
+  mAlpSimResp[0] = *(o2::itsmft::AlpideSimResponse*)file->Get("response0");
+  mAlpSimResp[1] = *(o2::itsmft::AlpideSimResponse*)file->Get("response1");
+
+
   // importing the parameters from DPLDigitizerParam.h
   auto& doptMFT = DPLDigitizerParam<o2::detectors::DetID::MFT>::Instance();
   auto& doptITS = DPLDigitizerParam<o2::detectors::DetID::ITS>::Instance();
