@@ -854,7 +854,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   }
   return *ctpconfigdb;
 }
-CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool* ok)
+CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -863,10 +863,10 @@ CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run,
   auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
-    *ok = 0;
+    ok = 0;
   } else {
     // ctpscalers->printStream(std::cout);
-    *ok = 1;
+    ok = 1;
   }
   return *ctpscalers;
 }
