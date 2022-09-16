@@ -43,11 +43,6 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include <ROOT/RSnapshotOptions.hxx>
-#include <ROOT/RDataFrame.hxx>
-#include <ROOT/RArrowDS.hxx>
-#include <ROOT/RVec.hxx>
-
 #include <fairmq/Device.h>
 #include <chrono>
 #include <fstream>
