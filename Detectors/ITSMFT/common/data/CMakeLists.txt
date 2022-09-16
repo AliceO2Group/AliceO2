@@ -9,10 +9,4 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
-add_subdirectory(data)
-
-#o2_data_file(COPY data DESTINATION Detectors/ITSMFT)
+add_subdirectory(alpideResponseData)
