@@ -87,7 +87,7 @@ class CTPRunScalers
   void printStream(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
-  std::vector<CTPScalerRecordO2>& getScalerRecordO2() {return mScalerRecordO2;};
+  std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1, errorCounters& eCnts) const;
