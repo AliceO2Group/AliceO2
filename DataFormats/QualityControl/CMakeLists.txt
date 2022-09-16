@@ -49,6 +49,7 @@ o2_target_root_dictionary(DataFormatsQualityControl
 
 
 
+if(BUILD_TESTING)
 o2_add_test(FlagReasons
   SOURCES test/testFlagReasons.cxx
   COMPONENT_NAME DataFormatsQualityControl
@@ -72,3 +73,4 @@ o2_add_test(TimeRangeFlagCollection
             TARGETVARNAME timerangeflagcollection)
 
 target_include_directories(${timerangeflagcollection} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
+endif()
