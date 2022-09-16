@@ -105,5 +105,4 @@
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::Pair < float, float>, o2::tpc::TPCVDTglContainer> + ;
 #pragma link C++ class o2::tpc::TPCVDriftTglCalibration + ;
 #pragma link C++ class o2::tpc::VDriftHelper + ;
-
 #endif
