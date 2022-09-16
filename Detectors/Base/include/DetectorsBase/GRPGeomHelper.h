@@ -101,9 +101,10 @@ struct GRPGeomRequest {
   bool askGeomIdeal = false;  // load ideal geometry
   bool askAlignments = false; // load detector alignments but don't apply them
   bool askOnceAllButField = false; // for all entries but field query only once
+  bool needPropagatorD = false;    // init also PropagatorD
 
   GRPGeomRequest() = delete;
-  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false);
+  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false, bool needPropD = false);
   void addInput(const o2::framework::InputSpec&& isp, std::vector<o2::framework::InputSpec>& inputs);
 };
 
@@ -128,7 +129,6 @@ class GRPGeomHelper
   auto getGRPLHCIF() const { return mGRPLHCIF; }
   auto getGRPMagField() const { return mGRPMagField; }
   auto getOrbitResetTimeMS() const { return mOrbitResetTimeMS; }
-
   static int getNHBFPerTF();
 
  private:
