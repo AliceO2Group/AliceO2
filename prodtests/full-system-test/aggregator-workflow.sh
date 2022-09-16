@@ -113,7 +113,7 @@ if workflow_has_parameter CALIB_PROXIES; then
           FLP_ADDRESS="tcp://alio2-cr1-flp-ib${flp}:${TPC_IDC_FLP_PORT}"
           CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
         done
-        add_W o2-dpl-raw-proxy "--proxy-name tpc-idc-merger-proxy --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+        add_W o2-dpl-raw-proxy "--proxy-name tpcidc_flp001 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
       else
         add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both input)" "" 0
       fi
