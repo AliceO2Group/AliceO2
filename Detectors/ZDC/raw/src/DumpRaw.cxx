@@ -403,7 +403,7 @@ int DumpRaw::process(const EventChData& ch)
       mBitsH->Fill(ih, 0);
     }
   }
-  if(f.Hit){
+  if (f.Hit) {
     double bc_d = uint32_t(f.bc / 100);
     double bc_m = uint32_t(f.bc % 100);
     mBunchH[ih]->Fill(bc_m, -bc_d);
