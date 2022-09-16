@@ -55,6 +55,7 @@ class DumpRaw
   std::unique_ptr<TH2> mSignalT[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchH[NDigiChannels] = {nullptr};
   EventChData mCh;
 };
 } // namespace zdc
