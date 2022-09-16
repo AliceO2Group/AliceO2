@@ -83,6 +83,9 @@ class MCTrackT
   /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
 
+  /// return particle weight
+  _T getWeight() const { return mWeight; }
+
   Double_t GetEnergy() const;
 
   // Alternative accessors with TParticle like shorter names
@@ -226,6 +229,9 @@ class MCTrackT
   /// Coordinates of start vertex [cm, ns]
   _T mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
 
+  /// particle weight
+  _T mWeight;
+
   ///  PDG particle code
   Int_t mPdgCode;
 
@@ -304,7 +310,8 @@ inline MCTrackT<T>::MCTrackT()
     mStartVertexCoordinatesY(0.),
     mStartVertexCoordinatesZ(0.),
     mStartVertexCoordinatesT(0.),
-    mProp(0)
+    mProp(0),
+    mWeight(0)
 {
 }
 
@@ -324,7 +331,8 @@ inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t secondMotherId
     mStartVertexCoordinatesY(y),
     mStartVertexCoordinatesZ(z),
     mStartVertexCoordinatesT(t),
-    mProp(mask)
+    mProp(mask),
+    mWeight(0)
 {
 }
 
@@ -342,6 +350,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     mStartVertexCoordinatesY(part.Vy()),
     mStartVertexCoordinatesZ(part.Vz()),
     mStartVertexCoordinatesT(part.T() * 1e09),
+    mWeight(part.GetWeight()),
     mProp(0),
     mStatusCode(0)
 {
