@@ -100,7 +100,8 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       _GPUParam.SetDefaults(&config.configGRP, &config.configReconstruction, &config.configProcessing, nullptr);
       std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr;
       if (globalConfig.zsOnTheFlyDigitsFilter) {
-        digitsFilter = [](std::vector<o2::tpc::Digit>& digits) { LOG(info) << "Running TPC digits IonTail filter"; IonTailCorrection itCorr; itCorr.filterDigitsDirect(digits); };
+        IonTailCorrection itCorr;
+        digitsFilter = [&itCorr](std::vector<o2::tpc::Digit>& digits) { LOG(info) << "Running TPC digits IonTail filter"; itCorr.filterDigitsDirect(digits); };
       }
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
@@ -197,7 +198,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
                            {createInputSpecs()},
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction)};
-} //spec end
+} // spec end
 
 DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
 {
