@@ -144,10 +144,20 @@ class CalArray
     return *this;
   }
 
+  template <typename U = T>
+  U getMean() const
+  {
+    const auto& vals = mData;
+    const U nVal = static_cast<U>(vals.size());
+    const U sum = std::accumulate(vals.begin(), vals.end(), 0.f);
+
+    return (nVal > 0) ? sum / nVal : U{0};
+  }
+
  private:
   std::string mName;
   // better to use std::array?
-  //std::vector<T, Vc::Allocator<T>> mData;
+  // std::vector<T, Vc::Allocator<T>> mData;
   // how to use Vc::Allocator in this case? Specialisation for float, double, etc?
   std::vector<T> mData; ///< calibration data
   PadSubset mPadSubset; ///< Subset type
