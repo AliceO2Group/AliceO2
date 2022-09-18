@@ -48,12 +48,15 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoBadChannelMapVector() { return mCcdbInfoBadChannelMapVec; }
   const std::vector<o2::cpv::BadChannelMap>& getBadChannelMapVector() const { return mBadChannelMapVec; }
 
-  void setPedEfficiencies(std::vector<float>* pedEffs) { mPedEfficiencies.reset(pedEffs); }
-  void setDeadChannels(std::vector<int>* deadChs) { mDeadChannels.reset(deadChs); }
-  void setHighPedChannels(std::vector<int>* highPeds) { mHighPedChannels.reset(highPeds); }
-  bool isSettedPedEfficiencies() { return mPedEfficiencies.get() == nullptr ? false : true; }
-  bool isSettedDeadChannels() { return mDeadChannels.get() == nullptr ? false : true; }
-  bool isSettedHighPedChannels() { return mHighPedChannels.get() == nullptr ? false : true; }
+  void setPedEfficiencies(std::vector<float>* pedEffs) { mPedEfficiencies = pedEffs; }
+  void setDeadChannels(std::vector<int>* deadChs) { mDeadChannels = deadChs; }
+  void setHighPedChannels(std::vector<int>* highPeds) { mHighPedChannels = highPeds; }
+  void setPersistentBadChannels(std::vector<int>* persBadChs) { mPersistentBadChannels = persBadChs; }
+
+  bool isSettedPedEfficiencies() { return mPedEfficiencies == nullptr ? false : true; }
+  bool isSettedDeadChannels() { return mDeadChannels == nullptr ? false : true; }
+  bool isSettedHighPedChannels() { return mHighPedChannels == nullptr ? false : true; }
+  bool isSettedPersistentBadChannels() { return mPersistentBadChannels == nullptr ? false : true; }
 
   bool hasEnoughData(const NoiseTimeSlot& slot) const final
   {
@@ -66,9 +69,10 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   void configParameters();
 
  private:
-  std::unique_ptr<std::vector<float>> mPedEfficiencies = nullptr;
-  std::unique_ptr<std::vector<int>> mDeadChannels = nullptr;
-  std::unique_ptr<std::vector<int>> mHighPedChannels = nullptr;
+  std::vector<float>* mPedEfficiencies = nullptr;
+  std::vector<int>* mDeadChannels = nullptr;
+  std::vector<int>* mHighPedChannels = nullptr;
+  std::vector<int>* mPersistentBadChannels = nullptr;
   uint32_t mMinEvents = 100;
   float mNoiseFrequencyCriteria = 0.5; // how often channel should appear to be considered as noisy
   float mToleratedChannelEfficiencyLow = 0.9;
