@@ -117,7 +117,7 @@ TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t de
   return scaledImage;
 }
 
-void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime)
+std::string Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -188,39 +188,28 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
     delete scaledImage;
   }
 
-  bool logo = true;
-  if (logo) {
-    TASImage* aliceLogo = new TASImage(settings.GetValue("screenshot.logo.alice", "alice-white.png"));
-    if (aliceLogo->IsValid()) {
-      double ratio = 1434. / 1939.;
-      aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
-      image->Merge(aliceLogo, "alphablend", 20, 20);
-    }
-    delete aliceLogo;
+  TASImage* aliceLogo = new TASImage(settings.GetValue("screenshot.logo.alice", "alice-white.png"));
+  if (aliceLogo->IsValid()) {
+    double ratio = (double)(aliceLogo->GetWidth()) / (double)(aliceLogo->GetHeight());
+    ;
+    aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
+    image->Merge(aliceLogo, "alphablend", 0.01 * width, 0.01 * width);
   }
+  delete aliceLogo;
 
-  int fontSize = 0.015 * height;
-  int textX;
-  int textLineHeight = 0.015 * height;
-  int textY;
+  TASImage* o2Logo = new TASImage(settings.GetValue("screenshot.logo.o2", "o2.png"));
+  int o2LogoMarginX = 0.01 * width;
+  int o2LogoMarginY = 0.01 * width;
+  int o2LogoSize = 0.04 * width;
 
-  if (logo) {
-    TASImage* o2Logo = new TASImage(settings.GetValue("screenshot.logo.o2", "o2.png"));
-    if (o2Logo->IsValid()) {
-      double ratio = (double)(o2Logo->GetWidth()) / (double)(o2Logo->GetHeight());
-      int o2LogoX = 0.01 * width;
-      int o2LogoY = 0.01 * width;
-      int o2LogoSize = 0.04 * width;
-      o2Logo->Scale(o2LogoSize, o2LogoSize / ratio);
-      image->Merge(o2Logo, "alphablend", o2LogoX, height - o2LogoSize / ratio - o2LogoY);
-      textX = o2LogoX + o2LogoSize + o2LogoX;
-      textY = height - o2LogoSize / ratio - o2LogoY;
-    } else {
-      textX = 229;
-      textY = 1926;
-    }
-    delete o2Logo;
+  if (o2Logo->IsValid()) {
+    double ratio = (double)(o2Logo->GetWidth()) / (double)(o2Logo->GetHeight());
+    o2Logo->Scale(o2LogoSize, o2LogoSize / ratio);
+    image->Merge(o2Logo, "alphablend", o2LogoMarginX, height - o2LogoSize / ratio - o2LogoMarginY);
   }
+  delete o2Logo;
+  int textX = o2LogoMarginX + o2LogoSize + o2LogoMarginX;
+  int textY = height - o2LogoSize - o2LogoMarginY;
 
   auto detectorsString = detectors::DetID::getNames(detectorsMask);
 
@@ -233,6 +222,8 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
   }
 
   image->BeginPaint();
+  int fontSize = 0.015 * height;
+  int textLineHeight = 0.015 * height;
 
   for (int i = 0; i < 4; i++) {
     image->DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
@@ -241,6 +232,7 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
 
   image->WriteImage(fileName.c_str(), TImage::kPng);
   delete image;
+  return fileName; // saved screenshod file name
 }
 
 } // namespace event_visualisation
