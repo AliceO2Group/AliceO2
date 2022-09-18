@@ -106,7 +106,7 @@ class RCombinedDSColumnJoinIndex : public RCombinedDSIndex
     auto nEntries = *right->Count();
     fAssociations.reserve(nEntries);
     // Fill the index with the associations
-    auto filler = [& assoc = fAssociations](INDEX_TYPE ri) { assoc.push_back(ri); };
+    auto filler = [&assoc = fAssociations](INDEX_TYPE ri) { assoc.push_back(ri); };
     right->Foreach(filler, std::vector<std::string>{fIndexColumnName});
 
     // Create the ranges by processing 64 entries per range

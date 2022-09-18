@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FairMQResizableBuffer.h"
+#include "Framework/FairMQResizableBuffer.h"
 #include <fairmq/Message.h>
 #include <arrow/status.h>
 #include <arrow/util/config.h>

@@ -15,12 +15,11 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/TableBuilder.h"
-#include "../src/FairMQResizableBuffer.h"
+#include "Framework/FairMQResizableBuffer.h"
 #include <fairmq/TransportFactory.h>
 #include <cstring>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
-#include <ROOT/RDataFrame.hxx>
 #include <arrow/util/config.h>
 
 using namespace o2::framework;
@@ -117,32 +116,4 @@ BOOST_AUTO_TEST_CASE(TestContents)
   BOOST_REQUIRE_EQUAL(buffer.capacity(), 9000);
   BOOST_REQUIRE_EQUAL(buffer.size(), 40);
   BOOST_REQUIRE(strncmp((const char*)buffer.data(), "foo", 3) == 0);
-}
-
-BOOST_AUTO_TEST_CASE(TestStreaming)
-{
-  using namespace o2::framework;
-  /// Create a dummy table
-  TableBuilder builder;
-  ROOT::RDataFrame rdf(100);
-  auto t = rdf.Define("x", "1")
-             .Define("y", "2")
-             .Define("z", "x+y");
-  t.ForeachSlot(builder.persist<int, int>({"x", "z"}), {"x", "z"});
-
-  auto table = builder.finalize();
-  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto creator = [&transport](size_t size) -> std::unique_ptr<fair::mq::Message> {
-    return transport->CreateMessage(size);
-  };
-  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
-  /// Writing to a stream
-  auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
-  auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-  auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
-  if (outStatus.ok() == false) {
-    throw std::runtime_error("Unable to Write table");
-  }
-
-  std::unique_ptr<fair::mq::Message> payload = buffer->Finalise();
 }
