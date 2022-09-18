@@ -149,7 +149,9 @@ fi
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # PrimVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
-    add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=55000"
+    if [[ -z $TFPERSLOTS_MEANVTX ]]; then TFPERSLOTS_MEANVTX=55000; fi
+    DELAYINTFS_MEANVTX="10"
+    add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=$TFPERSLOTS_MEANVTX;MeanVertexCalib.maxTFdelay=$DELAYINTFS_MEANVTX"
   fi
 
   # TOF
