@@ -16,8 +16,8 @@
 #include "Framework/ArrowContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/FairMQResizableBuffer.h"
 #include "Headers/Stack.h"
-#include "FairMQResizableBuffer.h"
 
 #include <fairmq/Device.h>
 

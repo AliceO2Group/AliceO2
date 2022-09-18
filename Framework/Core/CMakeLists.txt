@@ -15,7 +15,6 @@ o2_add_library(Framework
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
-                       src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/CallbacksPolicy.cxx
@@ -104,7 +103,6 @@ o2_add_library(Framework
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
-                       src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
@@ -155,7 +153,6 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
                                      Microsoft.GSL::GSL
-                                     ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
                                      ${BOOST_FILESYSTEM}
                                      arrow::gandiva_shared
