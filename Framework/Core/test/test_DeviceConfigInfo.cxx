@@ -94,10 +94,21 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   BOOST_CHECK(strncmp(match.beginValue, "bar", 3) == 0);
   BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
 
+  // Parse a simple configuration bit with a space in the value
+  configString = "foo[XX:XX:XX][INFO] [CONFIG] foo=bar and foo 1789372894 prov\n";
+  std::string_view configWithSpace{configString.data() + 3, configString.size() - 4};
+  BOOST_REQUIRE_EQUAL(configWithSpace, std::string("[XX:XX:XX][INFO] [CONFIG] foo=bar and foo 1789372894 prov"));
+  result = DeviceConfigHelper::parseConfig(configWithSpace, match);
+  BOOST_REQUIRE_EQUAL(result, true);
+  BOOST_CHECK(strncmp(match.beginKey, "foo", 3) == 0);
+  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+  BOOST_CHECK(strncmp(match.beginValue, "bar and foo", 11) == 0);
+  BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
+
   // Process a given config entry
   result = DeviceConfigHelper::processConfig(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.currentConfig.get<std::string>("foo"), "bar");
+  BOOST_CHECK_EQUAL(info.currentConfig.get<std::string>("foo"), "bar and foo");
   BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("foo"), "prov");
 
   // Parse an array
