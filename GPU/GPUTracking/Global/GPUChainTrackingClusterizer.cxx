@@ -643,6 +643,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             case ZSVersionLinkBasedWithMeta:
               runKernel<GPUTPCCFDecodeZSLink>(GetGridBlk(nBlocks, lane), {iSlice}, {}, firstHBF);
               break;
+            case ZSVersionDenseLinkBased:
+              runKernel<GPUTPCCFDecodeZSDenseLink>(GetGridBlk(nBlocks, lane), {iSlice}, {}, firstHBF);
+              break;
           }
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         }
