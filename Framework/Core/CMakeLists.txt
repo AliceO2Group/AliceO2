@@ -138,8 +138,7 @@ o2_add_library(Framework
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
-                                     AliceO2::Configuration
+               PUBLIC_LINK_LIBRARIES AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
                                      CURL::libcurl
