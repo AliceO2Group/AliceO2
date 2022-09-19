@@ -66,8 +66,8 @@ class CcdbApi //: public DatabaseInterface
   /**
    * Initialize connection to CCDB
    *
-   * @param hosts The URLs to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot"),
-   * separated with "," or ";" ("https://localhost:8080,https://ccdb-test.cern.ch:8080")
+   * @param hosts The URLs to the CCDB (e.g. "alice-ccdb.cern.ch" or to a local snapshot "file:///tmp/CCDBSnapshot"),
+   * separated with "," or ";" ("https://localhost:8080,https://alice-ccdb.cern.ch")
    */
   void init(std::string const& hosts);
 

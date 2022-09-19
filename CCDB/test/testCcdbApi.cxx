@@ -55,7 +55,7 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
-    ccdbUrl = "http://ccdb-test.cern.ch:8080";
+    ccdbUrl = "http://alice-ccdb.cern.ch";
     api.init(ccdbUrl);
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
@@ -443,13 +443,13 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   std::vector<std::string> headers;
   std::vector<std::string> pfns;
   string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
-  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
+  auto updated = CcdbApi::getCCDBEntryHeaders("http://alice-ccdb.cern.ch/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, true);
   BOOST_REQUIRE(headers.size() != 0);
   CcdbApi::parseCCDBHeaders(headers, pfns, etag);
   BOOST_REQUIRE(etag != "");
   BOOST_REQUIRE(pfns.size());
-  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
+  updated = CcdbApi::getCCDBEntryHeaders("http://alice-ccdb.cern.ch/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
 }
 

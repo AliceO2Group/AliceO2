@@ -18,11 +18,11 @@ There are currently 2 different kinds of store/retrieve functions, which we expe
 
 ## Central and local instances of the CCDB
 
-There is a test central CCDB at [http://ccdb-test.cern.ch:8080](http://ccdb-test.cern.ch:8080). Feel free to use it. If you prefer to use a local instance, you can follow the instructions [here](https://docs.google.com/document/d/1_GM6yY7ejVEIRi1y8Ooc9ongrGgZyCiks6Ca0OAEav8).
+There is a test central CCDB at [http://alice-ccdb.cern.ch](http://alice-ccdb.cern.ch). Feel free to use it. If you prefer to use a local instance, you can follow the instructions [here](https://docs.google.com/document/d/1_GM6yY7ejVEIRi1y8Ooc9ongrGgZyCiks6Ca0OAEav8).
 
 ## Access with a browser
 
-If you access the CCDB with a web browser, add `/browse` at the end of the URL to have a user readable interface. Moreover, using `/browse/?report=true` will provide details on the number of files and the size of the folders (e.g. http://ccdb-test.cern.ch:8080/browse/?report=true).
+If you access the CCDB with a web browser, add `/browse` at the end of the URL to have a user readable interface. Moreover, using `/browse/?report=true` will provide details on the number of files and the size of the folders (e.g. http://alice-ccdb.cern.ch/browse/?report=true).
 
 ## Example Usage
 
@@ -32,7 +32,7 @@ If you access the CCDB with a web browser, add `/browse` at the end of the URL t
 // init
 CcdbApi api;
 map<string, string> metadata; // can be empty
-api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+api.init("http://alice-ccdb.cern.ch"); // or http://localhost:8080 for a local installation
 // store abitrary user object in strongly typed manner
 auto deadpixels = new o2::FOO::DeadPixelMap();
 api.storeAsTFileAny(deadpixels, "FOO/DeadPixels", metadata);
@@ -51,7 +51,7 @@ std::map<std::string, std::string> headers = f.api.retrieveHeaders("FOO/DeadPixe
 // init
 CcdbApi api;
 map<string, string> metadata; // can be empty
-api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+api.init("http://alice-ccdb.cern.ch"); // or http://localhost:8080 for a local installation
 // create a local snapshot of everthing in or below the FOO folder valid for timestamp 12345
 api.snapshot("FOO", "/tmp/CCDBSnapshot/", 12345);
 

@@ -22,7 +22,7 @@ namespace bpo = boost::program_options;
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
   options.add_options()(
-    "host", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
+    "host", bpo::value<std::string>()->default_value("alice-ccdb.cern.ch"), "CCDB server")(
     "path,p", bpo::value<std::vector<std::string>>()->multitoken(), "CCDB path (identifies the object) [or space separated list of paths for batch processing]")(
     "dest,d", bpo::value<std::string>()->default_value("./"), "destination path")(
     "no-preserve-path", "Do not preserve path structure. If not set, the full path structure -- reflecting the '--path' argument will be put.")(

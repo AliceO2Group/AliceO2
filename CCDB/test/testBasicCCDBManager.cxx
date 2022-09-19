@@ -27,7 +27,7 @@
 using namespace o2::ccdb;
 
 static string basePath;
-std::string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+std::string ccdbUrl = "http://alice-ccdb.cern.ch";
 bool hostReachable = false;
 
 /**

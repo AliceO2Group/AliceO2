@@ -35,7 +35,7 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
-    ccdbUrl = "https://localhost:22,https://localhost:8080,http://ccdb-test.cern.ch:8080";
+    ccdbUrl = "https://localhost:22,https://localhost:8080,http://alice-ccdb.cern.ch";
     api.init(ccdbUrl);
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
