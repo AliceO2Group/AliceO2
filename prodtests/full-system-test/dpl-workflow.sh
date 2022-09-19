@@ -307,7 +307,9 @@ if [[ $CTFINPUT == 1 ]]; then
   [[ ! -z $INPUT_FILE_LIST ]] && CTFName=$INPUT_FILE_LIST
   if [[ -z $CTFName && $WORKFLOWMODE != "print" ]]; then echo "No CTF file given!"; exit 1; fi
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
-  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
+  CTF_EMC_SUBSPEC=
+  workflow_has_parameter AOD && has_detector EMC && CTF_EMC_SUBSPEC="--emcal-decoded-subspec 1"
+  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS $CTF_EMC_SUBSPEC --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
 elif [[ $RAWTFINPUT == 1 ]]; then
   TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
   [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
@@ -419,6 +421,10 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows needed only in case QC or CALIB was requested
 ( has_detector_qc PHS || has_detector_calib PHS ) && ( workflow_has_parameter QC || workflow_has_parameter CALIB ) && add_W o2-phos-reco-workflow "--input-type cells --output-type clusters ${PHS_CONFIG} $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N PHOSClusterizerSpec PHS REST 1)"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Reconstruction workflows applying detector-specific calibrations
+workflow_has_parameter AOD && has_detector EMC && add_W o2-emcal-cell-recalibrator-workflow "--input-subspec 1 --output-subspec 0"
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
