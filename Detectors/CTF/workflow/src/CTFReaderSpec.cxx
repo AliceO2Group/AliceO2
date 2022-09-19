@@ -301,14 +301,14 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   // do we need to way to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  auto tDiff = tNow - mLastSendTime;
   if (mCTFCounter) {
+    auto tDiff = tNow - mLastSendTime;
     if (tDiff < mInput.delay_us) {
       pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
+  LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, mCTFCounter ? 1e-6 * (tNow - mLastSendTime) : 0.);
   mLastSendTime = tNow;
   mCTFCounter++;
 }
