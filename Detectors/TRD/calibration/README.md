@@ -34,6 +34,16 @@ These can be compared afterwards by running:
 
     o2-calibration-trd-vdrift-exb -b --enable-root-input
 
+You can plot the calibration values for VDrift and ExB for a given Run by using the macro at `Detectors/TRD/cailbration/macros/plotVdriftExB.C`.
+This produces a root file of similar name which holds the time-series plots (reference the macro).
+The time needs to be given in Unix Epoch in ms.
+Convert the time/date by using these commands:
+
+    # Date to seconds (multiply 1000 for ms)
+    date -d "01:22 2022-06-27" +%s
+    # Seconds to Date
+    date -d @1656285720
+
 ## DCS data points
 
 To process the DCS data points for the TRD the list of aliases for example "trd_gaschromatographXe" has to be available in the CCDB. 
