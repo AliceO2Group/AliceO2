@@ -26,9 +26,9 @@ namespace calibration
 struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexParams> {
 
   int minEntries = 100;
-  int nbinsX = 100;
+  int nbinsX = 500;
   float rangeX = 1.f;
-  int nbinsY = 100;
+  int nbinsY = 500;
   float rangeY = 1.f;
   int nbinsZ = 100;
   float rangeZ = 20.f;
