@@ -26,12 +26,6 @@
 using namespace o2::ctp;
 void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 {
-  o2::ccdb::CcdbApi cdb;
-  cdb.init("http://alice-ccdb.cern.ch");
-  int runNumber = 518420;
-  // std::string srun = "519044";
-  // std::string srun = "519045";
-  // std::string srun = "519502";
   std::map<std::string, std::string> metadata;
   metadata["runNumber"] = srun;
   // auto hd = cdb.retrieveHeaders("RCT/Info/RunInformation", {}, runNumber);
@@ -40,16 +34,21 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   CTPConfiguration ctpcfg;
   CTPRunScalers scl;
   CTPRunManager mng;
-  mng.setCCDBHost("http://ccdb-test.cern.ch:8080");
+  mng.setCCDBHost(ccdbHost);
   // mng.setCCDBPathScalers("CTP/Scalers");
-  scl = mng.getScalersFromCCDB(time, srun);
-  scl.convertRawToO2();
-  scl.printStream(std::cout);
-  // scl.printRates();
-  scl.printIntegrals();
-  ctpcfg = mng.getConfigFromCCDB(time, srun);
-  // std::vector<int> clsses;
-  // clsses = ctpcfg.getTriggerClassList();
-  // std::cout << clsses.size() << std::endl;
-  // for(auto const& i : clsses) std::cout << i << std::endl;
+  bool ok;
+  scl = mng.getScalersFromCCDB(time, srun, ok);
+  if (ok == 1) {
+    scl.convertRawToO2();
+    scl.printStream(std::cout);
+    // scl.printRates();
+    scl.printIntegrals();
+    ctpcfg = mng.getConfigFromCCDB(time, srun);
+    // std::vector<int> clsses;
+    // clsses = ctpcfg.getTriggerClassList();
+    // std::cout << clsses.size() << std::endl;
+    // for(auto const& i : clsses) std::cout << i << std::endl;
+  } else {
+    std::cout << "Can not find run, please, check parameters" << std::endl;
+  }
 }
