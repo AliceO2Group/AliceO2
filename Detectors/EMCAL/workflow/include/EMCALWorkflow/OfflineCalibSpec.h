@@ -59,6 +59,8 @@ class OfflineCalibSpec : public framework::Task
  private:
   std::unique_ptr<TH2> mCellAmplitude;         ///< Cell energy vs. cell ID
   std::unique_ptr<TH2> mCellTime;              ///< Cell time vs. cell ID
+  std::unique_ptr<TH2> mCellTimeLG;            ///< Cell time vs. cell ID for low gain cells
+  std::unique_ptr<TH2> mCellTimeHG;            ///< Cell time vs. cell ID for high gain cells
   std::unique_ptr<TH1> mNevents;               ///< Number of events
   std::unique_ptr<THnSparseF> mCellTimeEnergy; ///< ID, time, energy
   bool mMakeCellIDTimeEnergy = true;           ///< Switch whether or not to make a THnSparseF of cell ID, time, and energy
