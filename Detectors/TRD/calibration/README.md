@@ -23,6 +23,17 @@ If you want to run the calibration from a local file with residuals, trdangreshi
 
     o2-calibration-trd-vdrift-exb -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1 --min-entries 50000'
 
+Additionally it is possible to perform the calibrations fit manually per chamber if you have TPC-TRD or ITS-TPC-TRD tracks, you can run:
+   
+   o2-trd-global-tracking -b --enable-trackbased-calib
+   
+This produces `trdangreshistos.root` which holds the residuals of the angles and differences.
+Then run the macro `Detectors/TRD/calibration/macros/manualCalibFit.C`.
+This produces a file of similar name with the fitted data and prints out the fit results.
+These can be compared afterwards by running:
+
+    o2-calibration-trd-vdrift-exb -b --enable-root-input
+
 ## DCS data points
 
 To process the DCS data points for the TRD the list of aliases for example "trd_gaschromatographXe" has to be available in the CCDB. 
