@@ -31,6 +31,10 @@ void OfflineCalibSpec::init(o2::framework::InitContext& ctx)
   mCellAmplitude = std::unique_ptr<TH2>(new TH2F("mCellAmplitude", "Cell amplitude", 800, 0., 40., 17664, -0.5, 17663.5));
   // time vs. cell ID
   mCellTime = std::unique_ptr<TH2>(new TH2F("mCellTime", "Cell time", 800, -200, 600, 17664, -0.5, 17663.5));
+  // time vs. cell ID
+  mCellTimeLG = std::unique_ptr<TH2>(new TH2F("mCellTimeLG", "Cell time (low gain)", 800, -200, 600, 17664, -0.5, 17663.5));
+  // time vs. cell ID
+  mCellTimeHG = std::unique_ptr<TH2>(new TH2F("mCellTimeHG", "Cell time (high gain)", 800, -200, 600, 17664, -0.5, 17663.5));
   // number of events
   mNevents = std::unique_ptr<TH1>(new TH1F("mNevents", "Number of events", 1, 0.5, 1.5));
   if (mMakeCellIDTimeEnergy) {
@@ -69,9 +73,15 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
         LOG(debug) << "[EMCALOfflineSpec - run] Channel: " << c.getTower();
         LOG(debug) << "[EMCALOfflineSpec - run] Energy: " << c.getEnergy();
         LOG(debug) << "[EMCALOfflineSpec - run] Time: " << c.getTimeStamp();
+        LOG(debug) << "[EMCALOfflineSpec - run] IsLowGain: " << c.getLowGain();
         mCellAmplitude->Fill(c.getEnergy(), c.getTower());
         if (c.getEnergy() > 0.5) {
           mCellTime->Fill(c.getTimeStamp(), c.getTower());
+          if (c.getLowGain()) {
+            mCellTimeLG->Fill(c.getTimeStamp(), c.getTower());
+          } else { // high gain cells
+            mCellTimeHG->Fill(c.getTimeStamp(), c.getTower());
+          }
           if (mMakeCellIDTimeEnergy) {
             mCellTimeEnergy->Fill(c.getTower(), c.getTimeStamp(), c.getEnergy());
           }
@@ -89,6 +99,8 @@ void OfflineCalibSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   outputFile->cd();
   mCellAmplitude->Write();
   mCellTime->Write();
+  mCellTimeLG->Write();
+  mCellTimeHG->Write();
   mNevents->Write();
   if (mMakeCellIDTimeEnergy) {
     mCellTimeEnergy->Write();
