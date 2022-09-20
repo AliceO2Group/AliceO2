@@ -102,6 +102,7 @@ o2_add_library(Framework
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
+                       src/Plugin.cxx
                        src/RateLimiter.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
