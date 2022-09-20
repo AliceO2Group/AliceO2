@@ -11,8 +11,6 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSOR_H_
 #define O2_FRAMEWORK_DATAPROCESSOR_H_
 
-#include <fairmq/FwdDecls.h>
-
 namespace o2::framework
 {
 
