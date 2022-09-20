@@ -15,7 +15,7 @@ The histograms are send to aggregator nodes which calculate for each TRD chamber
 
 To run the calibration one can start the following workflow:
 
-    o2-trd-global-tracking -b --disable-root-output | o2-calibration-trd-vdrift-exb -b --calib-vdexb-calibration '--tf-per-slot 5 --min-entries 50000 --max-delay 90000'
+    o2-trd-global-tracking -b --disable-root-output --enable-trackbased-calib | o2-calibration-trd-vdrift-exb -b --calib-vdexb-calibration '--tf-per-slot 5 --min-entries 50000 --max-delay 90000'
 
 *Hint: You can get information on the meaning of the parameters by running `o2-calibration-trd-vdrift-exb -b --help full`*
 
