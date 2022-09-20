@@ -36,13 +36,14 @@ static std::array<std::vector<std::tuple<double, double, timePoint>>, 540> vmap;
 static std::array<bool, 540> good;                                               // Marks wether or not a chamber was 'good' for the entire duration.
 
 // Download the values and populate the map.
-void ccdbDownload(timePoint startTimeRun, unsigned int runNumber, std::string ccdb, timePoint timeOffset)
+void ccdbDownload(unsigned int runNumber, std::string ccdb, timePoint timeOffset)
 {
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL("http://alice-ccdb.cern.ch/");
+  auto runDuration = ccdbMgr.getRunDuration(runNumber);
   std::map<std::string, std::string> md;
   md["runNumber"] = std::to_string(runNumber);
-  const auto* grp = ccdbMgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", startTimeRun, md);
+  const auto* grp = ccdbMgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", (runDuration.first + runDuration.second) / 2, md);
   grp->print();
   const auto startTime = grp->getTimeStart();
   const auto endTime = grp->getTimeEnd();
@@ -118,9 +119,9 @@ std::unique_ptr<TMultiGraph> draw(int i)
 // The times must be given in unix epoch ms format.
 // The default Run is 523677 for the test ccdb.
 // The offset for the next calibration is 15 Minutes.
-void plotVdriftExB(timePoint startTimeRun = 1660926835751, unsigned int runNumber = 523677, std::string ccdb = "http://ccdb-test.cern.ch:8080", timePoint timeOffset = 899991)
+void plotVdriftExB(unsigned int runNumber = 523677, std::string ccdb = "http://ccdb-test.cern.ch:8080", timePoint timeOffset = 899991)
 {
-  ccdbDownload(startTimeRun, runNumber, ccdb, timeOffset);
+  ccdbDownload(runNumber, ccdb, timeOffset);
   find_good();
   print_good();
 
