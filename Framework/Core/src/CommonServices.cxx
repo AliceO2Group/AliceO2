@@ -672,26 +672,29 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
 //        This should probably be done by overriding the preFork
 //        callback and using the boost program options there to
 //        get the default number of threads.
-o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
+o2::framework::ServiceSpec* CommonServices::threadPool(int numWorkers)
 {
-  return ServiceSpec{
+  return new ServiceSpec{
     .name = "threadpool",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       ThreadPool* pool = new ThreadPool();
       // FIXME: this will require some extra argument for the configuration context of a service
-      pool->poolSize = 1;
+      pool->poolSize = 2;
+      LOGP(info, "Created thread pool with {} threads", pool->poolSize);
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
     .configure = [](InitContext&, void* service) -> void* {
       ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
       // FIXME: this will require some extra argument for the configuration context of a service
-      t->poolSize = 1;
+      LOGP(info, "Configuring thread pool with {} threads", t->poolSize);
+      t->poolSize = 2;
       return service;
     },
     .postForkParent = [](ServiceRegistry& services) -> void {
       // FIXME: this will require some extra argument for the configuration context of a service
-      auto numWorkersS = std::to_string(1);
+      auto numWorkersS = std::to_string(2);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
+      LOGP(info, "Setting UV_THREADPOOL_SIZE to {}", numWorkersS);
     },
     .kind = ServiceKind::Serial};
 }
@@ -951,9 +954,6 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   }
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
-  if (numThreads) {
-    specs.push_back(threadPool(numThreads));
-  }
   return specs;
 }
 
