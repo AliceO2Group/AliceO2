@@ -30,7 +30,8 @@ struct CommonMessageBackendsHelpers {
   static ServiceInit createCallback()
   {
     return [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) {
-      auto& proxy = services.get<FairMQDeviceProxy>();
+      ServiceRegistryRef ref{services};
+      auto& proxy = ref.get<FairMQDeviceProxy>();
       return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(proxy)};
     };
   }

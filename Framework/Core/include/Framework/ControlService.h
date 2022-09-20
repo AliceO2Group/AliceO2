@@ -13,12 +13,12 @@
 
 #include "Framework/ThreadSafetyAnalysis.h"
 #include "Framework/ServiceHandle.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <mutex>
 
 namespace o2::framework
 {
 
-struct ServiceRegistry;
 struct DeviceState;
 struct DriverClient;
 
@@ -40,7 +40,7 @@ class ControlService
  public:
   constexpr static ServiceKind service_kind = ServiceKind::Global;
 
-  ControlService(ServiceRegistry& registry, DeviceState& deviceState);
+  ControlService(ServiceRegistryRef registry, DeviceState& deviceState);
   /// Compatibility with old API.
   void readyToQuit(bool all) { this->readyToQuit(all ? QuitRequest::All : QuitRequest::Me); }
   /// Signal control that we are potentially ready to quit some / all
@@ -55,7 +55,7 @@ class ControlService
 
  private:
   bool mOnce = false;
-  ServiceRegistry& mRegistry;
+  ServiceRegistryRef mRegistry;
   DeviceState& mDeviceState GUARDED_BY(mMutex);
   DriverClient& mDriverClient GUARDED_BY(mMutex);
   std::mutex mMutex;

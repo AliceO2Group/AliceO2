@@ -15,6 +15,7 @@
 #include "Framework/SendingPolicy.h"
 #include "Framework/Tracing.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <fairmq/Message.h>
 #include <fairmq/Parts.h>
 #include <string>

@@ -13,12 +13,12 @@
 
 namespace o2::framework
 {
-class ServiceRegistry;
+class ServiceRegistryRef;
 
 class SpyServiceHelpers
 {
  public:
-  static void webGUI(ServiceRegistry& registry);
+  static void webGUI(ServiceRegistryRef registry);
 };
 } // namespace o2::framework
 

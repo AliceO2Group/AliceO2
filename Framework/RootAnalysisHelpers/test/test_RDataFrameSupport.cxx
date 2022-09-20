@@ -21,6 +21,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/FairMQResizableBuffer.h"
+#include "Framework/ServiceRegistry.h"
 #include <arrow/table.h>
 #include "Framework/RCombinedDS.h"
 #include <ROOT/RDataFrame.hxx>
@@ -348,7 +349,8 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
 {
   std::vector<OutputRoute> routes;
-  DataAllocator allocator(nullptr, routes);
+  ServiceRegistry registry;
+  DataAllocator allocator(ServiceRegistryRef{registry}, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require reference to object owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);

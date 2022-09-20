@@ -8,11 +8,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INPUTROUTE_H
-#define FRAMEWORK_INPUTROUTE_H
+#ifndef O2_FRAMEWORK_INPUTROUTE_H_
+#define O2_FRAMEWORK_INPUTROUTE_H_
 
 #include "Framework/ExpirationHandler.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ServiceRegistry.h"
 #include <cstddef>
 #include <string>
 #include <functional>
@@ -27,7 +28,7 @@ struct DeviceState;
 class ConfigParamRegistry;
 
 struct RouteConfigurator {
-  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistry&, ConfigParamRegistry const&)>;
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistryRef, ConfigParamRegistry const&)>;
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(DeviceState&, ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(DeviceState&, ConfigParamRegistry const&)>;
   std::string name = "unknown";
@@ -54,9 +55,9 @@ struct InputRoute {
   size_t inputSpecIndex;
   std::string sourceChannel;
   size_t timeslice;
-  std::optional<RouteConfigurator> configurator;
+  std::optional<RouteConfigurator> configurator = std::nullopt;
 };
 
 } // namespace o2::framework
 
-#endif // FRAMEWORK_INPUTROUTE_H
+#endif // O2_FRAMEWORK_INPUTROUTE_

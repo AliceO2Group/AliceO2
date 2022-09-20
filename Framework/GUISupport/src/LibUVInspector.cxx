@@ -11,7 +11,7 @@
 #include "LibUVInspector.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceSpec.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/CommonServices.h"
 #include "DebugGUI/imgui.h"
 #include "Framework/Logger.h"
@@ -27,7 +27,7 @@ ServiceSpec* LibUVInspectorGUIPlugin::create(void)
       return ServiceHandle{TypeIdHelpers::uniqueId<LibUVInspector>(), new LibUVInspector()};
     },
     .configure = CommonServices::noConfiguration(),
-    .postRenderGUI = [](ServiceRegistry& registry) { 
+    .postRenderGUI = [](ServiceRegistryRef registry) { 
       LOG(info) << "LibUVInspectorGUIPlugin::postRenderGUI";
       ImGui::Begin("LibUV Inspector");
       ImGui::End(); },

@@ -52,7 +52,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
       auto* proxy = new FairMQDeviceProxy();
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<FairMQDeviceProxy>(), .instance = proxy, .kind = ServiceKind::Serial};
     },
-    .start = [](ServiceRegistry& services, void* instance) {
+    .start = [](ServiceRegistryRef services, void* instance) {
       auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
       auto& outputs = services.get<DeviceSpec const>().outputs;
       auto& inputs = services.get<DeviceSpec const>().inputs;
@@ -71,10 +71,11 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
   return ServiceSpec{
     .name = "fairmq-backend",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto& proxy = services.get<FairMQDeviceProxy>();
+      ServiceRegistryRef ref{services};
+      auto& proxy = ref.get<FairMQDeviceProxy>();
       auto context = new MessageContext(proxy);
-      auto& spec = services.get<DeviceSpec const>();
-      auto& dataSender = services.get<DataSender>();
+      auto& spec = ref.get<DeviceSpec const>();
+      auto& dataSender = ref.get<DataSender>();
 
       auto dispatcher = [&dataSender](fair::mq::Parts&& parts, ChannelIndex channelIndex, unsigned int) {
         dataSender.send(parts, channelIndex);
@@ -127,5 +128,3 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
 }
 
 } // namespace o2::framework
-
-#pragma GCC diagnostic pop

@@ -20,6 +20,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Tracing.h"
 #include "Framework/TimesliceSlot.h"
+#include "ServiceRegistryRef.h"
 
 #include <cstddef>
 #include <mutex>
@@ -82,16 +83,14 @@ class DataRelayer
 
   DataRelayer(CompletionPolicy const&,
               std::vector<InputRoute> const& routes,
-              monitoring::Monitoring&,
-              TimesliceIndex&);
+              ServiceRegistryRef ref);
 
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
   /// @a createNew true if the dangling inputs are allowed to create new slots.
   /// @return true if there were expirations, false if not.
-  ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
-                                      ServiceRegistry& context, bool createNew);
+  ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&, bool createNew);
 
   using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
 
@@ -168,20 +167,14 @@ class DataRelayer
 
   /// Rescan the whole data to see if there is anything new we should do,
   /// e.g. as consequnce of an OOB event.
-  void rescan() { mTimesliceIndex.rescan(); };
+  void rescan() { mServices.get<TimesliceIndex>().rescan(); };
 
  private:
-  monitoring::Monitoring& mMetrics;
-
   /// This is the actual cache of all the parts in flight.
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
   std::vector<MessageSet> mCache;
-
-  /// This is the index which maps a given timestamp to the associated
-  /// cacheline.
-  TimesliceIndex& mTimesliceIndex;
 
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
@@ -197,6 +190,7 @@ class DataRelayer
   static std::vector<std::string> sQueriesMetricsNames;
 
   DataRelayerStats mStats;
+  ServiceRegistryRef mServices;
   TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 

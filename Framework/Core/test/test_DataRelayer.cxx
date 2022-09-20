@@ -21,6 +21,7 @@
 #include "Framework/DataRelayer.h"
 #include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/TransportFactory.h>
@@ -48,7 +49,11 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  ServiceRegistryRef ref{registry};
+  DataRelayer relayer(policy, inputs, ref);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -96,7 +101,10 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -156,7 +164,10 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
@@ -235,7 +246,10 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(3);
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
@@ -316,7 +330,10 @@ BOOST_AUTO_TEST_CASE(TestCache)
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   std::vector<InputChannelInfo> infos{1};
   TimesliceIndex index{1, infos};
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -392,7 +409,10 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -424,21 +444,21 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   };
 
   // This fills the cache, and then empties it.
-  auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
+  createMessage(dh1, DataProcessingHeader{0, 1});
   std::vector<RecordAction> ready1;
   relayer.getReadyToProcess(ready1);
   BOOST_REQUIRE_EQUAL(ready1.size(), 1);
   BOOST_CHECK_EQUAL(ready1[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready1[0].op, CompletionPolicy::CompletionOp::Process);
 
-  auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
+  createMessage(dh1, DataProcessingHeader{1, 1});
   std::vector<RecordAction> ready2;
   relayer.getReadyToProcess(ready2);
   BOOST_REQUIRE_EQUAL(ready2.size(), 1);
   BOOST_CHECK_EQUAL(ready2[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready2[0].op, CompletionPolicy::CompletionOp::Process);
 
-  auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
+  createMessage(dh2, DataProcessingHeader{1, 1});
   std::vector<RecordAction> ready3;
   relayer.getReadyToProcess(ready3);
   BOOST_REQUIRE_EQUAL(ready3.size(), 1);
@@ -463,7 +483,10 @@ BOOST_AUTO_TEST_CASE(TestClear)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(3);
 
@@ -490,14 +513,13 @@ BOOST_AUTO_TEST_CASE(TestClear)
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
     fair::mq::MessagePtr& header = messages[0];
-    fair::mq::MessagePtr& payload = messages[1];
     return relayer.relay(header->GetData(), messages.data(), messages.size());
   };
 
   // This fills the cache, and then empties it.
-  auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
-  auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
-  auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
+  createMessage(dh1, DataProcessingHeader{0, 1});
+  createMessage(dh1, DataProcessingHeader{1, 1});
+  createMessage(dh2, DataProcessingHeader{1, 1});
   relayer.clear();
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
@@ -521,7 +543,10 @@ BOOST_AUTO_TEST_CASE(TestTooMany)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(1);
 
@@ -579,7 +604,10 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(1);
 
@@ -622,9 +650,7 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   // This fills the cache, and then waits.
   messages[4] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{1, 1}});
   messages[5] = transport->CreateMessage(1000);
-  fair::mq::MessagePtr& header3 = messages[2];
-  fair::mq::MessagePtr& payload3 = messages[3];
-  auto action2 = relayer.relay(header2->GetData(), &messages[4], 2);
+  relayer.relay(header2->GetData(), &messages[4], 2);
   BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
   BOOST_CHECK_NE(header2.get(), nullptr);
   BOOST_CHECK_NE(payload2.get(), nullptr);
@@ -644,7 +670,10 @@ BOOST_AUTO_TEST_CASE(SplitPayloadPairs)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   DataHeader dh{"CLUSTERS", "TPC", 0};
@@ -696,7 +725,10 @@ BOOST_AUTO_TEST_CASE(SplitPayloadSequence)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  registry.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+  registry.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&metrics));
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");

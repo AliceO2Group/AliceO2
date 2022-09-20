@@ -164,7 +164,7 @@ void on_awake_main_thread(uv_async_t* handle)
   state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 
-WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port)
+WSDriverClient::WSDriverClient(ServiceRegistryRef registry, DeviceState& state, char const* ip, unsigned short port)
   : mSpec{registry.get<const DeviceSpec>()}
 {
   // Must connect the device to the server and send a websocket request.

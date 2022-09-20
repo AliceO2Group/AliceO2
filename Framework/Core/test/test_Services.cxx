@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/ServiceHandle.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/CallbackService.h"
 #include "Framework/CommonServices.h"
 #include <Framework/DeviceState.h>
@@ -56,14 +56,15 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
-  BOOST_CHECK(registry.get<InterfaceA>().method() == true);
-  BOOST_CHECK(registry.get<InterfaceB>().method() == false);
-  BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
+  ServiceRegistryRef ref{registry};
+  BOOST_CHECK(ref.get<InterfaceA>().method() == true);
+  BOOST_CHECK(ref.get<InterfaceB>().method() == false);
+  BOOST_CHECK(ref.get<InterfaceC const>().method() == false);
   BOOST_CHECK(registry.active<InterfaceA>() == true);
   BOOST_CHECK(registry.active<InterfaceB>() == true);
   BOOST_CHECK(registry.active<InterfaceC>() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), RuntimeErrorRef);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(), RuntimeErrorRef);
+  BOOST_CHECK_THROW(ref.get<InterfaceA const>(), RuntimeErrorRef);
+  BOOST_CHECK_THROW(ref.get<InterfaceC>(), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)
@@ -76,13 +77,14 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   // the callback simply sets the captured variable to indicated that it was called
   bool cbCalled = false;
   auto cb = [&]() { cbCalled = true; };
-  registry.get<CallbackService>().set(CallbackService::Id::Stop, cb);
+  ServiceRegistryRef ref{registry};
+  ref.get<CallbackService>().set(CallbackService::Id::Stop, cb);
 
   // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
+  BOOST_CHECK_THROW(ref.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
 
   // execute and check
-  registry.get<CallbackService>()(CallbackService::Id::Stop);
+  ref.get<CallbackService>()(CallbackService::Id::Stop);
   BOOST_CHECK(cbCalled);
 }
 

@@ -10,11 +10,12 @@
 // or submit itself to any jurisdiction.
 #include "TextDriverClient.h"
 #include "Framework/Logger.h"
+#include "Framework/ServiceRegistryRef.h"
 
 namespace o2::framework
 {
 
-TextDriverClient::TextDriverClient(ServiceRegistry& registry, DeviceState& deviceState)
+TextDriverClient::TextDriverClient(ServiceRegistryRef registry, DeviceState& deviceState)
 {
 }
 

@@ -12,7 +12,7 @@
 #define O2_FRAMEWORK_ERROR_CONTEXT_H_
 
 #include "Framework/InputRecord.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/RuntimeError.h"
 
 namespace o2::framework

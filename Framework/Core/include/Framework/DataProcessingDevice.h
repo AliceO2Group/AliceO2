@@ -114,7 +114,7 @@ struct TaskStreamInfo {
 };
 
 struct DeviceConfigurationHelpers {
-  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options);
+  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistryRef registry, const char* name, std::vector<ConfigParamSpec> const& options);
 };
 
 /// A device actually carrying out all the DPL

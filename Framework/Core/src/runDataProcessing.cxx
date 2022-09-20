@@ -526,8 +526,9 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       return;
     }
     size_t timestamp = uv_now(mContext.loop);
+    ServiceRegistryRef ref{*mContext.registry};
     for (auto& callback : *mContext.metricProcessingCallbacks) {
-      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+      callback(ref, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
     }
     for (auto& metricsInfo : *mContext.metrics) {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
@@ -1117,8 +1118,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
     decltype(r.fDevice) device;
     device = make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
-
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+    ServiceRegistryRef ref{serviceRegistry};
+    ref.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
     fair::Logger::SetConsoleColor(false);
 
@@ -1128,7 +1129,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
     }
     if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
+      ref.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
     }
   };
 
@@ -1753,9 +1754,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
             callback();
+            ServiceRegistryRef ref{serviceRegistry};
             for (auto& service : driverServices) {
               if (service.postRenderGUI) {
-                service.postRenderGUI(serviceRegistry);
+                service.postRenderGUI(ref);
               }
             }
           };
@@ -1924,8 +1926,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
           if (outputProcessing.didProcessMetric) {
             size_t timestamp = uv_now(loop);
+            auto ref = ServiceRegistryRef{serviceRegistry};
             for (auto& callback : metricProcessingCallbacks) {
-              callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+              callback(ref, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
             }
             for (auto& metricsInfo : metricsInfos) {
               std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
@@ -1968,8 +1971,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
         if (outputProcessing.didProcessMetric) {
           size_t timestamp = uv_now(loop);
+          auto ref = ServiceRegistryRef{serviceRegistry};
           for (auto& callback : metricProcessingCallbacks) {
-            callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+            callback(ref, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
           }
         }
         hasError = processSigChild(infos, runningWorkflow.devices);

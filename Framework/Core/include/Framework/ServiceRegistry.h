@@ -301,27 +301,6 @@ struct ServiceRegistry {
     auto result = this->getPos(typeHash, hasher(tid)) != -1;
     return result;
   }
-
-  /// Get a service for the given interface T. The returned reference exposed to
-  /// the user is actually of the last concrete type C registered, however this
-  /// should not be a problem.
-  template <typename T>
-  T& get() const
-  {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    auto ptr = this->get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
-    if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
-      if constexpr (std::is_const_v<T>) {
-        return *reinterpret_cast<T const*>(ptr);
-      } else {
-        return *reinterpret_cast<T*>(ptr);
-      }
-    }
-    throwError(runtime_error_f("Unable to find service of kind %s. Make sure you use const / non-const correctly.", typeid(T).name()));
-    O2_BUILTIN_UNREACHABLE();
-  }
 };
 
 } // namespace o2::framework

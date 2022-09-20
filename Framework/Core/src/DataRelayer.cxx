@@ -59,14 +59,12 @@ constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
-                         monitoring::Monitoring& metrics,
-                         TimesliceIndex& index)
-  : mMetrics{metrics},
-    mTimesliceIndex{index},
-    mCompletionPolicy{policy},
+                         ServiceRegistryRef registry)
+  : mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
-    mMaxLanes{InputRouteHelpers::maxLanes(routes)}
+    mMaxLanes{InputRouteHelpers::maxLanes(routes)},
+    mServices{registry}
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -81,8 +79,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
   sQueriesMetricsNames.resize(numInputTypes * 1);
-  mMetrics.send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
-  mMetrics.send({(int)1, "data_queries/w", Verbosity::Debug});
+  mServices.get<monitoring::Monitoring>().send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
+  mServices.get<monitoring::Monitoring>().send({(int)1, "data_queries/w", Verbosity::Debug});
   for (size_t i = 0; i < numInputTypes; ++i) {
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
@@ -90,23 +88,22 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    mServices.get<monitoring::Monitoring>().send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+  auto& variables = mServices.get<TimesliceIndex>().getVariablesForSlot(slot);
   return VariableContextHelpers::getTimeslice(variables);
 }
 
-DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
-                                                              ServiceRegistry& services, bool createNew)
+DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers, bool createNew)
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  auto& deviceProxy = services.get<FairMQDeviceProxy>();
+  auto& deviceProxy = mServices.get<FairMQDeviceProxy>();
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
@@ -121,7 +118,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
       auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
-      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
+      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mServices.get<TimesliceIndex>()));
     }
   }
   // Count how many slots are not invalid
@@ -145,13 +142,13 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
   int noCheckers = 0;
   int badSlot = 0;
   int checkerDenied = 0;
-  for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
+  for (size_t ti = 0; ti < mServices.get<TimesliceIndex>().size(); ++ti) {
     TimesliceSlot slot{ti};
-    if (mTimesliceIndex.isValid(slot) == false) {
+    if (mServices.get<TimesliceIndex>().isValid(slot) == false) {
       continue;
     }
     assert(mDistinctRoutesIndex.empty() == false);
-    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto& variables = mServices.get<TimesliceIndex>().getVariablesForSlot(slot);
     auto timestamp = VariableContextHelpers::getTimeslice(variables);
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
@@ -204,7 +201,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
       // Setup the input span
 
-      if (expirator.checker(services, timestamp.value, span) == false) {
+      if (expirator.checker(mServices, timestamp.value, span) == false) {
         checkerDenied++;
         continue;
       }
@@ -212,11 +209,11 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
       assert(expirator.handler);
       PartRef newRef;
-      expirator.handler(services, newRef, variables);
+      expirator.handler(mServices, newRef, variables);
       part.reset(std::move(newRef));
       activity.expiredSlots++;
 
-      mTimesliceIndex.markAsDirty(slot, true);
+      mServices.get<TimesliceIndex>().markAsDirty(slot, true);
       assert(part.header(0) != nullptr);
       assert(part.payload(0) != nullptr);
     }
@@ -270,14 +267,15 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 
 void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
 {
-  auto newOldest = mTimesliceIndex.setOldestPossibleInput(proposed, channel);
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  auto newOldest = timesliceIndex.setOldestPossibleInput(proposed, channel);
   LOGP(debug, "DataRelayer::setOldestPossibleInput {} from channel {}", newOldest.timeslice.value, newOldest.channel.value);
   for (size_t si = 0; si < mCache.size() / mInputs.size(); ++si) {
-    auto& variables = mTimesliceIndex.getVariablesForSlot({si});
+    auto& variables = timesliceIndex.getVariablesForSlot({si});
     auto timestamp = VariableContextHelpers::getTimeslice(variables);
-    auto valid = mTimesliceIndex.validateSlot({si}, newOldest.timeslice);
+    auto valid = timesliceIndex.validateSlot({si}, newOldest.timeslice);
     if (valid) {
-      if (mTimesliceIndex.isValid({si})) {
+      if (timesliceIndex.isValid({si})) {
         LOGP(debug, "Keeping slot {} because data has timestamp {} while oldest possible timestamp is {}", si, timestamp.value, newOldest.timeslice.value);
       }
       continue;
@@ -294,7 +292,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
                "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
                DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
-               mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+               timesliceIndex.getChannelInfo(channel).channel->GetName());
         }
       }
     }
@@ -303,7 +301,8 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
 
 TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 {
-  return mTimesliceIndex.getOldestPossibleOutput();
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  return timesliceIndex.getOldestPossibleOutput();
 }
 
 void DataRelayer::prunePending(OnDropCallback onDrop)
@@ -323,8 +322,8 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
                      &cache = mCache,
                      &cachedStateMetrics = mCachedStateMetrics,
                      numInputTypes = mDistinctRoutesIndex.size(),
-                     &index = mTimesliceIndex,
-                     &metrics = mMetrics](TimesliceSlot slot) {
+                     services = mServices](TimesliceSlot slot) {
+    auto& index = services.get<TimesliceIndex>();
     if (onDrop) {
       auto oldestPossibleTimeslice = index.getOldestPossibleOutput();
       // State of the computation
@@ -371,7 +370,6 @@ DataRelayer::RelayChoice
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
   // relay concurrently.
-  auto const& readonlyCache = mCache;
 
   // IMPLEMENTATION DETAILS
   //
@@ -385,7 +383,7 @@ DataRelayer::RelayChoice
   auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
                             &rawHeader,
-                            &index = mTimesliceIndex](VariableContext& context)
+                            &services = mServices](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
@@ -416,8 +414,7 @@ DataRelayer::RelayChoice
                      &nMessages,
                      &nPayloads,
                      &cache = mCache,
-                     numInputTypes = mDistinctRoutesIndex.size(),
-                     &metrics = mMetrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
+                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
@@ -460,7 +457,7 @@ DataRelayer::RelayChoice
   auto input = INVALID_INPUT;
   auto timeslice = TimesliceId{TimesliceId::INVALID};
   auto slot = TimesliceSlot{TimesliceSlot::INVALID};
-  auto& index = mTimesliceIndex;
+  auto& index = mServices.get<TimesliceIndex>();
 
   bool needsCleaning = false;
   // First look for matching slots which already have some
@@ -645,12 +642,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   int countDiscard = 0;
   int countWait = 0;
   int notDirty = 0;
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
 
   for (int li = cacheLines - 1; li >= 0; --li) {
     TimesliceSlot slot{(size_t)li};
     // We only check the cachelines which have been updated by an incoming
     // message.
-    if (mTimesliceIndex.isDirty(slot) == false) {
+    if (timesliceIndex.isDirty(slot) == false) {
       notDirty++;
       continue;
     }
@@ -679,48 +677,48 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else {
       throw std::runtime_error("No completion policy found");
     }
-    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto& variables = timesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
         updateCompletionResults(slot, timeslice, action);
-        mTimesliceIndex.markAsDirty(slot, false);
+        timesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
         countConsume++;
         action = CompletionPolicy::CompletionOp::Consume;
         updateCompletionResults(slot, timeslice, action);
-        mTimesliceIndex.rescan();
+        timesliceIndex.rescan();
         break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
         updateCompletionResults(slot, timeslice, action);
-        mTimesliceIndex.markAsDirty(slot, false);
+        timesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
         updateCompletionResults(slot, timeslice, action);
-        mTimesliceIndex.markAsDirty(slot, false);
+        timesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
         updateCompletionResults(slot, timeslice, action);
-        mTimesliceIndex.markAsDirty(slot, false);
+        timesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Retry:
         countWait++;
-        mTimesliceIndex.markAsDirty(slot, true);
+        timesliceIndex.markAsDirty(slot, true);
         action = CompletionPolicy::CompletionOp::Wait;
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
-        mTimesliceIndex.markAsDirty(slot, false);
+        timesliceIndex.markAsDirty(slot, false);
         break;
     }
   }
-  mTimesliceIndex.updateOldestPossibleOutput();
+  timesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",
        notDirty, countConsume, countConsumeExisting, countProcess,
        countDiscard, countWait);
@@ -752,7 +750,8 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // State of the computation
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
-  auto& index = mTimesliceIndex;
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  auto& index = timesliceIndex;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
@@ -806,8 +805,8 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
   // State of the computation
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
-  auto& index = mTimesliceIndex;
-  auto& metrics = mMetrics;
+  auto& index = mServices.get<TimesliceIndex>();
+  auto& metrics = mServices.get<monitoring::Monitoring>();
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
@@ -846,11 +845,12 @@ void DataRelayer::clear()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
   for (auto& cache : mCache) {
     cache.clear();
   }
-  for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
-    mTimesliceIndex.markAsInvalid(TimesliceSlot{s});
+  for (size_t s = 0; s < timesliceIndex.size(); ++s) {
+    timesliceIndex.markAsInvalid(TimesliceSlot{s});
   }
 }
 
@@ -868,7 +868,8 @@ void DataRelayer::setPipelineLength(size_t s)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
-  mTimesliceIndex.resize(s);
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  timesliceIndex.resize(s);
   mVariableContextes.resize(s);
   publishMetrics();
 }
@@ -877,13 +878,15 @@ void DataRelayer::publishMetrics()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  auto& monitoring = mServices.get<monitoring::Monitoring>();
   auto numInputTypes = mDistinctRoutesIndex.size();
   // FIXME: many of the DataRelayer function rely on allocated cache, so its
   // maybe misleading to have the allocation in a function primarily for
   // metrics publishing, do better in setPipelineLength?
-  mCache.resize(numInputTypes * mTimesliceIndex.size());
-  mMetrics.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
-  mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
+  mCache.resize(numInputTypes * timesliceIndex.size());
+  monitoring.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
+  monitoring.send({(int)timesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
   sMetricsNames.resize(mCache.size());
   mCachedStateMetrics.resize(mCache.size());
   for (size_t i = 0; i < sMetricsNames.size(); ++i) {
@@ -893,20 +896,20 @@ void DataRelayer::publishMetrics()
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
   sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
-  mMetrics.send({(int)16, "matcher_variables/w", Verbosity::Debug});
-  mMetrics.send({(int)mVariableContextes.size(), "matcher_variables/h", Verbosity::Debug});
+  monitoring.send({(int)16, "matcher_variables/w", Verbosity::Debug});
+  monitoring.send({(int)mVariableContextes.size(), "matcher_variables/h", Verbosity::Debug});
   for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
     sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16], Verbosity::Debug});
+    monitoring.send({std::string("null"), sVariablesMetricsNames[i % 16], Verbosity::Debug});
   }
 
   for (size_t ci = 0; ci < mCache.size(); ci++) {
     assert(ci < sMetricsNames.size());
-    mMetrics.send({0, sMetricsNames[ci], Verbosity::Debug});
+    monitoring.send({0, sMetricsNames[ci], Verbosity::Debug});
   }
   for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
     assert(ci < sVariablesMetricsNames.size());
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[ci], Verbosity::Debug});
+    monitoring.send({std::string("null"), sVariablesMetricsNames[ci], Verbosity::Debug});
   }
 }
 
@@ -918,37 +921,43 @@ DataRelayerStats const& DataRelayer::getStats() const
 uint32_t DataRelayer::getFirstTFOrbitForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return VariableContextHelpers::getFirstTFOrbit(mTimesliceIndex.getVariablesForSlot(slot));
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  return VariableContextHelpers::getFirstTFOrbit(timesliceIndex.getVariablesForSlot(slot));
 }
 
 uint32_t DataRelayer::getFirstTFCounterForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return VariableContextHelpers::getFirstTFCounter(mTimesliceIndex.getVariablesForSlot(slot));
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  return VariableContextHelpers::getFirstTFCounter(timesliceIndex.getVariablesForSlot(slot));
 }
 
 uint32_t DataRelayer::getRunNumberForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return VariableContextHelpers::getRunNumber(mTimesliceIndex.getVariablesForSlot(slot));
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  return VariableContextHelpers::getRunNumber(timesliceIndex.getVariablesForSlot(slot));
 }
 
 uint64_t DataRelayer::getCreationTimeForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return VariableContextHelpers::getCreationTime(mTimesliceIndex.getVariablesForSlot(slot));
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  return VariableContextHelpers::getCreationTime(timesliceIndex.getVariablesForSlot(slot));
 }
 
 void DataRelayer::sendContextState()
 {
+  auto& timesliceIndex = mServices.get<TimesliceIndex>();
+  auto& monitoring = mServices.get<monitoring::Monitoring>();
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+  for (size_t ci = 0; ci < timesliceIndex.size(); ++ci) {
     auto slot = TimesliceSlot{ci};
-    sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
-                               mMetrics, sVariablesMetricsNames);
+    sendVariableContextMetrics(timesliceIndex.getPublishedVariablesForSlot(slot), slot,
+                               monitoring, sVariablesMetricsNames);
   }
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    mMetrics.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si], Verbosity::Debug});
+    monitoring.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si], Verbosity::Debug});
     // Anything which is done is actually already empty,
     // so after we report it we mark it as such.
     if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {

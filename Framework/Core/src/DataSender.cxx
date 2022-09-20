@@ -48,9 +48,9 @@ std::vector<size_t>
 
 DataSender::DataSender(ServiceRegistry& registry,
                        SendingPolicy const& policy)
-  : mProxy{registry.get<FairMQDeviceProxy>()},
+  : mProxy{ServiceRegistryRef{registry}.get<FairMQDeviceProxy>()},
     mRegistry{registry},
-    mSpec{registry.get<DeviceSpec const>()},
+    mSpec{ServiceRegistryRef{registry}.get<DeviceSpec const>()},
     mPolicy{policy},
     mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)}
 {
@@ -58,7 +58,7 @@ DataSender::DataSender(ServiceRegistry& registry,
 
   auto numInputTypes = mDistinctRoutesIndex.size();
   mQueriesMetricsNames.resize(numInputTypes * 1);
-  auto& monitoring = mRegistry.get<Monitoring>();
+  auto& monitoring = ServiceRegistryRef{mRegistry}.get<Monitoring>();
   monitoring.send({(int)numInputTypes, "output_matchers/h", Verbosity::Debug});
   monitoring.send({(int)1, "output_matchers/w", Verbosity::Debug});
   auto& routes = mSpec.outputs;
@@ -80,7 +80,7 @@ std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
   mRegistry.preSendingMessagesCallbacks(mRegistry, parts, channelIndex);
-  mPolicy.send(mProxy, parts, channelIndex, mRegistry);
+  mPolicy.send(mProxy, parts, channelIndex, {mRegistry});
 }
 
 } // namespace o2::framework

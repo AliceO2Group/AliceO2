@@ -28,7 +28,7 @@ struct GUIData {
   std::vector<size_t> dataLength;
 };
 
-void SpyServiceHelpers::webGUI(ServiceRegistry& registry)
+void SpyServiceHelpers::webGUI(ServiceRegistryRef registry)
 {
   auto& spy = registry.get<SpyService>();
   auto partsAlive = spy.partsAlive;

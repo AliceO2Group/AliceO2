@@ -54,6 +54,7 @@ BENCHMARK(BM_RelayMessageCreation);
 // and the subsequent InputRecord is immediately requested.
 static void BM_RelaySingleSlot(benchmark::State& state)
 {
+  ServiceRegistry registry;
   Monitoring metrics;
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
@@ -65,7 +66,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -116,7 +117,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -173,7 +175,8 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -247,7 +250,8 @@ static void BM_RelaySplitParts(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -305,7 +309,8 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, registry);
   relayer.setPipelineLength(4);
 
   // DataHeader matching the one provided in the input

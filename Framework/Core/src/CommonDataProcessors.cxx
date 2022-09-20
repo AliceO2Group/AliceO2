@@ -518,7 +518,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice, ChannelIndex channelIndex) {
+      auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
         LOGP(debug, "Domain info updated with timeslice {}", timeslice);
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();
@@ -526,7 +526,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         auto channel = device->fChannels.find("metric-feedback");
         if (channel != device->fChannels.end()) {
           fair::mq::MessagePtr payload(device->NewMessage());
-          size_t* consumed = (size_t*)malloc(sizeof(size_t));
+          auto* consumed = (size_t*)malloc(sizeof(size_t));
           *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
           if (*consumed != lastTimeslice) {
             payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);

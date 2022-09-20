@@ -11,7 +11,7 @@
 
 #include "DPLMonitoringBackend.h"
 #include "Framework/DriverClient.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <fmt/format.h>
 #include <sstream>
 
@@ -83,7 +83,7 @@ void DPLMonitoringBackend::send(o2::monitoring::Metric const& metric)
     throw runtime_error_f("Metric too long");
   }
   buffer[size] = '\0';
-  mRegistry.get<framework::DriverClient>().tell(buffer.data(), size);
+  ServiceRegistryRef{mRegistry}.get<framework::DriverClient>().tell(buffer.data(), size);
 }
 
 } // namespace o2::framework

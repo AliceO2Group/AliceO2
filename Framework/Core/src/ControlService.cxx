@@ -12,7 +12,7 @@
 #include "Framework/DriverClient.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessingHelpers.h"
@@ -24,7 +24,7 @@
 namespace o2::framework
 {
 
-ControlService::ControlService(ServiceRegistry& registry, DeviceState& deviceState)
+ControlService::ControlService(ServiceRegistryRef registry, DeviceState& deviceState)
   : mRegistry{registry},
     mDeviceState{deviceState},
     mDriverClient{registry.get<DriverClient>()}

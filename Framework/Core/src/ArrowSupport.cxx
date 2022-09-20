@@ -90,7 +90,7 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
   return results;
 }
 
-uint64_t calculateAvailableSharedMemory(ServiceRegistry& registry)
+uint64_t calculateAvailableSharedMemory(ServiceRegistryRef& registry)
 {
   return registry.get<RateLimitConfig>().maxMemory;
 }
@@ -110,7 +110,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
     .postProcessing = CommonMessageBackendsHelpers<ArrowContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
-    .metricHandling = [](ServiceRegistry& registry,
+    .metricHandling = [](ServiceRegistryRef& registry,
                          std::vector<DeviceMetricsInfo>& allDeviceMetrics,
                          std::vector<DeviceSpec>& specs,
                          std::vector<DeviceInfo>& infos,
