@@ -159,39 +159,23 @@ std::string Screenshot::perform(std::string fileName, o2::detectors::DetID::mask
   const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
   MultiView::getInstance()->getAnnotationTop()->SetState(TGLOverlayElement::kInvisible);
   MultiView::getInstance()->getAnnotationBottom()->SetState(TGLOverlayElement::kInvisible);
-
-  TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-
+  TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingFBO(width * 0.65, height * 0.95);
   MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
   MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
-
-  scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95, backgroundColorHex);
+  CopyImage(image, (TASImage*)view3dImage, width * 0.015, height * 0.025, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight());
   delete view3dImage;
-  if (scaledImage) {
-    CopyImage(image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
 
-  TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45, backgroundColorHex);
+  TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45);
+  CopyImage(image, (TASImage*)viewRphiImage, width * 0.68, height * 0.025, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight());
   delete viewRphiImage;
-  if (scaledImage) {
-    CopyImage(image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
 
-  TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewZYImage, width * 0.3, height * 0.45, backgroundColorHex);
+  TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45);
+  CopyImage(image, (TASImage*)viewZYImage, width * 0.68, height * 0.525, 0, 0, viewZYImage->GetWidth(), viewZYImage->GetHeight());
   delete viewZYImage;
-  if (scaledImage) {
-    CopyImage(image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
 
   TASImage* aliceLogo = new TASImage(settings.GetValue("screenshot.logo.alice", "alice-white.png"));
   if (aliceLogo->IsValid()) {
     double ratio = (double)(aliceLogo->GetWidth()) / (double)(aliceLogo->GetHeight());
-    ;
     aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
     image->Merge(aliceLogo, "alphablend", 0.01 * width, 0.01 * width);
   }
