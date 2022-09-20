@@ -34,6 +34,7 @@ o2_add_test_root_macro(readTRDVoltages.C
 
 o2_add_test_root_macro(manualCalibFit.C
                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
+                                            O2::TRDCalibration
                       LABELS trd COMPILE_ONLY)
 
 o2_add_test_root_macro(plotVdriftExB.C
