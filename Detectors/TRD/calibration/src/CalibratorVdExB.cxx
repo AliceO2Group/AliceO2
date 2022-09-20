@@ -176,6 +176,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
       laFitResult = laFitResults[iDet];
       vdFitResult = vdFitResults[iDet];
+      LOGF(info, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResult, laFitResult * TMath::RadToDeg());
       fitTreePtr->Fill();
     }
     fitTreePtr->Write();

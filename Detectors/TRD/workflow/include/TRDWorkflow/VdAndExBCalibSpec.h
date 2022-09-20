@@ -46,7 +46,7 @@ class VdAndExBCalibDevice : public o2::framework::Task
     auto enableOutput = ic.options().get<bool>("enable-root-output");
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
-    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt,enableOutput);
+    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt, enableOutput);
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
