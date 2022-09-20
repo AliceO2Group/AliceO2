@@ -160,14 +160,14 @@ struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
 template <typename T, typename... Us>
 inline constexpr bool has_type_v = has_type<T, Us...>::value;
 
-template <template <typename,typename> typename Condition, typename T, typename Pack>
+template <template <typename, typename> typename Condition, typename T, typename Pack>
 struct has_type_conditional;
 
-template <template <typename,typename> typename Condition, typename T, typename... Us>
-struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condition<T,Us>...> {
+template <template <typename, typename> typename Condition, typename T, typename... Us>
+struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condition<T, Us>...> {
 };
 
-template <template <typename,typename> typename Condition, typename T, typename... Us>
+template <template <typename, typename> typename Condition, typename T, typename... Us>
 inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T, Us...>::value;
 
 template <typename T>
@@ -187,15 +187,16 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
   return sizeof...(Ts) + 2;
 }
 
-template <template <typename,typename> typename Condition, typename T>
+template <template <typename, typename> typename Condition, typename T>
 constexpr size_t has_type_at_conditional(pack<>&&)
 {
   return static_cast<size_t>(-1);
 }
 
-template <template <typename,typename> typename Condition, typename T, typename T1, typename... Ts>
-constexpr size_t has_type_at_conditional(pack<T1,Ts...>&&) {
-  if constexpr (Condition<T,T1>::value) {
+template <template <typename, typename> typename Condition, typename T, typename T1, typename... Ts>
+constexpr size_t has_type_at_conditional(pack<T1, Ts...>&&)
+{
+  if constexpr (Condition<T, T1>::value) {
     return 0;
   } else if constexpr (has_type_conditional_v<Condition, T, pack<Ts...>>) {
     return 1 + has_type_at_conditional<Condition, T>(pack<Ts...>{});

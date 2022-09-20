@@ -1018,7 +1018,7 @@ constexpr bool is_binding_compatible_v()
 }
 
 template <typename T, typename B>
-struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T,typename B::binding_t>(), std::true_type, std::false_type> {
+struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typename B::binding_t>(), std::true_type, std::false_type> {
 };
 
 //! Helper to check if a type T is an iterator
@@ -1203,11 +1203,12 @@ class Table
   }
 
   template <typename Key>
-  inline arrow::ChunkedArray* getIndexToKey() {
-    if constexpr (framework::has_type_conditional_v<is_binding_compatible,Key,external_index_columns_t>) {
-      using IC = framework::pack_element_t<framework::has_type_at_conditional<is_binding_compatible,Key>(external_index_columns_t{}),external_index_columns_t>;
+  inline arrow::ChunkedArray* getIndexToKey()
+  {
+    if constexpr (framework::has_type_conditional_v<is_binding_compatible, Key, external_index_columns_t>) {
+      using IC = framework::pack_element_t<framework::has_type_at_conditional<is_binding_compatible, Key>(external_index_columns_t{}), external_index_columns_t>;
       return mColumnChunks[framework::has_type_at<IC>(persistent_columns_t{})];
-    } else if constexpr (std::is_same_v<table_t,Key>) {
+    } else if constexpr (std::is_same_v<table_t, Key>) {
       return nullptr;
     } else {
       static_assert(framework::always_static_assert_v<Key>, "This table does not have an index to this type");

@@ -224,87 +224,92 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
 /// Exclusive index: each entry in a row has a valid index
 /// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
 /// to T1
-struct Exclusive {};
-struct Sparse {};
+struct Exclusive {
+};
+struct Sparse {
+};
 
-namespace {
+namespace
+{
 template <typename T, typename Key>
-inline arrow::ChunkedArray* getIndexToKey(arrow::Table* table) {
-    using IC = framework::pack_element_t<framework::has_type_at_conditional<soa::is_binding_compatible,Key>(typename T::external_index_columns_t{}),typename T::external_index_columns_t>;
-    return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{})).get();
+inline arrow::ChunkedArray* getIndexToKey(arrow::Table* table)
+{
+  using IC = framework::pack_element_t<framework::has_type_at_conditional<soa::is_binding_compatible, Key>(typename T::external_index_columns_t{}), typename T::external_index_columns_t>;
+  return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{})).get();
 }
 
 template <typename C>
 struct ColumnTrait {
-  static_assert(framework::is_base_of_template_v<o2::soa::Column,C>, "Not a column type!");
+  static_assert(framework::is_base_of_template_v<o2::soa::Column, C>, "Not a column type!");
   using column_t = C;
 
-  static constexpr auto listSize(){
-      if constexpr (std::is_same_v<typename C::type, std::vector<int>>) {
-        return -1;
-      } else if constexpr (std::is_same_v<int[2],typename C::type>) {
-        return 2;
-      } else {
-        return 1;
-      }
+  static constexpr auto listSize()
+  {
+    if constexpr (std::is_same_v<typename C::type, std::vector<int>>) {
+      return -1;
+    } else if constexpr (std::is_same_v<int[2], typename C::type>) {
+      return 2;
+    } else {
+      return 1;
+    }
   }
 
   template <typename T, typename Key>
   static std::shared_ptr<SelfIndexColumnBuilder> makeColumnBuilder(arrow::Table* table, arrow::MemoryPool* pool)
   {
-    if constexpr (!std::is_same_v<T,Key>)  {
-      return std::make_shared<IndexColumnBuilder>(getIndexToKey<T,Key>(table), C::columnLabel(), listSize(), pool);
+    if constexpr (!std::is_same_v<T, Key>) {
+      return std::make_shared<IndexColumnBuilder>(getIndexToKey<T, Key>(table), C::columnLabel(), listSize(), pool);
     } else {
       return std::make_shared<SelfIndexColumnBuilder>(C::columnLabel(), pool);
     }
   }
 };
-}
+} // namespace
 
 template <typename Key, typename C>
 struct Reduction {
-  using type = typename std::conditional<soa::is_binding_compatible_v<Key,typename C::binding_t>(),SelfIndexColumnBuilder,IndexColumnBuilder>::type;
+  using type = typename std::conditional<soa::is_binding_compatible_v<Key, typename C::binding_t>(), SelfIndexColumnBuilder, IndexColumnBuilder>::type;
 };
 
 template <typename Kind>
 struct IndexBuilder {
   template <typename Key, typename C1, typename... Cs, typename T1, typename... Ts>
-  static auto indexBuilder(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::pack<C1,Cs...>, framework::pack<T1,Ts...>)
+  static auto indexBuilder(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::pack<C1, Cs...>, framework::pack<T1, Ts...>)
   {
     auto pool = arrow::default_memory_pool();
-    SelfIndexColumnBuilder self{C1::columnLabel(),pool};
+    SelfIndexColumnBuilder self{C1::columnLabel(), pool};
     std::unique_ptr<ChunkedArrayIterator> keyIndex = nullptr;
     int64_t counter = 0;
-    if constexpr (!std::is_same_v<T1,Key>) {
+    if constexpr (!std::is_same_v<T1, Key>) {
       keyIndex = std::make_unique<ChunkedArrayIterator>(getIndexToKey<T1, Key>(tables[0].get()));
     }
 
     std::array<std::shared_ptr<framework::SelfIndexColumnBuilder>, sizeof...(Cs)> columnBuilders{ColumnTrait<Cs>::template makeColumnBuilder<framework::pack_element_t<framework::has_type_at_v<Cs>(framework::pack<Cs...>{}), framework::pack<Ts...>>, Key>(
       tables[framework::has_type_at_v<Cs>(framework::pack<Cs...>{}) + 1].get(),
-        pool)...};
+      pool)...};
     std::array<bool, sizeof...(Cs)> finds;
 
     for (counter = 0; counter < tables[0]->num_rows(); ++counter) {
       auto idx = -1;
-      if constexpr (std::is_same_v<T1,Key>) {
+      if constexpr (std::is_same_v<T1, Key>) {
         idx = counter;
       } else {
         idx = keyIndex->valueAt(counter);
       }
-      finds = {std::static_pointer_cast<typename Reduction<Key,Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template find<Cs>(idx)...};
-      if constexpr (std::is_same_v<Kind,Sparse>) {
-        (std::static_pointer_cast<typename Reduction<Key,Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx),...);
+      finds = {std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template find<Cs>(idx)...};
+      if constexpr (std::is_same_v<Kind, Sparse>) {
+        (std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx), ...);
         self.fill<C1>(counter);
-      } else if constexpr (std::is_same_v<Kind,Exclusive>) {
-        if (std::none_of(finds.begin(),finds.end(),[](bool const x){ return x == false; })) {
-          (std::static_pointer_cast<typename Reduction<Key,Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx),...);
+      } else if constexpr (std::is_same_v<Kind, Exclusive>) {
+        if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
+          (std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx), ...);
           self.fill<C1>(counter);
         }
       }
     }
 
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> columns{self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key,Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...};
-    std::vector<std::shared_ptr<arrow::Field>> fields{self.field(), std::static_pointer_cast<typename Reduction<Key,Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...};
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> columns{self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...};
+    std::vector<std::shared_ptr<arrow::Field>> fields{self.field(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...};
     auto schema = std::make_shared<arrow::Schema>(fields);
     schema->WithMetadata(
       std::make_shared<arrow::KeyValueMetadata>(

@@ -378,8 +378,8 @@ struct OutputManager<Builds<T>> {
 
   static bool prepare(ProcessingContext& pc, Builds<T>& what)
   {
-    return what.template build<typename T::indexing_t>(what.pack(),what.originals_pack(),
-                                            extractOriginalsVector(what.originals_pack(), pc));
+    return what.template build<typename T::indexing_t>(what.pack(), what.originals_pack(),
+                                                       extractOriginalsVector(what.originals_pack(), pc));
   }
 
   static bool finalize(ProcessingContext& pc, Builds<T>& what)

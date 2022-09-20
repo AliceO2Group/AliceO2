@@ -20,7 +20,8 @@
 #include <memory>
 #include <type_traits>
 
-namespace o2::framework {
+namespace o2::framework
+{
 struct ChunkedArrayIterator {
   ChunkedArrayIterator(arrow::ChunkedArray* source);
   virtual ~ChunkedArrayIterator() {}
@@ -57,7 +58,10 @@ struct SelfIndexColumnBuilder {
   }
   std::shared_ptr<arrow::Field> field() const;
   template <typename C>
-  inline bool find(int) {return true;}
+  inline bool find(int)
+  {
+    return true;
+  }
 
   template <typename C>
   inline void fill(int idx)
@@ -65,14 +69,14 @@ struct SelfIndexColumnBuilder {
     (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(idx);
   }
 
-
   std::string mColumnName;
   std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
 };
 
-class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIterator {
+class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIterator
+{
  public:
-  IndexColumnBuilder(arrow::ChunkedArray* source, const char *name, int listSize, arrow::MemoryPool* pool);
+  IndexColumnBuilder(arrow::ChunkedArray* source, const char* name, int listSize, arrow::MemoryPool* pool);
   virtual ~IndexColumnBuilder() {}
 
   template <typename C>
@@ -88,7 +92,8 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   }
 
   template <typename C>
-  inline bool find(int idx) {
+  inline bool find(int idx)
+  {
     if constexpr (std::is_same_v<typename C::type, std::vector<int>>) {
       return findMulti(idx);
     } else if constexpr (std::is_same_v<typename C::type, int[2]>) {
@@ -99,7 +104,8 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   }
 
   template <typename C>
-  inline void fill(int idx){
+  inline void fill(int idx)
+  {
     ++mResultSize;
     if constexpr (std::is_same_v<typename C::type, std::vector<int>>) {
       fillMulti(idx);
@@ -131,6 +137,6 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   size_t mSourceSize = 0;
   size_t mResultSize = 0;
 };
-}
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_INDEXBUILDERHELPERS_H_
