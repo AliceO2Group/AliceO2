@@ -73,6 +73,7 @@ class UserLogicElinkDecoder
   void completeHeader();
   void oneLess10BitWord();
   void prepareAndSendCluster();
+  bool checkDataHeader();
   void sendCluster(const SampaCluster& sc) const;
   void sendHBPacket();
   void sendError(int8_t chip, uint32_t error) const;
@@ -185,7 +186,11 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
       setHeaderPart(data10);
       if (isHeaderComplete()) {
         completeHeader();
-        if (isSync(mSampaHeader.uint64())) {
+        if (mSampaHeader.packetType() == SampaPacketType::Sync) {
+          if (!isSync(mSampaHeader.uint64())) {
+            mErrorMessage = "badly formatted Sync packet";
+            sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorBadSyncPacket));
+          }
           reset();
         } else if (mSampaHeader.packetType() == SampaPacketType::HeartBeat) {
           if (mSampaHeader.isHeartbeat()) {
@@ -198,9 +203,15 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
             reset();
           }
         } else {
-          if (mSampaHeader.nof10BitWords() > 2) {
-            transition(State::WaitingSize);
+          if (checkDataHeader()) {
+            if (mSampaHeader.nof10BitWords() > 2) {
+              transition(State::WaitingSize);
+            } else {
+              reset();
+            }
           } else {
+            mErrorMessage = "badly formatted Data packet";
+            sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorBadDataPacket));
             reset();
           }
         }
