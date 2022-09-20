@@ -36,8 +36,8 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   Int_t trackmodel = MFTTrackModel::Optimized;
   double MFTRadLength = 0.042; // MFT average material budget within acceptance
   bool verbose = false;
-  bool forceZeroField = true; // Force MFT tracking with B=0
-  float alignResidual = 0.f;  // Increment cluster covariance to account for alignment residuals
+  bool forceZeroField = false; // Force MFT tracking with B=0
+  float alignResidual = 0.f;   // Increment cluster covariance to account for alignment residuals
 
   /// tracking algorithm (LTF and CA) parameters
   /// minimum number of points for a LTF track
