@@ -36,7 +36,7 @@ These can be compared afterwards by running:
 
 You can plot the calibration values for VDrift and ExB for a given Run by using the macro at `Detectors/TRD/cailbration/macros/plotVdriftExB.C`.
 This produces a root file of similar name which holds the time-series plots (reference the macro).
-The time needs to be given in Unix Epoch in ms.
+The Run start time needs to be given in Unix Epoch in ms.
 Convert the time/date by using these commands:
 
     # Date to seconds (multiply 1000 for ms)

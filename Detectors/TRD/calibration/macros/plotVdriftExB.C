@@ -16,6 +16,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 // ROOT header
 #include <TFile.h>
+#include <TAxis.h>
 #include <TGraph.h>
 #include <TMultiGraph.h>
 
@@ -23,36 +24,38 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "DataFormatsTRD/CalVdriftExB.h"
-#include "DataFormatsTRD/Constants.h"
-#include "DataFormatsTRD/NoiseCalibration.h"
-#include "TRDBase/ChamberCalibrations.h"
-#include "TRDBase/ChamberStatus.h"
-#include "TRDBase/PadCalibrationsAliases.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 
-#include <chrono>
 #include <map>
 #include <string>
 #include <vector>
 #endif
 
-static std::array<std::vector<std::tuple<double, double, int>>, 540> vmap; // Map holding all values for all detectors.
-static std::array<bool, 540> good;                                         // Marks wether or not a chamber was 'good' for the entire duration.
+using timePoint = o2::parameters::GRPECSObject::timePoint;
+static std::array<std::vector<std::tuple<double, double, timePoint>>, 540> vmap; // Map holding all values for all detectors.
+static std::array<bool, 540> good;                                               // Marks wether or not a chamber was 'good' for the entire duration.
 
 // Download the values and populate the map.
-void ccdbDownload(unsigned long long start_time, unsigned long long end_time, std::string ccdb, unsigned long long time_offset)
+void ccdbDownload(timePoint startTimeRun, unsigned int runNumber, std::string ccdb, timePoint timeOffset)
 {
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setURL(ccdb);
+  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbMgr.setURL("http://alice-ccdb.cern.ch/");
+  std::map<std::string, std::string> md;
+  md["runNumber"] = std::to_string(runNumber);
+  const auto* grp = ccdbMgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", startTimeRun, md);
+  grp->print();
+  const auto startTime = grp->getTimeStart();
+  const auto endTime = grp->getTimeEnd();
+  ccdbMgr.setURL(ccdb);
 
-  for (unsigned long long time = start_time; time < end_time; time += time_offset) {
-    ccdbmgr.setTimestamp(time);
+  for (timePoint time = startTime; time < endTime; time += timeOffset) {
+    ccdbMgr.setTimestamp(time);
     std::cout << "Getting vDriftExB for " << time << std::endl;
     auto calVdriftExB =
-      ccdbmgr.get<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB");
+      ccdbMgr.get<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB");
     for (int iDet = 0; iDet < 540; ++iDet) {
       vmap[iDet].push_back(std::make_tuple(
-        calVdriftExB->getVdrift(iDet), calVdriftExB->getExB(iDet),
-        static_cast<int>(time - start_time)));
+        calVdriftExB->getVdrift(iDet), calVdriftExB->getExB(iDet), static_cast<int>(time - startTime)));
     }
   }
 }
@@ -91,8 +94,6 @@ void print_good()
 std::unique_ptr<TMultiGraph> draw(int i)
 {
   auto mg = std::make_unique<TMultiGraph>();
-  mg->SetName(Form("vDrift_ExV_%d", i));
-  mg->SetTitle(Form("VDrift (=blue) and ExB (=red) - Chamber %d (%s)", i, (good[i]) ? "GOOD" : "BAD"));
   auto g_vDrift = new TGraph();
   g_vDrift->SetLineColor(kBlue);
   auto g_ExB = new TGraph();
@@ -106,17 +107,20 @@ std::unique_ptr<TMultiGraph> draw(int i)
   g_ExB->Fit("pol0", "q");
   mg->Add(g_vDrift);
   mg->Add(g_ExB);
+  mg->SetName(Form("vDrift_ExV_%d", i));
+  mg->SetTitle(Form("VDrift (=blue) and ExB (=red) - Chamber %d (%s)", i, (good[i]) ? "GOOD" : "BAD"));
+  mg->GetXaxis()->SetTitle("time since RunStart (ms)");
 
   return std::move(mg);
 }
 
 // Plot the calibration values for a particular duration.
 // The times must be given in unix epoch ms format.
-// The default reflects Run 523677.
+// The default Run is 523677 for the test ccdb.
 // The offset for the next calibration is 15 Minutes.
-void plotVdriftExB(unsigned long long start_time = 1660926835751ULL, unsigned long long end_time = 1660940335615ULL, std::string ccdb = "http://ccdb-test.cern.ch:8080", unsigned long long time_offset = 899991ULL)
+void plotVdriftExB(timePoint startTimeRun = 1660926835751, unsigned int runNumber = 523677, std::string ccdb = "http://ccdb-test.cern.ch:8080", timePoint timeOffset = 899991)
 {
-  ccdbDownload(start_time, end_time, ccdb, time_offset);
+  ccdbDownload(startTimeRun, runNumber, ccdb, timeOffset);
   find_good();
   print_good();
 
