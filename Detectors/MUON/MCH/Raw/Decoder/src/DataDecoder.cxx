@@ -548,6 +548,10 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
   uint32_t linkId;
 
   auto heartBeatHandler = [&](DsElecId dsElecId, uint8_t chip, uint32_t bunchCrossing) {
+    if (mTimeRecoMode != TimeRecoMode::HBPackets) {
+      return;
+    }
+
     auto ds = dsElecId.elinkId();
     auto solar = dsElecId.solarId();
     uint64_t chipId = getChipId(solar, ds, chip);
