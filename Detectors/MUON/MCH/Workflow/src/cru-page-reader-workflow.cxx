@@ -320,7 +320,7 @@ class FileReaderTask
     }
 
     if (mPrint) {
-      std::cout << "Sending TF " << orbitMin << " (previous " << mLastTForbit << "  delta " << orbitMin-mLastTForbit << ")" << std::endl
+      std::cout << "Sending TF " << orbitMin << " (previous " << mLastTForbit << "  delta " << (orbitMin - mLastTForbit) << ")" << std::endl
                 << std::endl;
     }
     mLastTForbit = orbitMin;
@@ -616,7 +616,7 @@ class FileReaderTask
   bool mFullTF;               ///< send full time frames
   bool mSaveTF;               ///< save individual time frames to file
   int mOverlap;               ///< overlap between contiguous TimeFrames
-  int mLastTForbit{ 0 };
+  int mLastTForbit{0};        ///< first orbit number of last transmitted TimeFrame
   bool mPrint = false;        ///< print debug messages
   o2::dataformats::TFIDInfo mTFIDInfo{}; // struct to modify output headers
 
