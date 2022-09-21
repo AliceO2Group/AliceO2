@@ -18,6 +18,12 @@
 #include "Framework/Plugins.h"
 #include "Framework/DebugGUI.h"
 #include "FrameworkGUIDebugger.h"
+#include "Framework/ServiceSpec.h"
+#include "Framework/CommonServices.h"
+#include "Framework/GuiCallbackContext.h"
+#include "SpyService.h"
+#include "SpyServiceHelpers.h"
+#include <fairmq/Channel.h>
 
 using namespace o2::framework;
 
@@ -98,4 +104,5 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
 
 DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(ImGUIDebugGUI, DebugGUIImpl);
+DEFINE_DPL_PLUGIN_INSTANCE(SpyGUIPlugin, CustomService);
 DEFINE_DPL_PLUGINS_END
