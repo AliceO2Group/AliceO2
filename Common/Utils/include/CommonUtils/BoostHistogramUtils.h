@@ -423,6 +423,32 @@ double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
   return stats.getMean();
 }
 
+/// \brief Get the variance of a 1D boost histogram
+/// \param inHist1D input boost histogram
+/// \param mean mean mean of the histogram, if set to -999999, mean will be caluclated
+/// \param weight weight of the entries in the histogram. Per default set to 1
+/// \return variance of the distribution with respect to the mean
+template <typename... axes>
+double getVarianceBoost1D(boost::histogram::histogram<axes...>& inHist1D, double mean = -999999, const double weight = 1)
+{
+  if (std::abs(mean + 999999) < 0.00001) {
+    mean = getMeanBoost1D(inHist1D);
+  }
+  unsigned int nMeas = 0; // counter for the number of data points
+  auto histiter = inHist1D.begin() + 1;
+  const auto& axis = inHist1D.axis(0);
+  double variance = 0;
+  for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
+    nMeas += *histiter / weight; // to get the number of entries, for weighted histograms we need to divide by the weight to get back to the number of entries
+    variance += *histiter * (*bincenter - mean) * (*bincenter - mean);
+  }
+  if (nMeas <= 1) {
+    return 0;
+  }
+  variance /= (nMeas - 1);
+  return variance;
+}
+
 /// \brief Convert a 2D boost histogram to a root histogram
 template <class BoostHist>
 TH1F TH1FFromBoost(BoostHist hist, const char* name = "hist")
@@ -468,7 +494,7 @@ TH2F TH2FFromBoost(BoostHist hist, const char* name = "hist")
 /// \return result
 ///      1d boost histogram from projection of the input 2d boost histogram
 template <typename... axes>
-auto ProjectBoostHistoX(boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
+auto ProjectBoostHistoX(const boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
 {
   using namespace boost::histogram::literals; // enables _c suffix needed for projection
 
@@ -494,7 +520,7 @@ auto ProjectBoostHistoX(boost::histogram::histogram<axes...>& hist2d, const int 
 /// \return result
 ///      1d boost histogram from projection of the input 2d boost histogram
 template <typename... axes>
-auto ProjectBoostHistoXFast(boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
+auto ProjectBoostHistoXFast(const boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
 {
   unsigned int nbins = hist2d.axis(0).size();
   double binStartX = hist2d.axis(0).bin(0).lower();

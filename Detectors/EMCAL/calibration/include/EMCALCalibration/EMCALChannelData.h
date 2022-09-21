@@ -58,10 +58,11 @@ class EMCALChannelData
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
 
-  EMCALChannelData() : mNBins(EMCALCalibParams::Instance().nBinsEnergyAxis_bc), mRange(EMCALCalibParams::Instance().maxValueEnergyAxis_bc)
+  EMCALChannelData() : mNBins(EMCALCalibParams::Instance().nBinsEnergyAxis_bc), mRange(EMCALCalibParams::Instance().maxValueEnergyAxis_bc), mNBinsTime(EMCALCalibParams::Instance().nBinsTimeAxis_bc), mRangeTimeLow(EMCALCalibParams::Instance().rangeTimeAxisLow_bc), mRangeTimeHigh(EMCALCalibParams::Instance().rangeTimeAxisHigh_bc)
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
     mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0, mRange, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeLow, mRangeTimeHigh, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
     // NCELLS includes DCal, treat as one calibration
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
@@ -88,6 +89,10 @@ class EMCALChannelData
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 
+  /// \brief Get current calibration histogram with timing information
+  boostHisto& getHistoTime() { return mHistoTime; }
+  const boostHisto& getHistoTime() const { return mHistoTime; }
+
   /// \brief Peform the calibration and flag the bad channel map
   /// Average energy per hit histogram is fitted with a gaussian
   /// good area is +-mSigma
@@ -110,6 +115,10 @@ class EMCALChannelData
   float mRange = 10;                                    ///< Maximum energy range of boost histogram (will be overwritten by values in the EMCALCalibParams)
   int mNBins = 1000;                                    ///< Number of bins in the boost histogram (will be overwritten by values in the EMCALCalibParams)
   boostHisto mHisto;                                    ///< 2d boost histogram with cellID vs cell energy
+  int mNBinsTime = 1000;                                ///< Number of time bins in boost histogram (cell time vs. cell ID)
+  float mRangeTimeLow = -500;                           ///< lower bound of time axis of mHistoTime
+  float mRangeTimeHigh = 500;                           ///< upper bound of time axis of mHistoTime
+  boostHisto mHistoTime;                                ///< 2d boost histogram with cellID vs cell time
   int mEvents = 0;                                      ///< event counter
   long unsigned int mNEntriesInHisto = 0;               ///< Number of entries in the histogram
   boostHisto mEsumHisto;                                ///< contains the average energy per hit for each cell

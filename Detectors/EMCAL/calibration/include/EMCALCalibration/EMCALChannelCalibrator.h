@@ -125,7 +125,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
     LOG(debug) << "Launching the calibration.";
-    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
+    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto(), c->getHistoTime());
     LOG(debug) << "Done with the calibraiton";
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
@@ -145,6 +145,11 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
       TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
       std::string nameBCInputHist = "EnergyVsCellID_" + std::to_string(slot.getStartTimeMS());
       hCalibHist.Write(nameBCInputHist.c_str(), TObject::kOverwrite);
+
+      TH2F hCalibHistTime = o2::utils::TH2FFromBoost(c->getHistoTime());
+      std::string nameBCInputHistTime = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());
+      hCalibHistTime.Write(nameBCInputHistTime.c_str(), TObject::kOverwrite);
+
       fLocalStorage.Close();
     }
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
