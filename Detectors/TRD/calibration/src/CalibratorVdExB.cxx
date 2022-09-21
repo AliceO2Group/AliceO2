@@ -158,7 +158,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
 
   // Write results to file
   if (mEnableOutput) {
-    std::unique_ptr<TFile> outFilePtr(TFile::Open("calibVDriftExB.root"));
+    std::unique_ptr<TFile> outFilePtr(TFile::Open("calibVDriftExB.root", "RECREATE"));
 
     // Write residuals
     outFilePtr->mkdir("residuals");
