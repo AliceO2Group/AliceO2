@@ -24,14 +24,13 @@ namespace ctp
 
 namespace lumi_workflow
 {
-struct lumiPoint
-{
+struct lumiPoint {
   lumiPoint() = default;
-  InteractionRecord ir;   // timestamp of start of lumi interval
-  float_t length = 1;        // length of interval in HB
-  float_t counts = 0;         //  counts in the interval
-  float_t getLumi() { return counts/length/88e-6; };
-  float_t getFractErrorLumi() { return 1./sqrt(counts); };
+  InteractionRecord ir; // timestamp of start of lumi interval
+  float_t length = 1;   // length of interval in HB
+  float_t counts = 0;   //  counts in the interval
+  float_t getLumi() { return counts / length / 88e-6; };
+  float_t getFractErrorLumi() { return 1. / sqrt(counts); };
 };
 /// \class RawToLumiConverterSpec
 /// \brief Coverter task for Raw data to Lumi
@@ -58,9 +57,10 @@ class RawToLumiConverterSpec : public framework::Task
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CTP", "LUMI", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
+
  protected:
  private:
-  gbtword80_t mTVXMask = 0x4 ; // TVX is 3rd input
+  gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
   std::vector<lumiPoint> mOutputLumiPoints;
 };
 
@@ -68,7 +68,7 @@ class RawToLumiConverterSpec : public framework::Task
 ///
 o2::framework::DataProcessorSpec getRawToLumiConverterSpec(bool askSTFDist);
 
-} // namespace reco_workflow
+} // namespace lumi_workflow
 
 } // namespace ctp
 

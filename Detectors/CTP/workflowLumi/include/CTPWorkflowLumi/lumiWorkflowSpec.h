@@ -26,9 +26,9 @@ namespace o2
 {
 namespace ctp
 {
-//framework::DataProcessorSpec getLumiWorkflowSpec(bool raw = true);
+// framework::DataProcessorSpec getLumiWorkflowSpec(bool raw = true);
 o2::framework::WorkflowSpec getLumiWorkflowSpec(bool noLostTF);
-}
+} // namespace ctp
 } // namespace o2
 
-#endif //O2_CTPLUMIWORKFLOWSPEC_H
+#endif // O2_CTPLUMIWORKFLOWSPEC_H

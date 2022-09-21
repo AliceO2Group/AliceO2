@@ -34,10 +34,10 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   using InputSpec = o2::framework::InputSpec;
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
-  //mOutputHWErrors.clear();
+  // mOutputHWErrors.clear();
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(ctx.inputs(), filter);
-  //setUpDummyLink
+  // setUpDummyLink
   auto& inputs = ctx.inputs();
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
@@ -100,7 +100,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       counts = 0;
     }
     for (auto payloadWord : payload) {
-      //LOG(info) << wordCount << " payload:" <<  int(payloadWord);
+      // LOG(info) << wordCount << " payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
@@ -111,11 +111,11 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
         }
         wordCount++;
         diglets.clear();
-        //LOG(info) << " gbtword:" << gbtWord;
+        // LOG(info) << " gbtword:" << gbtWord;
         o2::ctp::reco_workflow::RawToDigitConverterSpec::makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // count tvx
         for (auto diglet : diglets) {
-          //LOG(info) << " diglet:" << diglet;
+          // LOG(info) << " diglet:" << diglet;
           gbtword80_t pld = (diglet & mTVXMask);
           if (pld.count() != 0) {
             counts++;
@@ -123,7 +123,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
         }
         gbtWord = 0;
       } else {
-        //std::cout << "wordCount:" << wordCount << std::endl;
+        // std::cout << "wordCount:" << wordCount << std::endl;
         for (int i = 0; i < 8; i++) {
           gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
         }
