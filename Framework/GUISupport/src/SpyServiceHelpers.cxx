@@ -18,6 +18,7 @@
 #include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include <cinttypes>
+#include <bitset>
 
 namespace o2::framework
 {
