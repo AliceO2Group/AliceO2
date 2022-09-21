@@ -14,6 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
@@ -21,22 +22,30 @@ namespace o2
 namespace ctp
 {
 
-namespace reco_workflow
+namespace lumi_workflow
 {
-
-/// \class RawToDigitConverterSpec
-/// \brief Coverter task for Raw data to CTP digits
-/// \author Roman Lietava from CPV example
+struct lumiPoint
+{
+  lumiPoint() = default;
+  InteractionRecord ir;   // timestamp of start of lumi interval
+  float_t length = 1;        // length of interval in HB
+  float_t counts = 0;         //  counts in the interval
+  float_t getLumi() { return counts/length/88e-6; };
+  float_t getFractErrorLumi() { return 1./sqrt(counts); };
+};
+/// \class RawToLumiConverterSpec
+/// \brief Coverter task for Raw data to Lumi
+/// \author Roman Lietava from RawToDigiConverterSpec example
 ///
-class RawToDigitConverterSpec : public framework::Task
+class RawToLumiConverterSpec : public framework::Task
 {
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToDigitConverterSpec() = default;
+  RawToLumiConverterSpec() = default;
 
   /// \brief Destructor
-  ~RawToDigitConverterSpec() override = default;
+  ~RawToLumiConverterSpec() override = default;
 
   /// \brief Initializing the RawToDigitConverterSpec
   /// \param ctx Init context
@@ -47,18 +56,17 @@ class RawToDigitConverterSpec : public framework::Task
   ///
   /// The following branches are linked:
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
-  /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
+  /// Output HW errors: {"CTP", "LUMI", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
-  static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
-
  protected:
  private:
-  std::vector<CTPDigit> mOutputDigits;
+  gbtword80_t mTVXMask = 0x4 ; // TVX is 3rd input
+  std::vector<lumiPoint> mOutputLumiPoints;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
 ///
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askSTFDist);
+o2::framework::DataProcessorSpec getRawToLumiConverterSpec(bool askSTFDist);
 
 } // namespace reco_workflow
 
