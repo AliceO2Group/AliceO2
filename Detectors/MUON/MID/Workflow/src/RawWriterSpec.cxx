@@ -97,7 +97,7 @@ framework::DataProcessorSpec getRawWriterSpec()
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawWriterDeviceDPL>()},
     of::Options{
       {"mid-raw-outdir", of::VariantType::String, ".", {"Raw file output directory"}},
-      {"file-for", of::VariantType::String, "all", {"single file per: all,flp,cru,link"}},
+      {"file-for", of::VariantType::String, "all", {"single file per: all,flp,cruendpoint,link"}},
       {"mid-raw-header-offset", of::VariantType::Bool, false, {"Header offset in bytes"}}}};
 }
 } // namespace mid

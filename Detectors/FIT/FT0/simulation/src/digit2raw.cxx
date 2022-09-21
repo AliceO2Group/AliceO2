@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FT0)),"input FT0 digits file"); // why not used?
     add_option("input-file,i", bpo::value<std::string>()->default_value("ft0digits.root"), "input FT0 digits file");
     add_option("flp-name", bpo::value<std::string>()->default_value("alio2-cr1-flp200"), "single file per: all,flp,cru,link");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cru,link");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cruendpoint,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");

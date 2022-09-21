@@ -150,7 +150,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
         outfname = fmt::format("{}tpc_all.raw", outDir);
       } else if (fileFor == "sector") {
         outfname = i == NSectors ? fmt::format("{}tpc_iac.raw", outDir) : fmt::format("{}tpc_sector{}.raw", outDir, i);
-      } else if (fileFor == "link" || fileFor == "cru") {
+      } else if (fileFor == "link" || fileFor == "cruendpoint") {
         outfname = fmt::format("{}TPC_{}_cru{}_{}.raw", outDir, CRU_FLPS[cruID], cruID, j & 1);
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
@@ -257,7 +257,7 @@ int main(int argc, char** argv)
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,cru,all");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,cruendpoint,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Pad all pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
