@@ -55,7 +55,7 @@ void Digitizer::init()
   
   // importing the charge collection tables
   // (initialized while building O2)
-  auto file = TFile::Open(mdataFile.data());
+  auto file = TFile::Open(mResponseFile.data());
   /*std::string response = "response";
   for (int i=0; i<2; i++) {
     response.append(std::to_string(i));

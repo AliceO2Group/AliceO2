@@ -30,18 +30,18 @@ ClassImp(o2::itsmft::AlpideRespSimMat);
 
 constexpr float micron2cm = 1e-4;
 
-void AlpideSimResponse::initData(int tableNumber, int mDataPath)
+void AlpideSimResponse::initData(int tableNumber, std::string dataPath)
 {
   /*
    * read grid parameters and load data
    */
   if (tableNumber == 0) // 0V back bias
   {
-    const std::string newDataPath = mDataPath + "Vbb-0.0V"; 
+    const std::string newDataPath = dataPath + "Vbb-0.0V"; 
     setDataPath(newDataPath);                               // setting the new data path
   } else if (tableNumber == 1)                              // -3V back bias
   {
-    const std::string newDataPath = mDataPath + "Vbb-3.0V";
+    const std::string newDataPath = dataPath + "Vbb-3.0V";
     setDataPath(newDataPath); // setting the new data path
   }
 

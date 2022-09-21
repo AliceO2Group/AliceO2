@@ -106,7 +106,7 @@ class AlpideSimResponse
   float mStepInvDpt = 0;               /// inverse step of the Dpt grid
   std::vector<AlpideRespSimMat> mData; /// response data
   /// path to look for data file
-  //std::string mDataPath = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/";
+  std::string mDataPath;
   std::string mGridColName = "grid_list_x.txt";             /// name of the file with grid in Col
   std::string mGridRowName = "grid_list_y.txt";             /// name of the file with grid in Row
   std::string mColRowDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given Col,Row
@@ -115,7 +115,7 @@ class AlpideSimResponse
   AlpideSimResponse() = default;
   ~AlpideSimResponse() = default;
 
-  void initData(int tableNumber, std::string mDataPath);  // FIXME TEMPORARY NAME FOR DATA PATH !!!
+  void initData(int tableNumber, std::string dataPath);
 
   bool getResponse(float vRow, float vCol, float cDepth, AlpideRespSimMat& dest) const;
   const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const;
