@@ -189,7 +189,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 
   if (toProcess) {
     int rval = mWorker.process(peds, bcdata, chans);
-    if (rval != 0) {
+    if (rval != 0 || mWorker.inError()) {
       LOG(warning) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD -> processing ended in ERROR @ line " << rval;
     } else {
       const std::vector<o2::zdc::RecEventAux>& recAux = mWorker.getReco();
