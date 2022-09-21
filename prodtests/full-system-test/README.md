@@ -79,10 +79,9 @@ The environment variables are documented here: https://github.com/AliceO2Group/O
 
 ## Files produced / required by the full system test
 
-The full system test can use the following input files:
-* Material budget: `matbud.root` with the material budget (used if available by the workflows to speed up material queries).
-* CTF ANS dictionaries: `ctf_dictionary.root` (if `CREATECTFDICT=0` is set).
-* ITS and MFT pattern dictionaries are normally loaded from the CCDB. (Alternatively, `ITSdictionary.bin` and `MFTdictionary.bin` can be provided externally, or they can be produced automatically if `GENERATE_ITSMFT_DICTIONARIES=1` is set.)
+The local files like geometry, material LUT etc. are not anymore needed for reconstruction and calibration workflows, but some QC workflows still need
+* geometry file o2sim_geometry-aligned.root
+* old-style (dummy) monolitic GRP file o2sim_grp.root
 
 The full system test produces the following output:
 * QED simulation output in the folder `qed`.
@@ -90,3 +89,8 @@ The full system test produces the following output:
 * Digits from `o2-sim-digitizer-workflow` and TRD tracklets.
 * Depending on the options mentioned above, `ctf_dictionary.root` and `ITSdictionary.bin` / `MFTdictionary.bin`.
 * RAW files in `raw/[DETECTOR_NAME]`
+
+By default the `dpl-workflow.sh` adds sub-workflows with the option `--disable-root-output`, preventing initialization of writer devices (therefore the intermediate reconstruction files are not produced).
+This behaviour can be overridden by passing `DISABLE_ROOT_OUTPUT=0` which will trigger storing all intermediate reconstruction files as well as the creation of the `o2_tfidinfo.root` file containing timing information of every processed TF (produced by `o2-tfidinfo-writer-workflow`).
+In case intermediate files of only a few workflows are needed, instead of enabling all writers via `DISABLE_ROOT_OUTPUT=0` one can enable those of particular devices only by passing `ENABLE_ROOT_OUTPUT_<workflow_name_with_underscores>=`.
+I.e. to enable storing the output of the `o2-its-reco-workflow` it is enough to prepend the script by `ENABLE_ROOT_OUTPUT_o2_its_reco_workflow=`. The `o2-tfidinfo-writer-workflow` will be invoked if there is at least one workflow with root outputs enabled.

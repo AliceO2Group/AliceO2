@@ -141,11 +141,9 @@ if workflow_has_parameter QC && has_detector_qc TPC; then
   [[ $GPUTYPE != "CPU" && $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
 fi
 
-if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
-  # enable only if root output is written, because it slows down the processing
-  GPU_OUTPUT+=",send-clusters-per-sector"
-  ENABLE_ROOT_OUTPUT="--enable-root-output"
-fi
+# enable only if root output is written, because it slows down the processing
+[[ -z $DISABLE_ROOT_OUTPUT ]] && ENABLE_ROOT_OUTPUT="--enable-root-output"
+[[ -z $DISABLE_ROOT_OUTPUT ]] || needs_root_output o2-gpu-reco-workflow && GPU_OUTPUT+=",send-clusters-per-sector"
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
@@ -364,7 +362,8 @@ else
 fi
 
 # if root output is requested, record info of processed TFs DataHeader for replay of root files
-[[ -z "$DISABLE_ROOT_OUTPUT" ]] && add_W o2-tfidinfo-writer-workflow
+ROOT_OUTPUT_ASKED=`declare -p | cut -d' ' -f3 | cut -d'=' -f1 | grep ENABLE_ROOT_OUTPUT_`
+[[ -z "$DISABLE_ROOT_OUTPUT" ]] || [[ ! -z $ROOT_OUTPUT_ASKED ]] && add_W o2-tfidinfo-writer-workflow
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
@@ -373,7 +372,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
-    [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type digitizer --output-type digits $DISABLE_MC"
+    [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-gpu-reco-workflow && add_W o2-tpc-reco-workflow "--input-type digitizer --output-type digits $DISABLE_MC"
   fi
   has_detector ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
