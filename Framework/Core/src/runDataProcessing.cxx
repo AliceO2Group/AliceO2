@@ -1091,7 +1091,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")
       ("inspector", bpo::value<bool>()->zero_tokens()->default_value(false), "add message inspection capabilities")
       ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")
-      ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy");
+      ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy")
+      ("inspector-id", bpo::value<std::string>()->default_value(""), "id of analysis started by DataInspector proxy");
 
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
   });
@@ -1154,7 +1155,12 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
     // We want to register this service only when '--inspector' option was specified
     if(r.fConfig.GetVarMap()["inspector"].as<bool>() && DataInspector::isNonInternalDevice(spec)) {
-      diProxyService = DataInspectorProxyService::create(spec, r.fConfig.GetVarMap()["inspector-address"].as<std::string>(), std::stoi(r.fConfig.GetVarMap()["inspector-port"].as<std::string>()));
+      diProxyService = DataInspectorProxyService::create(
+        spec,
+        r.fConfig.GetVarMap()["inspector-address"].as<std::string>(),
+        std::stoi(r.fConfig.GetVarMap()["inspector-port"].as<std::string>()),
+        r.fConfig.GetVarMap()["inspector-id"].as<std::string>()
+      );
       serviceRegistry.registerService(ServiceHandle{TypeIdHelpers::uniqueId<DataInspectorProxyService>(), diProxyService.get()});
     }
   };

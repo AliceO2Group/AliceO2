@@ -5,7 +5,7 @@
 
 namespace o2::framework
 {
-DataInspectorProxyService::DataInspectorProxyService(const std::string& deviceName, const std::string& address, int port) : deviceName(deviceName), socket(DISocket::connect(address, port))
+DataInspectorProxyService::DataInspectorProxyService(const std::string& deviceName, const std::string& address, int port, const std::string& id) : deviceName(deviceName), socket(DISocket::connect(address, port)), id(id)
 {
   socket.send(DIMessage{DIMessage::Header::Type::DEVICE_ON, std::string(deviceName)});
 }
@@ -16,9 +16,9 @@ DataInspectorProxyService::~DataInspectorProxyService()
   socket.close();
 }
 
-std::unique_ptr<DataInspectorProxyService> DataInspectorProxyService::create(DeviceSpec const& spec, const std::string& address, int port)
+std::unique_ptr<DataInspectorProxyService> DataInspectorProxyService::create(DeviceSpec const& spec, const std::string& address, int port, const std::string& id)
 {
-  return std::make_unique<DataInspectorProxyService>(spec.name, address, port);
+  return std::make_unique<DataInspectorProxyService>(spec.name, address, port, id);
 }
 
 void DataInspectorProxyService::receive()

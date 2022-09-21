@@ -1534,7 +1534,8 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)")
     ("inspector", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow with DataInspector")
     ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")
-    ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy");
+    ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy")
+    ("inspector-id", bpo::value<std::string>()->default_value(""), "id of analysis started by DataInspector proxy");
 
   return forwardedDeviceOptions;
 }
