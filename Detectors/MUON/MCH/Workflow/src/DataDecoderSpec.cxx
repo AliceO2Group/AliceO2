@@ -250,6 +250,7 @@ class DataDecoderTask
     auto& digits = mDecoder->getDigits();
     auto& orbits = mDecoder->getOrbits();
     auto& errors = mDecoder->getErrors();
+    auto& hbpackets = mDecoder->getHBPackets();
 
 #ifdef MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME
     constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
@@ -283,11 +284,12 @@ class DataDecoderTask
     }
 
     // send the output buffer via DPL
-    size_t digitsSize, rofsSize, orbitsSize, errorsSize;
+    size_t digitsSize, rofsSize, orbitsSize, errorsSize, hbSize;
     char* digitsBuffer = rofFinder.saveDigitsToBuffer(digitsSize);
     char* rofsBuffer = rofFinder.saveROFRsToBuffer(rofsSize);
     char* orbitsBuffer = createBuffer(orbits, orbitsSize);
     char* errorsBuffer = createBuffer(errors, errorsSize);
+    char* hbBuffer = createBuffer(hbpackets, hbSize);
 
     if (mDebug) {
       LOGP(info, "digitsSize {}  rofsSize {}  orbitsSize {}  errorsSize {}", digitsSize, rofsSize, orbitsSize, errorsSize);
@@ -299,6 +301,7 @@ class DataDecoderTask
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "DIGITROFS", 0}, rofsBuffer, rofsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ORBITS", 0}, orbitsBuffer, orbitsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "HBPACKETS", 0}, hbBuffer, hbSize, freefct, nullptr);
 
     mTFcount += 1;
     if (mErrorLogFrequency) {
@@ -345,6 +348,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
     Outputs{OutputSpec{header::gDataOriginMCH, "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe},
+            OutputSpec{header::gDataOriginMCH, "HBPACKETS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>(std::move(task))},
     Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
