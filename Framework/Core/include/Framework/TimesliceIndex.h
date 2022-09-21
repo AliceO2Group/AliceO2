@@ -129,12 +129,12 @@ class TimesliceIndex
   [[nodiscard]] OldestInputInfo getOldestPossibleInput() const;
   [[nodiscard]] OldestOutputInfo getOldestPossibleOutput() const;
   OldestOutputInfo updateOldestPossibleOutput();
-  InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
+  [[nodiscard]] InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.
   /// This is the timeslices for all the in flight parts.
-  inline TimesliceSlot findOldestSlot(TimesliceId) const;
+  [[nodiscard]] inline TimesliceSlot findOldestSlot(TimesliceId) const;
 
   /// The variables for each cacheline.
   std::vector<data_matcher::VariableContext> mVariables;
