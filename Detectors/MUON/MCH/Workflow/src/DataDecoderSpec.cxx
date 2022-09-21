@@ -243,7 +243,6 @@ class DataDecoderTask
       }
     }
     mDecoder->computeDigitsTime();
-    mDecoder->checkDigitsTime();
     auto tEnd = std::chrono::high_resolution_clock::now();
     mTimeDecoding += tEnd - tStart;
 

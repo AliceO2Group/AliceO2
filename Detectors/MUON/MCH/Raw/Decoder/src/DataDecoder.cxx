@@ -814,21 +814,6 @@ void DataDecoder::computeDigitsTimeBCRst()
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::checkDigitsTime()
-{
-  for (auto& digit : mDigits) {
-    auto& d = digit.digit;
-    auto& info = digit.info;
-    auto tfTime = d.getTime();
-    if (tfTime == DataDecoder::tfTimeInvalid) {
-      // add invalid digit time error
-      mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
-    }
-  }
-}
-
-//_________________________________________________________________________________________________
-
 void DataDecoder::computeDigitsTime()
 {
   switch (mTimeRecoMode) {
