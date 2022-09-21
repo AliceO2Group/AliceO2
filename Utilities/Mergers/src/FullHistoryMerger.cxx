@@ -85,6 +85,11 @@ void FullHistoryMerger::run(framework::ProcessingContext& ctx)
   }
 }
 
+void FullHistoryMerger::endOfStream(framework::EndOfStreamContext& eosContext)
+{
+  publish(eosContext.outputs());
+}
+
 // I am not calling it reset(), because it does not have to be performed during the FairMQs reset.
 void FullHistoryMerger::clear()
 {
