@@ -45,6 +45,13 @@ o2_add_executable(
 )
 
 o2_add_executable(
+  workflow
+  COMPONENT_NAME aod-mc-producer
+  SOURCES src/aod-mc-producer-workflow.cxx src/AODMcProducerWorkflowSpec.cxx
+  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
+)
+
+o2_add_executable(
         standalone-aod-producer
         COMPONENT_NAME reco
         SOURCES src/StandaloneAODProducer.cxx

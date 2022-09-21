@@ -14,6 +14,7 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
+#include "AODProducerHelpers.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
@@ -54,30 +55,6 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
-
-typedef boost::tuple<int, int, int> Triplet_t;
-
-struct TripletHash {
-  std::size_t operator()(Triplet_t const& e) const
-  {
-    std::size_t seed = 0;
-    boost::hash_combine(seed, e.get<0>());
-    boost::hash_combine(seed, e.get<1>());
-    boost::hash_combine(seed, e.get<2>());
-    return seed;
-  }
-};
-
-struct TripletEqualTo {
-  bool operator()(Triplet_t const& x, Triplet_t const& y) const
-  {
-    return (x.get<0>() == y.get<0>() &&
-            x.get<1>() == y.get<1>() &&
-            x.get<2>() == y.get<2>());
-  }
-};
-
-typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> TripletsMap_t;
 
 class AODProducerWorkflowDPL : public Task
 {
@@ -157,7 +134,7 @@ class AODProducerWorkflowDPL : public Task
   double mTimeMarginTrackTime = -1;         // safety margin in NS used for track-vertex matching (additive to track uncertainty)
   double mTPCBinNS = -1;                    // inverse TPC time-bin in ns
 
-  TripletsMap_t mToStore;
+  o2::aodhelpers::TripletsMap_t mToStore;
 
   // MC production metadata holder
   TMap mMetaData;

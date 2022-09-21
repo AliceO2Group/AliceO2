@@ -704,6 +704,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const o2::globaltracking::RecoContainer& data,
                                                   const std::map<std::pair<int, int>, int>& mcColToEvSrc)
 {
+  using o2::aodhelpers::Triplet_t;
+
   auto markMCTrackForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
     auto mcLabel = data.getTrackMCLabel(contributorsGID[src]);
     if (!mcLabel.isValid()) {
@@ -898,6 +900,8 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
                                                     const gsl::span<const GIndex>& primVerGIs,
                                                     const o2::globaltracking::RecoContainer& data)
 {
+  using o2::aodhelpers::Triplet_t;
+
   // labelMask (temporary) usage:
   //   bit 13 -- ITS/TPC or TPC/TOF labels are not equal
   //   bit 14 -- isNoise() == true
