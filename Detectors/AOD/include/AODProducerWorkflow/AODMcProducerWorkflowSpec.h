@@ -35,14 +35,13 @@ namespace o2::aodmcproducer
 class AODMcProducerWorkflowDPL : public Task
 {
  public:
-  AODMcProducerWorkflowDPL(std::string resFile): mResFile{resFile}{}
+  AODMcProducerWorkflowDPL(std::string resFile) : mResFile{resFile} {}
   ~AODMcProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-
   int64_t mTFNumber{-1};
   int mRunNumber{-1};
   int mTruncate{1};
@@ -61,10 +60,10 @@ class AODMcProducerWorkflowDPL : public Task
   TMap mMetaData;
 
   // truncation is enabled by default
-  uint32_t mCollisionPosition = 0xFFFFFFF0;    // 19 bits mantissa
-  uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
-  uint32_t mMcParticlePos = 0xFFFFFFF0;        // 19 bits
-  uint32_t mMcParticleMom = 0xFFFFFFF0;        // 19 bits
+  uint32_t mCollisionPosition = 0xFFFFFFF0; // 19 bits mantissa
+  uint32_t mMcParticleW = 0xFFFFFFF0;       // 19 bits
+  uint32_t mMcParticlePos = 0xFFFFFFF0;     // 19 bits
+  uint32_t mMcParticleMom = 0xFFFFFFF0;     // 19 bits
 
   void collectBCs(const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
@@ -73,7 +72,6 @@ class AODMcProducerWorkflowDPL : public Task
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
                             const MCParticlesCursorType& mcParticlesCursor,
                             const std::map<std::pair<int, int>, int>& mcColToEvSrc);
-
 };
 
 /// create a processor spec
