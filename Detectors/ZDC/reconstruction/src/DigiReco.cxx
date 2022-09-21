@@ -400,6 +400,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   mOrbitData = orbitdata;
   mBCData = bcdata;
   mChData = chdata;
+  mInError = false;
 
   // Initialization of lookup structure for pedestals
   mOrbit.clear();
