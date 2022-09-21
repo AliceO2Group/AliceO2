@@ -146,12 +146,12 @@ class DigiReco
   const ModuleConfig* mModuleConfig = nullptr;              /// Trigger/readout configuration object
   void updateOffsets(int ibun);                             /// Update offsets to process current bunch
   void lowPassFilter();                                     /// low-pass filtering of digitized data
-  int reconstructTDC(int seq_beg, int seq_end);            /// Reconstruction of uncorrected TDCs
+  int reconstructTDC(int seq_beg, int seq_end);             /// Reconstruction of uncorrected TDCs
   int reconstruct(int seq_beg, int seq_end);                /// Main method for data reconstruction
   int processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
   int processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   int interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
-  int fullInterpolation(int itdc, int ibeg, int iend);     /// Interpolation of samples
+  int fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
   void correctTDCPile();                                    /// Correction of pile-up in TDC
   bool mLowPassFilter = true;                               /// Enable low pass filtering
   bool mLowPassFilterSet = false;                           /// Low pass filtering set via function call
