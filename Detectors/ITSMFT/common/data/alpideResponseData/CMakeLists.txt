@@ -17,8 +17,11 @@
 o2_add_test_root_macro(alpideResponse.C
     LABELS "its;mft")
 
-#add_custom_command(COMMAND root -b -q alpideResponse.C+)
-#COMMENT "Storing AlpideResponseData for Vbb=0V and -3V in a .root file")
+#add_executable(alpide alpideResponse.C)
+#add_custom_command(TARGET alpide
+#    POST_BUILD
+#    COMMAND root -b -q alpideResponse.C+
+#    COMMENT "Storing AlpideResponseData for Vbb=0V and -3V in a .root file")
 
 #set(FILE "hello.txt")
 
