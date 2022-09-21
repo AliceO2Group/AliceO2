@@ -292,6 +292,7 @@ struct GroupSlicer {
           }
         }
       } else {
+        static_assert(!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>, "SmallGroups used with a table that is not related by index to the gouping table");
         return originalTable;
       }
     }
