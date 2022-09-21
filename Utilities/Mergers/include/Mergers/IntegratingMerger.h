@@ -51,6 +51,9 @@ class IntegratingMerger : public framework::Task
   /// \brief IntegratingMerger process callback.
   void run(framework::ProcessingContext& ctx) override;
 
+  /// \brief Callback for CallbackService::Id::EndOfStream
+  void endOfStream(framework::EndOfStreamContext& eosContext) override;
+
  private:
   void publish(framework::DataAllocator& allocator);
   void clear();

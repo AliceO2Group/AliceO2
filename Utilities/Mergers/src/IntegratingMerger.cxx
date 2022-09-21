@@ -91,6 +91,11 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   }
 }
 
+void IntegratingMerger::endOfStream(framework::EndOfStreamContext& eosContext)
+{
+  publish(eosContext.outputs());
+}
+
 // I am not calling it reset(), because it does not have to be performed during the FairMQs reset.
 void IntegratingMerger::clear()
 {
