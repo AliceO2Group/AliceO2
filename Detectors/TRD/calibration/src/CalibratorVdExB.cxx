@@ -162,6 +162,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
 
     // Write residuals
     outFilePtr->mkdir("residuals");
+    outFilePtr->cd("residuals");
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
       mFitFunctor.profiles[iDet]->Write();
     }
