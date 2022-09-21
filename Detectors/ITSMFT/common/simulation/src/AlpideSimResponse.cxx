@@ -30,7 +30,7 @@ ClassImp(o2::itsmft::AlpideRespSimMat);
 
 constexpr float micron2cm = 1e-4;
 
-void AlpideSimResponse::initData(int tableNumber)
+void AlpideSimResponse::initData(int tableNumber, int mDataPath)
 {
   /*
    * read grid parameters and load data
