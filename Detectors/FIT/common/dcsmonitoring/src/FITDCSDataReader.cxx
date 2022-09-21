@@ -38,7 +38,7 @@ void FITDCSDataReader::init(const std::vector<DPID>& pids)
   // Fill the array of sub-detector specific DPIDs that will be processed
   for (const auto& it : pids) {
     mPids[it] = false;
-    mDpData[it].makeEmpty();
+    mDpData[it.get_alias()].makeEmpty();
   }
 }
 
@@ -85,6 +85,7 @@ int FITDCSDataReader::processDP(const DPCOM& dpcom)
 {
   // Processing a single DP
   const auto& dpid = dpcom.id;
+  const auto& dpAlias = dpid.get_alias();
   const auto& type = dpid.get_type();
   const auto& val = dpcom.data;
 
@@ -99,12 +100,12 @@ int FITDCSDataReader::processDP(const DPCOM& dpcom)
   auto flags = val.get_flags();
   if (processFlags(flags, dpid.get_alias()) == 0) {
     // Store all DP values
-    if (mDpData[dpid].values.empty() || val.get_epoch_time() > mDpData[dpid].values.back().first) {
+    if (mDpData[dpAlias].values.empty() || val.get_epoch_time() > mDpData[dpAlias].values.back().first) {
       dpValueConverter.raw_data = val.payload_pt1;
       if (type == DPVAL_DOUBLE) {
-        mDpData[dpid].add(val.get_epoch_time(), lround(dpValueConverter.double_value * 1000)); // store as nA
+        mDpData[dpAlias].add(val.get_epoch_time(), lround(dpValueConverter.double_value * 1000)); // store as nA
       } else if (type == DPVAL_UINT) {
-        mDpData[dpid].add(val.get_epoch_time(), dpValueConverter.uint_value);
+        mDpData[dpAlias].add(val.get_epoch_time(), dpValueConverter.uint_value);
       }
     }
   }
@@ -176,7 +177,7 @@ void FITDCSDataReader::updateCcdbObjectInfo()
       // if (dp.second.values.empty()) {
       //   continue;
       // }
-      LOG(info) << "PID = " << dp.first.get_alias();
+      LOG(info) << "DP = " << dp.first;
       dp.second.print();
     }
   }
@@ -187,7 +188,7 @@ void FITDCSDataReader::updateCcdbObjectInfo()
   return;
 }
 
-const std::unordered_map<DPID, DCSDPValues>& FITDCSDataReader::getDpData() const { return mDpData; }
+const std::unordered_map<std::string, DCSDPValues>& FITDCSDataReader::getDpData() const { return mDpData; }
 
 void FITDCSDataReader::resetDpData()
 {

@@ -52,7 +52,7 @@ class FITDCSDataReader
   uint64_t processFlags(uint64_t flag, const char* pid);
   void updateCcdbObjectInfo();
 
-  const std::unordered_map<DPID, DCSDPValues>& getDpData() const;
+  const std::unordered_map<std::string, DCSDPValues>& getDpData() const;
   void resetDpData();
   const std::string& getCcdbPath() const;
   void setCcdbPath(const std::string& ccdbPath);
@@ -68,7 +68,7 @@ class FITDCSDataReader
   void setVerboseMode(bool verboseMode = true);
 
  private:
-  std::unordered_map<DPID, o2::fit::DCSDPValues> mDpData; // the object that will go to the CCDB
+  std::unordered_map<std::string, o2::fit::DCSDPValues> mDpData; // the object that will go to the CCDB
   std::unordered_map<DPID, bool> mPids;                   // contains all PIDs for the processor, the bool
                                                           // will be true if the DP was processed at least once
   std::unordered_map<DPID, DPVAL> mDpsMap;                // this is the map that will hold the DPs
