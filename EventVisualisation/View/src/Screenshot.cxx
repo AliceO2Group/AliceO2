@@ -210,7 +210,7 @@ std::string Screenshot::perform(std::string fileName, o2::detectors::DetID::mask
   int textLineHeight = 0.015 * height;
 
   for (int i = 0; i < 4; i++) {
-    lines.push_back("");        // guard for empty collision time
+    lines.push_back(""); // guard for empty collision time
     image->DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
   }
   image->EndPaint();
