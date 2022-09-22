@@ -17,6 +17,16 @@
 o2_add_test_root_macro(alpideResponse.C
     LABELS "its;mft")
 
+o2_add_test_root_macro(hello.C
+    LABELS "its;mft")
+
+#add_executable(myExe hello.C)
+#add_custom_command(
+#  TARGET myExe POST_BUILD
+#  COMMAND root -b -q "$<TARGET_FILE:myExe>"
+#  VERBATIM)
+
+
 #add_executable(alpide alpideResponse.C)
 #add_custom_command(TARGET alpide
 #    POST_BUILD
