@@ -42,10 +42,17 @@ o2_add_test_root_macro(plotVdriftExB.C
                                             O2::CCDB
                       LABELS trd)
 
+o2_add_test_root_macro(makeDeflectionCorrelation.C
+                      PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
+                                            O2::CCDB
+                                            O2::TRDQC
+                      LABELS trd COMPILE_ONLY)
+
 install(
   FILES makeTRDCCDBEntryForDCS.C
   readTRDDCSentries.C
   readTRDVoltages.C
   manualCalibFit.C
   plotVdriftExB.C
+  makeDeflectionCorrelation.C
   DESTINATION share/macro/)
