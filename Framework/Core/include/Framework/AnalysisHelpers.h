@@ -21,8 +21,6 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
 #include "Framework/IndexBuilderHelpers.h"
-#include <arrow/table.h>
-#include <arrow/util/key_value_metadata.h>
 #include <string>
 namespace o2::framework
 {
@@ -264,12 +262,12 @@ struct ColumnTrait {
     }
   }
 };
-} // namespace
 
 template <typename Key, typename C>
 struct Reduction {
   using type = typename std::conditional<soa::is_binding_compatible_v<Key, typename C::binding_t>(), SelfIndexColumnBuilder, IndexColumnBuilder>::type;
 };
+} // namespace
 
 template <typename Kind>
 struct IndexBuilder {

@@ -137,6 +137,8 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   size_t mSourceSize = 0;
   size_t mResultSize = 0;
 };
+
+std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray> > &&columns, std::vector<std::shared_ptr<arrow::Field> > &&fields);
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_INDEXBUILDERHELPERS_H_

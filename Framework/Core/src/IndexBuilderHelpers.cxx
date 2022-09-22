@@ -12,9 +12,8 @@
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include <arrow/status.h>
-#include <arrow/stl.h>
-#include <arrow/type_traits.h>
-#include <iostream>
+#include <arrow/table.h>
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
@@ -179,5 +178,15 @@ int ChunkedArrayIterator::valueAt(size_t pos)
     prevChunk();
   }
   return *(mCurrent + pos);
+}
+
+std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray>>&& columns, std::vector<std::shared_ptr<arrow::Field>>&& fields)
+{
+  auto schema = std::make_shared<arrow::Schema>(fields);
+  schema->WithMetadata(
+    std::make_shared<arrow::KeyValueMetadata>(
+      std::vector{std::string{"label"}},
+      std::vector{std::string{label}}));
+  return arrow::Table::Make(schema, columns);
 }
 } // namespace o2::framework
