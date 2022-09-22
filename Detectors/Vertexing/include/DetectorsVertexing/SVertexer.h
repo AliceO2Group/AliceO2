@@ -155,14 +155,13 @@ class SVertexer
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;
-  std::vector<int> num3bodyCandidates = std::vector<int> (14,0);// test the efficiency of 3 body decay;
+  std::vector<int> num3bodyCandidates = std::vector<int> (13,0);// test the efficiency of 3 body decay;
   int mNThreads = 1;
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
   float mMaxDCAXY2ToMeanVertex3bodyV0 = 0;
   float mMinR2DiffV0Casc = 0;
-  float mMaxR2Diff3bodyV0 = 0;
   float mMaxR2ToMeanVertexCascV0 = 0;
   float mMinPt2V0 = 1e-6;
   float mMaxTgl2V0 = 2. * 2.;
@@ -191,9 +190,39 @@ class SVertexer
   std::vector<o2::MCCompLabel> mVtxDebugTrack0;
   std::vector<o2::MCCompLabel> mVtxDebugTrack1;
   std::vector<o2::MCCompLabel> mVtxDebugTrack2;
+  std::vector<float> mVtxDebugCandMass;
+  std::vector<float> mVtxDebugAntiCandMass;
+  std::vector<float> mVtxDebugMassMargin;
+  std::vector<float> mVtxDebugMassSigma;
+  std::vector<float> mVtxDebugCandPt;
   std::vector<o2::MCCompLabel> mVtxDebugTrack0_2;
   std::vector<o2::MCCompLabel> mVtxDebugTrack1_2;
   std::vector<o2::MCCompLabel> mVtxDebugTrack2_2;
+  std::vector<float> mVtxDebugCandMass_2;
+  std::vector<float> mVtxDebugAntiCandMass_2;
+  std::vector<float> mVtxDebugMassMargin_2;
+  std::vector<float> mVtxDebugMassSigma_2;
+  std::vector<float> mVtxDebugCandPt_2;
+  //Study cuts
+  std::vector<float> mV0DebugR_2;
+  std::vector<float> mV0DebugDrV0P_2;
+  std::vector<float> mV0DebugDrV0N_2;
+  std::vector<float> mV0DebugPt_2;
+  std::vector<float> mV0DebugTgLambda_2;
+  std::vector<float> mV0DebugDca_2;
+  std::vector<float> mV0DebugCosXY_2;
+  std::vector<float> mV0DebugCosPA_2;
+  std::vector<float> mV0DebugLambdaMass_2;
+  std::vector<float> mV0DebugAntiLambdaMass_2;
+
+  std::vector<float> mVtxDebugBachR_2;
+  std::vector<float> mVtxDebugDiffR_2;
+  std::vector<float> mVtxDebugR_2;
+  std::vector<float> mVtxDebugTgLambda_2;
+  std::vector<float> mVtxDebugCosPA_2;
+  std::vector<float> mVtxDebugProdPPos_2;
+  std::vector<float> mVtxDebugDcaY_2;
+  std::vector<float> mVtxDebugDcaZ_2;
 };
 
 // input containers can be std::vectors or pmr vectors

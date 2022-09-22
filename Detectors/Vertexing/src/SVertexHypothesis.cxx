@@ -25,7 +25,7 @@ void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, float sig, float nSig, f
   mPars[SigmaM] = sig;
   mPars[NSigmaM] = nSig;
   mPars[MarginM] = margin;
-  mPars[CPt] = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / bz : 0.; // assume that pT dependent sigma is linear with B
+  mPars[CPt] = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / std::abs(bz) : 0.; // assume that pT dependent sigma is linear with B
 }
 
 void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, const float pars[NPIDParams], float bz)
@@ -42,7 +42,7 @@ void SVertex3Hypothesis::set(PID v0, PID ppos, PID pneg, PID pbach, float sig, f
   mPars[SigmaM] = sig;
   mPars[NSigmaM] = nSig;
   mPars[MarginM] = margin;
-  mPars[CPt] = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / bz : 0.; // assume that pT dependent sigma is linear with B
+  mPars[CPt] = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / std::abs(bz) : 0.; // assume that pT dependent sigma is linear with B
 }
 
 void SVertex3Hypothesis::set(PID v0, PID ppos, PID pneg, PID pbach, const float pars[NPIDParams], float bz)

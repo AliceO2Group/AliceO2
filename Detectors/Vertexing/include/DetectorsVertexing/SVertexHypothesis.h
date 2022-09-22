@@ -74,6 +74,7 @@ class SVertexHypothesis
   PID mPIDPosProng{PID::Pion};
   PID mPIDNegProng{PID::Pion};
 
+ public:// to be deleted
   std::array<float, NPIDParams> mPars{};
 
   ClassDefNV(SVertexHypothesis, 1);
@@ -131,6 +132,7 @@ class SVertex3Hypothesis
   PID mPIDNegProng{PID::Pion};
   PID mPIDBachProng{PID::Deuteron};
 
+ public:// to be deleted
   std::array<float, NPIDParams> mPars{};
 
   ClassDefNV(SVertex3Hypothesis, 1);

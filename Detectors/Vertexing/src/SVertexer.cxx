@@ -136,8 +136,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
     m3bodyTmp[i].clear();
   }
-  LOG(info) << "Process Finished";
-  for (int i = 0; i < 14; i++) {
+  for (int i = 0; i < 13; i++) {
     LOG(info) << "Remian 3body Candidates number after Cut " << i << ": " << num3bodyCandidates[i];
   }
   LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
@@ -152,6 +151,47 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   mVtxPoolTree->Fill();
   mVtxPoolAfterCutTree->Fill();
 
+  mV0DebugPosTrack.clear();
+  mV0DebugNegTrack.clear();
+  mV0DebugPosTrack2.clear();
+  mV0DebugNegTrack2.clear();
+  mV0DebugR_2.clear();
+  mV0DebugDrV0P_2.clear();
+  mV0DebugDrV0N_2.clear();
+  mV0DebugPt_2.clear();
+  mV0DebugTgLambda_2.clear();
+  mV0DebugDca_2.clear();
+  mV0DebugCosXY_2.clear();
+  mV0DebugCosPA_2.clear();
+  mV0DebugLambdaMass_2.clear();
+  mV0DebugAntiLambdaMass_2.clear();
+
+  mVtxDebugTrack0.clear();
+  mVtxDebugTrack1.clear();
+  mVtxDebugTrack2.clear();
+  mVtxDebugCandMass.clear();
+  mVtxDebugAntiCandMass.clear();
+  mVtxDebugMassMargin.clear();
+  mVtxDebugMassSigma.clear();
+  mVtxDebugCandPt.clear();
+  mVtxDebugTrack0_2.clear();
+  mVtxDebugTrack1_2.clear();
+  mVtxDebugTrack2_2.clear();
+  mVtxDebugCandMass_2.clear();
+  mVtxDebugAntiCandMass_2.clear();
+  mVtxDebugMassMargin_2.clear();
+  mVtxDebugMassSigma_2.clear();
+  mVtxDebugCandPt_2.clear();
+
+  mVtxDebugBachR_2.clear();
+  mVtxDebugDiffR_2.clear();
+  mVtxDebugR_2.clear();
+  mVtxDebugTgLambda_2.clear();
+  mVtxDebugCosPA_2.clear();
+  mVtxDebugProdPPos_2.clear();
+  mVtxDebugDcaY_2.clear();
+  mVtxDebugDcaZ_2.clear();
+
   mV0PoolTree->Write();
   mV0PoolAfterCutTree->Write();
   mVtxPoolTree->Write();
@@ -161,17 +201,6 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   mV0PoolAfterCutTree.reset();
   mVtxPoolTree.reset();
   mVtxPoolAfterCutTree.reset();
-
-  mV0DebugPosTrack.clear();
-  mV0DebugNegTrack.clear();
-  mV0DebugPosTrack2.clear();
-  mV0DebugNegTrack2.clear();
-  mVtxDebugTrack0.clear();
-  mVtxDebugTrack1.clear();
-  mVtxDebugTrack2.clear();
-  mVtxDebugTrack0_2.clear();
-  mVtxDebugTrack1_2.clear();
-  mVtxDebugTrack2_2.clear();
   mSVDebugFile->Close();
   mSVDebugFile.reset();
 }
@@ -189,12 +218,41 @@ void SVertexer::init()
   mV0PoolTree->Branch("V0NegTrack", &mV0DebugNegTrack);
   mV0PoolAfterCutTree->Branch("V0PosTrack", &mV0DebugPosTrack2);
   mV0PoolAfterCutTree->Branch("V0NegTrack", &mV0DebugNegTrack2);
+  mV0PoolAfterCutTree->Branch("R", &mV0DebugR_2);
+  mV0PoolAfterCutTree->Branch("DrV0P", &mV0DebugDrV0P_2);
+  mV0PoolAfterCutTree->Branch("DrV0N", &mV0DebugDrV0N_2);
+  mV0PoolAfterCutTree->Branch("Pt", &mV0DebugPt_2);
+  mV0PoolAfterCutTree->Branch("TgLambda", &mV0DebugTgLambda_2);
+  mV0PoolAfterCutTree->Branch("Dca", &mV0DebugDca_2);
+  mV0PoolAfterCutTree->Branch("CosXY", &mV0DebugCosXY_2);
+  mV0PoolAfterCutTree->Branch("CosPA", &mV0DebugCosPA_2);
+  mV0PoolAfterCutTree->Branch("LambdaMass", &mV0DebugLambdaMass_2);
+  mV0PoolAfterCutTree->Branch("AntiLambdaMass", &mV0DebugAntiLambdaMass_2);
   mVtxPoolTree->Branch("VtxTrack0", &mVtxDebugTrack0);
   mVtxPoolTree->Branch("VtxTrack1", &mVtxDebugTrack1);
   mVtxPoolTree->Branch("VtxTrack2", &mVtxDebugTrack2);
+  mVtxPoolTree->Branch("CandMass", &mVtxDebugCandMass);
+  mVtxPoolTree->Branch("AntiCandMass", &mVtxDebugAntiCandMass);
+  mVtxPoolTree->Branch("MassMargin", &mVtxDebugMassMargin);
+  mVtxPoolTree->Branch("MassSigma", &mVtxDebugMassSigma);
+  mVtxPoolTree->Branch("CandPt", &mVtxDebugCandPt);
   mVtxPoolAfterCutTree->Branch("VtxTrack0", &mVtxDebugTrack0_2);
   mVtxPoolAfterCutTree->Branch("VtxTrack1", &mVtxDebugTrack1_2);
   mVtxPoolAfterCutTree->Branch("VtxTrack2", &mVtxDebugTrack2_2);
+  mVtxPoolAfterCutTree->Branch("CandMass", &mVtxDebugCandMass_2);
+  mVtxPoolAfterCutTree->Branch("AntiCandMass", &mVtxDebugAntiCandMass_2);
+  mVtxPoolAfterCutTree->Branch("MassMargin", &mVtxDebugMassMargin_2);
+  mVtxPoolAfterCutTree->Branch("MassSigma", &mVtxDebugMassSigma_2);
+  mVtxPoolAfterCutTree->Branch("CandPt", &mVtxDebugCandPt_2);
+  //Study cuts
+  mVtxPoolAfterCutTree->Branch("BachR", &mVtxDebugBachR_2);
+  mVtxPoolAfterCutTree->Branch("DiffR", &mVtxDebugDiffR_2);
+  mVtxPoolAfterCutTree->Branch("R", &mVtxDebugR_2);
+  mVtxPoolAfterCutTree->Branch("TgLambda", &mVtxDebugTgLambda_2);
+  mVtxPoolAfterCutTree->Branch("CosPA", &mVtxDebugCosPA_2);
+  mVtxPoolAfterCutTree->Branch("ProdPPos", &mVtxDebugProdPPos_2);
+  mVtxPoolAfterCutTree->Branch("DcaY", &mVtxDebugDcaY_2);
+  mVtxPoolAfterCutTree->Branch("DcaZ", &mVtxDebugDcaZ_2);
 }
 
 //__________________________________________________________________
@@ -212,7 +270,6 @@ void SVertexer::updateTimeDependentParams()
     mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
     mMaxDCAXY2ToMeanVertex3bodyV0 = mSVParams->maxDCAXYToMeanVertex3bodyV0 * mSVParams->maxDCAXYToMeanVertex3bodyV0;
     mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
-    mMaxR2Diff3bodyV0 = mSVParams->maxRDiffV03body * mSVParams->maxRDiffV03body;
     mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
     mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
     mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
@@ -440,7 +497,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion but not a lambda decay (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays;
-  bool rejectAfter3BodyDecayCheck = false; // for which failed to pass the mass check of V0
+  bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
 
   auto& fitterV0 = mFitterV0[ithread];
   int nCand = fitterV0.process(seedP, seedN);
@@ -452,17 +509,17 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   // check closeness to the beam-line
   float dxv0 = v0XYZ[0] - mMeanVertex.getX(), dyv0 = v0XYZ[1] - mMeanVertex.getY(), r2v0 = dxv0 * dxv0 + dyv0 * dyv0;
   if (r2v0 < mMinR2ToMeanVertex) {
-    return false;
+    //return false;
   }
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
-    if (checkFor3BodyDecays){
-      rejectAfter3BodyDecayCheck = true;
+    if (!checkFor3BodyDecays){
+      return false;
     }
     else{
-      return false;
+      rejectAfter3BodyCheck = true;
     }
   }
 
@@ -510,31 +567,39 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
       return false;
     }
     else {
-      rejectAfter3BodyDecayCheck = true;
+      rejectAfter3BodyCheck = true;
     }
   }
 
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
 
-  if (checkForCascade && !checkFor3BodyDecays) { // use loser cuts for cascade v0 candidates, skip if we check for 3 body decays as they require looser selections
+  if (checkForCascade) { // use looser cuts for cascade v0 candidates
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
       LOG(debug) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
-      return false;
+      if (!checkFor3BodyDecays){
+        return false;
+      }
+      else{
+        rejectAfter3BodyCheck = true;
+      }
     }
   }
-  if (checkFor3BodyDecays) {
+  if (checkFor3BodyDecays) { // use looser cuts for 3-body decay candidates
     if (dca2 > mMaxDCAXY2ToMeanVertex3bodyV0 || cosPAXY < mSVParams->minCosPAXYMeanVertex3bodyV0) {
       LOG(debug) << "Rej for 3 body decays DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
-      return false;
+      checkFor3BodyDecays = false;
     }
   }
+  if (!checkFor3BodyDecays && rejectAfter3BodyCheck){
+    return false;
+  } 
 
   if (dca2 > mMaxDCAXY2ToMeanVertex || cosPAXY < mSVParams->minCosPAXYMeanVertex) {
     if (checkForCascade) {
       rejectIfNotCascade = true;
     } else if (checkFor3BodyDecays) {
-      rejectAfter3BodyDecayCheck = true;
+      rejectAfter3BodyCheck = true;
     } else {
       return false;
     }
@@ -544,6 +609,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   bool added = false;
   auto bestCosPA = checkForCascade ? mSVParams->minCosPACascV0 : mSVParams->minCosPA;
   bestCosPA = checkFor3BodyDecays ? std::min(mSVParams->minCosPA3bodyV0, bestCosPA) : bestCosPA;
+  //bestCosPA = -1; // For Debug
 
   for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
     const auto& pv = mPVertices[iv];
@@ -568,19 +634,33 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   if (!added) {
     return false;
   }
+  if (bestCosPA < mSVParams->minCosPACascV0){
+    rejectAfter3BodyCheck = true;
+  }
+
   auto& v0 = mV0sTmp[ithread].back();
 
   mV0DebugPosTrack2.push_back(mclabelP);
   mV0DebugNegTrack2.push_back(mclabelN);
+  mV0DebugR_2.push_back(rv0);
+  mV0DebugDrV0P_2.push_back(drv0P);
+  mV0DebugDrV0N_2.push_back(drv0N);
+  mV0DebugPt_2.push_back(ptV0);
+  mV0DebugTgLambda_2.push_back(pV0[2] * pV0[2] / pt2V0);
+  mV0DebugDca_2.push_back(std::sqrt(dca2));
+  mV0DebugCosXY_2.push_back(cosPAXY);
+  mV0DebugCosPA_2.push_back(bestCosPA);
+  mV0DebugLambdaMass_2.push_back(mV0Hyps[2].calcMass(p2Pos, p2Neg, p2V0));
+  mV0DebugAntiLambdaMass_2.push_back(mV0Hyps[3].calcMass(p2Pos, p2Neg, p2V0));
   // check 3 body decays
   if (checkFor3BodyDecays) {
     int n3bodyDecays = 0;
     n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iP, POS, vlist, ithread);
-    if (rejectAfter3BodyDecayCheck) { // 
+  }
+  if (rejectAfter3BodyCheck) { 
       mV0sTmp[ithread].pop_back();
       return false;
-    }
   }
 
   // check cascades
@@ -812,14 +892,10 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     int cand3B = 0;
     const auto& vertexXYZ = fitter3body.getPCACandidatePos(cand3B);
 
-    mVtxDebugTrack0.emplace_back(mclabel0);
-    mVtxDebugTrack1.emplace_back(mclabel1);
-    mVtxDebugTrack2.emplace_back(mclabel2);
-
     // make sure the 3 body vertex radius is close to that of the mean vertex
     float dxc = vertexXYZ[0] - mMeanVertex.getX(), dyc = vertexXYZ[1] - mMeanVertex.getY(), dzc = vertexXYZ[2] - mMeanVertex.getZ(), r2vertex = dxc * dxc + dyc * dyc;
-    if (std::abs(rv0 * rv0 - r2vertex) > mMaxR2Diff3bodyV0 || r2vertex < mMinR2ToMeanVertex) {
-       //continue;
+    if (std::abs(rv0  - std::sqrt(r2vertex)) > mSVParams->maxRDiffV03body || r2vertex < mMinR2ToMeanVertex) {
+      continue;
     }
     num3bodyCandidates[5]++;
     //
@@ -831,9 +907,6 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     auto& tr0 = fitter3body.getTrack(0, cand3B);
     auto& tr1 = fitter3body.getTrack(1, cand3B);
     auto& tr2 = fitter3body.getTrack(2, cand3B);
-    // tr0.setPID(tr0.getCharge() > 0 && posneg ? o2::track::PID::Proton : o2::track::PID::Pion); TOBE DONE
-    // tr1.setPID(o2::track::PID::Pion);
-    // tr2.setPID(o2::track::PID::Deuteron);
     std::array<float, 3> p0, p1, p2;
     tr0.getPxPyPzGlo(p0);
     tr1.getPxPyPzGlo(p1);
@@ -842,17 +915,18 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
 
     float pt2candidate = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2candidate = pt2candidate + p3B[2] * p3B[2];
     if (pt2candidate < mMinPt23Body) { // pt cut
-       continue;
+      continue;
     }
     num3bodyCandidates[7]++;
     if (p3B[2] * p3B[2] / pt2candidate > mMaxTgl23Body) { // tgLambda cut
-       continue;
+      continue;
     }
     num3bodyCandidates[8]++;
 
     // compute primary vertex and cosPA of the 3-body decay
     auto bestCosPA = mSVParams->minCosPA3body;
     auto decay3bodyVtxID = -1;
+    bestCosPA = -1;//For Debug
 
     for (int iv = decay3bodyVlist.getMin(); iv <= decay3bodyVlist.getMax(); iv++) {
       const auto& pv = mPVertices[iv];
@@ -875,45 +949,72 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     const auto& decay3bodyPv = mPVertices[decay3bodyVtxID];
     float dx3body = vertexXYZ[0] - decay3bodyPv.getX(), dy3body = vertexXYZ[1] - decay3bodyPv.getY(), dz3body = vertexXYZ[2] - decay3bodyPv.getZ();
     auto prodPPos = pV0[0] * dx3body + pV0[1] * dy3body + pV0[2] * dz3body;
-    if (prodPPos < 0.) { // causality cut
-      LOG(debug) << "Casc not causally compatible";
+    //auto prodPPos = p3B[0] * dx3body + p3B[1] * dy3body + p3B[2] * dz3body;
+    if (prodPPos < 0.) { // causality cut // is it useful? prodPPos < 0 -> cosPA < 0. We can check the V0 track in cascade but in 3-body decay cosPA should be enough. 
+      LOG(debug) << "3-body not causally compatible";
       continue;
     }
     num3bodyCandidates[10]++;
-    float cosPA = (p3B[0] * dx3body + p3B[1] * dy3body + p3B[2] * dz3body) / std::sqrt(p2candidate * (r2vertex + dz3body * dz3body));
-    if (cosPA < mSVParams->minCosPA3body) {
-       continue;
-    }
-    num3bodyCandidates[11]++;
     float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
     float pt3B = std::sqrt(pt2candidate);
+
+    mVtxDebugTrack0.emplace_back(mclabel0);
+    mVtxDebugTrack1.emplace_back(mclabel1);
+    mVtxDebugTrack2.emplace_back(mclabel2);
+    mVtxDebugCandMass.emplace_back(m3bodyHyps[0].calcMass(sqP0, sqP1, sqP2, p2candidate));
+    mVtxDebugAntiCandMass.emplace_back(m3bodyHyps[1].calcMass(sqP0, sqP1, sqP2, p2candidate));
+    mVtxDebugMassMargin.emplace_back(m3bodyHyps[0].getMargin(pt3B));
+    mVtxDebugMassSigma.emplace_back(m3bodyHyps[0].getSigma(pt3B));
+    mVtxDebugCandPt.emplace_back(pt3B);
+
     bool goodHyp = false;
-    for (int ipid = 0; ipid < 2; ipid++) { // TODO: expand this loop to cover all the 3body casesif (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B)) 
+    for (int ipid = 0; ipid < 2; ipid++) { // TODO: expand this loop to cover all the 3body cases if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B)) 
       if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, p2candidate, pt3B)) {
         goodHyp = true;
         break;
       }
     }
     if (!goodHyp) {
-      //continue;
+      continue;
     }
-    num3bodyCandidates[12]++;
+    num3bodyCandidates[11]++;
     auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
     o2::track::TrackParCov trc = candidate3B;
     o2::dataformats::DCA dca;
-    /*if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
-      std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAXY3Body) {
-      m3bodyTmp[ithread].pop_back();
-      continue;
-      }*/
-    num3bodyCandidates[13]++;
-    candidate3B.setCosPA(cosPA);
-    candidate3B.setVertexID(decay3bodyVtxID);
-    candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
+    if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
+        std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
+        m3bodyTmp[ithread].pop_back();
+        continue;
+    }
+    num3bodyCandidates[12]++;
 
     mVtxDebugTrack0_2.emplace_back(mclabel0);
     mVtxDebugTrack1_2.emplace_back(mclabel1);
     mVtxDebugTrack2_2.emplace_back(mclabel2);
+    mVtxDebugCandMass_2.emplace_back(m3bodyHyps[0].calcMass(sqP0, sqP1, sqP2, p2candidate));
+    mVtxDebugAntiCandMass_2.emplace_back(m3bodyHyps[1].calcMass(sqP0, sqP1, sqP2, p2candidate));
+    mVtxDebugMassMargin_2.emplace_back(m3bodyHyps[0].getMargin(pt3B));
+    mVtxDebugMassSigma_2.emplace_back(m3bodyHyps[0].getSigma(pt3B));
+    mVtxDebugCandPt_2.emplace_back(pt3B);
+    //Study cuts
+    mVtxDebugBachR_2.emplace_back( bach.minR );
+    mVtxDebugDiffR_2.emplace_back( std::abs(rv0  - std::sqrt(r2vertex)) );
+    mVtxDebugR_2.emplace_back( std::sqrt(r2vertex) );
+    mVtxDebugTgLambda_2.emplace_back( p3B[2] * p3B[2] / pt2candidate );
+    mVtxDebugCosPA_2.emplace_back(bestCosPA);
+    mVtxDebugProdPPos_2.emplace_back(prodPPos);
+    mVtxDebugDcaY_2.emplace_back(dca.getY());
+    mVtxDebugDcaZ_2.emplace_back(dca.getZ());
+
+    // Reduce size of the output file
+    /*if (!goodHyp) {
+      m3bodyTmp[ithread].pop_back();
+      continue;
+    }*/
+
+    candidate3B.setCosPA(bestCosPA);
+    candidate3B.setVertexID(decay3bodyVtxID);
+    candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
   }
   return m3bodyTmp[ithread].size() - n3BodyIni;
 }
