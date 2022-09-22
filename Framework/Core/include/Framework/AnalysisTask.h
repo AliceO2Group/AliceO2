@@ -196,7 +196,7 @@ struct AnalysisDataProcessorBuilder {
       info.selection = framework::expressions::createSelection(table, info.filter);
       info.resetSelection = false;
     }
-    if constexpr (!framework::is_base_of_template_v<soa::SmallGroups, std::decay_t<T>>) {
+    if constexpr (!is_smallgroups_v<std::decay_t<T>>) {
       if (info.selection == nullptr) {
         throw runtime_error_f("Null selection for %d (arg %d), missing Filter declaration?", info.processHash, info.argumentIndex);
       }
