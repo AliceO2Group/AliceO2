@@ -306,15 +306,9 @@ struct IndexBuilder {
       }
     }
 
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> columns{self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...};
-    std::vector<std::shared_ptr<arrow::Field>> fields{self.field(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...};
-    auto schema = std::make_shared<arrow::Schema>(fields);
-    schema->WithMetadata(
-      std::make_shared<arrow::KeyValueMetadata>(
-        std::vector{std::string{"label"}},
-        std::vector{std::string{label}}));
-    auto table = arrow::Table::Make(schema, columns);
-    return table;
+    return makeArrowTable(label,
+                          {self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...},
+                          {self.field(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...});
   }
 
   template <typename IDX, typename Key, typename T1, typename... T>
