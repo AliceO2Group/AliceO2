@@ -367,9 +367,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(SyncInTheMiddleChargeSumModeTwoChannels, V, testTy
     DsElecId{361, 6, 2}, 63, {cl1, cl2},
     DsElecId{361, 6, 2}, 47, {cl3, cl4},
     5);
-  BOOST_CHECK_EQUAL(r,
-                    "S361-J6-DS2-ch-63-ts-345-q-123456-cs-789\n"
-                    "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n");
+  std::string r2 = "S361-J6-DS2-ch-63-ts-345-q-123456-cs-789\n";
+  r2 += "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n";
+  r2 += fmt::format("S361-J6-DS2-chip-5-error-{}\n", ErrorUnexpectedSyncPacket);
+  BOOST_CHECK_EQUAL(r, r2);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageOK, V, testTypes)

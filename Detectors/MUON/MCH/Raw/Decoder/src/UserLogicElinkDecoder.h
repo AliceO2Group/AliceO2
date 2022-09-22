@@ -119,10 +119,18 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error, bo
 
   if (isSync(data50)) {
 #ifdef ULDEBUG
-    debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}\n", data50);
+    debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}   state={}\n", data50, asString(mState));
 #endif
-    clear();
-    transition(State::WaitingHeader);
+    if (mState != State::WaitingHeader && mState != State::WaitingSync) {
+#ifdef ULDEBUG
+      debugHeader() << (*this) << " SYNC word found while decoding payload --> resetting\n"
+#endif
+      sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorUnexpectedSyncPacket));
+      reset();
+    } else {
+      clear();
+      transition(State::WaitingHeader);
+    }
     return;
   }
 
@@ -179,7 +187,7 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
 {
   bool result = false;
 #ifdef ULDEBUG
-  debugHeader() << (*this) << fmt::format(" --> data10 {:d}\n", data10);
+  debugHeader() << (*this) << fmt::format(" --> data10 {:d}  state {}\n", data10, asString(mState));
 #endif
   switch (mState) {
     case State::WaitingHeader:
@@ -275,6 +283,9 @@ std::string UserLogicElinkDecoder<CHARGESUM>::asString(State s) const
       break;
     case State::WaitingSample:
       return "WaitingSample";
+      break;
+    default:
+      return "Unknown";
       break;
   };
 }

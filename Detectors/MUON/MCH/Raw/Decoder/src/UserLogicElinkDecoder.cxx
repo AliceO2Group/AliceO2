@@ -51,6 +51,12 @@ bool UserLogicElinkDecoder<SampleMode>::checkDataHeader()
     return false;
   }
 
+  // we expect at least 3 10-bit words
+  int nof10BitWords = mSampaHeader.nof10BitWords();
+  if (nof10BitWords <= 2) {
+    return false;
+  }
+
   return true;
 }
 
@@ -67,8 +73,12 @@ bool UserLogicElinkDecoder<ChargeSumMode>::checkDataHeader()
     return false;
   }
 
-  // in cluster sum mode the number of 10-bit words must be a multiple of 4
+  // we expect at least 3 10-bit words
   int nof10BitWords = mSampaHeader.nof10BitWords();
+  if (nof10BitWords <= 2) {
+    return false;
+  }
+  // in cluster sum mode the number of 10-bit words must be a multiple of 4
   if ((nof10BitWords % 4) != 0) {
     return false;
   }

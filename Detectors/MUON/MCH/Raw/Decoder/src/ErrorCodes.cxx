@@ -20,7 +20,7 @@ namespace raw
 
 uint32_t getErrorCodesSize()
 {
-  return 14;
+  return 15;
 }
 
 void append(const char* msg, std::string& to)
@@ -51,6 +51,9 @@ std::string errorCodeAsString(uint32_t ec)
   }
   if (ec & ErrorBadSyncPacket) {
     append("Bad Sync Packet", msg);
+  }
+  if (ec & ErrorUnexpectedSyncPacket) {
+    append("Unexpected Sync", msg);
   }
   if (ec & ErrorBadHeartBeatPacket) {
     append("Bad HB Packet", msg);
