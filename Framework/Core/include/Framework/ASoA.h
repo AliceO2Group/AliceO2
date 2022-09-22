@@ -2979,12 +2979,12 @@ using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
 
 template <typename T>
 struct is_smallgroups_t {
-    static constexpr bool value = false;
+  static constexpr bool value = false;
 };
 
 template <typename T, bool F>
-struct is_smallgroups_t<SmallGroupsBase<T,F>> {
-    static constexpr bool value = true;
+struct is_smallgroups_t<SmallGroupsBase<T, F>> {
+  static constexpr bool value = true;
 };
 
 template <typename T>
