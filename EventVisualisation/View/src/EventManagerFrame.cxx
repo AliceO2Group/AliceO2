@@ -307,11 +307,13 @@ void EventManagerFrame::DoScreenshot()
   if (!std::filesystem::is_directory(outDirectory)) {
     std::filesystem::create_directory(outDirectory);
   }
-  Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
-                      this->mEventManager->getDataSource()->getRunNumber(),
-                      this->mEventManager->getDataSource()->getFirstTForbit(),
-                      this->mEventManager->getDataSource()->getCollisionTime());
-
+  std::filesystem::path fileName = Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
+                                                       this->mEventManager->getDataSource()->getRunNumber(),
+                                                       this->mEventManager->getDataSource()->getFirstTForbit(),
+                                                       this->mEventManager->getDataSource()->getCollisionTime());
+  fileName.replace_extension(std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
+  std::error_code ec;
+  std::filesystem::copy_file(mEventManager->getDataSource()->getEventAbsoluteFilePath(), fileName, ec);
   clearInTick();
 }
 
