@@ -94,10 +94,15 @@ class GPUTPCCFDecodeZSLinkBase : public GPUKernelTemplate
     return oldPage;
   }
 
+  GPUdi() static unsigned char ConsumeByte(const unsigned char*& page)
+  {
+    return *(page++);
+  }
+
   template <typename T>
   GPUdi() static const T* ConsumeHeader(const unsigned char*& page)
   {
-    // assert((size_t(page) + sizeof(T)) % alignof(T) == 0);
+    assert((size_t(page) + sizeof(T)) % alignof(T) == 0);
     return reinterpret_cast<const T*>(ConsumeBytes(page, sizeof(T)));
   }
 
@@ -107,7 +112,7 @@ class GPUTPCCFDecodeZSLinkBase : public GPUKernelTemplate
     // if ((size_t(page) + offset) % alignof(T) != 0) {
     //   printf("page = %zu, offset = %zu, alignof = %zu\n", size_t(page), offset, alignof(T));
     // }
-    // assert((size_t(page) + offset) % alignof(T) == 0);
+    assert((size_t(page) + offset) % alignof(T) == 0);
     return reinterpret_cast<const T*>(page + offset);
   }
 
@@ -161,10 +166,10 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
   GPUd() static bool ChannelIsActive(const uint8_t* chan, unsigned short chanIndex);
 
   template <bool PayloadExtendsToNextPage>
-  GPUd() static size_t DecodeTB(processorType& clusterer, const unsigned char*& page, size_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int firstHBF, int cru, const unsigned char* payloadEnd, const unsigned char* nextPage);
+  GPUd() static size_t DecodeTBSingleThread(processorType& clusterer, const unsigned char*& page, size_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int firstHBF, int cru, const unsigned char* payloadEnd, const unsigned char* nextPage);
 
-  // GPUd() static void DecodeTBSingleThread(processorType& clusterer, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
-  // GPUd() static void DecodeTBMultiThread(processorType& clusterer, int iThread, GPUSharedMemory& smem, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
+  template <bool PayloadExtendsToNextPage>
+  GPUd() static size_t DecodeTBMultiThread(processorType& clusterer, const unsigned char*& page, size_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int firstHBF, int cru, const unsigned char* payloadEnd, const unsigned char* nextPage);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
