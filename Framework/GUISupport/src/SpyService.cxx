@@ -28,7 +28,7 @@ SpyService::SpyService(ServiceRegistry& registry, DeviceState& deviceState)
   renderer = new GuiRenderer;
 }
 
-ServiceSpec* SpyGUIPlugin::create(void)
+ServiceSpec* SpyGUIPlugin::create()
 {
   return new ServiceSpec{
     .name = "spy",
