@@ -890,11 +890,11 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       unsigned char decLinkX = *((const unsigned char*)decPagePtr);
       decPagePtr += sizeof(unsigned char);
       unsigned char decLink = decLinkX & 0b00011111;
-      std::bitset<12> bitmaskL2;
+      std::bitset<10> bitmaskL2;
       if (decLinkX & 0b00100000) {
         bitmaskL2.set();
       } else {
-        bitmaskL2 = std::bitset<12>(((((unsigned short)decLinkX) & 0b11000000) << 2) | (unsigned short)*((const unsigned char*)decPagePtr));
+        bitmaskL2 = std::bitset<10>(((((unsigned short)decLinkX) & 0b11000000) << 2) | (unsigned short)*((const unsigned char*)decPagePtr));
         decPagePtr += sizeof(unsigned char);
       }
 
