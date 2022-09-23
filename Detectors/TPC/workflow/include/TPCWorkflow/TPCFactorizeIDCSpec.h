@@ -90,7 +90,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       LOGP(warning, "firstTF not Found!!! Found valid inputs {}. Setting {} as first TF", pc.inputs().countValidInputs(), mTFFirst);
     }
 
-    const unsigned int relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
+    const long relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
     // loop over input data
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
