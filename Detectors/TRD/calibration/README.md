@@ -30,12 +30,19 @@ Additionally it is possible to perform the calibrations fit manually per chamber
 This produces `trdangreshistos.root` which holds the residuals of the angles and differences.
 Then run the macro `Detectors/TRD/calibration/macros/manualCalibFit.C`.
 This produces a file of similar name with the fitted data and prints out the fit results.
-These can be compared afterwards by running:
+This is equivalent to running:
 
-    o2-calibration-trd-vdrift-exb -b --enable-root-input
+    o2-calibration-trd-vdrift-exb -b --enable-root-input '--tf-per-slot 1 --min-entries 2000 --enable-root-output'
 
 You can plot the calibration values for VDrift and ExB for a given Run by using the macro at `Detectors/TRD/cailbration/macros/plotVdriftExB.C`.
 This produces a root file of similar name which holds the time-series plots (reference the macro).
+
+It may also be worthwhile to look at the correlation of the deflection and slope of tracks and tracklets since this is good indicator how well the calibration works.
+For that you can use the macro at `Detectors/TRD/calibration/macros/makeDeflectionCorrelation.C` and to you have to include the '--enable-qc' flag.
+
+    o2-trd-global-tracking -b --enable-qc
+
+In the macro you have to point to the right Run and potentially the correct CCDB.
 
 ## DCS data points
 

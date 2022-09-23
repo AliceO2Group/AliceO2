@@ -23,6 +23,8 @@
 #include <memory>
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
+#include <TFile.h>
+#include <TTree.h>
 
 using namespace o2::trd::constants;
 
@@ -153,6 +155,33 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   }
   timer.Stop();
   LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
+
+  // Write results to file
+  if (mEnableOutput) {
+    std::unique_ptr<TFile> outFilePtr(TFile::Open("calibVDriftExB.root", "RECREATE"));
+
+    // Write residuals
+    outFilePtr->mkdir("residuals");
+    outFilePtr->cd("residuals");
+    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+      mFitFunctor.profiles[iDet]->Write();
+    }
+    outFilePtr->cd("..");
+
+    // Fit Results
+    auto fitTreePtr = std::make_unique<TTree>("fitResults", "Fit Parameters");
+    float laFitResult;
+    float vdFitResult;
+    fitTreePtr->Branch("lorentzAngle", &laFitResult);
+    fitTreePtr->Branch("vDrift", &vdFitResult);
+    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+      laFitResult = laFitResults[iDet];
+      vdFitResult = vdFitResults[iDet];
+      LOGF(info, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResult, laFitResult * TMath::RadToDeg());
+      fitTreePtr->Fill();
+    }
+    fitTreePtr->Write();
+  }
 
   // assemble CCDB object
   CalVdriftExB calObject;
