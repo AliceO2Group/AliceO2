@@ -124,7 +124,7 @@ DataProcessorSpec getTRDTrackingQCWriterSpec()
   return framework::MakeRootTreeWriterSpec("trd-tracking-qc-writer",
                                            "trdQC.root",
                                            "qc",
-                                           BranchDefinition<std::vector<TrackQC>>{InputSpec{"trackingqc", "TRD", "TRACKINGQC"}, "TrackingQC"})();
+                                           BranchDefinition<std::vector<TrackQC>>{InputSpec{"trackingqc", "TRD", "TRACKINGQC"}, "trackQC"})();
 };
 
 } // namespace trd
