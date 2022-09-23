@@ -216,11 +216,11 @@ class SVertexer
   std::vector<float> mV0DebugAntiLambdaMass_2;
 
   std::vector<float> mVtxDebugBachR_2;
+  std::vector<float> mVtxDebugDrVtxBach_2;
   std::vector<float> mVtxDebugDiffR_2;
   std::vector<float> mVtxDebugR_2;
   std::vector<float> mVtxDebugTgLambda_2;
   std::vector<float> mVtxDebugCosPA_2;
-  std::vector<float> mVtxDebugProdPPos_2;
   std::vector<float> mVtxDebugDcaY_2;
   std::vector<float> mVtxDebugDcaZ_2;
 };
