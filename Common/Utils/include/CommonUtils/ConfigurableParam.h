@@ -160,7 +160,7 @@ class ConfigurableParam
   virtual std::string getName() const = 0;
 
   // print the current keys and values to screen (optionally with provenance information)
-  virtual void printKeyValues(bool showprov = true) const = 0;
+  virtual void printKeyValues(bool showprov = true, bool useLogger = false) const = 0;
 
   // return the provenance of the member key
   virtual EParamProvenance getMemberProvenance(const std::string& key) const = 0;
@@ -168,7 +168,7 @@ class ConfigurableParam
   static EParamProvenance getProvenance(const std::string& key);
 
   static void printAllRegisteredParamNames();
-  static void printAllKeyValuePairs();
+  static void printAllKeyValuePairs(bool useLogger = false);
 
   static const std::string& getInputDir() { return sInputDir; }
   static const std::string& getOutputDir() { return sOutputDir; }
