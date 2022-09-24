@@ -45,14 +45,12 @@ std::string ParamDataMember::toString(std::string const& prefix, bool showProv) 
     std::string prov = (provenance.compare("") == 0 ? nil : provenance);
     out << "\t\t[ " + prov + " ]";
   }
-
-  out << "\n";
   return out.str();
 }
 
 std::ostream& operator<<(std::ostream& out, const ParamDataMember& pdm)
 {
-  out << pdm.toString("", false);
+  out << pdm.toString("", false) << "\n";
   return out;
 }
 
@@ -309,19 +307,24 @@ void _ParamHelper::fillKeyValuesImpl(std::string const& mainkey, TClass* cl, voi
 
 // ----------------------------------------------------------------------
 
-void _ParamHelper::printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv)
+void _ParamHelper::printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger)
 {
-  _ParamHelper::outputMembersImpl(std::cout, mainkey, members, showProv);
+
+  _ParamHelper::outputMembersImpl(std::cout, mainkey, members, showProv, useLogger);
 }
 
-void _ParamHelper::outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv)
+void _ParamHelper::outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger)
 {
   if (members == nullptr) {
     return;
   }
 
   for (auto& member : *members) {
-    out << member.toString(mainkey, showProv);
+    if (useLogger) {
+      LOG(info) << member.toString(mainkey, showProv);
+    } else {
+      out << member.toString(mainkey, showProv) << "\n";
+    }
   }
 }
 

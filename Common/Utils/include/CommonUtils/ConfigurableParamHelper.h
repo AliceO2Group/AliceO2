@@ -58,8 +58,8 @@ class _ParamHelper
   static void syncCCDBandRegistry(std::string const& mainkey, TClass* cl, void* to, void* from,
                                   std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
-  static void outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
-  static void printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
+  static void outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger);
+  static void printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger);
 
   template <typename P>
   friend class ConfigurableParamHelper;
@@ -95,13 +95,13 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   // ----------------------------------------------------------------
 
   // one of the key methods, using introspection to print itself
-  void printKeyValues(bool showProv = true) const final
+  void printKeyValues(bool showProv = true, bool useLogger = false) const final
   {
     if (!isInitialized()) {
       initialize();
     }
     auto members = getDataMembers();
-    _ParamHelper::printMembersImpl(getName(), members, showProv);
+    _ParamHelper::printMembersImpl(getName(), members, showProv, useLogger);
   }
 
   // ----------------------------------------------------------------
@@ -109,7 +109,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   void output(std::ostream& out) const final
   {
     auto members = getDataMembers();
-    _ParamHelper::outputMembersImpl(out, getName(), members, true);
+    _ParamHelper::outputMembersImpl(out, getName(), members, true, false);
   }
 
   // ----------------------------------------------------------------
