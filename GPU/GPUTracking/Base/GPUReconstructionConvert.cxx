@@ -941,7 +941,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
     }
   }
-  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= o2::raw::RDHUtils::GBTWord) {
+  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord) {
     throw std::runtime_error("Decoding didn't reach end of page");
   }
 }
@@ -1043,6 +1043,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           unsigned char* triggerWord = nullptr;
           if (hbf != nexthbf || endpoint != lastEndpoint) {
             if ((pagePtr - (unsigned char*)page) + sizeof(TPCZSHDRV2) + o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE <= TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord)) {
+                pagePtr += o2::raw::RDHUtils::GBTWord; // align to 256 bit, size constrained cannot be affected by this
+              }
               hdr->flags |= o2::tpc::TPCZSHDRV2::ZSFlags::TriggerWordPresent;
             } else {
               needAnotherPage = true;
@@ -1054,6 +1057,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           if (hdr->flags & o2::tpc::TPCZSHDRV2::TriggerWordPresent) {
             triggerWord = pagePtr;
             pagePtr += o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE;
+          }
+          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord) == 0) {
+            pagePtr += o2::raw::RDHUtils::GBTWord; // align to 128bit mod 256
           }
           TPCZSHDRV2* pagehdr = (TPCZSHDRV2*)pagePtr;
           pagePtr += sizeof(TPCZSHDRV2);
