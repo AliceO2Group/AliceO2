@@ -101,7 +101,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
     }
     for (auto payloadWord : payload) {
-      LOG(info) << wordCount << " payload:" <<  int(payloadWord);
+      LOG(info) << wordCount << " payload:" << int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {

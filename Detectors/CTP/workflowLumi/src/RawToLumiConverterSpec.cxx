@@ -35,7 +35,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
   auto& inputs = ctx.inputs();
-  auto ref = inputs.get("TF",o2::ctp::GBTLinkIDIntRec);
+  auto ref = inputs.get("TF", o2::ctp::GBTLinkIDIntRec);
   auto rdh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
   auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
   float_t counts = 0;
@@ -44,9 +44,9 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   bool first = true;
   gbtword80_t remnant = 0;
   uint32_t size_gbt = 0;
-  //for (auto it = parser.begin(); it != parser.end(); ++it)
+  // for (auto it = parser.begin(); it != parser.end(); ++it)
   {
-    //auto rdh = it.get_if<o2::header::RAWDataHeader>();
+    // auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     LOG(info) << "====>" << payloadSize << " " << triggerOrbit;
     return;
@@ -55,8 +55,8 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       first = false;
     }
     // TF in 128 bits words
-    auto payload = inputs.get<const uint8_t*> (ref);
-    //gsl::span<const uint8_t> payload(pld.data(), pld.size());
+    auto payload = inputs.get<const uint8_t*>(ref);
+    // gsl::span<const uint8_t> payload(pld.data(), pld.size());
     gbtword80_t gbtWord = 0;
     int wordCount = 0;
     std::vector<gbtword80_t> diglets;
@@ -72,8 +72,8 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
       counts = 0;
     }
-    //for (auto it = parser.begin(); it != parser.end(); ++it)
-    //for (auto it = payload.begin(); it != payload.end(); ++it)
+    // for (auto it = parser.begin(); it != parser.end(); ++it)
+    // for (auto it = payload.begin(); it != payload.end(); ++it)
     int payloadWord = 0;
     {
       // LOG(info) << wordCount << " payload:" <<  int(payloadWord);
@@ -114,7 +114,7 @@ o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSp
 {
   std::vector<o2::framework::InputSpec> inputs;
   // ok ?
-  inputs.emplace_back("TF", "CTP", "RAWDATA", o2::ctp::GBTLinkIDIntRec , o2::framework::Lifetime::Optional);
+  inputs.emplace_back("TF", "CTP", "RAWDATA", o2::ctp::GBTLinkIDIntRec, o2::framework::Lifetime::Optional);
 
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
@@ -128,6 +128,6 @@ o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSp
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::lumi_workflow::RawToLumiConverterSpec>()}
-    //o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/lumiCTPDecodeResults", {"Base name of the decoding results files."}}}
-    };
+    // o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/lumiCTPDecodeResults", {"Base name of the decoding results files."}}}
+  };
 }

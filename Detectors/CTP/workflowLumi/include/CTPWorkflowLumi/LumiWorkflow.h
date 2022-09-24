@@ -12,7 +12,6 @@
 /// \file LumiWorkflow.h
 /// \author Roman Lietava
 
-
 #include "Framework/WorkflowSpec.h"
 
 using namespace o2::framework;
@@ -23,7 +22,6 @@ namespace ctp
 namespace lumi_workflow
 {
 o2::framework::WorkflowSpec getWorkflow(bool noLostTF);
-} // namespace luni_workflow
+} // namespace lumi_workflow
 } // namespace ctp
 } // namespace o2
-
