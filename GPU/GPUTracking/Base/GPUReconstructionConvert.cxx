@@ -213,7 +213,8 @@ struct zsEncoder {
   int firstTimebinInPage = -1;
   float encodeBitsFactor = 0;
   bool needAnotherPage = false;
-  static void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
+  unsigned int packetCounter = 0;
+  void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
   long int getHbf(long int timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
 };
@@ -228,6 +229,7 @@ inline void zsEncoder::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int
   o2::raw::RDHUtils::setFEEID(*rdh, feeId);
   o2::raw::RDHUtils::setDetectorField(*rdh, 2);
   o2::raw::RDHUtils::setLinkID(*rdh, linkid);
+  o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
 }
 
 inline void zsEncoder::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
@@ -872,6 +874,12 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
 
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
+
+      if (o2::raw::RDHUtils::getPacketCounter(*rdh) + 1 != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
+        decPagePtr = payloadEnd;
+        break;
+      }
+
       const TPCZSHDRV2* hdrNext = reinterpret_cast<const TPCZSHDRV2*>(pageNext + o2::raw::RDHUtils::getMemorySize(*rdhNext) - sizeof(TPCZSHDRV2));
       tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset);
       memcpy(tmpBuffer.data(), decPagePtr, sizeLeftInPage);
@@ -978,6 +986,7 @@ struct zsEncoderRun : public T {
   using T::nexthbf;
   using T::outputEndpoint;
   using T::outputRegion;
+  using T::packetCounter;
   using T::padding;
   using T::page;
   using T::pagePtr;
@@ -1093,6 +1102,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setFEEID(*rdh, rawfeeid);
           o2::raw::RDHUtils::setDetectorField(*rdh, 2);
           o2::raw::RDHUtils::setLinkID(*rdh, this->RAWLNK);
+          o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
         }
       }
       if (k >= tmpBuffer.size() && !needAnotherPage) {
