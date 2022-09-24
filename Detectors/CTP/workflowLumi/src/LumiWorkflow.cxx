@@ -9,26 +9,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file lumiWorkflowSpec.h
-/// \author Roman Lietava
-
-#ifndef O2_CTPLUMIWORKFLOWSPEC_H
-#define O2_CTPLUMIWORKFLOWSPEC_H
-
-#include "Framework/DataProcessorSpec.h"
+#include <algorithm>
+#include <unordered_map>
+#include <vector>
+#include "FairLogger.h"
 #include "Framework/WorkflowSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
 #include "DataFormatsCTP/Digits.h"
+#include "CTPWorkflowLumi/RawToLumiConverterSpec.h"
+#include "Framework/DataSpecUtils.h"
 
-using namespace o2::framework;
 namespace o2
 {
+
 namespace ctp
 {
-// framework::DataProcessorSpec getLumiWorkflowSpec(bool raw = true);
-o2::framework::WorkflowSpec getLumiWorkflowSpec(bool noLostTF);
-} // namespace ctp
-} // namespace o2
 
-#endif // O2_CTPLUMIWORKFLOWSPEC_H
+namespace lumi_workflow
+{
+
+o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
+{
+  o2::framework::WorkflowSpec specs;
+  specs.emplace_back(o2::ctp::lumi_workflow::getRawToLumiConverterSpec(noLostTF));
+  return std::move(specs);
+}
+} // namespace lumi_workflow
+
+} // namespace ctp
+
+} // namespace o2

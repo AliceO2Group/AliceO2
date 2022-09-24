@@ -9,34 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <algorithm>
-#include <unordered_map>
-#include <vector>
+/// \file LumiWorkflow.h
+/// \author Roman Lietava
 
-#include "FairLogger.h"
 
-#include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflowLumi/lumiWorkflowSpec.h"
-#include "CTPWorkflowLumi/RawToLumiConverterSpec.h"
-#include "Framework/DataSpecUtils.h"
+#include "Framework/WorkflowSpec.h"
 
+using namespace o2::framework;
 namespace o2
 {
-
 namespace ctp
 {
-
 namespace lumi_workflow
 {
-
-o2::framework::WorkflowSpec getLumiWorkflowSpec(bool noLostTF)
-{
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::lumi_workflow::getRawToLumiConverterSpec(noLostTF));
-  return std::move(specs);
-}
-} // namespace lumi_workflow
-
+o2::framework::WorkflowSpec getWorkflow(bool noLostTF);
+} // namespace luni_workflow
 } // namespace ctp
-
 } // namespace o2
+

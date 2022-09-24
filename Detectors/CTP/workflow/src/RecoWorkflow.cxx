@@ -12,11 +12,9 @@
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
-
 #include "FairLogger.h"
-
+#include "Framework/WorkflowSpec.h"
 #include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RecoWorkflow.h"
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 

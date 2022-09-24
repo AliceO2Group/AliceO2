@@ -34,56 +34,29 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   using InputSpec = o2::framework::InputSpec;
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
-  // mOutputHWErrors.clear();
-  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
-  o2::framework::DPLRawParser parser(ctx.inputs(), filter);
-  // setUpDummyLink
   auto& inputs = ctx.inputs();
-  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
-  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
-  {
-    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
-    std::vector<InputSpec> dummy{InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"CTP", "RAWDATA", 0xDEADBEEF}}};
-    for (const auto& ref : o2::framework::InputRecordWalker(inputs, dummy)) {
-      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
-      if (payloadSize == 0) {
-        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
-        if (++contDeadBeef <= maxWarn) {
-          LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
-               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
-        }
-        ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiPoints);
-        return;
-      }
-    }
-    contDeadBeef = 0; // if good data, reset the counter
-  }
-  //
+  auto ref = inputs.get("TF",o2::ctp::GBTLinkIDIntRec);
+  auto rdh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+  auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
   float_t counts = 0;
-  uint32_t payloadCTP;
+  uint32_t payloadCTP = o2::ctp::NIntRecPayload;
   uint32_t orbit0 = 0;
   bool first = true;
   gbtword80_t remnant = 0;
   uint32_t size_gbt = 0;
-  for (auto it = parser.begin(); it != parser.end(); ++it) {
-    auto rdh = it.get_if<o2::header::RAWDataHeader>();
+  //for (auto it = parser.begin(); it != parser.end(); ++it)
+  {
+    //auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    LOG(info) << "====>" << payloadSize << " " << triggerOrbit;
+    return;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
     }
-    auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
-    auto linkCRU = (feeID & 0xf00) >> 8;
-    if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
-      payloadCTP = o2::ctp::NIntRecPayload;
-    } else {
-      return;
-    }
-    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     // TF in 128 bits words
-    gsl::span<const uint8_t> payload(it.data(), it.size());
+    auto payload = inputs.get<const uint8_t*> (ref);
+    //gsl::span<const uint8_t> payload(pld.data(), pld.size());
     gbtword80_t gbtWord = 0;
     int wordCount = 0;
     std::vector<gbtword80_t> diglets;
@@ -99,7 +72,10 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
       counts = 0;
     }
-    for (auto payloadWord : payload) {
+    //for (auto it = parser.begin(); it != parser.end(); ++it)
+    //for (auto it = payload.begin(); it != payload.end(); ++it)
+    int payloadWord = 0;
+    {
       // LOG(info) << wordCount << " payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
@@ -137,7 +113,9 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
 o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  // ok ?
+  inputs.emplace_back("TF", "CTP", "RAWDATA", o2::ctp::GBTLinkIDIntRec , o2::framework::Lifetime::Optional);
+
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -149,6 +127,7 @@ o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSp
     "CTP-RawStreamDecoder",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::lumi_workflow::RawToLumiConverterSpec>()},
-    o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/lumiCTPDecodeResults", {"Base name of the decoding results files."}}}};
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::lumi_workflow::RawToLumiConverterSpec>()}
+    //o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/lumiCTPDecodeResults", {"Base name of the decoding results files."}}}
+    };
 }

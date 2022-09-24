@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(CTPWorkflowLumi
-               SOURCES src/lumiWorkflowSpec.cxx
+               SOURCES src/LumiWorkflow.cxx
                        src/RawToLumiConverterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCTP
@@ -17,3 +17,8 @@ o2_add_library(CTPWorkflowLumi
                                      O2::DetectorsRaw
                                      O2::Algorithm
                                      O2::CTPWorkflow)
+o2_add_executable(lumi-workflow
+                  COMPONENT_NAME ctp
+                  SOURCES src/ctp-lumi-decoder.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Algorithm
+                                        O2::CTPWorkflowLumi)

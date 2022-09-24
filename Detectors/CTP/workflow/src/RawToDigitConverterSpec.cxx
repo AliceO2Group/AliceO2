@@ -70,6 +70,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
@@ -83,7 +84,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
+    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -100,7 +101,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
     }
     for (auto payloadWord : payload) {
-      //LOG(info) << wordCount << " payload:" <<  int(payloadWord);
+      LOG(info) << wordCount << " payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {

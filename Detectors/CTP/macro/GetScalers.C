@@ -40,8 +40,7 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   scl = mng.getScalersFromCCDB(time, srun, ok);
   if (ok == 1) {
     scl.convertRawToO2();
-    sc
-      l.printStream(std::cout);
+    //scl.printStream(std::cout);
     // scl.printRates();
     scl.printIntegrals();
     ctpcfg = mng.getConfigFromCCDB(time, srun);
