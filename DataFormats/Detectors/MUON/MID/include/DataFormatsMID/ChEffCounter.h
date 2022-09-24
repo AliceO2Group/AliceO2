@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <array>
+#include <cstddef>
 
 namespace o2
 {
