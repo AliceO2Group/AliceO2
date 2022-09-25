@@ -28,6 +28,9 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsHelper.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+
+#include <random>
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -41,7 +44,7 @@ namespace tpc
 class TPCCalibPadGainTracksDevice : public o2::framework::Task
 {
  public:
-  TPCCalibPadGainTracksDevice(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB)
+  TPCCalibPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB), mCCDBRequest(req)
   {
     if (!polynomialsFile.empty()) {
       LOGP(info, "Loading polynomials from file {}", polynomialsFile);
@@ -52,6 +55,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     // setting up the histogram ranges
     const auto nBins = ic.options().get<int>("nBins");
     const auto reldEdxMin = ic.options().get<float>("reldEdxMin");
@@ -85,6 +89,13 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       mUseEveryNthTF = 1;
     }
 
+    if (mPublishAfter > 1) {
+      std::mt19937 rng(std::time(nullptr));
+      std::uniform_int_distribution<std::mt19937::result_type> dist(1, mPublishAfter);
+      mFirstTFSend = dist(rng);
+      LOGP(info, "Publishing first data after {} processed TFs", mFirstTFSend);
+    }
+
     mMaxTracksPerTF = ic.options().get<int>("maxTracksPerTF");
 
     const std::string gainMapFile = ic.options().get<std::string>("gainMapFile");
@@ -92,19 +103,6 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "Loading GainMap from file {}", gainMapFile);
       mPadGainTracks.setRefGainMap(gainMapFile.data(), "GainMap");
     }
-
-    float field = ic.options().get<float>("field");
-    if (field <= -10.f) {
-      const auto inputGRP = o2::base::NameConf::getGRPFileName();
-      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-      if (grp != nullptr) {
-        field = 5.00668f * grp->getL3Current() / 30000.f;
-        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
-      }
-    }
-
-    LOGP(info, "Setting magnetic field to {} kG", field);
-    mPadGainTracks.setField(field);
 
     const auto etaMax = ic.options().get<float>("etaMax");
     mPadGainTracks.setMaxEta(etaMax);
@@ -137,6 +135,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       mPadGainTracks.setPolTopologyCorrectionFromContainer(*topologyCorr);
     } else if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     } else if (mTPCCorrMapsHelper.accountCCDBInputs(matcher, obj)) {
+    } else if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      const auto field = (5.00668f / 30000.f) * o2::base::GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+      LOGP(info, "Setting magnetic field to {} kG", field);
+      mPadGainTracks.setField(field);
     }
   }
 
@@ -147,6 +149,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "Skipping TF {}", currentTF);
       return;
     }
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
 
     auto tracks = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
     auto clRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
@@ -181,9 +184,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     mPadGainTracks.setMembers(&tracks, &clRefs, clusters->clusterIndex);
     mPadGainTracks.processTracks(mMaxTracksPerTF);
     ++mProcessedTFs;
-    if ((mPublishAfter && (mProcessedTFs % mPublishAfter) == 0)) {
+    if ((mFirstTFSend == mProcessedTFs) || (mPublishAfter && (mProcessedTFs % mPublishAfter) == 0)) {
       LOGP(info, "Publishing after {} TFs", mProcessedTFs);
       mProcessedTFs = 0;
+      mFirstTFSend = 0; // set to zero in order to only trigger once
       if (mDebug) {
         mPadGainTracks.dumpToFile(fmt::format("calPadGain_TF{}.root", currentTF).data());
       }
@@ -192,16 +196,18 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 
  private:
-  const uint32_t mPublishAfter{0};                   ///< number of TFs after which to dump the calibration
-  const bool mDebug{false};                          ///< create debug output
-  const bool mUseLastExtractedMapAsReference{false}; ///< using the last extracted gain map as the reference map which will be applied
-  bool mDisablePolynomialsCCDB{false};               ///< do not load the polynomials from the CCDB
-  uint32_t mProcessedTFs{0};                         ///< counter to keep track of the processed TFs
-  uint32_t mTFCounter{0};                            ///< counter to keep track of the TFs
-  CalibPadGainTracks mPadGainTracks{false};          ///< class for creating the pad-by-pad gain map
-  bool mUsingDefaultGainMapForFirstIter{true};       ///< using no reference gain map for the first iteration
-  unsigned int mUseEveryNthTF{1};                    ///< process every Nth TF only
-  int mMaxTracksPerTF{-1};                           ///< max number of tracks processed per TF
+  const uint32_t mPublishAfter{0};                        ///< number of TFs after which to dump the calibration
+  const bool mDebug{false};                               ///< create debug output
+  const bool mUseLastExtractedMapAsReference{false};      ///< using the last extracted gain map as the reference map which will be applied
+  bool mDisablePolynomialsCCDB{false};                    ///< do not load the polynomials from the CCDB
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< for accessing the b-field
+  uint32_t mProcessedTFs{0};                              ///< counter to keep track of the processed TFs
+  uint32_t mTFCounter{0};                                 ///< counter to keep track of the TFs
+  CalibPadGainTracks mPadGainTracks{false};               ///< class for creating the pad-by-pad gain map
+  bool mUsingDefaultGainMapForFirstIter{true};            ///< using no reference gain map for the first iteration
+  unsigned int mUseEveryNthTF{1};                         ///< process every Nth TF only
+  unsigned int mFirstTFSend{1};                           ///< first TF for which the data will be send (initialized randomly)
+  int mMaxTracksPerTF{-1};                                ///< max number of tracks processed per TF
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
 
@@ -234,6 +240,14 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   o2::tpc::CorrectionMapsHelper::requestCCDBInputs(inputs);
 
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                false,                          // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                true,                           // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(gDataOriginTPC, "TRACKGAINHISTOS", 0, o2::framework::Lifetime::Sporadic);
 
@@ -241,14 +255,13 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     "calib-tpc-gainmap-tracks",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
+    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
     Options{
       {"nBins", VariantType::Int, 20, {"Number of bins per histogram"}},
       {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
       {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},
       {"underflowBin", VariantType::Bool, false, {"Using under flow bin"}},
       {"overflowBin", VariantType::Bool, true, {"Using under flow bin"}},
-      {"field", VariantType::Float, -100.f, {"Magnetic field in kG, need for track propagations, this value will be overwritten if a grp file is present"}},
       {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},

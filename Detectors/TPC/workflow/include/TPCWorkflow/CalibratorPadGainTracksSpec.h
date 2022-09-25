@@ -140,7 +140,7 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
     adaptFromTask<CalibratorPadGainTracksDevice>(ccdbRequest, useLastExtractedMapAsReference),
     Options{
       {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
+      {"max-delay", VariantType::UInt32, 0u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
