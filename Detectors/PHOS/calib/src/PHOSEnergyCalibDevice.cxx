@@ -139,7 +139,7 @@ void PHOSEnergyCalibDevice::stop()
 void PHOSEnergyCalibDevice::fillOutputTree()
 {
 
-  if (mOutputDigits.size() == 0) { // nothing to fill
+  if (mOutputDigits.size() < 2) { // nothing to fill, need at least 2 cluster per event
     return;
   }
 

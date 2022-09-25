@@ -59,9 +59,25 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
     h.mBC = tr.getBCData().bc;
     mDigits.push_back(h.mDataWord);
     mDigits.push_back(tr.getBCData().orbit);
+    mEvBC = tr.getBCData().bc;
 
     int firstCluInEvent = tr.getFirstEntry();
     int lastCluInEvent = firstCluInEvent + tr.getNumberOfObjects();
+
+    // event is good if a) 2 and more clusters; b) at least one cluster with E>1.5 GeV
+    const float minCluE = 1.5;
+    bool good = false;
+    for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
+      const Cluster& clu = clusters[i];
+      if (checkCluster(clu) && clu.getEnergy() > minCluE) {
+        good = true;
+        break;
+      }
+    }
+    good &= (lastCluInEvent - firstCluInEvent > 1);
+    if (!good) {
+      continue;
+    }
 
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
@@ -75,9 +91,9 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
       uint32_t lastCE = clu.getLastCluEl();
       for (uint32_t idig = firstCE; idig < lastCE; idig++) {
         const CluElement& ce = cluelements[idig];
-        if (ce.energy < mDigitEmin) {
-          continue;
-        }
+        // if (ce.energy < mDigitEmin) {
+        //   continue;
+        // }
         short absId = ce.absId;
         // Fill cells from cluster for next iterations
         short adcCounts = ce.energy / mCalibParams->getGain(absId);
@@ -117,13 +133,21 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
     if (ce.isHG) {
       if (ce.energy > mEminHGTime) {
         mHistos->fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
+        char relid[3];
+        Geometry::absToRelNumbering(absId, relid);
+        int ddl = (relid[0] - 1) * 4 + (relid[1] - 1) / 16 - 2;
+        mHistos->fill(ETCalibHistos::kTimeDDL, int(ddl * 4 + mEvBC % 4), ce.time);
       }
-      mHistos->fill(ETCalibHistos::kTimeHGSlewing, ce.time, ce.energy);
+      if (mBadMap->isChannelGood(absId)) {
+        mHistos->fill(ETCalibHistos::kTimeHGSlewing, ce.time, ce.energy);
+      }
     } else {
       if (ce.energy > mEminLGTime) {
         mHistos->fill(ETCalibHistos::kTimeLGPerCell, absId, ce.time);
       }
-      mHistos->fill(ETCalibHistos::kTimeLGSlewing, ce.time, ce.energy);
+      if (!mBadMap->isChannelGood(absId)) {
+        mHistos->fill(ETCalibHistos::kTimeLGSlewing, ce.time, ce.energy);
+      }
     }
   }
 
