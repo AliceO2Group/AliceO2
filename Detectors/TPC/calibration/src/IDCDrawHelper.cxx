@@ -33,6 +33,7 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   poly->GetZaxis()->SetTitleOffset(1.3f);
   poly->SetStats(0);
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
+  poly->Sumw2();
   if (minZ < maxZ) {
     poly->SetMinimum(minZ);
     poly->SetMaximum(maxZ);
@@ -105,6 +106,7 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
   poly->GetZaxis()->SetMaxDigits(3); // force exponential axis
   poly->SetStats(0);
+  poly->Sumw2();
 
   unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
   unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : Mapper::NSECTORS;
