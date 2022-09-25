@@ -113,14 +113,15 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
     }
     offset += clustersCompressed->nTrackClusters[i] - j;
   }
-  ClusterNative* clusterBuffer = allocator(clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters);
+  size_t nTotalClusters = clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
+  ClusterNative* clusterBuffer = allocator(nTotalClusters);
   unsigned int offsets[NSLICES][GPUCA_ROW_COUNT];
   offset = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-      clustersNative.nClusters[i][j] = clusters[i][j].size() + clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      clustersNative.nClusters[i][j] = clusters[i][j].size() + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
       offsets[i][j] = offset;
-      offset += clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      offset += (i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
     }
   }
   clustersNative.clustersLinear = clusterBuffer;
@@ -135,8 +136,11 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       unsigned int time = 0;
       unsigned short pad = 0;
       ClusterNative* cl = buffer + clusters[i][j].size();
-      unsigned int end = offsets[i][j] + clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      unsigned int end = offsets[i][j] + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
       for (unsigned int k = offsets[i][j]; k < end; k++) {
+        /*if (cl >= clustersNative.clustersLinear + nTotalClusters) {
+          throw std::runtime_error("Bad TPC CTF data, decoded more clusters than announced");
+        }*/
         if (clustersCompressed->nComppressionModes & GPUSettings::CompressionDifferences) {
           unsigned int timeTmp = clustersCompressed->timeDiffU[k];
           if (timeTmp & 800000) {
