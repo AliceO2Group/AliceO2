@@ -36,8 +36,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
   // mOutputHWErrors.clear();
-  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
-  o2::framework::DPLRawParser parser(ctx.inputs(), filter);
+  o2::framework::DPLRawParser parser(ctx.inputs());
   // setUpDummyLink
   auto& inputs = ctx.inputs();
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
