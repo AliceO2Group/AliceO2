@@ -28,7 +28,6 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "TPCCalibration/CalibdEdx.h"
-#include "TPCCalibration/FastHisto.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 namespace o2::tpc
