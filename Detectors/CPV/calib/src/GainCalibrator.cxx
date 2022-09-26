@@ -58,7 +58,7 @@ AmplitudeSpectrum& AmplitudeSpectrum::operator+=(const AmplitudeSpectrum& rhs)
 void AmplitudeSpectrum::fill(float amplitude)
 {
   if ((lRange <= amplitude) && (amplitude < rRange)) {
-    int bin = (amplitude - lRange) / nBins;
+    int bin = ((amplitude - lRange) / (rRange - lRange)) * nBins;
     mBinContent[bin]++;
     mNEntries++;
     mSumA += amplitude;
@@ -66,12 +66,34 @@ void AmplitudeSpectrum::fill(float amplitude)
   }
 }
 //_____________________________________________________________________________
-void AmplitudeSpectrum::fillBinData(TH1F* h)
+void AmplitudeSpectrum::dumpToHisto(TH1F* h)
 {
-  for (uint16_t i = 0; i < nBins; i++) {
-    h->SetBinContent(i + 1, float(mBinContent[i]));
-    h->SetBinError(i + 1, sqrt(float(mBinContent[i])));
+  int rebin = nBins / h->GetNbinsX();
+  if (h != nullptr) {
+    for (int iBin = 0; iBin < h->GetNbinsX(); iBin++) {
+      float binC = 0.;
+      for (uint16_t i = iBin * rebin; i < (iBin + 1) * rebin; i++) {
+        binC += mBinContent[i];
+      }
+      h->SetBinContent(iBin + 1, binC);
+    }
   }
+}
+int AmplitudeSpectrum::nEventsInRange(float lR, float rR)
+{
+  if (lR < lRange) {
+    lR = lRange;
+  }
+  if (rR > rRange) {
+    rR = rRange;
+  }
+  int first = ((lR - lRange) / (rRange - lRange)) * nBins;
+  int last = ((rR - lRange) / (rRange - lRange)) * nBins;
+  int nEvents = 0;
+  for (int i = first; i < last; i++) {
+    nEvents += mBinContent[i];
+  }
+  return nEvents;
 }
 //_____________________________________________________________________________
 // GainCalibData
@@ -127,6 +149,8 @@ void GainCalibrator::configParameters()
   mMaxAllowedCoeff = cpvParams.gainMaxAllowedCoeff;
   mFitRangeL = cpvParams.gainFitRangeL;
   mFitRangeR = cpvParams.gainFitRangeR;
+  mUpdateTFInterval = cpvParams.gainCheckForCalibrationInterval;
+
   // adjust fit ranges to descrete binned values
   if (mFitRangeL < AmplitudeSpectrum::lRange) {
     mFitRangeL = AmplitudeSpectrum::lRange;
@@ -134,7 +158,7 @@ void GainCalibrator::configParameters()
   if (mFitRangeR > AmplitudeSpectrum::rRange) {
     mFitRangeR = AmplitudeSpectrum::rRange;
   }
-  double binWidth = (AmplitudeSpectrum::rRange - AmplitudeSpectrum::lRange) / AmplitudeSpectrum::nBins;
+  float binWidth = (AmplitudeSpectrum::rRange - AmplitudeSpectrum::lRange) / AmplitudeSpectrum::nBins;
   mFitRangeL = AmplitudeSpectrum::lRange + std::floor((mFitRangeL - AmplitudeSpectrum::lRange) / binWidth) * binWidth;
   mFitRangeR = AmplitudeSpectrum::lRange + std::floor((mFitRangeR - AmplitudeSpectrum::lRange) / binWidth) * binWidth;
 
@@ -146,6 +170,7 @@ void GainCalibrator::configParameters()
   LOG(info) << "mMaxAllowedCoeff = " << mMaxAllowedCoeff;
   LOG(info) << "mFitRangeL = " << mFitRangeL;
   LOG(info) << "mFitRangeR = " << mFitRangeR;
+  LOG(info) << "mUpdateTFInterval =  " << mUpdateTFInterval;
 }
 //_____________________________________________________________________________
 void GainCalibrator::initOutput()
@@ -170,21 +195,27 @@ void GainCalibrator::finalizeSlot(GainTimeSlot& slot)
   TF1* fLandau = new TF1("fLandau", "landau", mFitRangeL, mFitRangeR);
   fLandau->SetParLimits(0, 0., 1.E6);
   fLandau->SetParLimits(1, mDesiredLandauMPV / mMaxAllowedCoeff, mDesiredLandauMPV / mMinAllowedCoeff);
-  fLandau->SetParLimits(1, 0., 1.E3);
+  fLandau->SetParLimits(2, 0., 1.E3);
   TH1F h("histoCPVMaxAmplSpectrum", "", AmplitudeSpectrum::nBins, AmplitudeSpectrum::lRange, AmplitudeSpectrum::rRange);
+  h.Rebin(std::ceil(mMaxAllowedCoeff)); // rebin histogram in order to avoid descrete structures in it
   // double binWidth = (AmplitudeSpectrum::rRange - AmplitudeSpectrum::lRange) / AmplitudeSpectrum::nBins;
   // size_t nBinsToFit = (mFitRangeR - mFitRangeL) / binWidth;
   // uint32_t xMin = (mFitRangeL - AmplitudeSpectrum::lRange) / binWidth;
   // uint32_t xMax = (mFitRangeR - AmplitudeSpectrum::lRange) / binWidth;
   int nCalibratedChannels = 0;
-  for (int i = 0; i < Geometry::kNCHANNELS; i++) {
+  int badChi2Channels = 0;
+  for (unsigned short i = 0; i < Geometry::kNCHANNELS; i++) {
+    newGains->setGain(i, mPreviousGains.get()->getGain(i)); // copy previous gains first
     // print some info
     if ((i % 500) == 0) {
       LOG(info) << "GainCalibrator::finalizeSlot() : checking channel " << i;
     }
-    if (slot.getContainer()->mAmplitudeSpectra[i].getNEntries() > mMinEvents) { // we are ready to fit
+    if (slot.getContainer()->mAmplitudeSpectra[i].getNEntries() > mMinEvents) {                            // we are ready to fit
+      if (slot.getContainer()->mAmplitudeSpectra[i].nEventsInRange(mFitRangeL, mFitRangeR) < mMinEvents) { // actually not enough events in fit range
+        continue;
+      }
       h.Reset();
-      slot.getContainer()->mAmplitudeSpectra[i].fillBinData(&h);
+      slot.getContainer()->mAmplitudeSpectra[i].dumpToHisto(&h);
       // set some starting values
       double mean = slot.getContainer()->mAmplitudeSpectra[i].getMean();
       double rms = slot.getContainer()->mAmplitudeSpectra[i].getRMS();
@@ -193,10 +224,17 @@ void GainCalibrator::finalizeSlot(GainTimeSlot& slot)
       auto fitResult = h.Fit(fLandau, "SQL0N", "", mFitRangeL, mFitRangeR);
       // auto fitResult = o2::math_utils::fit<uint32_t>(nBinsToFit, &(slot.getContainer()->mAmplitudeSpectra[i].getBinContent()[xMin]), xMin, xMax, *fLandau);
       if (fitResult->Chi2() / fitResult->Ndf() > mToleratedChi2PerNDF) {
-        //  in case of bad fit -> do something sofisticated. but what?
+        badChi2Channels++;
+        // in case of bad fit -> do something sofisticated. but what?
         // continue;
-        LOG(info) << "GainCalibrator::finalizeSlot() : bad chi2/ndf in fit of spectrum in channel " << i;
-        fitResult->Print("V");
+        if (badChi2Channels < 20) {
+          LOG(info) << "GainCalibrator::finalizeSlot() : bad chi2/ndf in fit of spectrum in channel " << i;
+          fitResult->Print("V");
+        } else if (badChi2Channels == 20) {
+          LOG(info) << "GainCalibrator::finalizeSlot() : bad chi2/ndf in fit of spectrum in channel " << i;
+          fitResult->Print("V");
+          LOG(info) << "GainCalibrator::finalizeSlot() : bad chi2/ndf is reported 20 times. Muting ";
+        }
       }
       // calib coeffs are defined as mDesiredLandauMPV/actualMPV*previousCoeff
       float coeff = mDesiredLandauMPV / fLandau->GetParameter(1) * mPreviousGains.get()->getGain(i);
@@ -213,7 +251,7 @@ void GainCalibrator::finalizeSlot(GainTimeSlot& slot)
   }
   delete fLandau;
   LOG(info) << "GainCalibrator::finalizeSlot() : succesfully calibrated " << nChannelsCalibrated << "channels";
-
+  LOG(info) << "GainCalibrator::finalizeSlot() : bad chi2/ndf is occured " << badChi2Channels << "times";
   // prepare new ccdb entries for sending
   mGainsVec.push_back(*newGains);
   // metadata for o2::cpv::CalibParams
