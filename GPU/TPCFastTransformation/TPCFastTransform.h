@@ -167,7 +167,7 @@ class TPCFastTransform : public FlatObject
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// taking calibration + alignment into account.
   ///
-  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
+  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -176,10 +176,10 @@ class TPCFastTransform : public FlatObject
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
 
   /// Inverse transformation: Transformed Y and Z -> transformed X
-  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const;
+  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const;
+  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
@@ -408,7 +408,7 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
   dz = sideC ? dv : -dv;
 }
 
-GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, float scale) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
@@ -430,6 +430,13 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
 
     if (!mCorrectionSlow) {
       mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+      if (ref && scale > 0.f) { // scaling was requested
+        float dxRef, duRef, dvRef;
+        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+        dx = (dx - dxRef) * scale + dxRef;
+        du = (du - duRef) * scale + duRef;
+        dv = (dv - dvRef) * scale + dvRef;
+      }
     } else {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
@@ -593,21 +600,32 @@ GPUdi() float TPCFastTransform::getMaxDriftTime(int slice) const
   return maxTime;
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x, const TPCFastTransform* ref, float scale) const
 {
   /// Transformation y,z -> x
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
   mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+  if (ref && scale > 0.f) { // scaling was requested
+    float xr;
+    ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+    x = (x - xr) * scale + xr;
+  }
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
 {
   /// Transformation y,z -> x
-  float u = 0, v = 0;
+  float u = 0, v = 0, un = 0, vn = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  mCorrection.getCorrectionInvUV(slice, row, u, v, u, v);
-  getGeometry().convUVtoLocal(slice, u, v, ny, nz);
+  mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
+  if (ref && scale > 0.f) { // scaling was requested
+    float unr = 0, vnr = 0;
+    ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+    un = (un - unr) * scale + unr;
+    vn = (vn - vnr) * scale + vnr;
+  }
+  getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
 }
 
 } // namespace gpu

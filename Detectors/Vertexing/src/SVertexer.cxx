@@ -17,7 +17,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "CorrectionMapsHelper.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -171,19 +171,13 @@ void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
   mTPCBin2Z = mTPCVDrift / mMUS2TPCBin;
-  if (mTPCCorrMapsHelper) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 //______________________________________________
-void SVertexer::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+void SVertexer::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  if (mTPCVDrift > 0.f) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
   // to be used with refitter as
-  // mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper->getCorrMap(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  // mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 }
 
 //__________________________________________________________________

@@ -9,15 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CorrectionMapsHelper.h
-/// \brief Helper class to access correction maps from CCDB
+/// \file CorrectionMapsLoader.h
+/// \brief Helper class to access load maps from CCDB
 /// \author ruben.shahoian@cern.ch
 
-#ifndef TPC_CORRECTION_MAPS_HELPER_H_
-#define TPC_CORRECTION_MAPS_HELPER_H_
+#ifndef TPC_CORRECTION_MAPS_LOADER_H_
+#define TPC_CORRECTION_MAPS_LOADER_H_
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #include <vector>
+#endif
+#include "CorrectionMapsHelper.h"
 
 namespace o2
 {
@@ -28,38 +31,23 @@ class ConcreteDataMatcher;
 class InputSpec;
 } // namespace framework
 
-namespace gpu
-{
-class TPCFastTransform;
-}
-
 namespace tpc
 {
 
-class CorrectionMapsHelper
+class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
 {
  public:
-  o2::gpu::TPCFastTransform* getCorrMap() { return mCorrMap.get(); }
-  o2::gpu::TPCFastTransform* getCorrMapRef() { return mCorrMapRef.get(); }
+  CorrectionMapsLoader() = default;
+  ~CorrectionMapsLoader() = default;
+  CorrectionMapsLoader(const CorrectionMapsLoader&) = delete;
 
-  void setCorrMap(std::unique_ptr<o2::gpu::TPCFastTransform> m) { mCorrMap = std::move(m); }
-  void setCorrMapRef(std::unique_ptr<o2::gpu::TPCFastTransform> m) { mCorrMapRef = std::move(m); }
-
-  void adoptCorrMap(o2::gpu::TPCFastTransform* m) { mCorrMap.reset(m); }
-  void adoptCorrMapRef(o2::gpu::TPCFastTransform* m) { mCorrMapRef.reset(m); }
-
-  bool isUpdated() const { return mUpdated; }
+#ifndef GPUCA_GPUCODE_DEVICE
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
-  void acknowledgeUpdate() { mUpdated = false; }
-
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs);
   static void extractCCDBInputs(o2::framework::ProcessingContext& pc);
-
- protected:
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
-  bool mUpdated = false;
-  std::unique_ptr<o2::gpu::TPCFastTransform> mCorrMap{};    // current transform
-  std::unique_ptr<o2::gpu::TPCFastTransform> mCorrMapRef{}; // reference transform
+  void updateVDrift(float vdriftCorr, float vdrifRef);
+#endif
 };
 
 } // namespace tpc
