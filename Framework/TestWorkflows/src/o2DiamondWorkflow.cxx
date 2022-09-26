@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
       })},
     .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}},
-                ConfigParamSpec{"channel-config", VariantType::String, "name=metric-feedback", {"Timeframes per second limit"}}}};
+                ConfigParamSpec{"channel-config", VariantType::String, "name=metric-feedback,method=bind,type=pub", {"Timeframes per second limit"}}}};
   DataProcessorSpec b{
     .name = "B",
     .inputs = {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
