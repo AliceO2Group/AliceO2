@@ -1388,7 +1388,7 @@ void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputB
   if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
     return;
   }
-  const TPCZSHDR* const hdr = (const TPCZSHDR*)((const char*)page + sizeof(o2::header::RAWDataHeader));
+  const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
   if (mDecoders.size() < hdr->version + 1) {
     mDecoders.resize(hdr->version + 1);
   }
