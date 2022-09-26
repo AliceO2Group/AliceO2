@@ -291,10 +291,10 @@ class CTFHelper
   };
 
   //_______________________________________________
-  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, int16_t, NChannels>
+  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, uint16_t, NChannels>
   {
    public:
-    using _Iter<Iter_pedData, OrbitData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_pedData, OrbitData, uint16_t, NChannels>::_Iter;
     value_type operator*() const { return mData[mIndex / NChannels].data[mIndex % NChannels]; }
     value_type operator[](difference_type i) const
     {
@@ -304,10 +304,10 @@ class CTFHelper
   };
 
   //_______________________________________________
-  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>
+  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>
   {
    public:
-    using _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>::_Iter;
     value_type operator*() const
     {
       // define with respect to previous orbit
