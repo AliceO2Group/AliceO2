@@ -115,7 +115,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
 
     const int bcOffset = timeOffset + globalBCOffset + bunchCrossingHeader - triggerBCOffset;
     if (bcOffset < 0) {
-      LOGP(info, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}",
+      LOGP(debug, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}",
            timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, triggerBCOffset, bcOffset);
 
       // go to next time bin
