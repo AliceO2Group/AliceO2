@@ -96,7 +96,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       lp.counts = countsMB;
       lp.ir.orbit = triggerOrbit;
       lumiPointsHBF1.push_back(lp);
-      //LOG(info) << "Orbit:" << triggerOrbit << " tvx count:" << countsMB;
+      // LOG(info) << "Orbit:" << triggerOrbit << " tvx count:" << countsMB;
       countsMB = 0;
       //
       remnant = 0;
@@ -135,14 +135,14 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       }
     }
   }
-  //LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size();
+  // LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size();
   mOutputLumiPoints.clear();
   float_t countHBFn = 0;
-  for(int ihb = 0; ihb < lumiPointsHBF1.size(); ihb++) {
+  for (int ihb = 0; ihb < lumiPointsHBF1.size(); ihb++) {
     countHBFn += lumiPointsHBF1[ihb].counts;
     lumiPoint lp;
-    if(ihb < mHBFsToAverage) {
-      lp.nHBFs = ihb+1;
+    if (ihb < mHBFsToAverage) {
+      lp.nHBFs = ihb + 1;
       lp.ir = lumiPointsHBF1[ihb].ir;
     } else {
       countHBFn -= lumiPointsHBF1[ihb - mHBFsToAverage].counts;
@@ -150,7 +150,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       lp.ir = lumiPointsHBF1[ihb - mHBFsToAverage + 1].ir;
     }
     lp.counts = countHBFn;
-    //LOG(info) << "lp orbit:" << lp.ir.orbit << " lp.countes:" << lp.counts << " T:" << lp.nHBFs;
+    // LOG(info) << "lp orbit:" << lp.ir.orbit << " lp.countes:" << lp.counts << " T:" << lp.nHBFs;
     mOutputLumiPoints.push_back(lp);
   }
   LOG(info) << "[CTPRawToLumiConverter - run] Writing " << mOutputLumiPoints.size() << " lumiPoints ...";
@@ -159,7 +159,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
 o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"},  o2::framework::Lifetime::Optional);
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Optional);
 
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
@@ -173,6 +173,5 @@ o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSp
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::lumi_workflow::RawToLumiConverterSpec>()},
-    o2::framework::Options{{"nHBF-to-IRaverage", o2::framework::VariantType::Int, 1, {"Time interval for averaging IR rate in units of HB"}}}
-  };
+    o2::framework::Options{{"nHBF-to-IRaverage", o2::framework::VariantType::Int, 1, {"Time interval for averaging IR rate in units of HB"}}}};
 }

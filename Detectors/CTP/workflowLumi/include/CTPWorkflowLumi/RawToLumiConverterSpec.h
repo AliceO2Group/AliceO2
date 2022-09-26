@@ -26,9 +26,9 @@ namespace lumi_workflow
 {
 struct lumiPoint {
   lumiPoint() = default;
-  InteractionRecord ir; // timestamp of start of lumi interval
-  float_t nHBFs = 1;   // length of interval in HB
-  float_t counts = 0;   //  counts in the interval
+  InteractionRecord ir;                                 // timestamp of start of lumi interval
+  float_t nHBFs = 1;                                    // length of interval in HB
+  float_t counts = 0;                                   //  counts in the interval
   float_t getLumi() { return counts / nHBFs / 88e-6; }; // rate in Hz
   float_t getFractErrorLumi() { return 1. / sqrt(counts); };
 };
