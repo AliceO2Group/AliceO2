@@ -44,5 +44,15 @@ class RecoParam : public o2::conf::ConfigurableParamHelper<RecoParam>
 };
 std::ostream& operator<<(std::ostream& stream, const RecoParam& s);
 } // namespace emcal
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::emcal::RecoParam> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 #endif
