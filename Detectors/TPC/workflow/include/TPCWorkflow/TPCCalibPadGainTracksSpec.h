@@ -27,7 +27,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 
 #include <random>
@@ -134,7 +134,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       const auto* topologyCorr = static_cast<o2::tpc::CalibdEdxTrackTopologyPolContainer*>(obj);
       mPadGainTracks.setPolTopologyCorrectionFromContainer(*topologyCorr);
     } else if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    } else if (mTPCCorrMapsHelper.accountCCDBInputs(matcher, obj)) {
+    } else if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     } else if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
       const auto field = (5.00668f / 30000.f) * o2::base::GRPGeomHelper::instance().getGRPMagField()->getL3Current();
       LOGP(info, "Setting magnetic field to {} kG", field);
@@ -169,16 +169,22 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcresidualgainmap");
     }
     o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-    o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
-    if (mTPCCorrMapsHelper.isUpdated()) {
-      mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsHelper);
-      mTPCCorrMapsHelper.acknowledgeUpdate();
+    o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+    bool updateMaps = false;
+    if (mTPCCorrMapsLoader.isUpdated()) {
+      mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
+      mTPCCorrMapsLoader.acknowledgeUpdate();
+      updateMaps = true;
     }
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
       mPadGainTracks.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
       mTPCVDriftHelper.acknowledgeUpdate();
+      updateMaps = true;
+    }
+    if (updateMaps) {
+      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
     }
 
     mPadGainTracks.setMembers(&tracks, &clRefs, clusters->clusterIndex);
@@ -209,7 +215,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   unsigned int mFirstTFSend{1};                           ///< first TF for which the data will be send (initialized randomly)
   int mMaxTracksPerTF{-1};                                ///< max number of tracks processed per TF
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
 
   void sendOutput(DataAllocator& output)
   {
@@ -238,7 +244,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
   }
 
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-  o2::tpc::CorrectionMapsHelper::requestCCDBInputs(inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true

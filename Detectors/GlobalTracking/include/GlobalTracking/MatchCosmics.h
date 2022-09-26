@@ -35,9 +35,11 @@ namespace o2
 namespace tpc
 {
 class VDriftCorrFact;
+}
+namespace gpu
+{
 class CorrectionMapsHelper;
 }
-
 namespace globaltracking
 {
 
@@ -83,7 +85,7 @@ class MatchCosmics
     GTrackID origID;        ///< track origin id
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
   };
-  void setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
   void setITSDict(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
@@ -136,7 +138,7 @@ class MatchCosmics
   std::vector<MatchRecord> mRecords;
   std::vector<int> mWinners;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; // cluster patterns dictionary
-  o2::tpc::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
   int mTFCount = 0;
   float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)

@@ -48,7 +48,7 @@ o2_add_library(TPCCalibration
                        src/SACParameter.cxx
                        src/SACDrawHelper.cxx
                        src/VDriftHelper.cxx
-                       src/CorrectionMapsHelper.cxx
+                       src/CorrectionMapsLoader.cxx
                        src/SACCCDBHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit

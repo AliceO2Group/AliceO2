@@ -18,6 +18,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 
 #ifndef GPUCA_GPUCODE
 #include "SimulationDataFormat/ConstMCTruthContainer.h"

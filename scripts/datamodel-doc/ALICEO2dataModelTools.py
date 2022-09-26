@@ -152,7 +152,7 @@ def countBrackets(obr, cbr, line):
     for i1 in icl:
       for i2 in range(i1+len(cbr), len(line)):
         seq[i2] -= 1
-  
+
   else:
     # build sequence which holds the number of open brackets
     # at each character of the line
@@ -181,12 +181,12 @@ def countBrackets(obr, cbr, line):
 def findInBrackets(obr, cbr, line):
   newline = ''
   seq = countBrackets(obr, cbr, line)
-  
+
   # find first seq == 1 (opening)
   inds = [i for i, x in enumerate(seq) if x == 1]
   if len(inds) > 0:
     oi = inds[0]
-    
+
     # find next seq == 0 (closing)
     inds = [i for i, x in enumerate(seq[oi:]) if x == 0]
     if len(inds) > 0:
@@ -206,7 +206,7 @@ def lineInBrackets(obr, cbr, line, withheader=False):
   else:
     newline = line[oi:ci]
 
-  return newline     
+  return newline
 
 # -----------------------------------------------------------------------------
 # remove text from line between brackets obr..cbr
@@ -220,7 +220,7 @@ def removeInBrackets(obr, cbr, line, stat):
   seq = countBrackets(obr, cbr, line)
   for ii in range(len(seq)):
     seq[ii] += stat
-  
+
   # compute the results
   stat = seq[-1]
   if stat < 0:
@@ -263,10 +263,10 @@ def list_in(a, b):
 
 def getArgumentValues(words):
   line = block(words)
-  
+
   # get the argument line
   argLine = lineInBrackets("<",">",line)[1:-1]
-  
+
   # find further <...> in argLine
   seq = countBrackets("<", ">", argLine)
   # a ',' is only accepted as separator of arguments when it is outside of a <...>
@@ -281,9 +281,9 @@ def getArgumentValues(words):
     i0 = i+1
   arg = "".join(argLine[i0:].split())
   argValues.append(arg)
-    
+
   return argValues
-            
+
 # -----------------------------------------------------------------------------
 def pickContent(lines_in_file):
 

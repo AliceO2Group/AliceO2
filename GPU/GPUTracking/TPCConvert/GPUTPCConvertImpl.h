@@ -18,6 +18,7 @@
 #include "GPUCommonDef.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -32,7 +33,7 @@ class GPUTPCConvertImpl
     if (cm.param.par.continuousTracking) {
       cm.calibObjects.fastTransform->TransformInTimeFrame(slice, row, pad, time, x, y, z, cm.param.par.continuousMaxTimeBin);
     } else {
-      cm.calibObjects.fastTransform->Transform(slice, row, pad, time, x, y, z);
+      cm.calibObjects.fastTransformHelper->Transform(slice, row, pad, time, x, y, z);
     }
   }
   GPUd() static void convert(const TPCFastTransform& GPUrestrict() transform, const GPUParam& GPUrestrict() param, int slice, int row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)

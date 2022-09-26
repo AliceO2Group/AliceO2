@@ -18,6 +18,7 @@
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTrackingRefit.h"
+#include "CorrectionMapsHelper.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -39,7 +40,7 @@ void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, c
   }
 }
 
-GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
 {
   if (cl->nClustersTotal) {
     if (sharedmap == nullptr && trks == nullptr) {
@@ -58,14 +59,14 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TP
   mRefit->SetPropagator(p);
   mRefit->SetClusterNative(cl);
   mRefit->SetTrackHitReferences(trackRef);
-  mRefit->SetFastTransform(trans);
+  mRefit->SetFastTransformHelper(trans);
 }
 
-void GPUO2InterfaceRefit::updateCalib(const TPCFastTransform* trans, float bz)
+void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float bz)
 {
   mParam->SetDefaults(bz);
   mRefit->SetGPUParam(mParam.get());
-  mRefit->SetFastTransform(trans);
+  mRefit->SetFastTransformHelper(trans);
 }
 
 int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }
