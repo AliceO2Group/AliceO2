@@ -101,22 +101,21 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   std::vector<float> binnedVect;
   std::vector<double> meanZvect;
   int startZ = 0;
-  int counter = 0;
   auto minEntriesPerPoint = std::max((unsigned long int)mMinEntries, c->histoVtx.size() / mNPointsForSlope);
   if (mVerbose) {
-    LOG(info) << "Beginning: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
+    LOGP(info, "Beginning: startZ = {} c->histoVtx.size() = {}, will process {} Z slices with {} entries each", startZ, c->histoVtx.size(), mNPointsForSlope, minEntriesPerPoint);
   }
-  while (startZ <= c->histoVtx.size()) {
+  for (int counter = 0; counter < mNPointsForSlope; counter++) {
     if (mVerbose) {
       LOG(info) << "Beginning of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }
     double meanZ = 0;
     int counts = 0;
-    for (int ii = startZ; ii <= c->histoVtx.size(); ++ii) {
+    for (int ii = startZ; ii < c->histoVtx.size(); ++ii) {
       if (mVerbose) {
         // LOG(info) << "htmpX.size() = " << htmpX.size() << " ii = " << ii << " c->histoVtx.size() = " << c->histoVtx.size();
       }
-      if (htmpX.size() < minEntriesPerPoint) {
+      if (++counts < minEntriesPerPoint) {
         if (mVerbose) {
           // LOG(info) << "filling X with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][0];
           // LOG(info) << "filling Y with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][1];
@@ -124,10 +123,10 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         htmpX.push_back(c->histoVtx[ii][0]);
         htmpY.push_back(c->histoVtx[ii][1]);
         meanZ += c->histoVtx[ii][2];
-        ++counts;
       } else {
+        counts--;
         if (mVerbose) {
-          LOG(info) << "fitting ";
+          LOGP(info, "fitting after collecting {} entries for Z slice {} of {}", htmpX.size(), counter, mNPointsForSlope);
         }
         // we can fit and restart filling
         // X:
@@ -146,9 +145,11 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         }
         fitres = fitGaus(mNBinsX, &binnedVect[0], -(mRangeX), mRangeX, fitResSlicesX.back(), &covMatrixX.back());
         if (fitres != -10) {
-          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2);
+          //          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2) << " entries = " << ii + 1 - startZ;
+          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2) << " entries = " << counts;
         } else {
-          LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres;
+          // LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres << " entries = " << ii + 1 - startZ;
+          LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres << " entries = " << counts;
         }
         htmpX.clear();
 
@@ -169,22 +170,21 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         }
         fitres = fitGaus(mNBinsY, &binnedVect[0], -(mRangeY), mRangeY, fitResSlicesY.back(), &covMatrixY.back());
         if (fitres != -10) {
-          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2);
+          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2) << " entries = " << counts;
         } else {
-          LOG(error) << "Y, counter " << counter << ": Fit failed with result = " << fitres;
+          LOG(error) << "Y, counter " << counter << ": Fit failed with result = " << fitres << " entries = " << counts;
         }
         htmpY.clear();
 
         // Z: let's calculate the mean position
         if (mVerbose) {
-          LOG(info) << "Z, counter " << counter << ": " << meanZ / counts;
+          LOGP(info, "Z, counter {} {} ({}/{})", counter, meanZ / counts, meanZ, counts);
         }
-        ++counter;
         meanZvect.push_back(meanZ / counts);
+        startZ += counts;
         break;
       }
     }
-    startZ += minEntriesPerPoint * counter;
     if (mVerbose) {
       LOG(info) << "End of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }
@@ -201,7 +201,7 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
 
   // now we update the error on x
   double sumX = 0, sumY = 0, weightSumX = 0, weightSumY = 0;
-  for (int iFit = 0; iFit < counter; ++iFit) {
+  for (int iFit = 0; iFit < mNPointsForSlope; ++iFit) {
     if (mVerbose) {
       LOG(info) << "SigmaX = " << fitResSlicesX[iFit][2] << " error = " << covMatrixX[iFit](2, 2);
       LOG(info) << "SigmaY = " << fitResSlicesY[iFit][2] << " error = " << covMatrixY[iFit](2, 2);
@@ -269,6 +269,7 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     LOG(info) << "slope X = " << slopeX;
     LOG(info) << "slope Y = " << slopeY;
   }
+  LOG(info) << "Fitted meanVertex: " << mvo.asString();
 }
 //_____________________________________________
 void MeanVertexCalibrator::fitMeanVertexCoord(int icoord, int nbins, float* array, float minRange, float maxRange, MeanVertexObject& mvo)
