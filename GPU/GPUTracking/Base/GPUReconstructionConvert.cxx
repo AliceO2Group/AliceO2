@@ -280,7 +280,7 @@ struct zsEncoderRow : public zsEncoder {
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
 
   bool sort(const o2::tpc::Digit a, const o2::tpc::Digit b);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
 };
 
 inline bool zsEncoderRow::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
@@ -394,7 +394,7 @@ unsigned int zsEncoderRow::encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer
   return seqLen;
 }
 
-void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
   const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)decPagePtr;
@@ -578,7 +578,7 @@ bool zsEncoderLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
 struct zsEncoderImprovedLinkBased : public zsEncoderLinkBased {
   bool checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
 
@@ -650,7 +650,7 @@ void zsEncoderImprovedLinkBased::initPage()
   hdr->firstZSDataOffset = 0;
 }
 
-void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const auto& mapper = Mapper::instance();
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
@@ -732,7 +732,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
 struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   bool checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
 
@@ -835,7 +835,7 @@ void zsEncoderDenseLinkBased::initPage()
   hdr->flags = 0;
 }
 
-void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const auto& mapper = Mapper::instance();
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
@@ -889,7 +889,6 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
     unsigned char linkCount = *((const unsigned char*)decPagePtr) & 0x0F;
     unsigned short linkBC = (*((const unsigned short*)decPagePtr) & 0xFFF0) >> 4;
-    int timeBin = (linkBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
     decPagePtr += sizeof(unsigned short);
     std::vector<int> links;
     std::vector<std::bitset<80>> bitmasks;
@@ -917,10 +916,16 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       bitmasks.emplace_back(bitmask);
       nTotalSamples += bitmask.count();
     }
-    std::vector<unsigned short> samples(nTotalSamples);
 
     const unsigned char* adcData = (const unsigned char*)decPagePtr;
     decPagePtr += (nTotalSamples * encodeBits + 7) / 8;
+
+    if (linkBC < triggerBC) {
+      continue;
+    }
+    int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+
+    std::vector<unsigned short> samples(nTotalSamples);
     unsigned int byte = 0, bits = 0, posXbits = 0;
     while (posXbits < nTotalSamples) {
       byte |= *(adcData++) << bits;
