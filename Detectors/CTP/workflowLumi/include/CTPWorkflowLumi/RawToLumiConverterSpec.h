@@ -27,9 +27,9 @@ namespace lumi_workflow
 struct lumiPoint {
   lumiPoint() = default;
   InteractionRecord ir; // timestamp of start of lumi interval
-  float_t length = 1;   // length of interval in HB
+  float_t nHBFs = 1;   // length of interval in HB
   float_t counts = 0;   //  counts in the interval
-  float_t getLumi() { return counts / length / 88e-6; };
+  float_t getLumi() { return counts / nHBFs / 88e-6; }; // rate in Hz
   float_t getFractErrorLumi() { return 1. / sqrt(counts); };
 };
 /// \class RawToLumiConverterSpec
@@ -61,6 +61,7 @@ class RawToLumiConverterSpec : public framework::Task
  protected:
  private:
   gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
+  int mHBFsToAverage = 1;
   std::vector<lumiPoint> mOutputLumiPoints;
 };
 

@@ -84,7 +84,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -101,7 +101,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
     }
     for (auto payloadWord : payload) {
-      LOG(info) << wordCount << " payload:" << int(payloadWord);
+      //LOG(info) << wordCount << " payload:" << int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
