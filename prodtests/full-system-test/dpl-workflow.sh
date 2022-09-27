@@ -484,7 +484,7 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 # AOD
 [[ -z "$AOD_INPUT" ]] && AOD_INPUT=$TRACK_SOURCES
 ( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+="--disable-secondary-vertices"
-workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
+workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1)"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
