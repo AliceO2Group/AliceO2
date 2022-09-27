@@ -61,7 +61,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       iThread = omp_get_thread_num();
 #endif
       if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
-        // continue;
+         continue;
       }
       // checkV0(seedP, seedN, itp, itn, iThread);
       checkV0(recoData, seedP, seedN, itp, itn, iThread);
@@ -386,8 +386,8 @@ void SVertexer::setupThreads()
 //__________________________________________________________________
 bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
 {
-  if (gid.isPVContributor() && mSVParams->maxPVContributors < 3) {
-    // return false;
+  if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
+     return false;
   }
   // DCA to mean vertex
   if (mSVParams->minDCAToPV > 0.f) {
@@ -560,7 +560,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   }
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
-  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp);
+  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false;
@@ -883,6 +883,10 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     }
     num3bodyCandidates[3]++;
 
+    if(bach.getPt() < 0.6){
+      continue;
+    }
+
     auto mclabel0 = recoData.getTrackMCLabel(v0.getProngID(0));
     auto mclabel1 = recoData.getTrackMCLabel(v0.getProngID(1));
     auto mclabel2 = recoData.getTrackMCLabel(bach.gid);
@@ -904,7 +908,7 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     float drvtxBach = std::sqrt(r2vertex) - bach.minR;
     if (drvtxBach > mSVParams->causalityRTolerance || drvtxBach < -mSVParams->maxV0ToProngsRDiff){
       LOG(debug) << "RejCausality " << drvtxBach;
-  }
+    }
     num3bodyCandidates[6]++;
     //
     if (!fitter3body.isPropagateTracksToVertexDone() && !fitter3body.propagateTracksToVertex()) {
