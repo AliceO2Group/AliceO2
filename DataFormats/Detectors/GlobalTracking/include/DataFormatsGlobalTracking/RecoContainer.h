@@ -277,11 +277,11 @@ struct RecoContainer {
                    NPVTXSLOTS };
 
   // slots to register secondary vertex data
-  enum SVTXSlots { V0S,           // V0 objects
-                   PVTX_V0REFS,   // PV -> V0 references
-                   CASCS,         // Cascade objects
-                   PVTX_CASCREFS, // PV -> Cascade reference
-                   DECAY3BODY,    // 3-body decay objects
+  enum SVTXSlots { V0S,            // V0 objects
+                   PVTX_V0REFS,    // PV -> V0 references
+                   CASCS,          // Cascade objects
+                   PVTX_CASCREFS,  // PV -> Cascade reference
+                   DECAY3BODY,     // 3-body decay objects
                    PVTX_3BODYREFS, // PV -> 3-body decay references
                    NSVTXSLOTS };
 

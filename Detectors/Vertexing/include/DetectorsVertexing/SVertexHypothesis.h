@@ -74,7 +74,7 @@ class SVertexHypothesis
   PID mPIDPosProng{PID::Pion};
   PID mPIDNegProng{PID::Pion};
 
- public:// to be deleted
+ public: // to be deleted
   std::array<float, NPIDParams> mPars{};
 
   ClassDefNV(SVertexHypothesis, 1);
@@ -103,7 +103,7 @@ class SVertex3Hypothesis
   float calcMass2(float p2Pos, float p2Neg, float p2Bach, float p2Tot) const
   {
     // calculate v0 mass from squared momentum of its prongs and total momentum
-    float ePos = std::sqrt(p2Pos + getMass2PosProng()), eNeg = std::sqrt(p2Neg + getMass2NegProng()) , eBach = std::sqrt(p2Bach + getMass2BachProng()), eVtx = ePos + eNeg + eBach;
+    float ePos = std::sqrt(p2Pos + getMass2PosProng()), eNeg = std::sqrt(p2Neg + getMass2NegProng()), eBach = std::sqrt(p2Bach + getMass2BachProng()), eVtx = ePos + eNeg + eBach;
     return eVtx * eVtx - p2Tot;
   }
 
@@ -132,7 +132,7 @@ class SVertex3Hypothesis
   PID mPIDNegProng{PID::Pion};
   PID mPIDBachProng{PID::Deuteron};
 
- public:// to be deleted
+ public: // to be deleted
   std::array<float, NPIDParams> mPars{};
 
   ClassDefNV(SVertex3Hypothesis, 1);

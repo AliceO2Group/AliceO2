@@ -174,7 +174,7 @@ class SVertexer
 
 // input containers can be std::vectors or pmr vectors
 template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT, typename VTX3BCONT, typename VTX3BREFCONT>
-  void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs)
+void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs)
 {
   v0s.clear();
   vtx2V0Refs.clear();

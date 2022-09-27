@@ -809,7 +809,7 @@ namespace decay3body
 DECLARE_SOA_INDEX_COLUMN_FULL(Track0, track0, int, Tracks, "_0"); //! Track 0 index
 DECLARE_SOA_INDEX_COLUMN_FULL(Track1, track1, int, Tracks, "_1"); //! Track 1 index
 DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 index
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);                 //! Collision index
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
 } // namespace decay3body
 
 DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table

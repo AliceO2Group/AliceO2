@@ -96,11 +96,11 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   auto& vtx3body = pc.outputs().make<std::vector<DecayNbody>>(Output{"GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
   auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
 
-  LOG(info)<<"SecondaryVertexingSpec::run process Start";
+  LOG(info) << "SecondaryVertexingSpec::run process Start";
   mVertexer.process(recoData);
-  LOG(info)<<"SecondaryVertexingSpec::run process Finish";
+  LOG(info) << "SecondaryVertexingSpec::run process Finish";
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs, vtx3body, vtx3bodyRefs);
-  LOG(info)<<"SecondaryVertexingSpec::run extractSecondaryVertices Finish";
+  LOG(info) << "SecondaryVertexingSpec::run extractSecondaryVertices Finish";
 
   mTimer.Stop();
   LOG(info) << "Found " << v0s.size() << " V0s, " << cascs.size() << " cascades, and " << vtx3body.size() << " 3-body decays; timing: CPU: "
@@ -172,7 +172,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
   outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);          // found Cascades
   outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe);  // prim.vertex -> Cascades refs
-  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);          // found 3 body vertices
+  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);    // found 3 body vertices
   outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body vertices refs
 
   return DataProcessorSpec{

@@ -128,7 +128,7 @@ DataProcessorSpec getSecondaryVertexReaderSpec()
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
   outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);         // found Cascades
   outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
-  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);         // found 3 body Decays
+  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);   // found 3 body Decays
   outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body Decays refs
 
   return DataProcessorSpec{

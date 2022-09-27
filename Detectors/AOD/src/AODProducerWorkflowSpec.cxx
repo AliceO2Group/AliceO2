@@ -1075,8 +1075,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     GIndex trIDs[3]{
       decay3Body.getProngID(0),
       decay3Body.getProngID(1),
-      decay3Body.getProngID(2)
-    };
+      decay3Body.getProngID(2)};
     int tableIdx[3]{-1, -1, -1}, collID = -1;
     bool missing{false};
     for (int i{0}; i < 3; ++i) {

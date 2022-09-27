@@ -82,11 +82,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
-        LOG(info) << " addInputSpecs Start ";
+  LOG(info) << " addInputSpecs Start ";
   WorkflowSpec inputspecs;
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, srcClus, src, src, useMC, srcClus);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, inputspecs, useMC); // P-vertex is always needed
-        LOG(info) << " addInputSpecs Finish";
+  LOG(info) << " addInputSpecs Finish";
 
   if (configcontext.options().get<bool>("combine-source-devices")) {
     std::vector<DataProcessorSpec> unmerged;
