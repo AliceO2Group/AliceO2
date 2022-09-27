@@ -456,7 +456,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
     LOG(debug) << "RejHypo";
-    if (!checkFor3BodyDecays) {
+    if (!checkFor3BodyDecays && !checkForCascade) {
       return false;
     } else {
       rejectAfter3BodyCheck = true;
