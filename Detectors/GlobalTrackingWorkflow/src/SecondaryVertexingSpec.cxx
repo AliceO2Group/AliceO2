@@ -145,7 +145,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
 
-  bool useMC = true;
+  bool useMC = false;
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime

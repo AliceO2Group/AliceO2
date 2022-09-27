@@ -29,7 +29,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -43,7 +42,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
 
   WorkflowSpec specs;
   specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
