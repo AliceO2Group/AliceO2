@@ -15,6 +15,7 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "CommonUtils/MemFileHelper.h"
@@ -36,6 +37,11 @@ int InterCalib::init()
     LOG(fatal) << "o2::zdc::InterCalib: missing configuration object";
     return -1;
   }
+
+  // Inspect calibration parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+
   clear();
   auto* cfg = mInterCalibConfig;
   int ih;
@@ -154,9 +160,6 @@ int InterCalib::endOfRun()
   mInfo.setEndValidityTimestamp(stopping);
   mInfo.setAdjustableEOV();
 
-  if (mSaveDebugHistos) {
-    write();
-  }
   return 0;
 }
 

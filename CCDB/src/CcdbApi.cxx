@@ -126,7 +126,7 @@ void CcdbApi::init(std::string const& host)
 }
 
 /**
- * Keep only the alphanumeric characters plus '_' plus '/' from the string passed in argument.
+ * Keep only the alphanumeric characters plus '_' plus '/' plus '.' from the string passed in argument.
  * @param objectName
  * @return a new string following the rule enounced above.
  */
@@ -134,7 +134,7 @@ std::string sanitizeObjectName(const std::string& objectName)
 {
   string tmpObjectName = objectName;
   tmpObjectName.erase(std::remove_if(tmpObjectName.begin(), tmpObjectName.end(),
-                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/'); }),
+                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/' && c != '.'); }),
                       tmpObjectName.end());
   return tmpObjectName;
 }

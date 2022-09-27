@@ -25,7 +25,7 @@ namespace o2
 namespace emcal
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, unsigned int sspecOut) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder), mSSpecOut(sspecOut)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -53,8 +53,8 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
-  auto& triggers = pc.outputs().make<std::vector<TriggerRecord>>(OutputRef{"triggers"});
-  auto& cells = pc.outputs().make<std::vector<Cell>>(OutputRef{"cells"});
+  auto& triggers = pc.outputs().make<std::vector<TriggerRecord>>(OutputRef{"triggers", mSSpecOut});
+  auto& cells = pc.outputs().make<std::vector<Cell>>(OutputRef{"cells", mSSpecOut});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
@@ -72,22 +72,22 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, unsigned int sspecOut)
 {
   std::vector<OutputSpec> outputs{
-    OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", 0, Lifetime::Timeframe},
-    OutputSpec{{"cells"}, "EMC", "CELLS", 0, Lifetime::Timeframe},
+    OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", sspecOut, Lifetime::Timeframe},
+    OutputSpec{{"cells"}, "EMC", "CELLS", sspecOut, Lifetime::Timeframe},
     OutputSpec{{"ctfrep"}, "EMC", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "EMC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctf", "EMC", "CTFDATA", sspecInp, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "emcal-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, sspecOut)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 

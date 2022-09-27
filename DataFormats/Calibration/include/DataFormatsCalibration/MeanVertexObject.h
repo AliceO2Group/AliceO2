@@ -13,8 +13,6 @@
 #define MEAN_VERTEX_OBJECT_H_
 
 #include <array>
-#include "Rtypes.h"
-
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
@@ -28,24 +26,16 @@ class MeanVertexObject : public VertexBase
  public:
   MeanVertexObject(float x, float y, float z, float sigmax, float sigmay, float sigmaz, float slopeX, float slopeY)
   {
-    gpu::gpustd::array<float, kNCov> cov;
-    cov[CovElems::kCovXX] = sigmax;
-    cov[CovElems::kCovYY] = sigmay;
-    cov[CovElems::kCovZZ] = sigmaz;
     setXYZ(x, y, z);
-    setCov(cov);
+    setSigma({sigmax, sigmay, sigmaz});
     mSlopeX = slopeX;
     mSlopeY = slopeY;
   }
   MeanVertexObject(std::array<float, 3> pos, std::array<float, 3> sigma, float slopeX, float slopeY)
   {
     math_utils::Point3D<float> p(pos[0], pos[1], pos[2]);
-    gpu::gpustd::array<float, kNCov> cov;
-    cov[CovElems::kCovXX] = sigma[0];
-    cov[CovElems::kCovYY] = sigma[1];
-    cov[CovElems::kCovZZ] = sigma[2];
     setPos(p);
-    setCov(cov);
+    setSigma(sigma);
     mSlopeX = slopeX;
     mSlopeY = slopeY;
   }
@@ -53,44 +43,46 @@ class MeanVertexObject : public VertexBase
   ~MeanVertexObject() = default;
   MeanVertexObject(const MeanVertexObject& other) = default;
   MeanVertexObject(MeanVertexObject&& other) = default;
-  MeanVertexObject& operator=(MeanVertexObject& other) = default;
+  MeanVertexObject& operator=(const MeanVertexObject& other) = default;
   MeanVertexObject& operator=(MeanVertexObject&& other) = default;
 
   void set(int icoord, float val);
   void setSigma(int icoord, float val);
-  void setSigmaX(float val) { setSigmaX2(val); }
-  void setSigmaY(float val) { setSigmaY2(val); }
-  void setSigmaZ(float val) { setSigmaZ2(val); }
   void setSigma(std::array<float, 3> val)
   {
-    setSigmaX2(val[0]);
-    setSigmaY2(val[1]);
-    setSigmaZ2(val[2]);
+    setSigmaX(val[0]);
+    setSigmaY(val[1]);
+    setSigmaZ(val[2]);
   }
   void setSlopeX(float val) { mSlopeX = val; }
   void setSlopeY(float val) { mSlopeY = val; }
 
   math_utils::Point3D<float>& getPos() { return getXYZ(); }
   math_utils::Point3D<float> getPos() const { return getXYZ(); }
-  float getSigmaX() const { return getSigmaX2(); }
-  float getSigmaY() const { return getSigmaY2(); }
-  float getSigmaZ() const { return getSigmaZ2(); }
-  const gpu::gpustd::array<float, kNCov>& getSigma() const { return getCov(); }
 
   float getSlopeX() const { return mSlopeX; }
   float getSlopeY() const { return mSlopeY; }
 
-  float getXAtZ(float z) { return getX() + mSlopeX * (z - getZ()); }
-  float getYAtZ(float z) { return getY() + mSlopeY * (z - getZ()); }
+  float getXAtZ(float z) const { return getX() + mSlopeX * (z - getZ()); }
+  float getYAtZ(float z) const { return getY() + mSlopeY * (z - getZ()); }
 
   void print() const;
   std::string asString() const;
 
-  VertexBase getMeanVertex(float z)
+  VertexBase getMeanVertex(float z) const
   {
+    // set z-dependent x,z, assuming that the cov.matrix is already set
     VertexBase v = *this;
     v.setXYZ(getXAtZ(z), getYAtZ(z), z);
     return v;
+  }
+
+  void setMeanXYVertexAtZ(VertexBase& v, float z) const
+  {
+    float dz = z - getZ();
+    v.setX(getX() + mSlopeX * dz);
+    v.setY(getY() + mSlopeY * dz);
+    v.setZ(z);
   }
 
   const VertexBase& getMeanVertex() const

@@ -44,7 +44,6 @@ struct GPUTPCCFChainContext {
   int zsVersion;
   std::vector<FragmentData> fragmentData;
   unsigned int nPagesTotal;
-  unsigned int nPagesSectorMax;
   unsigned int nPagesFragmentMax;
   unsigned int nPagesSector[GPUCA_NSLICES];
   unsigned int nDigitsEndpointMax[GPUCA_NSLICES];
@@ -59,7 +58,7 @@ struct GPUTPCCFChainContext {
   void prepare(bool tpcZS, const CfFragment& fragmentMax)
   {
     abandonTimeframe = false;
-    nPagesTotal = nPagesSectorMax = nPagesFragmentMax = 0;
+    nPagesTotal = nPagesFragmentMax = 0;
     for (unsigned int i = 0; i < GPUCA_NSLICES; i++) {
       nPagesSector[i] = 0;
       nDigitsEndpointMax[i] = 0;

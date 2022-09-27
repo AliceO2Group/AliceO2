@@ -61,6 +61,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     mDumpIDC1 = ic.options().get<bool>("dump-IDC1");
     mDumpIDCDelta = ic.options().get<bool>("dump-IDCDelta");
     mDumpIDCs = ic.options().get<bool>("dump-IDCs");
+    mOffsetCCDB = ic.options().get<bool>("add-offset-for-CCDB-timestamp");
 
     const std::string refGainMapFile = ic.options().get<std::string>("gainMapFile");
     if (!refGainMapFile.empty()) {
@@ -80,19 +81,21 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     }
 
     const auto currTF = processing_helpers::getCurrentTF(pc);
-    if (pc.inputs().isValid("firstTF")) {
+    if ((mTFFirst == -1) && pc.inputs().isValid("firstTF")) {
       mTFFirst = pc.inputs().get<long>("firstTF");
     }
-    const unsigned int relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
     if (mTFFirst == -1) {
-      LOGP(warning, "firstTF not Found!!! Found {} valid inputs {}", pc.inputs().countValidInputs());
+      mTFFirst = currTF;
+      LOGP(warning, "firstTF not Found!!! Found valid inputs {}. Setting {} as first TF", pc.inputs().countValidInputs(), mTFFirst);
     }
+
+    const long relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
     // loop over input data
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       ++mProcessedCRUs;
-      if (relTF >= mIDCFactorization.getNTimeframes()) {
+      if ((relTF >= mIDCFactorization.getNTimeframes()) || (relTF < 0)) {
         continue;
       }
 
@@ -129,6 +132,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       }
 
       if (mDumpIDC1) {
+        LOGP(info, "dumping IDC1 to file");
         for (auto side : mIDCFactorization.getSides()) {
           const std::string outFileName = (side == Side::A) ? fmt::format("IDCOne_A_{:02}.root", currTF) : fmt::format("IDCOne_C_{:02}.root", currTF);
           mIDCFactorization.dumpIDCOneToFile(side, outFileName.data());
@@ -138,6 +142,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       // storing to CCDB
       const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
       const long timestampStart = mUsePrecisetimeStamp ? (mTFInfo.first + (tinfo.firstTForbit - relTF * mTFInfo.second) * o2::constants::lhc::LHCOrbitMUS * 0.001) : tinfo.creation;
+      LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}", mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF);
 
       sendOutput(pc.outputs(), timestampStart);
       mTFFirst = -1;
@@ -181,6 +186,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   bool mDumpIDC1{false};                                                                                                                                                  ///< Dump IDC1 to file
   bool mDumpIDCDelta{false};                                                                                                                                              ///< Dump IDCDelta to file
   bool mDumpIDCs{false};                                                                                                                                                  ///< dump IDCs to file
+  bool mOffsetCCDB{false};                                                                                                                                                ///< flag for setting and offset for CCDB timestamp
   dataformats::Pair<long, int> mTFInfo{};                                                                                                                                 ///< orbit reset time for CCDB time stamp writing
   bool mEnableWritingPadStatusMap{false};                                                                                                                                 ///< do not store the pad status map in the CCDB
   const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Sporadic}}; ///< filter for looping over input data
@@ -188,9 +194,9 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   void sendOutput(DataAllocator& output, const long timeStampStart)
   {
     using timer = std::chrono::high_resolution_clock;
-
-    const long timeStampEnd = timeStampStart + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervals() * o2::constants::lhc::LHCOrbitMUS * 0.001;
-    LOGP(info, "Setting time stamp range from {} to {} for writing to CCDB", timeStampStart, timeStampEnd);
+    const auto offsetCCDB = mOffsetCCDB ? o2::ccdb::CcdbObjectInfo::HOUR : 0;
+    const long timeStampEnd = offsetCCDB + timeStampStart + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervals() * o2::constants::lhc::LHCOrbitMUS * 0.001;
+    LOGP(info, "Setting time stamp range from {} to {} for writing to CCDB with an offset of {}", timeStampStart, timeStampEnd, offsetCCDB);
 
     // sending output to FFT
     if (mSendOutFFT) {
@@ -292,7 +298,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           LOGP(info, "Averaging and grouping time: {}", time.count());
 
           const long timeStampStartDelta = timeStampStart + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervalsToChunk(iChunk) * o2::constants::lhc::LHCOrbitMUS * 0.001;
-          const long timeStampEndDelta = timeStampStartDelta + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervalsInChunk(iChunk) * o2::constants::lhc::LHCOrbitMUS * 0.001;
+          const long timeStampEndDelta = offsetCCDB + timeStampStartDelta + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervalsInChunk(iChunk) * o2::constants::lhc::LHCOrbitMUS * 0.001;
           o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEndDelta);
 
           if (mDumpIDCDelta) {
@@ -402,6 +408,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
             {"dump-IDC0", VariantType::Bool, false, {"Dump IDC0 to file"}},
             {"dump-IDC1", VariantType::Bool, false, {"Dump IDC1 to file"}},
             {"dump-IDCDelta", VariantType::Bool, false, {"Dump IDCDelta to file"}},
+            {"add-offset-for-CCDB-timestamp", VariantType::Bool, false, {"Add an offset of 1 hour for the validity range of the CCDB objects"}},
             {"update-not-grouping-parameter", VariantType::Bool, false, {"Do NOT Update/Writing grouping parameters to CCDB."}}}}; // end DataProcessorSpec
   spec.rank = lane;
   return spec;

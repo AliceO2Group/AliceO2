@@ -60,7 +60,9 @@ struct Fixture {
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
     cout << "Is host reachable ? --> " << hostReachable << endl;
-    basePath = string("Test/pid") + getpid() + "/";
+    char hostname[_POSIX_HOST_NAME_MAX];
+    gethostname(hostname, _POSIX_HOST_NAME_MAX);
+    basePath = string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()
@@ -377,8 +379,6 @@ BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
 
   // more complex tree
   TH1F h1("object1", "object1", 100, 0, 99);
-  cout << "storing object 1 in Test" << endl;
-  f.api.storeAsTFile(&h1, "Test", f.metadata);
   cout << "storing object 2 in Test/Detector" << endl;
   f.api.storeAsTFile(&h1, basePath + "Detector", f.metadata);
   cout << "storing object 3 in Test/Detector" << endl;

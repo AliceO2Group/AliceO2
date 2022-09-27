@@ -153,6 +153,9 @@ struct GroupedCombinationsGenerator {
     auto getAssociatedTable()
     {
       uint64_t ind = *std::get<0>(std::get<I>(this->mCurrent).getIndices());
+      if (std::get<I>(*mAssociated).size() == 0) {
+        return std::get<I>(*mAssociated);
+      }
       return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind);
     }
 

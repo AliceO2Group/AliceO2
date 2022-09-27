@@ -21,38 +21,100 @@ namespace o2::framework
 // Parses a config entry in the form
 //
 // [CONFIG] <key>=<vaue> <timestamp> <provenance>
+//
+// Now with backtracking to parse timestamp and provenance
 bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& match)
 {
-  const char* begin = s.begin();
-  const char* end = s.end();
-  if (s.size() > 17 && (strncmp("[CONFIG];", begin + 17, 9) != 0)) {
-    return false;
-  }
-  if (s.size() < 17 + 9) {
-    return false;
-  }
-  match.beginKey = s.data() + 9 + 17;
-  match.endKey = (char const*)memchr(match.beginKey, '=', s.size() - 9);
-  if (match.endKey == nullptr) {
-    return false;
-  }
-  match.beginValue = match.endKey + 1;
-  match.endValue = (char const*)memchr(match.beginValue, ';', end - match.beginValue);
-  if (match.endValue == nullptr) {
-    return false;
-  }
+  const char* cur = s.data();
+  const char* next = cur;
+  enum struct ParserState {
+    IN_START,
+    IN_PREAMBLE,
+    IN_KEY,
+    IN_VALUE,
+    IN_TIMESTAMP,
+    IN_PROVENANCE,
+    IN_ERROR,
+    DONE
+  };
+  char* err = nullptr;
+  // We need to keep track of the last and last but one space
+  // to be able to parse the timestamp and tags.
+  char const* lastSpace = nullptr;
+  char const* previousLastSpace = nullptr;
+  ParserState state = ParserState::IN_START;
 
-  char* next = nullptr;
-  match.timestamp = strtoll(match.endValue + 1, &next, 10);
-
-  if (!next || *next != ';') {
-    return false;
+  while (true) {
+    auto previousState = state;
+    state = ParserState::IN_ERROR;
+    err = nullptr;
+    switch (previousState) {
+      case ParserState::IN_START:
+        if (s.size() > 16) {
+          next = next + 16;
+          state = ParserState::IN_PREAMBLE;
+        }
+        break;
+      case ParserState::IN_PREAMBLE:
+        if (s.data() + s.size() - cur < 9) {
+        } else if (strncmp("[CONFIG] ", cur, 9) == 0) {
+          next = cur + 8;
+          state = ParserState::IN_KEY;
+        }
+        break;
+      case ParserState::IN_KEY:
+        next = strpbrk(cur, "= ");
+        // Invalid key
+        if (next == nullptr || *next == ' ' || (next == cur)) {
+        } else if (*next == '=') {
+          match.beginKey = cur;
+          match.endKey = next;
+          match.beginValue = next + 1;
+          state = ParserState::IN_VALUE;
+        }
+        break;
+      case ParserState::IN_VALUE:
+        next = (char*)memchr(cur, ' ', s.data() + s.size() - cur);
+        if (next == nullptr) {
+          if (previousLastSpace == nullptr || lastSpace == nullptr) {
+            // We need at least two spaces to parse the timestamp and
+            // the provenance.
+            break;
+          }
+          match.endValue = previousLastSpace;
+          next = previousLastSpace;
+          state = ParserState::IN_TIMESTAMP;
+        } else {
+          previousLastSpace = lastSpace;
+          lastSpace = next;
+          state = ParserState::IN_VALUE;
+        }
+        break;
+      case ParserState::IN_TIMESTAMP:
+        match.timestamp = strtoll(cur, &err, 10);
+        next = err;
+        if (*next == ' ') {
+          state = ParserState::IN_PROVENANCE;
+        }
+        break;
+      case ParserState::IN_PROVENANCE:
+        match.beginProvenance = cur;
+        next = (char*)memchr(cur, '\n', s.data() + s.size() - cur);
+        if (next != nullptr) {
+          match.endProvenance = next;
+          state = ParserState::DONE;
+        } else {
+          match.endProvenance = s.data() + s.size();
+          state = ParserState::DONE;
+        }
+        break;
+      case ParserState::IN_ERROR:
+        return false;
+      case ParserState::DONE:
+        return true;
+    }
+    cur = next + 1;
   }
-
-  match.beginProvenance = next + 1;
-  match.endProvenance = end;
-
-  return true;
 }
 
 bool DeviceConfigHelper::processConfig(ParsedConfigMatch& match,

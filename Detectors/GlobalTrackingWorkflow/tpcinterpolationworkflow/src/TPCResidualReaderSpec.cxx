@@ -24,7 +24,6 @@
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
-#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -36,16 +35,13 @@ namespace tpc
 class TPCResidualReader : public Task
 {
  public:
-  TPCResidualReader(std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr) {}
+  TPCResidualReader() = default;
   ~TPCResidualReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
-  void updateTimeDependentParams(ProcessingContext& pc);
   void connectTree(const std::string& filename);
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
@@ -59,37 +55,17 @@ void TPCResidualReader::init(InitContext& ic)
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("residuals-infile"));
   connectTree(mFileName);
-  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-}
-
-void TPCResidualReader::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-{
-  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-    return;
-  }
-}
-
-void TPCResidualReader::updateTimeDependentParams(ProcessingContext& pc)
-{
-  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
-    // other init-once stuff
-
-    mTrackResiduals.init(true, o2::base::Propagator::Instance()->getNominalBz());
-  }
-  // we may have other params which need to be queried regularly
+  mTrackResiduals.init();
 }
 
 void TPCResidualReader::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   mTrackResiduals.createOutputFile(); // FIXME remove when map output is handled properly
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     auto brStats = mTreeStats->GetBranch(Form("sec%d", iSec));
     brStats->SetAddress(mTrackResiduals.getVoxStatPtr());
-    brStats->GetEntry(0); // there is only one entry for the statistics tree
+    // in case autosave was enabled, we have multiple entries in the statistics tree
+    brStats->GetEntry(mTreeStats->GetEntries() - 1); // only the last entry is of interest
     auto brResid = mTreeResiduals->GetBranch(Form("sec%d", iSec));
     brResid->SetAddress(&mResidualsPtr);
     for (int iEntry = 0; iEntry < brResid->GetEntries(); ++iEntry) {
@@ -125,7 +101,6 @@ void TPCResidualReader::connectTree(const std::string& filename)
   assert(mTreeResiduals);
   mTreeStats.reset((TTree*)mFile->Get("stats"));
   assert(mTreeStats);
-  assert(mTreeStats->GetEntries() == 1); // expect exactly one entry for statistics
 
   LOG(info) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
 }
@@ -135,19 +110,11 @@ DataProcessorSpec getTPCResidualReaderSpec()
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
   // outputs.emplace_back("GLO", "VOXELRESULTS", 0, Lifetime::Timeframe);
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
-                                                              inputs,
-                                                              true);
   return DataProcessorSpec{
     "tpc-residual-reader",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCResidualReader>(ggRequest)},
+    AlgorithmSpec{adaptFromTask<TPCResidualReader>()},
     Options{
       {"residuals-infile", VariantType::String, "o2tpc_residuals.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

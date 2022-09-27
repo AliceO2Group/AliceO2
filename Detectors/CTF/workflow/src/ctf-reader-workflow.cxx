@@ -18,7 +18,6 @@
 #include "Framework/InputSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -63,10 +62,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-reader-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"ctf-data-subspec", VariantType::Int, 0, {"subspec to use for decoded CTF messages (use non-0 if CTF writer will be attached downstream)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
+  options.push_back(ConfigParamSpec{"ir-frames-files", VariantType::String, "", {"If non empty, inject selected IRFrames from this file"}});
   //
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
   options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
-
+  //
+  options.push_back(ConfigParamSpec{"emcal-decoded-subspec", VariantType::Int, 0, {"subspec to use for decoded EMCAL data"}});
+  //
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   std::swap(workflowOptions, options);
@@ -92,6 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.detMask &= DetID::getMask(allowedDetectors);
   ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
   ctfInput.subspec = (unsigned int)configcontext.options().get<int>("ctf-data-subspec");
+  ctfInput.decSSpecEMC = (unsigned int)configcontext.options().get<int>("emcal-decoded-subspec");
   if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
       throw std::runtime_error("--ctf-input <file,...> is not provided");
@@ -118,6 +121,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
   ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
   ctfInput.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
+  ctfInput.fileIRFrames = configcontext.options().get<std::string>("ir-frames-files");
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
 
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
@@ -160,7 +164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.push_back(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::EMC]) {
-    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC));
   }
   if (ctfInput.detMask[DetID::PHS]) {
     specs.push_back(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));

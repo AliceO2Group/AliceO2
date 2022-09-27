@@ -18,12 +18,12 @@ o2_add_library(TRDWorkflow
                        src/TRDTrackletTransformerSpec.cxx
                        src/TRDEventDisplayFeedSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
-                       src/TRDGlobalTrackingQCSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/TrackBasedCalibSpec.cxx
                        src/KrClustererSpec.cxx
                        include/TRDWorkflow/VdAndExBCalibSpec.h
+                       include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::TRDQC O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflowHelpers O2::GlobalTrackingWorkflowReaders O2::GPUWorkflowHelper O2::ReconstructionDataFormats O2::ITSWorkflow O2::TPCWorkflow O2::TRDWorkflowIO)
 
 o2_add_executable(trap-sim

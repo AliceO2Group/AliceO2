@@ -56,7 +56,7 @@ void Encoder::init(std::string_view outDir, std::string_view fileFor, int verbos
         outFileLink += "_alio2-cr1-flp159";
         if (fileFor != "flp") {
           outFileLink += fmt::format("_cru{}_{}", cruId, epId);
-          if (fileFor != "cru") {
+          if (fileFor != "cruendpoint") {
             outFileLink += fmt::format("_lnk{}_feeid{}", raw::sUserLogicLinkID, feeId);
             if (fileFor != "link") {
               throw std::runtime_error("invalid option provided for file grouping");

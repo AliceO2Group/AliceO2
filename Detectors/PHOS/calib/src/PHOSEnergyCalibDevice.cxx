@@ -153,21 +153,19 @@ void PHOSEnergyCalibDevice::fillOutputTree()
       mHistoFileName = mOutputDir + fmt::format("PHOS_CalibHistos_{}.root", mRunNumber);
       mHistoFileOut = std::make_unique<TFile>(mHistoFileName.c_str(), "recreate");
       mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+      mFileOut->cd();
     }
     // else Tree will be memory resident
-    mTreeOut = std::make_unique<TTree>("phosCalibDig", "O2 PHOS calib tree");
+    if (!mTreeOut) {
+      LOG(info) << "Creating new tree for PHOS calib digits";
+      mTreeOut = std::make_unique<TTree>("phosCalibDig", "O2 PHOS calib tree");
+    }
   }
   auto* br = mTreeOut->GetBranch("PHOSCalib");
-  auto* pptr = &mOutputDigits;
-  if (br) {
-    LOG(info) << " Using existing branch";
-    br->SetAddress(&pptr);
-  } else {
-    LOG(info) << " Create new branch";
-    br = mTreeOut->Branch("PHOSCalib", &pptr);
+  if (!br) {
+    br = mTreeOut->Branch("PHOSCalib", &mOutputDigits);
   }
-  mTreeOut->Fill();
-  br->ResetAddress();
+  int abits = mTreeOut->Fill();
 }
 
 void PHOSEnergyCalibDevice::writeOutFile()
@@ -180,7 +178,7 @@ void PHOSEnergyCalibDevice::writeOutFile()
     return;
   }
   LOG(info) << "Writing calibration digits";
-  mFileOut->cd();
+
   int nbits = mTreeOut->Write();
   LOG(info) << "Wrote " << nbits << " bits";
   mTreeOut.reset();

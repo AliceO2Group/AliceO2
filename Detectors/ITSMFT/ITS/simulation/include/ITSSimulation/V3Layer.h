@@ -62,8 +62,6 @@ class V3Layer : public V11Geometry
   /// Default destructor
   ~V3Layer() override;
 
-  Bool_t hasGammaConversionRods() const { return mAddGammaConv; };
-
   Bool_t isTurbo() const { return mIsTurbo; };
 
   Double_t getChipThick() const { return mChipThickness; };
@@ -104,12 +102,6 @@ class V3Layer : public V11Geometry
 
   void setChipThick(Double_t t) { mChipThickness = t; };
 
-  /// Gets the Gamma Conversion Rod diameter
-  Double_t getGammaConversionRodDiam();
-
-  /// Gets the Gamma Conversion Rod X position
-  Double_t getGammaConversionRodXPos();
-
   /// Sets the Stave tilt angle (for turbo layers only)
   /// \param t The stave tilt angle
   void setStaveTilt(Double_t t);
@@ -137,11 +129,6 @@ class V3Layer : public V11Geometry
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
   void setStaveModel(o2::its::Detector::Model model) { mStaveModel = model; }
-
-  /// Adds the Gamma Conversion Rods to the geometry
-  /// \param diam the diameter of each rod
-  /// \param xPos the X position of each rod
-  void addGammaConversionRods(const Double_t diam, const Double_t xPos);
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
@@ -335,10 +322,6 @@ class V3Layer : public V11Geometry
   Int_t mBuildLevel;  ///< Used for material studies
 
   Detector::Model mStaveModel; ///< The stave model
-
-  Bool_t mAddGammaConv;    ///< True to add Gamma Conversion Rods
-  Double_t mGammaConvDiam; ///< Gamma Conversion Rod Diameter
-  Double_t mGammaConvXPos; ///< Gamma Conversion Rod X Position
 
   // Dimensions computed during geometry build-up
   Double_t mIBModuleZLength; ///< IB Module Length along Z

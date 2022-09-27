@@ -220,6 +220,18 @@ Notice that in this case the user is presented with a pointer to the event-gener
 For the sake of generality, a `void*` has to be used in order to pass any possible types of event-generators, that are
 normally othogonal one to another. The name encodes a string to identify what generator has been passed and perform the correct cast to use it.
 
+#### 7. **How can I change medium cut and process parameters on the fly?**
+Some medium parameter definitions are defined in `$O2/Detectors/<detector>/simulation/data/simcuts.txt` (or in `$O2/Detectors/Passive/data/simcuts_<modulename>.txt` for passive modules), others might be hard-coded in the source code. To extract/change/study any of those parameters on the fly, it is possible to write out all of them into a `JSON` file with
+```bash
+o2-sim <args> --configKeyValues "MaterialManagerParam.outputFile=medium_params.json"
+```
+Parameters of interest can be changed in `medium_params.json` and it can be passed **now as an input** for the target simulation with
+```bash
+o2-sim <args> --configKeyValues "MaterialManagerParam.inputFile=medium_params.json"
+```
+
+**Note** that process parameters have no effect when Geant4 is used for transport.
+
 ### Replaying steps and optimising full sim parameters
 
 The `MCReplay` engine can be used to replay a simulation based on steps logged by the `MCStepLogger` (see also a more [in-depth documentation](https://github.com/AliceO2Group/VMCStepLogger/tree/v0.2.0/MCReplay)).

@@ -284,14 +284,14 @@ void ConfigurableParam::initPropertyTree()
 
 // ------------------------------------------------------------------
 
-void ConfigurableParam::printAllKeyValuePairs()
+void ConfigurableParam::printAllKeyValuePairs(bool useLogger)
 {
   if (!sIsFullyInitialized) {
     initialize();
   }
   std::cout << "####\n";
   for (auto p : *sRegisteredParamClasses) {
-    p->printKeyValues(true);
+    p->printKeyValues(true, useLogger);
   }
   std::cout << "----\n";
 }

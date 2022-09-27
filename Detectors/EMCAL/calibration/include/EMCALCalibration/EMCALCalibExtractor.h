@@ -22,9 +22,11 @@
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
+#include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include <boost/histogram.hpp>
 
 #include <TRobustEstimator.h>
@@ -46,8 +48,15 @@ class EMCALCalibExtractor
 
   /// \brief Stuct for the maps needed for the bad channel calibration
   struct BadChannelCalibInfo {
-    std::map<slice_t, std::array<double, 17664>> energyPerHitMap;   // energy/per hit per cell per slice
-    std::map<slice_t, std::pair<double, double>> goodCellWindowMap; // for each slice, the emin and the emax of the good cell window
+    std::map<slice_t, std::array<double, 17664>> energyPerHitMap;        // energy/per hit per cell per slice
+    std::map<slice_t, std::array<double, 17664>> nHitsMap;               // number of hits per cell per slice
+    std::map<slice_t, std::pair<double, double>> goodCellWindowMap;      // for each slice, the emin and the emax of the good cell window
+    std::map<slice_t, std::pair<double, double>> goodCellWindowNHitsMap; // for each slice, the nHitsMin and the mHitsMax of the good cell window
+  };
+
+  struct BadChannelCalibTimeInfo {
+    std::array<double, 17664> sigmaCell; // sigma value of time distribution for single cells
+    double goodCellWindow;               // cut value for good cells
   };
 
  public:
@@ -70,7 +79,7 @@ class EMCALCalibExtractor
   void setNThreads(int n) { mNThreads = std::min(n, mNcells); }
   int getNThreads() const { return mNThreads; }
 
-  void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
+  void setBCMScaleFactors(EMCALChannelScaleFactors* scalefactors) { mBCMScaleFactors = scalefactors; }
 
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
@@ -78,14 +87,36 @@ class EMCALCalibExtractor
   boostHisto buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto mCellAmplitude);
 
   /// \brief Function to perform the calibration of bad channels
+  /// \param hist histogram cell energy vs. cell ID. Main histogram for the bad channel calibration
+  /// \param histTime histogram cell time vs. cell ID. If default argument is taken, no calibration based on the timing signal will be performed
   template <typename... axes>
-  o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
+  o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist, const boost::histogram::histogram<axes...>& histTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>{0., 1.}, boost::histogram::axis::variable<>{0., 1.}))
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}};
 
+    if (mBCMScaleFactors) {
+      LOG(info) << "Rescaling BCM histo";
+      // rescale the histogram
+      for (int icell = 0; icell < 17644; icell++) {
+        for (int ebin = 0; ebin < hist.axis(0).size(); ebin++) {
+          double lowerE = hist.axis(0).bin(ebin).lower();
+          double upperE = hist.axis(0).bin(ebin).upper();
+          double midE = (lowerE + upperE) / 2.;
+          hist.at(ebin, icell) = hist.at(ebin, icell) / mBCMScaleFactors->getScaleVal(icell, midE);
+        }
+      }
+    }
+
     // get all ofthe calibration information that we need in a struct
     BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
+
+    // only initialize this if the histo is not the default one
+    const bool doIncludeTime = (histTime.axis(0).size() > 1 && EMCALCalibParams::Instance().useTimeInfoForCalib_bc) ? true : false;
+    BadChannelCalibTimeInfo calibrationTimeInfo;
+    if (doIncludeTime) {
+      calibrationTimeInfo = buildTimeMeanAndSigma(histTime);
+    }
 
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
@@ -109,12 +140,23 @@ class EMCALCalibExtractor
         bool failed = false;
         for (auto& [sliceIndex, slice] : slices) {
           auto ranges = calibrationInformation.goodCellWindowMap[sliceIndex];
+          auto rangesNHits = calibrationInformation.goodCellWindowNHitsMap[sliceIndex];
           auto meanPerCell = calibrationInformation.energyPerHitMap[sliceIndex][cellID];
-          LOG(debug) << "Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
-          if (meanPerCell < ranges.first || meanPerCell > ranges.second) {
+          auto meanPerCellNHits = calibrationInformation.nHitsMap[sliceIndex][cellID];
+          LOG(debug) << "Energy Per Hit: Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
+          LOG(debug) << "NHits: Mean per cell is " << meanPerCellNHits << " Good Cell Window: [ " << rangesNHits.first << " , " << rangesNHits.second << " ]";
+          if (meanPerCell < ranges.first || meanPerCell > ranges.second || meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
             LOG(debug) << "********* FAILED **********";
             failed = true;
             break;
+          }
+
+          // check if the cell is bad due to timing signal.
+          if (!failed && doIncludeTime) {
+            if (calibrationTimeInfo.sigmaCell[cellID] > calibrationTimeInfo.goodCellWindow) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution";
+              failed = true;
+            }
           }
         }
         if (failed) {
@@ -145,13 +187,14 @@ class EMCALCalibExtractor
     // create the output histo
     BadChannelCalibInfo outputInfo;
     std::map<slice_t, std::array<double, mNcells>> outputMapEnergyPerHit;
+    std::map<slice_t, std::array<double, mNcells>> outputMapNHits;
     // initialize the output maps with 0
     for (const auto& [sliceIndex, sliceLimits] : sliceMap) {
       std::array<double, mNcells> energyPerHit, nHits;
       std::fill(energyPerHit.begin(), energyPerHit.end(), 0.);
       std::fill(nHits.begin(), nHits.end(), 0.);
       outputMapEnergyPerHit[sliceIndex] = energyPerHit;
-      // outputMapNHits[sliceIndex] = nHits;
+      outputMapNHits[sliceIndex] = nHits;
     }
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
     if (mNThreads < 1) {
@@ -181,6 +224,7 @@ class EMCALCalibExtractor
         if (sumVal > 0.) {
           // fill the output map with the desired slicing etc.
           outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal));
+          outputMapNHits[sliceIndex][cellID] = sumVal;
         }
 
       } // end loop over the slices
@@ -192,18 +236,60 @@ class EMCALCalibExtractor
       auto& means = outputMapEnergyPerHit[sliceIndex];
       robustEstimator.EvaluateUni(means.size(), means.data(), meanPerSlice, sigmaPerSlice, 0);
 
-      LOG(debug) << "Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      Double_t meanPerSlice_NHits = 0.0;  // mean energy per slice to be compared to the cell
+      Double_t sigmaPerSlice_NHits = 0.0; // sigma energy per slice to be compared to the cell
+      TRobustEstimator robustEstimatorNHits;
+      auto& meansNHits = outputMapNHits[sliceIndex];
+      robustEstimatorNHits.EvaluateUni(meansNHits.size(), meansNHits.data(), meanPerSlice_NHits, sigmaPerSlice_NHits, 0);
+
+      LOG(debug) << "Energy Per hit: Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      LOG(debug) << "NHits: Mean per slice is: " << meanPerSlice_NHits << " Sigma Per Slice: " << sigmaPerSlice_NHits << " with size " << outputMapNHits[sliceIndex].size();
       // calculate the "good cell window from the mean"
-      double maxVal = meanPerSlice + 4.0 * sigmaPerSlice;
-      double minVal = meanPerSlice - 4.0 * sigmaPerSlice;
-      // we need to change this
+      double maxVal = meanPerSlice + mSigma * sigmaPerSlice;
+      double minVal = meanPerSlice - mSigma * sigmaPerSlice;
+      double maxValNHits = meanPerSlice_NHits + mSigma * sigmaPerSlice_NHits;
+      double minValNHits = meanPerSlice_NHits - mSigma * sigmaPerSlice_NHits;
+      // store in the output maps
       outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
+      outputInfo.goodCellWindowNHitsMap[sliceIndex] = {minValNHits, maxValNHits};
     }
     // now add these to the calib info struct
     outputInfo.energyPerHitMap = outputMapEnergyPerHit;
+    outputInfo.nHitsMap = outputMapNHits;
 
     return outputInfo;
   }
+
+  //____________________________________________
+  /// \brief calculate the sigma of the time distribution for all cells and caluclate the mean of the sigmas
+  /// \param histCellTime input histogram cellID vs cell time
+  /// \return sigma value for all cells and the upper cut value
+  template <typename... axes>
+  BadChannelCalibTimeInfo buildTimeMeanAndSigma(const boost::histogram::histogram<axes...>& histCellTime)
+  {
+    std::array<double, 17664> meanSigma;
+    for (int i = 0; i < mNcells; ++i) {
+      // calculate sigma per cell
+      const int indexLow = histCellTime.axis(1).index(i);
+      const int indexHigh = histCellTime.axis(1).index(i + 1);
+      auto boostHistCellSlice = o2::utils::ProjectBoostHistoXFast(histCellTime, indexLow, indexHigh);
+      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice));
+      LOG(debug) << "meanSigma[" << i << "] " << meanSigma[i];
+    }
+
+    // get the mean sigma and the std. deviation of the sigma distribution
+    // those will be the values we cut on
+    double avMean = 0, avSigma = 0;
+    TRobustEstimator robustEstimator;
+    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0);
+
+    BadChannelCalibTimeInfo timeInfo;
+    timeInfo.sigmaCell = meanSigma;
+    timeInfo.goodCellWindow = avMean + (avSigma * o2::emcal::EMCALCalibParams::Instance().sigmaTime_bc); // only upper limit needed
+
+    return timeInfo;
+  }
+
   //____________________________________________
 
   /// \brief Calibrate time for all cells
@@ -263,9 +349,9 @@ class EMCALCalibExtractor
   }
 
  private:
-  bool mUseScaledHistoForBadChannels = false; ///< variable to specify whether or not we want to use the scaled histo for the claibration of bad channels.
-  int mSigma = 4;                             ///< number of sigma used in the calibration to define outliers
-  int mNThreads = 1;                          ///< number of threads used for calibration
+  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
+  int mSigma = 5;                                       ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                                    ///< number of threads used for calibration
 
   o2::emcal::Geometry* mGeometry = nullptr;
   static constexpr int mNcells = 17664;

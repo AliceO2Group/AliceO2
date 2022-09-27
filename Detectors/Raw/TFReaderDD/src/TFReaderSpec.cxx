@@ -120,12 +120,17 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   if (!initOnceDone) {
     mInput.tfRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
-  auto acknowledgeOutput = [this](fair::mq::Parts& parts) {
+  auto acknowledgeOutput = [this](fair::mq::Parts& parts, bool verbose = false) {
     int np = parts.Size();
+    size_t dsize = 0, dsizeTot = 0, nblocks = 0;
+    const o2h::DataHeader* hdPrev = nullptr;
     for (int ip = 0; ip < np; ip += 2) {
       const auto& msgh = parts[ip];
       const auto* hd = o2h::get<o2h::DataHeader*>(msgh.GetData());
       const auto* dph = o2h::get<o2f::DataProcessingHeader*>(msgh.GetData());
+      if (verbose && mInput.verbosity > 0) {
+        LOGP(info, "Acknowledge: part {}/{} {}/{}/{:#x} size:{} split {}/{}", ip, np, hd->dataOrigin.as<std::string>(), hd->dataDescription.as<std::string>(), hd->subSpecification, msgh.GetSize() + parts[ip + 1].GetSize(), hd->splitPayloadIndex, hd->splitPayloadParts);
+      }
       if (dph->startTime != this->mTFCounter) {
         LOGP(fatal, "Local tf counter {} != TF timeslice {} for {}", this->mTFCounter, dph->startTime,
              o2::framework::DataSpecUtils::describe(o2::framework::OutputSpec{hd->dataOrigin, hd->dataDescription, hd->subSpecification}));
@@ -133,12 +138,26 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       if (hd->splitPayloadIndex == 0) { // check the 1st one only
         auto& entry = this->mSeenOutputMap[{hd->dataDescription.str, hd->dataOrigin.str}];
         if (entry.count != this->mTFCounter) {
+          if (verbose && hdPrev) { // report previous partition size
+            LOGP(info, "Block:{} {}/{} with size {}", nblocks, hdPrev->dataOrigin.as<std::string>(), hdPrev->dataDescription.as<std::string>(), dsize);
+          }
+          dsizeTot += dsize;
+          dsize = 0;
           entry.count = this->mTFCounter; // acknowledge identifier seen in the data
           LOG(debug) << "Found a part " << ip << " of " << np << " | " << hd->dataOrigin.as<std::string>() << "/" << hd->dataDescription.as<std::string>()
                      << "/" << hd->subSpecification << " part " << hd->splitPayloadIndex << " of " << hd->splitPayloadParts << " for TF " << this->mTFCounter;
+          nblocks++;
         }
       }
+      hdPrev = hd;
+      dsize += msgh.GetSize() + parts[ip + 1].GetSize();
     }
+    // last part
+    dsizeTot += dsize;
+    if (verbose && hdPrev) {
+      LOGP(info, "Block:{} {}/{} with size {}", nblocks, hdPrev->dataOrigin.as<std::string>(), hdPrev->dataDescription.as<std::string>(), dsize);
+    }
+    return dsizeTot;
   };
 
   auto findOutputChannel = [&ctx, this](o2h::DataHeader& h, size_t tslice) {
@@ -223,10 +242,10 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         continue;
       }
       setTimingInfo(*tfPtr.get());
-
+      size_t nparts = 0, dataSize = 0;
       if (mInput.sendDummyForMissing) {
         for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
-          acknowledgeOutput(*msgIt.second.get());
+          acknowledgeOutput(*msgIt.second.get(), true);
         }
         addMissingParts(*tfPtr.get());
       }
@@ -236,16 +255,17 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       if (mTFCounter && tDiff < mInput.delay_us) {
         usleep(mInput.delay_us - tDiff); // respect requested delay before sending
       }
-      size_t nparts = 0;
       auto tSend = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       for (auto& msgIt : *tfPtr.get()) {
-        acknowledgeOutput(*msgIt.second.get());
+        size_t szPart = acknowledgeOutput(*msgIt.second.get(), false);
+        dataSize += szPart;
+        const auto* hd = o2h::get<o2h::DataHeader*>((*msgIt.second.get())[0].GetData());
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
       }
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
-      LOGP(info, "Sent TF {} of {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, nparts, double(deltaSending) * 1e-6);
+      LOGP(info, "Sent TF {} of size {} with {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, dataSize, nparts, double(deltaSending) * 1e-6);
       deltaSending -= mInput.delay_us;
       if (!mTFCounter || deltaSending < 0) {
         deltaSending = 0; // correction for next delay

@@ -205,12 +205,11 @@ class CTPRunManager
   int saveRunScalersToCCDB(int i);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
-  CTPRunScalers getScalersFromCCDB(long timestamp, std::string);
+  CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
   int loadScalerNames();
   // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
   static void setCCDBHost(std::string host) { mCCDBHost = host; };
-  void setCTPQC(int qc) { mQC = qc; };
   void printCounters();
 
  private:
@@ -224,7 +223,7 @@ class CTPRunManager
   std::map<std::string, uint32_t> mScalerName2Position;
   std::map<uint32_t, CTPActiveRun*> mRunsLoaded;
   int mEOX = 0; // redundancy check
-  int mQC = 0; // 1 - no CCDB: used for QC
+  int mNew = 1; // 1 - no CCDB: used for QC
   ClassDefNV(CTPRunManager, 5);
 };
 

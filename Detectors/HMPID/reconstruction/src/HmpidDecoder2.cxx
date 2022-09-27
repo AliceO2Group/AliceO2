@@ -1098,6 +1098,7 @@ void HmpidDecoder2::dumpHmpidError(int ErrorField)
       std::cout << "HMPID Decoder2 : [ERROR] "
                 << "HMPID Error field = " << ErrorField << " : " << printbuf << std::endl;
     }
+    LOG(warn) << "HMPID Header Error Field =" << ErrorField << " [" << printbuf << "]";
   }
   return;
 }

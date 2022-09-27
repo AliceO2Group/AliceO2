@@ -41,6 +41,7 @@ class TimeSlot
     if (&src != this) {
       mTFStart = src.mTFStart;
       mTFEnd = src.mTFEnd;
+      mTFStartMS = src.mTFStartMS;
       mContainer = std::make_unique<Container>(*src.getContainer());
     }
     return *this;
@@ -51,6 +52,7 @@ class TimeSlot
   TFType getTFStart() const { return mTFStart; }
   TFType getTFEnd() const { return mTFEnd; }
 
+  long getStaticStartTimeMS() const { return mTFStartMS; }
   long getStartTimeMS() const { return o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + (mRunStartOrbit + long(o2::base::GRPGeomHelper::getNHBFPerTF()) * mTFStart) * o2::constants::lhc::LHCOrbitMUS / 1000; }
   long getEndTimeMS() const { return o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + (mRunStartOrbit + long(o2::base::GRPGeomHelper::getNHBFPerTF()) * (mTFEnd + 1)) * o2::constants::lhc::LHCOrbitMUS / 1000; }
 
@@ -60,6 +62,7 @@ class TimeSlot
 
   void setTFStart(TFType v) { mTFStart = v; }
   void setTFEnd(TFType v) { mTFEnd = v; }
+  void setStaticStartTimeMS(long t) { mTFStartMS = t; }
   void setRunStartOrbit(long t) { mRunStartOrbit = t; }
   auto getRunStartOrbit() const { return mRunStartOrbit; }
 
@@ -71,11 +74,12 @@ class TimeSlot
   {
     mContainer->merge(prev.mContainer.get());
     mTFStart = prev.mTFStart;
+    mTFStartMS = prev.mTFStartMS;
   }
 
   void print() const
   {
-    LOGF(info, "Calibration slot %5d <=TF<=  %5d", mTFStart, mTFEnd);
+    LOGF(info, "Calibration slot %5d <=TF<=  %5d (start in ms = %ld)", mTFStart, mTFEnd, mTFStartMS);
     mContainer->print();
   }
 
@@ -85,8 +89,9 @@ class TimeSlot
   size_t mEntries = 0;
   long mRunStartOrbit = 0;
   std::unique_ptr<Container> mContainer; // user object to accumulate the calibration data for this slot
+  long mTFStartMS = 0;                   // start time of the slot in ms that avoids to calculate it on the fly; needed when a slot covers more runs, otherwise the OrbitReset that is read is the one of the latest run, and the validity will be wrong
 
-  ClassDefNV(TimeSlot, 1);
+  ClassDefNV(TimeSlot, 2);
 };
 
 } // namespace calibration

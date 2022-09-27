@@ -96,6 +96,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (configcontext.options().get<bool>("enable-trackbased-calib")) {
       specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
     }
+    if (configcontext.options().get<bool>("enable-qc")) {
+      specs.emplace_back(o2::trd::getTRDTrackingQCWriterSpec());
+    }
   }
 
   // input

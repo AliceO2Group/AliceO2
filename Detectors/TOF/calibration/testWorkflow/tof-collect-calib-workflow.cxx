@@ -19,6 +19,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 }
 
 // ------------------------------------------------------------------
@@ -28,7 +29,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  specs.emplace_back(getTOFCalibCollectorDeviceSpec());
+  auto useCCDB = configcontext.options().get<bool>("use-ccdb");
+  specs.emplace_back(getTOFCalibCollectorDeviceSpec(useCCDB));
   specs.emplace_back(getTOFCalibCollectorWriterSpec());
 
   return specs;

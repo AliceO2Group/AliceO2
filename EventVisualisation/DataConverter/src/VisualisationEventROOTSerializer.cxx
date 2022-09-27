@@ -207,9 +207,17 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
 
   // xyz
   TNtuple* xyz = (TNtuple*)f.Get("xyz");
+  if (xyz == nullptr) {
+    return false;
+  }
 
   // tracks
   TTree* tracks = (TTree*)f.Get("tracks");
+  if (tracks == nullptr) {
+    delete xyz;
+    return false;
+  }
+
   long track_xyz;     // first track point
   int track_points;   // number of track points
   int track_clusters; // number of track clusters
@@ -266,6 +274,12 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   }
 
   TTree* clusters = (TTree*)f.Get("clusters");
+  if (clusters == nullptr) {
+    delete xyz;
+    delete tracks;
+    return false;
+  }
+
   long cluster_xyz;
   int cluster_source;
   float cluster_time;
@@ -283,6 +297,12 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
 
   // calorimeters
   TTree* calo = (TTree*)f.Get("calo");
+  if (calo == nullptr) {
+    delete xyz;
+    delete tracks;
+    delete clusters;
+    return false;
+  }
   int calo_source;
   float calo_time;
   float calo_energy;
@@ -320,6 +340,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   }
   delete calo;
   delete tracks;
+  delete xyz;
   delete clusters;
   event.afterLoading();
   return true;

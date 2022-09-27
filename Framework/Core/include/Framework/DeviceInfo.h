@@ -87,6 +87,8 @@ struct DeviceInfo {
   short tracyPort;
   /// Timestamp of the last signal received
   size_t lastSignal;
+  /// An incremental number for the state of the device
+  int providedState = 0;
 };
 
 } // namespace o2::framework

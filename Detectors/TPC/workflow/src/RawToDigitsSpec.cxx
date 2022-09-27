@@ -35,6 +35,7 @@
 #include "TPCCalibration/DigitDump.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCWorkflow/CalibProcessingHelper.h"
+#include "TPCReconstruction/IonTailCorrection.h"
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -58,6 +59,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
     mForceQuit = ic.options().get<bool>("force-quit");
     mCheckDuplicates = ic.options().get<bool>("check-for-duplicates");
+    mApplyTailCancellation = ic.options().get<bool>("apply-ion-tail-cancellation");
     mRemoveDuplicates = ic.options().get<bool>("remove-duplicates");
     if (mSendCEdigits) {
       mRemoveCEdigits = true;
@@ -188,6 +190,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   bool mUseOldSubspec{false};
   bool mForceQuit{false};
   bool mCheckDuplicates{false};
+  bool mApplyTailCancellation{false};
   bool mRemoveDuplicates{false};
   bool mRemoveCEdigits{false};
   bool mSendCEdigits{false};
@@ -207,6 +210,14 @@ class TPCDigitDumpDevice : public o2::framework::Task
     std::array<std::vector<Digit>, Sector::MAXSECTOR> ceDigits;
     if (mRemoveCEdigits) {
       mDigitDump.removeCEdigits(10, 100, &ceDigits);
+    }
+
+    if (mApplyTailCancellation) {
+      auto& digits = mDigitDump.getDigits();
+      IonTailCorrection itCorr;
+      for (auto isector : mSectors) {
+        itCorr.filterDigitsDirect(digits[isector]);
+      }
     }
 
     for (auto isector : mSectors) {
@@ -266,6 +277,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, b
       {"pedestal-url", VariantType::String, "", {"file with pedestals and noise or ccdb url for zero suppression"}},
       {"create-occupancy-maps", VariantType::Bool, false, {"create occupancy maps and store them to local root file for debugging"}},
       {"check-for-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and only report them"}},
+      {"apply-ion-tail-cancellation", VariantType::Bool, false, {"Apply ion tail cancellation"}},
       {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},
       {"remove-ce-digits", VariantType::Bool, false, {"find CE position and remove digits around it"}},
       {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},

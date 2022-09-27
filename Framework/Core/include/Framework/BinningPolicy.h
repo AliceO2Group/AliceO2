@@ -22,7 +22,7 @@ namespace o2::framework
 
 namespace binning_helpers
 {
-void expandConstantBinning(std::vector<double> const& bins, std::vector<double>& expanded)
+inline void expandConstantBinning(std::vector<double> const& bins, std::vector<double>& expanded)
 {
   if (bins[0] != VARIABLE_WIDTH) {
     int nBins = static_cast<int>(bins[0]);

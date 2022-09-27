@@ -18,9 +18,10 @@
 #define O2_MID_HITMAPBUILDER_H
 
 #include <vector>
-#include <unordered_set>
+#include <unordered_map>
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -52,6 +53,10 @@ class HitMapBuilder
   /// \param clusters gsl::span of associated clusters (in local coordinates)
   void process(std::vector<Track>& tracks, gsl::span<const Cluster> clusters) const;
 
+  /// Sets the masked channels
+  /// \param maskedChannels vector of masked channels
+  void setMaskedChannels(const std::vector<ColumnData>& maskedChannels);
+
  private:
   /// Checks if the track crossed the same element
   /// \param fired Vector of fired elements
@@ -65,17 +70,23 @@ class HitMapBuilder
   /// \param firedLocIds Vector of fired Local board Ids
   /// \param nonFiredLocIds Vector of non-fired Local board Ids
   /// \return the efficiency flag
-  int getEffFlag(const std::vector<int>& firedRPCLines, const std::vector<int>& nonFiredRPCLines, const std::vector<int>& firedLocIds, const std::vector<int>& nonFiredLocIds) const;
+  int getEffFlag(const std::vector<int>& firedFEEIdMT11, const std::vector<int>& nonFiredFEEIdMT11) const;
 
-  /// Function to extract the local board ID of the cluster
-  /// \param xp cluster x coordinate
-  /// \param yp cluster y coordinate
-  /// \param deId cluster Detection Element ID
-  /// \return the Local board ID
-  int getLocId(double xp, double yp, uint8_t deId) const;
+  /// Returns the FEE ID in MT11
+  /// \param xp x position
+  /// \param yp y position
+  /// \param deId Detector element ID
+  /// \return The FEE ID in MT11
+  int getFEEIdMT11(double xp, double yp, uint8_t deId) const;
 
-  Mapping mMapping;     ///< Mapping
-  HitFinder mHitFinder; ///< Hit finder
+  /// Cluster matches masked channel
+  /// \param cl Cluster
+  /// \return true if the cluster matches the masked channel
+  bool matchesMaskedChannel(const Cluster& cl) const;
+
+  Mapping mMapping;                                             ///< Mapping
+  HitFinder mHitFinder;                                         ///< Hit finder
+  std::unordered_map<int, std::vector<MpArea>> mMaskedChannels; ///< Masked channels
 };
 } // namespace mid
 } // namespace o2

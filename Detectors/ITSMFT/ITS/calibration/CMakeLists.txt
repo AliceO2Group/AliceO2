@@ -17,6 +17,7 @@ o2_add_library(ITSCalibration
                SOURCES src/NoiseSlotCalibrator.cxx
                SOURCES src/NoiseCalibratorSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
+                                     O2::DataFormatsDCS
                                      O2::ITSBase
                                      O2::ITSMFTReconstruction
                                      O2::DetectorsCalibration

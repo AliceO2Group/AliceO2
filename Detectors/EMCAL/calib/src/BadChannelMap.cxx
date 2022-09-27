@@ -11,6 +11,7 @@
 
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalib/BadChannelMap.h"
+#include "EMCALCalib/CalibContainerErrors.h"
 
 #include "FairLogger.h"
 
@@ -22,6 +23,9 @@ using namespace o2::emcal;
 
 void BadChannelMap::addBadChannel(unsigned short channelID, MaskType_t mask)
 {
+  if (channelID >= 17664) {
+    throw CalibContainerIndexException(channelID);
+  }
   switch (mask) {
     case MaskType_t::GOOD_CELL:
       mBadCells.reset(channelID);
@@ -48,6 +52,9 @@ void BadChannelMap::addBadChannel(unsigned short channelID, MaskType_t mask)
 
 BadChannelMap::MaskType_t BadChannelMap::getChannelStatus(unsigned short channelID) const
 {
+  if (channelID >= 17664) {
+    throw CalibContainerIndexException(channelID);
+  }
   auto status = MaskType_t::GOOD_CELL;
   if (mDeadCells.test(channelID)) {
     status = MaskType_t::DEAD_CELL;

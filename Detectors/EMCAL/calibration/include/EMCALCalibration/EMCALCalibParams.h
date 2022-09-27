@@ -36,7 +36,13 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool useScaledHisto_bc = true;        ///< use the scaled histogram for the bad channel map
   bool enableTestMode_bc = false;       ///< enable test mode for calibration
   int nBinsEnergyAxis_bc = 1000;        ///< number of bins for boost histogram energy axis
+  bool useTimeInfoForCalib_bc = true;   ///< weather to use the timing information as a criterion in the bad channel analysis
   float maxValueEnergyAxis_bc = 10;     ///< maximum value for boost histogram energy axis (minimum is always 0)
+  int nBinsTimeAxis_bc = 1000;          ///< number of bins for boost histogram time axis
+  float rangeTimeAxisLow_bc = -500;     ///< minimum value of time for histogram range
+  float rangeTimeAxisHigh_bc = 500;     ///< maximum value of time for histogram range
+  float minCellEnergyTime_bc = 0.1;     ///< minimum energy needed to fill the time histogram
+  float sigmaTime_bc = 5;               ///< sigma value for the upper cut on the time-variance distribution
   unsigned int slotLength_bc = 0;       ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
   bool UpdateAtEndOfRunOnly_bc = false; ///< switsch to enable trigger of calibration only at end of run
 

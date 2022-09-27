@@ -22,7 +22,7 @@ o2_add_library(MCHBase
          PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)
 
 o2_target_root_dictionary(MCHBase
-  HEADERS include/MCHBase/DecoderError.h include/MCHBase/ResponseParam.h include/MCHBase/TrackerParam.h)
+  HEADERS include/MCHBase/DecoderError.h include/MCHBase/HeartBeatPacket.h include/MCHBase/ResponseParam.h include/MCHBase/TrackerParam.h)
 
 o2_add_test(trackable
             SOURCES src/testTrackable.cxx

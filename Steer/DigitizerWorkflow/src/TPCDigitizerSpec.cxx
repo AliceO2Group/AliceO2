@@ -253,6 +253,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       mTPCVDriftHelper.acknowledgeUpdate();
     }
 
+    if (std::filesystem::exists("ThresholdMap.root")) {
+      LOG(info) << "TPC: Using zero suppression map from 'ThresholdMap.root'";
+      cdb.setThresholdMapFromFile("ThresholdMap.root");
+    }
+
     if (std::filesystem::exists("GainMap.root")) {
       LOG(info) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");

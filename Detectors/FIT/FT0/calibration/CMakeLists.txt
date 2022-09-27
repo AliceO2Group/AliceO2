@@ -17,14 +17,12 @@ o2_add_library(FT0Calibration
         src/GlobalOffsetsContainer.cxx
         src/FT0CalibTimeSlewing.cxx
         src/FT0CalibCollector.cxx
-        src/FT0DCSProcessor.cxx
         PUBLIC_LINK_LIBRARIES
          O2::CCDB
          O2::MathUtils
          O2::DataFormatsFT0
          O2::CommonDataFormat
          O2::DetectorsCalibration
-         O2::DetectorsDCS
          O2::DataFormatsGlobalTracking
          ROOT::Minuit
          Microsoft.GSL::GSL
@@ -37,7 +35,6 @@ o2_add_library(FT0Calibration
         include/FT0Calibration/GlobalOffsetsContainer.h
         include/FT0Calibration/FT0CalibTimeSlewing.h
         include/FT0Calibration/FT0CalibCollector.h
-        include/FT0Calibration/FT0DCSProcessor.h
         )
       o2_add_executable(ft0-channel-offset-calibration
         COMPONENT_NAME calibration
@@ -87,15 +84,5 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration
         )
-      o2_add_executable(ft0-dcs-sim-workflow
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/ft0-dcs-sim-workflow.cxx
-        PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
-      o2_add_executable(ft0-dcs-workflow
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/ft0-dcs-data-workflow.cxx
-        PUBLIC_LINK_LIBRARIES O2::Framework
-                              O2::FT0Calibration
-                              O2::DetectorsDCS)
 
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

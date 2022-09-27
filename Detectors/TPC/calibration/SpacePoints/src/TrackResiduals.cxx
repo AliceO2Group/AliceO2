@@ -393,7 +393,8 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
         continue;
       }
       ++nClValidated;
-      mUnbinnedResiduals.emplace_back(clRes[clIdx].dy, clRes[clIdx].dz, clRes[clIdx].tgl, clRes[clIdx].y, clRes[clIdx].z, iRow, clRes[clIdx].sec);
+      float tgPhi = clRes[clIdx].snp / std::sqrt((1.f - clRes[clIdx].snp) * (1.f + clRes[clIdx].snp));
+      mUnbinnedResiduals.emplace_back(clRes[clIdx].dy, clRes[clIdx].dz, tgPhi, clRes[clIdx].y, clRes[clIdx].z, iRow, clRes[clIdx].sec);
     }
     trkDataOut.clIdx.setEntries(nClValidated);
     mTrackDataOut.push_back(trkDataOut);
@@ -841,6 +842,9 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   resVox.EXYCorr = corrErr;
   resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
   resVox.dZSigLTM = zResults[2];
+
+  LOGF(debug, "D[0]=%.2f, D[1]=%.2f, D[2]=%.2f, E[0]=%.2f, E[1]=%.2f, E[2]=%.2f, EXYCorr=%.4f",
+       resVox.D[0], resVox.D[1], resVox.D[2], resVox.E[0], resVox.E[1], resVox.E[2], resVox.EXYCorr);
 
   resVox.flags |= DistDone;
 

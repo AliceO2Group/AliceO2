@@ -302,7 +302,8 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
 
 ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
   : mBranchName{field->name()},
-    mColumn{column.get()}
+    mColumn{column.get()},
+    mFieldSize{field->type()->byte_width()}
 {
   std::string leafList;
   std::string sizeLeafList;
@@ -314,12 +315,16 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
       arrowType = arrowType->field(0)->type();
       mElementType = basicROOTTypeFromArrow(arrowType->id());
       leafList = mBranchName + "[" + std::to_string(mListSize) + "]" + mElementType.suffix;
+      mFieldSize = arrowType->byte_width() * mListSize;
       break;
     case arrow::Type::LIST:
       arrowType = arrowType->field(0)->type();
       mElementType = basicROOTTypeFromArrow(arrowType->id());
       leafList = mBranchName + "[" + mBranchName + TableTreeHelpers::sizeBranchSuffix + "]" + mElementType.suffix;
       sizeLeafList = mBranchName + TableTreeHelpers::sizeBranchSuffix + "/I";
+      // Notice that this could be replaced by a better guess of the
+      // average size of the list elements, but this is not trivial.
+      mFieldSize = arrowType->byte_width();
       break;
     default:
       mElementType = basicROOTTypeFromArrow(arrowType->id());
@@ -446,6 +451,12 @@ std::shared_ptr<TTree> TableToTree::process()
     mTree->Write("", TObject::kOverwrite);
     mTree->SetDirectory(nullptr);
     return mTree;
+  }
+
+  for (auto& reader : mColumnReaders) {
+    int idealBasketSize = 1024 + reader->fieldSize() * mRows; // minimal additional size needed, otherwise we get 2 baskets
+    int basketSize = std::max(32000, idealBasketSize);        // keep a minimum value
+    mTree->SetBasketSize(reader->branchName(), basketSize);
   }
 
   while (row < mRows) {

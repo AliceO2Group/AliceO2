@@ -15,6 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ struct o2::mid::ChEffCounter + ;
+#pragma link C++ class std::vector < o2::mid::ChEffCounter> + ;
 #pragma link C++ struct o2::mid::Cluster + ;
 #pragma link C++ class std::vector < o2::mid::Cluster> + ;
 #pragma link C++ struct o2::mid::ColumnData + ;

@@ -30,6 +30,12 @@ ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const 
 void ZDCDataReaderDPLSpec::init(InitContext& ic)
 {
   mccdbHost = ic.options().get<std::string>("ccdb-url");
+  mVerbosity = ic.options().get<int>("log-level");
+  // 0: minimal output
+  // 1: event summary per channel
+  // 2: debug inconsistencies
+  // 3: dump of associated input data
+  // 4: dump of raw input data
   o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
 }
 
@@ -76,6 +82,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
     mRawReader.setVerifyTrigger(mVerifyTrigger);
+    mRawReader.setVerbosity(mVerbosity);
     LOG(info) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
 
@@ -98,6 +105,9 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
         nErr[2]++;
       } else {
         gsl::span<const uint8_t> payload(it.data(), it.size());
+#ifdef O2_ZDC_DEBUG
+        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
+#endif
         mRawReader.processBinaryData(payload, rdhPtr->linkID);
       }
     }
@@ -135,7 +145,8 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     inputSpec,
     outputSpec,
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
-    Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
+    Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}},
+            {"log-level", o2::framework::VariantType::Int, 0, {"ZDC data reader verbosity level"}}}};
 }
 } // namespace zdc
 } // namespace o2

@@ -34,6 +34,7 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "Framework/AsyncQueue.h"
+#include "Framework/Plugins.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -55,6 +56,7 @@
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <fairmq/ProgOptions.h>
+#include <uv.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -715,12 +717,12 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
     auto device = registry.get<RawDeviceService>().device();
     long freeMemory = -1;
     try {
-      freeMemory = Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
+      freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
     } catch (...) {
     }
     if (freeMemory == -1) {
       try {
-        freeMemory = Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+        freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
       } catch (...) {
       }
     }
@@ -907,6 +909,8 @@ o2::framework::ServiceSpec CommonServices::objectCache()
     .kind = ServiceKind::Serial};
 }
 
+
+/// Split a string into a vector of strings using : as a separator.
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
@@ -935,6 +939,16 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
 
+  // Load plugins depending on the environment
+  std::vector<LoadableService> loadableServices = {};
+  char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
+  // String to define the services to load is:
+  //
+  // library1:name1,library2:name2,...
+  if (loadableServicesEnv) {
+    loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesEnv);
+    ServiceHelpers::loadFromPlugin(loadableServices, specs);
+  }
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {

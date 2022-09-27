@@ -97,6 +97,15 @@ math_max()
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Helper to check if root ouput is requested for certain process
+
+needs_root_output()
+{
+  local NAME_PROC_ENABLE_ROOT_OUTPUT="ENABLE_ROOT_OUTPUT_${1//-/_}"
+  [[ ! -z ${!NAME_PROC_ENABLE_ROOT_OUTPUT+x} ]]
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Helper to add binaries to workflow adding automatic and custom arguments
 
 add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OPTIONS] [CONFIG_KEY_VALUES] [Add ARGS_ALL_CONFIG, optional, default = 1]
@@ -108,7 +117,12 @@ add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OP
   [[ ! -z "$3" ]] && KEY_VALUES+="$3;"
   [[ ! -z ${!NAME_PROC_CONFIG} ]] && KEY_VALUES+="${!NAME_PROC_CONFIG};"
   [[ ! -z "$KEY_VALUES" ]] && KEY_VALUES="--configKeyValues \"$KEY_VALUES\""
-  WORKFLOW+="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
+  local WFADD="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
+  local NAME_PROC_ENABLE_ROOT_OUTPUT="ENABLE_ROOT_OUTPUT_${1//-/_}"
+  if [[ ! -z $DISABLE_ROOT_OUTPUT ]] && needs_root_output $1 ; then
+      WFADD=${WFADD//$DISABLE_ROOT_OUTPUT/}
+  fi
+  WORKFLOW+=$WFADD
 }
 
 fi # workflow-setup.sh sourced

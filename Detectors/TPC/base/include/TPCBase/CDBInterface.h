@@ -76,6 +76,9 @@ enum class CDBType {
   CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   CalSACFourier,       ///< Fourier coefficients of CalSAC1
+
+  CalCorrMap,    ///< Cluster correction map
+  CalCorrMapRef, ///< Cluster correction reference map (static distortions)
 };
 
 /// Upload intervention type
@@ -125,6 +128,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalSAC1, "TPC/Calib/SAC/SAC1"},
   {CDBType::CalSACDelta, "TPC/Calib/SAC/SACDELTA"},
   {CDBType::CalSACFourier, "TPC/Calib/SAC/FOURIER"},
+  // correction maps
+  {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
+  {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
 };
 
 /// Poor enum reflection ...
@@ -222,6 +228,10 @@ class CDBInterface
   template <typename T>
   T& getSpecificObjectFromCDB(const std::string_view path, long timestamp = -1, const std::map<std::string, std::string>& metaData = std::map<std::string, std::string>());
 
+  /// read an object from CCDB
+  template <typename T>
+  T& getObjectFromCDB(std::string_view path);
+
   /// Set noise and pedestal object from file
   ///
   /// This assumes that the objects are stored under the name
@@ -236,6 +246,13 @@ class CDBInterface
   ///
   /// \param fileName name of the file containing gain map
   void setGainMapFromFile(const std::string_view fileName) { mGainMapFileName = fileName; }
+
+  /// Set zero suppression thresholds from file
+  ///
+  /// This assumes that the objects is stored under the name 'ThresholdMap'
+  ///
+  /// \param fileName name of the file containing the threshold map
+  void setThresholdMapFromFile(const std::string_view fileName) { mThresholdMapFileName = fileName; }
 
   /// Force using default values instead of reading the CCDB
   ///
@@ -259,6 +276,13 @@ class CDBInterface
     cdb.setURL(url.data());
   }
 
+  /// set the Zero suppression threshold in sigma of noise in case
+  /// the default object is created and not loaded from file or ccdb
+  void setDefaultZSsigma(float zs)
+  {
+    mDefaultZSsigma = zs;
+  }
+
   /// Reset the local calibration
   void resetLocalCalibration()
   {
@@ -278,23 +302,23 @@ class CDBInterface
   std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
 
   // ===| switches and parameters |=============================================
-  bool mUseDefaults = false; ///< use defaults instead of CCDB
+  bool mUseDefaults = false;   ///< use defaults instead of CCDB
+  float mDefaultZSsigma = 3.f; ///< sigma to use in case the default zero suppression is created
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map
+  std::string mThresholdMapFileName;  ///< optional file name for the threshold map
 
   // ===========================================================================
   // ===| functions |===========================================================
   //
   void loadNoiseAndPedestalFromFile(); ///< load noise and pedestal values from mPedestalNoiseFileName
   void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
+  void loadThresholdMapFromFile();     ///< load zero suppression threshold map from mThresholdMapFileName
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
   void createDefaultZeroSuppression(); ///< creation of default noise if requested
   void createDefaultGainMap();         ///< creation of default gain map if requested
-
-  template <typename T>
-  T& getObjectFromCDB(std::string_view path);
 };
 
 /// Get an object from the CCDB.

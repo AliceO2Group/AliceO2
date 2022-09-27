@@ -26,7 +26,7 @@ if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   # This sets up the hardcoded configuration to run the full system workflow on the EPN
   export NGPUS=4
   export GPUTYPE=HIP
-  export SHMSIZE=$(( 112 << 30 ))
+  export SHMSIZE=$(( 112 << 30 )) # Please keep these defaults in sync with those in shm-tool.sh
   export DDSHMSIZE=$(( 112 << 10 ))
   export GPUMEMSIZE=$(( 24 << 30 ))
   export NUMAGPUIDS=1

@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
     const CRU cru = digit.getCRU();
     const auto gemStack = cru.gemStack();
     const float nPads = mapper.getNumberOfPads(GEMstack(gemStack));
-    BOOST_CHECK_CLOSE(commonMode[i].getCommonMode(), digit.getChargeFloat() / nPads, 1E-6);
+    BOOST_CHECK_CLOSE(commonMode[i].getCommonMode(), digit.getChargeFloat() * 0.5f / nPads, 1E-6);
   }
 
   BOOST_CHECK(cru.size() == mDigitsArray.size());
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
 
     const CRU cru = digit.getCRU();
     const auto gemStack = cru.gemStack();
-    chargeSum[gemStack] += digit.getChargeFloat();
+    chargeSum[gemStack] += digit.getChargeFloat() * 0.5f;
     ++digits;
   }
 

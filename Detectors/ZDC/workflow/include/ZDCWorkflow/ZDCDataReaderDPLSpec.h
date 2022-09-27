@@ -56,6 +56,7 @@ class ZDCDataReaderDPLSpec : public Task
  private:
   std::string mccdbHost = o2::base::NameConf::getCCDBServer();
   bool mVerifyTrigger = true;
+  int mVerbosity = 0;
   RawReaderZDC mRawReader;
 };
 

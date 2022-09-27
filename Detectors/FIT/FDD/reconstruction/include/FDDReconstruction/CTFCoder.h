@@ -251,7 +251,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     return;
   }
   const auto& dig0 = digitVec[firstDig];
-  cd.header.nTriggers = digitVec.size();
+  cd.header.nTriggers = nDigSel;
   cd.header.firstOrbit = dig0.mIntRecord.orbit;
   cd.header.firstBC = dig0.mIntRecord.bc;
 
@@ -260,15 +260,15 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   cd.orbitInc.resize(cd.header.nTriggers);
   cd.nChan.resize(cd.header.nTriggers);
 
-  cd.idChan.resize(channelVec.size());
-  cd.time.resize(channelVec.size());
-  cd.charge.resize(channelVec.size());
-  cd.feeBits.resize(channelVec.size());
+  cd.idChan.resize(nChanSel);
+  cd.time.resize(nChanSel);
+  cd.charge.resize(nChanSel);
+  cd.feeBits.resize(nChanSel);
 
   uint16_t prevBC = cd.header.firstBC;
   uint32_t prevOrbit = cd.header.firstOrbit;
-  uint32_t ccount = 0;
-  for (uint32_t idig = 0; idig < cd.header.nTriggers; idig++) {
+  uint32_t ccount = 0, dcount = 0;
+  for (uint32_t idig = 0; idig < digitVec.size(); idig++) {
     if (reject[idig]) {
       continue;
     }
@@ -276,24 +276,25 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
-    cd.trigger[idig] = digit.mTriggers.getTriggersignals();
+    cd.trigger[dcount] = digit.mTriggers.getTriggersignals();
     if (prevOrbit == digit.mIntRecord.orbit) {
-      cd.bcInc[idig] = digit.mIntRecord.bc - prevBC;
-      cd.orbitInc[idig] = 0;
+      cd.bcInc[dcount] = digit.mIntRecord.bc - prevBC;
+      cd.orbitInc[dcount] = 0;
     } else {
-      cd.bcInc[idig] = digit.mIntRecord.bc;
-      cd.orbitInc[idig] = digit.mIntRecord.orbit - prevOrbit;
+      cd.bcInc[dcount] = digit.mIntRecord.bc;
+      cd.orbitInc[dcount] = digit.mIntRecord.orbit - prevOrbit;
     }
     prevBC = digit.mIntRecord.bc;
     prevOrbit = digit.mIntRecord.orbit;
     // fill channels info
-    cd.nChan[idig] = chanels.size();
-    if (!cd.nChan[idig]) {
+    cd.nChan[dcount] = chanels.size();
+    if (!cd.nChan[dcount]) {
       LOG(debug) << "Digits with no channels";
+      dcount++;
       continue;
     }
     uint8_t prevChan = 0;
-    for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
+    for (uint8_t ic = 0; ic < cd.nChan[dcount]; ic++) {
       if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         cd.idChan[ccount] = chanels[ic].mPMNumber - prevChan; // Old method, lets keep it for a while
       } else {
@@ -305,6 +306,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
       prevChan = chanels[ic].mPMNumber;
       ccount++;
     }
+    dcount++;
   }
 }
 

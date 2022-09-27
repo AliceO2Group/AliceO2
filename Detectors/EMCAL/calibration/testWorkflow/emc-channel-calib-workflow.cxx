@@ -37,6 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"calibType", VariantType::String, "time", {"choose which calibration should be performed: time for tiem calibration, badchannel for bad channel calibration"}},
     {"no-loadCalibParamsFromCCDB", VariantType::Bool, false, {"disabled by default such that calib params are taken from the ccdb. If enabled, calib params are taken from EMCALCalibParams.h directly"}}};
 
   std::swap(workflowOptions, options);
@@ -48,10 +49,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  std::string calibType = cfgc.options().get<std::string>("calibType");
   bool loadCalibParamsFromCCDB = !cfgc.options().get<bool>("no-loadCalibParamsFromCCDB");
 
   WorkflowSpec specs;
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec(loadCalibParamsFromCCDB));
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

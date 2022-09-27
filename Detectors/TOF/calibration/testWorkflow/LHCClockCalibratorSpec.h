@@ -218,7 +218,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec(bool useCCDB)
       {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
-      {"nbins", VariantType::Int, 1000, {"number of bins for "}}}};
+      {"nbins", VariantType::Int, 4000, {"number of bins for "}}}};
 }
 
 } // namespace framework

@@ -380,7 +380,7 @@ AddOption(constBz, bool, false, "", 0, "Force constand Bz")
 AddOption(overrideMaxTimebin, bool, false, "", 0, "Override max time bin setting for continuous data with max time bin in time frame")
 AddOption(encodeZS, int, -1, "", 0, "Zero-Suppress TPC data", def(1))
 AddOption(zsFilter, int, -1, "", 0, "Apply Zero-Suppression when loading digits and remove those below threshold", def(1))
-AddOption(zsVersion, int, 2, "", 0, "ZS Version: 1 = 10-bit ADC row based, 2 = 12-bit ADC row based, 3 = improved link based")
+AddOption(zsVersion, int, 2, "", 0, "ZS Version: 1 = 10-bit ADC row based, 2 = 12-bit ADC row based, 3 = improved link based, 4 = dense link based")
 AddOption(dumpEvents, bool, false, "", 0, "Dump events (after transformation such as encodeZS")
 AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
 AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
@@ -446,6 +446,7 @@ AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific 
 AddOption(disableCalibUpdates, bool, false, "", 0, "Disable all calibration updates")
 AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-fatal error that is ignored (ignoreNonFatalGPUErrors=true), forward the partial output that was created instead of shipping an empty TF")
 AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
+AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits filter during zs encoding")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

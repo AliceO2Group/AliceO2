@@ -279,8 +279,8 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("configure max time bin exceeds 256 orbits");
     return false;
   }
-  if (mRec->IsGPU() && std::max(GetProcessingSettings().nTPCClustererLanes + 1, GetProcessingSettings().nTPCClustererLanes * 2) + (GetProcessingSettings().doublePipeline ? 1 : 0) > mRec->NStreams()) {
-    GPUError("NStreams must be > nTPCClustererLanes");
+  if ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) && std::max(GetProcessingSettings().nTPCClustererLanes + 1, GetProcessingSettings().nTPCClustererLanes * 2) + (GetProcessingSettings().doublePipeline ? 1 : 0) > mRec->NStreams()) {
+    GPUError("NStreams (%d) must be > nTPCClustererLanes (%d)", mRec->NStreams(), (int)GetProcessingSettings().nTPCClustererLanes);
     return false;
   }
   if (GetProcessingSettings().noGPUMemoryRegistration && GetProcessingSettings().tpcCompressionGatherMode != 3) {

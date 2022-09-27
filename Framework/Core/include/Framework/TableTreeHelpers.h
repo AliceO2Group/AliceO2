@@ -83,6 +83,8 @@ class ColumnToBranch
   ColumnToBranch(ColumnToBranch const& other) = delete;
   ColumnToBranch(ColumnToBranch&& other) = delete;
   void at(const int64_t* pos);
+  int fieldSize() const { return mFieldSize; }
+  char const* branchName() const { return mBranchName.c_str(); }
 
  private:
   void accessChunk();
@@ -100,6 +102,7 @@ class ColumnToBranch
   std::vector<uint8_t> cache;
   std::shared_ptr<arrow::Array> mCurrentArray = nullptr;
   int64_t mChunkLength;
+  int mFieldSize = 0;
 };
 
 class TableToTree

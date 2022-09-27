@@ -34,14 +34,13 @@ void DataReaderTask::init(InitContext& ic)
   LOG(info) << "o2::trd::DataReadTask init";
 
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
-  mDigitPreviousTotal = 0;
-  mTrackletsPreviousTotal = 0;
-  mWordsRead = 0;
-  mWordsRejected = 0;
+  mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
+  LOGF(important, "At EoS we have read: %lu Digits, %lu Tracklets. Received %.3f MB input data and rejected %.3f MB",
+       mDigitsTotal, mTrackletsTotal, mDatasizeInTotal / (1024. * 1024.), (float)mWordsRejectedTotal * 4. / (1024. * 1024.));
 }
 
 void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -50,23 +49,10 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << " CTP/Config/TriggerOffsets updated.";
     o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
     return;
-  }
-}
-
-void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
-{
-  if (!blankframe) {
-    mReader.buildDPLOutputs(pc);
-  } else {
-    //ensure the objects we are sending back are indeed blank.
-    //TODO maybe put this in buildDPLOutputs so sending all done in 1 place, not now though.
-    std::vector<Tracklet64> tracklets;
-    std::vector<Digit> digits;
-    std::vector<o2::trd::TriggerRecord> triggers;
-    LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers and blankframe:" << blankframe;
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, triggers);
+  } else if (matcher == ConcreteDataMatcher("TRD", "LinkToHcid", 0)) {
+    LOG(info) << "Updated Link ID to HCID mapping";
+    mReader.setLinkMap((const o2::trd::LinkToHCIDMapping*)obj);
+    return;
   }
 }
 
@@ -75,6 +61,7 @@ void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
   static bool updateOnlyOnce = false;
   if (!updateOnlyOnce) {
     pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+    pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");
     updateOnlyOnce = true;
   }
 }
@@ -112,10 +99,12 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   if (isTimeFrameEmpty(pc)) {
-    sendData(pc, true); //send the empty tf data.
+    mReader.buildDPLOutputs(pc);
+    mReader.reset();
     return;
   }
 
+  size_t datasizeInTF = 0;
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TRD", "RAWDATA"}}};
   uint64_t tfCount = 0;
   for (auto& ref : InputRecordWalker(pc.inputs(), sel)) {
@@ -130,26 +119,23 @@ void DataReaderTask::run(ProcessingContext& pc)
     }
     mReader.setDataBuffer(payloadIn);
     mReader.setDataBufferSize(payloadInSize);
-    mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
-    //mReader.setStats(&mTimeFrameStats);
     mReader.run();
-    mWordsRead += mReader.getWordsRead();
-    mWordsRejected += mReader.getWordsRejected();
+    datasizeInTF += payloadInSize;
     if (mOptions[TRDVerboseBit]) {
-      LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
+      LOG(info) << "relevant vectors to read : " << mReader.getTrackletsFound() << " tracklets and " << mReader.getDigitsFound() << " compressed digits";
     }
   }
-  mWordsRead += mReader.getWordsRead();
-  mWordsRejected += mReader.getWordsRejected();
 
-  sendData(pc, false);
+  mReader.buildDPLOutputs(pc);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-  LOGP(info, "Digits: {} ({} TF), Tracklets: {} ({} TF), DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getDigitsFound() - mDigitPreviousTotal, mReader.getTrackletsFound(),
-       mReader.getTrackletsFound() - mTrackletsPreviousTotal, (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
+  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} kB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)datasizeInTF / (1024. * 1024.), (float)mReader.getWordsRejected() * 4. / 1024., tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
-  mDigitPreviousTotal = mReader.getDigitsFound();
-  mTrackletsPreviousTotal = mReader.getTrackletsFound();
+  mDigitsTotal += mReader.getDigitsFound();
+  mTrackletsTotal += mReader.getTrackletsFound();
+  mDatasizeInTotal += datasizeInTF;
+  mWordsRejectedTotal += mReader.getWordsRejected();
+  mReader.reset();
 }
 
 } // namespace o2::trd

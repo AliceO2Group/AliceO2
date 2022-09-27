@@ -43,6 +43,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "TPCReconstruction/IonTailCorrection.h"
+#include "GPUO2InterfaceConfiguration.h"
 
 namespace bpo = boost::program_options;
 
@@ -81,6 +83,7 @@ static constexpr const char* CRU_FLPS[361] = {
 struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
   std::vector<unsigned int> sizes;
+  std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr;
   MCLabelContainer mctruthArray;
   std::vector<int> inputIds;
   int version = 2;
@@ -135,19 +138,19 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   writer.useRDHVersion(rdhV);
   writer.setAddSeparateHBFStopPage(stopPage);
   writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
-  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   for (unsigned int i = 0; i < NSectors + 1; i++) {
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
+      const unsigned int defaultLink = i == NSectors ? rdh_utils::SACLinkID : zsV <= 2 ? rdh_utils::UserLogicLinkID : zsV == 3 ? rdh_utils::ILBZSLinkID : rdh_utils::DLBZSLinkID;
       const rdh_utils::FEEIDType feeid = i == NSectors ? 46208 : rdh_utils::getFEEID(cruID, j & 1, defaultLink);
       std::string outfname;
       if (fileFor == "all") { // single file for all links
         outfname = fmt::format("{}tpc_all.raw", outDir);
       } else if (fileFor == "sector") {
         outfname = i == NSectors ? fmt::format("{}tpc_iac.raw", outDir) : fmt::format("{}tpc_sector{}.raw", outDir, i);
-      } else if (fileFor == "link" || fileFor == "cru") {
+      } else if (fileFor == "link" || fileFor == "cruendpoint") {
         outfname = fmt::format("{}TPC_{}_cru{}_{}.raw", outDir, CRU_FLPS[cruID], cruID, j & 1);
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
@@ -172,6 +175,14 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   ProcessAttributes attr;
   attr.padding = padding;
   attr.version = zsV;
+
+  GPUO2InterfaceConfiguration config;
+  auto globalConfig = config.ReadConfigurableParam();
+  attr.zsThreshold = config.configReconstruction.tpc.zsThreshold;
+  if (globalConfig.zsOnTheFlyDigitsFilter) {
+    IonTailCorrection itCorr;
+    attr.digitsFilter = [&itCorr](std::vector<o2::tpc::Digit>& digits) { itCorr.filterDigitsDirect(digits); };
+  }
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -225,7 +236,7 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
 
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
   ir.bc = 0; // By convention the TF starts at BC = 0
-  o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, processAttributes->version, false, zsThreshold, processAttributes->padding);
+  o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, processAttributes->version, false, zsThreshold, processAttributes->padding, processAttributes->digitsFilter);
 }
 
 int main(int argc, char** argv)
@@ -247,7 +258,7 @@ int main(int argc, char** argv)
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,cru,all");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,cruendpoint,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Pad all pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();

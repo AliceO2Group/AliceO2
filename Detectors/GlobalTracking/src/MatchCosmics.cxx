@@ -32,6 +32,7 @@
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
+#include "TPCCalibration/CorrectionMapsHelper.h"
 #include <algorithm>
 #include <numeric>
 
@@ -86,15 +87,12 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   LOG(info) << "Refitting " << mWinners.size() << " winner matches";
   int count = 0;
   auto tpcTBinMUSInv = 1. / mTPCTBinMUS;
-  if (!mTPCTransform) { // eventually, should be updated at every TF?
-    mTPCTransform = o2::tpc::TPCFastTransformHelperO2::instance()->create(0);
-  }
   const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
   const auto& tpcClusShMap = data.clusterShMapTPC;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> tpcRefitter;
   if (data.inputsTPCclusters) {
     tpcRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&data.inputsTPCclusters->clusterIndex,
-                                                                 mTPCTransform.get(), mBz,
+                                                                 mTPCCorrMapsHelper->getCorrMap(), mBz,
                                                                  tpcClusRefs.data(), tpcClusShMap.data(),
                                                                  nullptr, o2::base::Propagator::Instance());
   }
@@ -533,7 +531,6 @@ void MatchCosmics::updateTimeDependentParams()
 void MatchCosmics::init()
 {
   mMatchParams = &o2::globaltracking::MatchCosmicsParams::Instance();
-  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
 #ifdef _ALLOW_DEBUG_TREES_COSM
   // debug streamer
@@ -581,8 +578,20 @@ void MatchCosmics::setDebugFlag(UInt_t flag, bool on)
 void MatchCosmics::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
   mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+  if (mTPCCorrMapsHelper) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
+}
+
+//______________________________________________
+void MatchCosmics::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
+  if (mTPCVDrift > 0.f) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
 }
 
 #endif

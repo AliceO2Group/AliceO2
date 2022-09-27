@@ -63,12 +63,14 @@ class TimeCalibrationParams
   /// \param cellID Absolute ID of cell
   /// \param time is the calibration coefficient
   /// \param isLowGain is flag whether this cell is LG or HG
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
   void addTimeCalibParam(unsigned short cellID, short time, bool isLowGain);
 
   /// \brief Get the time calibration coefficient for a certain cell
   /// \param cellID Absolute ID of cell
   /// \param isLowGain is flag whether this cell is LG or HG
   /// \return time calibration coefficient of the cell
+  /// \throw CalibContainerIndexException in case the cell ID exceeds the range of cells in EMCAL
   short getTimeCalibParam(unsigned short cellID, bool isLowGain) const;
 
   /// \brief Convert the time calibration coefficient array to a histogram

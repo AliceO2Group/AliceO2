@@ -74,7 +74,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    LOGP(info, "Processing IDCs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
+    LOGP(debug, "Processing IDCs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
 
     // retrieving map containing the status flags for the static outlier
     if (mLoadPadMapCCDB) {
@@ -82,7 +82,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
     }
 
     if (mLoadIDC0CCDB) {
-      LOGP(info, "Loading IDC0 from CCDB as reference for calculating IDC1");
+      LOGP(debug, "Loading IDC0 from CCDB as reference for calculating IDC1");
       auto idc = pc.inputs().get<o2::tpc::IDCZero*>("idczero");
       mIDCZero = *idc;
       // load IDC0 only once TODO use correct time stamp for CCDB access?

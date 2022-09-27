@@ -99,7 +99,7 @@ class TrackResiduals
     LocalResid(short dyIn, short dzIn, short tgSlpIn, std::array<unsigned char, VoxDim> bvoxIn) : dy(dyIn), dz(dzIn), tgSlp(tgSlpIn), bvox(bvoxIn) {}
     short dy{0};                              ///< residual in y, ranges from -param::sMaxResid to +param::sMaxResid
     short dz{0};                              ///< residual in z, ranges from -param::sMaxResid to +param::sMaxResid
-    short tgSlp{0};                           ///< track dip angle, ranges from -param::sMaxAngle to +param::sMaxAngle
+    short tgSlp{0};                           ///< tangens of the phi angle between padrow and track, ranges from -param::sMaxAngle to +param::sMaxAngle
     std::array<unsigned char, VoxDim> bvox{}; ///< voxel identifier: VoxZ, VoxF, VoxX
     ClassDefNV(LocalResid, 1);
   };

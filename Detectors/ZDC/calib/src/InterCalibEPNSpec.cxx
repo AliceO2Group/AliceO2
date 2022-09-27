@@ -101,18 +101,15 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   // Process reconstructed data
   mWorker.process(bcrec, energy, tdc, info);
 
-  // Send intermediate calibration data and debug histograms
+  // Send intermediate calibration data and histograms
   o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
-  char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "INTER_1DH", ih, Lifetime::Timeframe);
     pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "INTER_2DH", ih, Lifetime::Timeframe);
     pc.outputs().snapshot(output, mWorker.mC[ih]->getBase());
   }
 }
@@ -135,21 +132,18 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
-  char outputd[o2::header::gSizeDataDescriptionString];
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
-    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
+    outputs.emplace_back("ZDC", "INTER_1DH", ih, Lifetime::Timeframe);
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
-    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
+    outputs.emplace_back("ZDC", "INTER_2DH", ih, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
     "zdc-intercalib-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<InterCalibEPNSpec>()},
-    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

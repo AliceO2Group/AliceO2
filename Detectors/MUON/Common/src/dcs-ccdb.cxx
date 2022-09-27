@@ -85,13 +85,13 @@ void dump(const std::string what, DPMAP m, bool verbose)
       if (v.size()) {
         mean /= v.size();
       }
-      std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f} : ", i.first.get_alias(), v.size(),
+      auto vv = v;
+      auto last = std::unique(vv.begin(), vv.end());
+      vv.erase(last, vv.end());
+
+      std::cout << fmt::format("{:64s} {:4d} ({:4d} unique) values of mean {:7.2f} : ", i.first.get_alias(), v.size(), vv.size(),
                                mean);
-      for (auto t : v) {
-        std::cout << t << " | ";
-      }
-      std::cout << "\n";
-      //       std::cout << timeRange.first << " " << timeRange.second << "\n";
+      std::cout << "timeRange=" << timeRange.first << " " << timeRange.second << "\n";
     }
   }
 }

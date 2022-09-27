@@ -71,6 +71,17 @@ o2_add_executable(primary-server-device-runner
                   SOURCES O2PrimaryServerDeviceRunner.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim
                   TARGETVARNAME simexe)
+if(ENABLE_UPGRADES)
+o2_add_executable(serial-run5
+                  COMPONENT_NAME sim
+                  SOURCES o2sim.cxx
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
+
+o2_add_executable(sim-run5
+                  SOURCES o2sim_parallel.cxx
+                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Version
+                  TARGETVARNAME simdriverrun5)
+endif()
 if(NOT APPLE)
   set_property(TARGET ${simexe} PROPERTY LINK_WHAT_YOU_USE ON)
 endif()
@@ -98,7 +109,13 @@ message(STATUS "SIMENV = ${SIMENV}")
 
 o2_name_target(sim NAME o2simExecutable IS_EXE)
 o2_name_target(sim-serial NAME o2simSerialExecutable IS_EXE)
+if(ENABLE_UPGRADES)
+o2_name_target(sim-serial-run5 NAME o2simSerialRun5Executable IS_EXE)
+o2_name_target(sim-run5 NAME o2simRun5Executable IS_EXE)
 
+target_compile_definitions(${o2simSerialRun5Executable} PUBLIC SIM_RUN5)
+target_compile_definitions(${o2simRun5Executable} PUBLIC SIM_RUN5)
+endif()
 if (BUILD_TESTING)
 o2_add_test_command(NAME o2sim_G4
                     WORKING_DIRECTORY ${SIMTESTDIR}
@@ -116,6 +133,8 @@ o2_add_test_command(NAME o2sim_G4
                                       2
                                       --skipModules
                                       MFT ZDC
+                                      --configKeyValues
+                                      "align-geom.mDetectors=none"
                     ENVIRONMENT "${SIMENV}"
                     LABELS "g4;sim;long")
 
@@ -174,6 +193,8 @@ o2_add_test_command(NAME o2sim_G3
                                       pythia8pp
                                       --chunkSize
                                       10
+                                      --configKeyValues
+                                      "align-geom.mDetectors=none"
                     LABELS g3 sim long
                     ENVIRONMENT "${SIMENV}"
 )
@@ -213,7 +234,7 @@ o2_add_test_command(NAME o2sim_hepmc
                                       -g
                                    hepmc
                        --configKeyValues
-"HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2"
+"HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
                                       -o
                               o2simhepmc
                     LABELS long sim hepmc3

@@ -32,6 +32,8 @@ class DigitReader : public framework::Task
 
  private:
   bool mUseMC = true;
+  int64_t mFirstEntry = 0;
+  int64_t mLastEntry = -1;
   std::unique_ptr<TTree> mTree;
   std::unique_ptr<TFile> mFile;
 };

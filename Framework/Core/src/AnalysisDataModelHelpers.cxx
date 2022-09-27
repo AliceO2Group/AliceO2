@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "AnalysisDataModelHelpers.h"
+#include "Framework/AnalysisDataModelHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/Logger.h"
@@ -49,6 +49,5 @@ std::string getTreeName(header::DataHeader dh)
 
   return treeName;
 }
-
 
 } // namespace o2::aod::datamodel

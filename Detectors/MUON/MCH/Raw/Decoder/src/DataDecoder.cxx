@@ -562,6 +562,8 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
       return;
     }
 
+    mHBPackets.emplace_back(solar, ds, chip, bunchCrossing);
+
     if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bunchCrossing)) {
       if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
         auto s = asString(dsElecId);
@@ -928,6 +930,7 @@ void DataDecoder::reset()
   mDigits.clear();
   mOrbits.clear();
   mErrors.clear();
+  mHBPackets.clear();
   memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 

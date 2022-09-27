@@ -41,7 +41,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getInterCalibEPNSpec());
-  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

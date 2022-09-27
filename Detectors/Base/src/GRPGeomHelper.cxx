@@ -35,8 +35,8 @@ using namespace o2::base;
 using namespace o2::framework;
 namespace o2d = o2::dataformats;
 
-GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce)
-  : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce)
+GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD)
+  : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce), needPropagatorD(needPropD)
 {
   if (geom == Aligned) {
     askGeomAlign = true;
@@ -94,12 +94,18 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << "GRP MagField object updated";
     if (needInit) {
       o2::base::Propagator::initFieldFromGRP(mGRPMagField);
+      if (mRequest->needPropagatorD) {
+        o2::base::PropagatorD::initFieldFromGRP(mGRPMagField);
+      }
     } else {
       auto field = TGeoGlobalMagField::Instance()->GetField();
       if (field->InheritsFrom("o2::field::MagneticField")) {
         ((o2::field::MagneticField*)field)->rescaleField(mGRPMagField->getL3Current(), mGRPMagField->getDipoleCurrent(), mGRPMagField->getFieldUniformity());
       }
       o2::base::Propagator::Instance(false)->updateField();
+      if (mRequest->needPropagatorD) {
+        o2::base::PropagatorD::Instance(false)->updateField();
+      }
     }
     return true;
   }
@@ -122,6 +128,9 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << "material LUT updated";
     mMatLUT = o2::base::MatLayerCylSet::rectifyPtrFromFile((o2::base::MatLayerCylSet*)obj);
     o2::base::Propagator::Instance(false)->setMatLUT(mMatLUT);
+    if (mRequest->needPropagatorD) {
+      o2::base::PropagatorD::Instance(false)->setMatLUT(mMatLUT);
+    }
     return true;
   }
   if (mRequest->askGeomAlign && matcher == ConcreteDataMatcher("GLO", "GEOMALIGN", 0)) {

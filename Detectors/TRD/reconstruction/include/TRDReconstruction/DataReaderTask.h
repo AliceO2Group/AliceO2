@@ -36,7 +36,6 @@ class DataReaderTask : public Task
   DataReaderTask(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> option) : mTrackletHCHeaderState(tracklethcheader), mHalfChamberWords(halfchamberwords), mHalfChamberMajor(halfchambermajor), mOptions(option) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
-  void sendData(ProcessingContext& pc, bool blankframe = false);
   void run(ProcessingContext& pc) final;
   bool isTimeFrameEmpty(ProcessingContext& pc);
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;
@@ -58,15 +57,15 @@ class DataReaderTask : public Task
   std::bitset<16> mOptions;            // stores the incoming of the above bools, useful to be able to send this on instead of the individual ones above
                                        // the above bools make the code more readable hence still here.
 
-  uint64_t mWordsRead = 0;
-  uint64_t mWordsRejected = 0;
   int mTrackletHCHeaderState{0}; // what to do about tracklethcheader, 0 never there, 2 always there, 1 there iff tracklet data, i.e. only there if next word is *not* endmarker 10001000.
   int mHalfChamberWords{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the number of additional words to try recover the data
   int mHalfChamberMajor{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the major version to try recover the data
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
-  uint64_t mDigitPreviousTotal;                                                           // store the previous timeframes totals for tracklets and digits, to be able to get a diferential total
-  uint64_t mTrackletsPreviousTotal;
+  uint64_t mDatasizeInTotal{0};                                                           // accumulate the total data size read in bytes
+  uint64_t mWordsRejectedTotal{0};                                                        // accumulate the total number of words rejected
+  uint64_t mDigitsTotal{0};                                                               // accumulate the total number of digits read
+  uint64_t mTrackletsTotal{0};                                                            // accumulate the total number os tracklets read
 };
 
 } // namespace o2::trd

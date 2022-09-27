@@ -15,7 +15,6 @@ o2_add_library(Framework
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
-                       src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/CallbacksPolicy.cxx
@@ -104,7 +103,6 @@ o2_add_library(Framework
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
-                       src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
@@ -122,7 +120,6 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
-                       src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
@@ -141,13 +138,11 @@ o2_add_library(Framework
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
-                                     AliceO2::Configuration
+               PUBLIC_LINK_LIBRARIES AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
-                                     O2::CommonUtils
                                      O2::MathUtils
                                      O2::CCDB
                                      O2::FrameworkFoundation
@@ -157,9 +152,7 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
                                      Microsoft.GSL::GSL
-                                     ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
-                                     Boost::serialization
                                      ${BOOST_FILESYSTEM}
                                      arrow::gandiva_shared
                                      LibUV::LibUV
@@ -236,8 +229,7 @@ foreach(t
         WorkflowHelpers
         WorkflowSerialization
         TreeToTable
-        DataOutputDirector
-    DataInputDirector)
+        DataOutputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -306,7 +298,6 @@ endforeach()
 # #####################################################@
 
 foreach(w
-        BoostSerializedProcessing
         CallbackService
         RegionInfoCallbackService
         DanglingInputs
@@ -345,9 +336,6 @@ if (BUILD_TESTING)
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem and re-enable
-set_property(TEST test_Framework_test_BoostSerializedProcessing
-             PROPERTY DISABLED TRUE)
 endif()
 
 # specific tests which needs command line options

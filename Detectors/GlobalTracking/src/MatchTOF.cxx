@@ -149,8 +149,20 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 void MatchTOF::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
   mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+  if (mTPCCorrMapsHelper) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
+}
+
+//______________________________________________
+void MatchTOF::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
+  if (mTPCVDrift > 0.f) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
+  }
 }
 
 //______________________________________________
@@ -1105,15 +1117,43 @@ void MatchTOF::selectBestMatches()
     }
 
     // add also calibration infos
-    if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
-      int mask = 0;
-      float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
-
-      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 deltat,
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask);
+    int flags = 0;
+    if (sourceID == o2::dataformats::GlobalTrackID::TPC) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kTPC;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kITSTPC;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::TPCTRD) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kTPCTRD;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kITSTPCTRD;
     }
+
+    int mask = 0;
+    float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
+
+    const o2::track::TrackParCov& trc = mTracksWork[trkType][itrk].first;
+    float pt = trc.getPt(); // from outer parameters!
+
+    if (pt > 1.5) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kAbove;
+    }
+
+    if (pt < 0.5) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kBelow;
+    }
+
+    if (mask == 0) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kNoBC;
+    }
+
+    if (mTOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() != 1) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
+    }
+
+    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                               mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                               deltat,
+                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
 
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
@@ -1125,7 +1165,7 @@ void MatchTOF::selectBestMatches()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
     i++;
   }
@@ -1234,7 +1274,7 @@ void MatchTOF::selectBestMatchesHP()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
   }
 }
@@ -1400,22 +1440,13 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 
   return true;
 }
+
 //_________________________________________________________
 void MatchTOF::checkRefitter()
 {
   if (mTPCClusterIdxStruct) {
-    if (!mTPCTransform) { // eventually, should be updated at every TF?
-      mTPCTransform = o2::tpc::TPCFastTransformHelperO2::instance()->create(0);
-    }
-
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz,
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper->getCorrMap(), mBz,
                                                                   mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
                                                                   nullptr, o2::base::Propagator::Instance());
   }
-}
-
-//_________________________________________________________
-void MatchTOF::initTPCTransform()
-{
-  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 }

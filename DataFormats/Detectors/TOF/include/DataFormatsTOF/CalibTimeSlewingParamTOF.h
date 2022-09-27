@@ -30,6 +30,8 @@ class CalibTimeSlewingParamTOF
   static const int NSECTORS = 18;                          //
   static const int NCHANNELXSECTOR = NCHANNELS / NSECTORS; //
 
+  static constexpr float MAXTOT = 65535 * 1E-3; // max tot -> max short / 1000.
+
   CalibTimeSlewingParamTOF();
 
   CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source);
@@ -42,6 +44,7 @@ class CalibTimeSlewingParamTOF
   float evalTimeSlewing(int channel, float tot) const;
 
   void addTimeSlewingInfo(int channel, float tot, float time);
+  void setTimeSlewingInfo(int channel, float offsetold, int nold, const unsigned short* oldtot, const short* olddt, int nnew, const unsigned short* newtot, const short* newdt);
 
   bool updateOffsetInfo(int channel, float residualOffset);
 

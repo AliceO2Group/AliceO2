@@ -258,6 +258,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
+      static size_t currentRunNumber = -1;
+      if (dh->runNumber != currentRunNumber) {
+        LOGP(detail, "Run number changed from {} to {}. Resetting DPL timeslice counter", currentRunNumber, dh->runNumber);
+        currentRunNumber = dh->runNumber;
+        dplCounter = 0;
+      }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       if (override_creation) {
         const_cast<DataProcessingHeader*>(dph)->creation = creationVal + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
@@ -502,6 +508,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
         }
+        numberOfEoS = 0;
         control->endOfStream();
       }
     };
@@ -674,6 +681,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         // are no internal forwards
         throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
       }
+      channelNames->clear();
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
@@ -691,7 +699,13 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       }
       proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
     };
+    // We need to clear the channels on stop, because we will check and add them
+    auto channelConfigurationDisposer = [&deviceSpec]() {
+      auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
+      mutableDeviceSpec.forwards.clear();
+    };
     callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
+    callbacks.set(CallbackService::Id::Stop, channelConfigurationDisposer);
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {

@@ -23,7 +23,7 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getTrackerSpec(bool isMC);
+framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked);
 }
 } // namespace o2
 

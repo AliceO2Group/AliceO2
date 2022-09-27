@@ -78,17 +78,20 @@ void CompareDigitsAndTracklets(bool ignoreTrkltPid = false,
     trackletTreereco->GetEvent(iev);
 
     // compare trigger records
+    bool compareTriggerRecords = true;
     if (trigRecs->size() != trigRecsReco->size()) {
       LOG(warn) << "Number of trigger records does not match for entry " << iev;
-      continue;
+      compareTriggerRecords = false;
     }
-    for (size_t iTrig = 0; iTrig < trigRecs->size(); ++iTrig) {
-      const auto& trig = trigRecs->at(iTrig);
-      const auto& trigReco = trigRecsReco->at(iTrig);
-      if (!(trig == trigReco)) {
-        LOGF(error, "Trigger records don't match at trigger %lu. Reference orbit/bc (%u/%u), orbit/bc (%u/%u)",
-             iTrig, trig.getBCData().orbit, trig.getBCData().bc, trigReco.getBCData().orbit, trigReco.getBCData().bc);
-        break;
+    if (compareTriggerRecords) {
+      for (size_t iTrig = 0; iTrig < trigRecs->size(); ++iTrig) {
+        const auto& trig = trigRecs->at(iTrig);
+        const auto& trigReco = trigRecsReco->at(iTrig);
+        if (!(trig == trigReco)) {
+          LOGF(error, "Trigger records don't match at trigger %lu. Reference orbit/bc (%u/%u), orbit/bc (%u/%u)",
+               iTrig, trig.getBCData().orbit, trig.getBCData().bc, trigReco.getBCData().orbit, trigReco.getBCData().bc);
+          break;
+        }
       }
     }
 

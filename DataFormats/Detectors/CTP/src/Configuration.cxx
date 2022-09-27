@@ -602,7 +602,7 @@ void CTPRunManager::init()
   }
   loadScalerNames();
   LOG(info) << "CCDB host:" << mCCDBHost;
-  LOG(info) << "CTP QC:" << mQC;
+  LOG(info) << "CTP vNew:" << mNew;
   LOG(info) << "CTPRunManager initialised.";
 }
 int CTPRunManager::loadRun(const std::string& cfg)
@@ -651,6 +651,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     return 1;
   }
   std::string orb = "extorb";
+  std::string orbitid = "orbitid";
   CTPScalerRecordRaw scalrec;
   scalrec.epochTime = time;
   std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
@@ -689,7 +690,11 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     }
   }
   //
-  scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
+  if (mNew == 0) {
+    scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
+  } else {
+    scalrec.intRecord.orbit = mCounters[mScalerName2Position[orbitid]];
+  }
   scalrec.intRecord.bc = 0;
   mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
   LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
@@ -699,10 +704,6 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
-  if (mQC == 1) {
-    LOG(info) << "processMessage: skipping, QC=1";
-    return 1;
-  }
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
   if (topic.find("ctpconfig") != std::string::npos) {
@@ -735,8 +736,13 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     tokens = o2::utils::Str::tokenize(message, ' ');
   }
   if (tokens.size() != (CTPRunScalers::NCOUNTERS + 1)) {
-    LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
-    return 1;
+    if (tokens.size() == (CTPRunScalers::NCOUNTERS)) {
+      mNew = 0;
+      LOG(warning) << "v1 scaler size, using external orbit";
+    } else {
+      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
+      return 1;
+    }
   }
   double timeStamp = std::stold(tokens.at(0));
   std::time_t tt = timeStamp;
@@ -848,7 +854,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   }
   return *ctpconfigdb;
 }
-CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run)
+CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -857,8 +863,10 @@ CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run)
   auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
+    ok = 0;
   } else {
     // ctpscalers->printStream(std::cout);
+    ok = 1;
   }
   return *ctpscalers;
 }

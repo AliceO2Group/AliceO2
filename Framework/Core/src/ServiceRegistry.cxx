@@ -140,6 +140,12 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.domainInfoUpdated) {
     mDomainInfoHandles.push_back(ServiceDomainInfoHandle{spec, spec.domainInfoUpdated, service});
   }
+  if (spec.preSendingMessages) {
+    mPreSendingMessagesHandles.push_back(ServicePreSendingMessagesHandle{spec, spec.preSendingMessages, service});
+  }
+  if (spec.postRenderGUI) {
+    mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
+  }
 }
 
 /// Invoke callbacks to be executed before every process method invokation
@@ -238,6 +244,20 @@ void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_
 {
   for (auto& handle : mDomainInfoHandles) {
     handle.callback(*this, oldestPossibleTimeslice, channelIndex);
+  }
+}
+
+void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
+{
+  for (auto& handle : mPreSendingMessagesHandles) {
+    handle.callback(*this, parts, channelIndex);
+  }
+}
+
+void ServiceRegistry::postRenderGUICallbacks()
+{
+  for (auto& handle : mPostRenderGUIHandles) {
+    handle.callback(*this);
   }
 }
 

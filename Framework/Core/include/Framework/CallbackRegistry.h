@@ -19,6 +19,7 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/RuntimeError.h"
 #include <tuple>
+#include <functional>
 
 namespace o2::framework
 {

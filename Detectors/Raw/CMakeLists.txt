@@ -16,7 +16,8 @@ o2_add_library(DetectorsRaw
                        src/RDHUtils.cxx
                        src/HBFUtilsInitializer.cxx
                        src/DistSTFSenderSpec.cxx
-               PUBLIC_LINK_LIBRARIES FairRoot::Base
+               PUBLIC_LINK_LIBRARIES AliceO2::Common
+                                     FairRoot::Base
                                      O2::Headers
                                      O2::CommonDataFormat
                                      O2::DetectorsCommonDataFormats

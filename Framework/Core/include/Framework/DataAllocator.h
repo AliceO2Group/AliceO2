@@ -156,13 +156,8 @@ class DataAllocator
       });
       return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
-      constexpr bool isBoostSerializable = framework::is_boost_serializable<T>::value;
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-      } else if constexpr (is_specialization_v<T, BoostSerialized> == true) {
-        return make_boost<typename T::wrapped_type>(std::move(spec));
-      } else if constexpr (is_specialization_v<T, BoostSerialized> == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
-        return make_boost<T>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
       }
@@ -186,8 +181,6 @@ class DataAllocator
           create(spec, &writer, schema);
           return writer;
         }
-      } else if constexpr (is_specialization_v<T, BoostSerialized>) {
-        return make_boost<FirstArg>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
       }
@@ -222,40 +215,6 @@ class DataAllocator
   /// Adopt an Arrow table and send it to all consumers of @a spec
   void
     adopt(const Output& spec, std::shared_ptr<class arrow::Table>);
-
-  /// Adopt a raw buffer in the framework and serialize / send
-  /// it to the consumers of @a spec once done.
-  template <typename T>
-  typename std::enable_if<is_specialization_v<T, BoostSerialized> == true, void>::type
-    adopt(const Output& spec, T* ptr)
-  {
-    adopt_boost(std::move(spec), std::move(ptr()));
-  }
-
-  template <typename T>
-  void adopt_boost(const Output& spec, T* ptr)
-  {
-
-    using type = T;
-
-    char* payload = reinterpret_cast<char*>(ptr);
-    auto& timingInfo = mRegistry->get<TimingInfo>();
-    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-    // the correct payload size is set later when sending the
-    // RawBufferContext, see DataProcessor::doSend
-    auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
-
-    auto lambdaSerialize = [voidPtr = payload]() {
-      return o2::utils::BoostSerialize<type>(*(reinterpret_cast<type*>(voidPtr)));
-    };
-
-    auto lambdaDestructor = [voidPtr = payload]() {
-      auto tmpPtr = reinterpret_cast<type*>(voidPtr);
-      delete tmpPtr;
-    };
-
-    mRegistry->get<RawBufferContext>().addRawBuffer(std::move(header), std::move(payload), routeIndex, std::move(lambdaSerialize), std::move(lambdaDestructor));
-  }
 
   /// Send a snapshot of an object, depending on the object type it is serialized before.
   /// The method always takes a copy of the data, which will then be sent once the

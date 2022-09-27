@@ -81,6 +81,44 @@ class CTFHelper
       return (I&)(*this);
     }
 
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
+
     difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
 
     difference_type operator-(size_t idx) const { return mIndex - idx; }
@@ -95,6 +133,8 @@ class CTFHelper
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -119,6 +159,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].ir.orbit == mData[id - 1].ir.orbit) {
+          return mData[id].ir.bc - mData[id - 1].ir.bc;
+        } else {
+          return mData[id].ir.bc;
+        }
+      }
+      return 0;
+    }
   };
 
   /////////////////////////////////// BCData iterators ////////////////////////////////////////
@@ -129,6 +181,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, BCData, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -138,6 +195,11 @@ class CTFHelper
    public:
     using _Iter<Iter_moduleTrig, BCData, uint16_t, NModules>::_Iter;
     value_type operator*() const { return mData[mIndex / NModules].moduleTriggers[mIndex % NModules]; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return mData[id / NModules].moduleTriggers[id % NModules];
+    }
   };
 
   //_______________________________________________
@@ -147,6 +209,11 @@ class CTFHelper
    public:
     using _Iter<Iter_channelsHL, BCData, uint16_t, 2>::_Iter;
     value_type operator*() const { return uint16_t(mIndex & 0x1 ? mData[mIndex / 2].channels : mData[mIndex / 2].channels >> 16); }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return uint16_t(id & 0x1 ? mData[id / 2].channels : mData[id / 2].channels >> 16);
+    }
   };
 
   //_______________________________________________
@@ -156,6 +223,11 @@ class CTFHelper
    public:
     using _Iter<Iter_triggersHL, BCData, uint16_t, 2>::_Iter;
     value_type operator*() const { return uint16_t(mIndex & 0x1 ? mData[mIndex / 2].triggers : mData[mIndex / 2].triggers >> 16); }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return uint16_t(id & 0x1 ? mData[id / 2].triggers : mData[id / 2].triggers >> 16);
+    }
   };
 
   //_______________________________________________
@@ -165,6 +237,7 @@ class CTFHelper
    public:
     using _Iter<Iter_extTriggers, BCData, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].ext_triggers; }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].ext_triggers; }
   };
 
   //_______________________________________________
@@ -174,6 +247,7 @@ class CTFHelper
    public:
     using _Iter<Iter_nchanTrig, BCData, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].ref.getEntries(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].ref.getEntries(); }
   };
 
   ////////////////////////// ChannelData iterators /////////////////////////////
@@ -184,6 +258,7 @@ class CTFHelper
    public:
     using _Iter<Iter_chanID, ChannelData, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].id; }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].id; }
   };
 
   //_______________________________________________
@@ -192,6 +267,11 @@ class CTFHelper
    public:
     using _Iter<Iter_chanData, ChannelData, uint16_t, NTimeBinsPerBC>::_Iter;
     value_type operator*() const { return mData[mIndex / NTimeBinsPerBC].data[mIndex % NTimeBinsPerBC]; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return mData[id / NTimeBinsPerBC].data[id % NTimeBinsPerBC];
+    }
   };
 
   ////////////////////////// OrbitData iterators /////////////////////////////
@@ -203,25 +283,41 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncEOD, OrbitData, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0;
+    }
   };
 
   //_______________________________________________
-  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, int16_t, NChannels>
+  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, uint16_t, NChannels>
   {
    public:
-    using _Iter<Iter_pedData, OrbitData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_pedData, OrbitData, uint16_t, NChannels>::_Iter;
     value_type operator*() const { return mData[mIndex / NChannels].data[mIndex % NChannels]; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return mData[id / NChannels].data[id % NChannels];
+    }
   };
 
   //_______________________________________________
-  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>
+  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>
   {
    public:
-    using _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>::_Iter;
     value_type operator*() const
     {
       // define with respect to previous orbit
       int slot = mIndex / NChannels, chan = mIndex % NChannels;
+      return slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0;
+    }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      int slot = id / NChannels, chan = id % NChannels;
       return slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0;
     }
   };

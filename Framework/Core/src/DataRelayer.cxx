@@ -251,21 +251,21 @@ size_t matchToContext(void const* data,
 void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
                                 monitoring::Monitoring& metrics, std::vector<std::string> const& names)
 {
-  const std::string nullstring{"null"};
+  static const std::string nullstring{"null"};
 
-  for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
-    auto& var = context.get(i);
-    auto& name = names[16 * slot.index + i];
+  context.publish([](ContextElement::Value const& var, std::string const& name, void* context) {
+    monitoring::Monitoring* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
     if (auto pval = std::get_if<uint64_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval = std::get_if<uint32_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval2 = std::get_if<std::string>(&var)) {
-      metrics.send(monitoring::Metric{*pval2, name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{*pval2, name, Verbosity::Debug});
     } else {
-      metrics.send(monitoring::Metric{nullstring, name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{nullstring, name, Verbosity::Debug});
     }
-  }
+  },
+                  &metrics, slot, names);
 }
 
 void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
@@ -282,7 +282,6 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool droppingNotCondition = false;
     mPruneOps.push_back(PruneOp{si});
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];

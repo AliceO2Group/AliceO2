@@ -364,6 +364,9 @@ int main(int argc, char* argv[])
   auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
   auto& conf = o2::conf::SimConfig::Instance();
+#ifdef SIM_RUN5
+  conf.setRun5();
+#endif
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;
   }
@@ -372,7 +375,11 @@ int main(int argc, char* argv[])
   if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(info) << "No events to be simulated; Switching to non-distributed mode";
     const int Nargs = argc + 1;
+#ifdef SIM_RUN5
+    std::string name("o2-sim-serial-run5");
+#else
     std::string name("o2-sim-serial");
+#endif
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     for (int i = 1; i < argc; ++i) {
@@ -428,7 +435,12 @@ int main(int argc, char* argv[])
     const std::string config = localconfig;
 
     // copy all arguments into a common vector
-    const int Nargs = argc + 9;
+#ifdef SIM_RUN5
+    const int addNArgs = 10;
+#else
+    const int addNArgs = 9;
+#endif
+    const int Nargs = argc + addNArgs;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -439,8 +451,11 @@ int main(int argc, char* argv[])
     arguments[6] = config.c_str();
     arguments[7] = "--severity";
     arguments[8] = "debug";
+#ifdef SIM_RUN5
+    arguments[9] = "--isRun5";
+#endif
     for (int i = 1; i < argc; ++i) {
-      arguments[8 + i] = argv[i];
+      arguments[addNArgs - 1 + i] = argv[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {

@@ -135,6 +135,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   // std::cout << "Finished cell loop" << std::endl;
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
 
   mTimer.Stop();
 }
@@ -157,6 +158,7 @@ DataProcessorSpec getPHOSStandaloneAODProducerSpec()
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
 
   return DataProcessorSpec{
     "phos-standalone-aod-producer-workflow",

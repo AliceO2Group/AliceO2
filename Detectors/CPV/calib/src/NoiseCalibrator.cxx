@@ -94,50 +94,68 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   LOG(info) << "NoiseCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
   o2::cpv::BadChannelMap* badMap = new o2::cpv::BadChannelMap();
-  bool badMapBool[Geometry::kNCHANNELS] = {};
+  bool badMapBool[Geometry::kNCHANNELS] = {false};
+
+  // persistent bad channels from ccdb
+  if (mPersistentBadChannels) {
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : adding " << mPersistentBadChannels->size() << " permanent bad channels";
+    for (int i = 0; i < mPersistentBadChannels->size(); i++) {
+      badMapBool[(*mPersistentBadChannels)[i]] = true;
+    }
+  }
 
   // handle data from pedestal run first
   // check pedestal efficiencies
+  int badEfficiencyChannels = 0;
   if (mPedEfficiencies) {
-    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking ped efficiencies";
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking ped efficiencies from pedestal run";
     for (int i = 0; i < Geometry::kNCHANNELS; i++) {
-      badMapBool[i] = false;
-      if ((*mPedEfficiencies.get())[i] > mToleratedChannelEfficiencyHigh ||
-          (*mPedEfficiencies.get())[i] < mToleratedChannelEfficiencyLow) {
+      if ((*mPedEfficiencies)[i] > mToleratedChannelEfficiencyHigh ||
+          (*mPedEfficiencies)[i] < mToleratedChannelEfficiencyLow) {
         badMapBool[i] = true;
+        badEfficiencyChannels++;
       }
     }
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : found " << badEfficiencyChannels << " bad ped efficiency channels";
   }
 
   // check dead channels
   if (mDeadChannels) {
-    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking dead channels";
-    for (unsigned int i = 0; i < mDeadChannels.get()->size(); i++) {
-      badMapBool[(*mDeadChannels.get())[i]] = true;
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : adding " << mDeadChannels->size() << " dead channels from pedestal run";
+    for (int i = 0; i < mDeadChannels->size(); i++) {
+      badMapBool[(*mDeadChannels)[i]] = true;
     }
   }
 
   // check channels with very high pedestal value (> 511)
   if (mHighPedChannels) {
-    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking high ped channels";
-    for (unsigned int i = 0; i < mHighPedChannels.get()->size(); i++) {
-      badMapBool[(*mHighPedChannels.get())[i]] = true;
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : adding " << mHighPedChannels->size() << " high ped channels from pedestal run";
+    for (int i = 0; i < mHighPedChannels->size(); i++) {
+      badMapBool[(*mHighPedChannels)[i]] = true;
     }
   }
 
   // find noisy channels
+  int noisyChannels = 0;
+  LOG(info) << "NoiseCalibrator::finalizeSlot() : checking noisy channels";
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {
     if (float(calibData->mOccupancyMap[i]) / calibData->mNEvents > mNoiseFrequencyCriteria) {
       badMapBool[i] = true;
+      noisyChannels++;
     }
   }
+  LOG(info) << "NoiseCalibrator::finalizeSlot() : found " << noisyChannels << " noisy channels";
 
   // fill BadChannelMap and send it to output
+  int totalBadChannels = 0;
   for (unsigned short i = 0; i < Geometry::kNCHANNELS; i++) {
     if (badMapBool[i]) {
       badMap->addBadChannel(i);
+      totalBadChannels++;
     }
   }
+  LOG(info) << "NoiseCalibrator::finalizeSlot() : created bad channel map with " << totalBadChannels << " bad channels in total";
+
   mBadChannelMapVec.push_back(*badMap);
   // metadata for o2::cpv::BadChannelMap
   std::map<std::string, std::string> metaData;

@@ -106,6 +106,10 @@ struct ServiceRegistry {
   std::vector<ServiceExitHandle> mPreExitHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
+  /// Callbacks for services to be executed before sending messages
+  std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
+  /// Callbacks to be executed after the main GUI has been drawn
+  std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
   /// To hide exception throwing from QC
   void throwError(RuntimeErrorRef const& ref) const;
@@ -144,6 +148,13 @@ struct ServiceRegistry {
 
   /// Invoke whenever we get a new DomainInfo message
   void domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
+
+  /// Invoke before sending messages @a parts on a channel @a channelindex
+  void preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelindex);
+
+  /// Invoke after rendering the GUI. Can be used to
+  /// add custom GUI elements associated to a given service.
+  void postRenderGUICallbacks();
 
   /// Declare a service by its ServiceSpec. If of type Global
   /// / Serial it will be immediately registered for tid 0,

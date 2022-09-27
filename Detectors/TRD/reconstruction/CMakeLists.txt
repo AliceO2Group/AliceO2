@@ -12,8 +12,6 @@
 o2_add_library(TRDReconstruction
                SOURCES src/CTFCoder.cxx
                        src/CTFHelper.cxx
-                       src/DigitsParser.cxx
-                       src/TrackletsParser.cxx
                        src/CruRawReader.cxx
                        src/DataReaderTask.cxx
                        src/EventRecord.cxx

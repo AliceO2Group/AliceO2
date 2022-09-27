@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_DATADESCRIPTORMATCHER_H_
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/TimesliceSlot.h"
 #include <variant>
 
 namespace o2::framework

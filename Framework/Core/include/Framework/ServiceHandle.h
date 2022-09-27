@@ -33,9 +33,9 @@ struct ServiceHandle {
   /// Unique hash associated to the type of service.
   unsigned int hash;
   /// Type erased pointer to a service
-  void* instance;
+  void* instance = nullptr;
   /// Kind of service
-  ServiceKind kind;
+  ServiceKind kind = ServiceKind::Serial;
   /// Mnemonic name to use for the service.
   std::string name = "unknown";
 };

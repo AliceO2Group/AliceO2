@@ -62,7 +62,7 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
     // FIXME: this should really be a policy...
     doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
   } else if (command == "NOTIFY_DEVICE_STATE") {
-    doToMatchingPid(infos, pid, [arg](DeviceInfo& info) { info.deviceState = arg; });
+    doToMatchingPid(infos, pid, [arg](DeviceInfo& info) { info.deviceState = arg; info.providedState++; });
   } else {
     LOGP(error, "Unknown command {} with argument {}", command, arg);
   }
