@@ -67,6 +67,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
+    mExcludeInnerBarrel(kFALSE),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
@@ -79,7 +80,7 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-static void configITS(Detector* its)
+static void configITS(Detector* its, bool excludeInnerBarrel)
 {
   // build ITS upgrade detector
   const int kNLr = 7;
@@ -123,7 +124,7 @@ static void configITS(Detector* its)
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
-  for (int idLr = 0; idLr < kNLr; idLr++) {
+  for (int idLr = kNLrInner * int(excludeInnerBarrel); idLr < kNLr; idLr++) {
     rLr = tdr5dat[idLr][kRmd];
     phi0 = tdr5dat[idLr][kPhi0];
 
@@ -153,6 +154,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
+    mExcludeInnerBarrel(kFALSE),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
@@ -183,7 +185,7 @@ Detector::Detector(Bool_t active)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  configITS(this);
+  configITS(this, mExcludeInnerBarrel);
 }
 
 Detector::Detector(const Detector& rhs)
@@ -198,6 +200,7 @@ Detector::Detector(const Detector& rhs)
     */
     mNumberOfDetectors(rhs.mNumberOfDetectors),
     mModifyGeometry(rhs.mModifyGeometry),
+    mExcludeInnerBarrel(rhs.mExcludeInnerBarrel),
 
     /// Container for data points
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
@@ -239,6 +242,7 @@ Detector& Detector::operator=(const Detector& rhs)
   mNumberOfDetectors = rhs.mNumberOfDetectors;
 
   mModifyGeometry = rhs.mModifyGeometry;
+  mExcludeInnerBarrel = rhs.mExcludeInnerBarrel;
 
   /// Container for data points
   mHits = nullptr;
@@ -287,7 +291,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
+  if (fMC->IsTrackExiting() && ((!mExcludeInnerBarrel && lay == 0) || lay == 6)) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
@@ -809,7 +813,7 @@ void Detector::constructDetectorGeometry()
   vITSV->SetTitle(vstrng);
 
   // Check that we have all needed parameters
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = sNumberInnerLayers * int(mExcludeInnerBarrel); j < sNumberLayers; j++) {
     if (mLayerRadii[j] <= 0) {
       LOG(fatal) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
@@ -846,14 +850,14 @@ void Detector::constructDetectorGeometry()
 
   if (sNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
-    for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
+    for (int id = int(mExcludeInnerBarrel); id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
   }
 
   // Now create the actual geometry
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = sNumberInnerLayers * int(mExcludeInnerBarrel); j < sNumberLayers; j++) {
     TGeoVolume* dest = vITSV;
     mWrapperLayerId[j] = -1;
 
@@ -887,7 +891,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
-    for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
+    for (int iw = int(mExcludeInnerBarrel); iw < sNumberOfWrapperVolumes; iw++) {
       if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
         LOG(debug) << "Will embed layer " << j << " in wrapper volume " << iw;
 
@@ -902,7 +906,9 @@ void Detector::constructDetectorGeometry()
   // Now create the services
   mServicesGeometry = new V3Services();
 
-  createInnerBarrelServices(wrapVols[0]);
+  if (!mExcludeInnerBarrel) {
+    createInnerBarrelServices(wrapVols[0]);
+  }
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
@@ -1046,7 +1052,7 @@ void Detector::addAlignableVolumes() const
   }
 
   Int_t lastUID = 0;
-  for (Int_t lr = 0; lr < sNumberLayers; lr++) {
+  for (Int_t lr = sNumberInnerLayers * int(mExcludeInnerBarrel); lr < sNumberLayers; lr++) {
     addAlignableVolumesLayer(lr, path, lastUID);
   }
 
@@ -1226,7 +1232,7 @@ void Detector::defineSensitiveVolumes()
   TString volumeName;
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...sNumberLayers-1)
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = sNumberInnerLayers * int(mExcludeInnerBarrel); j < sNumberLayers; j++) {
     volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);

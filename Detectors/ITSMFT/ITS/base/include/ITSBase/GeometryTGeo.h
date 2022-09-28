@@ -354,6 +354,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
   Int_t mNumberOfLayers;                        ///< number of layers
+  Int_t mInnerLayerID;                          ///< identifier of inner layer (needed in case of inner barrel turned off)
   Int_t mNumberOfHalfBarrels;                   ///< number of halfbarrels
   std::vector<int> mNumberOfStaves;             ///< number of staves/layer(layer)
   std::vector<int> mNumberOfHalfStaves;         ///< the number of substaves/stave(layer)
@@ -385,7 +386,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
 #endif
 
-  ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 2); // ITS geometry based on TGeo
 };
 } // namespace its
 } // namespace o2

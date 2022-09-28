@@ -71,6 +71,7 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo
     LOG(fatal) << "Invalid use of public constructor: o2::its::GeometryTGeo instance exists";
     // throw std::runtime_error("Invalid use of public constructor: o2::its::GeometryTGeo instance exists");
   }
+  mInnerLayerID = 999;
 
   for (int i = MAXLAYERS; i--;) {
     mLayerToWrapper[i] = -1;
@@ -392,24 +393,31 @@ void GeometryTGeo::Build(int loadTrans)
     return;
   }
 
-  mNumberOfStaves.resize(mNumberOfLayers);
-  mNumberOfHalfStaves.resize(mNumberOfLayers);
-  mNumberOfModules.resize(mNumberOfLayers);
-  mNumberOfChipsPerModule.resize(mNumberOfLayers);
-  mNumberOfChipRowsPerModule.resize(mNumberOfLayers);
-  mNumberOfChipsPerHalfStave.resize(mNumberOfLayers);
-  mNumberOfChipsPerStave.resize(mNumberOfLayers);
-  mNumberOfChipsPerHalfBarrel.resize(mNumberOfLayers);
-  mNumberOfChipsPerLayer.resize(mNumberOfLayers);
-  mLastChipIndex.resize(mNumberOfLayers);
+  mNumberOfStaves.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfHalfStaves.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfModules.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipsPerModule.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipRowsPerModule.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipsPerHalfStave.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipsPerStave.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipsPerHalfBarrel.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfChipsPerLayer.resize(mNumberOfLayers + mInnerLayerID);
+  mLastChipIndex.resize(mNumberOfLayers + mInnerLayerID);
   int numberOfChips = 0;
 
   mNumberOfHalfBarrels = extractNumberOfHalfBarrels();
-  for (int i = 0; i < mNumberOfLayers; i++) {
-    mNumberOfStaves[i] = extractNumberOfStaves(i);
-    mNumberOfHalfStaves[i] = extractNumberOfHalfStaves(i);
-    mNumberOfModules[i] = extractNumberOfModules(i);
-    mNumberOfChipsPerModule[i] = extractNumberOfChipsPerModule(i, mNumberOfChipRowsPerModule[i]);
+  for (int i = 0; i < mInnerLayerID + mNumberOfLayers; i++) {
+    if (i >= mInnerLayerID) {
+      mNumberOfStaves[i] = extractNumberOfStaves(i);
+      mNumberOfHalfStaves[i] = extractNumberOfHalfStaves(i);
+      mNumberOfModules[i] = extractNumberOfModules(i);
+      mNumberOfChipsPerModule[i] = extractNumberOfChipsPerModule(i, mNumberOfChipRowsPerModule[i]);
+    } else {
+      mNumberOfStaves[i] = 0;
+      mNumberOfHalfStaves[i] = 0;
+      mNumberOfModules[i] = 0;
+      mNumberOfChipsPerModule[i] = 0;
+    }
     mNumberOfChipsPerHalfStave[i] = mNumberOfChipsPerModule[i] * Max(1, mNumberOfModules[i]);
     mNumberOfChipsPerStave[i] = mNumberOfChipsPerHalfStave[i] * Max(1, mNumberOfHalfStaves[i]);
     mNumberOfChipsPerLayer[i] = mNumberOfChipsPerStave[i] * mNumberOfStaves[i];
@@ -523,6 +531,9 @@ int GeometryTGeo::extractNumberOfLayers()
         LOG(fatal) << "Failed to extract layer ID from the " << name;
         exit(1);
       }
+      if (mInnerLayerID > lrID) {
+        mInnerLayerID = lrID;
+      }
 
       mLayerToWrapper[lrID] = -1;                      // not wrapped
     } else if (strstr(name, getITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
@@ -543,6 +554,9 @@ int GeometryTGeo::extractNumberOfLayers()
             exit(1);
           }
           numberOfLayers++;
+          if (mInnerLayerID > lrID) {
+            mInnerLayerID = lrID;
+          }
           mLayerToWrapper[lrID] = wrID;
         }
       }
@@ -747,7 +761,7 @@ void GeometryTGeo::Print(Option_t*) const
     return;
   }
 
-  for (int i = 0; i < mNumberOfLayers; i++) {
+  for (int i = mInnerLayerID; i < mNumberOfLayers + mInnerLayerID; i++) {
     printf(
       "Lr%2d\tNStav:%2d\tNChips:%2d "
       "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
