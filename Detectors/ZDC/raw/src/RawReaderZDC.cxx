@@ -274,17 +274,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             mt.f.AutoErr = true;
             inconsistent_auto_trig = true;
           }
-          // Verify trigger condition (if requested)
-          // TODO: check that it corresponds to firmware
-          if (mVerifyTrigger) {
-            if ((mt.f.Alice_0 || mt.f.Alice_1) || (mt.f.Alice_2 && (mt.f.Auto_0 || mt.f.Auto_m)) || (mt.f.Alice_3 && mt.f.Auto_0) || (mt.f.Auto_0 || mt.f.Auto_1)) {
-              ncd++;
-            } else {
-              digitsCh.pop_back();
-            }
-          } else {
-            ncd++;
-          }
+          ncd++;
         } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
           // Empty channel
         } else {
