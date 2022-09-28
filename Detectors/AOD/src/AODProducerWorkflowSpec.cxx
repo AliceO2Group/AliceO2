@@ -1130,7 +1130,7 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
 void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
                                            const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
-                                           std::map<uint64_t, int>& bcsMap, int8_t caloType)
+                                           const std::map<uint64_t, int>& bcsMap, int8_t caloType)
 {
   uint64_t globalBC = 0;    // global BC ID
   uint64_t globalBCRel = 0; // BC id reltive to minGlBC (from FIT)
@@ -1384,6 +1384,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (!primVer2TRefs.empty()) { // if the vertexing was done, the last slot refers to orphan tracks
     addRefGlobalBCsForTOF(primVer2TRefs.back(), primVerGIs, recoData, bcsMap);
   }
+  // initialize the bunch crossing container for further use below
+  mBCLookup.init(bcsMap);
 
   uint64_t tfNumber;
   const int runNumber = (mRunNumber == -1) ? int(tinfo.runNumber) : mRunNumber;
@@ -2101,20 +2103,45 @@ std::uint64_t AODProducerWorkflowDPL::fillBCSlice(int (&slice)[2], double tmin, 
   // The track time in the TrackExtraInfo is stored in ns wrt the collision BC for unambigous tracks and wrt bcSlice[0] for ambiguous ones,
   // with convention for errors: trackSigma in case (1) and half of the time interval for case (2) above.
 
-  // find indices of widest slice of global BCs in the map compatible with provided BC range. bcsMap is guaranteed to be non-empty
+  // find indices of widest slice of global BCs in the map compatible with provided BC range. bcsMap is guaranteed to be non-empty.
+  // We also assume that tmax >= tmin.
+
   uint64_t bcMin = relativeTime_to_GlobalBC(tmin), bcMax = relativeTime_to_GlobalBC(tmax);
-  auto lower = bcsMap.lower_bound(bcMin), upper = bcsMap.upper_bound(bcMax);
-  if (lower == bcsMap.end()) {
-    --lower;
+
+  /*
+    // brute force way of searching bcs via direct binary search in the map
+    auto lower = bcsMap.lower_bound(bcMin), upper = bcsMap.upper_bound(bcMax);
+
+    if (lower == bcsMap.end()) {
+      --lower;
+    }
+    if (upper != lower) {
+      --upper;
+    }
+    slice[0] = std::distance(bcsMap.begin(), lower);
+    slice[1] = std::distance(bcsMap.begin(), upper);
+  */
+
+  // faster way to search in bunch crossing via the accelerated bunch crossing lookup structure
+  auto p = mBCLookup.lower_bound(bcMin);
+  // assuming that bcMax will be >= bcMin and close to bcMin; we can find
+  // the upper bound quickly by lineary iterating from p.first to the point where
+  // the time becomes larger than bcMax.
+  // (if this is not the case we could determine it with a similar call to mBCLookup)
+  auto& bcvector = mBCLookup.getBCTimeVector();
+  auto upperindex = p.first;
+  while (upperindex < bcvector.size() && bcvector[upperindex] <= bcMax) {
+    upperindex++;
   }
-  if (upper != lower) {
-    --upper;
+  if (upperindex != p.first) {
+    upperindex--;
   }
-  slice[0] = std::distance(bcsMap.begin(), lower);
-  slice[1] = std::distance(bcsMap.begin(), upper);
-  auto bcOfTimeRef = lower->first - this->mStartIR.toLong();
-  LOG(debug) << "BC slice t:" << tmin << " " << slice[0] << "(" << lower->first << "/" << lower->second << ")"
-             << " t: " << tmax << " " << slice[1] << "(" << upper->first << "/" << upper->second << ")"
+  slice[0] = p.first;
+  slice[1] = upperindex;
+
+  auto bcOfTimeRef = p.first - this->mStartIR.toLong();
+  LOG(debug) << "BC slice t:" << tmin << " " << slice[0]
+             << " t: " << tmax << " " << slice[1]
              << " bcref: " << bcOfTimeRef;
   return bcOfTimeRef;
 }

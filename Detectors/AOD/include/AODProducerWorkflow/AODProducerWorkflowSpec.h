@@ -56,6 +56,154 @@ using DataRequest = o2::globaltracking::DataRequest;
 namespace o2::aodproducer
 {
 
+/// A structure or container to organize bunch crossing data of a timeframe
+/// and to facilitate fast lookup and search within bunch crossings.
+class BunchCrossings
+{
+ public:
+  /// Constructor initializes the acceleration structure
+  BunchCrossings() {}
+
+  /// initialize this container (to be ready for lookup/search queries)
+  void init(std::map<uint64_t, int> const& bcs)
+  {
+    clear();
+    // init the structures
+    for (auto& key : bcs) {
+      mBCTimeVector.emplace_back(key.first);
+    }
+    initTimeWindows();
+  }
+
+  /// return the sorted vector of increaing BC times
+  std::vector<uint64_t> const& getBCTimeVector() const { return mBCTimeVector; }
+
+  /// Performs a "lower bound" search for timestamp within the bunch crossing data.
+  /// Returns the smallest bunch crossing (index and value) equal or greater than timestamp.
+  /// The functions is expected to perform much better than
+  /// a binary search in the bunch crossing data directly. Expect O(1) instead of O(log(N)) at the cost
+  /// of the additional memory used by this class.
+  std::pair<size_t, uint64_t> lower_bound(uint64_t timestamp) const
+  {
+    // a) determine the timewindow
+    const auto NofWindows = mTimeWindows.size();
+    const auto smallestBC = mBCTimeVector[0];
+    const auto largestBC = mBCTimeVector.back();
+    auto timeindex = std::max((int)0, (int)((timestamp - smallestBC) / mWindowSize));
+
+    if (timeindex >= NofWindows) {
+      // there is no next greater; so the bc index is at the end of the vector
+      return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+    }
+
+    const auto* timewindow = &mTimeWindows[timeindex];
+    while (timeindex < NofWindows && (!timewindow->isOccupied() || mBCTimeVector[timewindow->to] < timestamp)) {
+      timeindex = timewindow->nextOccupiedRight;
+      if (timeindex < NofWindows) {
+        timewindow = &mTimeWindows[timeindex];
+      }
+    }
+    if (timeindex >= NofWindows) {
+      // there is no next greater; so the bc index is at the end of the vector
+      return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+    }
+    // otherwise we actually do a search now
+    std::pair<int, uint64_t> p;
+    auto iter = std::lower_bound(mBCTimeVector.begin() + timewindow->from, mBCTimeVector.begin() + timewindow->to + 1, timestamp);
+    int k = std::distance(mBCTimeVector.begin(), iter);
+    p.first = k;
+    p.second = mBCTimeVector[k];
+    return p;
+  }
+
+  /// clear/reset this container
+  void clear()
+  {
+    mBCs.clear();
+    mBCTimeVector.clear();
+    mTimeWindows.clear();
+  }
+
+  /// print information about this container
+  void print()
+  {
+    LOG(info) << "Have " << mBCTimeVector.size() << " BCs";
+    for (auto t : mBCTimeVector) {
+      LOG(info) << t;
+    }
+    int twcount = 0;
+    auto wsize = mWindowSize;
+    for (auto& tw : mTimeWindows) {
+      LOG(info) << "TimeWindow " << twcount << " [ " << wsize * twcount << ":" << wsize * (twcount + 1) << " ]  : from " << tw.from << " to " << tw.to << " nextLeft " << tw.nextOccupiedLeft << " nextRight " << tw.nextOccupiedRight;
+      twcount++;
+    }
+  }
+
+ private:
+  std::map<uint64_t, int> mBCs;
+  std::vector<uint64_t> mBCTimeVector; // simple sorted vector of BC times
+
+  /// initialize the internal acceleration structure
+  void initTimeWindows()
+  {
+    // on average we want say M bunch crossings per time window
+    const int M = 5;
+    int window_number = mBCTimeVector.size() / M;
+    if (mBCTimeVector.size() % M != 0) {
+      window_number += 1;
+    }
+    mWindowSize = (mBCTimeVector.back() + 1 - mBCTimeVector[0]) / (1. * window_number);
+    // now we go through the list of times and bucket them into the correct windows
+    mTimeWindows.resize(window_number);
+    for (int bcindex = 0; bcindex < mBCTimeVector.size(); ++bcindex) {
+      auto windowindex = (int)(mBCTimeVector[bcindex] - mBCTimeVector[0]) / mWindowSize;
+      // we add "bcindex" to the TimeWindow windowindex
+      auto& tw = mTimeWindows[windowindex];
+      if (tw.from == -1) {
+        tw.from = bcindex;
+      } else {
+        tw.from = std::min(tw.from, bcindex);
+      }
+      if (tw.to == -1) {
+        tw.to = bcindex;
+      } else {
+        tw.to = std::max(tw.to, bcindex);
+      }
+    }
+
+    // now we do the neighbourhood linking of time windows
+    int lastoccupied = -1;
+    for (int windowindex = 0; windowindex < window_number; ++windowindex) {
+      mTimeWindows[windowindex].nextOccupiedLeft = lastoccupied;
+      if (mTimeWindows[windowindex].isOccupied()) {
+        lastoccupied = windowindex;
+      }
+    }
+    lastoccupied = window_number;
+    for (int windowindex = window_number - 1; windowindex >= 0; --windowindex) {
+      mTimeWindows[windowindex].nextOccupiedRight = lastoccupied;
+      if (mTimeWindows[windowindex].isOccupied()) {
+        lastoccupied = windowindex;
+      }
+    }
+  }
+
+  /// Internal structure to "cover" the time duration of all BCs with
+  /// constant time intervals to speed up searching for a particular BC.
+  /// The structure keeps indices into mBCTimeVector denoting the BCs contained within.
+  struct TimeWindow {
+    int from = -1;
+    int to = -1;
+    int nextOccupiedRight = -1; // next time window occupied to the right
+    int nextOccupiedLeft = -1;  // next time window which is occupied to the left
+    inline bool size() const { return to - from; }
+    inline bool isOccupied() const { return size() > 0; }
+  }; // end struct
+
+  std::vector<TimeWindow> mTimeWindows; // the time window structure covering the complete duration of mBCTimeVector
+  double mWindowSize;                   // the size of a single time window
+};                                      // end internal class
+
 class AODProducerWorkflowDPL : public Task
 {
  public:
@@ -117,6 +265,8 @@ class AODProducerWorkflowDPL : public Task
   //  std::unordered_map<int, int> mIndexTableMFT;
   std::vector<int> mIndexTableMFT;
   int mIndexMFTID{0};
+
+  BunchCrossings mBCLookup;
 
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
@@ -348,7 +498,7 @@ class AODProducerWorkflowDPL : public Task
   template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
   void fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
                      const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
-                     std::map<uint64_t, int>& bcsMap, int8_t caloType);
+                     const std::map<uint64_t, int>& bcsMap, int8_t caloType);
 };
 
 /// create a processor spec
