@@ -47,6 +47,7 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   float ElectronCharge = 1.602e-19f;                                            ///< Electron charge [C]
   float adcToT = 1.f / 1024.f;                                                  ///< relation between time over threshold and ADC value
   bool doIonTail = false;                                                       ///< add ion tail in simulation
+  bool doIonTailPerPad = false;                                                 ///< add ion tail in simulation using pad-by-pad values
   bool doSaturationTail = false;                                                ///< add saturation tail in simulation
   bool doNoiseEmptyPads = false;                                                ///< add noise in pads without signal in simulation
   DigitzationMode DigiMode = DigitzationMode::ZeroSuppression;                  ///< Digitization mode [full / ... ]
