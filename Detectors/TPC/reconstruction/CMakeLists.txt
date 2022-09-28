@@ -31,7 +31,6 @@ o2_add_library(TPCReconstruction
                        src/CTFCoder.cxx
                        src/RawProcessingHelpers.cxx
                        src/IonTailCorrection.cxx
-                       src/IonTailCorrectionSettings.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::SimulationDataFormat
                                      O2::TPCBase
@@ -60,8 +59,7 @@ o2_target_root_dictionary(
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
           include/TPCReconstruction/RawProcessingHelpers.h
-          include/TPCReconstruction/IonTailCorrection.h
-          include/TPCReconstruction/IonTailCorrectionSettings.h)
+          include/TPCReconstruction/IonTailCorrection.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc

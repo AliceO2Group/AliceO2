@@ -29,6 +29,9 @@
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/Sector.h"
+#include "TPCBase/CalDet.h"
+#include "TPCBase/IonTailSettings.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
 namespace o2::tpc
@@ -77,7 +80,7 @@ class DigitGlobalPad
                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
 
   /// Fold signal with previous pad signal add ion tail and ToT for sigmal saturation
-  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr);
+  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr, const CalPad* itParams[2] = nullptr);
 
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
@@ -128,12 +131,12 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
   mChargePad += signal;
 }
 
-inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream)
+inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream, const CalPad* itParams[2])
 {
   const auto& eleParam = ParameterElectronics::Instance();
-  const float kAmp = 0.1276;  // TODO: replace with pad-by-pad value
-  const float kTime = 0.0515; // TODO: replace with pad-by-pad value
-  const float tailSlopeUnit = std::exp(-kTime);
+  const auto& itSettings = IonTailSettings::Instance();
+  const float kAmp = (itParams[0]) ? itParams[0]->getValue(sector, pad) * itSettings.ITMultFactor : itSettings.ITMultFactor * 0.1276;
+  const float expLambda = (itParams[1]) ? itParams[1]->getValue(sector, pad) : std::exp(-itSettings.kTime);
   const PrevDigitInfo prevDigInf = prevDigit;
 
   // Saturation tail simulation
@@ -147,31 +150,41 @@ inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int secto
   }
 
   // ion tail simulation
-  if (eleParam.doIonTail) {
-    mChargePad = mChargePad + kAmp * (1 - tailSlopeUnit) * prevDigit.cumul;
+  // not done in case we are in the saturation tail
+  float modCharge = mChargePad;
+  if ((prevDigit.tot == 0) && (eleParam.doIonTail || eleParam.doIonTailPerPad)) {
+    modCharge = mChargePad + kAmp * (1 - expLambda) * prevDigit.cumul;
     prevDigit.cumul += prevDigInf.signal;
-    prevDigit.cumul *= tailSlopeUnit;
+    prevDigit.cumul *= expLambda;
     if (prevDigit.cumul < 0.1) {
       prevDigit.cumul = 0;
     }
   }
-  prevDigit.signal = mChargePad;
+  prevDigit.signal = modCharge;
 
-  if (debugStream) {
-    debugStream->setStreamer("debug_digits", "UPDATE");
+  if (debugStream && Streamer::checkStream(o2::utils::StreamFlags::streamDigitFolding)) {
+    // debugStream->setStreamer("debug_digits", "UPDATE");
     float kAmpTmp = kAmp;
-    float kTimeTmp = kTime;
-    float tailSlopeUnitTmp = tailSlopeUnit;
+    float tailSlopeUnitTmp = expLambda;
+    int sec = sector;
+    int padn = pad;
+    unsigned int timeBin = time;
     PrevDigitInfo prevDigInfTmp = prevDigInf;
 
-    debugStream->getStreamer() << debugStream->getUniqueTreeName("foldSignal").data()
+    // debugStream->getStreamer() << debugStream->getUniqueTreeName("foldSignal").data()
+    debugStream->getStreamer() << "foldSignal"
+                               << "sector=" << sec
+                               << "pad=" << padn
+                               << "timeBin=" << timeBin
                                << "kAmp=" << kAmpTmp
-                               << "kTime=" << kTimeTmp
                                << "tailSlopeUnit=" << tailSlopeUnitTmp
+                               << "charge=" << mChargePad
                                << "prevDig=" << prevDigInfTmp
                                << "dig=" << prevDigit
                                << "\n";
   }
+
+  mChargePad = modCharge;
 
   // TODO: propagate labels for ion tail?
 }
@@ -208,13 +221,15 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
   float noise, pedestal;
   const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise, prevDigit.tot);
 
-  if (debugStream) {
+  if (debugStream && Streamer::checkStream(o2::utils::StreamFlags::streamDigits)) {
     int sector = cru.sector();
     float adc = mADC;
     PrevDigitInfo prevDigitTmp = prevDigit;
-    debugStream->getStreamer() << debugStream->getUniqueTreeName("digit").data()
+    // debugStream->getStreamer() << debugStream->getUniqueTreeName("digit").data()
+    debugStream->getStreamer() << "digit"
                                << "sector=" << sector
                                << "pad=" << globalPad
+                               << "timeBin=" << timeBin
                                << "charge=" << mChargePad
                                << "adc=" << adc
                                << "prevDig=" << prevDigitTmp

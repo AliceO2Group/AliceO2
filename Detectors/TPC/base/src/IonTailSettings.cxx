@@ -9,6 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCReconstruction/IonTailCorrectionSettings.h"
+#include "TPCBase/IonTailSettings.h"
 using namespace o2::tpc;
-O2ParamImpl(o2::tpc::IonTailCorrectionSettings);
+O2ParamImpl(o2::tpc::IonTailSettings);
