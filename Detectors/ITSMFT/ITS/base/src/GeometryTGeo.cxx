@@ -393,16 +393,16 @@ void GeometryTGeo::Build(int loadTrans)
     return;
   }
 
-  mNumberOfStaves.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfHalfStaves.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfModules.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipsPerModule.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipRowsPerModule.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipsPerHalfStave.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipsPerStave.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipsPerHalfBarrel.resize(mNumberOfLayers + mInnerLayerID);
-  mNumberOfChipsPerLayer.resize(mNumberOfLayers + mInnerLayerID);
-  mLastChipIndex.resize(mNumberOfLayers + mInnerLayerID);
+  mNumberOfStaves.resize(sNumberLayers);
+  mNumberOfHalfStaves.resize(sNumberLayers);
+  mNumberOfModules.resize(sNumberLayers);
+  mNumberOfChipsPerModule.resize(sNumberLayers);
+  mNumberOfChipRowsPerModule.resize(sNumberLayers);
+  mNumberOfChipsPerHalfStave.resize(sNumberLayers);
+  mNumberOfChipsPerStave.resize(sNumberLayers);
+  mNumberOfChipsPerHalfBarrel.resize(sNumberLayers);
+  mNumberOfChipsPerLayer.resize(sNumberLayers);
+  mLastChipIndex.resize(sNumberLayers);
   int numberOfChips = 0;
 
   mNumberOfHalfBarrels = extractNumberOfHalfBarrels();

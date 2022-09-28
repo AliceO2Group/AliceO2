@@ -113,7 +113,7 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void ExcludeInnerBarrel() {mExcludeInnerBarrel = true;}
+  void ExcludeInnerBarrel() { mExcludeInnerBarrel = true; }
 
  public:
   /// Has to be called after each event to reset the containers
@@ -269,7 +269,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mNumberOfDetectors;
 
   Bool_t mModifyGeometry;
-  Bool_t mExcludeInnerBarrel;                          //! Flag to exclude inner barrel (for ITS3 studies)
+  Bool_t mExcludeInnerBarrel; //! Flag to exclude inner barrel (for ITS3 studies)
 
   Double_t mWrapperMinRadius[sNumberOfWrapperVolumes]; //! Min radius of wrapper volume
   Double_t mWrapperMaxRadius[sNumberOfWrapperVolumes]; //! Max radius of wrapper volume
@@ -330,7 +330,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   template <typename Det>
   friend class o2::base::DetImpl;
-  ClassDefOverride(Detector, 2);
+  ClassDefOverride(Detector, 1);
 };
 
 // Input and output function for standard C++ input/output.
