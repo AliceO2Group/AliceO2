@@ -959,12 +959,12 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
               auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
               const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(iSlice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(iSlice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
             } else {
               uint8_t sector, row;
               auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(sector, track->getTime0(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(sector, track->getTime0(), mParam->par.continuousMaxTimeBin);
             }
           }
         } else {
@@ -994,7 +994,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 #ifdef GPUCA_TPC_GEOMETRY_O2
           trkParam.Set(mclocal[0], mclocal[1], mc.z, mclocal[2], mclocal[3], mc.pZ, charge);
           if (mParam->par.continuousTracking) {
-            ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, mc.t0, mParam->par.continuousMaxTimeBin)) * (mc.z < 0 ? -1 : 1);
+            ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, mc.t0, mParam->par.continuousMaxTimeBin)) * (mc.z < 0 ? -1 : 1);
           }
 #else
           if (fabsf(mc.z) > 250) {
@@ -1357,7 +1357,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
     while (mParam->par.continuousTracking && trdTriggerRecord < (int)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
       trdTriggerRecord++;
       float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-      trdZoffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
+      trdZoffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
     }
     const auto& sp = mIOPtrs->trdSpacePoints[i];
     int iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
@@ -1391,7 +1391,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
     float ZOffset = 0;
     if (mParam->par.continuousTracking) {
       float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-      ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, tofTime, mParam->par.continuousMaxTimeBin));
+      ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, tofTime, mParam->par.continuousMaxTimeBin));
       ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
     }
     if (fabsf(ptr->z) > mMaxClusterZ) {
@@ -1419,7 +1419,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
       if (mParam->par.continuousTracking) {
         o2::InteractionRecord startIR = o2::InteractionRecord(0, mIOPtrs->settingsTF && mIOPtrs->settingsTF->hasTfStartOrbit ? mIOPtrs->settingsTF->tfStartOrbit : 0);
         float itsROFtime = mIOPtrs->itsClusterROF[j].getBCData().differenceInBC(startIR) / (float)o2::tpc::constants::LHCBCPERTIMEBIN;
-        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->par.continuousMaxTimeBin));
+        ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->par.continuousMaxTimeBin));
       }
       if (i != mIOPtrs->itsClusterROF[j].getFirstEntry()) {
         throw std::runtime_error("Inconsistent ITS data, number of clusters does not match ROF content");

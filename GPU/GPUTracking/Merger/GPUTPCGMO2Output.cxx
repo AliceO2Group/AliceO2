@@ -192,7 +192,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         float tmin = CAMath::Min(t1, t2);
         float tmax = CAMath::Max(t1, t2);
         tFwd = tmin - time0;
-        tBwd = time0 - tmax + merger.GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        tBwd = time0 - tmax + merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
       }
     }
     oTrack.setTime0(time0);
