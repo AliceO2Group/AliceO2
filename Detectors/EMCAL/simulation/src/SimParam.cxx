@@ -17,7 +17,7 @@ O2ParamImpl(o2::emcal::SimParam);
 
 using namespace o2::emcal;
 
-std::ostream& operator<<(std::ostream& stream, const o2::emcal::SimParam& s)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::SimParam& s)
 {
   s.PrintStream(stream);
   return stream;
@@ -39,6 +39,7 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mTimeResponsePower = " << mTimeResponsePower;
   stream << "\nEMCal::SimParam.mTimeResponseThreshold = " << mTimeResponseThreshold;
   stream << "\nEMCal::SimParam.mNADCEC = " << mNADCEC;
+  stream << "\nEMCal::SimParam.mSwapPhase = " << mSwapPhase;
   stream << "\nEMCal::SimParam.mA = " << mA;
   stream << "\nEMCal::SimParam.mB = " << mB;
   stream << "\nEMCal::SimParam.mECPrimThreshold = " << mECPrimThreshold;
