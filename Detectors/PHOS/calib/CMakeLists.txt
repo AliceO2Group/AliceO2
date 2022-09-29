@@ -19,6 +19,8 @@ o2_add_library(PHOSCalibWorkflow
                        src/PHOSTurnonCalibrator.cxx
                        src/PHOSRunbyrunCalibrator.cxx
                        src/PHOSRunbyrunCalibDevice.cxx
+                       src/PHOSL1phaseCalibrator.cxx
+                       src/PHOSL1phaseCalibDevice.cxx
                        src/PHOSBadMapCalibDevice.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsPHOS
@@ -40,6 +42,8 @@ o2_target_root_dictionary(PHOSCalibWorkflow
                                   include/PHOSCalibWorkflow/PHOSTurnonCalibDevice.h
                                   include/PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h
                                   include/PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h
+                                  include/PHOSCalibWorkflow/PHOSL1phaseCalibrator.h
+                                  include/PHOSCalibWorkflow/PHOSL1phaseCalibDevice.h
                                   include/PHOSCalibWorkflow/PHOSBadMapCalibDevice.h
                           LINKDEF src/PHOSCalibWorkflowLinkDef.h)
 
