@@ -119,6 +119,8 @@ class RawPixelDecoder final : public PixelReader
     int entry = -1;
   };
 
+  uint16_t getSquashingDepth() { return 0; }
+
  private:
   void setupLinks(o2::framework::InputRecord& inputs);
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }

@@ -47,6 +47,9 @@ void ClustererDPL::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   mState = 1;
+  if (mDoSquashing) { // MC: Need to find proper place to inform about squashing enabling
+    LOGP(info, "Pixel squashing is enabled");
+  }
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
@@ -193,6 +196,12 @@ DataProcessorSpec getClustererSpec(bool useMC, bool doSquashing)
     Options{
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
+}
+
+///_______________________________________
+void ClustererDPL::endOfStream(o2::framework::EndOfStreamContext& ec)
+{
+  mClusterer->print();
 }
 
 } // namespace its

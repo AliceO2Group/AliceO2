@@ -43,6 +43,7 @@ class PixelReader
   virtual void init() = 0;
   virtual bool getNextChipData(ChipPixelData& chipData) = 0;
   virtual ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) = 0;
+  virtual uint16_t getSquashingDepth() = 0;
 
   // prepare data of next trigger, return number of non-empty links or chips
   virtual int decodeNextTrigger() = 0;

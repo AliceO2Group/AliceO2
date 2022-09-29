@@ -59,8 +59,10 @@ class DigitPixelReader : public PixelReader
   {
     mDigits = a;
     mIdDig = 0;
-    if (mSquashOverlflowsDepth) {
+    if (mSquashOverflowsDepth) {
       mMaskSquashedDigits.resize(a.size(), false);
+      mBookmarkNextROFs.resize(mSquashOverflowsDepth, 0);
+      mIdROFLast = 0;
     }
   }
 
@@ -92,10 +94,10 @@ class DigitPixelReader : public PixelReader
 
   void clear();
 
-  uint16_t getSquashingDepth() const { return mSquashOverlflowsDepth; }
+  uint16_t getSquashingDepth() override { return mSquashOverflowsDepth; }
   void setSquashingDepth(const int16_t v)
   {
-    mSquashOverlflowsDepth = v;
+    mSquashOverflowsDepth = v;
   }
 
  private:
@@ -120,10 +122,15 @@ class DigitPixelReader : public PixelReader
   Int_t mIdDig = 0; // Digits slot read within ROF
   Int_t mIdROF = 0; // ROFRecord being red
 
-  std::unique_ptr<TTree> mInputTree;     // input tree for digits
-  int16_t mSquashOverlflowsDepth = 0;    // merge overflow pixels in next N ROF(s) into first ROF and mask them
+  std::unique_ptr<TTree> mInputTree; // input tree for digits
+
+  // Squashing datamembers
+  int16_t mSquashOverflowsDepth = 0;     // merge overflow pixels in next N ROF(s) into first ROF and mask them
   std::vector<bool> mMaskSquashedDigits; // keep info of masked pixels
   uint16_t mMaxSquashDist = 1;           // maximum pixel distance to allow for squashing
+  std::vector<int> mBookmarkNextROFs;    // keep track of the position of the last processed digits in next rof
+  int mIdROFLast = 0;                    // ROFRecord red last iteration
+
   ClassDefOverride(DigitPixelReader, 1);
 };
 

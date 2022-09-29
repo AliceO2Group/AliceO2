@@ -35,6 +35,8 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     nThreads = 1;
   }
   auto autoDecode = reader.getDecodeNextAuto();
+  mSquashing = reader.getSquashingDepth();
+  int rofcount{0};
   do {
     if (autoDecode) {
       reader.setDecodeNextAuto(false); // internally do not autodecode
@@ -152,6 +154,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
   } while (autoDecode);
   reader.setDecodeNextAuto(autoDecode); // restore setting
 #ifdef _PERFORM_TIMING_
+  // if (mSquashing) {
+  //   reader.print();
+  // }
   mTimer.Stop();
 #endif
 }
@@ -203,7 +208,6 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
 void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                             PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
-  auto clustersCount = compClusPtr->size();
   const auto& pixData = curChipData->getData();
   for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
     auto ci = preClusterIndices[i1];
@@ -219,8 +223,12 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       const auto pix = pixData[pixEntry.second];
       pixArrBuff.push_back(pix); // needed for cluster topology
       bbox.adjust(pix.getRowDirect(), pix.getCol());
-      if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
-        fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+      if (labelsClusPtr) {
+        if (parent->mSquashing) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+          fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
+        } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
+          fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+        }
       }
       next = pixEntry.first;
     }
@@ -235,8 +243,12 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         const auto pix = pixData[pixEntry.second]; // PixelData
         pixArrBuff.push_back(pix);                 // needed for cluster topology
         bbox.adjust(pix.getRowDirect(), pix.getCol());
-        if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
-          fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+        if (labelsClusPtr) {
+          if (parent->mSquashing) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+            fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
+          } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
+            fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+          }
         }
         next = pixEntry.first;
       }
@@ -284,7 +296,6 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
 void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                                          PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
-  auto clustersCount = compClusPtr->size();
   auto pix = curChipData->getData()[hit];
   uint16_t row = pix.getRowDirect(), col = pix.getCol();
 
