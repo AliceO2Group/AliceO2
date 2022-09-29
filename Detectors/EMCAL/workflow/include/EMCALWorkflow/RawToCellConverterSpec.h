@@ -12,6 +12,7 @@
 #include <chrono>
 #include <vector>
 
+#include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -41,6 +42,7 @@ class RawToCellConverterSpec : public framework::Task
   /// \brief Constructor
   /// \param subspecification Output subspecification for parallel running on multiple nodes
   /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
+  /// \param loadRecoParamsFromCCDB Option to load the RecoParams from the CCDB
   RawToCellConverterSpec(int subspecification, bool hasDecodingErrors) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors){};
 
   /// \brief Destructor
@@ -59,11 +61,19 @@ class RawToCellConverterSpec : public framework::Task
   /// Output cells trigger record: {"EMC", "CELLSTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
+  /// \brief Handle objects obtained from the CCDB
+  /// \param matcher Matcher providing the CCDB path of the object
+  /// \param obj CCDB object loaded by the CCDB interface
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
+
   /// \brief Set max number of error messages printed
   /// \param maxMessages Max. amount of messages printed
   ///
   /// Error messages will be suppressed once the maximum is reached
-  void setMaxErrorMessages(int maxMessages) { mMaxErrorMessages = maxMessages; }
+  void setMaxErrorMessages(int maxMessages)
+  {
+    mMaxErrorMessages = maxMessages;
+  }
 
   void setNoiseThreshold(int thresold) { mNoiseThreshold = thresold; }
   int getNoiseThreshold() const { return mNoiseThreshold; }
@@ -134,9 +144,12 @@ class RawToCellConverterSpec : public framework::Task
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
+/// \param askDISTSTF Include input spec FLP/DISTSUBTIMEFRAME
+/// \param loadRecoParamsFromCCDB Obtain reco params from the CCDB
+/// \param subspecification Subspecification used in the output spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification);
+framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingError, int subspecification);
 
 } // namespace reco_workflow
 
