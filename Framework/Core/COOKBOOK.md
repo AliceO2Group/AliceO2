@@ -126,11 +126,12 @@ Note that in this case your workflow should be started with the `-b` option. In 
 ```
 In order to connect to this port with your browser you should go to https://aliceo2group.github.io/DebugGUI/remote/remote.html, enter the port and click on the `LAUNCH` button. If you are running the DebugGUI remotely, but still the processing is done on your laptop (e.g. because the native DebugGUI is not working for some reason) you can download the web page and then open the local html file in your browser.
 
-PASTE IMAGE OF BROWSER
+![DebugGUI](https://user-images.githubusercontent.com/26281793/192991412-f26a271d-919a-4dd5-af2b-6a8425d6d1eb.png)
 
 After launching you can select "interactive" mode on the right and click on "fit" in order to adjust the visualization to your browser window size. When running everything on one machine you can also reduce the latency from 200 to 80 for example to make it more responsive.
 
-PASTE IMAGE OF RUNNING DEBUG GUI
+![DebugGUI_Running](https://user-images.githubusercontent.com/26281793/192991486-7cdb799b-470a-455b-a2de-65b7d9355ec7.png)
+
 
 Notice that in this setup, you might have to adjust your browser sensibility
 to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
