@@ -45,6 +45,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t getTimeResponseTau() const { return mTimeResponseTau; }
   Float_t getTimeResponsePower() const { return mTimeResponsePower; }
   Float_t getTimeResponseThreshold() const { return mTimeResponseThreshold; }
+  Int_t getBCPhaseSwap() const { return mSwapPhase; }
 
   // Parameters used in SDigitizer
   Float_t getA() const { return mA; }
@@ -67,7 +68,6 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
 
   void PrintStream(std::ostream& stream) const;
 
- private:
   // Digitizer
   Int_t mDigitThreshold{3};              ///< Threshold for storing digits in EMC
   Int_t mMeanPhotonElectron{4400};       ///< number of photon electrons per GeV deposited energy
@@ -83,6 +83,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mTimeResponseTau{2.35};        ///< Raw time response function tau parameter
   Float_t mTimeResponsePower{2};         ///< Raw time response function power parameter
   Float_t mTimeResponseThreshold{0.001}; ///< Raw time response function energy threshold
+  Int_t mSwapPhase{0};                   ///< BC phase swap similar to data
 
   // SDigitizer
   Float_t mA{0.};                 ///< Pedestal parameter
@@ -112,6 +113,16 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
 std::ostream& operator<<(std::ostream& stream, const SimParam& s);
 
 } // namespace emcal
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::emcal::SimParam> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif
