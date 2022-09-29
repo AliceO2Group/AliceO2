@@ -99,7 +99,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
     const auto& hit = hits[ids];
     Int_t detId = hit.GetDetectorID();
     Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
-    Float_t const hitTime = hit.GetTime() * 1e9;
+    Long64_t const hitTime = hit.GetTime() * 1e9;
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
     if (hitEdep < FV0DigParam::Instance().singleMipThreshold || hitTime > FV0DigParam::Instance().singleHitTimeThreshold) {
       continue;
