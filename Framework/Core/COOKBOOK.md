@@ -120,13 +120,17 @@ remotely by exporting the environment variable `DPL_DRIVER_REMOTE_GUI`, e.g.:
 export DPL_DRIVER_REMOTE_GUI=1
 ```
 
-and you can then connect on the control port of the driver:
+Note that in this case your workflow should be started with the `-b` option. In the stdout you should see the control port of the driver:
+```bash
+[INFO] Driver listening on port: 34855
+```
+In order to connect to this port with your browser you should go to https://aliceo2group.github.io/DebugGUI/remote/remote.html, enter the port and click on the `LAUNCH` button. If you are running the DebugGUI remotely, but still the processing is done on your laptop (e.g. because the native DebugGUI is not working for some reason) you can download the web page and then open the local html file in your browser.
 
-<img src="https://user-images.githubusercontent.com/10544/179854428-c5a1f2b0-2247-408d-a6e9-3381cc1caaf7.png" width="400px">
+PASTE IMAGE OF BROWSER
 
-by going to https://aliceo2group.github.io/DebugGUI/remote/remote.html and passing it to the GUI:
+After launching you can select "interactive" mode on the right and click on "fit" in order to adjust the visualization to your browser window size. When running everything on one machine you can also reduce the latency from 200 to 80 for example to make it more responsive.
 
-<img src="https://user-images.githubusercontent.com/10544/179854512-22ab8994-9f7f-4f68-a778-768fd4a97eec.png" width="400px">
+PASTE IMAGE OF RUNNING DEBUG GUI
 
 Notice that in this setup, you might have to adjust your browser sensibility
 to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
