@@ -231,8 +231,6 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           if (ch.f.Hit) {
             bcdata.triggers |= (0x1 << (im * NChPerModule + ic));
           }
-          // TODO: Alice trigger bits
-          // TODO: consistency checks
           if (filled_event == false) {
             // ALICE trigger bits must be the same for all readout modules
             alice_0 = ch.f.Alice_0;
