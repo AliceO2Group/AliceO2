@@ -16,7 +16,7 @@ O2ParamImpl(o2::emcal::RecoParam);
 
 using namespace o2::emcal;
 
-std::ostream& operator<<(std::ostream& stream, const o2::emcal::RecoParam& s)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::RecoParam& s)
 {
   s.PrintStream(stream);
   return stream;
