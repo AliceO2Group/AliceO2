@@ -31,14 +31,14 @@ bool AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamb
   // add entry for given angular residual
   // returns 0 in case of success (impact angle is in valid range)
   int chamberOffset = chamberId * NBINSANGLEDIFF;
-  if (std::fabs(impactAngle) >= MAXIMPACTANGLE) {
-    LOG(debug) << "Under-/overflow entry detected for impact angle " << impactAngle;
-    return 1;
-  } else {
+  if (std::fabs(impactAngle) < MAXIMPACTANGLE) {
     int iBin = (impactAngle + MAXIMPACTANGLE) * INVBINWIDTH;
     mHistogramEntries[chamberOffset + iBin] += deltaAlpha;
     ++mNEntriesPerBin[chamberOffset + iBin];
     ++mNEntriesTotal;
+  } else {
+    LOG(debug) << "Under-/overflow entry detected for impact angle " << impactAngle;
+    return 1;
   }
   return 0;
 }

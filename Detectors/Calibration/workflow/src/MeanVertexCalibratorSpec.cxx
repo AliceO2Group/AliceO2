@@ -42,7 +42,7 @@ void MeanVertexCalibDevice::init(InitContext& ic)
   auto slotL = params->tfPerSlot;
   float delay = float(params->maxTFdelay) / slotL; // in timeslot calibration, the delay is in fraction of timeslot length
   auto nPointsForSlope = params->nPointsForSlope;
-  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA, nPointsForSlope);
+  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nPointsForSlope, nSlots4SMA);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
   bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");

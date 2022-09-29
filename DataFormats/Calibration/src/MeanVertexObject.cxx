@@ -44,7 +44,7 @@ void MeanVertexObject::setSigma(int icoord, float val)
 
 std::string MeanVertexObject::asString() const
 {
-  return fmt::format("Slopes {{{:+.4e},{:+.4e}}}", mSlopeX, mSlopeY);
+  return VertexBase::asString() + fmt::format(" Slopes {{{:+.4e},{:+.4e}}}", mSlopeX, mSlopeY);
 }
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObject& o)
