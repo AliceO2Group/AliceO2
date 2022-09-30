@@ -75,7 +75,7 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   void useVerboseMode(bool flag) { mVerbose = flag; }
   bool getVerboseMode() const { return mVerbose; }
 
-  void fitMeanVertex(o2::calibration::MeanVertexData* c, o2::dataformats::MeanVertexObject& mvo);
+  bool fitMeanVertex(o2::calibration::MeanVertexData* c, o2::dataformats::MeanVertexObject& mvo);
   void fitMeanVertexCoord(int coordinate, int nbins, float* array, float minRange, float maxRange, o2::dataformats::MeanVertexObject& mvo);
   void binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, int nbins, float min, float max, float binWidthInv);
   void printVector(std::vector<float>& vect, float minRange, float maxRange, float binWidth);
