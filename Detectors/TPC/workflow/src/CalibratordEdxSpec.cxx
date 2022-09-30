@@ -79,12 +79,7 @@ class CalibratordEdxDevice : public Task
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
-
-    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-      const auto field = (5.00668f / 30000.f) * o2::base::GRPGeomHelper::instance().getGRPMagField()->getL3Current();
-      LOGP(info, "Setting magnetic field to {} kG", field);
-      mCalibrator->setField(field);
-    }
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
 
   void run(ProcessingContext& pc) final
@@ -147,7 +142,9 @@ DataProcessorSpec getCalibratordEdxSpec()
                                                                 true,                           // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs);
+                                                                inputs,
+                                                                true,
+                                                                true);
   return DataProcessorSpec{
     "tpc-calibrator-dEdx",
     inputs,
