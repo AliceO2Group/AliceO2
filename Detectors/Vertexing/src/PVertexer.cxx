@@ -633,7 +633,7 @@ void PVertexer::initMeanVertexConstraint()
 {
   // set mean vertex constraint and its errors
   double det = mMeanVertex.getSigmaX2() * mMeanVertex.getSigmaY2() - mMeanVertex.getSigmaXY() * mMeanVertex.getSigmaXY();
-  if (det <= kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D) {
+  if (det <= kAlmost0D || mMeanVertex.getSigmaX2() < kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D) {
     throw std::runtime_error(fmt::format("Singular matrix for vertex constraint: sxx={:+.4e} syy={:+.4e} sxy={:+.4e}",
                                          mMeanVertex.getSigmaX2(), mMeanVertex.getSigmaY2(), mMeanVertex.getSigmaXY()));
   }
