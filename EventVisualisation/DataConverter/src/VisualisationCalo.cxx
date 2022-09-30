@@ -15,12 +15,9 @@
 ///
 
 #include "EventVisualisationDataConverter/VisualisationCalo.h"
-#include "FairLogger.h"
 
 using namespace std;
-namespace o2
-{
-namespace event_visualisation
+namespace o2::event_visualisation
 {
 
 VisualisationCalo::VisualisationCalo() = default;
@@ -47,5 +44,4 @@ VisualisationCalo::VisualisationCalo(const VisualisationCalo& src)
   this->mPID = src.mPID;
 }
 
-} // namespace event_visualisation
 } // namespace o2

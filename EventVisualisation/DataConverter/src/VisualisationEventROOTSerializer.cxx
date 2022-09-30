@@ -15,7 +15,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EventVisualisationDataConverter/VisualisationEventROOTSerializer.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <iostream>
 
 #include <TFile.h>

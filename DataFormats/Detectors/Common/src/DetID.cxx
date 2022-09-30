@@ -17,7 +17,7 @@
 #include "CommonUtils/StringUtils.h"
 #include <cassert>
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::detectors;
 

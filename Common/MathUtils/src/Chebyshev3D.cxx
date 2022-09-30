@@ -23,10 +23,10 @@
 #include <TSystem.h>                   // for TSystem, gSystem
 #include <cstdio>                      // for printf, fprintf, FILE, fclose, fflush, etc
 #include "MathUtils/Chebyshev3DCalc.h" // for Chebyshev3DCalc, etc
-#include "FairLogger.h"                // for FairLogger
 #include "TMathBase.h"                 // for Max, Abs
 #include "TNamed.h"                    // for TNamed
 #include "TObjArray.h"                 // for TObjArray
+#include <fairlogger/Logger.h>         // for FairLogger
 
 using namespace o2::math_utils;
 

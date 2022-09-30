@@ -22,7 +22,7 @@
 #include <TList.h>
 #include <iostream>
 #include <sstream>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <boost/property_tree/ptree.hpp>
 #include <functional>
 #ifdef NDEBUG
