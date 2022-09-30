@@ -15,7 +15,7 @@
 #include <deque>
 #include <iostream>
 #include <gsl/span>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsVectorStream.h"
 #include "CommonConstants/Triggers.h"

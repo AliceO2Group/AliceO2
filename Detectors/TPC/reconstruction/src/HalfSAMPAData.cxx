@@ -13,7 +13,7 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/HalfSAMPAData.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::tpc;
 

@@ -12,7 +12,7 @@
 #include <TTree.h>
 #include <cassert>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "Field/MagneticField.h"
 #include "Field/MagFieldFast.h"
 #include "ITSBase/GeometryTGeo.h"

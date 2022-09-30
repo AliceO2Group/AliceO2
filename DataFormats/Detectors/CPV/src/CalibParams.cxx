@@ -12,7 +12,7 @@
 #include "DataFormatsCPV/CalibParams.h"
 #include "CPVBase/Geometry.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH2.h>
 

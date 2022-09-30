@@ -15,7 +15,7 @@
 
 #include "TPCSimulation/DigitContainer.h"
 #include <memory>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"

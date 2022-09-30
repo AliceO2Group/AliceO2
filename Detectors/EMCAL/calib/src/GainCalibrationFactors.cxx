@@ -12,7 +12,7 @@
 #include "EMCALCalib/CalibContainerErrors.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH1.h>
 

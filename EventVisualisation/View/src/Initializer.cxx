@@ -28,7 +28,7 @@
 #include "EventVisualisationBase/DataSourceOnline.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <TGTab.h>
 #include <TEnv.h>
 #include <TEveBrowser.h>

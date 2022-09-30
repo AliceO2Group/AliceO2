@@ -16,7 +16,7 @@
 #include <iostream>
 #include <iomanip>
 #include "CommonUtils/StringUtils.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::ctp;
 void errorCounters::printStream(std::ostream& stream) const

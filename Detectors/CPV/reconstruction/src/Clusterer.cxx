@@ -22,7 +22,7 @@
 #include "CPVBase/CPVSimParams.h"
 #include "CPVBase/CPVCalibParams.h"
 #include <bitset>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::cpv;
 

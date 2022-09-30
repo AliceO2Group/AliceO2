@@ -20,7 +20,7 @@
 #include "SimConfig/SimParams.h"
 
 #include "FairDetector.h" // for FairDetector
-#include "FairLogger.h"   // for FairLogger
+#include <fairlogger/Logger.h> // for FairLogger
 #include "FairRootManager.h"
 #include "SimulationDataFormat/BaseHits.h"
 #include "SimulationDataFormat/StackParam.h"

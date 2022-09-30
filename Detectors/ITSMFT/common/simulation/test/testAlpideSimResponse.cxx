@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include "ITSMFTSimulation/AlpideSimResponse.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::itsmft;
 

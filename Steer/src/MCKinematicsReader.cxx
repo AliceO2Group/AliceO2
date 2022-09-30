@@ -15,7 +15,7 @@
 #include "SimulationDataFormat/TrackReference.h"
 #include <TChain.h>
 #include <vector>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::steer;
 

@@ -12,7 +12,7 @@
 /// \author R+Preghenella - January 2020
 
 #include "Generators/GeneratorPythia6.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include <iostream>
 #include <iomanip>

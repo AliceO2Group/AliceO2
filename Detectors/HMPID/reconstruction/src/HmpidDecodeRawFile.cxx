@@ -18,7 +18,7 @@
 
 /* ------ HISTORY ---------
 */
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "Framework/Logger.h"
 
 #include "HMPIDReconstruction/HmpidDecodeRawFile.h"

@@ -26,7 +26,7 @@
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"

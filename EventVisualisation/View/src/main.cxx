@@ -19,7 +19,7 @@
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationView/Options.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TApplication.h>
 #include <TEveBrowser.h>

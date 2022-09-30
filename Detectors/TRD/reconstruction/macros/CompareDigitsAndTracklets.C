@@ -21,7 +21,7 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"

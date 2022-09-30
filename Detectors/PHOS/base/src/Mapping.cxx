@@ -14,7 +14,7 @@
 
 #include <fstream>
 #include "TSystem.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/Geometry.h"
 

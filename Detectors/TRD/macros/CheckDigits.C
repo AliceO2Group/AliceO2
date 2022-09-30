@@ -21,7 +21,7 @@
 #include <TCanvas.h>
 #include <TLegend.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TRDSimulation/SimParam.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"

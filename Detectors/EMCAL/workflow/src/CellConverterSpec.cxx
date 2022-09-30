@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 #include <gsl/span>
 #include <boost/range/combine.hpp>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/CellConverterSpec.h"

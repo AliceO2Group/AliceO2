@@ -22,7 +22,7 @@
 #include "DetectorsCalibration/Utils.h"
 
 #include <fairmq/Device.h>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <string>
 #include <filesystem>
 
