@@ -80,7 +80,7 @@ class CalibdEdxDevice : public Task
     mCalib->fill(tracks);
 
     // store run number and CCDB time only once
-    if (mTimeStampStart == 0 || pc.services().get<o2::framework::TimingInfo>().timeslice) {
+    if ((mTimeStampStart == 0) || (pc.services().get<o2::framework::TimingInfo>().timeslice == 0)) {
       mRunNumber = processing_helpers::getRunNumber(pc);
       mTimeStampStart = processing_helpers::getTimeStamp(pc, o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS());
       LOGP(info, "Setting start time stamp for writing to CCDB to {}", mTimeStampStart);
