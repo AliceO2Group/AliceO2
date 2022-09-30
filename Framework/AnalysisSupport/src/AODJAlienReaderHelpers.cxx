@@ -142,8 +142,13 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       parentFileReplacement = options.get<std::string>("aod-parent-base-path-replacement");
     }
 
+    int parentAccessLevel = 0;
+    if (options.isSet("aod-parent-access-level")) {
+      parentAccessLevel = options.get<int>("aod-parent-access-level");
+    }
+
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(filename, &monitoring, parentFileReplacement);
+    auto didir = std::make_shared<DataInputDirector>(filename, &monitoring, parentAccessLevel, parentFileReplacement);
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {

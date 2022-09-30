@@ -1072,7 +1072,7 @@ DECLARE_SOA_COLUMN(NpartProj, npartProj, int);                                  
 DECLARE_SOA_COLUMN(NpartTarg, npartTarg, int);                                   //! Number of target participants
 DECLARE_SOA_COLUMN(Ncoll, ncoll, int);                                           //! Number of NN (nucleon-nucleon) collisions
 DECLARE_SOA_COLUMN(NNwoundedCollisions, nNwoundedCollisions, int);               //! Number of N-Nwounded collisions
-DECLARE_SOA_COLUMN(NwoundedNCollisions, nwoundedNCollisions, int);               //! Number of Nwounded-N collisons
+DECLARE_SOA_COLUMN(NwoundedNCollisions, nwoundedNCollisions, int);               //! Number of Nwounded-N collisions
 DECLARE_SOA_COLUMN(NwoundedNwoundedCollisions, nwoundedNwoundedCollisions, int); //! Number of Nwounded-Nwounded collisions
 DECLARE_SOA_COLUMN(SpectatorNeutrons, spectatorNeutrons, int);                   //! Number of spectator neutrons
 DECLARE_SOA_COLUMN(SpectatorProtons, spectatorProtons, int);                     //! Number of spectator protons
