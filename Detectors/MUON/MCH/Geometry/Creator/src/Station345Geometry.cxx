@@ -688,19 +688,21 @@ void buildHalfChambers(TGeoVolume& topVolume)
 
     } // end of the node loop
 
-    Double_t zpos = halfCh["position"][2].GetDouble();
-
-    Double_t xExtraTheta = 0.0;
-    Double_t zExtraTheta = 0.0;
+    auto halfChCTrans = new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(), halfCh["position"][2].GetDouble(),
+                                           new TGeoRotation(
+                                             Form("%srotation", name.data()),
+                                             halfCh["rotation"][0].GetDouble(), halfCh["rotation"][1].GetDouble(),
+                                             halfCh["rotation"][2].GetDouble(), halfCh["rotation"][3].GetDouble(),
+                                             halfCh["rotation"][4].GetDouble(), halfCh["rotation"][5].GetDouble()));
 
     // change the mother volume if the Dipole and/or 'YOUT2' are present in the geometry
     if ((nCh == 5 || nCh == 6) && gGeoManager->GetVolume("Dipole")) {
       motherVolume = gGeoManager->GetVolume("DDIP");
-      zpos *= -1.; // z > 0 convention for dipole volumes
+
+      // z > 0 convention for dipole volumes
       // the dipole passive volume will be rotated 180 around y
       // when put into cave, so have to compensate for that here
-      xExtraTheta = 180.0;
-      zExtraTheta = 180;
+      halfChCTrans->RotateY(180.);
     }
 
     if (nCh > 6 && gGeoManager->GetVolume("YOUT2")) {
@@ -708,14 +710,7 @@ void buildHalfChambers(TGeoVolume& topVolume)
     }
 
     // place the half-chamber in the mother volume
-    motherVolume->AddNode(
-      halfChVol, moduleID,
-      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(), zpos,
-                         new TGeoRotation(
-                           Form("%srotation", name.data()),
-                           halfCh["rotation"][0].GetDouble() + xExtraTheta, halfCh["rotation"][1].GetDouble(),
-                           halfCh["rotation"][2].GetDouble(), halfCh["rotation"][3].GetDouble(),
-                           halfCh["rotation"][4].GetDouble() + zExtraTheta, halfCh["rotation"][5].GetDouble())));
+    motherVolume->AddNode(halfChVol, moduleID, halfChCTrans);
 
   } // end of the half-chambers loop
 }
