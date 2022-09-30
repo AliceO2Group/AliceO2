@@ -52,7 +52,7 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc) {}
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc, bool enable3body) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -66,6 +66,7 @@ class SecondaryVertexingSpec : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
   bool mEnableCascades = false;
+  bool mEnable3BodyVertices = false;
   o2::vertexing::SVertexer mVertexer;
   TStopwatch mTimer;
 };
@@ -77,6 +78,7 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   //-------- init geometry and field --------//
   mVertexer.setEnableCascades(mEnableCascades);
+  mVertexer.setEnable3BodyDecays(mEnable3BodyVertices);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
 }
 
@@ -146,7 +148,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc)
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -176,7 +178,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
             {"threads", VariantType::Int, 1, {"Number of threads"}}}};
 }
