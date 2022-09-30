@@ -29,7 +29,7 @@
 #include <cassert>
 #include <iostream>
 #include <string>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <typeinfo>
 #include "TDataMember.h"
 #include "TDataType.h"

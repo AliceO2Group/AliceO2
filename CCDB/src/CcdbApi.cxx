@@ -30,7 +30,7 @@
 #include <TMemFile.h>
 #include <TH1F.h>
 #include <TTree.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TError.h>
 #include <TClass.h>
 #include <CCDB/CCDBTimeStampUtils.h>

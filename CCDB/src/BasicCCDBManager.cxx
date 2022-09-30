@@ -14,7 +14,7 @@
 //
 #include "CCDB/BasicCCDBManager.h"
 #include <boost/lexical_cast.hpp>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <string>
 
 namespace o2
