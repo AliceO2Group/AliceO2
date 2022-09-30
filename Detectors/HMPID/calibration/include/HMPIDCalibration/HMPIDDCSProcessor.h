@@ -384,15 +384,15 @@ class HMPIDDCSProcessor
   // =======================================================================================
 
   // Chamber Pressures
-  std::size_t indexChPr = 6;
+  std::size_t indexChPr = 7;
 
   // High Voltage
   std::size_t indexChHv = 7;
   std::size_t indexSecHv = 13;
 
   // Temperatures
-  std::size_t indexChTemp = 6;
-  std::size_t indexRadTemp = 21;
+  std::size_t indexChTemp = 7;
+  std::size_t indexRadTemp = 22;
 
   // Timestamps and TimeRanges
   // ======================================================================================
