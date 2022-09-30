@@ -91,7 +91,7 @@ class SVertexer
     float minR = 0; // track lowest point r
   };
 
-  SVertexer(bool enabCascades = true, bool enab3body = true) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body} {}
+  SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body} {}
 
   void setEnableCascades(bool v) { mEnableCascades = v; }
   void setEnable3BodyDecays(bool v) { mEnable3BodyDecays = v; }
@@ -169,7 +169,7 @@ class SVertexer
   float mTPCVDriftRef = 0;
 
   bool mEnableCascades = true;
-  bool mEnable3BodyDecays = true;
+  bool mEnable3BodyDecays = false;
 };
 
 // input containers can be std::vectors or pmr vectors
