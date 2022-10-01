@@ -54,6 +54,7 @@
 #endif
 
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 
 #include "utils/linux_helpers.h"
 #include "utils/strtag.h"
@@ -405,6 +406,18 @@ void GPUChainTracking::UpdateGPUCalibObjects(int stream)
     mFlatObjectsShadow.mCalibObjects.fastTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
     mFlatObjectsShadow.mCalibObjects.fastTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
   }
+  if (processors()->calibObjects.fastTransformRef) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformRef, (const void*)processors()->calibObjects.fastTransformRef, sizeof(*processors()->calibObjects.fastTransformRef));
+    memcpy((void*)mFlatObjectsShadow.mTpcTransformRefBuffer, (const void*)processors()->calibObjects.fastTransformRef->getFlatBufferPtr(), processors()->calibObjects.fastTransformRef->getFlatBufferSize());
+    mFlatObjectsShadow.mCalibObjects.fastTransformRef->clearInternalBufferPtr();
+    mFlatObjectsShadow.mCalibObjects.fastTransformRef->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformRefBuffer);
+    mFlatObjectsShadow.mCalibObjects.fastTransformRef->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformRefBuffer);
+  }
+  if (processors()->calibObjects.fastTransformHelper) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformHelper, (const void*)processors()->calibObjects.fastTransformHelper, sizeof(*processors()->calibObjects.fastTransformHelper));
+    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMap(mFlatObjectsShadow.mCalibObjects.fastTransform);
+    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMapRef(mFlatObjectsShadow.mCalibObjects.fastTransformRef);
+  }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxCalibContainer) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer, (const void*)processors()->calibObjects.dEdxCalibContainer, sizeof(*processors()->calibObjects.dEdxCalibContainer));
@@ -487,31 +500,38 @@ int GPUChainTracking::Finalize()
 void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
 {
   char* dummyPtr;
-  if (mChainTracking->GetTPCTransform()) {
+  if (mChainTracking->processors()->calibObjects.fastTransform) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
-    computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
+    computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->processors()->calibObjects.fastTransform->getFlatBufferSize());
   }
-  if (mChainTracking->GetTPCPadGainCalib()) {
+  if (mChainTracking->processors()->calibObjects.fastTransformRef) {
+    computePointerWithAlignment(mem, mCalibObjects.fastTransformRef, 1);
+    computePointerWithAlignment(mem, mTpcTransformRefBuffer, mChainTracking->processors()->calibObjects.fastTransformRef->getFlatBufferSize());
+  }
+  if (mChainTracking->processors()->calibObjects.fastTransformHelper) {
+    computePointerWithAlignment(mem, mCalibObjects.fastTransformHelper, 1);
+  }
+  if (mChainTracking->processors()->calibObjects.tpcPadGain) {
     computePointerWithAlignment(mem, mCalibObjects.tpcPadGain, 1);
   }
-  if (mChainTracking->GetTPCZSLinkMapping()) {
+  if (mChainTracking->processors()->calibObjects.tpcZSLinkMapping) {
     computePointerWithAlignment(mem, mCalibObjects.tpcZSLinkMapping, 1);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
-  if (mChainTracking->GetMatLUT()) {
+  if (mChainTracking->processors()->calibObjects.matLUT) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
   } else if (mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize) {
     computePointerWithAlignment(mem, dummyPtr, mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize);
   }
-  if (mChainTracking->GetdEdxCalibContainer()) {
+  if (mChainTracking->processors()->calibObjects.dEdxCalibContainer) {
     computePointerWithAlignment(mem, mCalibObjects.dEdxCalibContainer, 1);
     computePointerWithAlignment(mem, mdEdxSplinesBuffer, mChainTracking->GetdEdxCalibContainer()->getFlatBufferSize());
   }
-  if (mChainTracking->GetTRDGeometry()) {
+  if (mChainTracking->processors()->calibObjects.trdGeometry) {
     computePointerWithAlignment(mem, mCalibObjects.trdGeometry, 1);
   }
-  if (mChainTracking->GetO2Propagator()) {
+  if (mChainTracking->processors()->calibObjects.o2Propagator) {
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
   } else if (mChainTracking->GetProcessingSettings().internalO2PropagatorGPUField) {
     computePointerWithAlignment(mem, dummyPtr, sizeof(*mCalibObjects.o2Propagator));
@@ -558,16 +578,12 @@ void GPUChainTracking::AllocateIOMemory()
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform)
+void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
+  mTPCFastTransformHelperU = std::move(tpcTransformHelper);
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-}
-
-void GPUChainTracking::SetdEdxCalibContainer(std::unique_ptr<o2::tpc::CalibdEdxContainer>&& dEdxCalibContainer)
-{
-  mdEdxCalibContainerU = std::move(dEdxCalibContainer);
-  processors()->calibObjects.dEdxCalibContainer = mdEdxCalibContainerU.get();
+  processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)

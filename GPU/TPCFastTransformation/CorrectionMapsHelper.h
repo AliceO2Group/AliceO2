@@ -20,9 +20,12 @@
 #include <memory>
 #include <vector>
 #endif
+#include "GPUCommonDef.h"
 #include "TPCFastTransform.h"
 
-namespace o2::gpu
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
 {
 
 class CorrectionMapsHelper
@@ -45,15 +48,16 @@ class CorrectionMapsHelper
 
   GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
   {
+    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz); // FIXME: Wrong, but call at least one of the functions to set ny / nz to non-bogus values
   }
 
-  GPUd() const o2::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
-  GPUd() const o2::gpu::TPCFastTransform* getCorrMapRef() const { return mCorrMapRef; }
+  GPUd() const GPUCA_NAMESPACE::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
+  GPUd() const GPUCA_NAMESPACE::gpu::TPCFastTransform* getCorrMapRef() const { return mCorrMapRef; }
 
   bool getOwner() const { return mOwner; }
 
-  void setCorrMap(o2::gpu::TPCFastTransform* m);
-  void setCorrMapRef(o2::gpu::TPCFastTransform* m);
+  void setCorrMap(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
+  void setCorrMapRef(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
 
   void setInstLumi(float v)
   {
@@ -78,12 +82,12 @@ class CorrectionMapsHelper
   void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
   void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
 
-#ifndef GPUCA_GPUCODE_DEVICE
-  void setCorrMap(std::unique_ptr<o2::gpu::TPCFastTransform>&& m);
-  void setCorrMapRef(std::unique_ptr<o2::gpu::TPCFastTransform>&& m);
-  void setOwner(bool v) { mOwner = v; }
-  void acknowledgeUpdate() { mUpdatedFlags = 0; }
+#if !defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_NOCOMPAT)
+  void setCorrMap(std::unique_ptr<GPUCA_NAMESPACE::gpu::TPCFastTransform>&& m);
+  void setCorrMapRef(std::unique_ptr<GPUCA_NAMESPACE::gpu::TPCFastTransform>&& m);
 #endif
+  void setOwner(bool v);
+  void acknowledgeUpdate() { mUpdatedFlags = 0; }
 
  protected:
   enum UpdateFlags { MapBit = 0x1,
@@ -94,13 +98,14 @@ class CorrectionMapsHelper
   float mInstLumi = 0.;                            // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                            // mean luminosity of the map (a.u)
   float mLumiScale = 0.;                           // precalculated mInstLumi/mMeanLumi
-  o2::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
-  o2::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
+  GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
+  GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(CorrectionMapsHelper, 1);
 #endif
 };
 
-} // namespace o2::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

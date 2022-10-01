@@ -24,7 +24,9 @@
 #include <vector>
 #if !defined(GPUCA_STANDALONE)
 #include "TLinearFitter.h"
+#ifndef GPUCA_ALIROOT_LIB
 #include "CommonUtils/TreeStreamRedirector.h"
+#endif
 #include <TFile.h>
 #endif
 #endif
@@ -587,6 +589,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const st
   std::copy(params.begin(), params.end(), &mParams[index]);
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName, const char* treeName, const bool recreateFile) const
 {
@@ -624,6 +627,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsi
   }
   pcstream.Close();
 }
+#endif
 
 #endif
 
