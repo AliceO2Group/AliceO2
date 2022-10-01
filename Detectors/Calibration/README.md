@@ -76,6 +76,40 @@ Note that in order to access the absolute time of the slot boundaries, one shoul
 
 See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx
 
+## Calibrating over multiple runs
+
+Some statistics-hungry calibrations define single time-slot which integrates data of the whole run. If there is a possibility that for the short run the slot will not accumulate enough statistics,
+one can save the user-defined content of the slot to a file in the dedicated partition on the calibrator node
+and adopt data from this file in the next run. In order to do that the calibrator class derived from the TimeSlotCalibration must:
+
+* set fixed file name to write via `setSaveFileName(const std::string& n)` method. Also, the corresponding workflow should provide/parse an option to set the output directory.
+
+* implement virtual method `bool saveLastSlotData(TFile& fl)` which writes content of the (last and only) slot into the provided file handler. It is up to detector to define the format of the stored data. The framework will write to the same file a
+TimeSlotMetaData struct describing the start/end timestamps and start/end runs for the data written.
+
+* implement virtual method `bool adoptSavedData(const TimeSlotMetaData& metadata, TFile& fl)` which reads and adds saved data to the slot in the new run. Provided metadata should be used to judge if the saved data are useful.
+
+* decide e.g. in the finalizeSlot method if the slot content must be saved to be accounted in the following run and call `saveLastSlot()` in that case.
+
+* in the beginning of the processing, e.g. after the 1st call of the `process(..)` method (where the time-slot will be created) call `loadSavedSlot()` method, i.e.
+  ```
+  auto data = pc.inputs().get<...>; // get input data
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+  mCalibrator->process(data);
+  static bool firstCall = true;
+  if (firstCall && getNSlots()) {
+    firstCall = false;
+    loadSavedSlot();
+  }
+  ```
+  Make sure the static method `o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());` was called from the `run()` method before the `process(...)` call.
+
+The slot saving and loading will be done only if `setSavedSlotAllowed(true)` was called explicitly from the calibrator device before the processing starts (e.g. in the `init()` method).
+Since one can have multiple instances of the calibrator device
+running at the same time (in staging and produnction partitions, synthetic and real runs) it is important to make sure that this method is called only for the physics run calibration.
+
+In order to not pollute calibration node disk, the file will be removed in the end of `loadSavedSlot()` call.
+
 ## ccdb-populator-workflow
 
 This is the workflow that, connected to all workflows producting calibrations with different granularities and frequencies, will update the CCDB.
@@ -103,6 +137,7 @@ then the `ObjA` will be uploaded only to the default server (`https://alice-ccdb
 `ObjC` will be uploaded to the `local` server only.
 
 By default the ccdb-populator-workflow will not produce `fatal` on failed upload. To require it an option `--fatal-on-failure` can be used.
+
 <!-- doxy
 * \subpage refDetectorsCalibrationtestMacros
 /doxy -->
