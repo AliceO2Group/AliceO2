@@ -11,6 +11,7 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsCalibration/MeanVertexCalibrator.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 #include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
@@ -105,6 +106,17 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   if (mVerbose) {
     LOGP(info, "Beginning: startZ = {} c->histoVtx.size() = {}, will process {} Z slices with {} entries each", startZ, c->histoVtx.size(), mNPointsForSlope, minEntriesPerPoint);
   }
+  auto dumpNonEmpty = [&binnedVect](const std::string& msg) {
+    if (!msg.empty()) {
+      LOG(info) << msg;
+    }
+    for (size_t i = 0; i < binnedVect.size(); i++) {
+      if (binnedVect[i]) {
+        LOGP(info, "bin:{} {}", i, binnedVect[i]);
+      }
+    }
+  };
+
   for (int counter = 0; counter < mNPointsForSlope; counter++) {
     if (mVerbose) {
       LOG(info) << "Beginning of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
@@ -143,6 +155,8 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for X:";
           printVector(binnedVect, -(mRangeX), mRangeX, mBinWidthX);
+        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          dumpNonEmpty(fmt::format("X{} nonEmpty bins", counter));
         }
         fitres = fitGaus(mNBinsX, &binnedVect[0], -(mRangeX), mRangeX, fitResSlicesX.back(), &covMatrixX.back());
         if (fitres != -10) {
@@ -167,6 +181,8 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for Y:";
           printVector(binnedVect, -(mRangeY), mRangeY, mBinWidthY);
+        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          dumpNonEmpty(fmt::format("Y{} nonEmpty bins", counter));
         }
         fitres = fitGaus(mNBinsY, &binnedVect[0], -(mRangeY), mRangeY, fitResSlicesY.back(), &covMatrixY.back());
         if (fitres != -10) {

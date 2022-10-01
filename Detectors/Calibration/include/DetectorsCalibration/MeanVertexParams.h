@@ -36,6 +36,8 @@ struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexPar
   uint32_t tfPerSlot = 5u;
   uint32_t maxTFdelay = 3u;
   uint32_t nPointsForSlope = 10;
+  bool dumpNonEmptyBins = false;
+  bool skipObjectSending = false;
 
   O2ParamDef(MeanVertexParams, "MeanVertexCalib");
 };
