@@ -34,6 +34,7 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDTrackletLabels.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #include "TPCFastTransformManager.h"
 #include "AliRecoParam.h"
 #include "AliTPCTransform.h"
@@ -477,7 +478,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     if (fFastTransformManager->create(*fFastTransformIRS, fCalib->GetTransform(), TimeStamp)) {
       HLTFatal("Initialisation of Fast Transformation failed with error %s", fFastTransformManager->getLastError());
     }
-    fChain->SetTPCFastTransform(std::move(fFastTransformIRS));
+    std::unique_ptr<CorrectionMapsHelper> tmpHelper;
+    tmpHelper->setCorrMap(fFastTransformIRS.get());
+    fChain->SetTPCFastTransform(std::move(fFastTransformIRS), std::move(tmpHelper));
 
     fRec->SetSettings(fSolenoidBz);
     fRec->DumpSettings();

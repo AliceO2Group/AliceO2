@@ -26,7 +26,7 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 #include "TPCSpaceCharge/SpaceCharge.h"
 #endif
 
@@ -38,7 +38,7 @@ namespace gpu
 /// simple struct to hold the space charge object which can be used for CPU reconstruction only
 struct TPCSlowSpaceChargeCorrection {
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
   /// getting the corrections for global coordinates
   void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
   {
@@ -106,7 +106,7 @@ class TPCFastTransform : public FlatObject
   TPCFastTransform& operator=(const TPCFastTransform&) CON_DELETE;
 
 /// Destructor
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(GPUCA_O2_LIB)
   ~TPCFastTransform()
   {
     delete mCorrectionSlow;
@@ -236,7 +236,7 @@ class TPCFastTransform : public FlatObject
   /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int slice) const;
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 
   int writeToFile(std::string outFName = "", std::string name = "");
 

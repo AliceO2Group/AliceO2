@@ -924,8 +924,10 @@ void GPURecoWorkflowSpec::initFunctionTPC()
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
   mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
-  mFastTransformHelper->setCorrMap(std::move(TPCFastTransformHelperO2::instance()->create(0))); // just to reserve the space
-  mFastTransformHelper->setCorrMapRef(std::move(TPCFastTransformHelperO2::instance()->create(0)));
+  mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
+  mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");

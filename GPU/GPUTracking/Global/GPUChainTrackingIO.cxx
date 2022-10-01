@@ -47,6 +47,7 @@
 #endif
 
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 
 #include "utils/linux_helpers.h"
 
@@ -291,6 +292,16 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpctransform.dump";
     DumpFlatObjectToFile(processors()->calibObjects.fastTransform, f.c_str());
   }
+  if (processors()->calibObjects.fastTransformRef != nullptr) {
+    f = dir;
+    f += "tpctransformref.dump";
+    DumpFlatObjectToFile(processors()->calibObjects.fastTransformRef, f.c_str());
+  }
+  if (processors()->calibObjects.fastTransformHelper != nullptr) {
+    f = dir;
+    f += "tpctransformhelper.dump";
+    DumpStructToFile(processors()->calibObjects.fastTransformHelper, f.c_str());
+  }
   if (processors()->calibObjects.tpcPadGain != nullptr) {
     f = dir;
     f += "tpcpadgaincalib.dump";
@@ -327,6 +338,17 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpctransform.dump";
   mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
+  f = dir;
+  f += "tpctransformref.dump";
+  mTPCFastTransformRefU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  processors()->calibObjects.fastTransformRef = mTPCFastTransformRefU.get();
+  f = dir;
+  f += "tpctransformhelper.dump";
+  mTPCFastTransformHelperU = ReadStructFromFile<CorrectionMapsHelper>(f.c_str());
+  if ((processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get())) {
+    mTPCFastTransformHelperU->setCorrMap(mTPCFastTransformU.get());
+    mTPCFastTransformHelperU->setCorrMapRef(mTPCFastTransformRefU.get());
+  }
   f = dir;
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());

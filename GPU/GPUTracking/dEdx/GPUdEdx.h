@@ -20,10 +20,10 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUdEdxInfo.h"
-#include "CommonUtils/DebugStreamer.h"
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "DataFormatsTPC/Defs.h"
 #include "CalibdEdxContainer.h"
+#include "CommonUtils/DebugStreamer.h"
 #endif
 
 namespace GPUCA_NAMESPACE

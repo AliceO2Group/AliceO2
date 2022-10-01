@@ -49,6 +49,7 @@
 #include "utils/vecpod.h"
 
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include <vector>
@@ -316,8 +317,8 @@ int SetupReconstruction()
       printf("Continuous mode forced\n");
       configStandalone.cont = true;
     }
-    if (chainTracking->GetTPCTransform()) {
-      grp.continuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
+    if (chainTracking->GetTPCTransformHelper()) {
+      grp.continuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransformHelper()->getCorrMap()->getVDrift();
     }
   }
   if (configStandalone.cont && grp.continuousMaxTimeBin == 0) {
