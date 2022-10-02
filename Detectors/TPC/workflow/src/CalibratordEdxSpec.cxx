@@ -31,6 +31,7 @@
 #include "TPCCalibration/CalibratordEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "TPCBase/CDBInterface.h"
 
 using namespace o2::framework;
 
@@ -61,22 +62,11 @@ class CalibratordEdxDevice : public Task
     const auto fitSnp = ic.options().get<bool>("fit-snp");
 
     const auto dumpData = ic.options().get<bool>("file-dump");
-    auto field = ic.options().get<float>("field");
-
-    if (field <= -10.f) {
-      const auto inputGRP = o2::base::NameConf::getGRPFileName();
-      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-      if (grp != nullptr) {
-        field = 5.00668f * grp->getL3Current() / 30000.;
-        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
-      }
-    }
 
     mCalibrator = std::make_unique<tpc::CalibratordEdx>();
     mCalibrator->setHistParams(dEdxBins, mindEdx, maxdEdx, angularBins, fitSnp);
     mCalibrator->setApplyCuts(false);
     mCalibrator->setFitThresholds(minEntriesSector, minEntries1D, minEntries2D);
-    mCalibrator->setField(field);
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
@@ -86,6 +76,7 @@ class CalibratordEdxDevice : public Task
       mCalibrator->enableDebugOutput("calibratordEdx.root");
     }
   }
+
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
@@ -122,22 +113,12 @@ class CalibratordEdxDevice : public Task
     const auto& calibrations = mCalibrator->getCalibs();
     const auto& intervals = mCalibrator->getTimeIntervals();
 
+    assert(calibrations.size() == intervals.size());
     for (unsigned int i = 0; i < calibrations.size(); i++) {
       const auto& object = calibrations[i];
-      o2::ccdb::CcdbObjectInfo info;
+      o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[i].first, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
       auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &info);
-
-      info.setPath("TPC/Calib/dEdx");
-      // FIXME: use time frame timestamp
-      info.setStartValidityTimestamp(intervals[i].first);
-      info.setEndValidityTimestamp(intervals[i].second + 5); // Add 5ms for safety
-
-      auto md = info.getMetaData();
-      md["runNumber"] = std::to_string(mRunNumber);
-      info.setMetaData(md);
-
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
-
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", i}, info);         // root-serialized
     }
@@ -158,10 +139,12 @@ DataProcessorSpec getCalibratordEdxSpec()
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
-                                                                false,                          // GRPMagField
+                                                                true,                           // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs);
+                                                                inputs,
+                                                                true,
+                                                                true);
   return DataProcessorSpec{
     "tpc-calibrator-dEdx",
     inputs,
@@ -184,7 +167,6 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"angularbins", VariantType::Int, 36, {"number of angular bins: Tgl and Snp"}},
       {"fit-snp", VariantType::Bool, false, {"enable Snp correction"}},
 
-      {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 

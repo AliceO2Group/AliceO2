@@ -29,6 +29,7 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "Framework/Logger.h"
 #include "TPCBase/ParameterGas.h"
+#include "DetectorsBase/Propagator.h"
 
 // root includes
 #include "TFile.h"
@@ -67,7 +68,7 @@ void CalibdEdx::fill(const TrackTPC& track)
   const std::array<float, 4> dEdxMax{dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
   const std::array<float, 4> dEdxTot{dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
   // We need a copy of the track to perform propagations
-  auto cpTrack = track;
+  o2::track::TrackPar cpTrack = track;
 
   // Beth-Bloch correction for non MIP tracks
   const auto& gasParam = ParameterGas::Instance();
@@ -80,20 +81,19 @@ void CalibdEdx::fill(const TrackTPC& track)
     // Local x value of the center pad row of each roc type in cm (IROC, OROC1, ...).
     constexpr std::array<float, 4> xks{108.475f, 151.7f, 188.8f, 227.65f};
 
-    bool okProp = cpTrack.propagateTo(xks[roc], mField);
-    bool okGlob = false;
-    float sector = std::floor(18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[roc], mField, okGlob).Phi()) / o2::constants::math::TwoPI);
-    // Ignore stack if we are not able to find its sector
-    if (!okProp || !okGlob) {
+    // propagate track
+    const bool okProp = o2::base::Propagator::Instance()->PropagateToXBxByBz(cpTrack, xks[roc], 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrNONE);
+    if (!okProp) {
       continue;
     }
 
     // If the track was propagated to a different sector we need to rotate the local frame to get the correct Snp value
+    float sector = std::floor(18.f * cpTrack.getPhiPos() / o2::constants::math::TwoPI);
     if (mFitSnp) {
       float localFrame = std::floor(18.f * o2::math_utils::to02PiGen(cpTrack.getAlpha()) / o2::constants::math::TwoPI);
       if (std::abs(sector - localFrame) > 0.1) {
         const float alpha = SECPHIWIDTH * (0.5 + sector);
-        cpTrack.rotate(alpha);
+        cpTrack.rotateParam(alpha);
       }
     }
     const float snp = cpTrack.getSnp();
