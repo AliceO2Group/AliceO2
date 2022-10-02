@@ -617,11 +617,15 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
     if (i == decHeader->nTimebinHeaders - 1 && decHeader->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage) {
       assert(o2::raw::RDHUtils::getMemorySize(*rawDataHeader) == TPCZSHDR::TPC_ZS_PAGE_SIZE);
       // Disable check for dropped pages temporarily, decoding fails on large dataset when enabled...
-      // if (raw::RDHUtils::getPacketCounter(rawDataHeader) + 1 == raw::RDHUtils::getPacketCounter(nextPage)) {
-      if (true) {
+      if ((unsigned char)(raw::RDHUtils::getPacketCounter(rawDataHeader) + 1) == raw::RDHUtils::getPacketCounter(nextPage)) {
         nSamplesWrittenTB = DecodeTB<DecodeInParallel, true>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
       } else {
         nSamplesWrittenTB = FillWithInvalid(clusterer, iThread, nThreads, pageDigitOffset, nSamplesInPage - nSamplesWritten);
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+        if (iThread == 0) {
+          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice, raw::RDHUtils::getPacketCounter(rawDataHeader), raw::RDHUtils::getPacketCounter(nextPage));
+        }
+#endif
       }
     } else {
       nSamplesWrittenTB = DecodeTB<DecodeInParallel, false>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);

@@ -875,7 +875,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
-      if (o2::raw::RDHUtils::getPacketCounter(*rdh) + 1 != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
+      if ((unsigned char)(o2::raw::RDHUtils::getPacketCounter(*rdh) + 1) != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
         decPagePtr = payloadEnd;
         break;
       }
