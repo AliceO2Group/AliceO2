@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Steer/InteractionSampler.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace o2::steer;
 

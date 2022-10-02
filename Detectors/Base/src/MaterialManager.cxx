@@ -21,7 +21,7 @@
 #include <TList.h>
 #include <iostream>
 #include <utility>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif

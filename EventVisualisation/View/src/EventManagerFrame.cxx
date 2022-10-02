@@ -33,7 +33,7 @@
 #include <thread>
 #include <filesystem>
 #include <cassert>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 std::mutex mtx; // mutex for critical section
 

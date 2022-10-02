@@ -19,7 +19,7 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include <fstream>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"

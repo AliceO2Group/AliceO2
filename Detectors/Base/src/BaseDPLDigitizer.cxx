@@ -14,7 +14,7 @@
 #include <DetectorsBase/GeometryManager.h>
 #include <DataFormatsParameters/GRPObject.h>
 #include <DetectorsBase/Propagator.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TGeoGlobalMagField.h>
 
 using namespace o2::base;

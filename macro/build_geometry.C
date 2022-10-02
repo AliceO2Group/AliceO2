@@ -43,7 +43,7 @@
 #include <SimConfig/SimConfig.h>
 #include <FairRunSim.h>
 #include <FairRootFileSink.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <algorithm>
 #include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #include <DetectorsBase/SimFieldUtils.h>

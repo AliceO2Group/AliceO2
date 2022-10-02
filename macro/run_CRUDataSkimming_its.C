@@ -1,7 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TFile.h>
 #include <TStopwatch.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <fstream>
 #include <string>
 

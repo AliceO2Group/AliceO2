@@ -17,7 +17,7 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "Algorithm/Parser.h"
 #include <TBranch.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <iostream>
 
 using namespace o2::tpc;

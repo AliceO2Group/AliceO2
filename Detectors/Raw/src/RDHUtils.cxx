@@ -12,7 +12,7 @@
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "CommonUtils/StringUtils.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <bitset>
 #include <cassert>
 #include <exception>

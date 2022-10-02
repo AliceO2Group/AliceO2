@@ -15,7 +15,7 @@
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CommonUtils/FileSystemUtils.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TFile.h>
 #include <CommonUtils/NameConf.h>
 #include <DetectorsCommonDataFormats/DetID.h>
