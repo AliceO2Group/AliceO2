@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <vector>
 #include <numeric> // std::iota
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

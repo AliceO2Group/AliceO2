@@ -18,7 +18,7 @@
 #include "DetectorsRaw/RawFileReader.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace bpo = boost::program_options;
 //using namespace o2::emcal;

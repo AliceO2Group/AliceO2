@@ -6,7 +6,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #endif

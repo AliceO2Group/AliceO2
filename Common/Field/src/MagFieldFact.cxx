@@ -11,7 +11,7 @@
 
 #include "Field/MagFieldFact.h"
 #include "FairField.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRuntimeDb.h"
 #include "Field/MagFieldParam.h"
 #include "Field/MagneticField.h"

@@ -15,7 +15,7 @@
 #include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/ConfigParamRegistry.h"

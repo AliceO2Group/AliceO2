@@ -14,7 +14,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"

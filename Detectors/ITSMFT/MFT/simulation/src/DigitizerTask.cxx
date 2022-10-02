@@ -19,7 +19,7 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "MathUtils/Utils.h"
 
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
 ClassImp(o2::mft::DigitizerTask);

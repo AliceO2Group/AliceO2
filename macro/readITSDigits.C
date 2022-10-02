@@ -5,7 +5,7 @@
 #include <TStopwatch.h>
 #include <memory>
 #include <iostream>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/DigitizationContext.h"

@@ -15,7 +15,7 @@
 #include "CTPSimulation/Digitizer.h"
 #include "TRandom.h"
 #include <cassert>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <bitset>
 
 using namespace o2::ctp;

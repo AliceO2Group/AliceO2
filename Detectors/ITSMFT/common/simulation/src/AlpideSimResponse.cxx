@@ -20,7 +20,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::itsmft;
 using namespace std;

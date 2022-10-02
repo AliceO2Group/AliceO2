@@ -13,7 +13,7 @@
 /// \brief Implementation of the FT0 reconstruction task
 
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Base/Geometry.h"
 #include "FT0Base/FT0DigParam.h"

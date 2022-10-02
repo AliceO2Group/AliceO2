@@ -35,7 +35,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsParameters/GRPObject.h"

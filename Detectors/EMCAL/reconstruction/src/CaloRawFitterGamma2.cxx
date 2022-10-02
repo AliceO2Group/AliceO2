@@ -12,7 +12,7 @@
 /// \file CaloRawFitterGamma2.cxx
 /// \author Martin Poghosyan (Martin.Poghosyan@cern.ch)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <cfloat>
 #include <random>
 

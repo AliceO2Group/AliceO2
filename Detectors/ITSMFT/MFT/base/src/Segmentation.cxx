@@ -13,7 +13,7 @@
 /// \brief Class for the virtual segmentation of the ALICE Muon Forward Tracker
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/HalfDiskSegmentation.h"

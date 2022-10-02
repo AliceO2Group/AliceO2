@@ -14,7 +14,7 @@
 /// \author M. Al-Turany, S. Wenzel - June 2014
 
 #include "SimulationDataFormat/MCTrack.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {

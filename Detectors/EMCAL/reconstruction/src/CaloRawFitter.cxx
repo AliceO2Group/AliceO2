@@ -17,7 +17,7 @@
 // ROOT sytem
 #include "TMath.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloFitResults.h"

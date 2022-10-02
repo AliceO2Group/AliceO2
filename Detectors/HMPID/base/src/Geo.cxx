@@ -19,7 +19,7 @@
 #include "HMPIDBase/Param.h"
 #include "TGeoManager.h"
 #include "TMath.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsBase/GeometryManager.h"
 
 ClassImp(o2::hmpid::Geo);

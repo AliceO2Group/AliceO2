@@ -12,7 +12,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TObjString.h"
 #include "TObjArray.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "TPCBase/PadPos.h"
 

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "TPCBase/PadPos.h"
 #include "TPCReconstruction/RawReader.h"

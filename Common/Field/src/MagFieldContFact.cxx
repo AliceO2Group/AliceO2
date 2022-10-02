@@ -14,7 +14,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include <cstring>         // for strcmp, NULL
-#include "FairLogger.h"    // for FairLogger
+#include <fairlogger/Logger.h> // for FairLogger
 #include "FairRuntimeDb.h" // for FairRuntimeD
 #include "FairParSet.h"
 #include "Field/MagFieldParam.h" // for FairConstPar

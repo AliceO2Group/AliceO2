@@ -18,7 +18,7 @@
 #include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include <TTree.h>
 #include <gsl/span>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::framework;
 

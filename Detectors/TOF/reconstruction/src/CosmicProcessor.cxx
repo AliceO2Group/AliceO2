@@ -12,7 +12,7 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the TOF cluster finder
 #include <algorithm>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "TOFReconstruction/CosmicProcessor.h"
 #include <TStopwatch.h>
 #include "DetectorsRaw/HBFUtils.h"

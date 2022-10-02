@@ -20,7 +20,7 @@
 #include "TGeoCompositeShape.h"
 #include "TGeoBoolNode.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "ITSMFTSimulation/AlpideChip.h"
 #include "ITSMFTBase/SegmentationAlpide.h"

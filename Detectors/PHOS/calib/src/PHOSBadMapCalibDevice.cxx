@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSCalibWorkflow/PHOSBadMapCalibDevice.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/CCDBParamSpec.h"

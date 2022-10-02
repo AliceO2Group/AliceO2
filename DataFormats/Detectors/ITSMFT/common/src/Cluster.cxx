@@ -13,7 +13,7 @@
 /// \brief Implementation of the ITSMFT cluster
 
 #include "DataFormatsITSMFT/Cluster.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TMath.h>
 #include <TString.h>

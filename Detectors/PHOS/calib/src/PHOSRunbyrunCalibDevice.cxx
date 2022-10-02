@@ -17,7 +17,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/ControlService.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <filesystem>
 
 using namespace o2::phos;

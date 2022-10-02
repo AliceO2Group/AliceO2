@@ -12,7 +12,7 @@
 #include <cmath>
 #include <iostream>
 #include <fmt/format.h>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonConstants/LHCConstants.h"
 #include "PHOSBase/RCUTrailer.h"
 
