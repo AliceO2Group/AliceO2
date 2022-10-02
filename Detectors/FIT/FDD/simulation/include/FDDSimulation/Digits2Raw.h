@@ -25,7 +25,7 @@
 #include "DataFormatsFDD/Digit.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TStopwatch.h>
 #include <iostream>
 #include <string>

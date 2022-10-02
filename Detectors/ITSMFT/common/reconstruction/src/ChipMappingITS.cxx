@@ -12,7 +12,7 @@
 // \file ChipMappingITS.cxx
 // \brief Autimatically generated ITS chip <-> module mapping
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include <cassert>
 #include <sstream>

@@ -17,7 +17,7 @@
 
 #include <Rtypes.h>
 #include <array>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
 #include "DetectorsCommonDataFormats/DetID.h"

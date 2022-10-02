@@ -31,7 +31,7 @@
 #include <TEveElement.h>
 #include <TGListTree.h>
 #include <TEveCalo.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>

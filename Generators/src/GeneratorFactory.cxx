@@ -16,7 +16,7 @@
 #include "FairPrimaryGenerator.h"
 #include "FairGenerator.h"
 #include "FairBoxGenerator.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #ifdef GENERATORS_WITH_PYTHIA6

@@ -20,7 +20,7 @@
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "Steer/MCKinematicsReader.h"
 
 //

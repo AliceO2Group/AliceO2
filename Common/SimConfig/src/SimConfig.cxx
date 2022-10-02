@@ -13,7 +13,7 @@
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <boost/program_options.hpp>
 #include <iostream>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <thread>
 #include <cmath>
 #include <chrono>

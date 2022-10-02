@@ -19,7 +19,7 @@
 #ifndef AliceO2_TPC_LtrCalibData_H_
 #define AliceO2_TPC_LtrCalibData_H_
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <Rtypes.h>
 
 namespace o2::tpc

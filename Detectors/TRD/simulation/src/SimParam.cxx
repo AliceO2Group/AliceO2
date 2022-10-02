@@ -19,7 +19,7 @@
 #include "TRDSimulation/TRDSimParams.h"
 #include "Field/MagneticField.h"
 #include <TGeoGlobalMagField.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace o2::trd;
 

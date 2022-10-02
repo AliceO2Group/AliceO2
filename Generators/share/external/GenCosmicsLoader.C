@@ -14,7 +14,7 @@
 //< Generation options can be changed by providing --configKeyValues "cosmics.maxAngle=30.;cosmics.accept=ITS0" etc.
 //< See GenCosmicsParam for available options
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 FairGenerator* fg = nullptr;
 

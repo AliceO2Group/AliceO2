@@ -12,7 +12,7 @@
 
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include "SimulationDataFormat/MCEventHeader.h"
