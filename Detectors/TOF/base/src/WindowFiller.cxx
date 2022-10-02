@@ -21,7 +21,7 @@
 #include "TRandom.h"
 #include <algorithm>
 #include <cassert>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTOF/CompressedDataFormat.h"
 
 using namespace o2::tof;

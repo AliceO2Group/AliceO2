@@ -18,7 +18,7 @@
 #include "TTree.h"
 
 #include "FairMCEventHeader.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "ITSReconstruction/TrivialVertexer.h"
 #include "DataFormatsITSMFT/CompCluster.h"

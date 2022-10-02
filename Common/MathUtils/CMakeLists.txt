@@ -17,7 +17,7 @@ o2_add_library(
           src/Chebyshev3DCalc.cxx
   PUBLIC_LINK_LIBRARIES
     ROOT::Hist
-    FairRoot::Base
+    FairLogger::FairLogger
     O2::CommonConstants
     O2::GPUCommon
     ROOT::GenVector

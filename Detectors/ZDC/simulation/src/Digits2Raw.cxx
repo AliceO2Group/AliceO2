@@ -68,7 +68,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
       outFileLink += fmt::format("_{}", mFLP);
       if (mFileFor != "flp") {
         outFileLink += fmt::format("_cru{}_{}", mCruID, mEndPointID);
-        if (mFileFor != "cru") {
+        if (mFileFor != "cruendpoint") {
           outFileLink += fmt::format("_lnk{}_feeid{}", ilink, FeeID);
           if (mFileFor != "link") {
             LOG(fatal) << "Not supported output file splitting: " << mFileFor;

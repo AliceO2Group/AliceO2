@@ -11,7 +11,7 @@
 
 #include <cstring>
 #include "SimSetup/SimSetup.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "SetCuts.h"
 #include <dlfcn.h>
 #ifdef NDEBUG

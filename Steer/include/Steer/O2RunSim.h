@@ -25,7 +25,7 @@
 #include "FairFileHeader.h"       // for FairFileHeader
 #include "FairGeoInterface.h"     // for FairGeoInterface
 #include "FairGeoLoader.h"        // for FairGeoLoader
-#include "FairLogger.h"           // for FairLogger, MESSAGE_ORIGIN
+#include <fairlogger/Logger.h>    // for FairLogger, MESSAGE_ORIGIN
 #include "FairMCEventHeader.h"    // for FairMCEventHeader
 #include "FairMesh.h"             // for FairMesh
 #include "FairModule.h"           // for FairModule

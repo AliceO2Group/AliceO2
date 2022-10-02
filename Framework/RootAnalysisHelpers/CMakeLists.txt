@@ -23,3 +23,9 @@ o2_add_test(RDataFrameSupport NAME test_Framework_test_RDataFrameSupport
              COMPONENT_NAME Framework
              PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
              LABELS framework)
+
+o2_add_test(SimpleRDataFrameProcessing NAME test_Framework_test_SimpleRDataFrameProcessing
+             SOURCES test/test_SimpleRDataFrameProcessing.cxx
+             COMPONENT_NAME Framework
+             PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
+             LABELS framework)

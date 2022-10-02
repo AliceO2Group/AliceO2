@@ -31,7 +31,7 @@
 #include "TMath.h"
 #include "TApplication.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"

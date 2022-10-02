@@ -9,6 +9,7 @@
 3. [MID calibration](#mid-calibration)
 4. [MID digits writer](#mid-digits-writer)
 5. [MID raw data dumper](#mid-raw-data-dumper)
+6. [MID efficiency](#mid-efficiency)
 
 ## MID reconstruction workflow
 
@@ -194,3 +195,14 @@ o2-raw-tf-reader-workflow --onlyDet MID --input-data o2_rawtf_run00505645_tf0000
 ```
 
 If option `--decode` is added, the decoded digits are dumped instead.
+
+# MID efficiency
+
+This workflow allows to compute the MID chamber efficiency.
+This is just an example since, eventually, the workflow should be rewritten in order to be able to run on AODs.
+
+Usage:
+
+```bash
+o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-reco-workflow --disable-mc | o2-mid-efficiency-workflow
+```

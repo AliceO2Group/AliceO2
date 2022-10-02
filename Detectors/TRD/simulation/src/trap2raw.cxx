@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
     add_option("input-file-digits,d", bpo::value<std::string>()->default_value("trddigits.root"), "input Trapsim digits file");
     add_option("input-file-tracklets,t", bpo::value<std::string>()->default_value("trdtracklets.root"), "input Trapsim tracklets file");
-    add_option("file-per,l", bpo::value<std::string>()->default_value("halfcru"), "all : raw file(false), halfcru : cru end point, cru : one file per cru, sm: one file per supermodule");
+    add_option("file-for,l", bpo::value<std::string>()->default_value("cruendpoint"), "all : raw file(false), cruendpoint : cru end point, cru : one file per cru, sm: one file per supermodule");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("tracklethcheader,x", bpo::value<int>()->default_value(2), "include tracklet half chamber header (for run3). 0 never, 1 if there is tracklet data, 2 always");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
   const auto& hbfu = o2::raw::HBFUtils::Instance(); // we need the creation time for the link mapping from CCDB
 
-  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(), vm["file-per"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>(), 1024 * 1024, hbfu.startTime);
+  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(), vm["file-for"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>(), 1024 * 1024, hbfu.startTime);
 
   return 0;
 }

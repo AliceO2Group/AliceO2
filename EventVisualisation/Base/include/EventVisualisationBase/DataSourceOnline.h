@@ -62,6 +62,7 @@ class DataSourceOnline : public DataSource
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
   std::string getEventName() override { return mFileWatcher.currentItem(); };
+  std::string getEventAbsoluteFilePath() override { return mFileWatcher.currentFilePath(); };
   int getFirstTForbit() const override { return this->mFirstTForbit; }
   void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
   std::string getCollisionTime() const override { return this->mCollisionTime; }

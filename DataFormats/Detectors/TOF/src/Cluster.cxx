@@ -13,7 +13,7 @@
 /// \brief Implementation of the TOF cluster
 
 #include "DataFormatsTOF/Cluster.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TString.h>
 

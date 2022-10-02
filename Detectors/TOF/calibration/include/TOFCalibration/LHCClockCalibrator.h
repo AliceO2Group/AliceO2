@@ -22,6 +22,12 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include <array>
 
+//#define DEBUGGING
+
+#ifdef DEBUGGING
+#include "TH2F.h"
+#endif
+
 namespace o2
 {
 namespace tof
@@ -37,7 +43,11 @@ struct LHCClockDataHisto {
 
   LHCClockDataHisto();
 
+#ifndef DEBUGGING
   LHCClockDataHisto(int nb, float r, o2::tof::CalibTOFapi* api) : nbins(nb), range(r), v2Bin(0), calibApi(api)
+#else
+  LHCClockDataHisto(int nb, float r, o2::tof::CalibTOFapi* api, int slot, TH2F* h = nullptr) : nbins(nb), range(r), v2Bin(0), calibApi(api), mSlot(slot), mTimeHist(h)
+#endif
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
@@ -50,6 +60,11 @@ struct LHCClockDataHisto {
   void print() const;
   void fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data);
   void merge(const LHCClockDataHisto* prev);
+
+#ifdef DEBUGGING
+  TH2F* mTimeHist;
+  int mSlot;
+#endif
 
   ClassDefNV(LHCClockDataHisto, 1);
 };
@@ -65,7 +80,13 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   using LHCphaseVector = std::vector<LHCphase>;
 
  public:
-  LHCClockCalibrator(int minEnt = 500, int nb = 10000, float r = 244000, const std::string path = o2::base::NameConf::getCCDBServer()) : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi->setURL(path); }
+  LHCClockCalibrator(int minEnt = 500, int nb = 10000, float r = 244000, const std::string path = o2::base::NameConf::getCCDBServer()) : mMinEntries(minEnt), mNBins(nb), mRange(r)
+  {
+    mCalibTOFapi->setURL(path);
+#ifdef DEBUGGING
+    mTimeHist = new TH2F("phaseTrend", ";slot #; t - t_{exp}^{#pi} (ps)", 200, 0, 200, mNBins, -mRange, mRange);
+#endif
+  }
   ~LHCClockCalibrator() final = default;
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->entries >= mMinEntries; }
   void initOutput() final;
@@ -86,6 +107,11 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   CalibTOFapi* mCalibTOFapi = nullptr;
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying LHCPhase
   LHCphaseVector mLHCphaseVector;   // vector of LhcPhase, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device, and will go to the CCDB
+
+#ifdef DEBUGGING
+  int mNslot = 0;
+  TH2F* mTimeHist; //("channelDist",";channel; t - t_{exp}^{#pi} (ps)",13104,0,157248,1000,-100000,100000);
+#endif
 
   ClassDefOverride(LHCClockCalibrator, 1);
 };

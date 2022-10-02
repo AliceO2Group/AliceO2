@@ -17,11 +17,13 @@
 #ifndef TPC_IonTailCorrection_H_
 #define TPC_IonTailCorrection_H_
 
+#include <memory>
 #include <vector>
 
 #include "Rtypes.h"
 #include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/DebugStreamer.h"
+#include "TPCBase/CalDet.h"
 
 namespace o2::tpc
 {
@@ -50,11 +52,17 @@ class IonTailCorrection
   void setSign(float sign) { mSign = sign; }
   float getSign() const { return mSign; }
 
+  void loadITPadValuesFromFile(std::string_view itParamFile);
+
+  void streamData(int cru, int row, int pad, int time, int lastTime, float kAmp, float kTime, float tailSlopeUnit, float origCumul, float cumul, float origCharge, float charge);
+
  private:
-  float mITMultFactor = 1;            ///< fudge factor to tune IT correction
-  float mKTime = 0.0515;              ///< kTime constant for ion tail filter
-  float mSign = -1.f;                 ///< -1 do correction, +1 add tail
-  o2::utils::DebugStreamer mStreamer; ///< debug streaming
+  float mITMultFactor = 1;                   ///< fudge factor to tune IT correction
+  float mKTime = 0.0515;                     ///< kTime constant for ion tail filter
+  float mSign = -1.f;                        ///< -1 do correction, +1 add tail
+  std::unique_ptr<CalDet<float>> mFraction;  ///< pad-by-pad IT fraction
+  std::unique_ptr<CalDet<float>> mExpLambda; ///< pad-by-pad IT exp(-lambda)
+  o2::utils::DebugStreamer mStreamer;        ///< debug streaming
 
   ClassDefNV(IonTailCorrection, 0);
 };

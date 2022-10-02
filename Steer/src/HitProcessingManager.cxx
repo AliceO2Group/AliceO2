@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Steer/HitProcessingManager.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <vector>
 #include <map>
 #include <iostream>

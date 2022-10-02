@@ -256,7 +256,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
   if (loadCalibParamsFromCCDB) {
     inputs.emplace_back("EMC_CalibParam", o2::header::gDataOriginEMC, "EMCALCALIBPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/CalibParam"));
   }
-  if (calibType.find("badchannel") == std::string::npos) {
+  if (calibType.find("badchannel") != std::string::npos) {
     inputs.emplace_back("EMC_Scalefactors", o2::header::gDataOriginEMC, "SCALEFACTORS", 0, Lifetime::Condition, ccdbParamSpec(CalibDB::getCDBPathChannelScaleFactors()));
   }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime

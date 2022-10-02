@@ -11,7 +11,7 @@
 
 /// \file AnalysisCluster.cxx
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <gsl/span>
 #include <array>
 #include <TLorentzVector.h>

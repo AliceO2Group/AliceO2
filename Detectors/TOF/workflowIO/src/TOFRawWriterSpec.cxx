@@ -119,7 +119,7 @@ DataProcessorSpec getTOFRawWriterSpec()
     Options{
       {"tof-raw-outfile", VariantType::String, "tof.raw", {"Name of the output file"}},
       {"tof-raw-outdir", VariantType::String, ".", {"Name of the output dir"}},
-      {"file-for", VariantType::String, "cru", {"Single file per: all,cru,link"}}}};
+      {"file-for", VariantType::String, "cruendpoint", {"Single file per: all,cruendpoint,link"}}}};
 }
 } // namespace tof
 } // namespace o2

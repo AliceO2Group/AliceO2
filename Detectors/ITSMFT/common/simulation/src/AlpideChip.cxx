@@ -23,7 +23,7 @@
 #include <TGeoManager.h> // for gGeoManager, TGeoManager
 #include "TGeoVolume.h"  // for TGeoVolume
 #include "TGeoMatrix.h"  // for TGeoMatrix
-#include "FairLogger.h"  // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::itsmft;
 

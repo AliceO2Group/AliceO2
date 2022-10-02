@@ -58,7 +58,8 @@
 #include "TPCBase/Utils.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -214,7 +215,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
     // initialize TPC calib objects
     initFunctionTPC();
-    mConfig->configCalib.fastTransform = mTPCCorrMapsHelper->getCorrMap(); // eventually need to account also the reference map
+    mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
+    mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
+    mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
     }
@@ -815,7 +818,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-    o2::tpc::CorrectionMapsHelper::requestCCDBInputs(inputs);
+    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -920,9 +923,9 @@ void GPURecoWorkflowSpec::initFunctionTPC()
 {
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
-  mTPCCorrMapsHelper.reset(new o2::tpc::CorrectionMapsHelper());
-  mTPCCorrMapsHelper->setCorrMap(std::move(TPCFastTransformHelperO2::instance()->create(0))); // just to reserve the space
-  mTPCCorrMapsHelper->setCorrMapRef(std::move(TPCFastTransformHelperO2::instance()->create(0)));
+  mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
+  mFastTransformHelper->setCorrMap(std::move(TPCFastTransformHelperO2::instance()->create(0))); // just to reserve the space
+  mFastTransformHelper->setCorrMapRef(std::move(TPCFastTransformHelperO2::instance()->create(0)));
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -1078,7 +1081,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
   } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
-  } else if (mTPCCorrMapsHelper->accountCCDBInputs(matcher, obj)) {
+  } else if (mFastTransformHelper->accountCCDBInputs(matcher, obj)) {
   }
 }
 
@@ -1116,19 +1119,36 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
 
       if (mSpecConfig.outputTracks) {
         o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-        o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
+        o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
       }
-      if (mTPCVDriftHelper->isUpdated() || mTPCCorrMapsHelper->isUpdated()) {
+      if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {
         LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} from source {}",
-             mTPCCorrMapsHelper->isUpdated() ? " new " : " old ",
+             mFastTransformHelper->isUpdated() ? " new " : " old ",
              mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
-        mTPCVDriftHelper->acknowledgeUpdate();
-        mTPCCorrMapsHelper->acknowledgeUpdate();
-        mFastTransformNew.reset(new TPCFastTransform);
-        mFastTransformNew->cloneFromObject(*mTPCCorrMapsHelper->getCorrMap(), nullptr);
-        TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
-        newCalibObjects.fastTransform = mFastTransformNew.get();
+
+        if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMap()) {
+          mFastTransformNew.reset(new TPCFastTransform);
+          mFastTransformNew->cloneFromObject(*mFastTransformHelper->getCorrMap(), nullptr);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          newCalibObjects.fastTransform = mFastTransformNew.get();
+        }
+        if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMapRef()) {
+          mFastTransformRefNew.reset(new TPCFastTransform);
+          mFastTransformRefNew->cloneFromObject(*mFastTransformHelper->getCorrMapRef(), nullptr);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          newCalibObjects.fastTransformRef = mFastTransformRefNew.get();
+        }
+        if (mFastTransformNew || mFastTransformRefNew || mFastTransformHelper->isUpdatedLumi()) {
+          mFastTransformHelperNew.reset(new o2::tpc::CorrectionMapsLoader);
+          mFastTransformHelperNew->setInstLumi(mFastTransformHelper->getInstLumi());
+          mFastTransformHelperNew->setMeanLumi(mFastTransformHelper->getMeanLumi());
+          mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
+          mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
+          newCalibObjects.fastTransformHelper = mFastTransformHelperNew.get();
+        }
         mMustUpdateFastTransform = true;
+        mTPCVDriftHelper->acknowledgeUpdate();
+        mFastTransformHelper->acknowledgeUpdate();
       }
     }
 
@@ -1156,7 +1176,13 @@ void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
   }
 
   if (mFastTransformNew) {
-    mTPCCorrMapsHelper->setCorrMap(std::move(mFastTransformNew)); // eventually handle also reference map
+    mFastTransform = std::move(mFastTransformNew);
+  }
+  if (mFastTransformRefNew) {
+    mFastTransformRef = std::move(mFastTransformRefNew);
+  }
+  if (mFastTransformHelperNew) {
+    mFastTransformHelper = std::move(mFastTransformHelperNew);
   }
 }
 

@@ -17,7 +17,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/prettywriter.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <unistd.h>
 #include <iostream>
 #include <string>

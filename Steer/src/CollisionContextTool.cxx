@@ -21,6 +21,7 @@
 #include <TRandom.h>
 #include <numeric>
 #include <FairLogger.h>
+#include "Steer/MCKinematicsReader.h"
 
 //
 // Created by Sandro Wenzel on 13.07.21.
@@ -38,6 +39,7 @@ struct Options {
   std::string bcpatternfile;
   int tfid = 0;          // tfid -> used to calculate start orbit for collisions
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
+  bool useexistingkinematics = false;
 };
 
 enum class InteractionLockMode {
@@ -56,7 +58,7 @@ struct InteractionSpec {
   bool randomizeorder = false; // whether order of events will be randomized
 };
 
-InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<InteractionSpec> const& existingPatterns)
+InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<InteractionSpec> const& existingPatterns, bool adjustEventCount)
 {
   // An interaction specification is a command-separated string
   // of the following form:
@@ -82,7 +84,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
   float rate = -1.;
   std::pair<int, float> synconto(-1, 1);
 
-  // extract name
+  // extract (kinematics prefix) name
   std::string name = tokens[0];
 
   // extract the MC number spec if given
@@ -103,6 +105,17 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
     } else {
       LOG(error) << "Could not parse " << mctoken << " as MCNUMBERSTRING";
       exit(1);
+    }
+  }
+
+  if (adjustEventCount) {
+    // if the number of collisionsavail has not been specified, we should
+    // try to extract it from the kinematics directly
+    o2::steer::MCKinematicsReader mcreader(name, o2::steer::MCKinematicsReader::Mode::kMCKine);
+    if (collisionsavail > 0) {
+      collisionsavail = std::min((size_t)collisionsavail, (size_t)mcreader.getNEvents(0));
+    } else {
+      collisionsavail = mcreader.getNEvents(0);
     }
   }
 
@@ -164,6 +177,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "show-context", "Print generated collision context to terminal.")(
     "bcPatternFile", bpo::value<std::string>(&optvalues.bcpatternfile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)")(
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
+    "use-existing-kine", "Read existing kinematics to adjust event counts")(
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of this context. Allows to generate contexts for different start orbits");
 
   options.add_options()("help,h", "Produce help message.");
@@ -180,6 +194,9 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     }
     if (vm.count("show-context")) {
       optvalues.printContext = true;
+    }
+    if (vm.count("use-existing-kine")) {
+      optvalues.useexistingkinematics = true;
     }
 
   } catch (const bpo::error& e) {
@@ -205,7 +222,7 @@ int main(int argc, char* argv[])
   // building the interaction spec
   for (auto& i : options.interactionRates) {
     // this is created as output from
-    ispecs.push_back(parseInteractionSpec(i, ispecs));
+    ispecs.push_back(parseInteractionSpec(i, ispecs, options.useexistingkinematics));
   }
 
   std::vector<std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>>> collisions;
@@ -308,7 +325,12 @@ int main(int argc, char* argv[])
         }
 
         if (inject) {
-          col.second.emplace_back(id, eventcount++);
+          if (ispecs[id].mcnumberavail >= 0) {
+            col.second.emplace_back(id, eventcount % ispecs[id].mcnumberavail);
+          } else {
+            col.second.emplace_back(id, eventcount);
+          }
+          eventcount++;
           lastcol = colid;
           lastcoltime = coltime;
         }

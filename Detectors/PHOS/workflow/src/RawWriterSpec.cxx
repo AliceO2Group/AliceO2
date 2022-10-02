@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 /// \file   PHOS/Workflow/src/RawWriterSpec.cxx
 /// \brief  Digits to raw converter spec for PHOS

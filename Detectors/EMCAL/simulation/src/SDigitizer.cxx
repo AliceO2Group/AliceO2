@@ -21,7 +21,7 @@
 #include <list>
 #include <chrono>
 #include <numeric>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 ClassImp(o2::emcal::SDigitizer);
 

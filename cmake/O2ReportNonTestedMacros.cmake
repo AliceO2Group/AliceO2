@@ -27,6 +27,11 @@ set(LIST_OF_ROOT_MACRO_TESTS_COMPILED "" CACHE INTERNAL "List of macros to test 
 # simply reported).
 #
 function(o2_report_non_tested_macros)
+
+  if(NOT BUILD_TESTING)
+    return()
+  endif()
+
   include(O2RootMacroExclusionList)
 
   cmake_parse_arguments(PARSE_ARGV

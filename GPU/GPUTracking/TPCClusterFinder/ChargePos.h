@@ -30,7 +30,7 @@ struct ChargePos {
 
   GPUdDefault() ChargePos() CON_DEFAULT;
 
-  constexpr GPUdi() ChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
+  constexpr GPUhdi() ChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
     : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME)
   {
   }
@@ -56,6 +56,8 @@ struct ChargePos {
     return TPC_PADS_PER_ROW_PADDED * row + pad + GPUCF_PADDING_PAD;
   }
 };
+
+inline constexpr ChargePos INVALID_CHARGE_POS{255, 255, INVALID_TIME_BIN};
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -8,7 +8,7 @@
 #include "TH2.h"
 //#include "DataFormatsParameters/GRPObject.h"
 #include "FairFileSource.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 //#include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"

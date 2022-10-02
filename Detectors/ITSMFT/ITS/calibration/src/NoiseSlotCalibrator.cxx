@@ -13,7 +13,7 @@
 
 #include "ITSCalibration/NoiseSlotCalibrator.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TFile.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

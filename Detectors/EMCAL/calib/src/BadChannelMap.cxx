@@ -13,7 +13,7 @@
 #include "EMCALCalib/BadChannelMap.h"
 #include "EMCALCalib/CalibContainerErrors.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH2.h>
 

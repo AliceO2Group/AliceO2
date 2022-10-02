@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file DecodeZS.h
-/// \author David Rohr
+/// \author David Rohr, Felix Weiglhofer
 
 #ifndef O2_GPU_DECODE_ZS_H
 #define O2_GPU_DECODE_ZS_H
@@ -21,6 +21,7 @@
 #include "TPCBase/PadPos.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
@@ -63,18 +64,10 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
-class GPUTPCCFDecodeZSLink : public GPUKernelTemplate
+class GPUTPCCFDecodeZSLinkBase : public GPUKernelTemplate
 {
+
  public:
-  // constants for decoding
-  static inline constexpr int DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
-  static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
-  static inline constexpr unsigned int DECODE_MASK = (1 << DECODE_BITS) - 1;
-
-  struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<unsigned char, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink)> {
-    // CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
-  };
-
 #ifdef GPUCA_HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
@@ -88,17 +81,11 @@ class GPUTPCCFDecodeZSLink : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = defaultKernel, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+  template <class Decoder>
+  GPUd() static void Decode(int nBlocks, int nThreads, int iBlock, int iThread, typename Decoder::GPUSharedMemory& smem, processorType& clusterer, int firstHBF);
 
   GPUd() static o2::tpc::PadPos GetPadAndRowFromFEC(processorType& clusterer, int cru, int rawFecChannel, int fecInPartition);
-  GPUd() static void GetChannelBitmask(const tpc::zerosupp_link_based::CommonHeader& tbHdr, uint32_t* chan);
-  GPUd() static bool ChannelIsActive(const uint32_t* chan, unsigned char chanIndex);
-
-  GPUd() static void DecodeTBSingleThread(processorType& clusterer, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
-  GPUd() static void DecodeTBMultiThread(processorType& clusterer, int iThread, GPUSharedMemory& smem, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
-
-  GPUd() static void WriteCharge(processorType& clusterer, unsigned int adc, o2::tpc::PadPos pos, tpccf::TPCFragmentTime localTime, size_t positionOffset);
+  GPUd() static void WriteCharge(processorType& clusterer, float charge, o2::tpc::PadPos pos, tpccf::TPCFragmentTime localTime, size_t positionOffset);
 
   GPUdi() static const unsigned char* ConsumeBytes(const unsigned char*& page, size_t nbytes)
   {
@@ -107,11 +94,82 @@ class GPUTPCCFDecodeZSLink : public GPUKernelTemplate
     return oldPage;
   }
 
+  GPUdi() static unsigned char ConsumeByte(const unsigned char*& page)
+  {
+    return *(page++);
+  }
+
   template <typename T>
   GPUdi() static const T* ConsumeHeader(const unsigned char*& page)
   {
-    return (const T*)ConsumeBytes(page, sizeof(T));
+    assert((size_t(page) + sizeof(T)) % alignof(T) == 0);
+    return reinterpret_cast<const T*>(ConsumeBytes(page, sizeof(T)));
   }
+
+  template <typename T = unsigned char>
+  GPUdi() static const T* Peek(const unsigned char* page, ptrdiff_t offset = 0)
+  {
+    // if ((size_t(page) + offset) % alignof(T) != 0) {
+    //   printf("page = %zu, offset = %zu, alignof = %zu\n", size_t(page), offset, alignof(T));
+    // }
+    assert((size_t(page) + offset) % alignof(T) == 0);
+    return reinterpret_cast<const T*>(page + offset);
+  }
+
+  GPUdi() static float ADCToFloat(unsigned int adc, unsigned int decodeMask, float decodeBitsFactor)
+  {
+    return float(adc & decodeMask) * decodeBitsFactor;
+  }
+};
+
+class GPUTPCCFDecodeZSLink : public GPUTPCCFDecodeZSLinkBase
+{
+ public:
+  // constants for decoding
+  static inline constexpr int DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
+  static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
+  static inline constexpr unsigned int DECODE_MASK = (1 << DECODE_BITS) - 1;
+
+  struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<unsigned char, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink)> {
+    // CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
+  };
+
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+
+  GPUd() static size_t DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, size_t pageDigitOffset, int firstHBF);
+
+  GPUd() static void GetChannelBitmask(const tpc::zerosupp_link_based::CommonHeader& tbHdr, uint32_t* chan);
+  GPUd() static bool ChannelIsActive(const uint32_t* chan, unsigned char chanIndex);
+
+  GPUd() static void DecodeTBSingleThread(processorType& clusterer, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
+  GPUd() static void DecodeTBMultiThread(processorType& clusterer, int iThread, GPUSharedMemory& smem, const unsigned char* adcData, unsigned int nAdc, const uint32_t* channelMask, int timeBin, int cru, int fecInPartition, size_t pageDigitOffset);
+};
+
+class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
+{
+ public:
+  // constants for decoding
+  static inline constexpr int DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
+  static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
+  static inline constexpr unsigned int DECODE_MASK = (1 << DECODE_BITS) - 1;
+
+  struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<unsigned char, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink)> {
+    // CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
+  };
+
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+
+  GPUd() static size_t DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, size_t pageDigitOffset, int firstHBF);
+
+  GPUd() static bool ChannelIsActive(const uint8_t* chan, unsigned short chanIndex);
+
+  template <bool PayloadExtendsToNextPage>
+  GPUd() static size_t DecodeTBSingleThread(processorType& clusterer, const unsigned char*& page, size_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int firstHBF, int cru, const unsigned char* payloadEnd, const unsigned char* nextPage);
+
+  template <bool PayloadExtendsToNextPage>
+  GPUd() static size_t DecodeTBMultiThread(processorType& clusterer, const unsigned char*& page, size_t pageDigitOffset, const header::RAWDataHeader* rawDataHeader, int firstHBF, int cru, const unsigned char* payloadEnd, const unsigned char* nextPage);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

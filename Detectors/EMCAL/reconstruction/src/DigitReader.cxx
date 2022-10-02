@@ -14,7 +14,7 @@
 
 #include "CommonUtils/RootChain.h"
 #include "EMCALReconstruction/DigitReader.h"
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::emcal;
 using o2::emcal::Cell;

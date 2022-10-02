@@ -52,7 +52,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
-    "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
+    "CCDBUrl", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
@@ -71,14 +71,14 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
     if (mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
         if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT") {
-          LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 5 module!";
+          LOGP(fatal, "List of active modules contains {}, which is not a run 5 module", activeModules[i]);
         }
       }
     }
     if (!mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "IT3" || activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
-          LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 3 module!";
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
+          LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
     }

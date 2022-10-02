@@ -12,7 +12,7 @@
 #include "PHOSBase/Geometry.h"
 #include "DataFormatsPHOS/TriggerMap.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH2.h>
 #include <TRandom.h>

@@ -17,7 +17,7 @@
 #include "TOFWorkflowUtils/CompressedAnalysisTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::framework;
 

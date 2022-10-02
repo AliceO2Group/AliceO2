@@ -17,13 +17,11 @@
 #include <vector>
 
 #include <fairmq/Tools.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "PreClusterFinderMapping.h"
 
-namespace o2
-{
-namespace mch
+namespace o2::mch
 {
 
 struct PreClusterFinder::DetectionElement {
@@ -543,5 +541,4 @@ void PreClusterFinder::createMapping()
   LOG(info) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
 }
 
-} // namespace mch
 } // namespace o2

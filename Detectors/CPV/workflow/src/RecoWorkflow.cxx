@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "Framework/RootSerializationSupport.h"
 #include "Algorithm/RangeTokenizer.h"

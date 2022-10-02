@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"

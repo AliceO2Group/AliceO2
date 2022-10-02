@@ -14,7 +14,7 @@
 #include "TGeant3TGeo.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
 

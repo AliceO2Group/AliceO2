@@ -13,7 +13,7 @@
 /// \brief Description of the virtual segmentation of the chips
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "MFTBase/ChipSegmentation.h"

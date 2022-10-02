@@ -24,8 +24,10 @@
 #include "EMCALCalib/BadChannelMap.h"
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include <boost/histogram.hpp>
 
 #include <TRobustEstimator.h>
@@ -51,6 +53,11 @@ class EMCALCalibExtractor
     std::map<slice_t, std::array<double, 17664>> nHitsMap;               // number of hits per cell per slice
     std::map<slice_t, std::pair<double, double>> goodCellWindowMap;      // for each slice, the emin and the emax of the good cell window
     std::map<slice_t, std::pair<double, double>> goodCellWindowNHitsMap; // for each slice, the nHitsMin and the mHitsMax of the good cell window
+  };
+
+  struct BadChannelCalibTimeInfo {
+    std::array<double, 17664> sigmaCell; // sigma value of time distribution for single cells
+    double goodCellWindow;               // cut value for good cells
   };
 
  public:
@@ -81,8 +88,10 @@ class EMCALCalibExtractor
   boostHisto buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto mCellAmplitude);
 
   /// \brief Function to perform the calibration of bad channels
+  /// \param hist histogram cell energy vs. cell ID. Main histogram for the bad channel calibration
+  /// \param histTime histogram cell time vs. cell ID. If default argument is taken, no calibration based on the timing signal will be performed
   template <typename... axes>
-  o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
+  o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist, const boost::histogram::histogram<axes...>& histTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>{0., 1.}, boost::histogram::axis::variable<>{0., 1.}))
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}};
@@ -102,6 +111,13 @@ class EMCALCalibExtractor
 
     // get all ofthe calibration information that we need in a struct
     BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
+
+    // only initialize this if the histo is not the default one
+    const bool doIncludeTime = (histTime.axis(0).size() > 1 && EMCALCalibParams::Instance().useTimeInfoForCalib_bc) ? true : false;
+    BadChannelCalibTimeInfo calibrationTimeInfo;
+    if (doIncludeTime) {
+      calibrationTimeInfo = buildTimeMeanAndSigma(histTime);
+    }
 
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
@@ -134,6 +150,14 @@ class EMCALCalibExtractor
             LOG(debug) << "********* FAILED **********";
             failed = true;
             break;
+          }
+
+          // check if the cell is bad due to timing signal.
+          if (!failed && doIncludeTime) {
+            if (calibrationTimeInfo.sigmaCell[cellID] > calibrationTimeInfo.goodCellWindow) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution";
+              failed = true;
+            }
           }
         }
         if (failed) {
@@ -236,6 +260,37 @@ class EMCALCalibExtractor
 
     return outputInfo;
   }
+
+  //____________________________________________
+  /// \brief calculate the sigma of the time distribution for all cells and caluclate the mean of the sigmas
+  /// \param histCellTime input histogram cellID vs cell time
+  /// \return sigma value for all cells and the upper cut value
+  template <typename... axes>
+  BadChannelCalibTimeInfo buildTimeMeanAndSigma(const boost::histogram::histogram<axes...>& histCellTime)
+  {
+    std::array<double, 17664> meanSigma;
+    for (int i = 0; i < mNcells; ++i) {
+      // calculate sigma per cell
+      const int indexLow = histCellTime.axis(1).index(i);
+      const int indexHigh = histCellTime.axis(1).index(i + 1);
+      auto boostHistCellSlice = o2::utils::ProjectBoostHistoXFast(histCellTime, indexLow, indexHigh);
+      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice));
+      LOG(debug) << "meanSigma[" << i << "] " << meanSigma[i];
+    }
+
+    // get the mean sigma and the std. deviation of the sigma distribution
+    // those will be the values we cut on
+    double avMean = 0, avSigma = 0;
+    TRobustEstimator robustEstimator;
+    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0);
+
+    BadChannelCalibTimeInfo timeInfo;
+    timeInfo.sigmaCell = meanSigma;
+    timeInfo.goodCellWindow = avMean + (avSigma * o2::emcal::EMCALCalibParams::Instance().sigmaTime_bc); // only upper limit needed
+
+    return timeInfo;
+  }
+
   //____________________________________________
 
   /// \brief Calibrate time for all cells
@@ -285,10 +340,12 @@ class EMCALCalibExtractor
         auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(boostHist1d);
         mean = fitValues.at(1);
         // add mean to time calib params
-        TCP.addTimeCalibParam(i, mean, 0);
+        TCP.addTimeCalibParam(i, mean, false);                                                // highGain calib factor
+        TCP.addTimeCalibParam(i, mean + EMCALCalibParams::Instance().lowGainOffset_tc, true); // lowGain calib factor
       } catch (o2::utils::FitGausError_t err) {
         LOG(warning) << createErrorMessageFitGaus(err) << "; for cell " << i << " (Will take the parameter of the previous cell: " << mean << "ns)";
-        TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
+        TCP.addTimeCalibParam(i, mean, false);                                                // take calib value of last cell; or 400 ns shift default value
+        TCP.addTimeCalibParam(i, mean + EMCALCalibParams::Instance().lowGainOffset_tc, true); // take calib value of last cell; or 400 ns shift default value
       }
     }
     return TCP;

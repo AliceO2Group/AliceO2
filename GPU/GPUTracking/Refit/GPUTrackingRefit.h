@@ -45,6 +45,7 @@ using TrackTPCClusRef = o2::dataformats::RangeReference<uint32_t, uint16_t>;
 
 namespace o2::gpu
 {
+class CorrectionMapsHelper;
 class GPUTPCGMTrackParam;
 class GPUTPCGMMergedTrack;
 MEM_CLASS_PRE()
@@ -52,7 +53,6 @@ struct GPUConstantMem;
 MEM_CLASS_PRE()
 struct GPUParam;
 struct GPUTPCGMMergedTrackHit;
-class TPCFastTransform;
 
 class GPUTrackingRefit
 {
@@ -64,7 +64,7 @@ class GPUTrackingRefit
   void SetClusterNative(const o2::tpc::ClusterNativeAccess* v) { mPclusterNative = v; }
   void SetTrackHits(const GPUTPCGMMergedTrackHit* v) { mPtrackHits = v; }
   void SetTrackHitReferences(const unsigned int* v) { mPtrackHitReferences = v; }
-  void SetFastTransform(const TPCFastTransform* v) { mPfastTransform = v; }
+  void SetFastTransformHelper(const CorrectionMapsHelper* v) { mPfastTransformHelper = v; }
   void SetGPUParam(const MEM_CONSTANT(GPUParam) * v) { mPparam = v; }
   GPUd() int RefitTrackAsGPU(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(trk, outward, resetCov); }
   GPUd() int RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov); }
@@ -97,7 +97,7 @@ class GPUTrackingRefit
   const o2::tpc::ClusterNativeAccess* mPclusterNative = nullptr; // Ptr to cluster native access structure
   const GPUTPCGMMergedTrackHit* mPtrackHits = nullptr;           // Ptr to hits for GPUTPCGMMergedTrack tracks
   const unsigned int* mPtrackHitReferences = nullptr;            // Ptr to hits for TrackTPC tracks
-  const TPCFastTransform* mPfastTransform = nullptr;             // Ptr to TPC fast transform object
+  const CorrectionMapsHelper* mPfastTransformHelper = nullptr;   // Ptr to TPC fast transform object helper
   const MEM_CONSTANT(GPUParam) * mPparam = nullptr;              // Ptr to GPUParam
   template <class T, class S>
   GPUd() int RefitTrack(T& trk, bool outward, bool resetCov);

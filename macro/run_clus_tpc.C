@@ -6,7 +6,7 @@
 #include "TStopwatch.h"
 #include "TGeoManager.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 #include "FairFileSource.h"
 #include "FairSystemInfo.h"

@@ -33,8 +33,6 @@
 #include <TMath.h>
 #include <TRandom.h>
 
-#include <FairLogger.h>
-
 // GG
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"

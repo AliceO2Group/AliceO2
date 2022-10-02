@@ -30,6 +30,41 @@ o2_add_library(TPCWorkflow
                        src/MIPTrackFilterSpec.cxx
                        src/LaserTrackFilterSpec.cxx
                        src/ApplyCCDBCalibSpec.cxx
+                       src/ProcessingHelpers.cxx
+                       src/TrackAndClusterFilterSpec.cxx
+                       src/FileWriterSpec.cxx
+                       src/TPCVDriftTglCalibSpec.cxx
+               TARGETVARNAME targetName
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
+                                     O2::DPLUtils O2::TPCReconstruction
+                                     O2::TPCCalibration O2::TPCSimulation
+                                     O2::TPCQC O2::DetectorsCalibration
+                                     O2::TPCReaderWorkflow
+               PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
+                                      O2::GPUWorkflow
+           )
+
+o2_add_library(TPCWorkflowGUI
+               SOURCES src/RecoWorkflow.cxx
+                       src/ClustererSpec.cxx
+                       src/ClusterDecoderRawSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+                       src/RawToDigitsSpec.cxx
+                       src/LinkZSToDigitsSpec.cxx
+                       src/ZSSpec.cxx
+                       src/CalibProcessingHelper.cxx
+                       src/ClusterSharingMapSpec.cxx
+                       src/CalDetMergerPublisherSpec.cxx
+                       src/KryptonClustererSpec.cxx
+                       src/KryptonRawFilterSpec.cxx
+                       src/SACProcessorSpec.cxx
+                       src/IDCToVectorSpec.cxx
+                       src/CalibdEdxSpec.cxx
+                       src/CalibratordEdxSpec.cxx
+                       src/MIPTrackFilterSpec.cxx
+                       src/LaserTrackFilterSpec.cxx
+                       src/ApplyCCDBCalibSpec.cxx
                        src/MonitorWorkflowSpec.cxx
                        src/ProcessingHelpers.cxx
                        src/TrackAndClusterFilterSpec.cxx
@@ -210,7 +245,7 @@ o2_add_executable(digits-to-rawzs
 o2_add_executable(monitor-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-monitor-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflowGUI)
 
 o2_add_executable(calibrator-gainmap-tracks
                   COMPONENT_NAME tpc

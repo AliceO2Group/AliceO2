@@ -19,7 +19,7 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "CorrectionMapsHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GPUO2Interface.h"
@@ -39,7 +39,7 @@ void CalibPadGainTracks::processTracks(const int nMaxTracks)
     mBufVec.resize(mClusterIndex->nClustersTotal);
     o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
     mClusterShMapTPC = mBufVec.data();
-    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper->getCorrMap(), mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
+    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
   }
 
   const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
@@ -408,16 +408,10 @@ void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  if (mTPCCorrMapsHelper) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 
 //______________________________________________
-void CalibPadGainTracks::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+void CalibPadGainTracks::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  if (mTPCVDrift > 0.f) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }

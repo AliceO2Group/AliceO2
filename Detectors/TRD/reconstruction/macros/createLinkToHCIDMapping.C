@@ -14,7 +14,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
@@ -60,7 +60,7 @@ void createLinkToHCIDMapping(bool isDefault = true)
   }
 
   o2::ccdb::CcdbApi ccdb;
-  ccdb.init("http://alice-ccdb.cern.ch");
+  ccdb.init("https://alice-ccdb.cern.ch");
   // ccdb.init("http://ccdb-test.cern.ch:8080");
 
   std::map<std::string, std::string> metadata;
