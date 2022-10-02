@@ -743,7 +743,6 @@ void HMPIDDCSProcessor::finalize()
   std::unique_ptr<TF1> pPhotMean;
   pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0,
                           mTimeEMean.last - mTimeEMean.first));
-  //  std::vector<TF1>::iterator itArNmean = arNmean.begin() + 42;
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
 
