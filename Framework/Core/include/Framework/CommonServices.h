@@ -80,14 +80,13 @@ struct CommonServices {
 };
 
 struct CommonAnalysisServices {
-  static ServiceSpec databasePDGSpec();
-
   template <typename T>
   static void addAnalysisService(std::vector<ServiceSpec>& specs)
   {
-    if constexpr (std::is_same_v<T, TDatabasePDG>) {
-      specs.push_back(databasePDGSpec());
-    }
+    std::vector<LoadableService> loadableServices = {};
+    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupport";
+    loadableServices = ServiceHelpers::parseServiceSpecString(analysisServices);
+    ServiceHelpers::loadFromPlugin(loadableServices, specs);
   }
 };
 

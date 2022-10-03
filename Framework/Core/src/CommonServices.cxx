@@ -42,8 +42,6 @@
 #include "DecongestionService.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
-#include "TDatabasePDG.h"
-#include "../../../DataFormats/simulation/include/SimulationDataFormat/O2DatabasePDG.h"
 #include "Headers/STFHeader.h"
 #include "Headers/DataHeader.h"
 
@@ -957,18 +955,5 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   return specs;
 }
 
-o2::framework::ServiceSpec CommonAnalysisServices::databasePDGSpec()
-{
-  return ServiceSpec{
-    .name = "database-pdg",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto* ptr = new TDatabasePDG();
-      o2::O2DatabasePDG::addALICEParticles(ptr);
-      return ServiceHandle{TypeIdHelpers::uniqueId<TDatabasePDG>(), ptr, ServiceKind::Serial, "database-pdg"};
-    },
-    .configure = CommonServices::noConfiguration(),
-    .exit = [](ServiceRegistry&, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
-    .kind = ServiceKind::Serial};
-}
 } // namespace o2::framework
 #pragma GCC diagnostic pop

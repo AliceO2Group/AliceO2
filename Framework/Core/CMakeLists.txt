@@ -144,7 +144,6 @@ o2_add_library(Framework
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::MathUtils
-                                     ROOT::EG
                                      ROOT::TreePlayer
                                      O2::CCDB
                                      O2::FrameworkFoundation
