@@ -25,7 +25,6 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
-#include "CCDBHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -241,7 +240,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   DataProcessorSpec ccdbBackend{
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
-    .algorithm = CCDBHelpers::fetchFromCCDB(),
     .options = {{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
@@ -556,6 +554,34 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         }
       }
     }
+
+    // Load the CCDB backend from the plugin
+    uv_lib_t supportLib;
+    int result = 0;
+#ifdef __APPLE__
+    result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
+#else
+    result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
+#endif
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+      return;
+    }
+    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+      return;
+    }
+    if (dpl_plugin_callback == nullptr) {
+      LOG(fatal) << "Could not find the CCDBSupport plugin.";
+      return;
+    }
+    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
+    ccdbBackend.algorithm = creator->create();
+
     extraSpecs.push_back(ccdbBackend);
   } else {
     // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb
