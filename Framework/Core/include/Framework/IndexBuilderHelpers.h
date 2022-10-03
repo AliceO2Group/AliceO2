@@ -77,7 +77,7 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
 {
  public:
   IndexColumnBuilder(arrow::ChunkedArray* source, const char* name, int listSize, arrow::MemoryPool* pool);
-  virtual ~IndexColumnBuilder() override = default;
+  ~IndexColumnBuilder() override = default;
 
   template <typename C>
   inline std::shared_ptr<arrow::ChunkedArray> result() const
