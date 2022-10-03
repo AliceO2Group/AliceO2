@@ -72,8 +72,7 @@ if(NOT TARGET FairRoot::Base)
                                    INTERFACE_LINK_LIBRARIES ${FairRoot_Base}
                                    INTERFACE_LINK_DIRECTORIES ${libdir})
   target_link_libraries(FairRoot::Base
-                        INTERFACE FairRoot::Tools FairRoot::ParBase
-                                  FairRoot::GeoBase MC::VMC)
+                        INTERFACE FairRoot::Tools FairRoot::ParBase FairRoot::GeoBase MC::VMC)
 endif()
 
 if(NOT TARGET FairRoot::ParMQ)
