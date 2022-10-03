@@ -27,9 +27,9 @@ namespace lumi_workflow
 {
 struct lumiInfo {
   lumiInfo() = default;
-  InteractionRecord ir;                                 // timestamp of start of lumi interval
-  size_t mNHBFCounted = 0;                                    // length of interval in HB
-  size_t mCounts = 0;                                   //  counts in the interval
+  InteractionRecord ir;    // timestamp of start of lumi interval
+  size_t mNHBFCounted = 0; // length of interval in HB
+  size_t mCounts = 0;      //  counts in the interval
 };
 /// \class RawToLumiConverterSpec
 /// \brief Coverter task for Raw data to Lumi

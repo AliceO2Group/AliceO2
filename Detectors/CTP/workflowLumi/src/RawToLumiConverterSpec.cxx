@@ -138,27 +138,27 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
   lp.mCounts = countsMB;
   lp.ir.orbit = orbit0;
   lumiPointsHBF1.push_back(lp);
-  //LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size() << " History size:" << mHistory.size();
+  // LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size() << " History size:" << mHistory.size();
   //
   size_t tfCounts = 0.;
-  for(auto  const& lp: lumiPointsHBF1) {
+  for (auto const& lp : lumiPointsHBF1) {
     tfCounts += lp.mCounts;
   }
   mHistory.push_back(tfCounts);
   mCounts += tfCounts;
-  //std::cout << tfCounts << " " << mCounts << std::endl;
-  if(mHistory.size() <= mNTFToIntegrate) {
+  // std::cout << tfCounts << " " << mCounts << std::endl;
+  if (mHistory.size() <= mNTFToIntegrate) {
     mNHBIntegrated += lumiPointsHBF1.size();
   } else {
     mCounts -= mHistory.front();
     mHistory.pop_front();
   }
-  if(mNHBIntegrated){
+  if (mNHBIntegrated) {
     mOutputLumiInfo.ir.orbit = lumiPointsHBF1[0].ir.orbit;
   }
   mOutputLumiInfo.mCounts = mCounts;
   mOutputLumiInfo.mNHBFCounted = mNHBIntegrated;
-  float meanLumi = mNHBIntegrated ? mCounts / (mNHBIntegrated*o2::constants::lhc::LHCOrbitMUS*1e-6) : 0;
+  float meanLumi = mNHBIntegrated ? mCounts / (mNHBIntegrated * o2::constants::lhc::LHCOrbitMUS * 1e-6) : 0;
   LOG(info) << "[CTPRawToLumiConverter - run] Writing " << meanLumi << " lumiInfo:" << mOutputLumiInfo.ir.orbit << " Counts:" << mCounts << " NHBIntegrated:" << mNHBIntegrated;
   ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
 }
