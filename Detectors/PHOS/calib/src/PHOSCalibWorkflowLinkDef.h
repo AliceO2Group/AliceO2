@@ -32,5 +32,10 @@
 #pragma link C++ class o2::phos::PHOSRunbyrunCalibDevice + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSRunbyrunSlot> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cluster, o2::phos::PHOSRunbyrunSlot> + ;
+#pragma link C++ class o2::phos::PHOSL1phaseSlot + ;
+#pragma link C++ class o2::phos::PHOSL1phaseCalibrator + ;
+#pragma link C++ class o2::phos::PHOSL1phaseCalibDevice + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSL1phaseSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cell, o2::phos::PHOSL1phaseSlot> + ;
 
 #endif

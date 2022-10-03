@@ -14,6 +14,7 @@
 #include "PHOSCalibWorkflow/PHOSEnergyCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSTurnonCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
+#include "PHOSCalibWorkflow/PHOSL1phaseCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSBadMapCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -32,6 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"runbyrun", o2::framework::VariantType::Bool, false, {"do run by run correction calculation"}});
   workflowOptions.push_back(ConfigParamSpec{"energy", o2::framework::VariantType::Bool, false, {"collect tree for E calib"}});
   workflowOptions.push_back(ConfigParamSpec{"badmap", o2::framework::VariantType::Bool, false, {"do bad map calculation"}});
+  workflowOptions.push_back(ConfigParamSpec{"l1phase", o2::framework::VariantType::Bool, false, {"do L1phase calculation"}});
 
   workflowOptions.push_back(ConfigParamSpec{"phoscalib-output-dir", o2::framework::VariantType::String, "./", {"ROOT files output directory"}});
   workflowOptions.push_back(ConfigParamSpec{"phoscalib-meta-output-dir", o2::framework::VariantType::String, "/dev/null", {"metafile output directory"}});
@@ -60,6 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto doRunbyrun = configcontext.options().get<bool>("runbyrun");
   auto doEnergy = configcontext.options().get<bool>("energy");
   auto doBadMap = configcontext.options().get<bool>("badmap");
+  auto doL1phase = configcontext.options().get<bool>("l1phase");
   auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
 
@@ -103,6 +106,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOG(info) << "bad map calculation ";
     int mode = configcontext.options().get<int>("mode");
     specs.emplace_back(o2::phos::getBadMapCalibSpec(mode));
+  }
+  if (doL1phase) {
+    LOG(info) << "L1phase corrections calculation on ";
+    specs.emplace_back(o2::phos::getPHOSL1phaseCalibDeviceSpec());
   }
   return specs;
 }
