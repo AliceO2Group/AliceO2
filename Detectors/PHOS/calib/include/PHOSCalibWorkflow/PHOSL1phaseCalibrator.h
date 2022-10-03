@@ -13,7 +13,7 @@
 #define O2_CALIBRATION_PHOSL1PHASE_CALIBRATOR_H
 
 /// @file   PHOSRunbyrunCalibDevice.h
-/// @brief  Device to calculate PHOS energy run by run corrections
+/// @brief  Device to calculate PHOS time shift (L1phase)
 
 #include "Framework/Task.h"
 #include "Framework/ProcessingContext.h"
