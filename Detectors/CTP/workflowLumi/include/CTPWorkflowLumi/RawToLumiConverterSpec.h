@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
+#include <deque>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -24,13 +25,11 @@ namespace ctp
 
 namespace lumi_workflow
 {
-struct lumiPoint {
-  lumiPoint() = default;
+struct lumiInfo {
+  lumiInfo() = default;
   InteractionRecord ir;                                 // timestamp of start of lumi interval
-  float_t nHBFs = 1;                                    // length of interval in HB
-  float_t counts = 0;                                   //  counts in the interval
-  float_t getLumi() { return counts / nHBFs / 88e-6; }; // rate in Hz
-  float_t getFractErrorLumi() { return 1. / sqrt(counts); };
+  size_t mNHBFCounted = 0;                                    // length of interval in HB
+  size_t mCounts = 0;                                   //  counts in the interval
 };
 /// \class RawToLumiConverterSpec
 /// \brief Coverter task for Raw data to Lumi
@@ -61,8 +60,11 @@ class RawToLumiConverterSpec : public framework::Task
  protected:
  private:
   gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
-  int mHBFsToAverage = 1;
-  std::vector<lumiPoint> mOutputLumiPoints;
+  lumiInfo mOutputLumiInfo;
+  size_t mCounts = 0;
+  size_t mNTFToIntegrate = 1;
+  size_t mNHBIntegrated = 0;
+  std::deque<size_t> mHistory;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP

@@ -26,7 +26,7 @@ using namespace o2::ctp::lumi_workflow;
 
 void RawToLumiConverterSpec::init(framework::InitContext& ctx)
 {
-  mHBFsToAverage = ctx.options().get<int>("nHBF-to-IRaverage");
+  mNTFToIntegrate = ctx.options().get<int>("NTF-to-IRaverage");
 }
 
 void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
@@ -54,15 +54,15 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
-        ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiPoints);
+        ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
         return;
       }
     }
     contDeadBeef = 0; // if good data, reset the counter
   }
   //
-  std::vector<lumiPoint> lumiPointsHBF1;
-  float_t countsMB = 0;
+  std::vector<lumiInfo> lumiPointsHBF1;
+  size_t countsMB = 0;
   uint32_t payloadCTP;
   uint32_t orbit0 = 0;
   bool first = true;
@@ -91,8 +91,8 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
     std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       // create lumi per HB
-      lumiPoint lp;
-      lp.counts = countsMB;
+      lumiInfo lp;
+      lp.mCounts = countsMB;
       lp.ir.orbit = triggerOrbit;
       lumiPointsHBF1.push_back(lp);
       // LOG(info) << "Orbit:" << triggerOrbit << " tvx count:" << countsMB;
@@ -134,26 +134,33 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       }
     }
   }
-  // LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size();
-  mOutputLumiPoints.clear();
-  float_t countHBFn = 0;
-  for (int ihb = 0; ihb < lumiPointsHBF1.size(); ihb++) {
-    countHBFn += lumiPointsHBF1[ihb].counts;
-    lumiPoint lp;
-    if (ihb < mHBFsToAverage) {
-      lp.nHBFs = ihb + 1;
-      lp.ir = lumiPointsHBF1[ihb].ir;
-    } else {
-      countHBFn -= lumiPointsHBF1[ihb - mHBFsToAverage].counts;
-      lp.nHBFs = mHBFsToAverage;
-      lp.ir = lumiPointsHBF1[ihb - mHBFsToAverage + 1].ir;
-    }
-    lp.counts = countHBFn;
-    // LOG(info) << "lp orbit:" << lp.ir.orbit << " lp.countes:" << lp.counts << " T:" << lp.nHBFs;
-    mOutputLumiPoints.push_back(lp);
+  lumiInfo lp;
+  lp.mCounts = countsMB;
+  lp.ir.orbit = orbit0;
+  lumiPointsHBF1.push_back(lp);
+  //LOG(info) << "lumiPoints size:" << lumiPointsHBF1.size() << " History size:" << mHistory.size();
+  //
+  size_t tfCounts = 0.;
+  for(auto  const& lp: lumiPointsHBF1) {
+    tfCounts += lp.mCounts;
   }
-  LOG(info) << "[CTPRawToLumiConverter - run] Writing " << mOutputLumiPoints.size() << " lumiPoints ...";
-  ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiPoints);
+  mHistory.push_back(tfCounts);
+  mCounts += tfCounts;
+  //std::cout << tfCounts << " " << mCounts << std::endl;
+  if(mHistory.size() <= mNTFToIntegrate) {
+    mNHBIntegrated += lumiPointsHBF1.size();
+  } else {
+    mCounts -= mHistory.front();
+    mHistory.pop_front();
+  }
+  if(mNHBIntegrated){
+    mOutputLumiInfo.ir.orbit = lumiPointsHBF1[0].ir.orbit;
+  }
+  mOutputLumiInfo.mCounts = mCounts;
+  mOutputLumiInfo.mNHBFCounted = mNHBIntegrated;
+  float meanLumi = mNHBIntegrated ? mCounts / (mNHBIntegrated*o2::constants::lhc::LHCOrbitMUS*1e-6) : 0;
+  LOG(info) << "[CTPRawToLumiConverter - run] Writing " << meanLumi << " lumiInfo:" << mOutputLumiInfo.ir.orbit << " Counts:" << mCounts << " NHBIntegrated:" << mNHBIntegrated;
+  ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
 }
 o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSpec(bool askDISTSTF)
 {
@@ -172,5 +179,5 @@ o2::framework::DataProcessorSpec o2::ctp::lumi_workflow::getRawToLumiConverterSp
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::lumi_workflow::RawToLumiConverterSpec>()},
-    o2::framework::Options{{"nHBF-to-IRaverage", o2::framework::VariantType::Int, 1, {"Time interval for averaging IR rate in units of HB"}}}};
+    o2::framework::Options{{"NTF-to-IRaverage", o2::framework::VariantType::Int, 1, {"Time interval for averaging IR rate in units of TF"}}}};
 }
