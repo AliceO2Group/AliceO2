@@ -140,7 +140,6 @@ o2_add_library(Framework
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Configuration
-                                     AliceO2::InfoLogger
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
@@ -205,7 +204,6 @@ foreach(t
         HistogramRegistry
         HTTPParser
         IndexBuilder
-        InfoLogger
         InputRecord
         InputRecordWalker
         InputSpan
@@ -247,6 +245,12 @@ o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
             COMPONENT_NAME Framework
             LABELS framework
             PUBLIC_LINK_LIBRARIES O2::Framework ROOT::ROOTDataFrame)
+
+o2_add_test(InfoLogger NAME test_Framework_test_InfoLogger
+            SOURCES test/test_InfoLogger.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
 
 o2_add_executable(dpl-null-sink
                   SOURCES src/o2NullSink.cxx
