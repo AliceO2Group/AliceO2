@@ -22,6 +22,8 @@ void HMPIDDCSProcessor::init(const std::vector<DPID>& pids)
   for (const auto& it : pids) {
     mPids[it] = false;
   }
+  arNmean.resize(43);
+  arQthre.resize(42);
 }
 
 // process span of Datapoints, function is called repeatedly in the
@@ -198,7 +200,7 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   if (type == DeliveryType::DPVAL_DOUBLE) {
     const auto chNum = aliasStringToInt(dpid, indexChHv);
     const auto secNum = aliasStringToInt(dpid, indexSecHv);
-
+    LOGP(debug, "HV ch:{} sec:{} val: {}", chNum, secNum, o2::dcs::getValue<double>(dpcom));
     if (chNum < 7 && chNum >= 0) {
       if (secNum < 6 && secNum >= 0) {
         dpVecHV[6 * chNum + secNum].push_back(dpcom);
@@ -598,9 +600,7 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
     }
     pTout->SetTitle(Form(
       "Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
-    std::vector<TF1>::iterator itTout =
-      arNmean.begin() + 6 * iCh + 2 * iRad + 1;
-    arNmean.insert(itTout, *(pTout.get()));
+    arNmean[6 * iCh + 2 * iRad + 1] = *(pTout.get());
   } else {
     LOG(info) << Form("No entries in temp-out for ch%irad%i", iCh, iRad);
   }
@@ -640,8 +640,7 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 
     pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms]; Temp [C]",
                         iCh, iRad));
-    std::vector<TF1>::iterator itTin = arNmean.begin() + 6 * iCh + 2 * iRad;
-    arNmean.insert(itTin, *(pTin.get()));
+    arNmean[6 * iCh + 2 * iRad] = *(pTin.get());
 
   } else {
     LOG(info) << Form("No entries in temp-in for ch%irad%i", iCh, iRad);
@@ -710,6 +709,7 @@ void HMPIDDCSProcessor::finalize()
       std::unique_ptr<TF1> pHV = finalizeHv(iCh, iSec);
 
       // only fill if envP, chamP and HV datapoints are all fetched
+      LOGP(info, "Finalize ch={} sec={}, pEnv={} pChPres={} pHV={}", iCh, iSec, (void*)pEnv.get(), (void*)pChPres.get(), (void*)pHV.get());
       if (pEnv != nullptr && pChPres != nullptr && pHV != nullptr) {
 
         const char* hvChar = (pArrHv[3 * iCh + iSec]).GetName();
@@ -728,9 +728,7 @@ void HMPIDDCSProcessor::finalize()
         pQthre->SetTitle(Form(
           "Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
 
-        std::vector<TF1>::iterator itQthre = arQthre.begin() + 6 * iCh + iSec;
-
-        arQthre.insert(itQthre, *(pQthre.get()));
+        arQthre[6 * iCh + iSec] = *(pQthre.get());
 
       } else {
         LOG(info) << "Missing entries for HV, envPressure or chPressure";
@@ -745,11 +743,10 @@ void HMPIDDCSProcessor::finalize()
   std::unique_ptr<TF1> pPhotMean;
   pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0,
                           mTimeEMean.last - mTimeEMean.first));
-  std::vector<TF1>::iterator itArNmean = arNmean.begin() + 42;
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
 
-  arNmean.insert(itArNmean, *(pPhotMean.get()));
+  arNmean[42] = *(pPhotMean.get());
 
   // Check entries of CCDB-objects
   checkEntries(arQthre, arNmean);
