@@ -24,7 +24,7 @@ namespace o2::framework
 {
 struct ChunkedArrayIterator {
   ChunkedArrayIterator(arrow::ChunkedArray* source);
-  virtual ~ChunkedArrayIterator() {}
+  virtual ~ChunkedArrayIterator() = default;
 
   arrow::ChunkedArray* mSource;
   size_t mPosition = 0;
@@ -43,7 +43,7 @@ struct ChunkedArrayIterator {
 
 struct SelfIndexColumnBuilder {
   SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool);
-  virtual ~SelfIndexColumnBuilder() {}
+  virtual ~SelfIndexColumnBuilder() = default;
 
   template <typename C>
   inline std::shared_ptr<arrow::ChunkedArray> result() const
@@ -77,7 +77,7 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
 {
  public:
   IndexColumnBuilder(arrow::ChunkedArray* source, const char* name, int listSize, arrow::MemoryPool* pool);
-  virtual ~IndexColumnBuilder() {}
+  virtual ~IndexColumnBuilder() override = default;
 
   template <typename C>
   inline std::shared_ptr<arrow::ChunkedArray> result() const
