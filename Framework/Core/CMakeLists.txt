@@ -145,7 +145,7 @@ o2_add_library(Framework
                                      FairMQ::FairMQ
                                      O2::MathUtils
                                      ROOT::EG
-                                     ROOT::TreePlayer
+                                     ROOT::Tree
                                      O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers
