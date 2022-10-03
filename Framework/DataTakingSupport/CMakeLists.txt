@@ -8,25 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-
-add_subdirectory(Logger)
-
-add_subdirectory(Foundation)
-
-add_subdirectory(Core)
-
-add_subdirectory(Utils)
-
-add_subdirectory(AnalysisSupport) 
-add_subdirectory(PhysicsSupport)
-add_subdirectory(DataTakingSupport)
-
-add_subdirectory(RootAnalysisHelpers)
-
-
-# Build the GUI support only if we have DebugGUI
-if (TARGET AliceO2::DebugGUI)
-add_subdirectory(GUISupport) 
-endif()
-
-add_subdirectory(TestWorkflows) 
+o2_add_library(FrameworkDataTakingSupport
+               SOURCES src/Plugin.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
