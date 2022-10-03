@@ -922,7 +922,8 @@ void ITSThresholdCalibrator::addDatabaseEntry(
     std::string pixIDs_Ineff = "";
     std::vector<int>& v = PixelType == "Noisy" ? mNoisyPixID[chipID] : PixelType == "Dead" ? mDeadPixID[chipID]
                                                                                            : mIneffPixID[chipID];
-
+    // Number of pixel types
+    int n_pixel = v.size(), nDcols = 0, nNoisy = 0;
     std::string ds = "-1"; // dummy string
     // find bad dcols and add them one by one
     if (PixelType == "Noisy") {
@@ -939,11 +940,11 @@ void ITSThresholdCalibrator::addDatabaseEntry(
           o2::dcs::addConfigItem(this->mTuning, "Col", ds);
 
           dcolIDs += std::to_string(i) + '|'; // prepare string for second object for ccdb prod
+          nDcols++;
         }
       }
     }
 
-    // find single noisy pix (not in the dcol string!) if required and add them one by one
     if (this->mTagSinglePix) {
       if (PixelType == "Noisy") {
         for (int i = 0; i < v.size(); i++) {
@@ -954,6 +955,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
 
           // Noisy pixel IDs
           pixIDs_Noisy += std::to_string(v[i]);
+          nNoisy++;
           if (i + 1 < v.size()) {
             pixIDs_Noisy += '|';
           }
@@ -1004,10 +1006,15 @@ void ITSThresholdCalibrator::addDatabaseEntry(
     }
 
     o2::dcs::addConfigItem(this->mPixStat, "O2ChipID", std::to_string(chipID));
-    o2::dcs::addConfigItem(this->mPixStat, "Dcol", dcolIDs);
-    o2::dcs::addConfigItem(this->mPixStat, "NoisyPixID", pixIDs_Noisy);
-    o2::dcs::addConfigItem(this->mPixStat, "DeadPixID", pixIDs_Dead);
-    o2::dcs::addConfigItem(this->mPixStat, "IneffPixID", pixIDs_Ineff);
+    if (PixelType == "Dead" || PixelType == "Ineff") {
+      o2::dcs::addConfigItem(this->mPixStat, "PixelType", PixelType);
+      o2::dcs::addConfigItem(this->mPixStat, "PixelNos", n_pixel);
+      o2::dcs::addConfigItem(this->mPixStat, "DcolNos", "-1");
+    } else {
+      o2::dcs::addConfigItem(this->mPixStat, "PixelType", PixelType);
+      o2::dcs::addConfigItem(this->mPixStat, "PixelNos", nNoisy);
+      o2::dcs::addConfigItem(this->mPixStat, "DcolNos", nDcols);
+    }
   }
   if (this->mScanType != 'D' && this->mScanType != 'A') {
     o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
