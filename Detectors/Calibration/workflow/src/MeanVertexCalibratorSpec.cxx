@@ -42,7 +42,7 @@ void MeanVertexCalibDevice::init(InitContext& ic)
   auto slotL = params->tfPerSlot;
   float delay = float(params->maxTFdelay) / slotL; // in timeslot calibration, the delay is in fraction of timeslot length
   auto nPointsForSlope = params->nPointsForSlope;
-  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA, nPointsForSlope);
+  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nPointsForSlope, nSlots4SMA);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
   bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
@@ -89,7 +89,6 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
-
   using clbUtils = o2::calibration::Utils;
   const auto& payloadVec = mCalibrator->getMeanVertexObjectVector();
   auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector(); // use non-const version as we update it
@@ -98,11 +97,13 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
   for (uint32_t i = 0; i < payloadVec.size(); i++) {
     auto& w = infoVec[i];
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-    LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+    LOG(info) << (MeanVertexParams::Instance().skipObjectSending ? "Skip " : "") << "sending object "
+              << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
               << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-
-    output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX", i}, *image.get()); // vector<char>
-    output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX", i}, w);            // root-serialized
+    if (!MeanVertexParams::Instance().skipObjectSending) {
+      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX", i}, *image.get()); // vector<char>
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX", i}, w);            // root-serialized
+    }
   }
   if (payloadVec.size()) {
     mCalibrator->initOutput(); // reset the outputs once they are already sent

@@ -21,14 +21,11 @@
 #include <string>
 #include <limits>
 #include <algorithm>
-#include "FairLogger.h"
 
 using namespace std;
 using namespace rapidjson;
 
-namespace o2
-{
-namespace event_visualisation
+namespace o2::event_visualisation
 {
 
 VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
@@ -153,5 +150,4 @@ void VisualisationEvent::afterLoading()
   }
 }
 
-} // namespace event_visualisation
 } // namespace o2

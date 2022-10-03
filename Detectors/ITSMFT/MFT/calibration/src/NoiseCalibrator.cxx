@@ -13,7 +13,7 @@
 
 #include "MFTCalibration/NoiseCalibrator.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TFile.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"

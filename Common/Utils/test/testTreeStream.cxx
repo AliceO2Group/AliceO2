@@ -22,7 +22,6 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "CommonUtils/RootChain.h"
 #include "ReconstructionDataFormats/Track.h"
-#include <FairLogger.h>
 #include <string>
 
 using namespace o2::utils;
@@ -34,7 +33,6 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   // Example test function to show functionality of TreeStreamRedirector
 
   // create the  redirector associated with file (testredirector.root)
-  FairLogger* logger = FairLogger::GetLogger();
 
   LOG(info) << "Testing  TreeStream creation";
   std::string outFName("testTreeStream.root");

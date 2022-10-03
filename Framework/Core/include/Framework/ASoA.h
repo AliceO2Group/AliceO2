@@ -2958,17 +2958,37 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 template <typename T>
 inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
 
-template <typename T>
-struct SmallGroups : public Filtered<T> {
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
+template <typename T, bool APPLY>
+struct SmallGroupsBase : public Filtered<T> {
+  static constexpr bool applyFilters = APPLY;
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 };
+
+template <typename T>
+using SmallGroups = SmallGroupsBase<T, true>;
+
+template <typename T>
+using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
+
+template <typename T>
+struct is_smallgroups_t {
+  static constexpr bool value = false;
+};
+
+template <typename T, bool F>
+struct is_smallgroups_t<SmallGroupsBase<T, F>> {
+  static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
 
 } // namespace o2::soa
 

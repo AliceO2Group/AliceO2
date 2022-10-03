@@ -21,7 +21,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 #include <TClass.h>           // for TClass
 #include <TGeoBBox.h>         // for TGeoBBox

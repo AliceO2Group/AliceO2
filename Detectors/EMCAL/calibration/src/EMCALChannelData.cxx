@@ -50,11 +50,17 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   //the fill function is called once per event
   mEvents++;
   for (auto cell : data) {
-    Double_t cellEnergy = cell.getEnergy();
-    Int_t id = cell.getTower();
+    double cellEnergy = cell.getEnergy();
+    int id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);
     mNEntriesInHisto++;
+
+    if (cellEnergy > o2::emcal::EMCALCalibParams::Instance().minCellEnergyTime_bc) {
+      double cellTime = cell.getTimeStamp();
+      LOG(debug) << "inserting in cell ID " << id << ": time = " << cellTime;
+      mHistoTime(cellTime, id);
+    }
   }
 }
 //_____________________________________________
@@ -68,6 +74,7 @@ void EMCALChannelData::merge(const EMCALChannelData* prev)
   mEvents += prev->getNEvents();
   mNEntriesInHisto += prev->getNEntriesInHisto();
   mHisto += prev->getHisto();
+  mHistoTime += prev->getHistoTime();
 }
 
 //_____________________________________________
@@ -91,7 +98,7 @@ bool EMCALChannelData::hasEnoughData() const
 //_____________________________________________
 void EMCALChannelData::analyzeSlot()
 {
-  mOutputBCM = mCalibExtractor->calibrateBadChannels(mEsumHisto);
+  mOutputBCM = mCalibExtractor->calibrateBadChannels(mEsumHisto, mHistoTime);
 }
 //____________________________________________
 

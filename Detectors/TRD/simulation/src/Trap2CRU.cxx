@@ -261,10 +261,10 @@ void Trap2CRU::readTrapData()
       ss << std::setw(2) << std::setfill('0') << sm;
       std::string supermodule = ss.str();
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_sm_", supermodule, outSuffix);
-    } else if (mFilePer == "fullcru") {
+    } else if (mFilePer == "cru") {
       // one file per CRU (both end points combined)
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), outSuffix);
-    } else if (mFilePer == "cru") {
+    } else if (mFilePer == "cruendpoint") {
       // one file per CRU end point
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), "_", std::to_string(mEndPointID), outSuffix);
     } else {

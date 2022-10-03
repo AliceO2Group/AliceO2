@@ -213,7 +213,8 @@ struct zsEncoder {
   int firstTimebinInPage = -1;
   float encodeBitsFactor = 0;
   bool needAnotherPage = false;
-  static void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
+  unsigned int packetCounter = 0;
+  void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
   long int getHbf(long int timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
 };
@@ -228,6 +229,7 @@ inline void zsEncoder::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int
   o2::raw::RDHUtils::setFEEID(*rdh, feeId);
   o2::raw::RDHUtils::setDetectorField(*rdh, 2);
   o2::raw::RDHUtils::setLinkID(*rdh, linkid);
+  o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
 }
 
 inline void zsEncoder::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
@@ -278,7 +280,7 @@ struct zsEncoderRow : public zsEncoder {
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
 
   bool sort(const o2::tpc::Digit a, const o2::tpc::Digit b);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
 };
 
 inline bool zsEncoderRow::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
@@ -392,7 +394,7 @@ unsigned int zsEncoderRow::encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer
   return seqLen;
 }
 
-void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
   const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)decPagePtr;
@@ -576,7 +578,7 @@ bool zsEncoderLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
 struct zsEncoderImprovedLinkBased : public zsEncoderLinkBased {
   bool checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
 
@@ -648,7 +650,7 @@ void zsEncoderImprovedLinkBased::initPage()
   hdr->firstZSDataOffset = 0;
 }
 
-void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const auto& mapper = Mapper::instance();
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
@@ -730,7 +732,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
 struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   bool checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
   unsigned int encodeSequence(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k);
-  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
+  void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
 
@@ -833,7 +835,7 @@ void zsEncoderDenseLinkBased::initPage()
   hdr->flags = 0;
 }
 
-void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
+void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit, unsigned int triggerBC)
 {
   const auto& mapper = Mapper::instance();
   const unsigned char* decPagePtr = reinterpret_cast<const unsigned char*>(decPage);
@@ -872,6 +874,12 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
 
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
+
+      if (o2::raw::RDHUtils::getPacketCounter(*rdh) + 1 != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
+        decPagePtr = payloadEnd;
+        break;
+      }
+
       const TPCZSHDRV2* hdrNext = reinterpret_cast<const TPCZSHDRV2*>(pageNext + o2::raw::RDHUtils::getMemorySize(*rdhNext) - sizeof(TPCZSHDRV2));
       tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset);
       memcpy(tmpBuffer.data(), decPagePtr, sizeLeftInPage);
@@ -881,7 +889,6 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
     unsigned char linkCount = *((const unsigned char*)decPagePtr) & 0x0F;
     unsigned short linkBC = (*((const unsigned short*)decPagePtr) & 0xFFF0) >> 4;
-    int timeBin = (linkBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
     decPagePtr += sizeof(unsigned short);
     std::vector<int> links;
     std::vector<std::bitset<80>> bitmasks;
@@ -890,11 +897,11 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       unsigned char decLinkX = *((const unsigned char*)decPagePtr);
       decPagePtr += sizeof(unsigned char);
       unsigned char decLink = decLinkX & 0b00011111;
-      std::bitset<12> bitmaskL2;
+      std::bitset<10> bitmaskL2;
       if (decLinkX & 0b00100000) {
         bitmaskL2.set();
       } else {
-        bitmaskL2 = std::bitset<12>(((((unsigned short)decLinkX) & 0b11000000) << 2) | (unsigned short)*((const unsigned char*)decPagePtr));
+        bitmaskL2 = std::bitset<10>(((((unsigned short)decLinkX) & 0b11000000) << 2) | (unsigned short)*((const unsigned char*)decPagePtr));
         decPagePtr += sizeof(unsigned char);
       }
 
@@ -909,10 +916,16 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       bitmasks.emplace_back(bitmask);
       nTotalSamples += bitmask.count();
     }
-    std::vector<unsigned short> samples(nTotalSamples);
 
     const unsigned char* adcData = (const unsigned char*)decPagePtr;
     decPagePtr += (nTotalSamples * encodeBits + 7) / 8;
+
+    if (linkBC < triggerBC) {
+      continue;
+    }
+    int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+
+    std::vector<unsigned short> samples(nTotalSamples);
     unsigned int byte = 0, bits = 0, posXbits = 0;
     while (posXbits < nTotalSamples) {
       byte |= *(adcData++) << bits;
@@ -941,7 +954,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
     }
   }
-  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= o2::raw::RDHUtils::GBTWord) {
+  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord) {
     throw std::runtime_error("Decoding didn't reach end of page");
   }
 }
@@ -978,6 +991,7 @@ struct zsEncoderRun : public T {
   using T::nexthbf;
   using T::outputEndpoint;
   using T::outputRegion;
+  using T::packetCounter;
   using T::padding;
   using T::page;
   using T::pagePtr;
@@ -1043,6 +1057,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           unsigned char* triggerWord = nullptr;
           if (hbf != nexthbf || endpoint != lastEndpoint) {
             if ((pagePtr - (unsigned char*)page) + sizeof(TPCZSHDRV2) + o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE <= TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord)) {
+                pagePtr += o2::raw::RDHUtils::GBTWord; // align to 256 bit, size constrained cannot be affected by this
+              }
               hdr->flags |= o2::tpc::TPCZSHDRV2::ZSFlags::TriggerWordPresent;
             } else {
               needAnotherPage = true;
@@ -1054,6 +1071,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           if (hdr->flags & o2::tpc::TPCZSHDRV2::TriggerWordPresent) {
             triggerWord = pagePtr;
             pagePtr += o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE;
+          }
+          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord) == 0) {
+            pagePtr += o2::raw::RDHUtils::GBTWord; // align to 128bit mod 256
           }
           TPCZSHDRV2* pagehdr = (TPCZSHDRV2*)pagePtr;
           pagePtr += sizeof(TPCZSHDRV2);
@@ -1087,6 +1107,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setFEEID(*rdh, rawfeeid);
           o2::raw::RDHUtils::setDetectorField(*rdh, 2);
           o2::raw::RDHUtils::setLinkID(*rdh, this->RAWLNK);
+          o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
         }
       }
       if (k >= tmpBuffer.size() && !needAnotherPage) {
@@ -1372,7 +1393,7 @@ void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputB
   if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
     return;
   }
-  const TPCZSHDR* const hdr = (const TPCZSHDR*)((const char*)page + sizeof(o2::header::RAWDataHeader));
+  const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
   if (mDecoders.size() < hdr->version + 1) {
     mDecoders.resize(hdr->version + 1);
   }

@@ -19,8 +19,9 @@ namespace o2::tpc
 {
 
 struct IonTailCorrectionSettings : public o2::conf::ConfigurableParamHelper<IonTailCorrectionSettings> {
-  float ITMultFactor = 1; ///< fudge factor to tune IT correction
-  float kTime = 0.0515;   ///< kTime constant for ion tail filter
+  float ITMultFactor = 1;    ///< fudge factor to tune IT correction
+  float kTime = 0.0515;      ///< kTime constant for ion tail filter
+  std::string padITCorrFile; ///< file with pad-by-pad IT correction values
   O2ParamDef(IonTailCorrectionSettings, "TPCITCorr");
 };
 

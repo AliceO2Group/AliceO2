@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsPHOS/Pedestals.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <TH1.h>
 
 using namespace o2::phos;

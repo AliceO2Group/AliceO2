@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
       ("userLogic,u",po::bool_switch()->default_value(true),"user logic format")
       ("dummy-elecmap,d",po::bool_switch()->default_value(false),"use a dummy electronic mapping (for testing only, to be removed at some point)")
       ("output-dir,o",po::value<std::string>()->default_value("./"),"output directory for file(s)")
-      ("file-for,f", po::value<std::string>()->default_value("all"), "output one file (file-for=all), per link (file-for=link) or per cru end point (file-for=cru)")
+      ("file-for,f", po::value<std::string>()->default_value("all"), "output one file (file-for=all), per link (file-for=link) or per cru end point (file-for=cruendpoint)")
       ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(false), "do not create empty HBF pages (except for HBF starting TF)")
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
   auto fileFor = vm["file-for"].as<std::string>();
   if (fileFor == "link") {
     opts.splitMode = OutputSplit::PerLink;
-  } else if (fileFor == "cru") {
+  } else if (fileFor == "cruendpoint") {
     opts.splitMode = OutputSplit::PerCruEndpoint;
   } else if (fileFor == "all") {
     opts.splitMode = OutputSplit::None;

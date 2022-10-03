@@ -25,7 +25,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsFT0/MCLabel.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 void AdjustStatBox(TH1* h, float x1ndc, float x2ndc, float y1ndc, float y2ndc)
 {

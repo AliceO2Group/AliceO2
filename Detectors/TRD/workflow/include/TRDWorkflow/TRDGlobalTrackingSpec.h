@@ -29,7 +29,7 @@
 #include <memory>
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "GPUO2InterfaceRefit.h"
 #include "TPCFastTransform.h"
 #include "TRDBase/RecoParam.h"
@@ -72,7 +72,7 @@ class TRDGlobalTracking : public o2::framework::Task
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
   bool mTrigRecFilter{false};                                    ///< if true, TRD trigger records without matching ITS IR are filtered out
   bool mStrict{false};                                           ///< preliminary matching in strict mode

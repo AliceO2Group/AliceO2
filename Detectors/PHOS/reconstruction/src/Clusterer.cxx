@@ -20,7 +20,7 @@
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/Digit.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::phos;
 

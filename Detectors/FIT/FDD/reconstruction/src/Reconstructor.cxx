@@ -17,7 +17,7 @@
 #include "FDDBase/Constants.h"
 #include <DataFormatsFDD/ChannelData.h>
 #include <DataFormatsFDD/Digit.h>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::fdd;
 

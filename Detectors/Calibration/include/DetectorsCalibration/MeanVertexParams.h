@@ -26,9 +26,9 @@ namespace calibration
 struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexParams> {
 
   int minEntries = 100;
-  int nbinsX = 500;
+  int nbinsX = 1000;
   float rangeX = 1.f;
-  int nbinsY = 500;
+  int nbinsY = 1000;
   float rangeY = 1.f;
   int nbinsZ = 100;
   float rangeZ = 20.f;
@@ -36,6 +36,8 @@ struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexPar
   uint32_t tfPerSlot = 5u;
   uint32_t maxTFdelay = 3u;
   uint32_t nPointsForSlope = 10;
+  bool dumpNonEmptyBins = false;
+  bool skipObjectSending = false;
 
   O2ParamDef(MeanVertexParams, "MeanVertexCalib");
 };

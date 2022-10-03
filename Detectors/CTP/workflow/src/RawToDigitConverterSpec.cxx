@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"

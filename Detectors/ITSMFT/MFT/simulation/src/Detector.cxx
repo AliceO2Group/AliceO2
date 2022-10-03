@@ -25,7 +25,7 @@
 #include "Field/MagneticField.h"
 #include "SimulationDataFormat/Stack.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRootManager.h"
 #include "FairVolume.h"
 #include "TGeoManager.h"

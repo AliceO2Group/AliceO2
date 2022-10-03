@@ -71,6 +71,44 @@ class CTFHelper
       return (I&)(*this);
     }
 
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
+
     difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
 
     difference_type operator-(size_t idx) const { return mIndex - idx; }
@@ -85,6 +123,8 @@ class CTFHelper
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -109,6 +149,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].getBCData().orbit == mData[id - 1].getBCData().orbit) {
+          return mData[id].getBCData().bc - mData[id - 1].getBCData().bc;
+        } else {
+          return mData[id].getBCData().bc;
+        }
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -118,6 +170,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, TriggerRecord, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].getBCData().orbit - mData[id - 1].getBCData().orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -127,6 +184,7 @@ class CTFHelper
    public:
     using _Iter<Iter_entriesTrig, TriggerRecord, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getNumberOfObjects(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getNumberOfObjects(); }
   };
 
   //_______________________________________________
@@ -135,6 +193,7 @@ class CTFHelper
    public:
     using _Iter<Iter_posX, Cluster, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedPosX(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedPosX(); }
   };
 
   //_______________________________________________
@@ -143,6 +202,7 @@ class CTFHelper
    public:
     using _Iter<Iter_posZ, Cluster, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedPosZ(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedPosZ(); }
   };
 
   //_______________________________________________
@@ -151,6 +211,7 @@ class CTFHelper
    public:
     using _Iter<Iter_energy, Cluster, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedEnergy(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedEnergy(); }
   };
 
   //_______________________________________________
@@ -159,6 +220,7 @@ class CTFHelper
    public:
     using _Iter<Iter_status, Cluster, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedClusterStatus(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedClusterStatus(); }
   };
 
   //<<< =========================== ITERATORS ========================================

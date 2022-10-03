@@ -39,7 +39,7 @@ int makeFDDCCDBEntryForDCS(const std::string ccdbUrl = "http://localhost:8080",
                                         "FDD/SIDE_A/LAYER3/PMT_3_[0..3]/[I,V]MON"};
   std::vector<std::string> aliasesADC = {"FDD/PM/SIDE_A/PMT_A_9/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_C/PMT_C_[9,32]/ADC[0,1]_BASELINE",
-                                         "FDD/PM/SIDE_C/LAYER0/PMT_0_[0..3]/ACD[0,1]_BASELINE",
+                                         "FDD/PM/SIDE_C/LAYER0/PMT_0_[0..3]/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_C/LAYER1/PMT_1_[0..3]/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_A/LAYER2/PMT_2_[0..3]/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_A/LAYER3/PMT_3_[0..3]/ADC[0,1]_BASELINE"};

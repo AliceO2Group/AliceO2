@@ -18,6 +18,12 @@
 #include "Framework/Plugins.h"
 #include "Framework/DebugGUI.h"
 #include "FrameworkGUIDebugger.h"
+#include "Framework/ServiceSpec.h"
+#include "Framework/CommonServices.h"
+#include "Framework/GuiCallbackContext.h"
+#include "SpyService.h"
+#include "SpyServiceHelpers.h"
+#include <fairmq/Channel.h>
 
 using namespace o2::framework;
 
@@ -62,13 +68,10 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
     o2::framework::gui::charIn(key);
   }
 
-  void* initGUI(char const* windowTitle) override
+  void* initGUI(char const* windowTitle, ServiceRegistry& registry_) override
   {
+    registry = &registry_;
     return o2::framework::initGUI(windowTitle);
-  }
-  bool pollGUI(void* context, std::function<void(void)> guiCallback) override
-  {
-    return o2::framework::pollGUI(context, guiCallback);
   }
   void disposeGUI() override
   {
@@ -88,14 +91,18 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   }
   void* pollGUIRender(std::function<void(void)> guiCallback) override
   {
-    return o2::framework::pollGUIRender(guiCallback);
+    auto* result = o2::framework::pollGUIRender(guiCallback);
+    registry->postRenderGUICallbacks();
+    return result;
   }
   void pollGUIPostRender(void* context, void* draw_data) override
   {
     o2::framework::pollGUIPostRender(context, draw_data);
   }
+  ServiceRegistry* registry;
 };
 
 DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(ImGUIDebugGUI, DebugGUIImpl);
+DEFINE_DPL_PLUGIN_INSTANCE(SpyGUIPlugin, CustomService);
 DEFINE_DPL_PLUGINS_END

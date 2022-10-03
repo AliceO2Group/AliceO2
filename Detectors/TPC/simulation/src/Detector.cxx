@@ -29,7 +29,7 @@
 #include "FairGeoInterface.h"
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRootManager.h"
 
 #include "TSystem.h"

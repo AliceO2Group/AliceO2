@@ -144,6 +144,8 @@ o2_add_library(Framework
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::MathUtils
+                                     ROOT::EG
+                                     ROOT::TreePlayer
                                      O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers
@@ -214,7 +216,6 @@ foreach(t
         OptionsHelpers
         OverrideLabels
         PtrHelpers
-        Root2ArrowTable
         RootConfigParamHelpers
         Services
         StringHelpers
@@ -241,6 +242,12 @@ foreach(t
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
 
+o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
+            SOURCES test/test_Root2ArrowTable.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework ROOT::ROOTDataFrame)
+
 o2_add_executable(dpl-null-sink
                   SOURCES src/o2NullSink.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -253,7 +260,7 @@ o2_add_executable(dpl-run
 
 o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  PUBLIC_LINK_LIBRARIES O2::Framework ROOT::TreePlayer
                   COMPONENT_NAME Framework)
 
 # tests with a name not starting with test_...
@@ -309,7 +316,6 @@ foreach(w
         ParallelProducer
         SlowConsumer
         SimpleDataProcessingDevice01
-        SimpleRDataFrameProcessing
         SimpleStatefulProcessing01
         SimpleStringProcessing
         SimpleTimer

@@ -49,7 +49,7 @@ std::string ccdbShortcuts(std::string ccdbHost, std::string cln, std::string pat
 {
   // Commonly used shortcuts for ccdbHost
   if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+    ccdbHost = "https://alice-ccdb.cern.ch:8080";
   } else if (ccdbHost == "internal") {
     ccdbHost = "http://o2-ccdb.internal/";
   } else if (ccdbHost == "test") {

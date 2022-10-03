@@ -18,15 +18,13 @@
 
 #include <TMath.h>
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "MCHMappingInterface/Segmentation.h"
 
 #include "MCHPreClustering/PreClusterFinderParam.h"
 
-namespace o2
-{
-namespace mch
+namespace o2::mch
 {
 
 using namespace std;
@@ -157,5 +155,4 @@ bool Mapping::areOverlappingExcludeCorners(float area1[2][2], float area2[2][2])
   return false;
 }
 
-} // namespace mch
 } // namespace o2

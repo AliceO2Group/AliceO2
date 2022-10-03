@@ -84,11 +84,50 @@ class CTFHelper
       mIndex -= idx;
       return (I&)(*this);
     }
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
 
     bool operator!=(const I& other) const { return mIndex != other.mIndex; }
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -113,6 +152,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].intRecord.orbit == mData[id - 1].intRecord.orbit) {
+          return mData[id].intRecord.bc - mData[id - 1].intRecord.bc;
+        } else {
+          return mData[id].intRecord.bc;
+        }
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -122,6 +173,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, CTPDigit, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].intRecord.orbit - mData[mIndex - 1].intRecord.orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].intRecord.orbit - mData[id - 1].intRecord.orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -133,6 +189,11 @@ class CTFHelper
     {
       return static_cast<uint8_t>(((mData[mIndex / CTPInpNBytes].CTPInputMask.to_ullong()) >> (8 * (mIndex % CTPInpNBytes))) & 0xff);
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return static_cast<uint8_t>(((mData[id / CTPInpNBytes].CTPInputMask.to_ullong()) >> (8 * (id % CTPInpNBytes))) & 0xff);
+    }
   };
 
   //_______________________________________________
@@ -143,6 +204,11 @@ class CTFHelper
     value_type operator*() const
     {
       return static_cast<uint8_t>(((mData[mIndex / CTPClsNBytes].CTPClassMask.to_ullong()) >> (8 * (mIndex % CTPClsNBytes))) & 0xff);
+    }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return static_cast<uint8_t>(((mData[id / CTPClsNBytes].CTPClassMask.to_ullong()) >> (8 * (id % CTPClsNBytes))) & 0xff);
     }
   };
 

@@ -28,7 +28,7 @@
 #include <TEveProjectionManager.h>
 #include <TEveWindowManager.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace std;
 

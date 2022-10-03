@@ -23,7 +23,7 @@
 #include "CCDB/CcdbApi.h"
 #include "FV0Base/Constants.h"
 
-int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://alice-ccdb.cern.ch:8080")
+int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "https://alice-ccdb.cern.ch:8080")
 {
   using CalibObjWithInfoType = std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>;
   std::array<int, o2::fv0::Constants::nFv0Channels> offsets;

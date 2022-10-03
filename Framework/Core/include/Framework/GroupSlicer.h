@@ -81,7 +81,7 @@ struct GroupSlicer {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<T>>()) {
         auto name = getLabelFromType<std::decay_t<T>>();
-        if constexpr (!framework::is_specialization_v<std::decay_t<T>, soa::SmallGroups>) {
+        if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<T>>) {
           if (table.size() == 0) {
             return;
           }
@@ -236,7 +236,7 @@ struct GroupSlicer {
           pos = position;
         }
 
-        if constexpr (!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>) {
+        if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<A1>>) {
           // optimized split
           if (originalTable.size() == 0) {
             return originalTable;
@@ -271,7 +271,7 @@ struct GroupSlicer {
             return typedTable;
           }
         } else {
-          //generic split
+          // generic split
           if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
             // intersect selections
             o2::soa::SelectionVector s;
@@ -281,7 +281,11 @@ struct GroupSlicer {
               }
             } else {
               if (!filterGroups[index].empty()) {
-                std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+                if constexpr (std::decay_t<A1>::applyFilters) {
+                  std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+                } else {
+                  std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+                }
               }
             }
             std::decay_t<A1> typedTable{{originalTable.asArrowTable()}, std::move(s)};
@@ -292,6 +296,7 @@ struct GroupSlicer {
           }
         }
       } else {
+        static_assert(!o2::soa::is_smallgroups_v<std::decay_t<A1>>, "SmallGroups used with a table that is not related by index to the gouping table");
         return originalTable;
       }
     }

@@ -34,7 +34,7 @@
 #include <TCanvas.h>
 #include <TLegend.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Constants.h"

@@ -133,31 +133,36 @@ class DigiReco
     LOG(warn) << __func__ << " Configuration of TDC pile-up correction: " << (mCorrBackground ? "enabled" : "disabled");
   };
   bool getCorrBackground() { return mCorrBackground; };
+  bool inError()
+  {
+    return mInError;
+  }
 
   const uint32_t* getTDCMask() const { return mTDCMask; }
   const uint32_t* getChMask() const { return mChMask; }
   const std::vector<o2::zdc::RecEventAux>& getReco() { return mReco; }
 
  private:
-  const ModuleConfig* mModuleConfig = nullptr;               /// Trigger/readout configuration object
-  void updateOffsets(int ibun);                              /// Update offsets to process current bunch
-  void lowPassFilter();                                      /// low-pass filtering of digitized data
-  void reconstructTDC(int seq_beg, int seq_end);             /// Reconstruction of uncorrected TDCs
-  int reconstruct(int seq_beg, int seq_end);                 /// Main method for data reconstruction
-  void processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
-  void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
-  void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
-  void fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
-  void correctTDCPile();                                     /// Correction of pile-up in TDC
-  bool mLowPassFilter = true;                                /// Enable low pass filtering
-  bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
-  bool mFullInterpolation = false;                           /// Full waveform interpolation
-  bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
-  int mInterpolationStep = 25;                               /// Coarse interpolation step
-  bool mCorrSignal = true;                                   /// Enable TDC signal correction
-  bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
-  bool mCorrBackground = true;                               /// Enable TDC pile-up correction
-  bool mCorrBackgroundSet = false;                           /// TDC pile-up correction set via function call
+  const ModuleConfig* mModuleConfig = nullptr;              /// Trigger/readout configuration object
+  void updateOffsets(int ibun);                             /// Update offsets to process current bunch
+  void lowPassFilter();                                     /// low-pass filtering of digitized data
+  int reconstructTDC(int seq_beg, int seq_end);             /// Reconstruction of uncorrected TDCs
+  int reconstruct(int seq_beg, int seq_end);                /// Main method for data reconstruction
+  int processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
+  int processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
+  int interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
+  int fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
+  void correctTDCPile();                                    /// Correction of pile-up in TDC
+  bool mLowPassFilter = true;                               /// Enable low pass filtering
+  bool mLowPassFilterSet = false;                           /// Low pass filtering set via function call
+  bool mFullInterpolation = false;                          /// Full waveform interpolation
+  bool mFullInterpolationSet = false;                       /// Full waveform interpolation set via function call
+  int mInterpolationStep = 25;                              /// Coarse interpolation step
+  bool mCorrSignal = true;                                  /// Enable TDC signal correction
+  bool mCorrSignalSet = false;                              /// TDC signal correction set via function call
+  bool mCorrBackground = true;                              /// Enable TDC pile-up correction
+  bool mCorrBackgroundSet = false;                          /// TDC pile-up correction set via function call
+  bool mInError = false;                                    /// ZDC reconstruction ends in error
 
   int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches

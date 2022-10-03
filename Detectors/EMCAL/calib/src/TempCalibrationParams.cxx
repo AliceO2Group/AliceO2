@@ -11,7 +11,7 @@
 
 #include "EMCALCalib/TempCalibrationParams.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH1.h>
 

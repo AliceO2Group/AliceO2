@@ -101,6 +101,9 @@ class Tracking
   /// Main processing function
   void run();
 
+  /// Reset the output vector
+  void reset() { mTrackQC.clear(); }
+
   /// Check track QC
   void checkTrack(const TrackTRD& trk, bool isTPCTRD);
 

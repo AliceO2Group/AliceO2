@@ -20,7 +20,7 @@
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 //#include <TGeoArb8.h>           // for TGeoArb8
 #include <TGeoBBox.h>    // for TGeoBBox

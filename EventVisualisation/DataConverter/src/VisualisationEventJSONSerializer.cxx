@@ -15,7 +15,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <iostream>
 #include <iomanip>
 #include <limits>
@@ -27,11 +27,8 @@
 
 using namespace rapidjson;
 
-namespace o2
+namespace o2::event_visualisation
 {
-namespace event_visualisation
-{
-constexpr int JSON_FILE_VERSION = 1;
 
 void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, std::string fileName)
 {
@@ -333,5 +330,4 @@ rapidjson::Value VisualisationEventJSONSerializer::jsonTree(const VisualisationT
   return tree;
 }
 
-} // namespace event_visualisation
-} // namespace o2
+} // namespace o2::event_visualisation

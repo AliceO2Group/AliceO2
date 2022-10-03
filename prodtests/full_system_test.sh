@@ -57,7 +57,7 @@ NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
-FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
+FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-4}
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
@@ -135,22 +135,22 @@ if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
 fi
 
 mkdir -p raw
-taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for cru -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --zs-version ${FST_TPC_ZSVERSION} --file-for cru -i tpcdigits.root -o raw/TPC
-taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
-taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
-taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cru
+taskwrapper itsraw.log o2-its-digi2raw --file-for cruendpoint -o raw/ITS
+taskwrapper mftraw.log o2-mft-digi2raw --file-for cruendpoint -o raw/MFT
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cruendpoint -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cruendpoint -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-for cruendpoint -o raw/FDD
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --zs-version ${FST_TPC_ZSVERSION} --file-for cruendpoint -i tpcdigits.root -o raw/TPC
+taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cruendpoint --output-type raw --tof-raw-outdir raw/TOF
+taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cruendpoint
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cruendpoint
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw --file-for link -o raw/PHS
-taskwrapper cpvraw.log o2-cpv-digi2raw --file-for cru -o raw/CPV
-taskwrapper zdcraw.log o2-zdc-digi2raw --file-for cru -o raw/ZDC
-taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir raw/HMP
-taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --file-per cru
-taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cru
+taskwrapper cpvraw.log o2-cpv-digi2raw --file-for cruendpoint -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw --file-for cruendpoint -o raw/ZDC
+taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for crorcendpoint --outdir raw/HMP
+taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --file-for cruendpoint
+taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cruendpoint
 
 CHECK_DETECTORS_RAW="ITS MFT FT0 FV0 FDD TPC TOF MID MCH CPV ZDC TRD CTP"
 if [ $BEAMTYPE == "PbPb" ] && [ $NEvents -ge 5 ] ; then

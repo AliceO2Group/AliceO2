@@ -3,6 +3,9 @@
 # A script producing a consistent full-system-test workflow.
 # Python used for convenient json handling but this is completely up to the workflow writer.
 #
+# WARNING: THIS SCRIPT IS CURRENTLY OUTDATED AND SHOULD BE MADE CONSISTENT WITH full_system_test.sh BEFORE USING IT AGAIN
+#
+#
 from os import environ
 import json
 

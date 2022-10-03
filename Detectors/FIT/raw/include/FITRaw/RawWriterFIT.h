@@ -77,7 +77,7 @@ class RawWriterFIT
         maskName += fmt::format("_{}", mFlpName);
         if (mFileFor != "flp") {
           maskName += fmt::format("_cru{}_{}", RDHUtils::getCRUID(rdh), RDHUtils::getEndPointID(rdh));
-          if (mFileFor != "cru") {
+          if (mFileFor != "cruendpoint") {
             maskName += fmt::format("_lnk{}_feeid{}", RDHUtils::getLinkID(rdh), RDHUtils::getFEEID(rdh));
             if (mFileFor != "link") {
               throw std::runtime_error("invalid option provided for file grouping");

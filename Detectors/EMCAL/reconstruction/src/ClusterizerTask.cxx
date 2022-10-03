@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <iterator>
 #include <gsl/span>
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 #include "EMCALReconstruction/ClusterizerTask.h"
 #include "DataFormatsEMCAL/Cluster.h"

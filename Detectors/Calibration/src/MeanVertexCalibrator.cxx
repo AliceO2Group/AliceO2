@@ -11,6 +11,7 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsCalibration/MeanVertexCalibrator.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 #include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
@@ -77,7 +78,7 @@ void MeanVertexCalibrator::binVector(std::vector<float>& vectOut, const std::vec
 }
 
 //_____________________________________________
-void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, MeanVertexObject& mvo)
+bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, MeanVertexObject& mvo)
 {
   // now we do the fits in slices of Z
   // we fit as soon as we have enough entries in z
@@ -100,23 +101,34 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   std::vector<CovMatrix> covMatrixY;
   std::vector<float> binnedVect;
   std::vector<double> meanZvect;
-  int startZ = 0;
-  int counter = 0;
+  int startZ = 0, nBinsOK = 0;
   auto minEntriesPerPoint = std::max((unsigned long int)mMinEntries, c->histoVtx.size() / mNPointsForSlope);
   if (mVerbose) {
-    LOG(info) << "Beginning: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
+    LOGP(info, "Beginning: startZ = {} c->histoVtx.size() = {}, will process {} Z slices with {} entries each", startZ, c->histoVtx.size(), mNPointsForSlope, minEntriesPerPoint);
   }
-  while (startZ <= c->histoVtx.size()) {
+  auto dumpNonEmpty = [&binnedVect](const std::string& msg) {
+    if (!msg.empty()) {
+      LOG(info) << msg;
+    }
+    for (size_t i = 0; i < binnedVect.size(); i++) {
+      if (binnedVect[i]) {
+        LOGP(info, "bin:{} {}", i, binnedVect[i]);
+      }
+    }
+  };
+
+  for (int counter = 0; counter < mNPointsForSlope; counter++) {
     if (mVerbose) {
       LOG(info) << "Beginning of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }
     double meanZ = 0;
     int counts = 0;
-    for (int ii = startZ; ii <= c->histoVtx.size(); ++ii) {
+    for (int ii = startZ; ii < c->histoVtx.size(); ++ii) {
+      bool failed = false;
       if (mVerbose) {
         // LOG(info) << "htmpX.size() = " << htmpX.size() << " ii = " << ii << " c->histoVtx.size() = " << c->histoVtx.size();
       }
-      if (htmpX.size() < minEntriesPerPoint) {
+      if (++counts < minEntriesPerPoint) {
         if (mVerbose) {
           // LOG(info) << "filling X with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][0];
           // LOG(info) << "filling Y with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][1];
@@ -124,10 +136,10 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         htmpX.push_back(c->histoVtx[ii][0]);
         htmpY.push_back(c->histoVtx[ii][1]);
         meanZ += c->histoVtx[ii][2];
-        ++counts;
       } else {
+        counts--;
         if (mVerbose) {
-          LOG(info) << "fitting ";
+          LOGP(info, "fitting after collecting {} entries for Z slice {} of {}", htmpX.size(), counter, mNPointsForSlope);
         }
         // we can fit and restart filling
         // X:
@@ -143,12 +155,15 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for X:";
           printVector(binnedVect, -(mRangeX), mRangeX, mBinWidthX);
+        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          dumpNonEmpty(fmt::format("X{} nonEmpty bins", counter));
         }
         fitres = fitGaus(mNBinsX, &binnedVect[0], -(mRangeX), mRangeX, fitResSlicesX.back(), &covMatrixX.back());
         if (fitres != -10) {
-          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2);
+          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2) << " entries = " << counts;
         } else {
-          LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres;
+          LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres << " entries = " << counts;
+          failed = true;
         }
         htmpX.clear();
 
@@ -166,25 +181,36 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for Y:";
           printVector(binnedVect, -(mRangeY), mRangeY, mBinWidthY);
+        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          dumpNonEmpty(fmt::format("Y{} nonEmpty bins", counter));
         }
         fitres = fitGaus(mNBinsY, &binnedVect[0], -(mRangeY), mRangeY, fitResSlicesY.back(), &covMatrixY.back());
         if (fitres != -10) {
-          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2);
+          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2) << " entries = " << counts;
         } else {
-          LOG(error) << "Y, counter " << counter << ": Fit failed with result = " << fitres;
+          LOG(error) << "Y, counter " << counter << ": Fit failed with result = " << fitres << " entries = " << counts;
+          failed = true;
         }
         htmpY.clear();
 
         // Z: let's calculate the mean position
         if (mVerbose) {
-          LOG(info) << "Z, counter " << counter << ": " << meanZ / counts;
+          LOGP(info, "Z, counter {} {} ({}/{})", counter, meanZ / counts, meanZ, counts);
         }
-        ++counter;
-        meanZvect.push_back(meanZ / counts);
+
+        if (failed) {
+          fitResSlicesX.pop_back();
+          covMatrixX.pop_back();
+          fitResSlicesY.pop_back();
+          covMatrixY.pop_back();
+        } else {
+          meanZvect.push_back(meanZ / counts);
+          nBinsOK++;
+        }
+        startZ += counts;
         break;
       }
     }
-    startZ += minEntriesPerPoint * counter;
     if (mVerbose) {
       LOG(info) << "End of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }
@@ -201,21 +227,18 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
 
   // now we update the error on x
   double sumX = 0, sumY = 0, weightSumX = 0, weightSumY = 0;
-  for (int iFit = 0; iFit < counter; ++iFit) {
+  for (int iFit = 0; iFit < nBinsOK; ++iFit) {
     if (mVerbose) {
       LOG(info) << "SigmaX = " << fitResSlicesX[iFit][2] << " error = " << covMatrixX[iFit](2, 2);
       LOG(info) << "SigmaY = " << fitResSlicesY[iFit][2] << " error = " << covMatrixY[iFit](2, 2);
     }
-    if (covMatrixX[iFit](2, 2) != 0) {
-      double weightSigma = 1. / covMatrixX[iFit](2, 2); // covMatrix is already an error squared
-      sumX += (fitResSlicesX[iFit][2] * weightSigma);
-      weightSumX += weightSigma;
-    }
-    if (covMatrixY[iFit](2, 2) != 0) {
-      double weightSigma = 1. / covMatrixY[iFit](2, 2); // covMatrix is already an error squared
-      sumY += (fitResSlicesY[iFit][2] * weightSigma);
-      weightSumY += weightSigma;
-    }
+    double weightSigmaX = covMatrixX[iFit](2, 2) > 0 ? 1. / covMatrixX[iFit](2, 2) : 1.; // covMatrix is already an error squared
+    sumX += (fitResSlicesX[iFit][2] * weightSigmaX);
+    weightSumX += weightSigmaX;
+
+    double weightSigmaY = covMatrixX[iFit](2, 2) > 0 ? 1. / covMatrixY[iFit](2, 2) : 1.; // covMatrix is already an error squared
+    sumY += (fitResSlicesY[iFit][2] * weightSigmaY);
+    weightSumY += weightSigmaY;
   }
   if (mVerbose) {
     LOG(info) << "sumX = " << sumX;
@@ -236,13 +259,17 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     LOG(info) << "SigmaX for MeanVertex = " << sigmaX;
     LOG(info) << "SigmaY for MeanVertex = " << sigmaY;
   }
+  if (sigmaX == 0 || sigmaY == 0 || mvo.getSigmaZ() == 0 || nBinsOK < 2) {
+    LOGP(error, "Fit with {} valid slices produced wrong vertex parameters: SigmaX={}, SigmaY={}, SigmaZ={}", nBinsOK, sigmaX, sigmaY, mvo.getSigmaZ());
+    return false;
+  }
   mvo.setSigmaX(sigmaX);
   mvo.setSigmaY(sigmaY);
 
   // now we get the slope for the x-coordinate dependence on z
   TLinearFitter lf(1, "pol1");
   lf.StoreData(kFALSE);
-  for (int i = 0; i < fitResSlicesX.size(); ++i) {
+  for (int i = 0; i < nBinsOK; ++i) {
     if (mVerbose) {
       LOG(info) << "Adding point " << i << ": zvtx = " << meanZvect[i] << " xvtx = " << fitResSlicesX[i][2];
     }
@@ -255,7 +282,7 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   lf.ClearPoints();
 
   // now slope for the y-coordinate dependence on z
-  for (int i = 0; i < fitResSlicesX.size(); ++i) {
+  for (int i = 0; i < nBinsOK; ++i) {
     if (mVerbose) {
       LOG(info) << "Adding point " << i << ": zvtx = " << meanZvect[i] << " yvtx = " << fitResSlicesY[i][2];
     }
@@ -269,6 +296,8 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     LOG(info) << "slope X = " << slopeX;
     LOG(info) << "slope Y = " << slopeY;
   }
+  LOG(info) << "Fitted meanVertex: " << mvo.asString();
+  return true;
 }
 //_____________________________________________
 void MeanVertexCalibrator::fitMeanVertexCoord(int icoord, int nbins, float* array, float minRange, float maxRange, MeanVertexObject& mvo)
@@ -316,10 +345,12 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   o2::calibration::MeanVertexData* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
-  mTmpMVobjDqTime.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
   MeanVertexObject mvo;
   // fitting
-  fitMeanVertex(c, mvo);
+  if (!fitMeanVertex(c, mvo)) {
+    return;
+  }
+  mTmpMVobjDqTime.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
   // now we add the object to the deque
   mTmpMVobjDq.push_back(std::move(mvo));
 

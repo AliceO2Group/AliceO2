@@ -25,8 +25,7 @@
 
 #ifndef GPUCA_ALIGPUCODE
 #include <Framework/Logger.h>
-#include <boost/format.hpp>
-#include <boost/range/combine.hpp>
+#include <fmt/format.h>
 #include "Rtypes.h"
 #endif
 
@@ -75,7 +74,13 @@ class CalDet
   const T getValue(const CRU cru, const size_t row, const size_t pad) const;
   const T getValue(const Sector sec, const int rowInSector, const int padInRow) const;
 
-  void setName(const std::string_view name) { mName = name.data(); }
+  void setName(const std::string_view name, bool nameCalArrays = true)
+  {
+    mName = name.data();
+    if (nameCalArrays) {
+      initData();
+    }
+  }
   const std::string& getName() const { return mName; }
 
   const CalDet& multiply(const T& val) { return *this *= val; }
@@ -97,6 +102,24 @@ class CalDet
 
   template <class U>
   friend CalDet<U> operator-(const CalDet<U>&, const CalDet<U>&);
+
+  template <typename U = T>
+  U getMean() const
+  {
+    if (mData.size() == 0) {
+      return U{0};
+    }
+
+    U nVal = 0;
+    U sum = 0;
+    for (const auto& data : mData) {
+      const auto& vals = data.getData();
+      sum += std::accumulate(vals.begin(), vals.end(), 0.f);
+      nVal += static_cast<U>(vals.size());
+    }
+
+    return (nVal > 0) ? sum / nVal : U{0};
+  }
 
  private:
   std::string mName;                     ///< name of the object
@@ -399,28 +422,31 @@ void CalDet<T>::initData()
 
   // ---| Define number of sub pad regions |------------------------------------
   size_t size = 0;
+  bool hasData = mData.size() > 0;
   std::string frmt;
   switch (mPadSubset) {
     case PadSubset::ROC: {
       size = ROC::MaxROC;
-      frmt = "%1%_ROC_%2$02d";
+      frmt = "{}_ROC_{:02d}";
       break;
     }
     case PadSubset::Partition: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPartitions();
-      frmt = "%1%_Partition_%2$02d";
+      frmt = "{}_Partition_{:02d}";
       break;
     }
     case PadSubset::Region: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPadRegions();
-      frmt = "%1%_Region_%2$02d";
+      frmt = "{}_Region_{:02d}";
       break;
     }
   }
 
   for (size_t i = 0; i < size; ++i) {
-    mData.push_back(CalType(mPadSubset, i));
-    mData.back().setName(boost::str(boost::format(frmt) % mName % i));
+    if (!hasData) {
+      mData.push_back(CalType(mPadSubset, i));
+    }
+    mData[i].setName(fmt::format(frmt, mName, i));
   }
 }
 

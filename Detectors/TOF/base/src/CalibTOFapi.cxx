@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFBase/CalibTOFapi.h"
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::tof;
 

@@ -16,7 +16,7 @@
 #include "ITSReconstruction/ClustererTask.h"
 #include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <TFile.h>
 #include <TTree.h>
 

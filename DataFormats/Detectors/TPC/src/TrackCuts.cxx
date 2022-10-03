@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/TrackTPC.h"

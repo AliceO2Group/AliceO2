@@ -23,7 +23,7 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 // from Tracks
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -70,7 +70,7 @@ class TOFMatcherSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   bool mUseMC = true;
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
@@ -95,7 +95,7 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
+  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
@@ -106,15 +106,21 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     // put here init-once stuff
   }
   // we may have other params which need to be queried regularly
-  if (mTPCCorrMapsHelper.isUpdated()) {
-    mMatcher.setTPCCorrMaps(&mTPCCorrMapsHelper);
-    mTPCCorrMapsHelper.acknowledgeUpdate();
+  bool updateMaps = false;
+  if (mTPCCorrMapsLoader.isUpdated()) {
+    mMatcher.setTPCCorrMaps(&mTPCCorrMapsLoader);
+    mTPCCorrMapsLoader.acknowledgeUpdate();
+    updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
     mMatcher.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
+    updateMaps = true;
+    if (updateMaps) {
+      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    }
   }
 }
 
@@ -126,7 +132,7 @@ void TOFMatcherSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
-  if (mTPCCorrMapsHelper.accountCCDBInputs(matcher, obj)) {
+  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
 }
@@ -227,7 +233,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsHelper::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
   std::vector<OutputSpec> outputs;
   if (GID::includesSource(GID::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe);

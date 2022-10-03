@@ -12,7 +12,7 @@
 #include "PHOSBase/Geometry.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH2.h>
 

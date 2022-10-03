@@ -681,6 +681,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         // are no internal forwards
         throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
       }
+      channelNames->clear();
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
@@ -698,7 +699,13 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       }
       proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
     };
+    // We need to clear the channels on stop, because we will check and add them
+    auto channelConfigurationDisposer = [&deviceSpec]() {
+      auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
+      mutableDeviceSpec.forwards.clear();
+    };
     callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
+    callbacks.set(CallbackService::Id::Stop, channelConfigurationDisposer);
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {

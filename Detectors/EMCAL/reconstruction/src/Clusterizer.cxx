@@ -13,7 +13,7 @@
 /// \brief Implementation of the EMCAL clusterizer
 #include <cstring>
 #include <gsl/span>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "EMCALReconstruction/Clusterizer.h"
 
 using namespace o2::emcal;

@@ -15,7 +15,7 @@
 #include "TOFReconstruction/DataReader.h"
 #include "TOFBase/Geo.h"
 #include <algorithm>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::tof;
 using o2::tof::Digit;

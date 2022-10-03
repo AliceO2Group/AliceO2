@@ -30,7 +30,7 @@
 
 #include "DataFormatsHMP/Digit.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "HMPIDReconstruction/HmpidEquipment.h"
 

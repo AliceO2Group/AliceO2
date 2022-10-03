@@ -1,6 +1,7 @@
 #include "SimSetup/FlukaParam.h"
 
-TVirtualMC* FlukaRuntimeConfig() {
+TVirtualMC* FlukaRuntimeConfig()
+{
   FairRunSim* run = FairRunSim::Instance();
   TString* gModel = run->GetGeoModel();
   TFluka* fluka = new TFluka("C++ Interface to Fluka", 0);
@@ -8,14 +9,17 @@ TVirtualMC* FlukaRuntimeConfig() {
   // additional configuration paramters if requested from command line
   auto& params = o2::FlukaParam::Instance();
   auto isAct = params.activationSimulation;
-  if (isAct) {
-    LOG(info) << "Set special FLUKA parameters for activation simulation";
-    auto hadronCut = params.activationHadronCut;
-    auto inpFile = params.scoringFile;
-    fluka->SetActivationSimulation(true, hadronCut);
+  auto lowNeutron = params.lowNeutron;
+  auto inpFile = params.scoringFile;
+  auto userStepping = params.userStepping;
+  auto hadronCut = params.activationHadronCut;
+  if (!inpFile.empty()) {
+    fluka->SetActivationSimulation(isAct, hadronCut);
     fluka->SetUserScoringFileName(inpFile.c_str());
+    fluka->SetLowEnergyNeutronTransport(kTRUE);
+    fluka->SetUserScoringFileName(inpFile.c_str());
+    fluka->SetUserStepping(userStepping);
   }
-
   std::cout << "FLUKA ptr " << fluka << "\n";
   std::cout << "VMC ptr " << TVirtualMC::GetMC() << "\n";
   return fluka;

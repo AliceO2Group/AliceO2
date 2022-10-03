@@ -46,7 +46,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using MCLabelsCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -74,7 +74,7 @@ class TPCITSMatchingDPL : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsHelper mTPCCorrMapsHelper{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   bool mUseFT0 = false;
   bool mCalibMode = false;
@@ -131,7 +131,7 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
-  if (mTPCCorrMapsHelper.accountCCDBInputs(matcher, obj)) {
+  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -151,7 +151,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsHelper::extractCCDBInputs(pc);
+  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -177,15 +177,21 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     mMatching.init();
   }
   // we may have other params which need to be queried regularly
-  if (mTPCCorrMapsHelper.isUpdated()) {
-    mMatching.setTPCCorrMaps(&mTPCCorrMapsHelper);
-    mTPCCorrMapsHelper.acknowledgeUpdate();
+  bool updateMaps = false;
+  if (mTPCCorrMapsLoader.isUpdated()) {
+    mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
+    mTPCCorrMapsLoader.acknowledgeUpdate();
+    updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
     mMatching.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
+    updateMaps = true;
+  }
+  if (updateMaps) {
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
   }
 }
 
@@ -226,7 +232,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsHelper::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
 
   return DataProcessorSpec{
     "itstpc-track-matcher",

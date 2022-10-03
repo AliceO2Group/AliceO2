@@ -25,7 +25,8 @@ o2_add_library(
 
 o2_target_root_dictionary(
   DataFormatsMID
-  HEADERS include/DataFormatsMID/Cluster.h
+  HEADERS include/DataFormatsMID/ChEffCounter.h
+          include/DataFormatsMID/Cluster.h
           include/DataFormatsMID/ColumnData.h
           include/DataFormatsMID/ROBoard.h
           include/DataFormatsMID/ROFRecord.h

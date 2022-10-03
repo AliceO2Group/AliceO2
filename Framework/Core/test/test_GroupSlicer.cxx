@@ -396,10 +396,12 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnsortedFilteredGroups)
   soa::SelectionVector rows{2, 4, 10, 9, 15};
   FilteredEvents e{{evtTable}, {2, 4, 10, 9, 15}};
   soa::SmallGroups<aod::TrksXU> t{{trkTable}, std::move(sel)};
+
   BOOST_CHECK_EQUAL(e.size(), 5);
   BOOST_CHECK_EQUAL(t.size(), 10 * (20 - 4));
 
   auto tt = std::make_tuple(t);
+
   o2::framework::GroupSlicer g(e, tt);
 
   unsigned int count = 0;
@@ -432,6 +434,24 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnsortedFilteredGroups)
     BOOST_CHECK_EQUAL(gg.globalIndex(), rows[count]);
     auto trks = std::get<soa::SmallGroups<aod::TrksXU>>(as);
     BOOST_CHECK_EQUAL(trks.size(), 0);
+    ++count;
+  }
+
+  soa::SmallGroupsUnfiltered<aod::TrksXU> tu{{trkTable}, std::vector<int64_t>{}};
+  auto ttu = std::make_tuple(tu);
+  o2::framework::GroupSlicer gu(e, ttu);
+
+  count = 0;
+  for (auto& slice : gu) {
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    BOOST_CHECK_EQUAL(gg.globalIndex(), rows[count]);
+    auto trks = std::get<soa::SmallGroupsUnfiltered<aod::TrksXU>>(as);
+    if (rows[count] == 3 || rows[count] == 10 || rows[count] == 12 || rows[count] == 16) {
+      BOOST_CHECK_EQUAL(trks.size(), 0);
+    } else {
+      BOOST_CHECK_EQUAL(trks.size(), 10);
+    }
     ++count;
   }
 }

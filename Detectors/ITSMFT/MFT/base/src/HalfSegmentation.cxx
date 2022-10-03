@@ -15,7 +15,7 @@
 
 #include "TClonesArray.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/HalfDiskSegmentation.h"
