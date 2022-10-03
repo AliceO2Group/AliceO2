@@ -62,7 +62,7 @@ class BunchCrossings
 {
  public:
   /// Constructor initializes the acceleration structure
-  BunchCrossings() {}
+  BunchCrossings() = default;
 
   /// initialize this container (to be ready for lookup/search queries)
   void init(std::map<uint64_t, int> const& bcs)
