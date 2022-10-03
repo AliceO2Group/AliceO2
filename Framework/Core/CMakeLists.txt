@@ -37,7 +37,6 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/ControlWebSocketHandler.cxx
-                       src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DomainInfoHeader.cxx
@@ -145,7 +144,6 @@ o2_add_library(Framework
                                      FairMQ::FairMQ
                                      O2::MathUtils
                                      ROOT::Tree
-                                     O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources
@@ -174,7 +172,6 @@ foreach(t
         BoostOptionsRetriever
         ConfigurationOptionsRetriever
         CallbackRegistry
-        CCDBHelpers
         ChannelSpecHelpers
         CheckTypes
         CompletionPolicy

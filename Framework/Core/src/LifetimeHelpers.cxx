@@ -28,7 +28,6 @@
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"
 #include "MemoryResources/MemoryResources.h"
-#include "CCDB/CcdbApi.h"
 #include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
