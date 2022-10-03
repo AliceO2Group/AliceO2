@@ -73,8 +73,8 @@ FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
-# enable memory monitoring (independent on whether DPL or not)
-JOBUTILS_MONITORMEM=ON
+# potentially enable memory monitoring (independent on whether DPL or not)
+# JOBUTILS_MONITORMEM=ON
 # CPU monitoring JOBUTILS_MONITORCPU=ON
 
 # prepare some metrics file for the monitoring system
