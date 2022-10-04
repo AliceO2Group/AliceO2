@@ -391,9 +391,17 @@ void ITSDCSParser::writeChipInfo(
 //////////////////////////////////////////////////////////////////////////////
 void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 {
-  // Timestamps for CCDB entry
-  long tstart = o2::ccdb::getCurrentTimestamp();
-  long tend = tstart + 365L * 24 * 3600 * 1000;
+  // Timestamps for CCDB entry: retireve run start/stop times from CCDB
+  //long tstart = o2::ccdb::getCurrentTimestamp();
+  //long tend = tstart + 365L * 24 * 3600 * 1000;
+  auto api = o2::ccdb::CcdbApi();
+  // Initialize empty metadata object for search
+  auto runInfoMD = std::map<std::string, std::string>();
+  TFile* ccdbObj = (TFile*) api.retrieve("RCT/Info/RunInformation", runInfoMD, this->mRunNumber);
+  // Extract metadata from retrieved object
+  runInfoMD = *(api.retrieveMetaInfo(*ccdbObj));
+  long tstart = std::stol(runInfoMD["SOR"]);
+  long tend = std::stol(runInfoMD["EOR"]);
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
 
