@@ -10,10 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
+#include <deque>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/LumiInfo.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
@@ -21,22 +24,22 @@ namespace o2
 namespace ctp
 {
 
-namespace reco_workflow
+namespace lumi_workflow
 {
 
-/// \class RawToDigitConverterSpec
-/// \brief Coverter task for Raw data to CTP digits
-/// \author Roman Lietava from CPV example
+/// \class RawToLumiConverterSpec
+/// \brief Coverter task for Raw data to Lumi
+/// \author Roman Lietava from RawToDigiConverterSpec example
 ///
-class RawToDigitConverterSpec : public framework::Task
+class RawToLumiConverterSpec : public framework::Task
 {
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToDigitConverterSpec() = default;
+  RawToLumiConverterSpec() = default;
 
   /// \brief Destructor
-  ~RawToDigitConverterSpec() override = default;
+  ~RawToLumiConverterSpec() override = default;
 
   /// \brief Initializing the RawToDigitConverterSpec
   /// \param ctx Init context
@@ -47,20 +50,24 @@ class RawToDigitConverterSpec : public framework::Task
   ///
   /// The following branches are linked:
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
-  /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
+  /// Output HW errors: {"CTP", "LUMI", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
-  static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
 
  protected:
  private:
-  std::vector<CTPDigit> mOutputDigits;
+  gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
+  LumiInfo mOutputLumiInfo;
+  size_t mCounts = 0;
+  size_t mNTFToIntegrate = 1;
+  size_t mNHBIntegrated = 0;
+  std::deque<size_t> mHistory;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
 ///
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askSTFDist);
+o2::framework::DataProcessorSpec getRawToLumiConverterSpec(bool askSTFDist);
 
-} // namespace reco_workflow
+} // namespace lumi_workflow
 
 } // namespace ctp
 

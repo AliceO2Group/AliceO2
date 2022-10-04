@@ -909,7 +909,6 @@ o2::framework::ServiceSpec CommonServices::objectCache()
     .kind = ServiceKind::Serial};
 }
 
-
 /// Split a string into a vector of strings using : as a separator.
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {

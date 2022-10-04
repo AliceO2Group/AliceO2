@@ -15,7 +15,7 @@
 #include "FairLogger.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RawToDigitConverterSpec.h"
+#include "CTPWorkflowLumi/RawToLumiConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 
 namespace o2
@@ -24,17 +24,16 @@ namespace o2
 namespace ctp
 {
 
-namespace reco_workflow
+namespace lumi_workflow
 {
 
 o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
 {
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
+  specs.emplace_back(o2::ctp::lumi_workflow::getRawToLumiConverterSpec(noLostTF));
   return std::move(specs);
 }
-
-} // namespace reco_workflow
+} // namespace lumi_workflow
 
 } // namespace ctp
 

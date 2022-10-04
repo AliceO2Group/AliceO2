@@ -9,33 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <algorithm>
-#include <unordered_map>
-#include <vector>
-#include "FairLogger.h"
-#include "Framework/WorkflowSpec.h"
-#include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RawToDigitConverterSpec.h"
-#include "Framework/DataSpecUtils.h"
+#ifndef _ALICEO2_CTP_LUMIINFO_H_
+#define _ALICEO2_CTP_LUMIINFO_H_
+#include "CommonDataFormat/InteractionRecord.h"
+
+/// \brief Luminosity information used of online TPC calibration
 
 namespace o2
 {
-
 namespace ctp
 {
-
-namespace reco_workflow
-{
-
-o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
-{
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
-  return std::move(specs);
-}
-
-} // namespace reco_workflow
-
+struct LumiInfo {
+  LumiInfo() = default;
+  InteractionRecord ir;    // timestamp of start of lumi interval
+  size_t mNHBFCounted = 0; // length of interval in HB
+  size_t mCounts = 0;      //  counts in the interval
+};
 } // namespace ctp
 
 } // namespace o2
+
+#endif // _ALICEO2_CTP_LUMIINFO_H_
