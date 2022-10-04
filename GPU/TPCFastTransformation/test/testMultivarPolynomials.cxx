@@ -186,8 +186,8 @@ BOOST_AUTO_TEST_CASE(Piecewise_polynomials)
               const float arr[nDim]{a, b, c, d, e};
               const float valCT = polCT.eval(arr);
               const float valpiecewisePol = piecewisePol.evalUnsafe(arr);
-              if (std::abs(valCT) < 0.1) {
-                BOOST_CHECK_SMALL(valCT - valpiecewisePol, 0.01f);
+              if (std::abs(valCT) < 0.2) {
+                BOOST_CHECK_SMALL(valCT - valpiecewisePol, 0.02f);
               } else {
                 BOOST_CHECK_CLOSE(valpiecewisePol, valCT, 0.5);
               }
