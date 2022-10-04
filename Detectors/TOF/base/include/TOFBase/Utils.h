@@ -88,7 +88,6 @@ class Utils
   static int mMaskBCchan[o2::tof::Geo::NCHANNELS][16];
   static int mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16];
 
-  static TF1* mFitFunc;
   static TChain* mTreeFit;
   static std::vector<dataformats::CalibInfoTOF> mVectC;
   static std::vector<dataformats::CalibInfoTOF>* mPvectC;
