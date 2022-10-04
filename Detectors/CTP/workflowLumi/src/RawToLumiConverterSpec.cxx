@@ -61,7 +61,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
     contDeadBeef = 0; // if good data, reset the counter
   }
   //
-  std::vector<lumiInfo> lumiPointsHBF1;
+  std::vector<LumiInfo> lumiPointsHBF1;
   size_t countsMB = 0;
   uint32_t payloadCTP;
   uint32_t orbit0 = 0;
@@ -91,7 +91,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
     std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       // create lumi per HB
-      lumiInfo lp;
+      LumiInfo lp;
       lp.mCounts = countsMB;
       lp.ir.orbit = triggerOrbit;
       lumiPointsHBF1.push_back(lp);
@@ -134,7 +134,7 @@ void RawToLumiConverterSpec::run(framework::ProcessingContext& ctx)
       }
     }
   }
-  lumiInfo lp;
+  LumiInfo lp;
   lp.mCounts = countsMB;
   lp.ir.orbit = orbit0;
   lumiPointsHBF1.push_back(lp);
