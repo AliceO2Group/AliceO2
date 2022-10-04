@@ -334,6 +334,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             iCol = map.getColumn(chan.getHardwareAddress());
             chantype = map.getChannelType(chan.getHardwareAddress());
           } catch (Mapper::AddressNotFoundException& ex) {
+            ErrorTypeFEE mappingError{feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, chan.getHardwareAddress()};
+            mOutputDecoderErrors.push_back(mappingError);
             if (mNumErrorMessages < mMaxErrorMessages) {
               LOG(warning) << "Mapping error DDL " << feeID << ": " << ex.what();
               mNumErrorMessages++;
