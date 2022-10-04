@@ -54,11 +54,13 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
           SendingPolicy{
             .name = "data-inspector",
             .matcher = [](DeviceSpec const& spec, ConfigContext const& config) {
+              // Use this policy only when DatInspector is turned on
               return std::any_of(config.argv(), config.argv() + config.argc(), DataInspector::isInspectorArgument) && DataInspector::isNonInternalDevice(spec);
             },
             .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistry& registry) {
               auto& diService = registry.get<DataInspectorProxyService>();
 
+              // Check if message is inspected and prepare DataRefs for processing
               if(diService.isInspected()){
                 std::vector<DataRef> refs{};
                 int i = 0;
@@ -74,9 +76,11 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
                   i++;
                 }
 
+                // Send copy to proxy
                 DataInspector::sendToProxy(diService, refs, registry.get<DeviceSpec const>().name);
               }
 
+              // Continue normally
               auto *channel = proxy.getOutputChannel(channelIndex);
               auto timeout = 1000;
               auto res = channel->Send(parts, timeout);
