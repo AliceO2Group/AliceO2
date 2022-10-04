@@ -11,6 +11,10 @@
 
 namespace o2::framework
 {
+
+/**
+ * Service used for communication with Proxy of DataInspector.
+ */
 class DataInspectorProxyService {
  public:
   DataInspectorProxyService(DeviceSpec const& spec, const std::string& address, int port, const std::string& id);

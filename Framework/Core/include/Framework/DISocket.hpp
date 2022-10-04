@@ -5,12 +5,12 @@
 #include "Framework/TypeTraits.h"
 #include "boost/asio.hpp"
 #include "boost/endian/conversion.hpp"
-#include "boost/archive/text_oarchive.hpp"
-#include "boost/archive/text_iarchive.hpp"
+#include "boost/archive/binary_oarchive.hpp"
+#include "boost/archive/binary_iarchive.hpp"
 #include <sstream>
 
 //Base case called by all overloads when needed. Derives from false_type.
-template <typename Type, typename Archive = boost::archive::text_oarchive, typename = std::void_t<>>
+template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = std::void_t<>>
 struct is_boost_serializable_base : std::false_type {
 };
 
@@ -22,7 +22,7 @@ struct is_boost_serializable_base<Type, Archive,
 };
 
 //Base implementation to provided recurrence. Wraps around base templates
-template <class Type, typename Archive = boost::archive::text_oarchive, typename = std::void_t<>>
+template <class Type, typename Archive = boost::archive::binary_oarchive, typename = std::void_t<>>
 struct is_boost_serializable
   : is_boost_serializable_base<Type, Archive> {
 };
@@ -35,15 +35,15 @@ struct is_boost_serializable<Type, Archive, std::void_t<typename Type::value_typ
 
 //Call base implementation in contained class/type if possible. Added default archive type for convenience
 template <class Type>
-struct is_boost_serializable<Type, boost::archive::text_oarchive, std::void_t<typename Type::value_type>>
-  : is_boost_serializable<typename Type::value_type, boost::archive::text_oarchive> {
+struct is_boost_serializable<Type, boost::archive::binary_oarchive, std::void_t<typename Type::value_type>>
+  : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
 
 template <typename T>
 std::tuple<char*, uint64_t> boostSerialize(const T& obj)
 {
   std::ostringstream buffer;
-  boost::archive::text_oarchive outputArchive(buffer);
+  boost::archive::binary_oarchive outputArchive(buffer);
   outputArchive << obj;
 
   auto str = buffer.str();
@@ -61,7 +61,7 @@ T boostDeserialize(char* payload, uint64_t size)
   T t{};
 
   std::istringstream buffer({payload, size});
-  boost::archive::text_iarchive inputArchive(buffer);
+  boost::archive::binary_iarchive inputArchive(buffer);
   inputArchive >> t;
 
   return t;
