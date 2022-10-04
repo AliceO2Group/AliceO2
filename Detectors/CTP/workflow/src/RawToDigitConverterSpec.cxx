@@ -70,7 +70,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-    std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
+    // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
