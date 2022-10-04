@@ -79,7 +79,7 @@
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 
-//for MUON MCH
+// for MUON MCH
 #include "MCHDigitizerSpec.h"
 #include "MCHDigitWriterSpec.h"
 
@@ -191,6 +191,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for FT0
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+
+  // option to use/not use CCDB for EMCAL
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-emc", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -645,9 +648,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-emc");
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the EMCal digit writer
     writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
@@ -690,12 +694,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  //add MUON MCH
+  // add MUON MCH
   if (isEnabled(o2::detectors::DetID::MCH)) {
     detList.emplace_back(o2::detectors::DetID::MCH);
-    //connect the MUON MCH digitization
+    // connect the MUON MCH digitization
     digitizerSpecs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
-    //connect the MUON MCH digit writer
+    // connect the MUON MCH digit writer
     writerSpecs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
   }
 
