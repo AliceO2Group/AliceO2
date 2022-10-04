@@ -40,6 +40,7 @@ add_library(internal::AODProducerWorkflow ALIAS AODProducerWorkflow)
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
+  TARGETVARNAME targetName
   SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx
   PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
@@ -75,3 +76,8 @@ o2_add_executable(
         O2::Steer
         O2::ZDCBase
 )
+
+if (OpenMP_CXX_FOUND)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
