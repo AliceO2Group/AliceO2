@@ -212,7 +212,7 @@ struct ServiceRegistry {
   /// hash used to identify the service, @a service is
   /// a type erased pointer to the service itself.
   /// This method is supposed to be thread safe
-  void registerService(hash_type typeHash, void* service, ServiceKind kind, uint64_t threadId, char const* name = nullptr) const;
+  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, uint64_t threadId, char const* name = nullptr) const;
 
   // Lookup a given @a typeHash for a given @a threadId at
   // a unique (per typeHash) location. There might
@@ -222,11 +222,11 @@ struct ServiceRegistry {
   // as guaranteed by the atomic, mServicesKey[i + id] will
   // either be 0 or the final value.
   // This method should NEVER register a new service, event when requested.
-  int getPos(uint32_t typeHash, uint64_t threadId) const
+  int getPos(ServiceTypeHash typeHash, uint64_t threadId) const
   {
-    auto threadHashId = (typeHash ^ threadId) & MAX_SERVICES_MASK;
+    auto threadHashId = (typeHash.hash ^ threadId) & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesKey[i + threadHashId].load() == typeHash) {
+      if (mServicesKey[i + threadHashId].load() == typeHash.hash) {
         return i + threadHashId;
       }
     }
@@ -241,7 +241,7 @@ struct ServiceRegistry {
   // if the service is not a stream service and the global
   // zero service is available.
   // Use this API only if you know what you are doing.
-  void* get(uint32_t typeHash, uint64_t threadId, ServiceKind kind, char const* name = nullptr) const
+  void* get(ServiceTypeHash typeHash, uint64_t threadId, ServiceKind kind, char const* name = nullptr) const
   {
     // Look for the service. If found, return it.
     // Notice how due to threading issues, we might
@@ -289,7 +289,7 @@ struct ServiceRegistry {
   {
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    ServiceRegistry::registerService(handle.hash, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
+    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
@@ -307,7 +307,7 @@ struct ServiceRegistry {
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr hash_type typeHash = TypeIdHelpers::uniqueId<I>();
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
     ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
@@ -322,8 +322,7 @@ struct ServiceRegistry {
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<I const>();
-    constexpr auto id = typeHash & MAX_SERVICES_MASK;
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I const>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
     this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, hasher(tid), typeid(C).name());
@@ -333,7 +332,7 @@ struct ServiceRegistry {
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, bool> active() const
   {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
     if (this->getPos(typeHash, 0) != -1) {
@@ -349,7 +348,7 @@ struct ServiceRegistry {
   template <typename T>
   T& get() const
   {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
     auto ptr = this->get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
