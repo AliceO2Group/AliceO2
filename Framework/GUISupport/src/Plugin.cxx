@@ -68,7 +68,7 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
     o2::framework::gui::charIn(key);
   }
 
-  void* initGUI(char const* windowTitle, ServiceRegistry& registry_) override
+  void* initGUI(char const* windowTitle, ServiceRegistryRef registry_) override
   {
     registry = &registry_;
     return o2::framework::initGUI(windowTitle);

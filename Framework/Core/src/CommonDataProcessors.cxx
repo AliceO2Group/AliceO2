@@ -518,7 +518,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice, ChannelIndex channelIndex) {
+      auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
         LOGP(debug, "Domain info updated with timeslice {}", timeslice);
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();

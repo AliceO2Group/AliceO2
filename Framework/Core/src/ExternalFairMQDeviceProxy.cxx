@@ -442,7 +442,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       });
     };
 
-    auto drainMessages = [channel](ServiceRegistry& registry, int state) {
+    auto drainMessages = [channel](ServiceRegistryRef registry, int state) {
       auto device = registry.get<RawDeviceService>().device();
       // We drop messages in input only when in ready.
       // FIXME: should we drop messages in input the first time we are in ready?

@@ -78,7 +78,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{
     .name = "monitoring",
-    .init = [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       void* service = nullptr;
       bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
       bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
@@ -102,7 +102,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
-    .start = [](ServiceRegistry& services, void* service) {
+    .start = [](ServiceRegistryRef services, void* service) {
       o2::monitoring::Monitoring* monitoring = (o2::monitoring::Monitoring *) service;
       auto& context = services.get<DataTakingContext>();
 
@@ -110,7 +110,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
         monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
       } catch (...) {
       } },
-    .exit = [](ServiceRegistry& registry, void* service) {
+    .exit = [](ServiceRegistryRef registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
     .kind = ServiceKind::Serial};
@@ -155,7 +155,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
-    .start = [](ServiceRegistry& services, void* service) {
+    .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
@@ -198,7 +198,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
 {
   return ServiceSpec{
     .name = "configuration",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("configuration");
       if (backend == "command-line") {
         return ServiceHandle{0, nullptr};
@@ -207,7 +207,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistry& registry, boost::program_options::variables_map const& vmap) {
+    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
       if (vmap.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;
@@ -222,7 +222,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
 {
   return ServiceSpec{
     .name = "driverClient",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("driver-client-backend");
       if (backend == "stdout://") {
         return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
@@ -240,7 +240,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
 {
   return ServiceSpec{
     .name = "control",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<ControlService>(),
                            new ControlService(services, state)};
     },
@@ -261,7 +261,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
 {
   return ServiceSpec{
     .name = "parallel",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<ParallelContext>(),
                            new ParallelContext(spec.rank, spec.nSlots)};
@@ -274,7 +274,7 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     .name = "timesliceindex",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
                            new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), state.inputChannelInfos)};
@@ -296,7 +296,7 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
 {
   return ServiceSpec{
     .name = "datarelayer",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
@@ -312,7 +312,7 @@ o2::framework::ServiceSpec CommonServices::dataSender()
 {
   return ServiceSpec{
     .name = "datasender",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataSender>(),
                            new DataSender(services, spec.sendingPolicy)};
@@ -329,7 +329,7 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     .name = "tracing",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<TracingInfrastructure>(),
                            .instance = new TracingInfrastructure(),
                            .kind = ServiceKind::Serial};
@@ -352,7 +352,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
 {
   return ServiceSpec{
     .name = "ccdb-support",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       // iterate on all the outputs matchers
       auto& spec = services.get<DeviceSpec const>();
       for (auto& output : spec.outputs) {
@@ -407,7 +407,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
 {
   return ServiceSpec{
     .name = "decongestion",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DecongestionService* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
         if (input.matcher.lifetime == Lifetime::Timeframe) {
@@ -459,7 +459,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         }
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
-    .domainInfoUpdated = [](ServiceRegistry& services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
+    .domainInfoUpdated = [](ServiceRegistryRef services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
       DecongestionService& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
       auto& timesliceIndex = services.get<TimesliceIndex>();
@@ -520,7 +520,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
   return ServiceSpec{
     .name = "threadpool",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       ThreadPool* pool = new ThreadPool();
       // FIXME: this will require some extra argument for the configuration context of a service
       pool->poolSize = 1;
@@ -532,7 +532,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
       t->poolSize = 1;
       return service;
     },
-    .postForkParent = [](ServiceRegistry& services) -> void {
+    .postForkParent = [](ServiceRegistryRef services) -> void {
       // FIXME: this will require some extra argument for the configuration context of a service
       auto numWorkersS = std::to_string(1);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
@@ -544,7 +544,7 @@ namespace
 {
 /// This will send metrics for the relayer at regular intervals of
 /// 15 seconds, in order to avoid overloading the system.
-auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
   auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
@@ -649,7 +649,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 };
 
 /// This will flush metrics only once every second.
-auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
   static int counter = 0;
@@ -685,7 +685,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
     .name = "data-processing-stats",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DataProcessingStats* stats = new DataProcessingStats();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
@@ -715,7 +715,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
 {
   return ServiceSpec{
     .name = "gui-metrics",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       GUIMetrics* stats = new GUIMetrics();
       auto& monitoring = services.get<Monitoring>();
       auto& spec = services.get<DeviceSpec const>();
@@ -734,7 +734,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
       for (size_t ci; ci < spec.outputChannels.size(); ++ci) {
         monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug});
       } },
-    .domainInfoUpdated = [](ServiceRegistry& registry, size_t timeslice, ChannelIndex channel) {
+    .domainInfoUpdated = [](ServiceRegistryRef registry, size_t timeslice, ChannelIndex channel) {
       auto& monitoring = registry.get<Monitoring>();
       monitoring.send({(uint64_t)timeslice, fmt::format("oldest_possible_timeslice/{}", channel.value), o2::monitoring::Verbosity::Debug}); },
     .active = false,
@@ -745,7 +745,7 @@ o2::framework::ServiceSpec CommonServices::objectCache()
 {
   return ServiceSpec{
     .name = "object-cache",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       auto* cache = new ObjectCache();
       return ServiceHandle{TypeIdHelpers::uniqueId<ObjectCache>(), cache};
     },

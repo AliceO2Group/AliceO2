@@ -21,7 +21,7 @@
 
 namespace o2::framework
 {
-SpyService::SpyService(ServiceRegistry& registry, DeviceState& deviceState)
+SpyService::SpyService(ServiceRegistryRef registry, DeviceState& deviceState)
   : mRegistry{registry},
     mDeviceState{deviceState}
 {
@@ -32,11 +32,11 @@ ServiceSpec* SpyGUIPlugin::create()
 {
   return new ServiceSpec{
     .name = "spy",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<SpyService>(), new SpyService(services, state)};
     },
     .configure = CommonServices::noConfiguration(),
-    .preSendingMessages = [](ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+    .preSendingMessages = [](ServiceRegistryRef registry, fair::mq::Parts& parts, ChannelIndex channelIndex) {
       auto &spy = registry.get<SpyService>();
               spy.parts = &parts;
               spy.partsAlive = false;
@@ -49,7 +49,7 @@ ServiceSpec* SpyGUIPlugin::create()
                 registry.get<SpyService>().partsAlive = true;
                 uv_run(loop, UV_RUN_DEFAULT);
               } },
-    .postRenderGUI = [](ServiceRegistry& registry) { SpyServiceHelpers::webGUI(registry); },
+    .postRenderGUI = [](ServiceRegistryRef registry) { SpyServiceHelpers::webGUI(registry); },
     .kind = ServiceKind::Serial};
 };
 

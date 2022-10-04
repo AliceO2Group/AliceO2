@@ -21,16 +21,16 @@ namespace o2::framework
 class EndOfStreamContext
 {
  public:
-  EndOfStreamContext(ServiceRegistry& services, DataAllocator& allocator)
+  EndOfStreamContext(ServiceRegistryRef services, DataAllocator& allocator)
     : mServices(services),
       mAllocator(allocator)
   {
   }
 
-  ServiceRegistry& services() { return mServices; }
+  ServiceRegistryRef services() { return mServices; }
   DataAllocator& outputs() { return mAllocator; }
 
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
   DataAllocator& mAllocator;
 };
 

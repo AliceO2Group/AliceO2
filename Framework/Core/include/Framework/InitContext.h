@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_INIT_CONTEXT_H_
 #define O2_FRAMEWORK_INIT_CONTEXT_H_
 
+#include "Framework/ServiceRegistryRef.h"
+
 namespace o2::framework
 {
 
@@ -22,17 +24,17 @@ class ConfigParamRegistry;
 class InitContext
 {
  public:
-  InitContext(ConfigParamRegistry& options, ServiceRegistry& services)
+  InitContext(ConfigParamRegistry& options, ServiceRegistryRef services)
     : mOptions{options},
       mServices{services}
   {
   }
 
   ConfigParamRegistry const& options() { return mOptions; }
-  ServiceRegistry& services() { return mServices; }
+  ServiceRegistryRef services() { return mServices; }
 
   ConfigParamRegistry& mOptions;
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
 };
 
 } // namespace o2::framework
