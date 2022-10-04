@@ -17,6 +17,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
+#include "CfUtils.h"
 #include "CommonConstants/LHCConstants.h"
 #include "GPUCommonAlgorithm.h"
 #include "TPCPadGainCalib.h"
@@ -26,10 +27,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 using namespace o2::tpc;
 using namespace o2::tpc::constants;
-
-#ifdef __HIPCC__
-#define DENSE_LINK_ENABLE_HIP_OPT
-#endif
 
 // ===========================================================================
 // ===========================================================================
@@ -703,7 +700,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
        ? nextPage + sizeof(header::RAWDataHeader) + ((pagePtr) + (offset)-payloadEnd)       \
        : (pagePtr) + (offset)))
 
-#define TEST_BIT(x, bit) static_cast<bool>((x) & (1 << bit))
+#define TEST_BIT(x, bit) static_cast<bool>((x) & (1 << (bit)))
 
   constexpr int NTHREADS = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink);
   static_assert(NTHREADS == GPUCA_WARP_SIZE, "Decoding TB Headers in parallel assumes block size is a single warp.");
@@ -741,31 +738,21 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
     for (int chan = iThread; chan < CAMath::nextMultipleOf<NTHREADS>(80); chan += NTHREADS) {
       int chanL2Idx = chan / 8;
-      bool l2 = bitmaskL2 & 1 << chanL2Idx;
+      bool l2 = TEST_BIT(bitmaskL2, chanL2Idx);
 
       int chanByteOffset = CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
 
       unsigned char myChannelHasData = (chan < 80 && l2 ? TEST_BIT(PEEK_OVERFLOW(page, chanByteOffset), chan % 8) : 0);
       assert(myChannelHasData == 0 || myChannelHasData == 1);
 
-#ifdef DENSE_LINK_ENABLE_HIP_OPT
-      // TODO: Add wrappers for these intrinsics? __popcll is trivial, but __ballot is requires an opencl extension.
-      uint64_t waveMask = __ballot(myChannelHasData);
-      uint64_t lowerWarpMask = (1ull << iThread) - 1ull;
-      int threadSampleOffset = __popcll(waveMask & lowerWarpMask);
-#else
-      int threadSampleOffset = int(warp_scan_inclusive_add(myChannelHasData)) - 1;
-#endif
+      int nSamplesStep;
+      int threadSampleOffset = CfUtils::warpPredicateScan(myChannelHasData, &nSamplesStep);
 
       if (myChannelHasData) {
         smem.rawFECChannels[nSamplesInTB + threadSampleOffset] = chan;
       }
 
-#ifdef DENSE_LINK_ENABLE_HIP_OPT
-      nSamplesInTB += __popcll(waveMask);
-#else
-      nSamplesInTB += warp_broadcast(threadSampleOffset, NTHREADS - 1) + 1;
-#endif
+      nSamplesInTB += nSamplesStep;
     }
 
     ConsumeBytes(page, nBytesBitmask);

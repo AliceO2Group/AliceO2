@@ -16,6 +16,7 @@
 #include "GPUCommonAlgorithm.h"
 
 #include "ChargePos.h"
+#include "CfUtils.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
@@ -37,15 +38,12 @@ GPUdii() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int n
   if (idx < nElems) {
     pred = predicate[idx];
   }
-  int scanRes = work_group_scan_inclusive_add((int)pred); // TODO: Why don't we store scanRes and read it back in compactDigit?
 
-  /* sums[idx] = scanRes; */
+  int scanRes = CfUtils::blockPredicateSum<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
 
   int lid = get_local_id(0);
   int lastItem = get_local_size(0) - 1;
   int gid = get_group_id(0);
-
-  /* DBGPR_1("ScanUp: idx = %d", idx); */
 
   if (lid == lastItem) {
     incr[gid] = scanRes;
@@ -155,14 +153,15 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
   bool iAmDummy = (idx >= nElems);
 
   int pred = (iAmDummy) ? 0 : predicate[idx];
-  int scanRes = work_group_scan_inclusive_add(pred);
+  int scanRes = CfUtils::blockPredicateScan<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
 
   SizeT compIdx = scanRes;
   if (gid) {
     compIdx += incr[gid - 1];
   }
 
-  SizeT tgtIdx = compIdx - 1;
+  // SizeT tgtIdx = compIdx - 1;
+  SizeT tgtIdx = compIdx;
   if (pred && tgtIdx < bufferSize) {
     out[tgtIdx] = in[idx];
   }

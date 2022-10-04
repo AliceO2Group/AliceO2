@@ -77,6 +77,7 @@ class GPUKernelTemplate
       typename BlockReduce::TempStorage cubReduceTmpMem;
       typename WarpScan::TempStorage cubWarpTmpMem;
       int tmpBroadcast;
+      int warpPredicateSum[I / GPUCA_WARP_SIZE];
     };
 #endif
   };
