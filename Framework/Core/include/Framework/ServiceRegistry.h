@@ -75,13 +75,54 @@ struct ServiceKindExtractor<T, std::void_t<decltype(T::service_kind)>> : std::is
   constexpr static ServiceKind kind = T::service_kind;
 };
 
+template <typename T>
+inline constexpr ServiceKind service_kind_v = ServiceKindExtractor<T>::kind;
+
 struct ServiceRegistry {
+  struct Context {
+    short streamId = 0;
+    short dataProcessorId = 0;
+  };
+
+  union Salt {
+    Context context;
+    int32_t value = 0;
+  };
+
+  static constexpr Salt GLOBAL_CONTEXT_SALT{0, 0};
+
+  struct InstanceId {
+    uint32_t id = 0;
+  };
+
+  struct Index {
+    int32_t index = -1;
+  };
+
+  // Metadata about the service
+  struct Meta {
+    ServiceKind kind = ServiceKind::Serial;
+    Salt salt = {0, 0};
+  };
+
   /// The maximum distance a entry can be from the optimal slot.
-  constexpr static int MAX_DISTANCE = 8;
+  constexpr static int32_t MAX_DISTANCE = 8;
   /// The number of slots in the hashmap.
-  constexpr static int MAX_SERVICES = 256;
+  constexpr static uint32_t MAX_SERVICES = 256;
   /// The mask to use to calculate the initial slot id.
-  constexpr static int MAX_SERVICES_MASK = MAX_SERVICES - 1;
+  constexpr static uint32_t MAX_SERVICES_MASK = MAX_SERVICES - 1;
+
+  constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
+  {
+    return InstanceId{type.hash ^ salt.value};
+  }
+
+  constexpr Index indexFromInstance(InstanceId id) const
+  {
+    static_assert(MAX_SERVICES_MASK < 0x7FFFFFFF, "MAX_SERVICES_MASK must be smaller than 0x7FFFFFFF");
+    return Index{static_cast<int32_t>(id.id & MAX_SERVICES_MASK)};
+  }
+
   /// Callbacks for services to be executed before every process method invokation
   std::vector<ServiceProcessingHandle> mPreProcessingHandles;
   /// Callbacks for services to be executed after every process method invokation
