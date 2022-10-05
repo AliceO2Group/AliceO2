@@ -103,13 +103,10 @@ std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSingle() const
 std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSlice() const
 {
   std::shared_ptr<arrow::Array> array;
-  //  std::shared_ptr<arrow::Array> varray;
   auto status = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->Finish(&array);
-  //  auto status = static_cast<arrow::Int32Builder*>(mValueBuilder)->Finish(&varray);
   if (!status.ok()) {
     throw runtime_error("Cannot build an array");
   }
-  //  array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, mResultSize, varray);
   return std::make_shared<arrow::ChunkedArray>(array);
 }
 
