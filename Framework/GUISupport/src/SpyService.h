@@ -14,6 +14,7 @@
 
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceSpec.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <mutex>
 #include <vector>
 #include <fairmq/FwdDecls.h>

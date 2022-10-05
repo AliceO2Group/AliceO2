@@ -122,7 +122,7 @@ struct DeviceConfigurationHelpers {
 class DataProcessingDevice : public fair::mq::Device
 {
  public:
-  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistryRef, ProcessingPolicies& policies);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&, ProcessingPolicies& policies);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -159,7 +159,7 @@ class DataProcessingDevice : public fair::mq::Device
   AlgorithmSpec::ErrorCallback mError;
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistryRef mServiceRegistry;
+  ServiceRegistry& mServiceRegistry;
   DataAllocator mAllocator;
   DataRelayer* mRelayer = nullptr;
   /// Expiration handler

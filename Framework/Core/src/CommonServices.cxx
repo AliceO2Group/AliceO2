@@ -18,7 +18,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DataSender.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/DataRelayer.h"
@@ -207,7 +207,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
+    .driverStartup = [](ServiceRegistry& registry, boost::program_options::variables_map const& vmap) {
       if (vmap.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;

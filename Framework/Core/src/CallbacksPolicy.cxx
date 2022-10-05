@@ -11,6 +11,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/Logger.h"
 #include <cstdlib>

@@ -40,6 +40,8 @@ class DataSender
 
  private:
   FairMQDeviceProxy& mProxy;
+  // We need the ServiceRegistry and not a ref, to be able
+  // to call the callbacks after sending.
   ServiceRegistryRef mRegistry;
   DeviceSpec const& mSpec;
   std::vector<OutputSpec> mOutputs;
