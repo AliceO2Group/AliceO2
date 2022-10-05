@@ -397,6 +397,9 @@ class IDCDeltaCompressionHelper
  private:
   static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed, const float minValue, const float maxValue)
   {
+    if (idcDeltaUncompressed.getIDCDelta().empty()) {
+      return;
+    }
     idcCompressed.getIDCDelta().reserve(idcDeltaUncompressed.getIDCDelta().size());
     const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta()), std::end(idcDeltaUncompressed.getIDCDelta()));
     const auto& paramIDCGroup = ParameterIDCCompression::Instance();
