@@ -141,7 +141,7 @@ class ZDCDCSDataProcessor : public o2::framework::Task
     mProcessor->setStartValidity(startValidity);
     mProcessor->process(dps);
     Duration elapsedTime = timeNow - mTimer; // in seconds
-    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
+    // LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
