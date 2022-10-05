@@ -57,16 +57,17 @@ ServiceRegistry::ServiceRegistry()
 /// hash used to identify the service, @a service is
 /// a type erased pointer to the service itself.
 /// This method is supposed to be thread safe
-void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, uint64_t threadId, const char* name) const
+void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, const char* name) const
 {
-  hash_type threadHashId = (typeHash.hash ^ threadId) & MAX_SERVICES_MASK;
+  InstanceId id = instanceFromTypeSalt(typeHash, salt);
+  Index index = indexFromInstance(id);
   // If kind is not stream, there is only one copy of our service.
   // So we look if it is already registered and reused it if it is.
   // If not, we register it as thread id 0 and as the passed one.
-  if (kind != ServiceKind::Stream && threadId != 0) {
-    void* oldService = this->get(typeHash, 0, kind);
+  if (kind != ServiceKind::Stream && salt.context.streamId != 0) {
+    void* oldService = this->get(typeHash, GLOBAL_CONTEXT_SALT, kind);
     if (oldService == nullptr) {
-      registerService(typeHash, service, kind, 0);
+      registerService(typeHash, service, kind, GLOBAL_CONTEXT_SALT);
     } else {
       service = oldService;
     }
@@ -74,11 +75,11 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
   for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
     // If the service slot was not taken, take it atomically
     bool expected = false;
-    if (mServicesBooked[i + threadHashId].compare_exchange_strong(expected, true,
+    if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
                                                                   std::memory_order_seq_cst)) {
-      mServicesValue[i + threadHashId] = service;
-      mServicesMeta[i + threadHashId] = ServiceMeta{kind, threadId};
-      mServicesKey[i + threadHashId] = typeHash.hash;
+      mServicesValue[i + index.index] = service;
+      mServicesMeta[i + index.index] = Meta{kind, salt};
+      mServicesKey[i + index.index] = typeHash.hash;
       std::atomic_thread_fence(std::memory_order_release);
       return;
     }
@@ -92,7 +93,7 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
   // Services which are not stream must have a single instance created upfront.
   if (spec.kind != ServiceKind::Stream) {
     ServiceHandle handle = spec.init(*this, state, options);
-    this->registerService({handle.hash}, handle.instance, handle.kind, 0, handle.name.c_str());
+    this->registerService({handle.hash}, handle.instance, handle.kind, GLOBAL_CONTEXT_SALT, handle.name.c_str());
     this->bindService(spec, handle.instance);
   }
 }

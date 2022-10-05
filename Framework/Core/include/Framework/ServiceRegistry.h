@@ -212,7 +212,7 @@ struct ServiceRegistry {
   /// hash used to identify the service, @a service is
   /// a type erased pointer to the service itself.
   /// This method is supposed to be thread safe
-  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, uint64_t threadId, char const* name = nullptr) const;
+  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, char const* name = nullptr) const;
 
   // Lookup a given @a typeHash for a given @a threadId at
   // a unique (per typeHash) location. There might
@@ -222,12 +222,13 @@ struct ServiceRegistry {
   // as guaranteed by the atomic, mServicesKey[i + id] will
   // either be 0 or the final value.
   // This method should NEVER register a new service, event when requested.
-  int getPos(ServiceTypeHash typeHash, uint64_t threadId) const
+  int getPos(ServiceTypeHash typeHash, Salt salt) const
   {
-    auto threadHashId = (typeHash.hash ^ threadId) & MAX_SERVICES_MASK;
+    InstanceId instanceId = instanceFromTypeSalt(typeHash, salt);
+    Index index = indexFromInstance(instanceId);
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesKey[i + threadHashId].load() == typeHash.hash) {
-        return i + threadHashId;
+      if (mServicesKey[i + index.index].load() == typeHash.hash) {
+        return i + index.index;
       }
     }
     return -1;
@@ -241,15 +242,15 @@ struct ServiceRegistry {
   // if the service is not a stream service and the global
   // zero service is available.
   // Use this API only if you know what you are doing.
-  void* get(ServiceTypeHash typeHash, uint64_t threadId, ServiceKind kind, char const* name = nullptr) const
+  void* get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name = nullptr) const
   {
     // Look for the service. If found, return it.
     // Notice how due to threading issues, we might
     // find it with getPos, but the value can still
     // be nullptr.
-    auto pos = getPos(typeHash, threadId);
-    if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].threadId != threadId) {
-      throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", threadId, mServicesMeta[pos].threadId));
+    auto pos = getPos(typeHash, salt);
+    if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].salt.value != salt.value) {
+      throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.context.streamId, mServicesMeta[pos].salt.context.streamId));
       O2_BUILTIN_UNREACHABLE();
     }
 
@@ -264,12 +265,12 @@ struct ServiceRegistry {
     // We are looking up a service which is not of
     // stream kind and was not looked up by this thread
     // before.
-    if (threadId != 0) {
-      int pos = getPos(typeHash, 0);
+    if (salt.value != GLOBAL_CONTEXT_SALT.value) {
+      int pos = getPos(typeHash, GLOBAL_CONTEXT_SALT);
       if (pos != -1 && kind != ServiceKind::Stream) {
         mServicesKey[pos].load();
         std::atomic_thread_fence(std::memory_order_acquire);
-        registerService(typeHash, mServicesValue[pos], kind, threadId, name);
+        registerService(typeHash, mServicesValue[pos], kind, salt, name);
       }
       if (pos != -1) {
         mServicesKey[pos].load();
@@ -289,13 +290,14 @@ struct ServiceRegistry {
   {
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
+    Salt salt{Context{.streamId = (short)hasher(tid)}};
+    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
   mutable std::array<std::atomic<uint32_t>, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
-  mutable std::array<ServiceMeta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
+  mutable std::array<Meta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;
 
   /// @deprecated old API to be substituted with the ServiceHandle one
@@ -310,7 +312,8 @@ struct ServiceRegistry {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
+    Salt salt = Salt{Context{.streamId = (short)hasher(tid)}};
+    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, salt, typeid(C).name());
   }
 
   /// @deprecated old API to be substituted with the ServiceHandle one
@@ -325,7 +328,8 @@ struct ServiceRegistry {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I const>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, hasher(tid), typeid(C).name());
+    Salt salt = Salt{Context{.streamId = (short)hasher(tid)}};
+    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, salt, typeid(C).name());
   }
 
   /// Check if service of type T is currently active.
@@ -335,10 +339,11 @@ struct ServiceRegistry {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    if (this->getPos(typeHash, 0) != -1) {
+    if (this->getPos(typeHash, GLOBAL_CONTEXT_SALT) != -1) {
       return true;
     }
-    auto result = this->getPos(typeHash, hasher(tid)) != -1;
+    Salt salt = Salt{Context{.streamId = (short)hasher(tid)}};
+    auto result = this->getPos(typeHash, salt) != -1;
     return result;
   }
 
@@ -351,7 +356,8 @@ struct ServiceRegistry {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    auto ptr = this->get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
+    Salt salt = Salt{Context{.streamId = (short)hasher(tid)}};
+    auto ptr = this->get(typeHash, salt, ServiceKind::Serial, typeid(T).name());
     if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
       if constexpr (std::is_const_v<T>) {
         return *reinterpret_cast<T const*>(ptr);
