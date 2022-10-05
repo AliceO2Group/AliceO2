@@ -23,7 +23,7 @@
 #include <iostream>
 #include <cstring>
 
-#include <fairlogger/Logger.h>
+#include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 #include "HMPIDReconstruction/HmpidEquipment.h"

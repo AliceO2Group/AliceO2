@@ -14,21 +14,12 @@
 #include <TLatex.h>        //TestTrans()
 #include <TView.h>         //TestTrans()
 #include <TPolyMarker3D.h> //TestTrans()
-
-// #include <TRotation.h> //  ef: this is not used?
-// TGeoHMatrix is used; could not find any indication of that being dis-advised
-
+#include <TRotation.h>
 #include <TParticle.h>        //Stack()
 #include <TGeoPhysicalNode.h> //ctor
 #include <TGeoBBox.h>
 #include <TF1.h> //ctor
 #include <iostream>
-
-// ef : rotations
-#include <Math/GenVector/Rotation3D.h> //ef
-#include "Math/GenVector/RotationX.h"  //ef
-#include "Math/GenVector/RotationY.h"  //ef
-#include "Math/GenVector/RotationZ.h"  //ef
 
 using namespace o2::hmpid;
 
@@ -66,14 +57,14 @@ float Param::fgAllY = 0;
 
 bool Param::fgInstanceType = kTRUE;
 
-Param* Param::fgInstance = nullptr; // singleton pointer
+Param* Param::fgInstance = nullptr; //singleton pointer
 
 Int_t Param::fgNSigmas = 4;
 Int_t Param::fgThreshold = 4;
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mTemp(25)
-// just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
+//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
 {
   // Here all the intitializition is taken place when Param::Instance() is invoked for the first time.
   // In particular, matrices to be used for LORS<->MARS trasnformations are initialized from TGeo structure.
@@ -99,12 +90,12 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
     }
   }
 */
-  mRefIdx = meanIdxRad(); // initialization of the running ref. index of freon
+  mRefIdx = meanIdxRad(); //initialization of the running ref. index of freon
 
   float dead = 2.6; // cm of the dead zones between PCs-> See 2CRC2099P1
 
   if (noGeo == kTRUE) {
-    fgInstanceType = kFALSE; // instance from ideal geometry, no actual geom is present
+    fgInstanceType = kFALSE; //instance from ideal geometry, no actual geom is present
   }
 
   if (noGeo == kFALSE && !gGeoManager) {
@@ -157,7 +148,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
   for (Int_t ich = kMinCh; ich <= kMaxCh; ich++) {
     for (Int_t padx = 0; padx < 160; padx++) {
       for (Int_t pady = 0; pady < 144; pady++) {
-        fgMapPad[padx][pady][ich] = kTRUE; // init all the pads are active at the beginning....
+        fgMapPad[padx][pady][ich] = kTRUE; //init all the pads are active at the beginning....
       }
     }
   }
@@ -166,7 +157,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
     if (gGeoManager && gGeoManager->IsClosed()) {
       TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(Form("/HMPID/Chamber%i", i));
       if (!pne) {
-        // AliErrorClass(Form("The symbolic volume %s does not correspond to any physical entry!",Form("HMPID_%i",i)));
+        //AliErrorClass(Form("The symbolic volume %s does not correspond to any physical entry!",Form("HMPID_%i",i)));
         mM[i] = new TGeoHMatrix;
         idealPosition(i, mM[i]);
       } else {
@@ -184,7 +175,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
     }
   }
   fgInstance = this;
-} // ctor
+} //ctor
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::print(Option_t* opt) const
 {
@@ -193,7 +184,7 @@ void Param::print(Option_t* opt) const
   for (Int_t i = 0; i < 7; i++) {
     mM[i]->Print(opt);
   }
-} // Print()
+} //Print()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::idealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
 {
@@ -210,46 +201,46 @@ void Param::idealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
     case 0:
       pMatrix->RotateY(kAngHor);
       pMatrix->RotateZ(-kAngVer);
-      break; // right and down
+      break; //right and down
     case 1:
       pMatrix->RotateZ(-kAngVer);
-      break; // down
+      break; //down
     case 2:
       pMatrix->RotateY(kAngHor);
-      break; // right
+      break; //right
     case 3:
-      break; // no rotation
+      break; //no rotation
     case 4:
       pMatrix->RotateY(-kAngHor);
-      break; // left
+      break; //left
     case 5:
       pMatrix->RotateZ(kAngVer);
-      break; // up
+      break; //up
     case 6:
       pMatrix->RotateY(-kAngHor);
       pMatrix->RotateZ(kAngVer);
-      break; // left and up
+      break; //left and up
   }
-  pMatrix->RotateZ(kAngCom); // apply common rotation  in XY plane
+  pMatrix->RotateZ(kAngCom); //apply common rotation  in XY plane
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 /*Int_t Param::Stack(Int_t evt,Int_t tid)
 {
 // Prints some useful info from stack
 // Arguments: evt - event number. if not -1 print info only for that event
-//            tid - track id. if not -1 then print it and all it's mothers if any
+//            tid - track id. if not -1 then print it and all it's mothers if any   
 //   Returns: mother tid of the given tid if any
-  AliRunLoader *pAL=AliRunLoader::Open();
+  AliRunLoader *pAL=AliRunLoader::Open(); 
   if(pAL->LoadHeader()) return -1;
   if(pAL->LoadKinematics()) return -1;
-
+  
   Int_t mtid=-1;
   Int_t iNevt=pAL->GetNumberOfEvents();
-
+  
   for(Int_t iEvt=0;iEvt<iNevt;iEvt++){//events loop
     if(evt!=-1 && evt!=iEvt) continue; //in case one needs to print the requested event, ignore all others
-    pAL->GetEvent(iEvt);
-    AliStack *pStack=pAL->Stack();
+    pAL->GetEvent(iEvt);    
+    AliStack *pStack=pAL->Stack();  
     if(tid==-1){                        //print all tids for this event
       for(Int_t i=0;i<pStack->GetNtrack();i++) pStack->Particle(i)->Print();
           Printf("totally %i tracks including %i primaries for event %i out of %i event(s)",
@@ -262,8 +253,8 @@ void Param::idealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
       while((tid=pTrack->GetFirstMother()) >= 0){
         pTrack=pStack->Particle(tid);
         str+=" from ";str+=pTrack->GetName();
-      }
-    }//if(tid==-1)
+      } 
+    }//if(tid==-1)      
   }//events loop
   pAL->UnloadHeader();  pAL->UnloadKinematics();
   return mtid;
@@ -272,15 +263,15 @@ void Param::idealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
 /*Int_t Param::StackCount(Int_t pid,Int_t evt)
 {
 // Counts total number of particles of given sort (including secondary) for a given event
-  AliRunLoader *pAL=AliRunLoader::Open();
-  pAL->GetEvent(evt);
+  AliRunLoader *pAL=AliRunLoader::Open(); 
+  pAL->GetEvent(evt);    
   if(pAL->LoadHeader()) return 0;
   if(pAL->LoadKinematics()) return 0;
   AliStack *pStack=pAL->Stack();
-
+  
   Int_t iCnt=0;
   for(Int_t i=0;i<pStack->GetNtrack();i++) if(pStack->Particle(i)->GetPdgCode()==pid) iCnt++;
-
+  
   pAL->UnloadHeader();  pAL->UnloadKinematics();
   return iCnt;
 }*/
@@ -295,21 +286,16 @@ double Param::sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
   //            MIP beta
   //   Returns: absolute error on Cerenkov angle, [radians]
 
-  // TVector3 v(-999, -999, -999); : ef : changed to :
-  XYZVector v(-999, -999, -999);
-
+  TVector3 v(-999, -999, -999);
   double trkBeta = 1. / (TMath::Cos(ckovTh) * getRefIdx());
 
   if (trkBeta > 1) {
-    trkBeta = 1; // protection against bad measured thetaCer
+    trkBeta = 1; //protection against bad measured thetaCer
   }
   if (trkBeta < 0) {
     trkBeta = 0.0001; //
   }
 
-  // ef : why not initialize directly to these values?  //math_utils::Vector3D<double> v(sigLoc, sigGeom, sigCrom);
-
-  // ef : following methods are valid for DisplacementVector3D
   v.SetX(sigLoc(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
   v.SetY(sigGeom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
   v.SetZ(sigCrom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
@@ -351,7 +337,7 @@ double Param::sigLoc(double trkTheta, double trkPhi, double thetaC, double phiC,
   // formula (7)            pag.4
   double dtdyc = kk * (k * (cosfd * sinf + cost * sinfd * cosf) + (alpha * e / (betaM * betaM)) * sint * sinfd);
 
-  double errX = 0.2, errY = 0.25; // end of page 7
+  double errX = 0.2, errY = 0.25; //end of page 7
   return TMath::Sqrt(errX * errX * dtdxc * dtdxc + errY * errY * dtdyc * dtdyc);
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -379,7 +365,7 @@ double Param::sigCrom(double trkTheta, double trkPhi, double thetaC, double phiC
   double f = 0.0172 * (7.75 - 5.635) / TMath::Sqrt(24.);
 
   return f * dtdn;
-} // SigCrom()
+} //SigCrom()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 double Param::sigGeom(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
 {
@@ -418,7 +404,7 @@ double Param::sigGeom(double trkTheta, double trkPhi, double thetaC, double phiC
   double trErr = radThick() / (TMath::Sqrt(12.) * cost);
 
   return trErr * dtdT;
-} // SigGeom()
+} //SigGeom()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 double Param::sigmaCorrFact(Int_t iPart, double occupancy)
 {
@@ -451,10 +437,10 @@ Param* Param::instance()
   // Arguments: none
   //   Returns: pointer to the instance of AliHMPIDParam or 0 if no geometry
   if (!fgInstance) {
-    new Param(kFALSE); // default setting for reconstruction, if no geometry.root -> AliFatal
+    new Param(kFALSE); //default setting for reconstruction, if no geometry.root -> AliFatal
   }
   return fgInstance;
-} // Instance()
+} //Instance()
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Param* Param::instanceNoGeo()
@@ -463,14 +449,12 @@ Param* Param::instanceNoGeo()
   // Arguments: none
   //   Returns: pointer to the instance of AliHMPIDParam or 0 if no geometry
   if (!fgInstance) {
-    new Param(kTRUE); // to avoid AliFatal, for MOOD and displays, use ideal geometry parameters
+    new Param(kTRUE); //to avoid AliFatal, for MOOD and displays, use ideal geometry parameters
   }
   return fgInstance;
-} // Instance()
+} //Instance()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-/* ef : moved to header
-inline bool Param::isInDead(float x, float y) // ef : bool -> inline bool
+bool Param::isInDead(float x, float y)
 {
   // Check is the current point is outside of sensitive area or in dead zones
   // Arguments: x,y -position
@@ -482,11 +466,9 @@ inline bool Param::isInDead(float x, float y) // ef : bool -> inline bool
   }
 
   return kTRUE;
-} */
+}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-/*ef : moved to header
-inline bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch) // ef : bool -> inline bool
+bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch)
 {
   // Check is the current pad is active or not
   // Arguments: padx,pady pad integer coord
@@ -497,9 +479,8 @@ inline bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch) // ef : bool -> i
   }
 
   return kTRUE;
-} */
+}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 void Param::lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
 {
   // Check the pad of given position
@@ -509,25 +490,25 @@ void Param::lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
   if (x > fgkMinPcX[0] && x < fgkMaxPcX[0]) {
     pc = 0;
     px = Int_t(x / sizePadX());
-  } // PC 0 or 2 or 4
+  } //PC 0 or 2 or 4
   else if (x > fgkMinPcX[1] && x < fgkMaxPcX[1]) {
     pc = 1;
     px = Int_t((x - fgkMinPcX[1]) / sizePadX());
-  } // PC 1 or 3 or 5
+  } //PC 1 or 3 or 5
   else {
     return;
   }
   if (y > fgkMinPcY[0] && y < fgkMaxPcY[0]) {
     py = Int_t(y / sizePadY());
-  } // PC 0 or 1
+  } //PC 0 or 1
   else if (y > fgkMinPcY[2] && y < fgkMaxPcY[2]) {
     pc += 2;
     py = Int_t((y - fgkMinPcY[2]) / sizePadY());
-  } // PC 2 or 3
+  } //PC 2 or 3
   else if (y > fgkMinPcY[4] && y < fgkMaxPcY[4]) {
     pc += 4;
     py = Int_t((y - fgkMinPcY[4]) / sizePadY());
-  } // PC 4 or 5
+  } //PC 4 or 5
   else {
     return;
   }
@@ -535,9 +516,9 @@ void Param::lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Int_t Param::inHVSector(float y)
 {
-  // Calculate the HV sector corresponding to the cluster position
-  // Arguments: y
-  // Returns the HV sector in the single module
+  //Calculate the HV sector corresponding to the cluster position
+  //Arguments: y
+  //Returns the HV sector in the single module
 
   Int_t hvsec = -1;
   Int_t pc, px, py;
@@ -554,15 +535,15 @@ Int_t Param::inHVSector(float y)
 double Param::findTemp(double tLow, double tHigh, double y)
 {
   //  Model for gradient in temperature
-  double yRad = hinRad(y); // height in a given radiator
+  double yRad = hinRad(y); //height in a given radiator
   if (tHigh < tLow) {
-    tHigh = tLow; // if Tout < Tin consider just Tin as reference...
+    tHigh = tLow; //if Tout < Tin consider just Tin as reference...
   }
   if (yRad < 0) {
-    yRad = 0; // protection against fake y values
+    yRad = 0; //protection against fake y values
   }
   if (yRad > sizePcY()) {
-    yRad = sizePcY(); // protection against fake y values
+    yRad = sizePcY(); //protection against fake y values
   }
 
   double gradT = (tHigh - tLow) / sizePcY(); // linear gradient
@@ -571,9 +552,9 @@ double Param::findTemp(double tLow, double tHigh, double y)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::setChStatus(Int_t ch, bool status)
 {
-  // Set a chamber on or off depending on the status
-  // Arguments: ch=chamber,status=kTRUE = active, kFALSE=off
-  // Returns: none
+  //Set a chamber on or off depending on the status
+  //Arguments: ch=chamber,status=kTRUE = active, kFALSE=off
+  //Returns: none
   for (Int_t padx = 0; padx < kMaxPcx + 1; padx++) {
     for (Int_t pady = 0; pady < kMaxPcy + 1; pady++) {
       fgMapPad[padx][pady][ch] = status;
@@ -583,10 +564,10 @@ void Param::setChStatus(Int_t ch, bool status)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::setSectStatus(Int_t ch, Int_t sect, bool status)
 {
-  // Set a given sector sect for a chamber ch on or off depending on the status
-  // Sector=0,5 (6 sectors)
-  // Arguments: ch=chamber,sect=sector,status: kTRUE = active, kFALSE=off
-  // Returns: none
+  //Set a given sector sect for a chamber ch on or off depending on the status
+  //Sector=0,5 (6 sectors)
+  //Arguments: ch=chamber,sect=sector,status: kTRUE = active, kFALSE=off
+  //Returns: none
 
   Int_t npadsect = (kMaxPcy + 1) / 6;
   Int_t padSectMin = npadsect * sect;
@@ -601,9 +582,9 @@ void Param::setSectStatus(Int_t ch, Int_t sect, bool status)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::setPcStatus(Int_t ch, Int_t pc, bool status)
 {
-  // Set a given PC pc for a chamber ch on or off depending on the status
-  // Arguments: ch=chamber,pc=PC,status: kTRUE = active, kFALSE=off
-  // Returns: none
+  //Set a given PC pc for a chamber ch on or off depending on the status
+  //Arguments: ch=chamber,pc=PC,status: kTRUE = active, kFALSE=off
+  //Returns: none
 
   Int_t deltaX = pc % 2;
   Int_t deltaY = pc / 2;
@@ -621,9 +602,9 @@ void Param::setPcStatus(Int_t ch, Int_t pc, bool status)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::printChStatus(Int_t ch)
 {
-  // Print the map status of a chamber on or off depending on the status
-  // Arguments: ch=chamber
-  // Returns: none
+  //Print the map status of a chamber on or off depending on the status
+  //Arguments: ch=chamber
+  //Returns: none
   Printf(" ");
   Printf(" --------- C H A M B E R  %d   ---------------", ch);
   for (Int_t pady = kMaxPcy; pady >= 0; pady--) {
@@ -643,12 +624,13 @@ void Param::printChStatus(Int_t ch)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::setGeomAccept()
 {
-  // Set the real acceptance of the modules, due to ineficciency or hardware problems (up tp 1/6/2010)
-  // Arguments: none
-  // Returns: none
+  //Set the real acceptance of the modules, due to ineficciency or hardware problems (up tp 1/6/2010)
+  //Arguments: none
+  //Returns: none
   setSectStatus(0, 3, kFALSE);
   setSectStatus(4, 0, kFALSE);
   setSectStatus(5, 1, kFALSE);
   setSectStatus(6, 2, kFALSE);
   setSectStatus(6, 3, kFALSE);
 }
+

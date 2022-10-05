@@ -9,18 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_SRC_HMPIDDIGITIZERSPEC_H_
+#define STEER_DIGITIZERWORKFLOW_SRC_HMPIDDIGITIZERSPEC_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Recon + ; ef : remember to uncomment !
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-#pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
-#pragma link C++ class o2::hmpid::HmpidEquipment + ;
+namespace o2
+{
+namespace hmpid
+{
 
-#endif
+o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth = true);
+
+} // end namespace hmpid
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_SRC_HMPIDDIGITIZERSPEC_H_ */

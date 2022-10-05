@@ -9,18 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file   CTFHelper.cxx
+/// \author ruben.shahoyan@cern.ch
+/// \brief  Helper for HMPID CTF creation
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Recon + ; ef : remember to uncomment !
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-#pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
-#pragma link C++ class o2::hmpid::HmpidEquipment + ;
-
-#endif
+#include "HMPIDReconstruction/CTFHelper.h"

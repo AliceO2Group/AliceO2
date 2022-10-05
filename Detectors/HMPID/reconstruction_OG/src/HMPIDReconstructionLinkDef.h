@@ -16,7 +16,6 @@
 #pragma link off all functions;
 
 //#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Recon + ; ef : remember to uncomment !
 #pragma link C++ class o2::hmpid::Clusterer + ;
 //#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
 //#pragma link C++ class o2::hmpid::HmpidDecoder + ;

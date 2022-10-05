@@ -27,8 +27,8 @@
 #include "HMPIDReconstruction/Clusterer.h"
 #include "DataFormatsHMP/Trigger.h"
 
-#include "TFile.h"
-#include "TTree.h"
+#include "TFile.h" // ef: in case of writing to file
+#include "TTree.h" // ef: in case of writing to file
 
 namespace o2
 {
@@ -38,27 +38,38 @@ namespace hmpid
 class DigitsToClustersTask : public framework::Task
 {
  public:
-  DigitsToClustersTask(bool readFile)
-    : mReadFile(readFile) {}
+  DigitsToClustersTask(bool readFile, bool writeFile)
+    : mReadFile(readFile), mWriteFile(writeFile) {}
   ~DigitsToClustersTask() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) override;
 
  private:
+  bool mWriteFile = false;
   bool mReadFile = false;
+
   std::string mSigmaCutPar;
   float mSigmaCut[7] = {4, 4, 4, 4, 4, 4, 4};
 
   std::unique_ptr<TFile> mFile; ///< input file containin the tree
   std::unique_ptr<TTree> mTree; ///< input tree
 
+  std::unique_ptr<TFile> mFileOut; ///< output file containin the tree
+  std::unique_ptr<TTree> mTreeOut; ///< output tree
+  // std::vector<TBranch*> mInfoBranches;                     ///< common
+  // information
+
+  std::vector<o2::hmpid::Cluster> mClustersOut;
+  std::vector<o2::hmpid::Trigger> mClusterTriggersOut;
+
   std::vector<o2::hmpid::Digit>* mDigitsFromFile;
   std::vector<o2::hmpid::Trigger>* mTriggersFromFile;
 
-  std::unique_ptr<o2::hmpid::Clusterer> mRec; // ef: changed to smart-pointer
+  o2::hmpid::Clusterer* mRec;
   long mDigitsReceived;
 
+  void initFileOut(const std::string& fileName);
   void initFileIn(const std::string& fileName);
 
   ExecutionTimer mExTimer;
@@ -66,11 +77,10 @@ class DigitsToClustersTask : public framework::Task
                         int maxElem = 7);
 };
 
-// ef : read from stream by default:
 o2::framework::DataProcessorSpec
-  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false);
+  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false,
+                          bool writeFile = false);
 
-o2::framework::DataProcessorSpec getClustersToRootWriter();
 } // end namespace hmpid
 } // end namespace o2
 

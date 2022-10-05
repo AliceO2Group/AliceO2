@@ -9,18 +9,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+///
+/// \file   Geo.h
+/// \author Antonio Franco - INFN Bari
+/// \version 1.1
+/// \date 15/02/2021
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "HMPIDBase/Geo.h"
+#include "HMPIDBase/Param.h"
+#include "TGeoManager.h"
+#include "TMath.h"
+#include <fairlogger/Logger.h>
+#include "DetectorsBase/GeometryManager.h"
 
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Recon + ; ef : remember to uncomment !
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-#pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
-#pragma link C++ class o2::hmpid::HmpidEquipment + ;
+ClassImp(o2::hmpid::Geo);
 
-#endif
+using namespace o2::hmpid;
+
+//constexpr Bool_t Geo::FEAWITHMASKS[NSECTORS];
+
+// ============= Geo Class implementation =======
+
+/// Init :
+void Geo::Init()
+{
+  LOG(info) << "hmpid::Geo: Initialization of HMPID parameters";
+}
+

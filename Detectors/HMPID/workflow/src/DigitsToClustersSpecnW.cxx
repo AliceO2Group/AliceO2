@@ -85,8 +85,7 @@ void DigitsToClustersTask::strToFloatsSplit(std::string s,
 //
 void DigitsToClustersTask::init(framework::InitContext& ic)
 {
-  LOG(info) << "[HMPID Clusterization - init() ; mReadFile = ] "
-            << mReadFile;
+
   mSigmaCutPar = ic.options().get<std::string>("sigma-cut");
 
   if (mSigmaCutPar != "") {
@@ -94,8 +93,8 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
   }
 
   mDigitsReceived = 0;
-  mRec.reset(new o2::hmpid::Clusterer()); // ef: changed to smart-pointer
-
+  mRec = new o2::hmpid::Clusterer(); // ef: probably should change to
+                                     // smart-pointer
   mExTimer.start();
 
   // specify location and filename for output in case of writing to file
@@ -107,6 +106,7 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
       ic.options().get<std::string>("hmpid-digit-infile"));
     initFileIn(filename);
   }
+
 }
 
 void DigitsToClustersTask::run(framework::ProcessingContext& pc)
@@ -118,12 +118,14 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
   clusters.clear();
   clusterTriggers.clear();
 
-  //===============mReadFromFile=============================================
+  //===============   mReadFromFile
+  //=============================================================================
   if (mReadFile) {
     LOG(info) << "[HMPID DClusterization - run() ] Entries  = " << mTree->GetEntries();
     // check if more entries in tree
 
     if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       mExTimer.stop();
@@ -141,7 +143,9 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
       mTree->GetEntry(0);
 
       // =============== create clusters =====================
+
       for (const auto& trig : *mTriggersFromFile) {
+        LOG(info) << "[HMPID DClusterization - run() File ] 170 ";
         if (trig.getNumberOfObjects()) {
           gsl::span<const o2::hmpid::Digit> trigDigits{
             mDigitsFromFile->data() + trig.getFirstEntry(),
@@ -151,16 +155,19 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
           clusterTriggers.emplace_back(trig.getIr(), clStart,
                                        clusters.size() - clStart);
         }
-      }
+      } // <end for>
       LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
            mTriggersFromFile->size(), mDigitsFromFile->size(), clusterTriggers.size(),
            clusters.size());
       mDigitsReceived += mDigitsFromFile->size();
     } // <end else of num entries>
   }   //===============  <end mReadFromFile>
+    //====================================================================================
 
-  else { // =========  if readfromStream==============================================
+  else { // =========  if readfromStream
+         // =====================================================================================
 
+    // =============== read digits and digit-triggers =====================
     auto triggers = pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("intrecord");
     auto digits = pc.inputs().get<gsl::span<o2::hmpid::Digit>>("digits");
 
@@ -194,7 +201,6 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
 
 void DigitsToClustersTask::endOfStream(framework::EndOfStreamContext& ec)
 {
-
   mExTimer.stop();
   mExTimer.logMes("End Clusterization !  digits = " +
                   std::to_string(mDigitsReceived));
@@ -221,8 +227,7 @@ void DigitsToClustersTask::initFileIn(const std::string& filename)
   mTree->Print("toponly");
 }
 
-//_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec
+o2::framework::DataProcessorSpec 
   getDigitsToClustersSpec(std::string inputSpec, bool readFile)
 {
 
@@ -235,11 +240,7 @@ o2::framework::DataProcessorSpec
                         0, Lifetime::Timeframe);
   }
 
-  // define outputs
-
-  // outputs are streamed, and optionally stored in a root-file if the --write-to-file
-  // option in digits-to-clusters-workflow.cxx is passed
-
+  // define outputs if reading from stream:
   std::vector<o2::framework::OutputSpec> outputs;
 
   outputs.emplace_back("HMP", "CLUSTERS", 0,
