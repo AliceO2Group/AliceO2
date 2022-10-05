@@ -25,16 +25,18 @@ enum ErrorCodes {
   ErrorParity = 1,                           // 1
   ErrorHammingCorrectable = 1 << 1,          // 2
   ErrorHammingUncorrectable = 1 << 2,        // 4
-  ErrorBadClusterSize = 1 << 3,              // 8
-  ErrorBadPacketType = 1 << 4,               // 16
-  ErrorBadHeartBeatPacket = 1 << 5,          // 32
-  ErrorBadIncompleteWord = 1 << 6,           // 64
-  ErrorTruncatedData = 1 << 7,               // 128
-  ErrorBadELinkID = 1 << 8,                  // 256
-  ErrorBadLinkID = 1 << 9,                   // 512
-  ErrorUnknownLinkID = 1 << 10,              // 1024
-  ErrorInvalidDigitTime = 1 << 11,           // 2048
-  ErrorNonRecoverableDecodingError = 1 << 12 // 4096
+  ErrorBadSyncPacket = 1 << 3,               // 8
+  ErrorBadHeartBeatPacket = 1 << 4,          // 16
+  ErrorBadDataPacket = 1 << 5,               // 32
+  ErrorBadClusterSize = 1 << 6,              // 64
+  ErrorBadIncompleteWord = 1 << 7,           // 128
+  ErrorTruncatedData = 1 << 8,               // 256
+  ErrorUnexpectedSyncPacket = 1 << 9,        // 512
+  ErrorBadELinkID = 1 << 10,                 // 1024
+  ErrorBadLinkID = 1 << 11,                  // 2048
+  ErrorUnknownLinkID = 1 << 12,              // 4096
+  ErrorBadHBTime = 1 << 13,                  // 8192
+  ErrorNonRecoverableDecodingError = 1 << 14 // 16384
 };
 
 uint32_t getErrorCodesSize();

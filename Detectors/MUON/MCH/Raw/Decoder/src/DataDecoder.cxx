@@ -564,8 +564,9 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     mHBPackets.emplace_back(solar, ds, chip, bunchCrossing);
 
-    if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bunchCrossing)) {
-      if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
+    if (mTimeRecoMode == TimeRecoMode::HBPackets) {
+      bool isOk = mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bunchCrossing);
+      if (!isOk && mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
         auto s = asString(dsElecId);
         LOGP(warning, "Bad HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
              s, chip, mFirstOrbitInTF, bunchCrossing, mTimeFrameStartRecords[chipId].mOrbitPrev, mTimeFrameStartRecords[chipId].mBunchCrossingPrev);
@@ -809,21 +810,6 @@ void DataDecoder::computeDigitsTimeBCRst()
 
     setDigitTime(d, tfTime);
     info.tfTime = tfTime;
-  }
-}
-
-//_________________________________________________________________________________________________
-
-void DataDecoder::checkDigitsTime()
-{
-  for (auto& digit : mDigits) {
-    auto& d = digit.digit;
-    auto& info = digit.info;
-    auto tfTime = d.getTime();
-    if (tfTime == DataDecoder::tfTimeInvalid) {
-      // add invalid digit time error
-      mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
-    }
   }
 }
 
