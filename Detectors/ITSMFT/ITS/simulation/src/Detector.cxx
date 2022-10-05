@@ -24,12 +24,12 @@
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes
-#include "FairDetector.h"    // for FairDetector
+#include "FairDetector.h"      // for FairDetector
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairRootManager.h" // for FairRootManager
-#include "FairRun.h"         // for FairRun
-#include "FairRuntimeDb.h"   // for FairRuntimeDb
-#include "FairVolume.h"      // for FairVolume
+#include "FairRootManager.h"   // for FairRootManager
+#include "FairRun.h"           // for FairRun
+#include "FairRuntimeDb.h"     // for FairRuntimeDb
+#include "FairVolume.h"        // for FairVolume
 #include "FairRootManager.h"
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -441,6 +441,12 @@ void Detector::createMaterials()
   Float_t wRohac[4] = {9., 13., 1., 2.};
   Float_t dRohac = 0.05;
 
+  // EN AW 7075 (Al alloy with Cu Mg Zn)
+  Float_t aENAW7075[4] = {26.98, 63.55, 24.31, 65.41};
+  Float_t zENAW7075[4] = {13., 29., 12., 30.};
+  Float_t wENAW7075[4] = {0., 0.015, 0.025, 0.055}; // [0] will be computed
+  Float_t dENAW7075 = 2.85;
+
   // Brass CuZn39Pb3 (Cu Zn Pb)
   Float_t aBrass[3] = {63.55, 65.41, 207.2};
   Float_t zBrass[3] = {29., 30., 82.};
@@ -551,6 +557,11 @@ void Detector::createMaterials()
   // Tungsten (for gamma converter rods)
   o2::base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
   o2::base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // EN AW 7075 (Al alloy with Cu Mg Zn) (for Cage rails)
+  wENAW7075[0] = 1. - wENAW7075[1] - wENAW7075[2] - wENAW7075[3];
+  o2::base::Detector::Mixture(36, "ENAW7075$", aENAW7075, zENAW7075, dENAW7075, 4, wENAW7075);
+  o2::base::Detector::Medium(36, "ENAW7075$", 36, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
 
   // Brass CuZn39Pb3
   o2::base::Detector::Mixture(34, "BRASS$", aBrass, zBrass, dBrass, 3, wBrass);
