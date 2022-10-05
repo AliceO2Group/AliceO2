@@ -73,6 +73,7 @@ MIDDEC_CONFIG=
 EMCRAW2C_CONFIG=
 PHS_CONFIG=
 MCH_CONFIG_KEY=
+CTP_CONFIG=
 
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
 
@@ -335,6 +336,10 @@ elif [[ $EXTINPUT == 1 ]]; then
           PROXY_INTYPE="DIGITS/0 DIGITTRIGREC/0 RAWHWERRORS";;
         EMC)
           PROXY_INTYPE="CELLS/0 CELLSTRGR/0 DECODERERR";;
+        CTP)
+          PROXY_INTYPE="LUMI/0 RAWDATA"
+          CTP_CONFIG=" --no-lumi "
+          ;;
         *)
           echo Input type for detector $i with FLP processing not defined 1>&2
           exit 1;;
@@ -388,7 +393,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   has_detector TRD && add_W o2-trd-datareader "$TRD_DECODER_OPTIONS $ENABLE_ROOT_OUTPUT --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
   has_detector ZDC && add_W o2-zdc-raw2digits "$DISABLE_ROOT_OUTPUT --pipeline $(get_N zdc-datareader-dpl ZDC RAW 1)"
   has_detector HMP && add_W o2-hmpid-raw-to-digits-stream-workflow "--pipeline $(get_N HMP-RawStreamDecoder HMP RAW 1)"
-  has_detector CTP && add_W o2-ctp-reco-workflow "--pipeline $(get_N CTP-RawStreamDecoder CTP RAW 1)"
+  has_detector CTP && add_W o2-ctp-reco-workflow "$CTP_CONFIG --ntf-to-average 1 --pipeline $(get_N ctp-raw-decoder CTP RAW 1)"
   has_detector PHS && ! has_detector_flp_processing PHS && add_W o2-phos-reco-workflow "--input-type raw --output-type cells $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N PHOSRawToCellConverterSpec PHS REST 1) $DISABLE_MC"
   has_detector CPV && add_W o2-cpv-reco-workflow "--input-type $CPV_INPUT --output-type clusters $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N CPVRawToDigitConverterSpec CPV REST 1),$(get_N CPVClusterizerSpec CPV REST 1) $DISABLE_MC"
   has_detector EMC && ! has_detector_flp_processing EMC && add_W o2-emcal-reco-workflow "--input-type raw --output-type cells $EMCRAW2C_CONFIG $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST 1 EMCREC)"

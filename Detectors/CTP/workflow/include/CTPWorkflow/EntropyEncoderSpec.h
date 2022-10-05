@@ -28,7 +28,7 @@ namespace ctp
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool selIR);
+  EntropyEncoderSpec(bool selIR, bool noLumi);
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -38,11 +38,12 @@ class EntropyEncoderSpec : public o2::framework::Task
  private:
   o2::ctp::CTFCoder mCTFCoder;
   bool mSelIR = false;
+  bool mNoLumi = false;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(bool selIR = false);
+framework::DataProcessorSpec getEntropyEncoderSpec(bool selIR = false, bool noLumiInput = false);
 
 } // namespace ctp
 } // namespace o2

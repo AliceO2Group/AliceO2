@@ -22,8 +22,9 @@ o2_add_library(DataFormatsCTP
                         O2::CommonConstants)
 o2_target_root_dictionary(DataFormatsCTP
                           HEADERS include/DataFormatsCTP/Digits.h
+                                  include/DataFormatsCTP/CTF.h
                                   include/DataFormatsCTP/Configuration.h
                                   include/DataFormatsCTP/Scalers.h
-                                  include/DataFormatsCTP/CTF.h
+                                  include/DataFormatsCTP/LumiInfo.h
                                   include/DataFormatsCTP/TriggerOffsetsParam.h)
 

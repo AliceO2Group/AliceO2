@@ -44,6 +44,8 @@
 #pragma link C++ class vector < o2::ctp::CTPScalerRecordO2> + ;
 #pragma link C++ class o2::ctp::CTPRunScalers + ;
 #pragma link C++ class o2::ctp::CTPRunManager + ;
+#pragma link C++ class o2::ctp::LumiInfo + ;
+#pragma link C++ class vector < o2::ctp::LumiInfo> + ;
 
 #pragma link C++ struct o2::ctp::CTFHeader + ;
 #pragma link C++ struct o2::ctp::CTF + ;
