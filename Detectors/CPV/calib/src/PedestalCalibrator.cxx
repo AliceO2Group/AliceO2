@@ -317,7 +317,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
 
   // metadata for o2::cpv::Pedestals
   std::map<std::string, std::string> metaData;
-  auto className = o2::utils::MemFileHelper::getClassName(peds);
+  auto className = o2::utils::MemFileHelper::getClassName(*peds);
   auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
   auto timeStamp = o2::ccdb::getCurrentTimestamp();
   mCcdbInfoPedestalsVec.emplace_back("CPV/Calib/Pedestals", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)

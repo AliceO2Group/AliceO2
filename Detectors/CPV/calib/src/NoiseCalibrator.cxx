@@ -159,7 +159,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   mBadChannelMapVec.push_back(*badMap);
   // metadata for o2::cpv::BadChannelMap
   std::map<std::string, std::string> metaData;
-  auto className = o2::utils::MemFileHelper::getClassName(badMap);
+  auto className = o2::utils::MemFileHelper::getClassName(*badMap);
   auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
   auto timeStamp = o2::ccdb::getCurrentTimestamp();
   mCcdbInfoBadChannelMapVec.emplace_back("CPV/Calib/BadChannelMap", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
