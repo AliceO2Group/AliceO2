@@ -24,6 +24,7 @@
 
 namespace o2::framework
 {
+struct ServiceRegistry;
 /// Plugin interface for DPL GUIs.
 struct DebugGUI {
   virtual std::function<void(void)> getGUIDebugger(std::vector<o2::framework::DeviceInfo> const& infos,
@@ -41,7 +42,7 @@ struct DebugGUI {
   virtual void keyUp(char key) = 0;
   virtual void charIn(char key) = 0;
 
-  virtual void* initGUI(char const* windowTitle, ServiceRegistryRef registry) = 0;
+  virtual void* initGUI(char const* windowTitle, ServiceRegistry& registry) = 0;
   virtual void getFrameJSON(void* data, std::ostream& json_data) = 0;
   virtual void getFrameRaw(void* data, void** raw_data, int* size) = 0;
   virtual bool pollGUIPreRender(void* context, float delta) = 0;

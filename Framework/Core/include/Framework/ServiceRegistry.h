@@ -370,10 +370,6 @@ struct ServiceRegistry {
   }
 };
 
-// This is to migrate the code in QC.
-// FIXME: move this to the proper smart reference class once done
-using ServiceRegistryRef = o2::framework::ServiceRegistry &;
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_SERVICEREGISTRY_H_

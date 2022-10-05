@@ -79,7 +79,7 @@ std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
-  mRegistry.preSendingMessagesCallbacks(mRegistry, parts, channelIndex);
+  mRegistry.preSendingMessagesCallbacks(parts, channelIndex);
   mPolicy.send(mProxy, parts, channelIndex, mRegistry);
 }
 

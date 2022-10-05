@@ -1042,7 +1042,7 @@ void doDefaultWorkflowTerminationHook()
   // LOG(info) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistryRef serviceRegistry,
+int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
             ProcessingPolicies processingPolicies,

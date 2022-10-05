@@ -433,7 +433,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     // will be multiple channels. At least we throw a more informative exception.
     // fair::mq::Device calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [device, deviceName, &services = ctx.services()]() {
+    auto channelConfigurationChecker = [device, deviceName, services = ctx.services()]() {
       auto& deviceState = services.get<DeviceState>();
       channels.clear();
       numberOfEoS.clear();
