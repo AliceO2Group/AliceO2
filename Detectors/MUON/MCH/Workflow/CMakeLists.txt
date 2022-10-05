@@ -31,6 +31,7 @@ o2_add_library(MCHWorkflow
                    O2::MCHPreClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
+                   ROOT::TreePlayer
                )
 
 o2_add_executable(

@@ -22,6 +22,7 @@ o2_add_library(CPVSimulation
                                      O2::SimConfig
                                      O2::SimulationDataFormat
                                      O2::Headers
+                                     ROOT::TreePlayer
                                      O2::DetectorsRaw)
 
 o2_target_root_dictionary(CPVSimulation
