@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/Tracing.h"
 #include "Framework/Logger.h"
 #include <iostream>
@@ -28,7 +29,7 @@ ServiceRegistry::ServiceRegistry(ServiceRegistry const& other)
   }
 }
 
-ServiceRegistryRef ServiceRegistry::operator=(ServiceRegistry const& other)
+ServiceRegistry& ServiceRegistry::operator=(ServiceRegistry const& other)
 {
   for (size_t i = 0; i < MAX_SERVICES; ++i) {
     mServicesKey[i].store(other.mServicesKey[i].load());
@@ -234,18 +235,18 @@ void ServiceRegistry::preExitCallbacks()
   // FIXME: we need to call the callback only once for the global services
   /// I guess...
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
-    exitHandle->callback(*this, exitHandle->service);
+    exitHandle->callback(ServiceRegistryRef{*this}, exitHandle->service);
   }
 }
 
-void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistryRef registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
+void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
 {
   for (auto& handle : mDomainInfoHandles) {
     handle.callback(*this, oldestPossibleTimeslice, channelIndex);
   }
 }
 
-void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistryRef registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
+void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
   for (auto& handle : mPreSendingMessagesHandles) {
     handle.callback(*this, parts, channelIndex);

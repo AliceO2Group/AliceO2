@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_COMMONSERVICES_H_
 
 #include "Framework/ServiceSpec.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/TypeIdHelpers.h"
 
 class TDatabasePDG;

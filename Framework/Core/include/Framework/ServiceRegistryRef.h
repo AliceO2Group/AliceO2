@@ -11,7 +11,64 @@
 #ifndef O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 #define O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-// Until we merge the proper ServiceRegistryRef...
 #include "Framework/ServiceRegistry.h"
-#endif // O2_FRAMEWORK_SERVICEREGISTRYREF_H_
+#include "Framework/Logger.h"
 
+namespace o2::framework
+{
+
+class ServiceRegistryRef
+{
+ public:
+  // The streamId is used to identify the stream in case we have multiple
+  // threads. We cannot merely used the thread id because that does not
+  // work in case the thread is created ad-hoc, like it appears to happen
+  // for both libuv and FairMQ. This behaviour, BTW, makes usage
+  // of thread local storage basically impossible (i.e. you lose state).
+  // We use the following convention:
+  // - streamId == 0 means the main thread
+  // - streamId > 0 means one of the libuv worker threads
+  // - streamId == -1 means the region callback thread
+  // - streamId < -1 means some other worker thread of FairMQ which
+  //  we do not know about.
+  //
+  // The getter will also make sure that a service of kind Stream
+  // cannot be accessed if the streamId is <= 0 and complain accordingly.
+  // The dataProcessorId will be used to distinguish between different
+  // data processors when
+  ServiceRegistryRef(ServiceRegistry& registry, short streamId = 0, short dataProcessorId = 0)
+    : mRegistry(registry),
+      mContext{streamId, dataProcessorId}
+  {
+  }
+
+  /// Check if service of type T is currently active.
+  template <typename T>
+  std::enable_if_t<std::is_const_v<T> == false, bool> active() const
+  {
+    return mRegistry.active<T>();
+  }
+
+  /// Get a service for the given interface T. The returned reference exposed to
+  /// the user is actually of the last concrete type C registered, however this
+  /// should not be a problem.
+  template <typename T>
+  T& get() const
+  {
+    return mRegistry.get<T>();
+  }
+
+  /// Invoke before sending messages @a parts on a channel @a channelindex
+  void preSendingMessagesCallbacks(fair::mq::Parts& parts, ChannelIndex channelindex)
+  {
+    mRegistry.preSendingMessagesCallbacks(mRegistry, parts, channelindex);
+  }
+
+ private:
+  ServiceRegistry& mRegistry;
+  ServiceRegistry::Context mContext;
+};
+
+} // namespace o2::framework
+
+#endif // O2_FRAMEWORK_SERVICEREGISTRY_H_
