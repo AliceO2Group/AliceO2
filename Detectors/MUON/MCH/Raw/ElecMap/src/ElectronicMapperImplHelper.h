@@ -24,6 +24,7 @@
 #include <iostream>
 #include "MCHRawElecMap/Mapper.h"
 #include "dslist.h"
+#include "DetectionElements.h"
 
 namespace o2::mch::raw::impl
 {
@@ -110,7 +111,7 @@ std::set<uint16_t> getSolarUIDs()
 {
   std::set<uint16_t> solarUIDs;
 
-  for (auto deid : deIdsForAllMCH) {
+  for (auto deid : o2::mch::constants::deIdsForAllMCH) {
     std::set<uint16_t> solarsForDE = getSolarUIDs<T>(deid);
     for (auto s : solarsForDE) {
       solarUIDs.insert(s);
@@ -183,7 +184,7 @@ std::set<DsElecId> getAllDs()
   auto dslist = createDualSampaMapper();
   auto det2ElecMapper = createDet2ElecMapper<T>();
 
-  for (auto deId : o2::mch::raw::deIdsForAllMCH) {
+  for (auto deId : o2::mch::constants::deIdsForAllMCH) {
     for (auto dsId : dslist(deId)) {
       auto dsElecId = det2ElecMapper(DsDetId{deId, dsId});
       if (dsElecId.has_value()) {

@@ -28,6 +28,7 @@
 #include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
 #include "MCHRawDecoder/ErrorCodes.h"
+#include "DetectionElements.h"
 
 #define MCH_DECODER_MAX_ERROR_COUNT 100
 
@@ -126,7 +127,7 @@ std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d)
 
 static bool isValidDeID(int deId)
 {
-  for (auto id : deIdsForAllMCH) {
+  for (auto id : o2::mch::constants::deIdsForAllMCH) {
     if (id == deId) {
       return true;
     }
