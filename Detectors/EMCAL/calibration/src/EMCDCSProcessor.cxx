@@ -142,7 +142,9 @@ void EMCDCSProcessor::FillElmbDP(const DPCOM& dpcom)
 
   if ((index = alias.find("EMC_PT")) != std::string::npos) {
     std::sscanf(alias.data(), "EMC_PT_%d.Temperature", &iPT);
-    LOG(debug) << "alias=" << alias.data() << ":  iPT=" << iPT << ", val=" << val;
+    if (mVerbose) {
+      LOG(debug) << "alias=" << alias.data() << ":  iPT=" << iPT << ", val=" << val;
+    }
 
     if (iPT < 0 || iPT > 159) {
       LOG(error) << "Wrong Sensor Index iPT=" << iPT << " for DP " << alias.data();

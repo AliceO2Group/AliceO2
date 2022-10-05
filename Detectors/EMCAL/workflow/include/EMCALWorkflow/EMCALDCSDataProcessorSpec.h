@@ -127,20 +127,27 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     TStopwatch sw;
+    static size_t runCount = 0;
+    const size_t logPrescale = 10;
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with EMC
       // this is an example of what it will return
       if (mRunChecker.getRunStatus() == RunStatus::NONE) {
-        LOGP(info, "No run with is ongoing or finished");
+        if ((runCount % logPrescale) == 0) {
+          LOGP(info, "No run with is ongoing or finished");
+        }
       } else if (mRunChecker.getRunStatus() == RunStatus::START) { // saw new run with wanted detectors
         LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
         grp->print();
         mProcessor->setRunNumberFromGRP(mRunChecker.getFollowedRun());
       } else if (mRunChecker.getRunStatus() == RunStatus::ONGOING) { // run which was already seen is still ongoing
-        LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
+        if ((runCount % logPrescale) == 0) {
+          LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
+        }
       } else if (mRunChecker.getRunStatus() == RunStatus::STOP) { // run which was already seen was stopped (EOR seen)
         LOGP(info, "Run {} was stopped", mRunChecker.getFollowedRun());
       }
+      runCount++;
     } else {
       mProcessor->setRunNumberFromGRP(-2);
     }

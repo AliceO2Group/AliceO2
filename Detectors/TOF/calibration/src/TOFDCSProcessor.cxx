@@ -135,7 +135,9 @@ int TOFDCSProcessor::processDP(const DPCOM& dpcom)
     if (type == DPVAL_DOUBLE) {
       // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
       auto& dvect = mDpsdoublesmap[dpid];
-      LOG(debug) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+      if (mVerboseDP) {
+        LOG(debug) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+      }
       auto etime = val.get_epoch_time();
       if (dvect.size() == 0 ||
           etime != dvect.back().get_epoch_time()) { // we check
@@ -268,7 +270,9 @@ uint64_t TOFDCSProcessor::processFlags(const uint64_t flags, const char* pid)
   // anything else means that there was an issue
 
   // for now, I don't know how to use the flags, so I do nothing
-
+  if (!mVerboseDP) {
+    return 0;
+  }
   if (flags & DataPointValue::KEEP_ALIVE_FLAG) {
     LOG(debug) << "KEEP_ALIVE_FLAG active for DP " << pid;
   }
