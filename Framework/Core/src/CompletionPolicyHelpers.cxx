@@ -198,13 +198,21 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
-    for (auto& input : inputs) {
-      if (input.header != nullptr) {
-        return CompletionPolicy::CompletionOp::Consume;
+  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
+    bool canConsume = false;
+    // iterate on all specs and all inputs simultaneously
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      char const* header = inputs.header(i);
+      auto& spec = specs[i];
+      // In case a condition object is not there, we need to wait.
+      if (spec.lifetime == Lifetime::Condition && header == nullptr) {
+        return CompletionPolicy::CompletionOp::Wait;
+      }
+      if (header != nullptr) {
+        canConsume = true;
       }
     }
-    return CompletionPolicy::CompletionOp::Wait;
+    return canConsume ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Wait;
   };
   return CompletionPolicy{name, matcher, callback, false};
 }
