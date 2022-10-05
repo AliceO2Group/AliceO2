@@ -82,6 +82,10 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <thread>
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
 
 using namespace o2::framework;
 using namespace o2::math_utils::detail;
@@ -1101,46 +1105,52 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
-void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
-                                              const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
-                                              const gsl::span<const unsigned char>& tpcClusShMap,
-                                              const o2::tpc::ClusterNativeAccess& tpcClusAcc,
-                                              uint8_t& shared, uint8_t& found, uint8_t& crossed)
+void AODProducerWorkflowDPL::countTPCClusters(const o2::globaltracking::RecoContainer& data)
 {
+  const auto& tpcTracks = data.getTPCTracks();
+  const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
+  const auto& tpcClusShMap = data.clusterShMapTPC;
+  const auto& tpcClusAcc = data.getTPCClusters();
   constexpr int maxRows = 152;
   constexpr int neighbour = 2;
-  std::array<bool, maxRows> clMap{}, shMap{};
-  uint8_t sectorIndex;
-  uint8_t rowIndex;
-  uint32_t clusterIndex;
-  shared = 0;
-  for (int i = 0; i < track.getNClusterReferences(); i++) {
-    o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, track.getClusterRef());
-    unsigned int absoluteIndex = tpcClusAcc.clusterOffset[sectorIndex][rowIndex] + clusterIndex;
-    clMap[rowIndex] = true;
-    if (tpcClusShMap[absoluteIndex] & GPUCA_NAMESPACE::gpu::GPUTPCGMMergedTrackHit::flagShared) {
-      if (!shMap[rowIndex]) {
-        shared++;
+  int ntr = tpcTracks.size();
+  mTPCCounters.clear();
+  mTPCCounters.resize(ntr);
+#ifdef WITH_OPENMP
+  int ngroup = std::min(50, std::max(1, ntr / mNThreads));
+#pragma omp parallel for schedule(dynamic, ngroup) num_threads(mNThreads)
+#endif
+  for (int itr = 0; itr < ntr; itr++) {
+    std::array<bool, maxRows> clMap{}, shMap{};
+    uint8_t sectorIndex, rowIndex;
+    uint32_t clusterIndex;
+    auto& counters = mTPCCounters[itr];
+    const auto& track = tpcTracks[itr];
+    for (int i = 0; i < track.getNClusterReferences(); i++) {
+      o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, track.getClusterRef());
+      unsigned int absoluteIndex = tpcClusAcc.clusterOffset[sectorIndex][rowIndex] + clusterIndex;
+      clMap[rowIndex] = true;
+      if (tpcClusShMap[absoluteIndex] & GPUCA_NAMESPACE::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+        if (!shMap[rowIndex]) {
+          counters.shared++;
+        }
+        shMap[rowIndex] = true;
       }
-      shMap[rowIndex] = true;
     }
-  }
-
-  crossed = 0;
-  found = 0;
-  int last = -1;
-  for (int i = 0; i < maxRows; i++) {
-    if (clMap[i]) {
-      crossed++;
-      found++;
-      last = i;
-    } else if ((i - last) <= neighbour) {
-      crossed++;
-    } else {
-      int lim = std::min(i + 1 + neighbour, maxRows);
-      for (int j = i + 1; j < lim; j++) {
-        if (clMap[j]) {
-          crossed++;
+    int last = -1;
+    for (int i = 0; i < maxRows; i++) {
+      if (clMap[i]) {
+        counters.crossed++;
+        counters.found++;
+        last = i;
+      } else if ((i - last) <= neighbour) {
+        counters.crossed++;
+      } else {
+        int lim = std::min(i + 1 + neighbour, maxRows);
+        for (int j = i + 1; j < lim; j++) {
+          if (clMap[j]) {
+            counters.crossed++;
+          }
         }
       }
     }
@@ -1222,6 +1232,13 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
   mCTPReadout = ic.options().get<int>("ctpreadout-create");
+  mNThreads = std::max(1, ic.options().get<int>("nthreads"));
+#ifdef WITH_OPENMP
+  LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
+#else
+  mNThreads = 1;
+  LOG(info) << "OpenMP is disabled";
+#endif
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
   }
@@ -1667,6 +1684,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   cacheTriggers(recoData);
+  countTPCClusters(recoData);
 
   int collisionID = 0;
   mIndexTableMFT.resize(recoData.getMFTTracks().size());
@@ -1974,15 +1992,14 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   }
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+    const auto& tpcClData = mTPCCounters[contributorsGID[GIndex::TPC]];
     extraInfoHolder.tpcInnerParam = tpcOrig.getP();
     extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
     extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
-    uint8_t shared, found, crossed; // fixme: need to switch from these placeholders to something more reasonable
-    countTPCClusters(tpcOrig, data.getTPCTracksClusterRefs(), data.clusterShMapTPC, data.getTPCClusters(), shared, found, crossed);
     extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
-    extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - found;
-    extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - crossed;
-    extraInfoHolder.tpcNClsShared = shared;
+    extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
+    extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
+    extraInfoHolder.tpcNClsShared = tpcClData.shared;
     if (src == GIndex::TPC) {                                                                                // standalone TPC track should set its time from their timebins range
       double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
       double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
@@ -2272,6 +2289,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
+      ConfigParamSpec{"nthreads", VariantType::Int, std::max(1, int(std::thread::hardware_concurrency() / 2)), {"Number of threads"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}}}};
 }

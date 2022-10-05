@@ -13,6 +13,7 @@
 /// @brief Specs for vertex track association device
 /// @author ruben.shahoyan@cern.ch
 
+#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -58,6 +59,7 @@ void VertexTrackMatcherSpec::init(InitContext& ic)
   //-------- init geometry and field --------//
   mTimer.Stop();
   mTimer.Reset();
+  mMatcher.setPrescaleLogs(ic.options().get<int>("prescale-logs"));
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
@@ -166,7 +168,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest, ggRequest)},
-    Options{}};
+    Options{{"prescale-logs", VariantType::Int, 20, {"print vertex logs for each n-th TFNumber of afterburner threads"}}}};
 }
 
 } // namespace vertexing

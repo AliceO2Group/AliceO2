@@ -59,6 +59,7 @@ class VertexTrackMatcher
   void setMFTROFrameLengthMUS(float v) { mMFTROFrameLengthMUS = v; }
   void setMaxTPCDriftTimeMUS(float v) { mMaxTPCDriftTimeMUS = v; }
   void setTPCBin2MUS(float v) { mTPCBin2MUS = v; }
+  void setPrescaleLogs(int n) { mPrescaleLogs = n; }
 
   float getITSROFrameLengthMUS() const { return mITSROFrameLengthMUS; }
   float getMFTROFrameLengthMUS() const { return mMFTROFrameLengthMUS; }
@@ -72,6 +73,7 @@ class VertexTrackMatcher
   float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;
+  int mPrescaleLogs = 0;
 };
 
 } // namespace vertexing

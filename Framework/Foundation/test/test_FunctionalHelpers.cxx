@@ -31,12 +31,17 @@ struct TestStruct {
 };
 BOOST_AUTO_TEST_CASE(TestOverride)
 {
-  static_assert(pack_size(pack<int, float>{}) == 2, "Bad size for pack");
-  static_assert(has_type_v<int, pack<int, float>> == true, "int should be in pack");
-  static_assert(has_type_v<double, pack<int, float>> == false, "int should be in pack");
+  static_assert(pack_size(pack<int, float>{}) == 2, "Bad size for the pack");
+  static_assert(has_type_v<int, pack<int, float>> == true, "int should be in the pack");
+  static_assert(has_type_v<double, pack<int, float>> == false, "double should not be in the pack");
+  static_assert(has_type_conditional_v<std::is_same, int, pack<int, float>> == true, "int should be in the pack");
+  static_assert(has_type_conditional_v<std::is_same, double, pack<int, float>> == false, "double should not be in the pack");
+
   pack<float, char, int, bool> pck;
-  static_assert(has_type_at<int>(pck) == 2, "int should be a 2nd entry");
+  static_assert(has_type_at<int>(pck) == 2, "int should be at 2");
   static_assert(has_type_at<double>(pck) == pack_size(pck) + 1, "double is not in the pack so the function returns size + 1");
+  static_assert(has_type_at_conditional<std::is_same, bool>(pack<int, float, bool>()) == 2, "bool should be at 2");
+  static_assert(has_type_at_conditional<std::is_same, bool>(pack<int, float, double>()) == 3 + 1, "bool is not in the pack so the function returns size + 1");
 
   static_assert(std::is_same_v<selected_pack<is_int_t, int, float, char>, pack<int>>, "selector should select int");
   static_assert(std::is_same_v<selected_pack_multicondition<is_same_as_second_t, pack<int>, pack<int, float, char>>, pack<int>>, "multiselector should select int");
@@ -75,10 +80,10 @@ BOOST_AUTO_TEST_CASE(TestOverride)
   // static_assert(is_type_complete_v<ForwardDeclared> == true, "This should be complete because the struct is now fully declared.");
 
   bool flag = false;
-  call_if_defined<struct Undeclared>([&flag](auto* p) { flag = true; });
+  call_if_defined<struct Undeclared>([&flag](auto*) { flag = true; });
   BOOST_REQUIRE_EQUAL(flag, false);
 
   flag = false;
-  call_if_defined<struct Declared>([&flag](auto* p) { flag = true; });
+  call_if_defined<struct Declared>([&flag](auto*) { flag = true; });
   BOOST_REQUIRE_EQUAL(flag, true);
 }
