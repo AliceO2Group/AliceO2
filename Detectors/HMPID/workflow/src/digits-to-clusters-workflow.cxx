@@ -75,7 +75,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 #include "HMPIDWorkflow/DigitsToClustersSpec.h"
-#include "HMPIDWorkflow/ClustersToRootSpec.h"
+//#include "HMPIDWorkflow/ClustersToRootSpec.h" ef :no longer used, choice of
+// 						    writing to root/stream is defined here
 #include "ClustersToRootSpec2.h"
 //#include "HMPIDWorkflow/HMPIDDigitizerSpec.h"
 
