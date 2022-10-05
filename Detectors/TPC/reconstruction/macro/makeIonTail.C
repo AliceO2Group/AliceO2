@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <memory>
 #include <numeric>
+#include <array>
 #include <vector>
 #include <string_view>
 #include <fmt/format.h>
@@ -29,12 +30,13 @@
 #include "TPCBase/Utils.h"
 #include "TPCReconstruction/IonTailCorrection.h"
 #include "TPCBase/CRUCalibHelpers.h"
+#include "TPCBase/CRU.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 using namespace o2::tpc;
 size_t digitsInSaturateion(std::vector<Digit>& digits, bool correctCharge = false, CalPad* pedestals = nullptr, o2::utils::TreeStreamRedirector* stream = nullptr);
 
-void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFactor = 1.f, float kTime = 0.0515, float threshold = -100.f, bool suppressBelowThreshold = false, bool removeSaturation = false, bool enableDebugStream = false, bool roundTo12b = true, std::string_view itParamFile = "", std::string_view pedetalFile = "")
+void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFactor = 1.f, float kTime = 0.0515, float threshold = -100.f, bool suppressBelowThreshold = false, bool removeSaturation = false, bool enableDebugStream = false, bool roundTo12b = true, std::string_view itParamFile = "", std::string_view pedetalFile = "", const std::array<float, 4> noiseSigmas = {-3.f, -3.f, -3.f, -3.f})
 {
   if (enableDebugStream) {
     o2::conf::ConfigurableParam::setValue<int>("DebugStreamerParam", "StreamLevel", o2::utils::StreamFlags::streamITCorr);
@@ -44,8 +46,13 @@ void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFact
   o2::conf::ConfigurableParam::setValue("TPCITCorr.padITCorrFile", itParamFile.data());
 
   std::string suppressed = "";
+  std::string thresholdString = fmt::format(">= {}ADC counts", threshold);
   if (suppressBelowThreshold) {
     suppressed = fmt::format(".{}ADC", threshold);
+    if (!pedetalFile.empty() && noiseSigmas[0] > 0) {
+      suppressed = fmt::format(".{:.1f}_{:.1f}_{:.1f}_{:.1f}sigma", noiseSigmas[0], noiseSigmas[1], noiseSigmas[2], noiseSigmas[3]);
+      thresholdString = fmt::format(">= {:.1f}, {:.1f}, {:.1f}, {:.1f} sigma noise", noiseSigmas[0], noiseSigmas[1], noiseSigmas[2], noiseSigmas[3]);
+    }
   }
   if (roundTo12b) {
     suppressed += ".12b";
@@ -75,9 +82,11 @@ void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFact
 
   // pedestals
   CalPad* pedestals = nullptr;
+  CalPad* noise = nullptr;
   if (!pedetalFile.empty()) {
-    auto calPads = utils::readCalPads(pedetalFile, "Pedestals");
+    auto calPads = utils::readCalPads(pedetalFile, "Pedestals,Noise");
     pedestals = calPads[0];
+    noise = calPads[1];
   }
   // debug stream
   o2::utils::TreeStreamRedirector pcstream("DigitFilterDebug.root", "recreate");
@@ -103,15 +112,26 @@ void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFact
       saturatedSignals += satSignalsSec;
 
       itCorr.filterDigitsDirect(*digits);
+
+      // Threshold detection function
+      auto isBelowThreshold = [threshold, noise, &noiseSigmas](const auto& digit) {
+        auto thresholdMod = threshold;
+        if (noise && (noiseSigmas[0] > 0)) {
+          const CRU cru(digit.getCRU());
+          const int part = cru.partition();
+          const int stackID = (part < 2) ? 0 : part - 1;
+          const auto sector = CRU(digit.getCRU()).sector();
+          thresholdMod = noiseSigmas[stackID] * noise->getValue(cru.sector(), digit.getRow(), digit.getPad());
+        }
+        return digit.getChargeFloat() < thresholdMod;
+      };
+
       if (suppressBelowThreshold) {
-        digits->erase(std::remove_if(digits->begin(), digits->end(),
-                                     [threshold](const auto& digit) {
-                                       return digit.getChargeFloat() < threshold;
-                                     }),
+        digits->erase(std::remove_if(digits->begin(), digits->end(), isBelowThreshold),
                       digits->end());
         digitsAboveThreshold += digits->size();
       } else {
-        digitsAboveThreshold += std::count_if(digits->begin(), digits->end(), [threshold](const auto& digit) { return digit.getChargeFloat() >= threshold; });
+        digitsAboveThreshold += digits->size() - std::count_if(digits->begin(), digits->end(), isBelowThreshold);
       }
 
       fmt::print("Found {} saturated signals in sector {}\n", satSignalsSec, iSector);
@@ -127,8 +147,8 @@ void makeIonTail(std::string_view inputFile = "tpcdigits.root", float itMultFact
   if (itParamFile.size()) {
     addInfo = fmt::format("IT parameters loaded from {}", itParamFile);
   }
-  LOGP(info, "Found {} / {}  = {:.2f}% digits with charge >= {} and {} / {} = {:.2f}% saturated signals in {} entries with {}",
-       digitsAboveThreshold, originalDigits, digitFraction, threshold, saturatedSignals, originalDigits, saturationFraction, nEntries, addInfo);
+  LOGP(info, "Found {} / {}  = {:.2f}% digits with charge {} and {} / {} = {:.2f}% saturated signals in {} entries with {}",
+       digitsAboveThreshold, originalDigits, digitFraction, thresholdString, saturatedSignals, originalDigits, saturationFraction, nEntries, addInfo);
 
   fOut->Write();
   fOut->Close();
