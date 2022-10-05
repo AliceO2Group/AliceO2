@@ -1,6 +1,6 @@
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright
+// holders. All rights not expressly granted are reserved.
 //
 // This software is distributed under the terms of the GNU General Public
 // License v3 (GPL Version 3), copied verbatim in the file "COPYING".
@@ -22,9 +22,13 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+#include "Framework/WorkflowSpec.h"
 #include "HMPIDBase/Common.h"
 #include "HMPIDReconstruction/Clusterer.h"
-#include "Framework/WorkflowSpec.h"
+#include "DataFormatsHMP/Trigger.h"
+
+#include "TFile.h"
+#include "TTree.h"
 
 namespace o2
 {
@@ -34,25 +38,39 @@ namespace hmpid
 class DigitsToClustersTask : public framework::Task
 {
  public:
-  DigitsToClustersTask() = default;
+  DigitsToClustersTask(bool readFile)
+    : mReadFile(readFile) {}
   ~DigitsToClustersTask() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) override;
 
  private:
+  bool mReadFile = false;
   std::string mSigmaCutPar;
   float mSigmaCut[7] = {4, 4, 4, 4, 4, 4, 4};
 
-  o2::hmpid::Clusterer* mRec;
+  std::unique_ptr<TFile> mFile; ///< input file containin the tree
+  std::unique_ptr<TTree> mTree; ///< input tree
+
+  std::vector<o2::hmpid::Digit>* mDigitsFromFile;
+  std::vector<o2::hmpid::Trigger>* mTriggersFromFile;
+
+  std::unique_ptr<o2::hmpid::Clusterer> mRec; // ef: changed to smart-pointer
   long mDigitsReceived;
 
+  void initFileIn(const std::string& fileName);
+
   ExecutionTimer mExTimer;
-  void strToFloatsSplit(std::string s, std::string delimiter, float* res, int maxElem = 7);
+  void strToFloatsSplit(std::string s, std::string delimiter, float* res,
+                        int maxElem = 7);
 };
 
-o2::framework::DataProcessorSpec getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS");
+// ef : read from stream by default:
+o2::framework::DataProcessorSpec
+  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false);
 
+o2::framework::DataProcessorSpec getClustersToRootWriter();
 } // end namespace hmpid
 } // end namespace o2
 

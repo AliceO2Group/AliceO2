@@ -75,48 +75,10 @@ class CTFHelper
       return (I&)(*this);
     }
 
-    const I operator++(int)
-    {
-      auto res = *this;
-      ++mIndex;
-      return res;
-    }
-
     const I& operator--()
     {
       mIndex--;
       return (I&)(*this);
-    }
-
-    const I operator--(int)
-    {
-      auto res = *this;
-      --mIndex;
-      return res;
-    }
-
-    const I& operator+=(difference_type i)
-    {
-      mIndex += i;
-      return (I&)(*this);
-    }
-
-    const I operator+=(difference_type i) const
-    {
-      auto tmp = *const_cast<I*>(this);
-      return tmp += i;
-    }
-
-    const I& operator-=(difference_type i)
-    {
-      mIndex -= i;
-      return (I&)(*this);
-    }
-
-    const I operator-=(difference_type i) const
-    {
-      auto tmp = *const_cast<I*>(this);
-      return tmp -= i;
     }
 
     difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
@@ -133,8 +95,6 @@ class CTFHelper
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
-    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
-    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -159,18 +119,6 @@ class CTFHelper
       }
       return 0;
     }
-    value_type operator[](difference_type i) const
-    {
-      size_t id = mIndex + i;
-      if (id) {
-        if (mData[id].getOrbit() == mData[id - 1].getOrbit()) {
-          return mData[id].getBc() - mData[id - 1].getBc();
-        } else {
-          return mData[id].getBc();
-        }
-      }
-      return 0;
-    }
   };
 
   //_______________________________________________
@@ -180,11 +128,6 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, Trigger, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].getOrbit() - mData[mIndex - 1].getOrbit() : 0; }
-    value_type operator[](difference_type i) const
-    {
-      size_t id = mIndex + i;
-      return id ? mData[id].getOrbit() - mData[id - 1].getOrbit() : 0;
-    }
   };
 
   //_______________________________________________
@@ -194,7 +137,6 @@ class CTFHelper
    public:
     using _Iter<Iter_entriesDig, Trigger, uint32_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getNumberOfObjects(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getNumberOfObjects(); }
   };
 
   //_______________________________________________
@@ -213,11 +155,6 @@ class CTFHelper
     {
       return (*mTrigStart)[mIndex] ? mData[mIndex].getCh() : mData[mIndex].getCh() - mData[mIndex - 1].getCh();
     }
-    value_type operator[](difference_type i) const
-    {
-      size_t id = mIndex + i;
-      return (*mTrigStart)[id] ? mData[id].getCh() : mData[id].getCh() - mData[id - 1].getCh();
-    }
   };
 
   //_______________________________________________
@@ -226,7 +163,6 @@ class CTFHelper
    public:
     using _Iter<Iter_Q, Digit, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getQ(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getQ(); }
   };
 
   //_______________________________________________
@@ -235,7 +171,6 @@ class CTFHelper
    public:
     using _Iter<Iter_Ph, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPh(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getPh(); }
   };
 
   //_______________________________________________
@@ -244,7 +179,6 @@ class CTFHelper
    public:
     using _Iter<Iter_X, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getX(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getX(); }
   };
 
   //_______________________________________________
@@ -253,7 +187,6 @@ class CTFHelper
    public:
     using _Iter<Iter_Y, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getY(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getY(); }
   };
 
   //<<< =========================== ITERATORS ========================================

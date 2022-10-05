@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(HMPIDBase
+	       TARGETVARNAME targetName
                SOURCES src/Param.cxx src/Geo.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::SimulationDataFormat

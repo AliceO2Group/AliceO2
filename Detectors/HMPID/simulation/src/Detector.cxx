@@ -73,20 +73,20 @@ bool Detector::ProcessHits(FairVolume* v)
   Int_t volID = fMC->CurrentVolID(copy);
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
-  //Treat photons
-  //photon (Ckov or feedback) hits on module PC (Hpad)
+  // Treat photons
+  // photon (Ckov or feedback) hits on module PC (Hpad)
   if ((fMC->TrackPid() == 50000050 || fMC->TrackPid() == 50000051) && (volID == mHpad0VolID || volID == mHpad1VolID || volID == mHpad2VolID || volID == mHpad3VolID || volID == mHpad4VolID || volID == mHpad5VolID || volID == mHpad6VolID)) {
-    if (fMC->Edep() > 0) { //photon survided QE test i.e. produces electron
+    if (fMC->Edep() > 0) { // photon survided QE test i.e. produces electron
       if (IsLostByFresnel()) {
         fMC->StopTrack();
         return false;
-      }                                                     //photon lost due to fersnel reflection on PC
-      Int_t tid = fMC->GetStack()->GetCurrentTrackNumber(); //take TID
-      Int_t pid = fMC->TrackPid();                          //take PID
-      Float_t etot = fMC->Etot();                           //total hpoton energy, [GeV]
+      }                                                     // photon lost due to fersnel reflection on PC
+      Int_t tid = fMC->GetStack()->GetCurrentTrackNumber(); // take TID
+      Int_t pid = fMC->TrackPid();                          // take PID
+      Float_t etot = fMC->Etot();                           // total hpoton energy, [GeV]
       Double_t x[3];
-      fMC->TrackPosition(x[0], x[1], x[2]);        //take MARS position at entrance to PC
-      Float_t hitTime = (Float_t)fMC->TrackTime(); //hit formation time
+      fMC->TrackPosition(x[0], x[1], x[2]);        // take MARS position at entrance to PC
+      Float_t hitTime = (Float_t)fMC->TrackTime(); // hit formation time
       Int_t idch;                                  // chamber number
       if (volID == mHpad0VolID) {
         idch = 0;
@@ -104,20 +104,20 @@ bool Detector::ProcessHits(FairVolume* v)
         idch = 6;
       }
       Double_t xl, yl;
-      o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); //take LORS position
-      AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
-      GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
+      o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); // take LORS position
+      AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch);       // HIT for photon, position at P, etot will be set to Q
+      GenFee(etot);                                             // generate feedback photons etot is modified in hit ctor to Q of hit
       stack->addHit(GetDetId());
-    } //photon hit PC and DE >0
+    } // photon hit PC and DE >0
     return kTRUE;
-  } //photon hit PC
+  } // photon hit PC
 
-  //Treat charged particles
-  static Float_t eloss; //need to store mip parameters between different steps
+  // Treat charged particles
+  static Float_t eloss; // need to store mip parameters between different steps
   static Double_t in[3];
 
   if (fMC->IsTrackEntering() && fMC->TrackCharge() && (volID == mHpad0VolID || volID == mHpad1VolID || volID == mHpad2VolID || volID == mHpad3VolID || volID == mHpad4VolID || volID == mHpad5VolID || volID == mHpad6VolID)) {
-    //Trackref stored when entering in the pad volume
+    // Trackref stored when entering in the pad volume
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
     // tr.setUserId(lay);
@@ -126,18 +126,18 @@ bool Detector::ProcessHits(FairVolume* v)
 
   if (fMC->TrackCharge() && (volID == mHcel0VolID || volID == mHcel1VolID || volID == mHcel2VolID || volID == mHcel3VolID || volID == mHcel4VolID || volID == mHcel5VolID || volID == mHcel6VolID)) {
     // charged particle in amplification gap (Hcel)
-    if (fMC->IsTrackEntering() || fMC->IsNewTrack()) {                                     //entering or newly created
-      eloss = 0;                                                                           //reset Eloss collector
-      fMC->TrackPosition(in[0], in[1], in[2]);                                             //take position at the entrance
-    } else if (fMC->IsTrackExiting() || fMC->IsTrackStop() || fMC->IsTrackDisappeared()) { //exiting or disappeared
-      eloss += fMC->Edep();                                                                //take into account last step Eloss
-      Int_t tid = fMC->GetStack()->GetCurrentTrackNumber();                                //take TID
-      Int_t pid = fMC->TrackPid();                                                         //take PID
+    if (fMC->IsTrackEntering() || fMC->IsNewTrack()) {                                     // entering or newly created
+      eloss = 0;                                                                           // reset Eloss collector
+      fMC->TrackPosition(in[0], in[1], in[2]);                                             // take position at the entrance
+    } else if (fMC->IsTrackExiting() || fMC->IsTrackStop() || fMC->IsTrackDisappeared()) { // exiting or disappeared
+      eloss += fMC->Edep();                                                                // take into account last step Eloss
+      Int_t tid = fMC->GetStack()->GetCurrentTrackNumber();                                // take TID
+      Int_t pid = fMC->TrackPid();                                                         // take PID
       Double_t out[3];
-      fMC->TrackPosition(out[0], out[1], out[2]);  //take MARS position at exit
-      Float_t hitTime = (Float_t)fMC->TrackTime(); //hit formation time
+      fMC->TrackPosition(out[0], out[1], out[2]);  // take MARS position at exit
+      Float_t hitTime = (Float_t)fMC->TrackTime(); // hit formation time
       out[0] = 0.5 * (out[0] + in[0]);             //
-      out[1] = 0.5 * (out[1] + in[1]);             //take hit position at the anod plane
+      out[1] = 0.5 * (out[1] + in[1]);             // take hit position at the anod plane
       out[2] = 0.5 * (out[2] + in[2]);
       Int_t idch; // chamber number
       if (volID == mHcel0VolID) {
@@ -156,20 +156,20 @@ bool Detector::ProcessHits(FairVolume* v)
         idch = 6;
       }
       Double_t xl, yl;
-      o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); //take LORS position
+      o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); // take LORS position
       if (eloss > 0) {
         // HIT for MIP, position near anod plane, eloss will be set to Q
         AddHit(out[0], out[1], out[2], hitTime, eloss, tid, idch);
-        GenFee(eloss); //generate feedback photons
+        GenFee(eloss); // generate feedback photons
         stack->addHit(GetDetId());
         eloss = 0;
       }
     } else {
-      //just going inside
-      eloss += fMC->Edep(); //collect this step eloss
+      // just going inside
+      eloss += fMC->Edep(); // collect this step eloss
     }
     return kTRUE;
-  } //MIP in GAP
+  } // MIP in GAP
 
   // later on return true if there was a hit!
   return false;
@@ -185,16 +185,21 @@ void Detector::GenFee(Float_t qtot)
 {
   // Generate FeedBack photons for the current particle. To be invoked from StepManager().
   // eloss=0 means photon so only pulse height distribution is to be analysed.
+
+  // ef: how to implement bc of TVirtualMC* ?
+  // the method used (TrackPosition) takes TLorentzvector as input, but not Lorentzvector
+
+  // ef: should use ROOT::Math::LorentzVector<double> x4;
   TLorentzVector x4;
   fMC->TrackPosition(x4);
   Int_t iNphotons = fMC->GetRandom()->Poisson(0.02 * qtot); //# of feedback photons is proportional to the charge of hit
-  //AliDebug(1,Form("N photons=%i",iNphotons));
+  // AliDebug(1,Form("N photons=%i",iNphotons));
   Int_t j;
   Float_t cthf, phif, enfp = 0, sthf, e1[3], e2[3], e3[3], vmod, uswop, dir[3], phi, pol[3], mom[4];
-  //Generate photons
-  for (Int_t i = 0; i < iNphotons; i++) { //feedbacks loop
+  // Generate photons
+  for (Int_t i = 0; i < iNphotons; i++) { // feedbacks loop
     Double_t ranf[2];
-    fMC->GetRandom()->RndmArray(2, ranf); //Sample direction
+    fMC->GetRandom()->RndmArray(2, ranf); // Sample direction
     cthf = ranf[0] * 2 - 1.0;
     if (cthf < 0) {
       continue;
@@ -276,12 +281,13 @@ void Detector::GenFee(Float_t qtot)
     }
     fMC->Gdtom(pol, pol, 2);
     Int_t outputNtracksStored;
-  } //feedbacks loop
-} //GenerateFeedbacks()
+  } // feedbacks loop
+} // GenerateFeedbacks()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Bool_t Detector::IsLostByFresnel()
 {
   // Calculate probability for the photon to be lost by Fresnel reflection.
+  // ROOT::Math::LorentzVector<double> p4;
   TLorentzVector p4;
   Double_t mom[3], localMom[3];
   fMC->TrackMomentum(p4);
@@ -301,7 +307,7 @@ Bool_t Detector::IsLostByFresnel()
   } else {
     return kFALSE;
   }
-} //IsLostByFresnel()
+} // IsLostByFresnel()
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
 {
@@ -325,8 +331,8 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
   Float_t cn = csin[j] + ((csin[j + 1] - csin[j]) / 0.1) * (xe - en[j]);
   Float_t ck = csik[j] + ((csik[j + 1] - csik[j]) / 0.1) * (xe - en[j]);
 
-  //FORMULAE FROM HANDBOOK OF OPTICS, 33.23 OR
-  //W.R. HUNTER, J.O.S.A. 54 (1964),15 , J.O.S.A. 55(1965),1197
+  // FORMULAE FROM HANDBOOK OF OPTICS, 33.23 OR
+  // W.R. HUNTER, J.O.S.A. 54 (1964),15 , J.O.S.A. 55(1965),1197
 
   Float_t sinin = TMath::Sqrt((1. - pdoti) * (1. + pdoti));
   Float_t tanin = sinin / pdoti;
@@ -340,8 +346,8 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
   Float_t rp = rs * ((aO - sinin * tanin) * (aO - sinin * tanin) + b2) /
                ((aO + sinin * tanin) * (aO + sinin * tanin) + b2);
 
-  //CORRECTION FACTOR FOR SURFACE ROUGHNESS
-  //B.J. STAGG  APPLIED OPTICS, 30(1991),4113
+  // CORRECTION FACTOR FOR SURFACE ROUGHNESS
+  // B.J. STAGG  APPLIED OPTICS, 30(1991),4113
 
   Float_t sigraf = 18.;
   Float_t lamb = 1240 / ene;
@@ -351,7 +357,7 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
                           (4 * TMath::Pi() * pdoti * sigraf / lamb));
 
   if (pola) {
-    Float_t pdotr = 0.8; //DEGREE OF POLARIZATION : 1->P , -1->S
+    Float_t pdotr = 0.8; // DEGREE OF POLARIZATION : 1->P , -1->S
     fresn = 0.5 * (rp * (1 + pdotr) + rs * (1 - pdotr));
   } else {
     fresn = 0.5 * (rp + rs);
@@ -359,7 +365,7 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
 
   fresn = fresn * rO;
   return fresn;
-} //Fresnel()
+} // Fresnel()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true); }
 

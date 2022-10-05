@@ -23,6 +23,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
+                       src/HMPMatcherSpec.cxx
                        src/TOFMatchChecker.cxx
                        src/TOFEventTimeChecker.cxx
                        src/GlobalFwdTrackWriterSpec.cxx
@@ -36,6 +37,7 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::ITSWorkflow
                                      O2::MFTTracking
                                      O2::MFTWorkflow
+                                     O2::HMPIDWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow

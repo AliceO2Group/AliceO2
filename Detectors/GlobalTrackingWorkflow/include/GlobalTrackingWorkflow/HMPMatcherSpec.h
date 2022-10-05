@@ -9,30 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file   Geo.h
-/// \author Antonio Franco - INFN Bari
-/// \version 1.1
-/// \date 15/02/2021
+/// @file   HMPMatcherSpec.h // ef ; change to hmp
 
-#include "HMPIDBase/Geo.h"
-#include "HMPIDBase/Param.h"
-#include "TGeoManager.h"
-#include "TMath.h"
-#include "FairLogger.h"
-#include "DetectorsBase/GeometryManager.h"
+#ifndef O2_HMP_MATCHER_SPEC // hmp
+#define O2_HMP_MATCHER_SPEC //
 
-ClassImp(o2::hmpid::Geo);
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
-using namespace o2::hmpid;
+using namespace o2::framework;
 
-//constexpr Bool_t Geo::FEAWITHMASKS[NSECTORS];
-
-// ============= Geo Class implementation =======
-
-/// Init :
-void Geo::Init()
+namespace o2
 {
-  LOG(info) << "hmpid::Geo: Initialization of HMPID parameters";
-}
+namespace globaltracking
+{
 
+/// create a processor spec
+framework::DataProcessorSpec getHMPMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict);
+
+} // namespace globaltracking
+} // namespace o2
+
+#endif /* O2_HMP_MATCHER_SPEC */

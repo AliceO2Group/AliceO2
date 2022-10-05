@@ -13,6 +13,7 @@ o2_add_library(GlobalTracking
                TARGETVARNAME targetName
                SOURCES src/MatchTPCITS.cxx
                        src/MatchTOF.cxx
+                       src/MatchHMP.cxx
                        src/MatchTPCITSParams.cxx
                        src/MatchCosmics.cxx
                        src/MatchCosmicsParams.cxx
@@ -28,16 +29,18 @@ o2_add_library(GlobalTracking
                         O2::DataFormatsFT0
                         O2::DataFormatsTOF
                         O2::DataFormatsTRD
+                        O2::DataFormatsHMP
                         O2::ITSReconstruction
                         O2::FT0Reconstruction
                         O2::TPCFastTransformation
                         O2::GPUO2Interface
                         O2::TPCBase
                         O2::TPCReconstruction
-                        O2::TPCCalibration
                         O2::TOFBase
                         O2::TOFCalibration
-                        O2::TOFWorkflowUtils
+                        O2::HMPIDBase
+                        #O2::HMPIDCalibration
+                        O2::HMPIDWorkflow
                         O2::SimConfig
                         O2::DataFormatsFT0
                         O2::DataFormatsGlobalTracking
@@ -54,6 +57,7 @@ o2_target_root_dictionary(GlobalTracking
                                   include/GlobalTracking/MatchGlobalFwdParam.h
                                   include/GlobalTracking/MatchGlobalFwdAssessment.h
                                   include/GlobalTracking/MatchTOF.h
+                                  include/GlobalTracking/MatchHMP.h
                                   include/GlobalTracking/MatchCosmics.h
                                   include/GlobalTracking/MatchCosmicsParams.h
                                   include/GlobalTracking/MatchITSTPCQC.h

@@ -12,7 +12,7 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the HMPID cluster finder
 #include <algorithm>
-#include <fairlogger/Logger.h> // for LOG
+#include "FairLogger.h" // for LOG
 #include "Framework/Logger.h"
 #include "HMPIDBase/Param.h"
 #include "DataFormatsHMP/Cluster.h"
@@ -63,7 +63,7 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
       FormClu(clu, pUsedDig, digs, padMap); // form cluster starting from this digit by recursion
       clu.solve(&clus, pUserCut, isUnfold); // solve this cluster and add all unfolded clusters to provided list
     }                                       // digits loop for current chamber
-  }   // chambers loop
+  }                                         // chambers loop
   return;
 } // Dig2Clu()
 
