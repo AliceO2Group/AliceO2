@@ -133,3 +133,63 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
     ++i;
   }
 }
+
+namespace extra_4
+{
+DECLARE_SOA_COLUMN_FULL(Bin, bin, int, "bin");
+}
+
+DECLARE_SOA_TABLE(BinnedPoints, "TST", "BinnedPoints", Index<>, extra_4::Bin, indices::PointId);
+
+namespace indices
+{
+DECLARE_SOA_SLICE_INDEX_COLUMN(BinnedPoint, binsSlice);
+DECLARE_SOA_ARRAY_INDEX_COLUMN(BinnedPoint, binsList);
+} // namespace indices
+
+DECLARE_SOA_TABLE(IDX3s, "TST", "Index3", Index<>, indices::PointId, indices::BinnedPointIdSlice);
+
+BOOST_AUTO_TEST_CASE(AdvancedIndexTables)
+{
+  TableBuilder b1;
+  auto w1 = b1.cursor<Points>();
+  for (auto i = 0; i < 10; ++i) {
+    w1(0, i * 2., i * 3., i * 4.);
+  }
+  auto t1 = b1.finalize();
+  Points st1{t1};
+
+  TableBuilder b2;
+  auto w2 = b2.cursor<BinnedPoints>();
+  std::array<int, 3> skipPoints = {2, 6, 9};
+  std::array<int, 10> sizes = {5, 3, 0, 12, 4, 1, 0, 8, 2, 0};
+  auto count = 0;
+  for (auto i = 0; i < 10; ++i) {
+    if (i == skipPoints[count]) {
+      ++count;
+      continue;
+    }
+    for (auto j = 0; j < sizes[i]; ++j) {
+      w2(0, j + 1, i);
+    }
+  }
+  auto t2 = b2.finalize();
+  BinnedPoints st2{t2};
+
+  auto t3 = IndexBuilder<Sparse>::indexBuilder<Points>("test4", {t1, t2}, typename IDX3s::persistent_columns_t{}, o2::framework::pack<Points, BinnedPoints>{});
+  BOOST_REQUIRE_EQUAL(t3->num_rows(), st1.size());
+  IDX3s idxs{t3};
+  idxs.bindExternalIndices(&st1, &st2);
+  count = 0;
+  for (auto const& row : idxs) {
+    BOOST_REQUIRE(row.has_point());
+    if (row.has_binsSlice()) {
+      auto slice = row.binsSlice();
+      BOOST_REQUIRE_EQUAL(slice.size(), sizes[count]);
+      for (auto const& bin : slice) {
+        BOOST_REQUIRE_EQUAL(bin.pointId(), row.pointId());
+      }
+    }
+    ++count;
+  }
+}

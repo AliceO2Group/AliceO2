@@ -11,13 +11,15 @@
 
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/CompilerBuiltins.h"
+#include <arrow/compute/api_aggregate.h>
+#include <arrow/compute/kernel.h>
 #include <arrow/status.h>
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
-ChunkedArrayIterator::ChunkedArrayIterator(arrow::ChunkedArray* source)
+ChunkedArrayIterator::ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> source)
   : mSource{source}
 {
   mCurrentArray = getCurrentArray();
@@ -39,7 +41,7 @@ std::shared_ptr<arrow::Field> SelfIndexColumnBuilder::field() const
   return std::make_shared<arrow::Field>(mColumnName, arrow::int32());
 }
 
-IndexColumnBuilder::IndexColumnBuilder(arrow::ChunkedArray* source, const char* name, int listSize, arrow::MemoryPool* pool)
+IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool)
   : ChunkedArrayIterator{source},
     SelfIndexColumnBuilder{name, pool},
     mListSize{listSize},
@@ -51,11 +53,16 @@ IndexColumnBuilder::IndexColumnBuilder(arrow::ChunkedArray* source, const char* 
       mArrowType = arrow::int32();
     }; break;
     case 2: {
-      mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(mBuilder), mListSize);
-      mValueBuilder = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->value_builder();
-      mArrowType = arrow::fixed_size_list(arrow::int32(), 2);
+      if (preSlice().ok()) {
+        mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(mBuilder), mListSize);
+        mValueBuilder = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->value_builder();
+        mArrowType = arrow::fixed_size_list(arrow::int32(), 2);
+      } else {
+        throw runtime_error("Cannot pre-slice an array");
+      }
     }; break;
     case -1: {
+      preFind();
       mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(mBuilder));
       mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
       mArrowType = arrow::list(arrow::int32());
@@ -63,6 +70,24 @@ IndexColumnBuilder::IndexColumnBuilder(arrow::ChunkedArray* source, const char* 
     default:
       throw runtime_error_f("Invalid list size for index column: %d", mListSize);
   }
+}
+
+arrow::Status IndexColumnBuilder::preSlice()
+{
+  arrow::Datum value_counts;
+  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts,
+                        arrow::compute::CallFunction("value_counts", {mSource},
+                                                     &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  mValuesArrow = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
+  mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+  return arrow::Status::OK();
+}
+
+void IndexColumnBuilder::preFind()
+{
+  throw runtime_error("Not implemented");
 }
 
 std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSingle() const
@@ -78,26 +103,31 @@ std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSingle() const
 std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSlice() const
 {
   std::shared_ptr<arrow::Array> array;
-  std::shared_ptr<arrow::Array> varray;
-  auto status = static_cast<arrow::Int32Builder*>(mValueBuilder)->Finish(&varray);
+  //  std::shared_ptr<arrow::Array> varray;
+  auto status = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->Finish(&array);
+  //  auto status = static_cast<arrow::Int32Builder*>(mValueBuilder)->Finish(&varray);
   if (!status.ok()) {
     throw runtime_error("Cannot build an array");
   }
-  array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, mResultSize, varray);
+  //  array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, mResultSize, varray);
   return std::make_shared<arrow::ChunkedArray>(array);
 }
 
 std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultMulti() const
 {
-  throw runtime_error("Not implemented");
+  std::shared_ptr<arrow::Array> array;
+  auto status = static_cast<arrow::ListBuilder*>(mListBuilder.get())->Finish(&array);
+  if (!status.ok()) {
+    throw runtime_error("Cannot build an array");
+  }
+  return std::make_shared<arrow::ChunkedArray>(array);
 }
 
 bool IndexColumnBuilder::findSingle(int idx)
 {
-  size_t step = 0;
   auto count = mSourceSize - mPosition;
   while (count > 0) {
-    step = count / 2;
+    size_t step = count / 2;
     mPosition += step;
     if (valueAt(mPosition) <= idx) {
       count -= step + 1;
@@ -112,7 +142,19 @@ bool IndexColumnBuilder::findSingle(int idx)
 
 bool IndexColumnBuilder::findSlice(int idx)
 {
-  throw runtime_error("Not implemented");
+  auto count = mValuesArrow->length() - mValuePos;
+  while (count > 0) {
+    auto step = count / 2;
+    mValuePos += step;
+    if (mValuesArrow->Value(mValuePos) <= idx) {
+      count -= step + 1;
+    } else {
+      mValuePos -= step;
+      count = step;
+    }
+  }
+
+  return (mValuePos < mValuesArrow->length() && mValuesArrow->Value(mValuePos) == idx);
 }
 
 bool IndexColumnBuilder::findMulti(int idx)
@@ -132,7 +174,16 @@ void IndexColumnBuilder::fillSingle(int idx)
 
 void IndexColumnBuilder::fillSlice(int idx)
 {
-  throw runtime_error("Not implemented");
+  int data[2] = {-1, -1};
+  if (mValuePos < mValuesArrow->length() && mValuesArrow->Value(mValuePos) == idx) {
+    for (auto i = 0; i < mValuePos; ++i) {
+      data[0] += mCounts->Value(i);
+    }
+    data[0] += 1;
+    data[1] = data[0] + mCounts->Value(mValuePos) - 1;
+  }
+  (void)static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->AppendValues(1);
+  (void)static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(data, 2);
 }
 
 void IndexColumnBuilder::fillMulti(int idx)

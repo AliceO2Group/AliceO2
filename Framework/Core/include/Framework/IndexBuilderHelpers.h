@@ -23,10 +23,10 @@
 namespace o2::framework
 {
 struct ChunkedArrayIterator {
-  ChunkedArrayIterator(arrow::ChunkedArray* source);
+  ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> source);
   virtual ~ChunkedArrayIterator() = default;
 
-  arrow::ChunkedArray* mSource;
+  std::shared_ptr<arrow::ChunkedArray> mSource;
   size_t mPosition = 0;
   int mChunk = 0;
   size_t mOffset = 0;
@@ -76,7 +76,7 @@ struct SelfIndexColumnBuilder {
 class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIterator
 {
  public:
-  IndexColumnBuilder(arrow::ChunkedArray* source, const char* name, int listSize, arrow::MemoryPool* pool);
+  IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool);
   ~IndexColumnBuilder() override = default;
 
   template <typename C>
@@ -117,6 +117,9 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   }
 
  private:
+  arrow::Status preSlice();
+  void preFind();
+
   bool findSingle(int idx);
   bool findSlice(int idx);
   bool findMulti(int idx);
@@ -136,6 +139,13 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
 
   size_t mSourceSize = 0;
   size_t mResultSize = 0;
+
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValuesArrow = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
+  std::vector<int> mValues;
+  std::vector<std::vector<int>> mIndices;
+  int mFillOffset = 0;
+  int mValuePos = 0;
 };
 
 std::shared_ptr<arrow::Table> makeArrowTable(const char* label, std::vector<std::shared_ptr<arrow::ChunkedArray>>&& columns, std::vector<std::shared_ptr<arrow::Field>>&& fields);
