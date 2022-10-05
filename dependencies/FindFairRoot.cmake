@@ -26,7 +26,6 @@ find_library(FairRoot_Tools FairTools)
 find_library(FairRoot_ParBase ParBase)
 find_library(FairRoot_GeoBase GeoBase)
 find_library(FairRoot_Base Base)
-find_library(FairRoot_ParMQ ParMQ)
 find_library(FairRoot_Gen Gen)
 
 set(CMAKE_PREFIX_PATH ${OLD_CMAKE_PREFIX_PATH})
@@ -37,7 +36,6 @@ find_package_handle_standard_args(FairRoot
                                               FairRoot_Tools
                                               FairRoot_ParBase
                                               FairRoot_GeoBase
-                                              FairRoot_ParMQ
                                               FairRoot_Gen
                                               FairRoot_INC)
 
@@ -73,15 +71,6 @@ if(NOT TARGET FairRoot::Base)
                                    INTERFACE_LINK_DIRECTORIES ${libdir})
   target_link_libraries(FairRoot::Base
                         INTERFACE FairRoot::Tools FairRoot::ParBase FairRoot::GeoBase MC::VMC)
-endif()
-
-if(NOT TARGET FairRoot::ParMQ)
-  add_library(FairRoot::ParMQ IMPORTED INTERFACE)
-  set_target_properties(FairRoot::ParMQ
-                        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${FairRoot_INC}
-                                   INTERFACE_LINK_LIBRARIES ${FairRoot_ParMQ})
-  target_link_libraries(FairRoot::ParMQ
-                        INTERFACE FairRoot::ParBase FairMQ::FairMQ)
 endif()
 
 if(NOT TARGET FairRoot::Gen)
