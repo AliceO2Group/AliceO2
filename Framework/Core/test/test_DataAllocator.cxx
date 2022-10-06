@@ -43,9 +43,9 @@ using namespace o2::framework;
 // this function is only used to do the static checks for API return types
 void doTypeChecks()
 {
-  ServiceRegistry* contextes = nullptr;
+  ServiceRegistry contextes;
   std::vector<OutputRoute> routes;
-  DataAllocator allocator(contextes, routes);
+  DataAllocator allocator({contextes}, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require references to objects owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<int>(output))>::value);

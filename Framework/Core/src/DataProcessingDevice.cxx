@@ -117,7 +117,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
-    mAllocator{&registry, mSpec.outputs},
+    mAllocator{{registry}, mSpec.outputs},
     mProcessingPolicies{policies},
     mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
 {
