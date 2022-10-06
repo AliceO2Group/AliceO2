@@ -331,13 +331,13 @@ struct ServiceRegistry {
 
   /// Check if service of type T is currently active.
   template <typename T>
-  std::enable_if_t<std::is_const_v<T> == false, bool> active() const
+  std::enable_if_t<std::is_const_v<T> == false, bool> active(Salt salt) const
   {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
     if (this->getPos(typeHash, GLOBAL_CONTEXT_SALT) != -1) {
       return true;
     }
-    auto result = this->getPos(typeHash, ServiceRegistry::threadSalt()) != -1;
+    auto result = this->getPos(typeHash, salt) != -1;
     return result;
   }
 
@@ -345,10 +345,10 @@ struct ServiceRegistry {
   /// the user is actually of the last concrete type C registered, however this
   /// should not be a problem.
   template <typename T>
-  T& get() const
+  T& get(Salt salt) const
   {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
-    auto ptr = this->get(typeHash, ServiceRegistry::threadSalt(), ServiceKind::Serial, typeid(T).name());
+    auto ptr = this->get(typeHash, salt, ServiceKind::Serial, typeid(T).name());
     if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
       if constexpr (std::is_const_v<T>) {
         return *reinterpret_cast<T const*>(ptr);

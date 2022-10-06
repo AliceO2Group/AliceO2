@@ -45,7 +45,7 @@ class ServiceRegistryRef
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, bool> active() const
   {
-    return mRegistry.active<T>();
+    return mRegistry.active<T>(ServiceRegistry::threadSalt());
   }
 
   /// Get a service for the given interface T. The returned reference exposed to
@@ -54,7 +54,7 @@ class ServiceRegistryRef
   template <typename T>
   T& get() const
   {
-    return mRegistry.get<T>();
+    return mRegistry.get<T>(ServiceRegistry::threadSalt());
   }
 
   /// Invoke before sending messages @a parts on a channel @a channelindex
