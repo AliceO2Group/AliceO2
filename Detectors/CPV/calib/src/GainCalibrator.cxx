@@ -256,7 +256,7 @@ void GainCalibrator::finalizeSlot(GainTimeSlot& slot)
   mGainsVec.push_back(*newGains);
   // metadata for o2::cpv::CalibParams
   std::map<std::string, std::string> metaData;
-  auto className = o2::utils::MemFileHelper::getClassName(newGains);
+  auto className = o2::utils::MemFileHelper::getClassName(*newGains);
   auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
   auto timeStamp = o2::ccdb::getCurrentTimestamp();
   mCcdbInfoGainsVec.emplace_back("CPV/Calib/Gains", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
