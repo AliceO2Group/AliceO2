@@ -1128,7 +1128,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     decltype(r.fDevice) device;
     device = make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
 
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+    ServiceRegistryRef ref{serviceRegistry};
+    ref.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
     fair::Logger::SetConsoleColor(false);
 
@@ -1138,7 +1139,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
     }
     if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
+      ref.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
     }
   };
 

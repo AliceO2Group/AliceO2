@@ -56,14 +56,14 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
-  BOOST_CHECK(registry.get<InterfaceA>().method() == true);
-  BOOST_CHECK(registry.get<InterfaceB>().method() == false);
-  BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
-  BOOST_CHECK(registry.active<InterfaceA>() == true);
-  BOOST_CHECK(registry.active<InterfaceB>() == true);
-  BOOST_CHECK(registry.active<InterfaceC>() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), RuntimeErrorRef);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(), RuntimeErrorRef);
+  BOOST_CHECK(registry.get<InterfaceA>(ServiceRegistry::threadSalt()).method() == true);
+  BOOST_CHECK(registry.get<InterfaceB>(ServiceRegistry::threadSalt()).method() == false);
+  BOOST_CHECK(registry.get<InterfaceC const>(ServiceRegistry::threadSalt()).method() == false);
+  BOOST_CHECK(registry.active<InterfaceA>(ServiceRegistry::threadSalt()) == true);
+  BOOST_CHECK(registry.active<InterfaceB>(ServiceRegistry::threadSalt()) == true);
+  BOOST_CHECK(registry.active<InterfaceC>(ServiceRegistry::threadSalt()) == false);
+  BOOST_CHECK_THROW(registry.get<InterfaceA const>(ServiceRegistry::threadSalt()), RuntimeErrorRef);
+  BOOST_CHECK_THROW(registry.get<InterfaceC>(ServiceRegistry::threadSalt()), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)
@@ -76,13 +76,13 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   // the callback simply sets the captured variable to indicated that it was called
   bool cbCalled = false;
   auto cb = [&]() { cbCalled = true; };
-  registry.get<CallbackService>().set(CallbackService::Id::Stop, cb);
+  registry.get<CallbackService>(ServiceRegistry::threadSalt()).set(CallbackService::Id::Stop, cb);
 
   // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
+  BOOST_CHECK_THROW(registry.get<CallbackService>(ServiceRegistry::threadSalt()).set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
 
   // execute and check
-  registry.get<CallbackService>()(CallbackService::Id::Stop);
+  registry.get<CallbackService>(ServiceRegistry::threadSalt())(CallbackService::Id::Stop);
   BOOST_CHECK(cbCalled);
 }
 
@@ -189,8 +189,8 @@ BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
   options.SetProperty("configuration", "command-line");
 
   registry.declareService(CommonServices::callbacksSpec(), state, options);
-  BOOST_CHECK(registry.active<CallbackService>() == true);
-  BOOST_CHECK(registry.active<DummyService>() == false);
+  BOOST_CHECK(registry.active<CallbackService>(ServiceRegistry::threadSalt()) == true);
+  BOOST_CHECK(registry.active<DummyService>(ServiceRegistry::threadSalt()) == false);
 }
 
 BOOST_AUTO_TEST_CASE(TestServiceOverride)
