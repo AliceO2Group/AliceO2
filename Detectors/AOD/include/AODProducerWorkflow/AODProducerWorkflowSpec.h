@@ -14,7 +14,6 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "AODProducerHelpers.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
@@ -42,9 +41,6 @@
 #include "TMap.h"
 #include "TStopwatch.h"
 
-#include <boost/functional/hash.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/unordered_map.hpp>
 #include <string>
 #include <vector>
 
@@ -285,7 +281,11 @@ class AODProducerWorkflowDPL : public Task
   double mTimeMarginTrackTime = -1;         // safety margin in NS used for track-vertex matching (additive to track uncertainty)
   double mTPCBinNS = -1;                    // inverse TPC time-bin in ns
 
-  o2::aodhelpers::TripletsMap_t mToStore;
+  // Container used to mark MC particles to store/transfer to AOD.
+  // Mapping of eventID, sourceID, trackID to some integer.
+  // The first two indices are not sparse whereas the trackID index is sparse which explains
+  // the combination of vector and map
+  std::vector<std::vector<std::unordered_map<int, int>*>> mToStore;
 
   // MC production metadata holder
   TMap mMetaData;
