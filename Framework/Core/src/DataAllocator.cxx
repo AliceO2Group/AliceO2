@@ -28,6 +28,8 @@
 
 #include <TClonesArray.h>
 
+#include <utility>
+
 namespace o2::framework
 {
 
@@ -35,9 +37,9 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-DataAllocator::DataAllocator(ServiceRegistry* contextRegistry,
-                             const AllowedOutputRoutes& routes)
-  : mAllowedOutputRoutes{routes},
+DataAllocator::DataAllocator(ServiceRegistryRef contextRegistry,
+                             AllowedOutputRoutes routes)
+  : mAllowedOutputRoutes{std::move(routes)},
     mRegistry{contextRegistry}
 {
 }
@@ -61,9 +63,9 @@ RouteIndex DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 
 DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-  auto& context = mRegistry->get<MessageContext>();
+  auto& context = mRegistry.get<MessageContext>();
 
   fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,                     //
                                                                o2::header::gSerializationMethodNone, //
@@ -77,7 +79,7 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
 {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
-  RouteIndex routeIndex = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
+  RouteIndex routeIndex = matchDataHeader(spec, mRegistry.get<TimingInfo>().timeslice);
 
   fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,                     //
                                                                o2::header::gSerializationMethodNone, //
@@ -85,7 +87,7 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
   );
 
   // FIXME: how do we want to use subchannels? time based parallelism?
-  auto& context = mRegistry->get<MessageContext>();
+  auto& context = mRegistry.get<MessageContext>();
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), routeIndex, 0, buffer, size, freefn, hint);
 }
 
@@ -94,7 +96,7 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
                                                             o2::header::SerializationMethod method, //
                                                             size_t payloadSize)                     //
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   DataHeader dh;
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
@@ -106,8 +108,7 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
   dh.runNumber = timingInfo.runNumber;
 
   DataProcessingHeader dph{timingInfo.timeslice, 1, timingInfo.creation};
-  auto& context = mRegistry->get<MessageContext>();
-  auto& proxy = mRegistry->get<FairMQDeviceProxy>();
+  auto& proxy = mRegistry.get<FairMQDeviceProxy>();
   auto* transport = proxy.getOutputTransport(routeIndex);
 
   auto channelAlloc = o2::pmr::getTransportAllocator(transport);
@@ -117,7 +118,7 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
 void DataAllocator::addPartToContext(fair::mq::MessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto headerMessage = headerMessageFromOutput(spec, routeIndex, serializationMethod, 0);
 
@@ -126,7 +127,7 @@ void DataAllocator::addPartToContext(fair::mq::MessagePtr&& payloadMessage, cons
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
   auto* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
-  auto& context = mRegistry->get<MessageContext>();
+  auto& context = mRegistry.get<MessageContext>();
   // make_scoped creates the context object inside of a scope handler, since it goes out of
   // scope immediately, the created object is scheduled and can be directly sent if the context
   // is configured with the dispatcher callback
@@ -136,12 +137,12 @@ void DataAllocator::addPartToContext(fair::mq::MessagePtr&& payloadMessage, cons
 void DataAllocator::adopt(const Output& spec, std::string* ptr)
 {
   std::unique_ptr<std::string> payload(ptr);
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
-  mRegistry->get<StringContext>().addString(std::move(header), std::move(payload), routeIndex);
+  mRegistry.get<StringContext>().addString(std::move(header), std::move(payload), routeIndex);
   assert(payload.get() == nullptr);
 }
 
@@ -194,10 +195,10 @@ void doWriteTable(std::shared_ptr<FairMQResizableBuffer> b, arrow::Table* table)
 
 void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
-  auto& context = mRegistry->get<ArrowContext>();
+  auto& context = mRegistry.get<ArrowContext>();
   auto* transport = context.proxy().getOutputTransport(routeIndex);
   assert(transport != nullptr);
 
@@ -220,11 +221,11 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 
 void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
-  auto& context = mRegistry->get<ArrowContext>();
+  auto& context = mRegistry.get<ArrowContext>();
 
   auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
     return transport->CreateMessage(s);
@@ -245,10 +246,10 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 
 void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 {
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
-  auto& context = mRegistry->get<ArrowContext>();
+  auto& context = mRegistry.get<ArrowContext>();
 
   auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
     return transport->CreateMessage(s);
@@ -265,8 +266,8 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 void DataAllocator::snapshot(const Output& spec, const char* payload, size_t payloadSize,
                              o2::header::SerializationMethod serializationMethod)
 {
-  auto& proxy = mRegistry->get<FairMQDeviceProxy>();
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& proxy = mRegistry.get<FairMQDeviceProxy>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
 
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   fair::mq::MessagePtr payloadMessage(proxy.createOutputMessage(routeIndex, payloadSize));
@@ -305,10 +306,10 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::Seria
 {
   // Find a matching channel, extract the message for it form the container
   // and put it in the queue to be sent at the end of the processing
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
-  auto& context = mRegistry->get<MessageContext>();
+  auto& context = mRegistry.get<MessageContext>();
   fair::mq::MessagePtr payloadMessage = context.cloneFromCache(id.value);
 
   fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,         //
