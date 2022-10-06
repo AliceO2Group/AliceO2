@@ -155,7 +155,11 @@ int CruRawReader::processHBFs()
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mOptions[TRDVerboseBit]) {
       LOG(info) << "Current RDH is as follows:";
-      o2::raw::RDHUtils::printRDH(rdh);
+      try {
+        o2::raw::RDHUtils::printRDH(rdh);
+      } catch (std::runtime_error& e) {
+        LOG(error) << e.what();
+      }
     }
     if (!checkRDH(rdh)) {
       return -1;
@@ -187,7 +191,11 @@ int CruRawReader::processHBFs()
 
     if (mOptions[TRDVerboseBit]) {
       LOG(info) << "Next RDH is as follows:";
-      o2::raw::RDHUtils::printRDH(rdh);
+      try {
+        o2::raw::RDHUtils::printRDH(rdh);
+      } catch (std::runtime_error& e) {
+        LOG(error) << e.what();
+      }
     }
 
     if (!o2::raw::RDHUtils::getStop(rdh) && offsetToNext >= mCurrRdhPtr - mDataBufferPtr) {
