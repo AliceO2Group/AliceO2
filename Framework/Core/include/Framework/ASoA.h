@@ -30,6 +30,7 @@
 #include <fmt/format.h>
 #include <typeinfo>
 #include <gsl/span>
+#include <iostream>
 
 namespace o2::framework
 {
@@ -61,13 +62,16 @@ struct Preslice {
 
   arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
   {
-    arrow::Status status;
-    for (auto slice = 0; slice < mValues->length(); ++slice) {
-      if (mValues->Value(slice) == value) {
-        output = input->Slice(offset, mCounts->Value(slice));
-        return arrow::Status::OK();
+    if (input->num_rows() > 0) {
+      for (auto slice = 0; slice < mValues->length(); ++slice) {
+        if (mValues->Value(slice) == value) {
+          output = input->Slice(offset, mCounts->Value(slice));
+          return arrow::Status::OK();
+        }
+        offset += mCounts->Value(slice);
       }
-      offset += mCounts->Value(slice);
+    } else {
+      offset = 0;
     }
     output = input->Slice(offset, 0);
     return arrow::Status::OK();

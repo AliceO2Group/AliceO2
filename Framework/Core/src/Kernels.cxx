@@ -22,6 +22,7 @@
 #include <arrow/util/config.h>
 
 #include <string>
+#include <iostream>
 
 namespace o2::framework
 {
@@ -33,12 +34,14 @@ arrow::Status getSlices(
 {
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-  ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
-                                                     &options));
-  auto pair = static_cast<arrow::StructArray>(value_counts.array());
-  values = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-  counts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+  if (input->num_rows() > 0 ) {
+    ARROW_ASSIGN_OR_RAISE(value_counts,
+                          arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                                                       &options));
+    auto pair = static_cast<arrow::StructArray>(value_counts.array());
+    values = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
+    counts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+  }
   return arrow::Status::OK();
 }
 
