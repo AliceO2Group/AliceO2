@@ -118,7 +118,7 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
 
  private:
   arrow::Status preSlice();
-  void preFind();
+  arrow::Status preFind();
 
   bool findSingle(int idx);
   bool findSlice(int idx);

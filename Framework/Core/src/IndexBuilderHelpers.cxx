@@ -62,10 +62,13 @@ IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> sour
       }
     }; break;
     case -1: {
-      preFind();
-      mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(mBuilder));
-      mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
-      mArrowType = arrow::list(arrow::int32());
+      if (preFind().ok()) {
+        mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(mBuilder));
+        mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
+        mArrowType = arrow::list(arrow::int32());
+      } else {
+        throw runtime_error("Cannot pre-find array groups");
+      }
     }; break;
     default:
       throw runtime_error_f("Invalid list size for index column: %d", mListSize);
@@ -76,18 +79,33 @@ arrow::Status IndexColumnBuilder::preSlice()
 {
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-  ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {mSource},
-                                                     &options));
+  ARROW_ASSIGN_OR_RAISE(value_counts, arrow::compute::CallFunction("value_counts", {mSource}, &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
   mValuesArrow = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
   mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
   return arrow::Status::OK();
 }
 
-void IndexColumnBuilder::preFind()
+arrow::Status IndexColumnBuilder::preFind()
 {
-  throw runtime_error("Not implemented");
+  arrow::Datum max;
+  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(max, arrow::compute::CallFunction("max", {mSource}, &options));
+  auto maxValue = std::dynamic_pointer_cast<arrow::Int32Scalar>(max.scalar())->value;
+  mIndices.resize(maxValue + 1);
+
+  auto row = 0;
+  for (auto i = 0; i < mSource->length(); ++i) {
+    auto v = valueAt(i);
+    if (v >= 0) {
+      mValues.emplace_back(v);
+      mIndices[v].push_back(row);
+    }
+    ++row;
+  }
+  std::sort(mValues.begin(), mValues.end());
+
+  return arrow::Status::OK();
 }
 
 std::shared_ptr<arrow::ChunkedArray> IndexColumnBuilder::resultSingle() const
@@ -156,7 +174,7 @@ bool IndexColumnBuilder::findSlice(int idx)
 
 bool IndexColumnBuilder::findMulti(int idx)
 {
-  throw runtime_error("Not implemented");
+  return (std::find(mValues.begin(), mValues.end(), idx) != mValues.end());
 }
 
 void IndexColumnBuilder::fillSingle(int idx)
@@ -185,7 +203,8 @@ void IndexColumnBuilder::fillSlice(int idx)
 
 void IndexColumnBuilder::fillMulti(int idx)
 {
-  throw runtime_error("Not implemented");
+  (void)static_cast<arrow::ListBuilder*>(mListBuilder.get())->Append();
+  (void)static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(mIndices[idx].data(), mIndices[idx].size());
 }
 
 std::shared_ptr<arrow::Int32Array> ChunkedArrayIterator::getCurrentArray()
