@@ -80,11 +80,9 @@ struct DataProcessorContext {
 
   // FIXME: move stuff here from the list below... ;-)
   DeviceContext* deviceContext = nullptr;
-  DataRelayer* relayer = nullptr;
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  TimingInfo* timingInfo = nullptr;
   DataAllocator* allocator = nullptr;
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
@@ -161,7 +159,6 @@ class DataProcessingDevice : public fair::mq::Device
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   DataAllocator mAllocator;
-  DataRelayer* mRelayer = nullptr;
   /// Expiration handler
   std::vector<ExpirationHandler> mExpirationHandlers;
   /// Completed actions
