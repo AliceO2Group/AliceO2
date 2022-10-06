@@ -15,6 +15,8 @@
 
 using namespace o2::framework;
 
+// Converting raw data to digits
+
 // ------------------------------------------------------------------
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
