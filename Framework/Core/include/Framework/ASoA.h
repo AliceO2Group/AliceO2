@@ -30,7 +30,6 @@
 #include <fmt/format.h>
 #include <typeinfo>
 #include <gsl/span>
-#include <iostream>
 
 namespace o2::framework
 {

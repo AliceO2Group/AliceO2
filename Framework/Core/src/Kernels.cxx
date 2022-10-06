@@ -22,7 +22,6 @@
 #include <arrow/util/config.h>
 
 #include <string>
-#include <iostream>
 
 namespace o2::framework
 {
@@ -34,7 +33,7 @@ arrow::Status getSlices(
 {
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-  if (input->num_rows() > 0 ) {
+  if (input->num_rows() > 0) {
     ARROW_ASSIGN_OR_RAISE(value_counts,
                           arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
                                                        &options));
