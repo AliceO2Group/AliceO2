@@ -15,7 +15,9 @@
 
 using namespace o2::framework;
 
-// Converting raw data to digits
+// This program is o2-zdc-digits-writer and it is used to convert CTF data to digits
+// to allow manual inspection
+// In order to convert raw data to digits you should use o2-zdc-raw2digits
 
 // ------------------------------------------------------------------
 // we need to add workflow options before including Framework/runDataProcessing
