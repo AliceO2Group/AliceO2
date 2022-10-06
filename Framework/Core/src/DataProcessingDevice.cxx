@@ -1485,10 +1485,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         }
       }
     }
-    if (std::accumulate(results.begin(), results.end(), 0, [](size_t const& count, auto const& element) -> size_t { return count + element.size; })) {
-      LOG(warning) << "no data was found in the message. Only control?";
-      return std::nullopt;
-    }
     if (results.size() + nTotalPayloads != parts.Size()) {
       LOG(error) << "inconsistent number of inputs extracted";
       return std::nullopt;
