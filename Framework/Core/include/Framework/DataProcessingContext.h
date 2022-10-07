@@ -33,7 +33,6 @@ struct DataProcessorContext {
   // be accessed without a lock.
 
   // FIXME: move stuff here from the list below... ;-)
-  DeviceContext* deviceContext = nullptr;
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;

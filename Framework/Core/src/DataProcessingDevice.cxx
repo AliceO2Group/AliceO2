@@ -43,6 +43,7 @@
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DeviceContext.h"
+#include "Framework/RawDeviceService.h"
 
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -172,9 +173,6 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   // One task for now.
   mStreams.resize(1);
   mHandles.resize(1);
-
-  auto& deviceContext = mServiceRegistry.get<DeviceContext>(ServiceRegistry::threadSalt());
-  deviceContext.device = this;
 
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
   assert(mState.loop);
@@ -885,7 +883,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 {
   context.wasActive = &mWasActive;
 
-  deviceContext.device = this;
   context.isSink = false;
   context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
@@ -914,7 +911,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.statefulProcess = &mStatefulProcess;
   context.statelessProcess = &mStatelessProcess;
   context.error = &mError;
-  context.deviceContext = &deviceContext;
   /// Callback for the error handling
   context.errorHandling = &mErrorHandling;
   /// We must make sure there is no optional
@@ -1379,7 +1375,8 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 
     for (auto& channel : spec.outputChannels) {
       LOGP(detail, "Sending end of stream to {}", channel.name);
-      DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
+      auto& rawDevice = ref.get<RawDeviceService>();
+      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
     }
     // This is needed because the transport is deleted before the device.
     relayer.clear();
@@ -2069,7 +2066,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "Broadcasting end of stream");
     for (auto& channel : spec.outputChannels) {
-      DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
+      auto& rawDevice = ref.get<RawDeviceService>();
+      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
     }
     switchState(StreamingState::Idle);
   }
