@@ -28,6 +28,8 @@ struct MeanVertexData {
   using PVertex = o2::dataformats::PrimaryVertex;
   int entries = 0;
   std::vector<std::array<float, 3>> histoVtx{0};
+  std::array<double, 3> means{};
+  std::array<double, 3> meanSquares{};
   bool mVerbose = false;
 
   MeanVertexData() = default;
@@ -36,7 +38,8 @@ struct MeanVertexData {
   {
     histoVtx.clear();
   }
-
+  double getMean(int i) const { return means[i]; }
+  double getRMS(int i) const;
   MeanVertexData(MeanVertexData&& other) = default;
   MeanVertexData(const MeanVertexData& other) = default;
   MeanVertexData& operator=(MeanVertexData& other) = default;

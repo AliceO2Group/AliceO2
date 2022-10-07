@@ -24,18 +24,14 @@ namespace calibration
 
 // There are configurable params for TPC-ITS matching
 struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexParams> {
-
+  float histoNSigma[3] = {4., 4., 4.};         // histo ranges defined as mean+-nsigma*sigma
+  float histoBinSize[3] = {0.002, 0.002, 0.5}; // cm
+  float minSigma[3] = {0.001, 0.001, 1.0};     // use this for histo definition if sigma is smaller
   int minEntries = 100;
-  int nbinsX = 1000;
-  float rangeX = 1.f;
-  int nbinsY = 1000;
-  float rangeY = 1.f;
-  int nbinsZ = 100;
-  float rangeZ = 20.f;
   int nSlots4SMA = 5;
-  uint32_t tfPerSlot = 5u;
+  uint32_t tfPerSlot = 5400u; // ~10 min
   uint32_t maxTFdelay = 3u;
-  uint32_t nPointsForSlope = 10;
+  uint32_t nPointsForSlope = 5;
   bool dumpNonEmptyBins = false;
   bool skipObjectSending = false;
 
