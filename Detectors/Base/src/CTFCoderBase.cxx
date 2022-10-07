@@ -45,9 +45,37 @@ void CTFCoderBase::assignDictVersion(CTFDictHeader& h) const
   //  }
 }
 
-void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc)
+void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc, bool askTree)
 {
   if (mLoadDictFromCCDB) {
-    pc.inputs().get<std::vector<char>*>("ctfdict"); // just to trigger the finaliseCCDB
+    if (askTree) {
+      pc.inputs().get<TTree*>("ctfdict"); // just to trigger the finaliseCCDB
+    } else {
+      pc.inputs().get<std::vector<char>*>("ctfdict"); // just to trigger the finaliseCCDB
+    }
   }
+}
+
+bool CTFCoderBase::isTreeDictionary(const void* buff) const
+{
+  // heuristic check for the dictionary being a tree
+  const char* patt[] = {"ccdb_object", "ctf_dictionary"};
+  const char* ptr = reinterpret_cast<const char*>(buff);
+  bool found = false;
+  int i = 0, np = sizeof(patt) / sizeof(char*);
+  while (i < 50 && !found) {
+    for (int ip = 0; ip < np; ip++) {
+      const auto *p = patt[ip], *s = &ptr[i];
+      while (*p && *s == *p) {
+        p++;
+        s++;
+      }
+      if (!*p) {
+        found = true;
+        break;
+      }
+    }
+    i++;
+  }
+  return found;
 }
