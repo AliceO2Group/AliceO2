@@ -73,6 +73,7 @@ class UserLogicElinkDecoder
   void completeHeader();
   void oneLess10BitWord();
   void prepareAndSendCluster();
+  bool checkDataHeader();
   void sendCluster(const SampaCluster& sc) const;
   void sendHBPacket();
   void sendError(int8_t chip, uint32_t error) const;
@@ -118,10 +119,18 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error, bo
 
   if (isSync(data50)) {
 #ifdef ULDEBUG
-    debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}\n", data50);
+    debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}   state={}\n", data50, asString(mState));
 #endif
-    clear();
-    transition(State::WaitingHeader);
+    if (mState != State::WaitingHeader && mState != State::WaitingSync) {
+#ifdef ULDEBUG
+      debugHeader() << (*this) << " SYNC word found while decoding payload --> resetting\n";
+#endif
+      sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorUnexpectedSyncPacket));
+      reset();
+    } else {
+      clear();
+      transition(State::WaitingHeader);
+    }
     return;
   }
 
@@ -178,14 +187,18 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
 {
   bool result = false;
 #ifdef ULDEBUG
-  debugHeader() << (*this) << fmt::format(" --> data10 {:d}\n", data10);
+  debugHeader() << (*this) << fmt::format(" --> data10 {:d}  state {}\n", data10, asString(mState));
 #endif
   switch (mState) {
     case State::WaitingHeader:
       setHeaderPart(data10);
       if (isHeaderComplete()) {
         completeHeader();
-        if (isSync(mSampaHeader.uint64())) {
+        if (mSampaHeader.packetType() == SampaPacketType::Sync) {
+          if (!isSync(mSampaHeader.uint64())) {
+            mErrorMessage = "badly formatted Sync packet";
+            sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorBadSyncPacket));
+          }
           reset();
         } else if (mSampaHeader.packetType() == SampaPacketType::HeartBeat) {
           if (mSampaHeader.isHeartbeat()) {
@@ -198,9 +211,15 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
             reset();
           }
         } else {
-          if (mSampaHeader.nof10BitWords() > 2) {
-            transition(State::WaitingSize);
+          if (checkDataHeader()) {
+            if (mSampaHeader.nof10BitWords() > 2) {
+              transition(State::WaitingSize);
+            } else {
+              reset();
+            }
           } else {
+            mErrorMessage = "badly formatted Data packet";
+            sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorBadDataPacket));
             reset();
           }
         }
@@ -264,6 +283,9 @@ std::string UserLogicElinkDecoder<CHARGESUM>::asString(State s) const
       break;
     case State::WaitingSample:
       return "WaitingSample";
+      break;
+    default:
+      return "Unknown";
       break;
   };
 }

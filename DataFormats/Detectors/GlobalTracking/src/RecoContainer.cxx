@@ -25,6 +25,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
@@ -394,6 +395,8 @@ void DataRequest::requestSecondaryVertertices(bool)
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
   addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
+  addInput({"decay3body", "GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
+  addInput({"p2decay3body", "GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
@@ -761,6 +764,8 @@ void RecoContainer::addSVertices(ProcessingContext& pc, bool)
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::DecayNbody>>("decay3body"), DECAY3BODY);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2decay3body"), PVTX_3BODYREFS);
   // no mc
 }
 

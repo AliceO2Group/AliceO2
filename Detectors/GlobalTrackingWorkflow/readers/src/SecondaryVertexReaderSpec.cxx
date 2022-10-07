@@ -21,6 +21,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -36,6 +37,7 @@ class SecondaryVertexReader : public o2::framework::Task
   using RRef = o2::dataformats::RangeReference<int, int>;
   using V0 = o2::dataformats::V0;
   using Cascade = o2::dataformats::Cascade;
+  using DecayNbody = o2::dataformats::DecayNbody;
 
  public:
   SecondaryVertexReader() = default;
@@ -52,6 +54,8 @@ class SecondaryVertexReader : public o2::framework::Task
   std::vector<RRef> mPV2V0Ref, *mPV2V0RefPtr = &mPV2V0Ref;
   std::vector<Cascade> mCascs, *mCascsPtr = &mCascs;
   std::vector<RRef> mPV2CascRef, *mPV2CascRefPtr = &mPV2CascRef;
+  std::vector<DecayNbody> m3Bodys, *m3BodysPtr = &m3Bodys;
+  std::vector<RRef> mPV23BodyRef, *mPV23BodyRefPtr = &mPV23BodyRef;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -62,6 +66,8 @@ class SecondaryVertexReader : public o2::framework::Task
   std::string mPVertex2V0RefBranchName = "PV2V0Refs";
   std::string mCascBranchName = "Cascades";
   std::string mPVertex2CascRefBranchName = "PV2CascRefs";
+  std::string m3BodyBranchName = "Decays3Body";
+  std::string mPVertex23BodyRefBranchName = "PV23BodyRefs";
 };
 
 void SecondaryVertexReader::init(InitContext& ic)
@@ -82,6 +88,8 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
   pc.outputs().snapshot(Output{"GLO", "CASCS", 0, Lifetime::Timeframe}, mCascs);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe}, mPV2CascRef);
+  pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY", 0, Lifetime::Timeframe}, m3Bodys);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe}, mPV23BodyRef);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -100,11 +108,15 @@ void SecondaryVertexReader::connectTree()
   assert(mTree->GetBranch(mPVertex2V0RefBranchName.c_str()));
   assert(mTree->GetBranch(mCascBranchName.c_str()));
   assert(mTree->GetBranch(mPVertex2CascRefBranchName.c_str()));
+  assert(mTree->GetBranch(m3BodyBranchName.c_str()));
+  assert(mTree->GetBranch(mPVertex23BodyRefBranchName.c_str()));
 
   mTree->SetBranchAddress(mV0BranchName.c_str(), &mV0sPtr);
   mTree->SetBranchAddress(mPVertex2V0RefBranchName.c_str(), &mPV2V0RefPtr);
   mTree->SetBranchAddress(mCascBranchName.c_str(), &mCascsPtr);
   mTree->SetBranchAddress(mPVertex2CascRefBranchName.c_str(), &mPV2CascRefPtr);
+  mTree->SetBranchAddress(m3BodyBranchName.c_str(), &m3BodysPtr);
+  mTree->SetBranchAddress(mPVertex23BodyRefBranchName.c_str(), &mPV23BodyRefPtr);
 
   LOG(info) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
@@ -116,6 +128,8 @@ DataProcessorSpec getSecondaryVertexReaderSpec()
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
   outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);         // found Cascades
   outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
+  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);   // found 3 body Decays
+  outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body Decays refs
 
   return DataProcessorSpec{
     "secondary-vertex-reader",

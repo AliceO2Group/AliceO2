@@ -32,9 +32,7 @@
 #include <memory>
 #include <tuple>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 template <typename T>
@@ -231,6 +229,5 @@ struct RootTableBuilderHelpers {
   }
 };
 
-} // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_ROOTTABLEBUILDERHELPERS_H

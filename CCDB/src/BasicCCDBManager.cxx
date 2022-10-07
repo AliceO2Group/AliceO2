@@ -59,7 +59,7 @@ std::string CCDBManagerInstance::getSummaryString() const
     }
     res += fmt::format(" for {} objects", nfailObj);
   }
-  res += fmt::format("), instance: {}", mCCDBAccessor.getUniqueAgentID());
+  res += fmt::format(") in {} ms, instance: {}", fmt::group_digits(mTimerMS), mCCDBAccessor.getUniqueAgentID());
   return res;
 }
 

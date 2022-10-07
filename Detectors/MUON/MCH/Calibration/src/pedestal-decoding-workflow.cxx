@@ -45,6 +45,8 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 
+#include "DetectionElements.h"
+
 static const size_t SOLAR_ID_MAX = 100 * 8;
 
 namespace o2
@@ -73,7 +75,7 @@ static std::string readFileContent(std::string& filename)
 
 static bool isValidDeID(int deId)
 {
-  for (auto id : deIdsForAllMCH) {
+  for (auto id : o2::mch::constants::deIdsForAllMCH) {
     if (id == deId) {
       return true;
     }

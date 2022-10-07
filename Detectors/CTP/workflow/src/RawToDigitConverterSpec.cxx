@@ -70,6 +70,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
@@ -100,7 +101,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
     }
     for (auto payloadWord : payload) {
-      //LOG(info) << wordCount << " payload:" <<  int(payloadWord);
+      // LOG(info) << wordCount << " payload:" << int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
@@ -183,7 +184,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   //ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
 }
 // Inverse of Digits2Raw::makeGBTWord
-void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
+void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld)
 {
   gbtword80_t diglet = remnant;
   uint32_t i = 0;

@@ -120,7 +120,7 @@ remotely by exporting the environment variable `DPL_DRIVER_REMOTE_GUI`, e.g.:
 export DPL_DRIVER_REMOTE_GUI=1
 ```
 
-Note that in this case your workflow should be started with the `-b` option. In the stdout you should see the control port of the driver:
+Note that in this case your workflow should be started with the `-b` option and that you should have properly loaded the environment with `alienv enter ...`. In the stdout you should see the control port of the driver:
 ```bash
 [INFO] Driver listening on port: 34855
 ```

@@ -88,8 +88,11 @@ class Mapper
     /// \param address Hardware address raising the exception
     AddressNotFoundException(int address) : exception(),
                                             mAddress(address),
-                                            mMessage("Hardware address " + std::to_string(address) + " not found")
+                                            mMessage()
     {
+      std::stringstream msgbuilder;
+      msgbuilder << "Hardware address " << address << "(0x" << std::hex << address << std::dec << ") not found";
+      mMessage = msgbuilder.str();
     }
 
     /// \brief Destructor

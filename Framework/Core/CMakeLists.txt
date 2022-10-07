@@ -81,6 +81,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/MermaidHelpers.cxx
                        src/HTTPParser.cxx
+                       src/IndexBuilderHelpers.cxx
                        src/InputRecord.cxx
                        src/InputRouteHelpers.cxx
                        src/InputSpan.cxx
@@ -144,7 +145,7 @@ o2_add_library(Framework
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::MathUtils
-                                     ROOT::TreePlayer
+                                     ROOT::Tree
                                      O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers

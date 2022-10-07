@@ -38,21 +38,18 @@ class CPVGainCalibratorSpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    // auto slotL = ic.options().get<uint32_t>("tf-per-slot");
-    // auto delay = ic.options().get<uint32_t>("max-delay");
     auto updateInterval = ic.options().get<uint32_t>("updateInterval"); // in TF
     bool updateAtTheEndOfRunOnly = ic.options().get<bool>("updateAtTheEndOfRunOnly");
     mCalibrator = std::make_unique<o2::cpv::GainCalibrator>();
-    mCalibrator->setSlotLength(0);
-    mCalibrator->setMaxSlotsDelay(1000);
+    mCalibrator->setSlotLength(0); // infinite TF slot
+    mCalibrator->setMaxSlotsDelay(10000);
     if (updateAtTheEndOfRunOnly) {
       mCalibrator->setUpdateAtTheEndOfRunOnly();
     }
     mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
-    mCalibrator->setUpdateTFInterval(updateInterval);
     LOG(info) << "CPVGainCalibratorSpec initialized";
-    LOG(info) << "tf-per-slot = 0 (this calibrator works only in single infinite slot mode)";
-    LOG(info) << "max-delay = 1000 (inconfigurable for this calibrator)";
+    LOG(info) << "tf-per-slot = 0 (inconfigurable, this calibrator works only in single infinite slot mode)";
+    LOG(info) << "max-delay = 10000 (inconfigurable for this calibrator)";
     LOG(info) << "updateInterval = " << updateInterval;
     LOG(info) << "updateAtTheEndOfRunOnly = " << updateAtTheEndOfRunOnly;
   }

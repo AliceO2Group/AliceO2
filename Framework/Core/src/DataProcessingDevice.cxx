@@ -1485,7 +1485,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         }
       }
     }
-    assert(std::accumulate(results.begin(), results.end(), 0, [](size_t const& count, auto const& element) -> size_t { return count + element.size; }));
     if (results.size() + nTotalPayloads != parts.Size()) {
       LOG(error) << "inconsistent number of inputs extracted";
       return std::nullopt;

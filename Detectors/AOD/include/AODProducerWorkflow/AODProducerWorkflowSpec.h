@@ -226,6 +226,7 @@ class AODProducerWorkflowDPL : public Task
     return std::uint64_t(mStartIR.toLong()) + relativeTime_to_LocalBC(relativeTimeStampInNS);
   }
 
+  int mNThreads = 1;
   bool mUseMC = true;
   bool mEnableSV = true;             // enable secondary vertices
   const float cSpeed = 0.029979246f; // speed of light in TOF units
@@ -410,6 +411,14 @@ class AODProducerWorkflowDPL : public Task
     uint8_t fwdLabelMask = 0;
   };
 
+  // counters for TPC clusters
+  struct TPCCounters {
+    uint8_t shared = 0;
+    uint8_t found = 0;
+    uint8_t crossed = 0;
+  };
+  std::vector<TPCCounters> mTPCCounters;
+
   void updateTimeDependentParams(ProcessingContext& pc);
 
   void addRefGlobalBCsForTOF(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices,
@@ -464,8 +473,8 @@ class AODProducerWorkflowDPL : public Task
 
   void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data);
 
-  template <typename V0CursorType, typename CascadeCursorType>
-  void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);
+  template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
+  void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
@@ -486,11 +495,7 @@ class AODProducerWorkflowDPL : public Task
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
   // helper for tpc clusters
-  void countTPCClusters(const o2::tpc::TrackTPC& track,
-                        const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
-                        const gsl::span<const unsigned char>& tpcClusShMap,
-                        const o2::tpc::ClusterNativeAccess& tpcClusAcc,
-                        uint8_t& shared, uint8_t& found, uint8_t& crossed);
+  void countTPCClusters(const o2::globaltracking::RecoContainer& data);
 
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);

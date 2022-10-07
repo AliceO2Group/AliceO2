@@ -19,6 +19,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 
 using namespace o2::framework;
 
@@ -29,6 +30,7 @@ namespace vertexing
 using RRef = o2::dataformats::RangeReference<int, int>;
 using V0 = o2::dataformats::V0;
 using Cascade = o2::dataformats::Cascade;
+using DecayNbody = o2::dataformats::DecayNbody;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
@@ -45,10 +47,16 @@ DataProcessorSpec getSecondaryVertexWriterSpec()
     LOG(info) << "SecondaryVertexWriter pulled " << v.size() << " cascades";
   };
 
+  auto loggerD = [](std::vector<DecayNbody> const& v) {
+    LOG(info) << "SecondaryVertexWriter pulled " << v.size() << " decays3body";
+  };
+
   auto inpV0ID = InputSpec{"v0s", "GLO", "V0S", 0};
   auto inpV0RefID = InputSpec{"pv2v0ref", "GLO", "PVTX_V0REFS", 0};
   auto inpCascID = InputSpec{"cascs", "GLO", "CASCS", 0};
   auto inpCascRefID = InputSpec{"pv2cascref", "GLO", "PVTX_CASCREFS", 0};
+  auto inp3BodyID = InputSpec{"decays3body", "GLO", "DECAYS3BODY", 0};
+  auto inp3BodyRefID = InputSpec{"pv23bodyref", "GLO", "PVTX_3BODYREFS", 0};
 
   return MakeRootTreeWriterSpec("secondary-vertex-writer",
                                 "o2_secondary_vertex.root",
@@ -56,7 +64,9 @@ DataProcessorSpec getSecondaryVertexWriterSpec()
                                 BranchDefinition<std::vector<V0>>{inpV0ID, "V0s", loggerV},
                                 BranchDefinition<std::vector<RRef>>{inpV0RefID, "PV2V0Refs"},
                                 BranchDefinition<std::vector<Cascade>>{inpCascID, "Cascades", loggerC},
-                                BranchDefinition<std::vector<RRef>>{inpCascRefID, "PV2CascRefs"})();
+                                BranchDefinition<std::vector<RRef>>{inpCascRefID, "PV2CascRefs"},
+                                BranchDefinition<std::vector<DecayNbody>>{inp3BodyID, "Decays3Body", loggerD},
+                                BranchDefinition<std::vector<RRef>>{inp3BodyRefID, "PV23BodyRefs"})();
 }
 
 } // namespace vertexing
