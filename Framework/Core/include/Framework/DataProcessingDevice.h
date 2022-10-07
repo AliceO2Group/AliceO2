@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSING_DEVICE_H
-#define FRAMEWORK_DATAPROCESSING_DEVICE_H
+#ifndef O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_
+#define O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ComputingQuotaOffer.h"
@@ -27,6 +27,8 @@
 #include "Framework/Tracing.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/ObjectCache.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceContext.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
@@ -50,51 +52,6 @@ struct ComputingQuotaEvaluator;
 /// thread instances for what makes sense to have
 /// per thread and relax the locks.
 class DataProcessingDevice;
-
-/// Context associated to a device. In principle
-/// multiple DataProcessors can run on a Device (even if we
-/// do not do it for now).
-struct DeviceContext {
-  // These are pointers to the one owned by the DataProcessingDevice
-  // and therefore require actual locking
-  DataProcessingDevice* device = nullptr;
-  DeviceSpec const* spec = nullptr;
-  DeviceState* state = nullptr;
-  ComputingQuotaEvaluator* quotaEvaluator = nullptr;
-  DataProcessingStats* stats = nullptr;
-  ComputingQuotaStats* quotaStats = nullptr;
-  uv_timer_t* gracePeriodTimer = nullptr;
-  int expectedRegionCallbacks = 0;
-  int exitTransitionTimeout = 0;
-};
-
-struct DataProcessorContext {
-  // These are specific of a given context and therefore
-  // not shared by threads.
-  bool* wasActive = nullptr;
-  bool allDone = false;
-
-  // These are pointers to the one owned by the DataProcessingDevice
-  // but they are fully reentrant / thread safe and therefore can
-  // be accessed without a lock.
-
-  // FIXME: move stuff here from the list below... ;-)
-  DeviceContext* deviceContext = nullptr;
-  ServiceRegistry* registry = nullptr;
-  std::vector<DataRelayer::RecordAction>* completed = nullptr;
-  std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  DataAllocator* allocator = nullptr;
-  AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
-  AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
-  AlgorithmSpec::ErrorCallback* error = nullptr;
-
-  /// Wether or not the associated DataProcessor can forward things early
-  bool canForwardEarly = true;
-  bool isSink = false;
-  bool balancingInputs = true;
-
-  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
-};
 
 struct TaskStreamRef {
   int index = -1;
@@ -181,4 +138,4 @@ class DataProcessingDevice : public fair::mq::Device
 };
 
 } // namespace o2::framework
-#endif
+#endif // O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_
