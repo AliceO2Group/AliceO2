@@ -8,26 +8,15 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+o2_add_library(FrameworkCCDBSupport
+               SOURCES 
+                src/Plugin.cxx
+                src/CCDBHelpers.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::CCDB)
 
-add_subdirectory(Logger)
-
-add_subdirectory(Foundation)
-
-add_subdirectory(Core)
-
-add_subdirectory(Utils)
-
-add_subdirectory(AnalysisSupport) 
-add_subdirectory(CCDBSupport)
-add_subdirectory(PhysicsSupport)
-add_subdirectory(DataTakingSupport)
-
-add_subdirectory(RootAnalysisHelpers)
-
-
-# Build the GUI support only if we have DebugGUI
-if (TARGET AliceO2::DebugGUI)
-add_subdirectory(GUISupport)
-endif()
-
-add_subdirectory(TestWorkflows)
+o2_add_test(CCDBHelpers NAME test_Framework_test_CCDBHelpers
+            SOURCES test/test_CCDBHelpers.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkCCDBSupport)

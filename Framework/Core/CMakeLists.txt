@@ -37,7 +37,6 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/ControlWebSocketHandler.cxx
-                       src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DomainInfoHeader.cxx
@@ -143,13 +142,14 @@ o2_add_library(Framework
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
-                                     O2::MathUtils
                                      ROOT::Tree
-                                     O2::CCDB
+                                     ROOT::Hist
                                      O2::FrameworkFoundation
+                                     O2::CommonConstants
                                      O2::Headers
                                      O2::MemoryResources
                                      O2::PCG
+                                     ROOT::Tree
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
                                      Microsoft.GSL::GSL
@@ -174,7 +174,6 @@ foreach(t
         BoostOptionsRetriever
         ConfigurationOptionsRetriever
         CallbackRegistry
-        CCDBHelpers
         ChannelSpecHelpers
         CheckTypes
         CompletionPolicy
