@@ -11,11 +11,11 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsCalibration/MeanVertexCalibrator.h"
-#include "DetectorsCalibration/MeanVertexParams.h"
 #include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 
 namespace o2
 {
@@ -37,17 +37,17 @@ void MeanVertexCalibrator::initOutput()
 }
 
 //_____________________________________________
-void MeanVertexCalibrator::printVector(float* vect, int sizeVect, float minRange, float maxRange, float binWidth)
+void MeanVertexCalibrator::printVector(const float* vect, const MeanVertexCalibrator::HistoParams& hpar)
 {
-  for (int i = 0; i < sizeVect; ++i) {
-    LOG(info) << "i-th bin [" << minRange + i * binWidth << ", " << minRange + (i + 1) * binWidth << "] = " << i << ", content of histogram = " << vect[i];
+  for (int i = 0; i < hpar.nBins; ++i) {
+    LOG(info) << "i-th bin [" << hpar.minRange + i * hpar.binWidth << ", " << hpar.minRange + (i + 1) * hpar.binWidth << "] = " << i << ", content of histogram = " << vect[i];
   }
   LOG(info) << "Printing to be used as a vector holding the content";
-  for (int i = 0; i < sizeVect; ++i) {
+  for (int i = 0; i < hpar.nBins; ++i) {
     LOG(info) << "vect[" << i << "] = " << vect[i] << ";";
   }
   LOG(info) << "Printing to be used to fill a ROOT histogram";
-  for (int i = 0; i < sizeVect; ++i) {
+  for (int i = 0; i < hpar.nBins; ++i) {
     if (vect[i] != 0) {
       LOG(info) << "h->SetBinContent(" << i + 1 << ", " << vect[i] << ");";
     }
@@ -55,26 +55,42 @@ void MeanVertexCalibrator::printVector(float* vect, int sizeVect, float minRange
 }
 
 //_____________________________________________
-void MeanVertexCalibrator::printVector(std::vector<float>& vect, float minRange, float maxRange, float binWidth)
+void MeanVertexCalibrator::printVector(const std::vector<float>& vect, const MeanVertexCalibrator::HistoParams& hpar)
 {
-  printVector(&vect[0], vect.size(), minRange, maxRange, binWidth);
+  printVector(vect.data(), hpar);
 }
 
 //_____________________________________________
-void MeanVertexCalibrator::binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, int nbins, float min, float max, float binWidthInv)
+MeanVertexCalibrator::HistoParams MeanVertexCalibrator::binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, o2::calibration::MeanVertexData* c, int dim)
 {
+  const char* dimName[3] = {"X", "Y", "Z"};
   vectOut.clear();
-  vectOut.resize(nbins);
+  // define binning
+  const auto& params = MeanVertexParams::Instance();
+  float mean = c->getMean(dim), rms = c->getRMS(dim);
+  if (rms < params.minSigma[dim]) {
+    LOGP(alarm, "Too small RMS = {} for dimension {} ({} entries), override to {}", rms, dimName[dim], c->entries, params.minSigma[dim]);
+    rms = params.minSigma[dim];
+  }
+  float minD = mean - params.histoNSigma[dim] * rms;
+  float maxD = mean + params.histoNSigma[dim] * rms;
+  int nBins = std::max(1.f, (maxD - minD) / params.histoBinSize[dim]);
+  float binWidth = (maxD - minD) / nBins, binWidthInv = 1. / binWidth;
+  if (mVerbose) {
+    LOGP(info, "Histo for dim:{} with {} entries: mean:{} rms:{} -> {} bins in range {}:{} ", dimName[dim], c->entries, mean, rms, nBins, minD, maxD, nBins);
+  }
+  vectOut.resize(nBins);
   for (int i = 0; i < vectIn.size(); ++i) {
-    if (vectIn[i] < min) {
+    if (vectIn[i] < minD) {
       continue;
     }
-    int bin = (vectIn[i] - min) * binWidthInv;
-    if (bin >= vectOut.size()) {
+    int bin = (vectIn[i] - minD) * binWidthInv;
+    if (bin >= nBins) {
       continue;
     }
     vectOut[bin]++;
   }
+  return {nBins, binWidth, minD, maxD};
 }
 
 //_____________________________________________
@@ -82,6 +98,7 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
 {
   // now we do the fits in slices of Z
   // we fit as soon as we have enough entries in z
+  const auto& params = MeanVertexParams::Instance();
   double fitres;
   // first we order the vector
   std::sort(c->histoVtx.begin(), c->histoVtx.end(), [](std::array<float, 3> a, std::array<float, 3> b) { return b[2] > a[2]; });
@@ -102,9 +119,9 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   std::vector<float> binnedVect;
   std::vector<double> meanZvect;
   int startZ = 0, nBinsOK = 0;
-  auto minEntriesPerPoint = std::max((unsigned long int)mMinEntries, c->histoVtx.size() / mNPointsForSlope);
+  auto minEntriesPerPoint = std::max((unsigned long int)params.minEntries, c->histoVtx.size() / params.nPointsForSlope);
   if (mVerbose) {
-    LOGP(info, "Beginning: startZ = {} c->histoVtx.size() = {}, will process {} Z slices with {} entries each", startZ, c->histoVtx.size(), mNPointsForSlope, minEntriesPerPoint);
+    LOGP(info, "Beginning: startZ = {} c->histoVtx.size() = {}, will process {} Z slices with {} entries each", startZ, c->histoVtx.size(), params.nPointsForSlope, minEntriesPerPoint);
   }
   auto dumpNonEmpty = [&binnedVect](const std::string& msg) {
     if (!msg.empty()) {
@@ -117,7 +134,7 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     }
   };
 
-  for (int counter = 0; counter < mNPointsForSlope; counter++) {
+  for (int counter = 0; counter < params.nPointsForSlope; counter++) {
     if (mVerbose) {
       LOG(info) << "Beginning of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }
@@ -125,40 +142,33 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     int counts = 0;
     for (int ii = startZ; ii < c->histoVtx.size(); ++ii) {
       bool failed = false;
-      if (mVerbose) {
-        // LOG(info) << "htmpX.size() = " << htmpX.size() << " ii = " << ii << " c->histoVtx.size() = " << c->histoVtx.size();
-      }
       if (++counts < minEntriesPerPoint) {
-        if (mVerbose) {
-          // LOG(info) << "filling X with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][0];
-          // LOG(info) << "filling Y with c->histoVtx[" << ii << "][0] = " << c->histoVtx[ii][1];
-        }
         htmpX.push_back(c->histoVtx[ii][0]);
         htmpY.push_back(c->histoVtx[ii][1]);
         meanZ += c->histoVtx[ii][2];
       } else {
         counts--;
         if (mVerbose) {
-          LOGP(info, "fitting after collecting {} entries for Z slice {} of {}", htmpX.size(), counter, mNPointsForSlope);
+          LOGP(info, "fitting after collecting {} entries for Z slice {} of {}", htmpX.size(), counter, params.nPointsForSlope);
         }
         // we can fit and restart filling
         // X:
         fitResSlicesX.push_back({});
         covMatrixX.push_back({});
+        auto hparX = binVector(binnedVect, htmpX, c, 0);
         if (mVerbose) {
-          LOG(info) << "Fitting X for counter " << counter << ", will use " << mNBinsX << " bins, from " << -mRangeX << " to " << mRangeX;
+          LOG(info) << "Fitting X for counter " << counter << ", will use " << hparX.nBins << " bins, from " << hparX.minRange << " to " << hparX.maxRange;
           for (int i = 0; i < htmpX.size(); ++i) {
             LOG(info) << "vect[" << i << "] = " << htmpX[i] << ";";
           }
         }
-        binVector(binnedVect, htmpX, mNBinsX, -mRangeX, mRangeX, mBinWidthXInv);
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for X:";
-          printVector(binnedVect, -(mRangeX), mRangeX, mBinWidthX);
-        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          printVector(binnedVect, hparX);
+        } else if (params.dumpNonEmptyBins) {
           dumpNonEmpty(fmt::format("X{} nonEmpty bins", counter));
         }
-        fitres = fitGaus(mNBinsX, &binnedVect[0], -(mRangeX), mRangeX, fitResSlicesX.back(), &covMatrixX.back());
+        fitres = fitGaus(hparX.nBins, binnedVect.data(), hparX.minRange, hparX.maxRange, fitResSlicesX.back(), &covMatrixX.back());
         if (fitres != -10) {
           LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2) << " entries = " << counts;
         } else {
@@ -170,21 +180,21 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         // Y:
         fitResSlicesY.push_back({});
         covMatrixY.push_back({});
+        binnedVect.clear();
+        auto hparY = binVector(binnedVect, htmpY, c, 1);
         if (mVerbose) {
-          LOG(info) << "Fitting Y for counter " << counter << ", will use " << mNBinsY << " bins, from " << -(mRangeY) << " to " << mRangeY;
+          LOG(info) << "Fitting Y for counter " << counter << ", will use " << hparY.nBins << " bins, from " << hparY.minRange << " to " << hparY.maxRange;
           for (int i = 0; i < htmpY.size(); ++i) {
             LOG(info) << i << " : " << htmpY[i];
           }
         }
-        binnedVect.clear();
-        binVector(binnedVect, htmpY, mNBinsY, -(mRangeY), mRangeY, mBinWidthYInv);
         if (mVerbose) {
           LOG(info) << " Printing output binned vector for Y:";
-          printVector(binnedVect, -(mRangeY), mRangeY, mBinWidthY);
-        } else if (MeanVertexParams::Instance().dumpNonEmptyBins) {
+          printVector(binnedVect, hparY);
+        } else if (params.dumpNonEmptyBins) {
           dumpNonEmpty(fmt::format("Y{} nonEmpty bins", counter));
         }
-        fitres = fitGaus(mNBinsY, &binnedVect[0], -(mRangeY), mRangeY, fitResSlicesY.back(), &covMatrixY.back());
+        fitres = fitGaus(hparY.nBins, binnedVect.data(), hparY.minRange, hparY.maxRange, fitResSlicesY.back(), &covMatrixY.back());
         if (fitres != -10) {
           LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2) << " entries = " << counts;
         } else {
@@ -220,8 +230,8 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   for (int ii = 0; ii < c->histoVtx.size(); ++ii) {
     htmpZ.push_back(c->histoVtx[ii][2]);
   }
-  binVector(binnedVect, htmpZ, mNBinsZ, -(mRangeZ), mRangeZ, mBinWidthZInv);
-  fitMeanVertexCoord(2, mNBinsZ, &binnedVect[0], -(mRangeZ), mRangeZ, mvo);
+  auto hparZ = binVector(binnedVect, htmpZ, c, 2);
+  fitMeanVertexCoord(2, binnedVect.data(), hparZ, mvo);
   htmpZ.clear();
   binnedVect.clear();
 
@@ -300,23 +310,16 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   return true;
 }
 //_____________________________________________
-void MeanVertexCalibrator::fitMeanVertexCoord(int icoord, int nbins, float* array, float minRange, float maxRange, MeanVertexObject& mvo)
+void MeanVertexCalibrator::fitMeanVertexCoord(int icoord, const float* array, const MeanVertexCalibrator::HistoParams& hpar, MeanVertexObject& mvo)
 {
   // fit mean vertex coordinate icoord
   std::vector<float> fitValues;
   float binWidth = 0;
   if (mVerbose) {
     LOG(info) << "**** Printing content of MeanVertex object for coordinate " << icoord;
-    if (icoord == 0) {
-      binWidth = mBinWidthX;
-    } else if (icoord == 1) {
-      binWidth = mBinWidthY;
-    } else {
-      binWidth = mBinWidthZ;
-    }
-    printVector(array, nbins, minRange, maxRange, binWidth);
+    printVector(array, hpar);
   }
-  double fitres = fitGaus(nbins, array, minRange, maxRange, fitValues);
+  double fitres = fitGaus(hpar.nBins, array, hpar.minRange, hpar.maxRange, fitValues);
   if (fitres != -4) {
     LOG(info) << "coordinate " << icoord << ": Fit result of full statistics => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {
@@ -342,6 +345,7 @@ void MeanVertexCalibrator::fitMeanVertexCoord(int icoord, int nbins, float* arra
 void MeanVertexCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
+  const auto& params = MeanVertexParams::Instance();
   o2::calibration::MeanVertexData* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
@@ -357,7 +361,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   // moving average
   doSimpleMovingAverage(mTmpMVobjDq, mSMAMVobj);
 
-  if (mTmpMVobjDqTime.size() > mSMAslots) {
+  if (mTmpMVobjDqTime.size() > params.nSlots4SMA) {
     mTmpMVobjDqTime.pop_front();
   }
   long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2;
@@ -380,8 +384,7 @@ void MeanVertexCalibrator::doSimpleMovingAverage(std::deque<float>& dq, float& s
 {
 
   // doing simple moving average
-
-  if (dq.size() <= mSMAslots) {
+  if (dq.size() <= MeanVertexParams::Instance().nSlots4SMA) {
     sma = std::accumulate(dq.begin(), dq.end(), 0.0) / dq.size();
     //avg = (avg * (vect.size() - 1) + vect.back()) / vect.size();
     return;
@@ -389,7 +392,7 @@ void MeanVertexCalibrator::doSimpleMovingAverage(std::deque<float>& dq, float& s
 
   // if the vector has size > mSMAslots, we calculate the SMA, and then we drop 1 element
   // (note that it can have a size > mSMAslots only of 1 element!)
-  sma += (dq[dq.size() - 1] - dq[0]) / mSMAslots;
+  sma += (dq[dq.size() - 1] - dq[0]) / MeanVertexParams::Instance().nSlots4SMA;
   dq.pop_front();
 
   return;
@@ -400,8 +403,8 @@ void MeanVertexCalibrator::doSimpleMovingAverage(std::deque<MVObject>& dq, MVObj
 {
 
   // doing simple moving average
-
-  if (dq.size() <= mSMAslots) {
+  const auto& params = MeanVertexParams::Instance();
+  if (dq.size() <= params.nSlots4SMA) {
     sma.setX((sma.getX() * (dq.size() - 1) + dq.back().getX()) / dq.size());
     sma.setY((sma.getY() * (dq.size() - 1) + dq.back().getY()) / dq.size());
     sma.setZ((sma.getZ() * (dq.size() - 1) + dq.back().getZ()) / dq.size());
@@ -419,14 +422,14 @@ void MeanVertexCalibrator::doSimpleMovingAverage(std::deque<MVObject>& dq, MVObj
 
   // if the vector has size > mSMAslots, we calculate the SMA, and then we drop 1 element
   // (note that it can have a size > mSMAslots only of 1 element!)
-  sma.setX(sma.getX() + (dq[dq.size() - 1].getX() - dq[0].getX()) / mSMAslots);
-  sma.setY(sma.getY() + (dq[dq.size() - 1].getY() - dq[0].getY()) / mSMAslots);
-  sma.setZ(sma.getZ() + (dq[dq.size() - 1].getZ() - dq[0].getZ()) / mSMAslots);
-  sma.setSigmaX(sma.getSigmaX() + (dq[dq.size() - 1].getSigmaX() - dq[0].getSigmaX()) / mSMAslots);
-  sma.setSigmaY(sma.getSigmaY() + (dq[dq.size() - 1].getSigmaY() - dq[0].getSigmaY()) / mSMAslots);
-  sma.setSigmaZ(sma.getSigmaZ() + (dq[dq.size() - 1].getSigmaZ() - dq[0].getSigmaZ()) / mSMAslots);
-  sma.setSlopeX(sma.getSlopeX() + (dq[dq.size() - 1].getSlopeX() - dq[0].getSlopeX()) / mSMAslots);
-  sma.setSlopeY(sma.getSlopeY() + (dq[dq.size() - 1].getSlopeY() - dq[0].getSlopeY()) / mSMAslots);
+  sma.setX(sma.getX() + (dq[dq.size() - 1].getX() - dq[0].getX()) / params.nSlots4SMA);
+  sma.setY(sma.getY() + (dq[dq.size() - 1].getY() - dq[0].getY()) / params.nSlots4SMA);
+  sma.setZ(sma.getZ() + (dq[dq.size() - 1].getZ() - dq[0].getZ()) / params.nSlots4SMA);
+  sma.setSigmaX(sma.getSigmaX() + (dq[dq.size() - 1].getSigmaX() - dq[0].getSigmaX()) / params.nSlots4SMA);
+  sma.setSigmaY(sma.getSigmaY() + (dq[dq.size() - 1].getSigmaY() - dq[0].getSigmaY()) / params.nSlots4SMA);
+  sma.setSigmaZ(sma.getSigmaZ() + (dq[dq.size() - 1].getSigmaZ() - dq[0].getSigmaZ()) / params.nSlots4SMA);
+  sma.setSlopeX(sma.getSlopeX() + (dq[dq.size() - 1].getSlopeX() - dq[0].getSlopeX()) / params.nSlots4SMA);
+  sma.setSlopeY(sma.getSlopeY() + (dq[dq.size() - 1].getSlopeY() - dq[0].getSlopeY()) / params.nSlots4SMA);
 
   dq.pop_front();
 
@@ -443,9 +446,18 @@ Slot& MeanVertexCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType ten
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  // slot.setContainer(std::make_unique<MeanVertexData>(mNBinsX, mRangeX, mNBinsY, mRangeY, mNBinsZ, mRangeZ));
   slot.setContainer(std::make_unique<MeanVertexData>());
   return slot;
+}
+
+bool MeanVertexCalibrator::hasEnoughData(const Slot& slot) const
+{
+  auto minReq = MeanVertexParams::Instance().minEntries * MeanVertexParams::Instance().nPointsForSlope;
+  if (mVerbose) {
+    LOG(info) << "container * " << (void*)slot.getContainer();
+    LOG(info) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << minReq;
+  }
+  return slot.getContainer()->entries >= minReq;
 }
 
 } // end namespace calibration

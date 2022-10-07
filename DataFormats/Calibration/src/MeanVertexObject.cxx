@@ -56,7 +56,6 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObje
 
 void MeanVertexObject::print() const
 {
-  VertexBase::print();
   std::cout << *this << std::endl;
 }
 
