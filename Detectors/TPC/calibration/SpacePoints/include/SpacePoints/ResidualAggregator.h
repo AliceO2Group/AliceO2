@@ -46,7 +46,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const TrackResiduals::UnbinnedResid>> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -59,7 +59,7 @@ struct ResidualsContainer {
   uint32_t runNumber;                                                        ///< run number (required for meta data file)
   std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
   std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
-  std::vector<TrackResiduals::UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes}; // unbinned residuals
+  std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     // unbinned residuals
   std::vector<TrackData> trkData, *trkDataPtr{&trkData};                                 // track data and cluster ranges
 
   std::string fileName{"o2tpc_residuals"};
@@ -84,7 +84,7 @@ struct ResidualsContainer {
   ClassDefNV(ResidualsContainer, 3);
 };
 
-class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<TrackResiduals::UnbinnedResid, ResidualsContainer>
+class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<UnbinnedResid, ResidualsContainer>
 {
   using Slot = o2::calibration::TimeSlot<ResidualsContainer>;
 
@@ -125,7 +125,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   int mAutosaveInterval{0};            ///< if >0 then the output is written to a file for every n-th TF
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)
 
-  ClassDefOverride(ResidualAggregator, 3);
+  ClassDefOverride(ResidualAggregator, 4);
 };
 
 } // namespace tpc

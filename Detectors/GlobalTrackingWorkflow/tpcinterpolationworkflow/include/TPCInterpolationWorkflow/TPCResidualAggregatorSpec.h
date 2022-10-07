@@ -92,8 +92,9 @@ class ResidualAggregatorDevice : public o2::framework::Task
   {
     auto runStartTime = std::chrono::high_resolution_clock::now();
     updateTimeDependentParams(pc);
+    std::chrono::duration<double, std::milli> ccdbUpdateTime = std::chrono::high_resolution_clock::now() - runStartTime;
 
-    auto residualsData = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("unbinnedRes");
+    auto residualsData = pc.inputs().get<gsl::span<o2::tpc::UnbinnedResid>>("unbinnedRes");
 
     // track data input is optional
     const gsl::span<const o2::tpc::TrackData>* trkDataPtr = nullptr;
@@ -104,12 +105,14 @@ class ResidualAggregatorDevice : public o2::framework::Task
       trkDataPtr = &trkData.value();
     }
 
-    auto data = std::make_pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const o2::tpc::TrackResiduals::UnbinnedResid>>(std::move(*trkData), std::move(residualsData));
+    auto data = std::make_pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const o2::tpc::UnbinnedResid>>(std::move(*trkData), std::move(residualsData));
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
     mAggregator->process(data);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
-    LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
+    LOGP(info, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
+         std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
+         std::chrono::duration_cast<std::chrono::milliseconds>(ccdbUpdateTime).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -165,7 +168,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeOutput
     Options{
       {"tf-per-slot", VariantType::UInt32, 6'000u, {"number of TFs per calibration time slot (put 0 for infinite slot length)"}},
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},
-      {"max-delay", VariantType::UInt32, 10u, {"number of slots in past to consider"}},
+      {"max-delay", VariantType::UInt32, 1u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
       {"output-dir", VariantType::String, "none", {"Output directory for residuals, must exist"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}},
