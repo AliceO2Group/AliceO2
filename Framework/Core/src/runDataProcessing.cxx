@@ -73,7 +73,6 @@
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <InfoLogger/InfoLogger.hxx>
 #include "ResourcesMonitoringHelper.h"
 
 #include <fairmq/Device.h>
@@ -146,7 +145,6 @@
 
 using namespace o2::monitoring;
 using namespace o2::configuration;
-using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
