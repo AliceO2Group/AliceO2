@@ -31,7 +31,6 @@ constexpr float PVertexer::kHugeF;
 PVertexer::PVertexer()
 {
   mMeanVertex.setSigma({0.5f, 0.5f, 6.0f});
-  initMeanVertexConstraint();
 }
 
 //___________________________________________________________________
@@ -632,14 +631,16 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
 void PVertexer::initMeanVertexConstraint()
 {
   // set mean vertex constraint and its errors
-  double det = mMeanVertex.getSigmaX2() * mMeanVertex.getSigmaY2() - mMeanVertex.getSigmaXY() * mMeanVertex.getSigmaXY();
-  if (det <= kAlmost0D || mMeanVertex.getSigmaX2() < kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D) {
+  float extraErr2 = mPVParams->meanVertexExtraErrConstraint * mPVParams->meanVertexExtraErrConstraint;
+  float ex2 = mMeanVertex.getSigmaX2() + extraErr2, ey2 = mMeanVertex.getSigmaY2() + extraErr2, exy = mMeanVertex.getSigmaXY();
+  double det = ex2 * ey2 - exy * exy;
+  if (det <= kAlmost0D || ex2 < kAlmost0D || ey2 < kAlmost0D) {
     throw std::runtime_error(fmt::format("Singular matrix for vertex constraint: sxx={:+.4e} syy={:+.4e} sxy={:+.4e}",
-                                         mMeanVertex.getSigmaX2(), mMeanVertex.getSigmaY2(), mMeanVertex.getSigmaXY()));
+                                         ex2, ey2, exy));
   }
-  mXYConstraintInvErr[0] = mMeanVertex.getSigmaY2() / det;
-  mXYConstraintInvErr[1] = -mMeanVertex.getSigmaXY() / det;
-  mXYConstraintInvErr[2] = mMeanVertex.getSigmaX2() / det;
+  mXYConstraintInvErr[0] = ey2 / det;
+  mXYConstraintInvErr[1] = -exy / det;
+  mXYConstraintInvErr[2] = ex2 / det;
 }
 
 //______________________________________________
@@ -669,6 +670,7 @@ TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
 void PVertexer::init()
 {
   mPVParams = &PVertexerParams::Instance();
+  initMeanVertexConstraint();
   setTukey(mPVParams->tukey);
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
