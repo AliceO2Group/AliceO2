@@ -27,8 +27,6 @@
 #include "Framework/Tracing.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/ObjectCache.h"
-#include "Framework/DataProcessingContext.h"
-#include "Framework/DeviceContext.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
@@ -52,6 +50,8 @@ struct ComputingQuotaEvaluator;
 /// thread instances for what makes sense to have
 /// per thread and relax the locks.
 class DataProcessingDevice;
+struct DataProcessorContext;
+struct DeviceContext;
 
 struct TaskStreamRef {
   int index = -1;
@@ -60,8 +60,8 @@ struct TaskStreamRef {
 struct TaskStreamInfo {
   /// The id of this stream
   TaskStreamRef id;
-  /// The context of the DataProcessor being run by this task
-  DataProcessorContext* context;
+  /// The registry associated to the task being run
+  ServiceRegistry* registry;
   /// The libuv task handle
   uv_work_t task;
   /// Wether or not this task is running
@@ -91,7 +91,6 @@ class DataProcessingDevice : public fair::mq::Device
   static void doPrepare(DataProcessorContext& context);
   static void handleData(DataProcessorContext& context, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
-  std::vector<DataProcessorContext> mDataProcessorContexes;
 
  protected:
   void error(const char* msg);
@@ -102,7 +101,6 @@ class DataProcessingDevice : public fair::mq::Device
   void initPollers();
   void startPollers();
   void stopPollers();
-  DeviceContext mDeviceContext;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
   /// The current internal state of this device.
