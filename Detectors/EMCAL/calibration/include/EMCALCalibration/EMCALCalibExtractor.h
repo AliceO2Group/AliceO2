@@ -224,7 +224,7 @@ class EMCALCalibExtractor
         double sumVal = boost::histogram::algorithm::sum(slicedHist);
         if (sumVal > 0.) {
           // fill the output map with the desired slicing etc.
-          outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal));
+          outputMapEnergyPerHit[sliceIndex][cellID] = meanVal;
           outputMapNHits[sliceIndex][cellID] = sumVal;
         }
 
