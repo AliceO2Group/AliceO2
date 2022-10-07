@@ -65,7 +65,7 @@ struct Preslice {
     arrow::Status status;
     if (fullSize == 0) {
       offset = 0;
-      output = input->Slice(0,0);
+      output = input->Slice(0, 0);
       return arrow::Status::OK();
     }
     for (auto slice = 0; slice < mValues->length(); ++slice) {
