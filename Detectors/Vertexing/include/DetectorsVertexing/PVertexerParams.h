@@ -40,6 +40,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   long maxTimeMSPerCluster = 10000; ///< max allowed time per TZCluster processing, ms
 
   // track selection
+  float meanVertexExtraErrSelection = 0.01; ///< extra error to meanvertex sigma used when selecting tracks
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
   float pullIniCut = 9;     ///< cut on pull (n^2 sigma) on dca to mean vertex
   float maxTimeErrorMUS = 10.0; ///< max time error in ms of the track to account
@@ -52,6 +53,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float addZSigma2 = 0.005 * 0.005; ///< increment z error^2 by this amount when calculating histo weight
 
   // fitting parameters
+  float meanVertexExtraErrConstraint = 0.; ///< extra error to meanvertex sigma used when applying constrant
   bool useMeanVertexConstraint = true; ///< use MeanVertex as extra measured point
   float tukey = kDefTukey;             ///< Tukey parameter
   float iniScale2 = 5.;              ///< initial scale to assign
