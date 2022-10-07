@@ -17,6 +17,8 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/FairMQResizableBuffer.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceSpec.h"
 #include "Headers/Stack.h"
 
 #include <fairmq/Device.h>
@@ -37,18 +39,17 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-DataAllocator::DataAllocator(ServiceRegistryRef contextRegistry,
-                             AllowedOutputRoutes routes)
-  : mAllowedOutputRoutes{std::move(routes)},
-    mRegistry{contextRegistry}
+DataAllocator::DataAllocator(ServiceRegistryRef contextRegistry)
+  : mRegistry{contextRegistry}
 {
 }
 
 RouteIndex DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 {
+  auto& allowedOutputRoutes = mRegistry.get<DeviceSpec const>().outputs;
   // FIXME: we should take timeframeId into account as well.
-  for (auto ri = 0; ri < mAllowedOutputRoutes.size(); ++ri) {
-    auto& route = mAllowedOutputRoutes[ri];
+  for (auto ri = 0; ri < allowedOutputRoutes.size(); ++ri) {
+    auto& route = allowedOutputRoutes[ri];
     if (DataSpecUtils::match(route.matcher, spec.origin, spec.description, spec.subSpec) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
       return RouteIndex{ri};
     }
@@ -281,9 +282,10 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
   if (ref.label.empty()) {
     throw runtime_error("Invalid (empty) OutputRef provided.");
   }
-  for (auto ri = 0ul, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
-    if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
-      auto spec = mAllowedOutputRoutes[ri].matcher;
+  auto& allowedOutputRoutes = mRegistry.get<DeviceSpec const>().outputs;
+  for (auto ri = 0ul, re = allowedOutputRoutes.size(); ri != re; ++ri) {
+    if (allowedOutputRoutes[ri].matcher.binding.value == ref.label) {
+      auto spec = allowedOutputRoutes[ri].matcher;
       auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
     }
@@ -294,7 +296,8 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
 
 bool DataAllocator::isAllowed(Output const& query)
 {
-  for (auto const& route : mAllowedOutputRoutes) {
+  auto& allowedOutputRoutes = mRegistry.get<DeviceSpec const>().outputs;
+  for (auto const& route : allowedOutputRoutes) {
     if (DataSpecUtils::match(route.matcher, query.origin, query.description, query.subSpec)) {
       return true;
     }

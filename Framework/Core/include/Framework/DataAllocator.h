@@ -85,7 +85,7 @@ class DataAllocator
     using value_type = T;
   };
 
-  DataAllocator(ServiceRegistryRef contextes, AllowedOutputRoutes routes);
+  DataAllocator(ServiceRegistryRef ref);
 
   DataChunk& newChunk(const Output&, size_t);
 
@@ -443,7 +443,6 @@ class DataAllocator
   }
 
  private:
-  AllowedOutputRoutes mAllowedOutputRoutes;
   ServiceRegistryRef mRegistry;
 
   RouteIndex matchDataHeader(const Output& spec, size_t timeframeId);

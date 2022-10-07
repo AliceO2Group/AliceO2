@@ -21,6 +21,7 @@ namespace o2::framework
 struct DeviceContext;
 struct ServiceRegistry;
 struct DataAllocator;
+struct DataProcessorSpec;
 
 struct DataProcessorContext {
   // These are specific of a given context and therefore
@@ -36,10 +37,10 @@ struct DataProcessorContext {
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  DataAllocator* allocator = nullptr;
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
+  DataProcessorSpec* spec = nullptr;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;

@@ -113,7 +113,6 @@ class DataProcessingDevice : public fair::mq::Device
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  DataAllocator mAllocator;
   /// Expiration handler
   std::vector<ExpirationHandler> mExpirationHandlers;
   /// Completed actions
