@@ -175,10 +175,6 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
 
   auto& deviceContext = mServiceRegistry.get<DeviceContext>(ServiceRegistry::threadSalt());
   deviceContext.device = this;
-  deviceContext.spec = &mSpec;
-  deviceContext.state = &mState;
-  deviceContext.quotaEvaluator = &mQuotaEvaluator;
-  deviceContext.stats = &mStats;
 
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
   assert(mState.loop);
@@ -217,7 +213,8 @@ void run_completion(uv_work_t* handle, int status)
 {
   auto* task = (TaskStreamInfo*)handle->data;
   auto ref = ServiceRegistryRef{*task->registry};
-  auto& context = ref.get<DataProcessorContext>();
+  auto& state = ref.get<DeviceState>();
+  auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
 
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
@@ -236,12 +233,12 @@ void run_completion(uv_work_t* handle, int status)
     monitoring.flushBuffer();
   };
 
-  for (auto& consumer : context.deviceContext->state->offerConsumers) {
-    context.deviceContext->quotaEvaluator->consume(task->id.index, consumer, reportConsumedOffer);
+  for (auto& consumer : state.offerConsumers) {
+    quotaEvaluator.consume(task->id.index, consumer, reportConsumedOffer);
   }
-  context.deviceContext->state->offerConsumers.clear();
-  context.deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
-  context.deviceContext->quotaEvaluator->dispose(task->id.index);
+  state.offerConsumers.clear();
+  quotaEvaluator.handleExpired(reportExpiredOffer);
+  quotaEvaluator.dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
 }
@@ -399,11 +396,15 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 {
   ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << " received.";
-  auto* context = (DeviceContext*)handle->data;
-  context->state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  auto* registry = (ServiceRegistry*)handle->data;
+  ServiceRegistryRef ref{*registry};
+  auto &state = ref.get<DeviceState>();
+  auto &quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
+  auto &stats = ref.get<DataProcessingStats>();
+  state.loopReason |= DeviceState::SIGNAL_ARRIVED;
   size_t ri = 0;
-  while (ri != context->quotaEvaluator->mOffers.size()) {
-    auto& offer = context->quotaEvaluator->mOffers[ri];
+  while (ri != quotaEvaluator.mOffers.size()) {
+    auto& offer = quotaEvaluator.mOffers[ri];
     // We were already offered some sharedMemory, so we
     // do not consider the offer.
     // FIXME: in principle this should account for memory
@@ -415,7 +416,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
     ri++;
   }
   // Find the first empty offer and have 1GB of shared memory there
-  for (auto& offer : context->quotaEvaluator->mOffers) {
+  for (auto& offer : quotaEvaluator.mOffers) {
     if (offer.valid == false) {
       offer.cpu = 0;
       offer.memory = 0;
@@ -425,7 +426,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
       break;
     }
   }
-  context->stats->totalSigusr1 += 1;
+  stats.totalSigusr1 += 1;
 }
 
 static auto toBeForwardedHeader = [](void* header) -> bool {
@@ -624,13 +625,15 @@ void DataProcessingDevice::initPollers()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
+  auto& spec = ref.get<DeviceSpec const>();
+  auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
-      for (size_t ci = 0; ci < deviceContext.spec->inputChannels.size(); ++ci) {
-        auto& channelSpec = deviceContext.spec->inputChannels[ci];
-        channelInfo = &deviceContext.state->inputChannelInfos[ci];
+      for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+        auto& channelSpec = spec.inputChannels[ci];
+        channelInfo = &state.inputChannelInfos[ci];
         if (channelSpec.name != channelName) {
           continue;
         }
@@ -845,7 +848,7 @@ void DataProcessingDevice::InitTask()
   // is no data pending to be processed.
   auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigusr1Handle);
-  sigusr1Handle->data = &deviceContext;
+  sigusr1Handle->data = &mServiceRegistry;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
   /// Initialise the pollers
@@ -883,18 +886,16 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.wasActive = &mWasActive;
 
   deviceContext.device = this;
-  deviceContext.spec = &mSpec;
-  deviceContext.state = &mState;
-  deviceContext.quotaEvaluator = &mQuotaEvaluator;
-  deviceContext.stats = &mStats;
   context.isSink = false;
   context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
   bool enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
 
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& spec = ref.get<DeviceSpec const>();
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
-  if (enableRateLimiting == false && deviceContext.spec->name == "internal-dpl-injected-dummy-sink") {
+  if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
     context.balancingInputs = false;
   }
   if (enableRateLimiting) {
@@ -906,7 +907,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     }
   }
 
-  ServiceRegistryRef ref{mServiceRegistry};
   context.registry = &mServiceRegistry;
   context.completed = &mCompleted;
   context.expirationHandlers = &mExpirationHandlers;
@@ -942,10 +942,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 void DataProcessingDevice::PreRun()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
-  auto& deviceContext = ref.get<DeviceContext>();
-  deviceContext.state->quitRequested = false;
-  deviceContext.state->streaming = StreamingState::Streaming;
-  for (auto& info : deviceContext.state->inputChannelInfos) {
+  auto& state = ref.get<DeviceState>();
+  state.quitRequested = false;
+  state.streaming = StreamingState::Streaming;
+  for (auto& info : state.inputChannelInfos) {
     if (info.state != InputChannelState::Pull) {
       info.state = InputChannelState::Running;
     }
@@ -1148,8 +1148,8 @@ void DataProcessingDevice::Run()
 #endif
       } else {
         auto ref = ServiceRegistryRef{mServiceRegistry};
-        auto& deviceContext = ref.get<DeviceContext>();
-        deviceContext.quotaEvaluator->handleExpired(reportExpiredOffer);
+        auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
+        quotaEvaluator.handleExpired(reportExpiredOffer);
         mWasActive = false;
       }
     } else {
@@ -1158,10 +1158,11 @@ void DataProcessingDevice::Run()
     FrameMark;
   }
   auto ref = ServiceRegistryRef{mServiceRegistry};
-  auto& deviceContext = ref.get<DeviceContext>();
+  auto& spec = ref.get<DeviceSpec const>();
+  auto& state = ref.get<DeviceState>();
   /// Cleanup messages which are still pending on exit.
-  for (size_t ci = 0; ci < deviceContext.spec->inputChannels.size(); ++ci) {
-    auto& info = deviceContext.state->inputChannelInfos[ci];
+  for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+    auto& info = state.inputChannelInfos[ci];
     info.parts.fParts.clear();
   }
   mState.transitionHandling = TransitionHandlingState::NoTransition;
@@ -1189,7 +1190,9 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   // expect to receive an EndOfStream signal. Thus we do not wait for these
   // to be completed. In the case of data source devices, as they do not have
   // real data input channels, they have to signal EndOfStream themselves.
-  context.allDone = std::any_of(context.deviceContext->state->inputChannelInfos.begin(), context.deviceContext->state->inputChannelInfos.end(), [](const auto& info) {
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
+  context.allDone = std::any_of(state.inputChannelInfos.begin(), state.inputChannelInfos.end(), [](const auto& info) {
     if (info.channel) {
       LOGP(debug, "Input channel {}{} has {} parts left and is in state {}.", info.channel->GetName(), (info.id.value == ChannelIndex::INVALID ? " (non DPL)" : ""), info.parts.fParts.size(), (int)info.state);
     } else {
@@ -1199,13 +1202,13 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   });
 
   // Whether or not all the channels are completed
-  LOGP(debug, "Processing {} input channels.", context.deviceContext->spec->inputChannels.size());
+  LOGP(debug, "Processing {} input channels.", spec.inputChannels.size());
   /// Sort channels by oldest possible timeframe and
   /// process them in such order.
   static std::vector<int> pollOrder;
-  pollOrder.resize(context.deviceContext->state->inputChannelInfos.size());
+  pollOrder.resize(state.inputChannelInfos.size());
   std::iota(pollOrder.begin(), pollOrder.end(), 0);
-  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = context.deviceContext->state->inputChannelInfos](int a, int b) {
+  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = state.inputChannelInfos](int a, int b) {
     return infos[a].oldestForChannel.value < infos[b].oldestForChannel.value;
   });
 
@@ -1213,12 +1216,12 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   if (pollOrder.empty()) {
     return;
   }
-  auto currentOldest = context.deviceContext->state->inputChannelInfos[pollOrder.front()].oldestForChannel;
-  auto currentNewest = context.deviceContext->state->inputChannelInfos[pollOrder.back()].oldestForChannel;
+  auto currentOldest = state.inputChannelInfos[pollOrder.front()].oldestForChannel;
+  auto currentNewest = state.inputChannelInfos[pollOrder.back()].oldestForChannel;
   auto delta = currentNewest.value - currentOldest.value;
   LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
        delta);
-  auto& infos = context.deviceContext->state->inputChannelInfos;
+  auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
     static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : 8;
@@ -1230,8 +1233,8 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   LOGP(debug, "processing {} channels", pollOrder.size());
 
   for (auto sci : pollOrder) {
-    auto& info = context.deviceContext->state->inputChannelInfos[sci];
-    auto& channelSpec = context.deviceContext->spec->inputChannels[sci];
+    auto& info = state.inputChannelInfos[sci];
+    auto& channelSpec = spec.inputChannels[sci];
     LOGP(debug, "Processing channel {}", channelSpec.name);
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
@@ -1311,15 +1314,18 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 
 void DataProcessingDevice::doRun(DataProcessorContext& context)
 {
-  auto switchState = [&registry = context.registry,
-                      &state = context.deviceContext->state](StreamingState newState) {
-    LOG(detail) << "New state " << (int)newState << " old state " << (int)state->streaming;
+  auto switchState = [&registry = context.registry](StreamingState newState) {
     ServiceRegistryRef ref{*registry};
-    state->streaming = newState;
-    ref.get<ControlService>().notifyStreamingState(state->streaming);
+    auto &state = ref.get<DeviceState>();
+    LOG(detail) << "New state " << (int)newState << " old state " << (int)state.streaming;
+    state.streaming = newState;
+    ref.get<ControlService>().notifyStreamingState(state.streaming);
   };
+  ServiceRegistryRef ref{*context.registry};
+  auto &state = ref.get<DeviceState>();
+  auto &spec = ref.get<DeviceSpec const>();
 
-  if (context.deviceContext->state->streaming == StreamingState::Idle) {
+  if (state.streaming == StreamingState::Idle) {
     *context.wasActive = false;
     return;
   }
@@ -1334,7 +1340,6 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     ServiceRegistryRef ref{*context.registry};
     ref.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  ServiceRegistryRef ref{*context.registry};
   auto activity = ref.get<DataRelayer>().processDanglingInputs(*context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
@@ -1347,12 +1352,12 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   // callback and return false. Notice that what happens next is actually
   // dependent on the callback, not something which is controlled by the
   // framework itself.
-  if (context.allDone == true && context.deviceContext->state->streaming == StreamingState::Streaming) {
+  if (context.allDone == true && state.streaming == StreamingState::Streaming) {
     switchState(StreamingState::EndOfStreaming);
     *context.wasActive = true;
   }
 
-  if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+  if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
     ServiceRegistryRef ref{*context.registry};
     ref.get<DriverClient>().flushPending();
@@ -1361,7 +1366,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // I guess we will see.
     /// Besides flushing the queues we must make sure we do not have only
     /// timers as they do not need to be further processed.
-    bool hasOnlyGenerated = (context.deviceContext->spec->inputChannels.size() == 1) && (context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Timer || context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Enumeration);
+    bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
     auto &relayer = ref.get<DataRelayer>();
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed) && hasOnlyGenerated == false) {
       relayer.processDanglingInputs(*context.expirationHandlers, *context.registry, false);
@@ -1372,7 +1377,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     ref.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
     context.registry->postEOSCallbacks(eosContext);
 
-    for (auto& channel : context.deviceContext->spec->outputChannels) {
+    for (auto& channel : spec.outputChannels) {
       LOGP(detail, "Sending end of stream to {}", channel.name);
       DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
     }
@@ -1386,16 +1391,16 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     }
     // On end of stream we shut down all output pollers.
     LOGP(detail, "Shutting down output pollers");
-    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+    for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
     return;
   }
 
-  if (context.deviceContext->state->streaming == StreamingState::Idle) {
+  if (state.streaming == StreamingState::Idle) {
     // On end of stream we shut down all output pollers.
     LOGP(detail, "We are in Idle. Shutting down output pollers.");
-    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+    for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
   }
@@ -1422,11 +1427,6 @@ struct WaitBackpressurePolicy {
 void DataProcessingDevice::handleData(DataProcessorContext& context, InputChannelInfo& info)
 {
   ZoneScopedN("DataProcessingDevice::handleData");
-  assert(context.deviceContext->spec->inputChannels.empty() == false);
-
-  // Initial part. Let's hide all the unnecessary and have
-  // simple lambdas for each of the steps I am planning to have.
-  assert(!context.deviceContext->spec->inputs.empty());
 
   enum struct InputType : int {
     Invalid = 0,
@@ -1874,12 +1874,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 #endif
 
-  auto switchState = [&registry = context.registry,
-                      &state = context.deviceContext->state](StreamingState newState) {
+  auto switchState = [&registry = context.registry](StreamingState newState) {
     ServiceRegistryRef ref{*registry};
     auto &control = ref.get<ControlService>();
-    state->streaming = newState;
-    control.notifyStreamingState(state->streaming);
+    auto &state = ref.get<DeviceState>();
+    state.streaming = newState;
+    control.notifyStreamingState(state.streaming);
   };
 
   if (canDispatchSomeComputation() == false) {
@@ -1921,6 +1921,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // This is the main dispatching loop
   LOGP(debug, "Processing actions:");
   ServiceRegistryRef ref{*context.registry};
+  auto &state = ref.get<DeviceState>();
+  auto &spec = ref.get<DeviceSpec const>();
+
   for (auto action : getReadyActions()) {
     LOGP(debug, "  Begin action");
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
@@ -1941,7 +1944,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
                          action.op == CompletionPolicy::CompletionOp::Discard;
     InputSpan span = getInputSpan(action.slot, shouldConsume);
-    InputRecord record{context.deviceContext->spec->inputs,
+    auto &spec = ref.get<DeviceSpec const>();
+    InputRecord record{spec.inputs,
                        span,
                        *context.registry};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
@@ -1953,7 +1957,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       LOGP(debug, "  - Action is to Discard");
       context.registry->postDispatchingCallbacks(processContext);
-      if (context.deviceContext->spec->forwards.empty() == false) {
+      if (spec.forwards.empty() == false) {
         auto& timesliceIndex = ref.get<TimesliceIndex>();
         forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
         continue;
@@ -1963,7 +1967,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // the messages to that parallel processing can happen.
     // In this case we pass true to indicate that we want to
     // copy the messages to the subsequent data processor.
-    bool hasForwards = context.deviceContext->spec->forwards.empty() == false;
+    bool hasForwards = spec.forwards.empty() == false;
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
     if (context.canForwardEarly && hasForwards && consumeSomething) {
@@ -1980,7 +1984,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
       ServiceRegistryRef ref{*context.registry};
-      if (context.deviceContext->state->quitRequested == false) {
+      auto &state = ref.get<DeviceState>();
+      auto &spec = ref.get<DeviceSpec const>();
+      if (state.quitRequested == false) {
         {
           ZoneScopedN("service post processing");
           // Callbacks from services
@@ -1995,12 +2001,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           ZoneScopedN("stateless process");
           (*context.statelessProcess)(processContext);
         } else {
-          context.deviceContext->state->streaming = StreamingState::Idle;
+          state.streaming = StreamingState::Idle;
         }
 
         // Notify the sink we just consumed some timeframe data
         if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
-          context.allocator->make<int>(OutputRef{"dpl-summary", compile_time_hash(context.deviceContext->spec->name.c_str())}, 1);
+          context.allocator->make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
         }
 
         {
@@ -2011,8 +2017,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       }
     };
 
-    if ((context.deviceContext->state->tracingFlags & DeviceState::LoopReason::TRACE_USERCODE) != 0) {
-      context.deviceContext->state->severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+    if ((state.tracingFlags & DeviceState::LoopReason::TRACE_USERCODE) != 0) {
+      state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
       fair::Logger::SetConsoleSeverity(fair::Severity::trace);
     }
     if (noCatch) {
@@ -2032,9 +2038,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         (*context.errorHandling)(e, record);
       }
     }
-    if (context.deviceContext->state->severityStack.empty() == false) {
-      fair::Logger::SetConsoleSeverity((fair::Severity)context.deviceContext->state->severityStack.back());
-      context.deviceContext->state->severityStack.pop_back();
+    if (state.severityStack.empty() == false) {
+      fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+      state.severityStack.pop_back();
     }
 
     postUpdateStats(action, record, tStart);
@@ -2058,10 +2064,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       cleanTimers(action.slot, record);
     }
   }
+
   // We now broadcast the end of stream if it was requested
-  if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+  if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "Broadcasting end of stream");
-    for (auto& channel : context.deviceContext->spec->outputChannels) {
+    for (auto& channel : spec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
     }
     switchState(StreamingState::Idle);

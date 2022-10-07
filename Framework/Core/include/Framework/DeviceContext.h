@@ -33,10 +33,6 @@ struct DeviceContext {
   // These are pointers to the one owned by the DataProcessingDevice
   // and therefore require actual locking
   DataProcessingDevice* device = nullptr;
-  DeviceSpec const* spec = nullptr;
-  DeviceState* state = nullptr;
-  ComputingQuotaEvaluator* quotaEvaluator = nullptr;
-  DataProcessingStats* stats = nullptr;
   ComputingQuotaStats* quotaStats = nullptr;
   uv_timer_t* gracePeriodTimer = nullptr;
   int expectedRegionCallbacks = 0;
