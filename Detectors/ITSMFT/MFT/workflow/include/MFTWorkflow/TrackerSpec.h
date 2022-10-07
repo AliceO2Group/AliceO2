@@ -34,7 +34,7 @@ class TrackerDPL : public o2::framework::Task
 {
 
  public:
-  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
+  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int nThreads = 1) : mGGCCDBRequest(gr), mUseMC(useMC), mNThreads(nThreads) {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -46,11 +46,13 @@ class TrackerDPL : public o2::framework::Task
 
   bool mUseMC = false;
   bool mFieldOn = true;
+  int mNThreads = 1;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
-  std::unique_ptr<o2::mft::Tracker<TrackLTF>> mTracker = nullptr;
-  std::unique_ptr<o2::mft::Tracker<TrackLTFL>> mTrackerL = nullptr;
+  std::vector<std::unique_ptr<o2::mft::Tracker<TrackLTF>>> mTrackerVec;
+  std::vector<std::unique_ptr<o2::mft::Tracker<TrackLTFL>>> mTrackerLVec;
+
   enum TimerIDs { SWTot,
                   SWLoadData,
                   SWFindLTFTracks,
@@ -58,7 +60,7 @@ class TrackerDPL : public o2::framework::Task
                   SWFitTracks,
                   SWComputeLabels,
                   NStopWatches };
-  static constexpr std::string_view TimerName[] = {"Total",
+  static constexpr std::string_view TimerName[] = {"TotalProcessing",
                                                    "LoadData",
                                                    "FindLTFTracks",
                                                    "FindCATracks",
@@ -68,8 +70,7 @@ class TrackerDPL : public o2::framework::Task
 };
 
 /// create a processor spec
-/// run MFT CA tracker
-o2::framework::DataProcessorSpec getTrackerSpec(bool useMC);
+o2::framework::DataProcessorSpec getTrackerSpec(bool useMC, int nThreads);
 
 } // namespace mft
 } // namespace o2

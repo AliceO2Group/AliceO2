@@ -31,6 +31,7 @@ framework::WorkflowSpec getWorkflow(
   bool runAssessment,
   bool processGen,
   bool runTracking,
+  int nThreads,
   bool runTracks2Records);
 }
 

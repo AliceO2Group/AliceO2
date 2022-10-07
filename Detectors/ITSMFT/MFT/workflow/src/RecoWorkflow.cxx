@@ -37,6 +37,7 @@ framework::WorkflowSpec getWorkflow(
   bool runAssessment,
   bool processGen,
   bool runTracking,
+  int nThreads,
   bool runTracks2Records)
 {
   framework::WorkflowSpec specs;
@@ -51,7 +52,7 @@ framework::WorkflowSpec getWorkflow(
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
   if (runTracking) {
-    specs.emplace_back(o2::mft::getTrackerSpec(useMC));
+    specs.emplace_back(o2::mft::getTrackerSpec(useMC, nThreads));
     if (!disableRootOutput) {
       specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
     }

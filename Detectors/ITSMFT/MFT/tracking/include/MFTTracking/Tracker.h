@@ -49,13 +49,10 @@ class Tracker : public TrackerConfig
   void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
-  auto& getTracks() { return mTracks; }
-  auto& getTracksLTF() { return mTracksLTF; }
   auto& getTrackLabels() { return mTrackLabels; }
 
   void clearTracks()
   {
-    mTracks.clear();
     mTrackLabels.clear();
   }
 
@@ -64,9 +61,6 @@ class Tracker : public TrackerConfig
   bool fitTracks(ROframe<T>&);
 
   void computeTracksMClabels(const std::vector<T>&);
-
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
-  std::uint32_t getROFrame() const { return mROFrame; }
 
   void initialize(bool fullClusterScan = false);
   void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
@@ -90,10 +84,6 @@ class Tracker : public TrackerConfig
   void addCellToCurrentRoad(ROframe<T>&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
   Float_t mBz = 5.f;
-  std::uint32_t mROFrame = 0;
-  std::vector<TrackMFTExt> mTracks;
-  std::vector<T> mTracksLTF;
-  std::vector<Cluster> mClusters;
   std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
 

@@ -41,11 +41,8 @@ template <typename T>
 class ROframe
 {
  public:
-  ROframe(const Int_t ROframeId) : mROframeId{ROframeId} {}
-  Int_t getROFrameId() const { return mROframeId; }
+  ROframe(int nReservedTracks = 1000) { mTracks.reserve(nReservedTracks); }
   Int_t getTotalClusters() const;
-
-  void setROFrameId(const Int_t rofid) { mROframeId = rofid; }
 
   std::vector<Cluster>& getClustersInLayer(Int_t layerId) { return mClusters[layerId]; }
 
@@ -97,7 +94,6 @@ class ROframe
   const Int_t getNClustersInLayer(Int_t layerId) const { return mClusters[layerId].size(); }
 
  private:
-  Int_t mROframeId;
   std::array<std::vector<Cluster>, constants::mft::LayersNumber> mClusters;
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
