@@ -27,7 +27,7 @@ add_subdirectory(RootAnalysisHelpers)
 
 # Build the GUI support only if we have DebugGUI
 if (TARGET AliceO2::DebugGUI)
-add_subdirectory(GUISupport) 
+add_subdirectory(GUISupport)
 endif()
 
-add_subdirectory(TestWorkflows) 
+add_subdirectory(TestWorkflows)
