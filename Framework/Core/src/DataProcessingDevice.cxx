@@ -121,10 +121,10 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
-    mAllocator{{registry}, mSpec.outputs},
     mProcessingPolicies{policies},
     mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>(ServiceRegistry::threadSalt())}
 {
+
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
     mErrorHandling = [&errorCallback = mError,
@@ -907,7 +907,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.registry = &mServiceRegistry;
   context.completed = &mCompleted;
   context.expirationHandlers = &mExpirationHandlers;
-  context.allocator = &mAllocator;
   context.statefulProcess = &mStatefulProcess;
   context.statelessProcess = &mStatelessProcess;
   context.error = &mError;
@@ -1367,7 +1366,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed) && hasOnlyGenerated == false) {
       relayer.processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
-    EndOfStreamContext eosContext{*context.registry, *context.allocator};
+    EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
     context.registry->preEOSCallbacks(eosContext);
     ref.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
@@ -1945,7 +1944,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     InputRecord record{spec.inputs,
                        span,
                        *context.registry};
-    ProcessingContext processContext{record, *context.registry, *context.allocator};
+    ProcessingContext processContext{record, *context.registry, ref.get<DataAllocator>()};
     {
       ZoneScopedN("service pre processing");
       context.registry->preProcessingCallbacks(processContext);
@@ -2003,7 +2002,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         // Notify the sink we just consumed some timeframe data
         if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
-          context.allocator->make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
+          auto& allocator = ref.get<DataAllocator>();
+          allocator.make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
         }
 
         {

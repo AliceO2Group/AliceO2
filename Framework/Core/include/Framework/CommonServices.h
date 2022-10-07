@@ -75,6 +75,7 @@ struct CommonServices {
   static ServiceSpec decongestionSpec();
   static ServiceSpec asyncQueue();
   static ServiceSpec guiMetricsSpec();
+  static ServiceSpec dataAllocatorSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

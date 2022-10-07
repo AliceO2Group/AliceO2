@@ -760,8 +760,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessorContextSpec()
   return ServiceSpec{
     .name = "data-processing-context",
     .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto* context = new DataProcessorContext();
-      return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessorContext>(), context};
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessorContext>(), new DataProcessorContext()};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -772,8 +771,18 @@ o2::framework::ServiceSpec CommonServices::deviceContextSpec()
   return ServiceSpec{
     .name = "device-context",
     .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto* context = new DeviceContext();
-      return ServiceHandle{TypeIdHelpers::uniqueId<DeviceContext>(), context};
+      return ServiceHandle{TypeIdHelpers::uniqueId<DeviceContext>(), new DeviceContext()};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
+o2::framework::ServiceSpec CommonServices::dataAllocatorSpec()
+{
+  return ServiceSpec{
+    .name = "data-allocator",
+    .init = [](ServiceRegistryRef ref, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataAllocator>(), new DataAllocator(ref)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -784,6 +793,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
     dataProcessorContextSpec(),
+    dataAllocatorSpec(),
     asyncQueue(),
     timingInfoSpec(),
     timesliceIndex(),
