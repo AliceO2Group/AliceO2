@@ -923,7 +923,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
     std::vector<int>& v = PixelType == "Noisy" ? mNoisyPixID[chipID] : PixelType == "Dead" ? mDeadPixID[chipID]
                                                                                            : mIneffPixID[chipID];
     // Number of pixel types
-    int n_pixel = v.size(), nDcols = 0, nNoisy = 0;
+    int n_pixel = v.size(), nDcols = 0;
     std::string ds = "-1"; // dummy string
     // find bad dcols and add them one by one
     if (PixelType == "Noisy") {
@@ -955,7 +955,6 @@ void ITSThresholdCalibrator::addDatabaseEntry(
 
           // Noisy pixel IDs
           pixIDs_Noisy += std::to_string(v[i]);
-          nNoisy++;
           if (i + 1 < v.size()) {
             pixIDs_Noisy += '|';
           }
@@ -1012,7 +1011,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
       o2::dcs::addConfigItem(this->mPixStat, "DcolNos", "-1");
     } else {
       o2::dcs::addConfigItem(this->mPixStat, "PixelType", PixelType);
-      o2::dcs::addConfigItem(this->mPixStat, "PixelNos", nNoisy);
+      o2::dcs::addConfigItem(this->mPixStat, "PixelNos", n_pixel);
       o2::dcs::addConfigItem(this->mPixStat, "DcolNos", nDcols);
     }
   }
