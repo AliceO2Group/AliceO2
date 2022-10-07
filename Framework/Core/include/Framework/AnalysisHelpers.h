@@ -230,10 +230,10 @@ struct Sparse {
 namespace
 {
 template <typename T, typename Key>
-inline arrow::ChunkedArray* getIndexToKey(arrow::Table* table)
+inline std::shared_ptr<arrow::ChunkedArray> getIndexToKey(arrow::Table* table)
 {
   using IC = framework::pack_element_t<framework::has_type_at_conditional<soa::is_binding_compatible, Key>(typename T::external_index_columns_t{}), typename T::external_index_columns_t>;
-  return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{})).get();
+  return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{}));
 }
 
 template <typename C>
