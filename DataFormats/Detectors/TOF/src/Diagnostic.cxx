@@ -59,9 +59,14 @@ int Diagnostic::getFrequency(ULong64_t pattern) const
   return 0;
 }
 
-void Diagnostic::print() const
+void Diagnostic::print(bool longFormat) const
 {
-  LOG(info) << "Diagnostic patterns";
+  LOG(info) << "Diagnostic patterns, entries = " << mVector.size();
+
+  if (!longFormat) {
+    return;
+  }
+
   for (const auto& [key, value] : mVector) {
     std::cout << key << " = " << value << "; ";
   }
