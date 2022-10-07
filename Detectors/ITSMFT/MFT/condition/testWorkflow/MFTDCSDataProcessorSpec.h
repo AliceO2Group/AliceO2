@@ -57,9 +57,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
   //________________________________________________________________
   void init(o2::framework::InitContext& ic) final
   {
-
-    // o2::conf::ConfigurableParam::updateFromString(ic.options().get<std::string>("configKeyValues"));
-
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
