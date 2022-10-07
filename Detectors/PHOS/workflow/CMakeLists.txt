@@ -23,6 +23,7 @@ o2_add_library(PHOSWorkflow
                        src/EventBuilderSpec.cxx
                        src/StandaloneAODProducerSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS
+                                     O2::MathUtils
                                      O2::DPLUtils
                                      O2::PHOSBase
                                      O2::PHOSSimulation
@@ -52,4 +53,4 @@ o2_add_executable(event-builder
 o2_add_executable(standalone-aod-producer-workflow
                   COMPONENT_NAME phos
                   SOURCES src/phos-standalone-aod-producer-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow O2::MathUtils)
