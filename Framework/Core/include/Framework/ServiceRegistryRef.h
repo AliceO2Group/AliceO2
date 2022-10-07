@@ -37,7 +37,8 @@ class ServiceRegistryRef
   // The dataProcessorId will be used to distinguish between different
   // data processors when
   ServiceRegistryRef(ServiceRegistry& registry)
-    : mRegistry(registry)
+    : mRegistry(registry),
+      mSalt(ServiceRegistry::threadSalt())
   {
   }
 
@@ -45,7 +46,7 @@ class ServiceRegistryRef
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, bool> active() const
   {
-    return mRegistry.active<T>(ServiceRegistry::threadSalt());
+    return mRegistry.active<T>(mSalt);
   }
 
   /// Get a service for the given interface T. The returned reference exposed to
@@ -54,7 +55,7 @@ class ServiceRegistryRef
   template <typename T>
   T& get() const
   {
-    return mRegistry.get<T>(ServiceRegistry::threadSalt());
+    return mRegistry.get<T>(mSalt);
   }
 
   /// Invoke before sending messages @a parts on a channel @a channelindex
@@ -65,6 +66,7 @@ class ServiceRegistryRef
 
  private:
   ServiceRegistry& mRegistry;
+  ServiceRegistry::Salt mSalt;
 };
 
 } // namespace o2::framework
