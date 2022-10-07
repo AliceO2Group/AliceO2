@@ -41,6 +41,9 @@
 #include "Framework/Monitoring.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceContext.h"
+
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DecongestionService.h"
@@ -170,11 +173,12 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   mStreams.resize(1);
   mHandles.resize(1);
 
-  mDeviceContext.device = this;
-  mDeviceContext.spec = &mSpec;
-  mDeviceContext.state = &mState;
-  mDeviceContext.quotaEvaluator = &mQuotaEvaluator;
-  mDeviceContext.stats = &mStats;
+  auto& deviceContext = mServiceRegistry.get<DeviceContext>(ServiceRegistry::threadSalt());
+  deviceContext.device = this;
+  deviceContext.spec = &mSpec;
+  deviceContext.state = &mState;
+  deviceContext.quotaEvaluator = &mQuotaEvaluator;
+  deviceContext.stats = &mStats;
 
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
   assert(mState.loop);
@@ -201,7 +205,8 @@ void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
   auto* task = (TaskStreamInfo*)handle->data;
-  DataProcessorContext& context = *task->context;
+  auto ref = ServiceRegistryRef{*task->registry};
+  auto& context = ref.get<DataProcessorContext>();
   DataProcessingDevice::doPrepare(context);
   DataProcessingDevice::doRun(context);
   //  FrameMark;
@@ -211,8 +216,8 @@ void run_callback(uv_work_t* handle)
 void run_completion(uv_work_t* handle, int status)
 {
   auto* task = (TaskStreamInfo*)handle->data;
-  DataProcessorContext& context = *task->context;
-  auto ref = ServiceRegistryRef{*context.registry};
+  auto ref = ServiceRegistryRef{*task->registry};
+  auto& context = ref.get<DataProcessorContext>();
 
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
@@ -617,13 +622,15 @@ void on_awake_main_thread(uv_async_t* handle)
 
 void DataProcessingDevice::initPollers()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
-      for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
-        auto& channelSpec = mDeviceContext.spec->inputChannels[ci];
-        channelInfo = &mDeviceContext.state->inputChannelInfos[ci];
+      for (size_t ci = 0; ci < deviceContext.spec->inputChannels.size(); ++ci) {
+        auto& channelSpec = deviceContext.spec->inputChannels[ci];
+        channelInfo = &deviceContext.state->inputChannelInfos[ci];
         if (channelSpec.name != channelName) {
           continue;
         }
@@ -689,7 +696,7 @@ void DataProcessingDevice::initPollers()
       // we move to OutOfBand InputSpec.
       if (mState.inputChannelInfos.empty()) {
         LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
-        mDeviceContext.exitTransitionTimeout = 0;
+        deviceContext.exitTransitionTimeout = 0;
       }
       for (auto& [channelName, channel] : fChannels) {
         if (channelName.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
@@ -726,7 +733,7 @@ void DataProcessingDevice::initPollers()
     }
   } else {
     LOGP(detail, "This is a fake device so we exit after the first iteration.");
-    mDeviceContext.exitTransitionTimeout = 0;
+    deviceContext.exitTransitionTimeout = 0;
     // This is a fake device, so we can request to exit immediately
     ServiceRegistryRef ref{mServiceRegistry};
     ref.get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -742,6 +749,9 @@ void DataProcessingDevice::initPollers()
 
 void DataProcessingDevice::startPollers()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+
   for (auto& poller : mState.activeInputPollers) {
     uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
   }
@@ -752,13 +762,15 @@ void DataProcessingDevice::startPollers()
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
   }
 
-  mDeviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-  mDeviceContext.gracePeriodTimer->data = &mState;
-  uv_timer_init(mState.loop, mDeviceContext.gracePeriodTimer);
+  deviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+  deviceContext.gracePeriodTimer->data = &mState;
+  uv_timer_init(mState.loop, deviceContext.gracePeriodTimer);
 }
 
 void DataProcessingDevice::stopPollers()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
   LOGP(detail, "Stopping {} input pollers", mState.activeInputPollers.size());
   for (auto& poller : mState.activeInputPollers) {
     uv_poll_stop(poller);
@@ -772,13 +784,15 @@ void DataProcessingDevice::stopPollers()
     uv_poll_stop(poller);
   }
 
-  uv_timer_stop(mDeviceContext.gracePeriodTimer);
-  free(mDeviceContext.gracePeriodTimer);
-  mDeviceContext.gracePeriodTimer = nullptr;
+  uv_timer_stop(deviceContext.gracePeriodTimer);
+  free(deviceContext.gracePeriodTimer);
+  deviceContext.gracePeriodTimer = nullptr;
 }
 
 void DataProcessingDevice::InitTask()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
   auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
   int i = 0;
   for (auto& di : distinct) {
@@ -803,11 +817,11 @@ void DataProcessingDevice::InitTask()
     uv_async_init(mState.loop, mState.awakeMainThread, on_awake_main_thread);
   }
 
-  mDeviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
-  mDeviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
+  deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
+  deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
@@ -831,7 +845,7 @@ void DataProcessingDevice::InitTask()
   // is no data pending to be processed.
   auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigusr1Handle);
-  sigusr1Handle->data = &mDeviceContext;
+  sigusr1Handle->data = &deviceContext;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
   /// Initialise the pollers
@@ -845,14 +859,17 @@ void DataProcessingDevice::InitTask()
   // We should be ready to run here. Therefore we copy all the
   // required parts in the DataProcessorContext. Eventually we should
   // do so on a per thread basis, with fine grained locks.
-  mDataProcessorContexes.resize(1);
-  this->fillContext(mDataProcessorContexes.at(0), mDeviceContext);
+  // FIXME: this should not use ServiceRegistry::threadSalt, but
+  // more a ServiceRegistry::globalDataProcessorSalt(N) where
+  // N is the number of the multiplexed data processor.
+  // We will get there.
+  this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::threadSalt()), deviceContext);
 
   /// We now run an event loop also in InitTask. This is needed to:
   /// * Make sure region registration callbacks are invoked
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
-  while (mDeviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
+  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
@@ -924,15 +941,16 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 
 void DataProcessingDevice::PreRun()
 {
-  mDeviceContext.state->quitRequested = false;
-  mDeviceContext.state->streaming = StreamingState::Streaming;
-  for (auto& info : mDeviceContext.state->inputChannelInfos) {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+  deviceContext.state->quitRequested = false;
+  deviceContext.state->streaming = StreamingState::Streaming;
+  for (auto& info : deviceContext.state->inputChannelInfos) {
     if (info.state != InputChannelState::Pull) {
       info.state = InputChannelState::Running;
     }
   }
   mServiceRegistry.preStartCallbacks();
-  ServiceRegistryRef ref{mServiceRegistry};
   ref.get<CallbackService>()(CallbackService::Id::Start);
   startPollers();
 }
@@ -986,11 +1004,12 @@ void DataProcessingDevice::Run()
       }
       if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
         mState.transitionHandling = TransitionHandlingState::Requested;
-        auto timeout = mDeviceContext.exitTransitionTimeout;
+        auto& deviceContext = ref.get<DeviceContext>();
+        auto timeout = deviceContext.exitTransitionTimeout;
         if (timeout != 0 && mState.streaming != StreamingState::Idle) {
           mState.transitionHandling = TransitionHandlingState::Requested;
           uv_update_time(mState.loop);
-          uv_timer_start(mDeviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
+          uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
           } else {
@@ -1119,7 +1138,7 @@ void DataProcessingDevice::Run()
       if (enough) {
         stream.id = streamRef;
         stream.running = true;
-        stream.context = &mDataProcessorContexes.at(0);
+        stream.registry = &mServiceRegistry;
 #ifdef DPL_ENABLE_THREADING
         stream.task.data = &handle;
         uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
@@ -1128,7 +1147,9 @@ void DataProcessingDevice::Run()
         run_completion(&handle, 0);
 #endif
       } else {
-        mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
+        auto ref = ServiceRegistryRef{mServiceRegistry};
+        auto& deviceContext = ref.get<DeviceContext>();
+        deviceContext.quotaEvaluator->handleExpired(reportExpiredOffer);
         mWasActive = false;
       }
     } else {
@@ -1136,9 +1157,11 @@ void DataProcessingDevice::Run()
     }
     FrameMark;
   }
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
   /// Cleanup messages which are still pending on exit.
-  for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
-    auto& info = mDeviceContext.state->inputChannelInfos[ci];
+  for (size_t ci = 0; ci < deviceContext.spec->inputChannels.size(); ++ci) {
+    auto& info = deviceContext.state->inputChannelInfos[ci];
     info.parts.fParts.clear();
   }
   mState.transitionHandling = TransitionHandlingState::NoTransition;

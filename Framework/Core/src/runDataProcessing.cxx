@@ -52,6 +52,7 @@
 #include "Framework/TopologyPolicy.h"
 #include "Framework/WorkflowSpecNode.h"
 #include "Framework/GuiCallbackContext.h"
+#include "Framework/DeviceContext.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -1098,6 +1099,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   std::unique_ptr<DeviceState> deviceState;
   std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
   std::unique_ptr<FairMQDeviceProxy> deviceProxy;
+  std::unique_ptr<DeviceContext> deviceContext;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1108,6 +1110,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceState,
                                      &deviceProxy,
                                      &processingPolicies,
+                                     &deviceContext,
                                      &loop](fair::mq::DeviceRunner& r) {
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
@@ -1120,8 +1123,10 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
+    deviceContext = std::make_unique<DeviceContext>();
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
