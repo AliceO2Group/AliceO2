@@ -467,17 +467,11 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[], const float max[], const unsigned int n[])
 {
-#ifndef GPUCA_ALIROOT_LIB
-  LOGP(info, "--- Initalizing regular grid ---");
-#endif
   for (unsigned int i = 0; i < Dim; ++i) {
     mMin[i] = min[i];
     mMax[i] = max[i];
     mN[i] = n[i];
     mInvSpacing[i] = (mN[i] - 1) / (mMax[i] - mMin[i]);
-#ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, "Setting {} fits for x[{}]", getNPolynomials(i), i);
-#endif
   }
   construct();
 }
