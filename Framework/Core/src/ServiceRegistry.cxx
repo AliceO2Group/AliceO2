@@ -28,7 +28,7 @@ ServiceRegistry::ServiceRegistry(ServiceRegistry const& other)
   }
 }
 
-ServiceRegistry& ServiceRegistry::operator=(ServiceRegistry const& other)
+ServiceRegistryRef ServiceRegistry::operator=(ServiceRegistry const& other)
 {
   for (size_t i = 0; i < MAX_SERVICES; ++i) {
     mServicesKey[i].store(other.mServicesKey[i].load());
@@ -240,14 +240,14 @@ void ServiceRegistry::preExitCallbacks()
   }
 }
 
-void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
+void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistryRef registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
 {
   for (auto& handle : mDomainInfoHandles) {
     handle.callback(*this, oldestPossibleTimeslice, channelIndex);
   }
 }
 
-void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
+void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistryRef registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
   for (auto& handle : mPreSendingMessagesHandles) {
     handle.callback(*this, parts, channelIndex);

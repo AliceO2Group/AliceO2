@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_WSDRIVERCLIENT_H_
 
 #include "Framework/DriverClient.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <uv.h>
 #include <functional>
 #include <memory>
@@ -37,7 +38,7 @@ struct DeviceSpec;
 class WSDriverClient : public DriverClient
 {
  public:
-  WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port);
+  WSDriverClient(ServiceRegistryRef registry, DeviceState& state, char const* ip, unsigned short port);
   ~WSDriverClient();
   void tell(const char* msg, size_t s, bool flush = true) final;
   void flushPending() final;

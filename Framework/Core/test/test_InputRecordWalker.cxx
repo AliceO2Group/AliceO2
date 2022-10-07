@@ -39,7 +39,7 @@ struct DataSet {
   using TaggedSet = std::pair<o2::header::DataOrigin, MessageSet>;
   using Messages = std::vector<TaggedSet>;
   using CheckType = std::vector<std::string>;
-  DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v, ServiceRegistry& registry)
+  DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v, ServiceRegistryRef registry)
     : schema{std::move(s)}, messages{std::move(m)}, span{[this](size_t i, size_t part) {
                                                            BOOST_REQUIRE(i < this->messages.size());
                                                            BOOST_REQUIRE(part < this->messages[i].second.size() / 2);

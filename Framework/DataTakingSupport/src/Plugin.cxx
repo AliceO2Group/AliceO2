@@ -46,7 +46,7 @@ struct InfoLoggerContextPlugin : o2::framework::ServicePlugin {
       .name = "infologger-contex",
       .init = CommonServices::simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
       .configure = CommonServices::noConfiguration(),
-      .start = [](ServiceRegistry& services, void* service) {
+      .start = [](ServiceRegistryRef services, void* service) {
         auto& infoLoggerContext = services.get<InfoLoggerContext>();
         auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
         infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
@@ -128,7 +128,7 @@ struct InfoLoggerPlugin : o2::framework::ServicePlugin {
   {
     return new ServiceSpec{
       .name = "infologger",
-      .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
         auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
         auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
         if (infoLoggerSeverity.empty() == false && options.GetPropertyAsString("infologger-mode") == "") {

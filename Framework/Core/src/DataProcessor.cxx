@@ -34,7 +34,7 @@ using DataHeader = o2::header::DataHeader;
 namespace o2::framework
 {
 
-void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry& services)
+void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistryRef services)
 {
   auto& proxy = services.get<FairMQDeviceProxy>();
   std::vector<fair::mq::Parts> outputsPerChannel;
@@ -58,7 +58,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
   }
 }
 
-void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistry& services)
+void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistryRef services)
 {
   FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
@@ -78,7 +78,7 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
   }
 }
 
-void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceRegistryRef registry)
 {
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
@@ -146,7 +146,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistryRef registry)
 {
   FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {

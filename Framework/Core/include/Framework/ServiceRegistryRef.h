@@ -8,23 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "TextDriverClient.h"
-#include "Framework/Logger.h"
+#ifndef O2_FRAMEWORK_SERVICEREGISTRYREF_H_
+#define O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-namespace o2::framework
-{
+// Until we merge the proper ServiceRegistryRef...
+#include "Framework/ServiceRegistry.h"
+#endif // O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-TextDriverClient::TextDriverClient(ServiceRegistryRef registry, DeviceState& deviceState)
-{
-}
-
-void TextDriverClient::tell(const char* msg, size_t s, bool flush)
-{
-  LOG(info) << std::string_view{msg, s};
-}
-
-void TextDriverClient::flushPending()
-{
-}
-
-} // namespace o2::framework

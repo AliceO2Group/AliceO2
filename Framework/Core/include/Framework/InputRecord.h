@@ -108,7 +108,7 @@ class InputRecord
 
   InputRecord(std::vector<InputRoute> const& inputs,
               InputSpan& span,
-              ServiceRegistry&);
+              ServiceRegistryRef);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -662,7 +662,7 @@ class InputRecord
   }
 
  private:
-  ServiceRegistry& mRegistry;
+  ServiceRegistryRef mRegistry;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;
 };

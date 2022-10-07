@@ -715,7 +715,7 @@ void spawnDevice(DeviceRef ref,
                  std::vector<DeviceControl>&,
                  std::vector<DeviceExecution>& executions,
                  std::vector<DeviceInfo>& deviceInfos,
-                 ServiceRegistry& serviceRegistry,
+                 ServiceRegistryRef serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
                  unsigned parentCPU,
@@ -1042,7 +1042,7 @@ void doDefaultWorkflowTerminationHook()
   // LOG(info) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+int doChild(int argc, char** argv, ServiceRegistryRef serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
             ProcessingPolicies processingPolicies,

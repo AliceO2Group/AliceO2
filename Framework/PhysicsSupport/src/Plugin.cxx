@@ -23,13 +23,13 @@ struct PDGSupport : o2::framework::ServicePlugin {
   {
     return new ServiceSpec{
       .name = "database-pdg",
-      .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
         auto* ptr = new TDatabasePDG();
         o2::O2DatabasePDG::addALICEParticles(ptr);
         return ServiceHandle{TypeIdHelpers::uniqueId<TDatabasePDG>(), ptr, ServiceKind::Serial, "database-pdg"};
       },
       .configure = CommonServices::noConfiguration(),
-      .exit = [](ServiceRegistry&, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
+      .exit = [](ServiceRegistryRef, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
       .kind = ServiceKind::Serial};
   }
 };

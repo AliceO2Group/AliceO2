@@ -78,12 +78,12 @@ void signal_callback(uv_signal_t* handle, int)
 struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator dataDrivenConfigurator()
   {
-    return [](DeviceState&, ServiceRegistry&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+    return [](DeviceState&, ServiceRegistryRef, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
-    return [matcher](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const& options) {
+    return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
       std::string rateName = std::string{"period-"} + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
       // We create a timer to wake us up. Notice the actual
@@ -101,14 +101,14 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::CreationConfigurator loopEventDrivenConfigurator(InputSpec const& matcher)
   {
-    return [matcher](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const&) {
+    return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const&) {
       return LifetimeHelpers::uvDrivenCreation(DeviceState::LoopReason::OOB_ACTIVITY, state);
     };
   }
 
   static RouteConfigurator::CreationConfigurator signalDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
@@ -130,14 +130,14 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::CreationConfigurator oobDrivenConfigurator()
   {
-    return [](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const&) {
+    return [](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const&) {
       return LifetimeHelpers::uvDrivenCreation(DeviceState::LoopReason::OOB_ACTIVITY, state);
     };
   }
 
   static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState&, ServiceRegistry&, ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState&, ServiceRegistryRef, ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
@@ -184,7 +184,7 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::CreationConfigurator fairmqDrivenConfiguration(InputSpec const& spec, int inputTimeslice, int maxInputTimeslices)
   {
-    return [spec, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry& services, ConfigParamRegistry const&) {
+    return [spec, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistryRef services, ConfigParamRegistry const&) {
       // std::string channelNameOption = std::string{"out-of-band-channel-name-"} + spec.binding;
       // auto channelName = options.get<std::string>(channelNameOption.c_str());
       std::string channelName = "upstream";
@@ -317,7 +317,7 @@ struct ExpirationHandlerHelpers {
   /// This behaves as data. I.e. we never create it unless data arrives.
   static RouteConfigurator::CreationConfigurator createOptionalConfigurator()
   {
-    return [](DeviceState&, ServiceRegistry&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+    return [](DeviceState&, ServiceRegistryRef, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
   /// This will always exipire an optional record when no data is received.
