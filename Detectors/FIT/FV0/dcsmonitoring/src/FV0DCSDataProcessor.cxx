@@ -31,13 +31,24 @@ std::vector<o2::dcs::DataPointIdentifier> o2::fv0::FV0DCSDataProcessor::getHardC
   std::vector<std::string> aliasesADC = {"FV0/PM/S[A,B,C,D,E,F,G,H][1..4]/actual/ADC[0,1]_BASELINE",
                                          "FV0/PM/S[A,B,C,D,E,F,G,H][51,52]/actual/ADC[0,1]_BASELINE",
                                          "FV0/PM/SREF/actual/ADC[0,1]_BASELINE"};
+  std::vector<std::string> aliasesRates = {"FV0/Trigger1_Charge/CNT_RATE",
+                                           "FV0/Trigger2_Nchannels/CNT_RATE",
+                                           "FV0/Trigger3_InnerRings/CNT_RATE",
+                                           "FV0/Trigger4_OuterRings/CNT_RATE",
+                                           "FV0/Trigger5_OrA/CNT_RATE",
+                                           "FV0/Background/[0..9]/CNT_RATE",
+                                           "FV0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE"};
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
   std::vector<std::string> expAliasesADC = o2::dcs::expandAliases(aliasesADC);
+  std::vector<std::string> expAliasesRates = o2::dcs::expandAliases(aliasesRates);
   for (const auto& i : expAliasesHV) {
     vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
   }
   for (const auto& i : expAliasesADC) {
     vect.emplace_back(i, o2::dcs::DPVAL_UINT);
+  }
+  for (const auto& i : expAliasesRates) {
+    vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
   }
   return vect;
 }
