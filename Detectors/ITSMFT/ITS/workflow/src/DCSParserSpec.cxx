@@ -400,7 +400,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   std::map<std::string, std::string> metadata;
   std::map<std::string, std::string> headers = api.retrieveHeaders(
     "RCT/Info/RunInformation", metadata, this->mRunNumber);
-  if (headers.empty()) {  // No CCDB entry is found
+  if (headers.empty()) { // No CCDB entry is found
     LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
                << "\nWill default to using the current time for timestamp information";
     tstart = o2::ccdb::getCurrentTimestamp();
