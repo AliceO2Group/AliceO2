@@ -29,8 +29,6 @@
 namespace o2::mch::raw
 {
 
-extern std::array<int, 156> deIdsForAllMCH;
-
 /**@name Mapper templates.
 
   Those creator functions return functions that can do the mapping to/from
@@ -82,7 +80,7 @@ template <typename T>
 std::set<DsDetId> getDualSampasPerFeeId(uint16_t feeId);
 
 /**@name Actual mapper types.
-    */
+ */
 ///@{
 
 struct ElectronicMapperDummy {
@@ -96,9 +94,11 @@ struct ElectronicMapperString {
 ///@}
 
 /** Return the full set of Dual Sampa Electronic Id of MCH,
-  * for a given electronic mapping */
+ * for a given electronic mapping */
 template <typename T>
 std::set<DsElecId> getAllDs();
+
+extern std::array<int, 156> deIdsForAllMCH;
 
 extern std::array<int, 2> deIdsOfCH1R;
 extern std::array<int, 2> deIdsOfCH1L;
