@@ -28,7 +28,8 @@ enum CollisionFlagsRun2 : uint16_t {
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
-  Track = 0,
+  TrackIU = 0, // track at point of innermost update (not propagated)
+  Track = 0,   // TODO will be changed to 1 when O2Physics PR merged
   Run2Track = 254,
   Run2Tracklet = 255
 };

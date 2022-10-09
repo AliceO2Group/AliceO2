@@ -258,7 +258,7 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
 {
   tracksCursor(0,
                collisionID,
-               o2::aod::track::Track,
+               o2::aod::track::TrackIU,
                truncateFloatFraction(track.getX(), mTrackX),
                truncateFloatFraction(track.getAlpha(), mTrackAlpha),
                track.getY(),
