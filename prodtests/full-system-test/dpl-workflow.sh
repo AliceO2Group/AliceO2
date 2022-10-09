@@ -126,9 +126,7 @@ if [[ $SYNCMODE == 1 ]]; then
 fi
 
 
-if [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" ]]; then
-  workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
-fi
+workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-trackbased-calib"
 
 workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
 
