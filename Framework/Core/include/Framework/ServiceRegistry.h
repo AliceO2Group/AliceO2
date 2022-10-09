@@ -209,7 +209,9 @@ struct ServiceRegistry {
   /// If it is of kind "Stream" we will create the Service only
   /// when requested by a given thread. This function is not
   /// thread safe.
-  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options);
+  /// @a salt is used to create the service in the proper context
+  /// FIXME: for now we create everything in the global context
+  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::threadSalt());
 
   /// Bind the callbacks of a service spec to a given service.
   void bindService(ServiceSpec const& spec, void* service);
@@ -292,9 +294,9 @@ struct ServiceRegistry {
   }
 
   /// Register a service given an handle
-  void registerService(ServiceHandle handle)
+  void registerService(ServiceHandle handle, Salt salt)
   {
-    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, ServiceRegistry::threadSalt(), handle.name.c_str());
+    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
@@ -305,7 +307,7 @@ struct ServiceRegistry {
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C* service)
+  void registerService(C* service, Salt salt)
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
@@ -313,12 +315,12 @@ struct ServiceRegistry {
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I>()};
-    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, ServiceRegistry::threadSalt(), typeid(C).name());
+    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, salt, typeid(C).name());
   }
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C const* service)
+  void registerService(C const* service, Salt salt)
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
@@ -326,7 +328,7 @@ struct ServiceRegistry {
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I const>()};
-    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, ServiceRegistry::threadSalt(), typeid(C).name());
+    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, salt, typeid(C).name());
   }
 
   /// Check if service of type T is currently active.

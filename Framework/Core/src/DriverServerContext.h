@@ -30,8 +30,8 @@ struct ServiceRegistry;
 struct GuiCallbackContext;
 
 struct DriverServerContext {
+  ServiceRegistryRef registry;
   uv_loop_t* loop = nullptr;
-  ServiceRegistry* registry = nullptr;
   std::vector<DeviceControl>* controls = nullptr;
   std::vector<DeviceInfo>* infos = nullptr;
   std::vector<DeviceSpec>* specs = nullptr;

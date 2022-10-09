@@ -88,13 +88,13 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
   throw runtime_error_f("Unable to find a spot in the registry for service %d. Make sure you use const / non-const correctly.", typeHash.hash);
 }
 
-void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options)
+void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt)
 {
   mSpecs.push_back(spec);
   // Services which are not stream must have a single instance created upfront.
   if (spec.kind != ServiceKind::Stream) {
-    ServiceHandle handle = spec.init(*this, state, options);
-    this->registerService({handle.hash}, handle.instance, handle.kind, GLOBAL_CONTEXT_SALT, handle.name.c_str());
+    ServiceHandle handle = spec.init({*this}, state, options);
+    this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(spec, handle.instance);
   }
 }

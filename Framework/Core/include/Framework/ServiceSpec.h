@@ -96,10 +96,10 @@ using ServicePostDispatching = void (*)(ProcessingContext&, void*);
 using ServicePostForwarding = void (*)(ProcessingContext&, void*);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverInit = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
+using ServiceDriverInit = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverStartup = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
+using ServiceDriverStartup = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
 
 /// Callback invoked when we inject internal devices in the topology
 using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);
