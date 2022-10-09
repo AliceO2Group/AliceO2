@@ -9,17 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_GLOBAL_MAPPING_MAPPER_H_
-#define O2_MCH_GLOBAL_MAPPING_MAPPER_H_
+#ifndef O2_MCH_GLOBAL_MAPPING_QUADRANT_H
+#define O2_MCH_GLOBAL_MAPPING_QUADRANT_H
 
-#include "MCHGlobalMapping/DsIndex.h"
+#include "MCHConditions/Cathode.h"
 #include <set>
 #include <string>
 
-namespace o2::mch::dcs
+namespace o2::mch::dcs::quadrant
 {
-/** get the list of dual sampa indices corresponding to a given DCS Alias */
-std::set<int> aliasToDsIndices(std::string_view alias);
-} // namespace o2::mch::dcs
+Cathode lvAliasToCathode(std::string_view alias);
+std::set<int> solarAliasToDsIndices(std::string_view alias);
+} // namespace o2::mch::dcs::quadrant
 
 #endif
