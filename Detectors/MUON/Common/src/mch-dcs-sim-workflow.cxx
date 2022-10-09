@@ -11,7 +11,7 @@
 
 #include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
 #include "Framework/runDataProcessing.h"
-#include "MCHConditions/DCSNamer.h"
+#include "MCHConditions/DCSAliases.h"
 
 /**
  * DPL workflow which generates fake random MCH DCS data points.

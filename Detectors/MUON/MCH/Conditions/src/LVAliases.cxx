@@ -11,6 +11,8 @@
 
 #include "LVAliases.h"
 
+namespace o2::mch::dcs
+{
 std::vector<std::string> expectedLVAliasesFeeDigital = {
   "MchHvLvLeft/Chamber00Left/Group01di.SenseVoltage",
   "MchHvLvLeft/Chamber00Left/Group02di.SenseVoltage",
@@ -352,3 +354,4 @@ std::vector<std::string> expectedLVAliasesSolar = {
   "MchHvLvRight/Chamber09Right/SolCh09RCr06.SenseVoltage",
   "MchHvLvRight/Chamber09Right/SolCh09RCr07.SenseVoltage",
   "MchHvLvRight/Chamber09Right/SolCh09RCr08.SenseVoltage"};
+} // namespace o2::mch::dcs

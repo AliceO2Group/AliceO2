@@ -11,6 +11,8 @@
 
 #include "HVAliases.h"
 
+namespace o2::mch::dcs
+{
 std::vector<std::string> expectedHVAliasesVoltages = {
   "MchHvLvLeft/Chamber00Left/Quad1Sect0.actual.vMon",
   "MchHvLvLeft/Chamber00Left/Quad1Sect1.actual.vMon",
@@ -390,3 +392,4 @@ std::vector<std::string> expectedHVAliasesCurrents = {
   "MchHvLvRight/Chamber09Right/Slat10.actual.iMon",
   "MchHvLvRight/Chamber09Right/Slat11.actual.iMon",
   "MchHvLvRight/Chamber09Right/Slat12.actual.iMon"};
+} // namespace o2::mch::dcs
