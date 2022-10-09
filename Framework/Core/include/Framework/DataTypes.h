@@ -29,7 +29,7 @@ namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
   TrackIU = 0, // track at point of innermost update (not propagated)
-  Track = 0,   // TODO will be changed to 1 when O2Physics PR merged
+  Track = 1,   // propagated track
   Run2Track = 254,
   Run2Tracklet = 255
 };
