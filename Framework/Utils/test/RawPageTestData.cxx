@@ -18,9 +18,7 @@
 #include "Headers/Stack.h"
 #include <random>
 
-namespace o2::framework
-{
-namespace test
+namespace o2::framework::test
 {
 
 DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHeader> const& dataheaders, AmendRawDataHeader amendRdh)
@@ -87,8 +85,7 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   }
 
   static ServiceRegistry registry;
-  return {std::move(schema), std::move(messages), std::move(checkValues), registry};
+  return {std::move(schema), std::move(messages), std::move(checkValues), {registry}};
 }
 
-} // namespace test
 } // namespace o2::framework

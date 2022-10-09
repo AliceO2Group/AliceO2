@@ -209,7 +209,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistry& registry, boost::program_options::variables_map const& vmap) {
+    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
       if (vmap.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;

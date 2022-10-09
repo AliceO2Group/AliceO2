@@ -78,7 +78,7 @@ void ControlWebSocketHandler::endChunk()
   }
   size_t timestamp = uv_now(mContext.loop);
   for (auto& callback : *mContext.metricProcessingCallbacks) {
-    callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+    callback(mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);

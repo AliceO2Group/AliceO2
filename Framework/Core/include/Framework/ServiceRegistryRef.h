@@ -64,6 +64,20 @@ class ServiceRegistryRef
     mRegistry.preSendingMessagesCallbacks(mRegistry, parts, channelindex);
   }
 
+  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, char const* name = nullptr) const {
+    mRegistry.registerService(typeHash, service, kind, mSalt, name);
+  }
+
+  /// Register a service given an handle, notice how
+  /// the service will be created in the current salt, 
+  /// so that from a dataprocessor you cannot create a service 
+  /// globally, or in a stream you cannot create services for 
+  /// a dataprocessor.
+  void registerService(ServiceHandle handle)
+  {
+    mRegistry.registerService({handle.hash}, handle.instance, handle.kind, mSalt, handle.name.c_str());
+  }
+
  private:
   ServiceRegistry& mRegistry;
   ServiceRegistry::Salt mSalt;

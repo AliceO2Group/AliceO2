@@ -50,12 +50,13 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   };
 
   ServiceRegistry registry;
+  ServiceRegistryRef ref{registry};
   ConcreteA serviceA;
   ConcreteB serviceB;
   ConcreteC const serviceC;
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
   BOOST_CHECK(registry.get<InterfaceA>(ServiceRegistry::threadSalt()).method() == true);
   BOOST_CHECK(registry.get<InterfaceB>(ServiceRegistry::threadSalt()).method() == false);
   BOOST_CHECK(registry.get<InterfaceC const>(ServiceRegistry::threadSalt()).method() == false);
@@ -70,8 +71,9 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
 {
   using namespace o2::framework;
   ServiceRegistry registry;
+  ServiceRegistryRef ref{registry};
   auto service = std::make_unique<CallbackService>();
-  registry.registerService(ServiceRegistryHelpers::handleForService<CallbackService>(service.get()));
+  ref.registerService(ServiceRegistryHelpers::handleForService<CallbackService>(service.get()));
 
   // the callback simply sets the captured variable to indicated that it was called
   bool cbCalled = false;
