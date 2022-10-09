@@ -29,7 +29,7 @@
 #include <TStopwatch.h>
 #include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
-#include "MCHConditions/DCSNamer.h"
+#include "MCHConditions/DCSAliases.h"
 #define CCDBOBJ "MCH_DPS"
 #endif
 #if defined(MUON_SUBSYSTEM_MID)

@@ -9,13 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_CONDITIONS_DCS_HV_ALIASES_H
-#define O2_MCH_CONDITIONS_DCS_HV_ALIASES_H
+#ifndef O2_MCH_CONDITIONS_CATHODE_H
+#define O2_MCH_CONDITIONS_CATHODE_H
 
-#include <vector>
-#include <string>
+#include "MCHConditions/Plane.h"
 
-extern std::vector<std::string> expectedHVAliasesVoltages;
-extern std::vector<std::string> expectedHVAliasesCurrents;
+namespace o2::mch::dcs
+{
+/** Cathode is a pair {detection element id, plane} */
+struct Cathode {
+  int deId;
+  Plane plane;
+};
+
+/** compare two cathodes */
+bool operator<(const Cathode& c1, const Cathode& c2);
+} // namespace o2::mch::dcs
 
 #endif

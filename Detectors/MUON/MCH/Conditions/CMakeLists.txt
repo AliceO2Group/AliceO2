@@ -11,13 +11,23 @@
 
 o2_add_library(
   MCHConditions
-  SOURCES src/DCSNamer.cxx
-  PUBLIC_LINK_LIBRARIES fmt::fmt)
+  SOURCES src/Cathode.cxx
+          src/Chamber.cxx
+          src/DCSAliases.cxx
+          src/DetectionElement.cxx
+          src/HVAliases.cxx
+          src/LVAliases.cxx
+          src/MeasurementType.cxx
+          src/Number.cxx
+          src/Plane.cxx
+          src/Side.cxx
+          src/SolarCrate.cxx
+  PUBLIC_LINK_LIBRARIES fmt::fmt O2::MCHConstants)
 
 if(BUILD_TESTING)
   o2_add_test(
-    dcs-namer
-    SOURCES test/testDCSNamer.cxx test/HVAliases.cxx test/LVAliases.cxx
+    dcs-aliases
+    SOURCES test/testDCSAliases.cxx
     COMPONENT_NAME mch
     LABELS "muon;mch;dcs"
     PUBLIC_LINK_LIBRARIES O2::MCHConditions)

@@ -14,42 +14,79 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "MCHConditions/DCSNamer.h"
-#include "HVAliases.h"
-#include "LVAliases.h"
+#include "DetectionElements.h"
+#include "MCHConditions/DCSAliases.h"
 #include <algorithm>
 #include <fmt/format.h>
+#include <map>
+#include <string>
 
 using namespace o2::mch::dcs;
+
+namespace
+{
+struct ID {
+  o2::mch::dcs::Chamber chamber;
+  o2::mch::dcs::MeasurementType measurement;
+  int number;
+  o2::mch::dcs::Plane plane;
+  o2::mch::dcs::Side side;
+  ID(Chamber ch, MeasurementType m, int n, Plane p, Side s) : chamber{ch},
+                                                              measurement{m},
+                                                              number{n},
+                                                              side{s},
+                                                              plane{p}
+  {
+  }
+};
+
+bool operator==(const ID& i1, const ID& i2)
+{
+  return i1.side == i2.side &&
+         i1.chamber == i2.chamber &&
+         i1.number == i2.number &&
+         i1.measurement == i2.measurement &&
+         i1.plane == i2.plane;
+}
+
+bool operator<(const ID& i1, const ID& i2)
+{
+  if (i1.plane == i2.plane) {
+    if (i1.measurement == i2.measurement) {
+      int s1 = i1.side == Side::Left ? 0 : 1;
+      int s2 = i2.side == Side::Left ? 0 : 1;
+      if (s1 == s2) {
+        if (i1.chamber == i2.chamber) {
+          return i1.number < i2.number;
+        } else {
+          return toInt(i1.chamber) < toInt(i2.chamber);
+        }
+      } else {
+        return s1 < s2;
+      }
+    } else {
+      return (int)i1.measurement < (int)i2.measurement;
+    }
+  } else {
+    return (int)i1.plane < (int)i2.plane;
+  }
+}
+
+} // namespace
+
+namespace o2::mch::dcs
+{
+
+extern std::vector<std::string> expectedHVAliasesVoltages;
+extern std::vector<std::string> expectedHVAliasesCurrents;
+extern std::vector<std::string> expectedLVAliasesFeeAnalog;
+extern std::vector<std::string> expectedLVAliasesFeeDigital;
+extern std::vector<std::string> expectedLVAliasesSolar;
+} // namespace o2::mch::dcs
 
 BOOST_AUTO_TEST_SUITE(o2_mch_conditions)
 
 BOOST_AUTO_TEST_SUITE(dcsnamer)
-
-BOOST_AUTO_TEST_CASE(detElemId2DCSMustReturnNothingIfDetElemIdIsNotValid)
-{
-  BOOST_CHECK_EQUAL(detElemId2DCS(0).has_value(), false);
-  BOOST_CHECK_EQUAL(detElemId2DCS(10).has_value(), false);
-  BOOST_CHECK_EQUAL(detElemId2DCS(1026).has_value(), false);
-  BOOST_CHECK_EQUAL(detElemId2DCS(-1).has_value(), false);
-}
-
-BOOST_AUTO_TEST_CASE(DE100isRight)
-{
-  BOOST_CHECK(detElemId2DCS(100)->side == Side::Right);
-}
-BOOST_AUTO_TEST_CASE(DE102isLeft)
-{
-  BOOST_CHECK(detElemId2DCS(102)->side == Side::Left);
-}
-
-BOOST_AUTO_TEST_CASE(detElemId2DCSMustReturnChamberIdAndSideIfDetElemIdIsValid)
-{
-  auto v = detElemId2DCS(1025);
-  BOOST_CHECK_EQUAL(v.has_value(), true);
-  BOOST_CHECK_EQUAL(v->chamberId, 9);
-  BOOST_CHECK(v->side == Side::Right);
-}
 
 BOOST_AUTO_TEST_CASE(NumberOfHVAliasesVoltagesIs188)
 {
@@ -117,5 +154,44 @@ BOOST_AUTO_TEST_CASE(AliasNameIsShortEnough)
   }
   BOOST_CHECK(len <= 62);
 }
+
+BOOST_AUTO_TEST_CASE(AllAliasesShouldBeValid)
+{
+  auto all = aliases();
+  for (auto a : all) {
+    BOOST_CHECK_EQUAL(isValid(a), true);
+  }
+}
+
+std::map<std::string, ID> expected = {
+  {"MchHvLvRight/Chamber06Right/Slat08.actual.vMon", {Chamber::Ch06, MeasurementType::HV_V, 8, Plane::Both, Side::Right}},
+
+  {"MchHvLvLeft/Chamber06Left/Group02an.SenseVoltage", {Chamber::Ch06, MeasurementType::LV_V_FEE_ANALOG, 2, Plane::Both, Side::Left}},
+
+  {"MchHvLvRight/Chamber01Right/Quad3Sect2.actual.iMon", {Chamber::Ch01, MeasurementType::HV_I, 32, Plane::Both, Side::Right}},
+
+  {"MchHvLvRight/Chamber01Right/Group04an", {Chamber::Ch01, MeasurementType::LV_V_FEE_ANALOG, 4, Plane::NonBending, Side::Right}},
+
+  {"MchHvLvLeft/Chamber00Left/SolCh00LCr01.SenseVoltage", {Chamber::Ch00, MeasurementType::LV_V_SOLAR, 1, Plane::Both, Side::Left}}
+
+};
+
+BOOST_AUTO_TEST_CASE(AliasToXXX)
+{
+  for (const auto e : expected) {
+    const auto alias = e.first;
+    const auto c = aliasToChamber(alias);
+    const auto m = aliasToMeasurementType(alias);
+    const auto n = aliasToNumber(alias);
+    const auto p = aliasToPlane(alias);
+    const auto s = aliasToSide(alias);
+    BOOST_CHECK_EQUAL(c, e.second.chamber);
+    BOOST_CHECK_EQUAL(m, e.second.measurement);
+    BOOST_CHECK_EQUAL(n, e.second.number);
+    BOOST_CHECK_EQUAL(p, e.second.plane);
+    BOOST_CHECK_EQUAL(s, e.second.side);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

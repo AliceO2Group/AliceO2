@@ -15,8 +15,11 @@
 #include <vector>
 #include <string>
 
+namespace o2::mch::dcs
+{
 extern std::vector<std::string> expectedLVAliasesFeeAnalog;
 extern std::vector<std::string> expectedLVAliasesFeeDigital;
 extern std::vector<std::string> expectedLVAliasesSolar;
+} // namespace o2::mch::dcs
 
 #endif
