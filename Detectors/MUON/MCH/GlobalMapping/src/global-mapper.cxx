@@ -12,6 +12,7 @@
 /// @author  Laurent Aphecetche
 
 #include "DataFormatsMCH/DsChannelId.h"
+#include "MCHConditions/DCSAliases.h"
 #include "MCHGlobalMapping/Mapper.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
@@ -60,6 +61,63 @@ struct DualSampaInfo {
 };
 
 std::vector<DualSampaInfo> dualSampaInfos;
+std::vector<DualSampaInfo> computeDualSampaInfos();
+
+using namespace std::literals;
+
+std::string stripAlias(std::string alias)
+{
+  std::vector<std::string> remove = {".vMon", ".iMon", "di.SenseVoltage", "an.SenseVoltage"};
+
+  for (auto r : remove) {
+    if (alias.find(r) != std::string::npos) {
+      alias.replace(alias.find(r), r.size(), "");
+    }
+  }
+  return alias;
+}
+
+void dcs2json()
+{
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+
+  auto dualSampaInfos = computeDualSampaInfos();
+
+  auto aliases = o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_I,
+                                        o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
+                                        o2::mch::dcs::MeasurementType::LV_V_SOLAR});
+
+  std::map<std::string, std::set<int>> dsIndicesPerAliasBase;
+
+  for (auto alias : aliases) {
+    auto s = stripAlias(alias);
+    auto indices = o2::mch::dcs::aliasToDsIndices(alias);
+    dsIndicesPerAliasBase.emplace(s, indices);
+  }
+
+  writer.StartArray();
+  for (auto p : dsIndicesPerAliasBase) {
+    writer.StartObject();
+    writer.Key("alias");
+    auto s = p.first;
+    writer.String(s.c_str());
+    writer.Key("ds");
+    writer.StartArray();
+    for (auto i : p.second) {
+      for (const auto& dsi : dualSampaInfos) {
+        if (dsi.dsBin == i) {
+          writer.Int(dsi.dsBinX);
+        }
+      }
+    }
+    writer.EndArray();
+    writer.EndObject();
+  }
+  writer.EndArray();
+
+  std::cout << buffer.GetString() << "\n";
+}
 
 std::vector<DualSampaInfo> computeDualSampaInfos()
 {
@@ -186,6 +244,7 @@ int main(int argc, char* argv[])
       ("help,h", "produce help message")
       ("solar,s","output solar based file")
       ("mchview,m","output format suitable for mchview")
+      ("dcs,d","output dcs aliases -> dual sampa indices file")
       ;
   // clang-format on
 
@@ -210,5 +269,8 @@ int main(int argc, char* argv[])
     solar2json(vm.count("mchview"));
   }
 
+  if (vm.count("dcs")) {
+    dcs2json();
+  }
   return 0;
 }
