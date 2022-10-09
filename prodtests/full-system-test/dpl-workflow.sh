@@ -169,18 +169,18 @@ if [[ $BEAMTYPE == "PbPb" ]]; then
   EVE_CONFIG+=" --only-nth-event=2"
 fi
 
-if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]]; then
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
-  if [[ $NUMAID == 0 ]] || [[ $NUMAGPUIDS == 0 ]]; then
-    export TIMESLICEOFFSET=0
-  else
-    export TIMESLICEOFFSET=$NGPUS
-  fi
-  if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
+  if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
     GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
+    if [[ $NUMAID == 0 || $NUMAGPUIDS == 0 || "0$ROCR_VISIBLE_DEVICES" == "00,1,2,3" || "0$ROCR_VISIBLE_DEVICES" == "04,5,6,7" ]]; then
+      export TIMESLICEOFFSET=0
+    else
+      export TIMESLICEOFFSET=$NGPUS
+    fi
     GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
   fi
   export HSA_NO_SCRATCH_RECLAIM=1
