@@ -12,7 +12,6 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
-#include "MathUtils/Utils.h"
 #include <cmath>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
@@ -117,16 +116,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
-                             float cs, sn;
-                             math_utils::sincos(alpha, sn, cs);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             float cs = cosf(alpha), sn = sinf(alpha);
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (r * cs - snp * sn);
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
-                             float cs, sn;
-                             math_utils::sincos(alpha, sn, cs);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             float cs = cosf(alpha), sn = sinf(alpha);
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (snp * cs + r * sn);
                            });

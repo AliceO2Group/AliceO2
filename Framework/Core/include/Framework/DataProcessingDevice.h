@@ -114,7 +114,7 @@ struct TaskStreamInfo {
 };
 
 struct DeviceConfigurationHelpers {
-  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options);
+  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistryRef registry, const char* name, std::vector<ConfigParamSpec> const& options);
 };
 
 /// A device actually carrying out all the DPL
@@ -122,7 +122,7 @@ struct DeviceConfigurationHelpers {
 class DataProcessingDevice : public fair::mq::Device
 {
  public:
-  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&, ProcessingPolicies& policies);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistryRef, ProcessingPolicies& policies);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -159,7 +159,7 @@ class DataProcessingDevice : public fair::mq::Device
   AlgorithmSpec::ErrorCallback mError;
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistry& mServiceRegistry;
+  ServiceRegistryRef mServiceRegistry;
   DataAllocator mAllocator;
   DataRelayer* mRelayer = nullptr;
   /// Expiration handler

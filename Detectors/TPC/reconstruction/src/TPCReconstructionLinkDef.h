@@ -36,8 +36,6 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::HwClustererParam> + ;
 #pragma link C++ class o2::tpc::KrBoxClusterFinderParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::KrBoxClusterFinderParam> + ;
-#pragma link C++ class o2::tpc::IonTailCorrectionSettings + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::IonTailCorrectionSettings> + ;
 
 #pragma link C++ class o2::tpc::TPCFastTransformHelperO2 + ;
 

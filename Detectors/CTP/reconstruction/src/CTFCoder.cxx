@@ -28,12 +28,12 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data, LumiInfo& lumi)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
   ec.readFromTree(tree, mDet.getName(), entry);
-  decode(ec, data);
+  decode(ec, data, lumi);
 }
 
 ///________________________________

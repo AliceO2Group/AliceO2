@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef TPC_IonTailCorrectionSettings_H_
-#define TPC_IonTailCorrectionSettings_H_
+#ifndef TPC_IonTailSettings_H_
+#define TPC_IonTailSettings_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -18,11 +18,11 @@
 namespace o2::tpc
 {
 
-struct IonTailCorrectionSettings : public o2::conf::ConfigurableParamHelper<IonTailCorrectionSettings> {
+struct IonTailSettings : public o2::conf::ConfigurableParamHelper<IonTailSettings> {
   float ITMultFactor = 1;    ///< fudge factor to tune IT correction
   float kTime = 0.0515;      ///< kTime constant for ion tail filter
   std::string padITCorrFile; ///< file with pad-by-pad IT correction values
-  O2ParamDef(IonTailCorrectionSettings, "TPCITCorr");
+  O2ParamDef(IonTailSettings, "TPCITCorr");
 };
 
 } // namespace o2::tpc

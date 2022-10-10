@@ -8,7 +8,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/Plugins.h"
+#include "Framework/AlgorithmSpec.h"
+#include "CCDBHelpers.h"
 
-#include "TPCReconstruction/IonTailCorrectionSettings.h"
-using namespace o2::tpc;
-O2ParamImpl(o2::tpc::IonTailCorrectionSettings);
+struct CCDBFetcherPlugin : o2::framework::AlgorithmPlugin {
+  o2::framework::AlgorithmSpec create() final
+  {
+    return o2::framework::CCDBHelpers::fetchFromCCDB();
+  }
+};
+
+DEFINE_DPL_PLUGINS_BEGIN
+DEFINE_DPL_PLUGIN_INSTANCE(CCDBFetcherPlugin, CustomAlgorithm);
+DEFINE_DPL_PLUGINS_END

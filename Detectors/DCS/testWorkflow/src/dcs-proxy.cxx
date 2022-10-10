@@ -44,6 +44,7 @@ using CcdbManager = o2::ccdb::BasicCCDBManager;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"verbose", VariantType::Bool, false, {"verbose output"}});
+  workflowOptions.push_back(ConfigParamSpec{"fbi-report-rate", VariantType::Int, 6, {"report pet N FBI received"}});
   workflowOptions.push_back(ConfigParamSpec{"test-mode", VariantType::Bool, false, {"test mode"}});
   workflowOptions.push_back(ConfigParamSpec{"may-send-delta-first", VariantType::Bool, false, {"if true, do not wait for FBI before sending 1st output"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB to get the detectors DPs configuration"}});
@@ -59,6 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   bool verbose = config.options().get<bool>("verbose");
   bool testMode = config.options().get<bool>("test-mode");
   bool fbiFirst = !config.options().get<bool>("may-send-delta-first");
+  int repRate = std::max(1, config.options().get<int>("fbi-report-rate"));
   std::string detectorList = config.options().get<std::string>("detector-list");
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   std::string url = config.options().get<std::string>("ccdb-url");
@@ -117,7 +119,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "dcs-proxy",
     std::move(dcsOutputs),
     "type=pull,method=connect,address=tcp://aldcsadaposactor:60000,rateLogging=1,transport=zeromq",
-    dcs2dpl(dpid2DataDesc, fbiFirst, verbose));
+    dcs2dpl(dpid2DataDesc, fbiFirst, verbose, repRate));
 
   WorkflowSpec workflow;
   workflow.emplace_back(dcsProxy);

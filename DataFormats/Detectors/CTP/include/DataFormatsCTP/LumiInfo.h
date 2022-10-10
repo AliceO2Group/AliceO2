@@ -11,9 +11,10 @@
 
 #ifndef _ALICEO2_CTP_LUMIINFO_H_
 #define _ALICEO2_CTP_LUMIINFO_H_
-#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/LHCConstants.h"
+#include <Rtypes.h>
 
-/// \brief Luminosity information used of online TPC calibration
+/// \brief Luminosity information as a moving average over certain number of TFs
 
 namespace o2
 {
@@ -21,9 +22,12 @@ namespace ctp
 {
 struct LumiInfo {
   LumiInfo() = default;
-  InteractionRecord ir;    // timestamp of start of lumi interval
-  size_t mNHBFCounted = 0; // length of interval in HB
-  size_t mCounts = 0;      //  counts in the interval
+  uint32_t orbit = 0;       // orbit of TF when was updated
+  uint32_t nHBFCounted = 0; // length of interval in HB
+  uint64_t counts = 0;      // counts in the interval
+  float getLumi() const { return nHBFCounted > 0 ? float(counts / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  ClassDefNV(LumiInfo, 1);
 };
 } // namespace ctp
 

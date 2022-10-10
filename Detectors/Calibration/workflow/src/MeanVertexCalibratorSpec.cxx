@@ -14,9 +14,9 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 #include "DetectorsCalibrationWorkflow/MeanVertexCalibratorSpec.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DetectorsCalibration/MeanVertexParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -28,23 +28,11 @@ namespace calibration
 {
 void MeanVertexCalibDevice::init(InitContext& ic)
 {
-
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-  const o2::calibration::MeanVertexParams* params = &o2::calibration::MeanVertexParams::Instance();
-  int minEnt = params->minEntries;
-  int nbX = params->nbinsX;
-  float rangeX = params->rangeX;
-  int nbY = params->nbinsY;
-  float rangeY = params->rangeY;
-  int nbZ = params->nbinsZ;
-  float rangeZ = params->rangeZ;
-  int nSlots4SMA = params->nSlots4SMA;
-  auto slotL = params->tfPerSlot;
-  float delay = float(params->maxTFdelay) / slotL; // in timeslot calibration, the delay is in fraction of timeslot length
-  auto nPointsForSlope = params->nPointsForSlope;
-  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nPointsForSlope, nSlots4SMA);
-  mCalibrator->setSlotLength(slotL);
-  mCalibrator->setMaxSlotsDelay(delay);
+  const auto& params = MeanVertexParams::Instance();
+  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>();
+  mCalibrator->setSlotLength(params.tfPerSlot);
+  mCalibrator->setMaxSlotsDelay(float(params.maxTFdelay) / params.tfPerSlot);
   bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
   LOG(info) << " ************************* Verbose? " << useVerboseMode;
   if (useVerboseMode) {

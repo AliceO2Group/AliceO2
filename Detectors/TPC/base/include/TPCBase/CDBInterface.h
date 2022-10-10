@@ -76,9 +76,11 @@ enum class CDBType {
   CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   CalSACFourier,       ///< Fourier coefficients of CalSAC1
-
-  CalCorrMap,    ///< Cluster correction map
-  CalCorrMapRef, ///< Cluster correction reference map (static distortions)
+                       ///
+  CalCorrMap,          ///< Cluster correction map
+  CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
+                       ///
+  CalITParams,         ///< Ion tail parameters
 };
 
 /// Upload intervention type
@@ -131,6 +133,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
+  // ion tail parameters
+  {CDBType::CalITParams, "TPC/Calib/IonTailParameters"},
 };
 
 /// Poor enum reflection ...
@@ -188,6 +192,16 @@ class CDBInterface
   /// otherwise the object will be loaded first depending on the configuration
   /// \return gain map object
   const CalPad& getGainMap();
+
+  /// Return the ion tail coupling fraction
+  ///
+  /// \return ion tail fraction
+  const CalPad& getITFraction();
+
+  /// Return the ion tail exponential decay parameter
+  ///
+  /// \return ion tail exponential decay parameter
+  const CalPad& getITExpLambda();
 
   /// Return the Detector parameters
   ///
@@ -254,6 +268,13 @@ class CDBInterface
   /// \param fileName name of the file containing the threshold map
   void setThresholdMapFromFile(const std::string_view fileName) { mThresholdMapFileName = fileName; }
 
+  /// Set ion tail parameters from file
+  ///
+  /// This assumes that the objects are stored under the name 'fraction,expLambda'
+  ///
+  /// \param fileName name of the file containing the ion tail parameters
+  void setIonTailParamsFromFile(const std::string_view fileName) { mIonTailParamFileName = fileName; }
+
   /// Force using default values instead of reading the CCDB
   ///
   /// \param default switch if to use default values
@@ -298,8 +319,10 @@ class CDBInterface
   // ===| Pedestal and noise |==================================================
   std::unique_ptr<CalPad> mPedestals;       ///< Pedestal object
   std::unique_ptr<CalPad> mNoise;           ///< Noise object
-  std::unique_ptr<CalPad> mZeroSuppression; ///< Noise object
+  std::unique_ptr<CalPad> mZeroSuppression; ///< Zero suppression object
   std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
+  std::unique_ptr<CalPad> mITFraction;      ///< Ion Tail fraction
+  std::unique_ptr<CalPad> mITExpLambda;     ///< Ion Tail exp(-lambda)
 
   // ===| switches and parameters |=============================================
   bool mUseDefaults = false;   ///< use defaults instead of CCDB
@@ -308,6 +331,7 @@ class CDBInterface
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map
   std::string mThresholdMapFileName;  ///< optional file name for the threshold map
+  std::string mIonTailParamFileName;  ///< optional file name for the ion tail parameters
 
   // ===========================================================================
   // ===| functions |===========================================================
@@ -315,10 +339,12 @@ class CDBInterface
   void loadNoiseAndPedestalFromFile(); ///< load noise and pedestal values from mPedestalNoiseFileName
   void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
   void loadThresholdMapFromFile();     ///< load zero suppression threshold map from mThresholdMapFileName
+  void loadIonTailParamsFromFile();    ///< load ion tail paramters
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
   void createDefaultZeroSuppression(); ///< creation of default noise if requested
   void createDefaultGainMap();         ///< creation of default gain map if requested
+  void createDefaultIonTailParams();   ///< creation of default gain map if requested
 };
 
 /// Get an object from the CCDB.

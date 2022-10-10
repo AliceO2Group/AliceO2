@@ -18,6 +18,7 @@
 
 #include "DataFormatsCTP/CTF.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include <gsl/span>
 
 namespace o2
@@ -29,15 +30,15 @@ class CTFHelper
 {
 
  public:
-  CTFHelper(const gsl::span<const CTPDigit>& data)
-    : mData(data) {}
+  CTFHelper(const gsl::span<const CTPDigit>& data) : mData(data) {}
 
   static constexpr int CTPInpNBytes = CTP_NINPUTS / 8 + (CTP_NINPUTS % 8 > 0);
   static constexpr int CTPClsNBytes = CTP_NCLASSES / 8 + (CTP_NCLASSES % 8 > 0);
 
-  CTFHeader createHeader()
+  CTFHeader createHeader(const LumiInfo& lumi)
   {
     CTFHeader h{o2::detectors::DetID::CTP, 0, 1, 0, // dummy timestamp, version 1.0
+                lumi.counts, lumi.nHBFCounted, lumi.orbit,
                 uint32_t(mData.size()), 0, 0};
     if (mData.size()) {
       h.firstOrbit = mData[0].intRecord.orbit;

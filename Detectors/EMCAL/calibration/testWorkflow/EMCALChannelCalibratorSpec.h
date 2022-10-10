@@ -23,6 +23,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "CommonUtils/MemFileHelper.h"
+#include "CommonConstants/Triggers.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -49,7 +50,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
 
  public:
-  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params, std::string calibType) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params), mCalibType(calibType) {}
+  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params, std::string calibType, bool rejCalibTrg) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params), mCalibType(calibType), mRejectCalibTriggers(rejCalibTrg) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -136,6 +137,15 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       if (!trg.getNumberOfObjects()) {
         continue;
       }
+      // reject calibration trigger from the calibration
+      if (mRejectCalibTriggers) {
+        LOG(debug) << "Trigger: " << trg.getTriggerBits() << "   o2::trigger::Cal " << o2::trigger::Cal;
+        if (trg.getTriggerBits() & o2::trigger::Cal) {
+          LOG(debug) << "skipping triggered events due to wrong trigger (no Physics trigger)";
+          continue;
+        }
+      }
+
       gsl::span<const o2::emcal::Cell> eventData(data.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
 
       // fast calibration
@@ -185,6 +195,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   bool mScaleFactorsInitialized = false;                                                                                               ///< Scale factor init status
   bool isBadChannelCalib = true;                                                                                                       ///< Calibration mode bad channel calib (false := time calib)
   bool mLoadCalibParamsFromCCDB = true;                                                                                                ///< Switch for loading calib params from the CCDB
+  bool mRejectCalibTriggers = true;                                                                                                    ///! reject calibration triggers in the online calibration
   std::array<double, 2> timeMeas;
 
   //________________________________________________________________
@@ -257,7 +268,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB)
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB, const bool rejectCalibTrigger)
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -297,7 +308,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB, calibType)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB, calibType, rejectCalibTrigger)},
     Options{}};
 }
 

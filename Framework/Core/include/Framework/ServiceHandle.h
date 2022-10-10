@@ -26,6 +26,10 @@ enum struct ServiceKind {
   Stream
 };
 
+struct ServiceTypeHash {
+  uint32_t hash = 0;
+};
+
 /// Handle to the service hash must be calculated
 /// using TypeIdHelper::uniqueId<BaseClass>() so that
 /// we can retrieve the service by its baseclass.

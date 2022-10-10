@@ -20,6 +20,7 @@
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
+#include "MathUtils/Utils.h"
 
 using namespace o2::framework;
 

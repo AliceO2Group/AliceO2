@@ -25,7 +25,6 @@
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
-#include "TPCBase/CDBInterface.h"
 
 namespace o2::tpc
 {

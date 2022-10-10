@@ -29,7 +29,7 @@ struct GuiRenderer;
 class SpyService
 {
  public:
-  SpyService(ServiceRegistry& registry, DeviceState& deviceState);
+  SpyService(ServiceRegistryRef registry, DeviceState& deviceState);
 
   GuiRenderer* renderer;
   int selectedFrame = 0;
@@ -43,7 +43,7 @@ class SpyService
 
  private:
   bool mOnce = false;
-  ServiceRegistry& mRegistry;
+  ServiceRegistryRef mRegistry;
   DeviceState& mDeviceState;
   std::mutex mMutex;
 };

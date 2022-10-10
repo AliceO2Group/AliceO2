@@ -37,33 +37,20 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
 
  public:
-  MeanVertexCalibrator(int minEnt = 500, int nBinsX = 100, float rangeX = 1.f,
-                       int nBinsY = 100, float rangeY = 1.f, int nBinsZ = 100, float rangeZ = 20.f, uint32_t nPointsForSlope = 10,
-                       int nSlotsSMA = 5) : mMinEntries(minEnt), mNBinsX(nBinsX), mRangeX(rangeX), mNBinsY(nBinsY), mRangeY(rangeY), mNBinsZ(nBinsZ), mRangeZ(rangeZ), mSMAslots(nSlotsSMA), mNPointsForSlope(nPointsForSlope)
-  {
-    mBinWidthX = 2 * rangeX / nBinsX;
-    mBinWidthY = 2 * rangeY / nBinsY;
-    mBinWidthZ = 2 * rangeZ / nBinsZ;
-    mBinWidthXInv = 1. / mBinWidthX;
-    mBinWidthYInv = 1. / mBinWidthY;
-    mBinWidthZInv = 1. / mBinWidthZ;
-  }
+  struct HistoParams {
+    int nBins = 0.;
+    float binWidth = 0.;
+    float minRange = 0.;
+    float maxRange = 0.;
+  };
 
+  MeanVertexCalibrator() = default;
   ~MeanVertexCalibrator() final = default;
 
-  bool hasEnoughData(const Slot& slot) const final
-  {
-    if (mVerbose) {
-      LOG(info) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << mMinEntries * 2;
-    }
-    return slot.getContainer()->entries >= mMinEntries * 2; // we need in fact that the min number of entries is 2x the required ones because we will do the slices in z, and we need at least two to fit
-  }
+  bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
-
-  uint64_t getNSlotsSMA() const { return mSMAslots; }
-  void setNSlotsSMA(uint64_t nslots) { mSMAslots = nslots; }
 
   void doSimpleMovingAverage(std::deque<float>& dq, float& sma);
   void doSimpleMovingAverage(std::deque<MVObject>& dq, MVObject& sma);
@@ -76,27 +63,12 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   bool getVerboseMode() const { return mVerbose; }
 
   bool fitMeanVertex(o2::calibration::MeanVertexData* c, o2::dataformats::MeanVertexObject& mvo);
-  void fitMeanVertexCoord(int coordinate, int nbins, float* array, float minRange, float maxRange, o2::dataformats::MeanVertexObject& mvo);
-  void binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, int nbins, float min, float max, float binWidthInv);
-  void printVector(std::vector<float>& vect, float minRange, float maxRange, float binWidth);
-  void printVector(float* vect, int sizeVect, float minRange, float maxRange, float binWidth);
+  void fitMeanVertexCoord(int icoord, const float* array, const HistoParams& hpar, o2::dataformats::MeanVertexObject& mvo);
+  HistoParams binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, o2::calibration::MeanVertexData* c, int dim);
+  void printVector(const std::vector<float>& vect, const HistoParams& hpar);
+  void printVector(const float* vect, const HistoParams& hpar);
 
  private:
-  int mMinEntries = 0;
-  int mNBinsX = 0;
-  float mRangeX = 0.;
-  int mNBinsY = 0;
-  float mRangeY = 0.;
-  int mNBinsZ = 0;
-  float mRangeZ = 0.;
-  float mBinWidthX = 0.;
-  float mBinWidthY = 0.;
-  float mBinWidthZ = 0.;
-  float mBinWidthXInv = 0.;
-  float mBinWidthYInv = 0.;
-  float mBinWidthZInv = 0.;
-  uint64_t mSMAslots = 5;
-  uint32_t mNPointsForSlope = 10;
   CcdbObjectInfoVector mInfoVector;                                    // vector of CCDB Infos , each element is filled with the CCDB description
                                                                        // of the accompanying LHCPhase
   MVObjectVector mMeanVertexVector;                                    // vector of Mean Vertex Objects, each element is filled in "process"

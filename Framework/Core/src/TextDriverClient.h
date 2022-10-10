@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TEXTDRIVERCLIENT_H_
 
 #include "Framework/DriverClient.h"
+#include "Framework/ServiceRegistryRef.h"
 
 namespace o2::framework
 {
@@ -25,7 +26,7 @@ class TextDriverClient : public DriverClient
  public:
   constexpr static ServiceKind service_kind = ServiceKind::Global;
 
-  TextDriverClient(ServiceRegistry& registry, DeviceState& deviceState);
+  TextDriverClient(ServiceRegistryRef registry, DeviceState& deviceState);
 
   /// The text based client simply sends a message on stdout which is
   /// (potentially) captured by the driver.

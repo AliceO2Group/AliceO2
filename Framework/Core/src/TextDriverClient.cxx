@@ -14,7 +14,7 @@
 namespace o2::framework
 {
 
-TextDriverClient::TextDriverClient(ServiceRegistry& registry, DeviceState& deviceState)
+TextDriverClient::TextDriverClient(ServiceRegistryRef registry, DeviceState& deviceState)
 {
 }
 

@@ -8,20 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_SERVICEREGISTRYREF_H_
+#define O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-/// \file LumiWorkflow.h
-/// \author Roman Lietava
+// Until we merge the proper ServiceRegistryRef...
+#include "Framework/ServiceRegistry.h"
+#endif // O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-#include "Framework/WorkflowSpec.h"
-
-using namespace o2::framework;
-namespace o2
-{
-namespace ctp
-{
-namespace lumi_workflow
-{
-o2::framework::WorkflowSpec getWorkflow(bool noLostTF);
-} // namespace lumi_workflow
-} // namespace ctp
-} // namespace o2

@@ -262,7 +262,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   });
 
   // check all containers
-  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
+  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2()) + mPVParams->meanVertexExtraErrSelection * mPVParams->meanVertexExtraErrSelection;
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {

@@ -41,26 +41,26 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const CTPDigit>& data);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const CTPDigit>& data, const LumiInfo& lumi);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG>
-  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& data);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& data, LumiInfo& lumi);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   template <typename VEC>
-  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data);
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data, const LumiInfo& lumi);
 
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data);
+  void readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data, LumiInfo& lumi);
   std::vector<CTPDigit> mDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const CTPDigit>& data)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const CTPDigit>& data, const LumiInfo& lumi)
 {
   if (mIRFrameSelector.isSet()) { // preselect data
     mDataFilt.clear();
@@ -69,13 +69,13 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const CTPDigit>& 
         mDataFilt.push_back(trig);
       }
     }
-    return encode_impl(buff, mDataFilt);
+    return encode_impl(buff, mDataFilt, lumi);
   }
-  return encode_impl(buff, data);
+  return encode_impl(buff, data, lumi);
 }
 
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data)
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data, const LumiInfo& lumi)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -95,7 +95,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDig
   auto ec = CTF::create(buff);
   using ECB = CTF::base;
 
-  ec->setHeader(helper.createHeader());
+  ec->setHeader(helper.createHeader(lumi));
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
@@ -116,7 +116,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDig
 
 /// decode entropy-encoded digits
 template <typename VTRG>
-o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& lumi)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -138,6 +138,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data)
 
   uint32_t firstEntry = 0, digCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
+  lumi.nHBFCounted = header.lumiNHBFs;
+  lumi.counts = header.lumiCounts;
+  lumi.orbit = header.lumiOrbit;
   auto itInp = bytesInput.begin();
   auto itCls = bytesClass.begin();
 

@@ -49,15 +49,16 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& digits = pc.outputs().make<std::vector<CTPDigit>>(OutputRef{"digits"});
+  auto& lumi = pc.outputs().make<LumiInfo>(OutputRef{"lumi"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::ctp::CTF::getImage(buff.data());
-    iosize = mCTFCoder.decode(ctfImage, digits);
+    iosize = mCTFCoder.decode(ctfImage, digits, lumi);
   }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
@@ -74,11 +75,12 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "CTP", "DIGITS", 0, Lifetime::Timeframe},
+    OutputSpec{{"lumi"}, "CTP", "LUMI", 0, Lifetime::Timeframe},
     OutputSpec{{"ctfrep"}, "CTP", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "CTP", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionaryTree"));
 
   return DataProcessorSpec{
     "ctp-entropy-decoder",

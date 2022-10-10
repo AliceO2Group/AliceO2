@@ -16,6 +16,7 @@
 #include "Framework/RoutingIndices.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/InputSpan.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <cstdint>
 #include <functional>
 
@@ -31,9 +32,9 @@ struct InputRecord;
 struct ExpirationHandler {
   using Creator = std::function<TimesliceSlot(ChannelIndex, TimesliceIndex&)>;
   /// Callback type to check if the record must be expired
-  using Checker = std::function<bool(ServiceRegistry&, uint64_t timestamp, InputSpan const& record)>;
+  using Checker = std::function<bool(ServiceRegistryRef, uint64_t timestamp, InputSpan const& record)>;
   /// Callback type to actually materialise a given record
-  using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, data_matcher::VariableContext& variables)>;
+  using Handler = std::function<void(ServiceRegistryRef, PartRef& expiredInput, data_matcher::VariableContext& variables)>;
 
   std::string name = "unset";
   RouteIndex routeIndex;

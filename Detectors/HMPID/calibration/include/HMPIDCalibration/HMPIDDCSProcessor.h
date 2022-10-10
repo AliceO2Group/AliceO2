@@ -120,7 +120,9 @@ class HMPIDDCSProcessor
   void setStartValidity(long t)
   {
     mStartValidity = t;
-    LOGP(info, "mStartValidity {}", mStartValidity);
+    if (mVerbose) {
+      LOGP(info, "mStartValidity {}", mStartValidity);
+    }
   }
 
   void resetStartValidity()
@@ -132,14 +134,18 @@ class HMPIDDCSProcessor
   void setEndValidityRunIndependent(long t)
   {
     mEndValidity = t + 3 * o2::ccdb::CcdbObjectInfo::DAY; // ef : add some time for validity
-    LOGP(info, "mEndValidity {}", mStartValidity);        // after startValidity
+    if (mVerbose) {
+      LOGP(info, "mEndValidity {}", mStartValidity); // after startValidity
+    }
   }
 
   // ef : set end validity when Runstatus == STOP
   void setEndValidityRunSpecific(long t)
   {
     mEndValidity = t;
-    LOGP(info, "mEndValidity {}", mStartValidity);
+    if (mVerbose) {
+      LOGP(info, "mEndValidity {}", mStartValidity);
+    }
   }
 
   void resetEndValidity()
@@ -207,11 +213,9 @@ class HMPIDDCSProcessor
   {
     int cnt = 0;
     bool arQthreFull = true;
-
-    LOG(info) << " ";
-    LOG(info) << "======================================== ";
-    LOG(info) << "All entries Processed";
-    LOG(info) << " checking if CCDB objects are filled : ";
+    if (mVerbose) {
+      LOG(info) << " checking if CCDB objects are filled : ";
+    }
 
     for (int iCh = 0; iCh < 7; ++iCh) {
       for (int iSec = 0; iSec < 6; ++iSec) {
@@ -254,17 +258,15 @@ class HMPIDDCSProcessor
       arNmeanFull = false;
     }
 
-    if (arQthreFull) {
-      LOG(info) << Form("arQthre Full Sized");
+    if (arQthreFull && mVerbose) {
+      LOG(info) << "arQthre Full Sized";
     }
-    if (arNmeanFull) {
-      LOG(info) << Form("arNmean Full Sized");
+    if (arNmeanFull && mVerbose) {
+      LOG(info) << "arNmean Full Sized";
     }
-    if (arNmeanFull && arQthreFull) {
-      LOG(info) << Form("All entries of CCDB objects are filled");
+    if (arNmeanFull && arQthreFull && mVerbose) {
+      LOG(info) << "All entries of CCDB objects are filled";
     }
-    LOG(info) << " ";
-    LOG(info) << "======================================== ";
   }
 
   void clearDPsInfo()

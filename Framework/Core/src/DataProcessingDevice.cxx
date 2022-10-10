@@ -108,7 +108,7 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry, ProcessingPolicies& policies)
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistryRef registry, ProcessingPolicies& policies)
   : mSpec{registry.get<RunningWorkflowInfo const>().devices[ref.index]},
     mState{registry.get<DeviceState>()},
     mInit{mSpec.algorithm.onInit},
@@ -501,7 +501,7 @@ static auto toBeforwardedMessageSet = [](ChannelIndex& cachedForwardingChoice,
 // the inputs which are shared between this device and others
 // to the next one in the daisy chain.
 // FIXME: do it in a smarter way than O(N^2)
-static auto forwardInputs = [](ServiceRegistry& registry, TimesliceSlot slot, std::vector<MessageSet>& currentSetOfInputs,
+static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<MessageSet>& currentSetOfInputs,
                                TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume = true) {
   ZoneScopedN("forward inputs");
   auto& proxy = registry.get<FairMQDeviceProxy>();
@@ -589,7 +589,7 @@ extern volatile int region_read_global_dummy_variable;
 volatile int region_read_global_dummy_variable;
 
 /// Invoke the callbacks for the mPendingRegionInfos
-void handleRegionCallbacks(ServiceRegistry& registry, std::vector<fair::mq::RegionInfo>& infos)
+void handleRegionCallbacks(ServiceRegistryRef registry, std::vector<fair::mq::RegionInfo>& infos)
 {
   if (infos.empty() == false) {
     std::vector<fair::mq::RegionInfo> toBeNotified;
@@ -1485,7 +1485,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         }
       }
     }
-    assert(std::accumulate(results.begin(), results.end(), 0, [](size_t const& count, auto const& element) -> size_t { return count + element.size; }));
     if (results.size() + nTotalPayloads != parts.Size()) {
       LOG(error) << "inconsistent number of inputs extracted";
       return std::nullopt;
@@ -1623,7 +1622,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
       context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-      context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+      context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
@@ -2018,7 +2017,7 @@ void DataProcessingDevice::error(const char* msg)
   mServiceRegistry.get<DataProcessingStats>().errorCount++;
 }
 
-std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options)
+std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef registry, const char* name, std::vector<ConfigParamSpec> const& options)
 {
 
   if (registry.active<ConfigurationInterface>()) {

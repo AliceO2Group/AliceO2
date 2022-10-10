@@ -73,7 +73,6 @@
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <InfoLogger/InfoLogger.hxx>
 #include "ResourcesMonitoringHelper.h"
 
 #include <fairmq/Device.h>
@@ -146,7 +145,6 @@
 
 using namespace o2::monitoring;
 using namespace o2::configuration;
-using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
@@ -717,7 +715,7 @@ void spawnDevice(DeviceRef ref,
                  std::vector<DeviceControl>&,
                  std::vector<DeviceExecution>& executions,
                  std::vector<DeviceInfo>& deviceInfos,
-                 ServiceRegistry& serviceRegistry,
+                 ServiceRegistryRef serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
                  unsigned parentCPU,
@@ -1005,14 +1003,14 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
   if (err.maxBacktrace != 0) {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
-         "\n Reason: {}"
+         " Reason: {}"
          "\n Backtrace follow: \n",
          processName, err.what);
     demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
-         "\n Reason: {}"
+         " Reason: {}"
          "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.",
          processName, err.what);
   }
@@ -1044,7 +1042,7 @@ void doDefaultWorkflowTerminationHook()
   // LOG(info) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+int doChild(int argc, char** argv, ServiceRegistryRef serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
             ProcessingPolicies processingPolicies,
