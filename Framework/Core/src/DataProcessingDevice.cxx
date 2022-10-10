@@ -123,40 +123,6 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     mProcessingPolicies{policies}
 {
 
-  /// FIXME: move erro handling to a service?
-  if (mError != nullptr) {
-    mErrorHandling = [&errorCallback = mError,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
-      ZoneScopedN("Error handling");
-      /// FIXME: we should pass the salt in, so that the message
-      ///        can access information which were stored in the stream.
-      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
-      auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
-      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      ref.get<DataProcessingStats>().exceptionCount++;
-      ErrorContext errorContext{record, ref, e};
-      errorCallback(errorContext);
-    };
-  } else {
-    mErrorHandling = [&errorPolicy = mProcessingPolicies.error,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
-      ZoneScopedN("Error handling");
-      auto& err = error_from_ref(e);
-      /// FIXME: we should pass the salt in, so that the message
-      ///        can access information which were stored in the stream.
-      LOGP(error, "Exception caught: {} ", err.what);
-      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
-      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      ref.get<DataProcessingStats>().exceptionCount++;
-      switch (errorPolicy) {
-        case TerminationPolicy::QUIT:
-          throw e;
-        default:
-          break;
-      }
-    };
-  }
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
@@ -923,7 +889,40 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.statelessProcess = &mStatelessProcess;
   context.error = &mError;
   /// Callback for the error handling
-  context.errorHandling = &mErrorHandling;
+  /// FIXME: move erro handling to a service?
+  if (mError != nullptr) {
+    context.errorHandling = [&errorCallback = mError,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+      ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& err = error_from_ref(e);
+      LOGP(error, "Exception caught: {} ", err.what);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      ref.get<DataProcessingStats>().exceptionCount++;
+      ErrorContext errorContext{record, ref, e};
+      errorCallback(errorContext);
+    };
+  } else {
+    context.errorHandling = [&errorPolicy = mProcessingPolicies.error,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+      ZoneScopedN("Error handling");
+      auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      ref.get<DataProcessingStats>().exceptionCount++;
+      switch (errorPolicy) {
+        case TerminationPolicy::QUIT:
+          throw e;
+        default:
+          break;
+      }
+    };
+  }
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
   context.canForwardEarly = (mSpec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
@@ -2046,10 +2045,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         /// Notice how this will lose the backtrace information
         /// and report the exception coming from here.
         auto e = runtime_error(ex.what());
-        (*context.errorHandling)(e, record);
+        (context.errorHandling)(e, record);
       } catch (o2::framework::RuntimeErrorRef e) {
         ZoneScopedN("error handling");
-        (*context.errorHandling)(e, record);
+        (context.errorHandling)(e, record);
       }
     }
     if (state.severityStack.empty() == false) {
