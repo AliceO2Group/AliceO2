@@ -57,7 +57,7 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
     }
   }
 
-  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}, {"NTracks", calibPadGainTracks.getNTracksMap()}});
   mCalibs.emplace_back(cal);
 
   if (mUseLastExtractedMapAsReference) {

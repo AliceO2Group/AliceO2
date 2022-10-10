@@ -267,7 +267,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
       {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
       {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},
       {"underflowBin", VariantType::Bool, false, {"Using under flow bin"}},
-      {"overflowBin", VariantType::Bool, true, {"Using under flow bin"}},
+      {"overflowBin", VariantType::Bool, true, {"Using overflow flow bin"}},
       {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},

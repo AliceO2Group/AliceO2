@@ -141,13 +141,13 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
     Options{
       {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 0u, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 0, {"minimum entries per pad-by-pad histogram which are required"}},
+      {"min-entries", VariantType::Int, 40, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
       {"minAcceptedRelgain", VariantType::Float, 0.1f, {"minimum accpeted relative gain (if the gain is below this value it will be set to 1)"}},
       {"maxAcceptedRelgain", VariantType::Float, 2.f, {"maximum accpeted relative gain (if the gain is above this value it will be set to 1)"}},
-      {"gainNorm", VariantType::Int, 2, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
-      {"minEntriesMean", VariantType::Int, 10, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
+      {"gainNorm", VariantType::Int, 1, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
+      {"minEntriesMean", VariantType::Int, 40, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 
