@@ -19,6 +19,8 @@
 #include <string>
 #include <cstdint>
 #include <bitset>
+#include <set>
+#include <utility>
 #include <array>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
@@ -138,6 +140,9 @@ class CruRawReader
   // helper function to dump the whole input payload including RDH headers
   void dumpInputPayload() const;
 
+  // to check for which half-chambers we have seen correct headers and for which we have seen wrong ones
+  void printHalfChamberHeaderReport() const;
+
  private:
   // these variables are configured externally
   int mTrackletHCHeaderState{0};
@@ -170,6 +175,9 @@ class CruRawReader
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;       // CRU ID taken from the FEEID of the RDH
   TRDFeeID mFEEID;       // current Fee ID working on
+
+  std::set<int> mHalfChamberHeaderOK;                   // keep track of the half chambers for which we have seen correct headers
+  std::set<std::pair<int, int>> mHalfChamberMismatches; // first element is HCID from RDH and second element is HCID from TrackletHCHeader
 
   o2::InteractionRecord mIR;
   std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
