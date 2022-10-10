@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
 
   auto t6 = IndexBuilder<Sparse>::indexBuilder<Points>("test3", {t2, t1, t3, t4}, typename IDX2s::persistent_columns_t{}, o2::framework::pack<Distances, Points, Flags, Categorys>{});
   BOOST_REQUIRE_EQUAL(t6->num_rows(), st2.size());
-  IDX2s idxs{t6};
+  IDXs idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
   std::array<int, 7> cs{0, 1, 2, -1, 5, 6, -1};
   idxs.bindExternalIndices(&st1, &st2, &st3, &st4);
