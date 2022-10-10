@@ -121,8 +121,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
-    mProcessingPolicies{policies},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>(ServiceRegistry::globalDeviceSalt())}
+    mProcessingPolicies{policies}
 {
 
   /// FIXME: move erro handling to a service?
@@ -1086,7 +1085,7 @@ void DataProcessingDevice::Run()
       }
 
       if (!mState.pendingOffers.empty()) {
-        mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
+        ref.get<ComputingQuotaEvaluator>().updateOffers(mState.pendingOffers, uv_now(mState.loop));
       }
     }
 
@@ -1131,11 +1130,12 @@ void DataProcessingDevice::Run()
         monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
         monitoring.flushBuffer();
       };
+      auto ref = ServiceRegistryRef{mServiceRegistry};
 
       // Deciding wether to run or not can be done by passing a request to
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
-      bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
 
       if (enough) {
         stream.id = streamRef;
@@ -1150,8 +1150,7 @@ void DataProcessingDevice::Run()
 #endif
       } else {
         auto ref = ServiceRegistryRef{mServiceRegistry};
-        auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
-        quotaEvaluator.handleExpired(reportExpiredOffer);
+        ref.get<ComputingQuotaEvaluator>().handleExpired(reportExpiredOffer);
         mWasActive = false;
       }
     } else {
