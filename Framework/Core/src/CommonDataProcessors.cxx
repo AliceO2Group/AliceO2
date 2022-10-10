@@ -42,6 +42,8 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TMap.h"
+#include "TObjString.h"
 
 #include <fairmq/Device.h>
 #include <chrono>
@@ -292,8 +294,11 @@ DataProcessorSpec
     std::map<uint64_t, uint64_t> tfNumbers;
     std::map<uint64_t, std::string> tfFilenames;
 
+    std::vector<TString> aodMetaDataKeys;
+    std::vector<TString> aodMetaDataVals;
+
     // this functor is called once per time frame
-    return [dod, tfNumbers, tfFilenames](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers, tfFilenames, aodMetaDataKeys, aodMetaDataVals](ProcessingContext& pc) mutable -> void {
       LOGP(debug, "======== getGlobalAODSink::processing ==========");
       LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
@@ -326,6 +331,16 @@ DataProcessorSpec
         if (!ref.spec) {
           LOGP(debug, "Invalid input will be skipped!");
           continue;
+        }
+
+        // get metadata
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AMD"))) {
+          if (ref.spec->binding == "aodmdk") {
+            aodMetaDataKeys = pc.inputs().get<std::vector<TString>>("aodmdk");
+          }
+          if (ref.spec->binding == "aodmdv") {
+            aodMetaDataVals = pc.inputs().get<std::vector<TString>>("aodmdv");
+          }
         }
 
         // skip non-AOD refs
@@ -381,6 +396,17 @@ DataProcessorSpec
           TableToTree ta2tr(table,
                             fileAndFolder.file,
                             treename.c_str());
+
+          // update metadata
+          if (fileAndFolder.file->FindObjectAny("metaData")) {
+            LOGF(debug, "Metadata: target file %s already has metadata, preserving it", fileAndFolder.file->GetName());
+          } else if (!aodMetaDataKeys.empty() && !aodMetaDataVals.empty()) {
+            TMap aodMetaDataMap;
+            for (uint32_t imd = 0; imd < aodMetaDataKeys.size(); imd++) {
+              aodMetaDataMap.Add(new TObjString(aodMetaDataKeys[imd]), new TObjString(aodMetaDataVals[imd]));
+            }
+            fileAndFolder.file->WriteObject(&aodMetaDataMap, "metaData", "Overwrite");
+          }
 
           if (!d->colnames.empty()) {
             for (auto& cn : d->colnames) {

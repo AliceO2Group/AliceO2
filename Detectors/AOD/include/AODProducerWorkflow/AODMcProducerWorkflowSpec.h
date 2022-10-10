@@ -35,7 +35,7 @@ namespace o2::aodmcproducer
 class AODMcProducerWorkflowDPL : public Task
 {
  public:
-  AODMcProducerWorkflowDPL(std::string resFile) : mResFile{resFile} {}
+  AODMcProducerWorkflowDPL() = default;
   ~AODMcProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -47,7 +47,6 @@ class AODMcProducerWorkflowDPL : public Task
   int mTruncate{1};
   int mFilterMC{0};
   o2::InteractionRecord mStartIR{}; // TF 1st IR
-  TString mResFile{"AO2D"};
   TString mLPMProdTag{""};
   TString mAnchorPass{""};
   TString mAnchorProd{""};
@@ -57,7 +56,9 @@ class AODMcProducerWorkflowDPL : public Task
   o2::aodhelpers::TripletsMap_t mToStore;
 
   // MC production metadata holder
-  TMap mMetaData;
+  std::vector<TString> mMetaDataKeys;
+  std::vector<TString> mMetaDataVals;
+  bool mIsMDSent{false};
 
   // truncation is enabled by default
   uint32_t mCollisionPosition = 0xFFFFFFF0; // 19 bits mantissa
@@ -75,7 +76,7 @@ class AODMcProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODMcProducerWorkflowSpec(std::string resFile);
+framework::DataProcessorSpec getAODMcProducerWorkflowSpec();
 
 } // namespace o2::aodmcproducer
 
