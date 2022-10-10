@@ -98,20 +98,24 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  std::random_device r;
-  std::default_random_engine e1(r());
-  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
-
-  // We start with a random offset to avoid all the devices
-  // send their first message at the same time, bring down
-  // the QC machine.
-  // We reduce the first interval rather than increasing it
-  // to avoid having a triggered timer which appears to be in
-  // the future.
-  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
-  auto last = std::make_shared<decltype(start)>(start);
+  std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
   // FIXME: should create timeslices when period expires....
   return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+    // We start with a random offset to avoid all the devices
+    // send their first message at the same time, bring down
+    // the QC machine.
+    // We reduce the first interval rather than increasing it
+    // to avoid having a triggered timer which appears to be in
+    // the future.
+    // We do it here because if we do it in configure, long delays
+    // between configure and run will cause this to behave
+    // incorrrectly.
+    if (*last == 0ULL) {
+      std::random_device r;
+      std::default_random_engine e1(r());
+      std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+      *last = getCurrentTime() - dist(e1) - period.count() * 0.1;
+    }
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
