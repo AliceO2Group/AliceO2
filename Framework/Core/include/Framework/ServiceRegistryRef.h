@@ -36,9 +36,9 @@ class ServiceRegistryRef
   // cannot be accessed if the streamId is <= 0 and complain accordingly.
   // The dataProcessorId will be used to distinguish between different
   // data processors when
-  ServiceRegistryRef(ServiceRegistry& registry)
+  ServiceRegistryRef(ServiceRegistry& registry, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt())
     : mRegistry(registry),
-      mSalt(ServiceRegistry::threadSalt())
+      mSalt(salt)
   {
   }
 

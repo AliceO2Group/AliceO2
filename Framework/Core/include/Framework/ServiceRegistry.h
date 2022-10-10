@@ -112,10 +112,45 @@ struct ServiceRegistry {
   /// The mask to use to calculate the initial slot id.
   constexpr static uint32_t MAX_SERVICES_MASK = MAX_SERVICES - 1;
 
-  static Salt threadSalt() {
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    return Salt{Context{.streamId = (short)hasher(tid)}};
+  /// A salt which is global to the whole device.
+  /// This can be used to query services which are not
+  /// bound to a specific stream or data processor, e.g.
+  /// the services to send metrics to the driver or
+  /// to send messages to the control.
+  static Salt globalDeviceSalt()
+  {
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is global to a given stream
+  /// but which multiple dataprocessors can share.
+  static Salt globalStreamSalt(short streamId)
+  {
+    // FIXME: old behaviour for now
+    // return {streamId, 0};
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is global to a specific data processor.
+  /// This can be used to query properties which are
+  /// not bonded to a specific stream, e.g. the
+  /// name of the data processor, its inputs and outputs,
+  /// it's algorithm.
+  static Salt dataProcessorSalt(short dataProcessorId)
+  {
+    // FIXME: old behaviour for now
+    // return {0, dataProcessorId};
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is specific to a given stream.
+  /// This can be used to query properties which are of the stream
+  /// itself, e.g. the currently processed time frame by a given stream.
+  static Salt streamSalt(short streamId, short dataProcessorId)
+  {
+    // FIXME: old behaviour for now
+    // return {streamId, dataProcessorId};
+    return GLOBAL_CONTEXT_SALT;
   }
 
   constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
@@ -211,7 +246,7 @@ struct ServiceRegistry {
   /// thread safe.
   /// @a salt is used to create the service in the proper context
   /// FIXME: for now we create everything in the global context
-  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::threadSalt());
+  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt());
 
   /// Bind the callbacks of a service spec to a given service.
   void bindService(ServiceSpec const& spec, void* service);
