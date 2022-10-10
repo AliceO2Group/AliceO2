@@ -113,8 +113,8 @@ void on_communication_requested(uv_async_t* s)
 }
 
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry, ProcessingPolicies& policies)
-  : mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::threadSalt()).devices[ref.index]},
-    mState{registry.get<DeviceState>(ServiceRegistry::threadSalt())},
+  : mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[ref.index]},
+    mState{registry.get<DeviceState>(ServiceRegistry::globalDeviceSalt())},
     mInit{mSpec.algorithm.onInit},
     mStatefulProcess{nullptr},
     mStatelessProcess{mSpec.algorithm.onProcess},
@@ -122,7 +122,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mProcessingPolicies{policies},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>(ServiceRegistry::threadSalt())}
+    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>(ServiceRegistry::globalDeviceSalt())}
 {
 
   /// FIXME: move erro handling to a service?
@@ -130,11 +130,14 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mErrorHandling = [&errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       auto& err = error_from_ref(e);
       LOGP(error, "Exception caught: {} ", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<DataProcessingStats>(ServiceRegistry::threadSalt()).exceptionCount++;
-      ErrorContext errorContext{record, serviceRegistry, e};
+      ref.get<DataProcessingStats>().exceptionCount++;
+      ErrorContext errorContext{record, ref, e};
       errorCallback(errorContext);
     };
   } else {
@@ -142,9 +145,12 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
       LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<DataProcessingStats>(ServiceRegistry::threadSalt()).exceptionCount++;
+      ref.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -155,9 +161,10 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   }
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
-    auto& deviceState = registry.get<DeviceState>(ServiceRegistry::threadSalt());
-    auto& control = registry.get<ControlService>(ServiceRegistry::threadSalt());
-    auto& callbacks = registry.get<CallbackService>(ServiceRegistry::threadSalt());
+    auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+    auto& deviceState = ref.get<DeviceState>();
+    auto& control = ref.get<ControlService>();
+    auto& callbacks = ref.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
     callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
 
@@ -356,7 +363,7 @@ void DataProcessingDevice::Init()
       str = entry.second.get_value<std::string>();
     }
     std::string configString = fmt::format("[CONFIG] {}={} 1 {}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
-    mServiceRegistry.get<DriverClient>(ServiceRegistry::threadSalt()).tell(configString.c_str());
+    mServiceRegistry.get<DriverClient>(ServiceRegistry::globalDeviceSalt()).tell(configString.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
@@ -386,7 +393,7 @@ void DataProcessingDevice::Init()
   // Invoke the callback policy for this device.
   if (mSpec.callbacksPolicy.policy != nullptr) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::threadSalt()), initContext);
+    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()), initContext);
   }
 }
 
@@ -864,7 +871,7 @@ void DataProcessingDevice::InitTask()
   // more a ServiceRegistry::globalDataProcessorSalt(N) where
   // N is the number of the multiplexed data processor.
   // We will get there.
-  this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::threadSalt()), deviceContext);
+  this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::globalDeviceSalt()), deviceContext);
 
   /// We now run an event loop also in InitTask. This is needed to:
   /// * Make sure region registration callbacks are invoked
