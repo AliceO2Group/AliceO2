@@ -70,8 +70,8 @@ void manualCalibFit()
   }
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
-  mFitFunctor.vdPreCorr = 1.546;
-  mFitFunctor.laPreCorr = 0.;
+  mFitFunctor.vdPreCorr.fill(1.546);
+  mFitFunctor.laPreCorr.fill(0.0);
 
   //----------------------------------------------------
   // Loop

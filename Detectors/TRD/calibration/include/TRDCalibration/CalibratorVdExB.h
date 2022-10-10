@@ -38,8 +38,8 @@ struct FitFunctor {
   double operator()(const double* par) const;
   double calculateDeltaAlphaSim(double vdFit, double laFit, double impactAng) const;
   std::array<std::unique_ptr<TProfile>, constants::MAXCHAMBER> profiles; ///< profile histograms for each TRD chamber
-  double vdPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
-  double laPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
+  std::array<double,constants::MAXCHAMBER> vdPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
+  std::array<double,constants::MAXCHAMBER> laPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
   int currDet;                                                           ///< the current TRD chamber number
   float lowerBoundAngleFit;
   float upperBoundAngleFit;

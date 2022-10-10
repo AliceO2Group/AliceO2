@@ -52,11 +52,11 @@ double FitFunctor::calculateDeltaAlphaSim(double vdFit, double laFit, double imp
 
   // cluster location within drift cell of cluster from entrance after drift velocity ratio is applied
   double xLorentzDriftHit = xLorentzAnodeHit;
-  double yLorentzDriftHit = trdAnodePlane - trdAnodePlane * (vdPreCorr / vdFit);
+  double yLorentzDriftHit = trdAnodePlane - trdAnodePlane * (vdPreCorr[currDet] / vdFit);
 
   // reconstructed hit of first cluster at chamber entrance after pre Lorentz angle correction
-  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (trdAnodePlane - yLorentzDriftHit) * TMath::Tan(laPreCorr);
-  double yLorentzDriftHitPreCorr = trdAnodePlane - trdAnodePlane * (vdPreCorr / vdFit);
+  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (trdAnodePlane - yLorentzDriftHit) * TMath::Tan(laPreCorr[currDet]);
+  double yLorentzDriftHitPreCorr = trdAnodePlane - trdAnodePlane * (vdPreCorr[currDet] / vdFit);
 
   double impactAngleSim = TMath::ATan2(yAnodeHit, xAnodeHit);
 
@@ -103,8 +103,8 @@ void CalibratorVdExB::initProcessing()
   }
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
-  mFitFunctor.vdPreCorr = 1.546;    // TODO: will be taken from CCDB in the future
-  mFitFunctor.laPreCorr = 0.;       // TODO: will be taken from CCDB in the future
+  mFitFunctor.vdPreCorr.fill(1.546);    // TODO: will be taken from CCDB in the future
+  mFitFunctor.laPreCorr.fill(0.);       // TODO: will be taken from CCDB in the future
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
@@ -152,6 +152,9 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
     LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
+    // Update fit values for next fit
+    mFitFunctor.laPreCorr[iDet] = laFitResults[iDet];
+    mFitFunctor.vdPreCorr[iDet] = vdFitResults[iDet];
   }
   timer.Stop();
   LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
