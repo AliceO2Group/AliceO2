@@ -103,8 +103,6 @@ class DataProcessingDevice : public fair::mq::Device
   void stopPollers();
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
-  /// The current internal state of this device.
-  DeviceState& mState;
 
   AlgorithmSpec::InitCallback mInit;
   AlgorithmSpec::ProcessCallback mStatefulProcess;

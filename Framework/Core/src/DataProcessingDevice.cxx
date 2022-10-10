@@ -112,9 +112,8 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry, ProcessingPolicies& policies)
-  : mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[ref.index]},
-    mState{registry.get<DeviceState>(ServiceRegistry::globalDeviceSalt())},
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
+  : mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
     mInit{mSpec.algorithm.onInit},
     mStatefulProcess{nullptr},
     mStatelessProcess{mSpec.algorithm.onProcess},
@@ -181,9 +180,11 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   mHandles.resize(1);
 
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
-  assert(mState.loop);
-  int res = uv_async_init(mState.loop, mAwakeHandle, on_communication_requested);
-  mAwakeHandle->data = &mState;
+  auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+  auto &state = ref.get<DeviceState>();
+  assert(state.loop);
+  int res = uv_async_init(state.loop, mAwakeHandle, on_communication_requested);
+  mAwakeHandle->data = &state;
   if (res < 0) {
     LOG(error) << "Unable to initialise subscription";
   }
@@ -373,7 +374,9 @@ void DataProcessingDevice::Init()
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
     mStatefulProcess = mInit(initContext);
   }
-  mState.inputChannelInfos.resize(mSpec.inputChannels.size());
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& state= ref.get<DeviceState>();
+  state.inputChannelInfos.resize(mSpec.inputChannels.size());
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
   /// expect them to create any data.
@@ -381,11 +384,11 @@ void DataProcessingDevice::Init()
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& name = mSpec.inputChannels[ci].name;
     if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
-      mState.inputChannelInfos[ci].state = InputChannelState::Pull;
-      mState.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
+      state.inputChannelInfos[ci].state = InputChannelState::Pull;
+      state.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
       validChannelId++;
     } else {
-      mState.inputChannelInfos[ci].id = {validChannelId++};
+      state.inputChannelInfos[ci].id = {validChannelId++};
     }
   }
 
@@ -674,34 +677,34 @@ void DataProcessingDevice::initPollers()
       LOGP(detail, "Polling socket for {}", channelName);
       auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
       pCtx->name = strdup(channelName.c_str());
-      pCtx->loop = mState.loop;
+      pCtx->loop = state.loop;
       pCtx->device = this;
-      pCtx->state = &mState;
+      pCtx->state = &state;
       pCtx->fd = zmq_fd;
       assert(channelInfo != nullptr);
       pCtx->channelInfo = channelInfo;
       pCtx->socket = &channel[0].GetSocket();
       pCtx->read = true;
       poller->data = pCtx;
-      uv_poll_init(mState.loop, poller, zmq_fd);
+      uv_poll_init(state.loop, poller, zmq_fd);
       if (channelName.rfind("from_") != 0) {
         LOGP(detail, "{} is an out of band channel.", channelName);
-        mState.activeOutOfBandPollers.push_back(poller);
+        state.activeOutOfBandPollers.push_back(poller);
       } else {
-        mState.activeInputPollers.push_back(poller);
+        state.activeInputPollers.push_back(poller);
       }
     }
     // In case we do not have any input channel and we do not have
     // any timers or signal watchers we still wake up whenever we can send data to downstream
     // devices to allow for enumerations.
-    if (mState.activeInputPollers.empty() &&
-        mState.activeOutOfBandPollers.empty() &&
-        mState.activeTimers.empty() &&
-        mState.activeSignals.empty()) {
+    if (state.activeInputPollers.empty() &&
+        state.activeOutOfBandPollers.empty() &&
+        state.activeTimers.empty() &&
+        state.activeSignals.empty()) {
       // FIXME: this is to make sure we do not reset the output timer
       // for readout proxies or similar. In principle this should go once
       // we move to OutOfBand InputSpec.
-      if (mState.inputChannelInfos.empty()) {
+      if (state.inputChannelInfos.empty()) {
         LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
         deviceContext.exitTransitionTimeout = 0;
       }
@@ -728,14 +731,14 @@ void DataProcessingDevice::initPollers()
         // FIXME: leak
         auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
         pCtx->name = strdup(channelName.c_str());
-        pCtx->loop = mState.loop;
+        pCtx->loop = state.loop;
         pCtx->device = this;
-        pCtx->state = &mState;
+        pCtx->state = &state;
         pCtx->fd = zmq_fd;
         pCtx->read = false;
         poller->data = pCtx;
-        uv_poll_init(mState.loop, poller, zmq_fd);
-        mState.activeOutputPollers.push_back(poller);
+        uv_poll_init(state.loop, poller, zmq_fd);
+        state.activeOutputPollers.push_back(poller);
       }
     }
   } else {
@@ -746,11 +749,11 @@ void DataProcessingDevice::initPollers()
     ref.get<ControlService>().readyToQuit(QuitRequest::Me);
     // A two second timer to stop internal devices which do not want to
     auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-    uv_timer_init(mState.loop, timer);
-    timer->data = &mState;
-    uv_update_time(mState.loop);
+    uv_timer_init(state.loop, timer);
+    timer->data = &state;
+    uv_update_time(state.loop);
     uv_timer_start(timer, on_idle_timer, 2000, 2000);
-    mState.activeTimers.push_back(timer);
+    state.activeTimers.push_back(timer);
   }
 }
 
@@ -758,36 +761,38 @@ void DataProcessingDevice::startPollers()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
+  auto& state = ref.get<DeviceState>();
 
-  for (auto& poller : mState.activeInputPollers) {
+  for (auto& poller : state.activeInputPollers) {
     uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
   }
-  for (auto& poller : mState.activeOutOfBandPollers) {
+  for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
   }
-  for (auto& poller : mState.activeOutputPollers) {
+  for (auto& poller : state.activeOutputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
   }
 
   deviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-  deviceContext.gracePeriodTimer->data = &mState;
-  uv_timer_init(mState.loop, deviceContext.gracePeriodTimer);
+  deviceContext.gracePeriodTimer->data = &state;
+  uv_timer_init(state.loop, deviceContext.gracePeriodTimer);
 }
 
 void DataProcessingDevice::stopPollers()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
-  LOGP(detail, "Stopping {} input pollers", mState.activeInputPollers.size());
-  for (auto& poller : mState.activeInputPollers) {
+  auto& state = ref.get<DeviceState>();
+  LOGP(detail, "Stopping {} input pollers", state.activeInputPollers.size());
+  for (auto& poller : state.activeInputPollers) {
     uv_poll_stop(poller);
   }
-  LOGP(detail, "Stopping {} out of band pollers", mState.activeOutOfBandPollers.size());
-  for (auto& poller : mState.activeOutOfBandPollers) {
+  LOGP(detail, "Stopping {} out of band pollers", state.activeOutOfBandPollers.size());
+  for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_stop(poller);
   }
-  LOGP(detail, "Stopping {} output pollers", mState.activeOutOfBandPollers.size());
-  for (auto& poller : mState.activeOutputPollers) {
+  LOGP(detail, "Stopping {} output pollers", state.activeOutOfBandPollers.size());
+  for (auto& poller : state.activeOutputPollers) {
     uv_poll_stop(poller);
   }
 
@@ -801,6 +806,7 @@ void DataProcessingDevice::InitTask()
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
   auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  auto& state = ref.get<DeviceState>();
   int i = 0;
   for (auto& di : distinct) {
     auto& route = mSpec.inputs[di];
@@ -812,16 +818,16 @@ void DataProcessingDevice::InitTask()
       .name = route.configurator->name,
       .routeIndex = RouteIndex{i++},
       .lifetime = route.matcher.lifetime,
-      .creator = route.configurator->creatorConfigurator(mState, mServiceRegistry, *mConfigRegistry),
-      .checker = route.configurator->danglingConfigurator(mState, *mConfigRegistry),
-      .handler = route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
+      .creator = route.configurator->creatorConfigurator(state, mServiceRegistry, *mConfigRegistry),
+      .checker = route.configurator->danglingConfigurator(state, *mConfigRegistry),
+      .handler = route.configurator->expirationConfigurator(state, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
 
-  if (mState.awakeMainThread == nullptr) {
-    mState.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
-    mState.awakeMainThread->data = &mState;
-    uv_async_init(mState.loop, mState.awakeMainThread, on_awake_main_thread);
+  if (state.awakeMainThread == nullptr) {
+    state.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
+    state.awakeMainThread->data = &state;
+    uv_async_init(state.loop, state.awakeMainThread, on_awake_main_thread);
   }
 
   deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
@@ -851,7 +857,7 @@ void DataProcessingDevice::InitTask()
   // be unblocked (e.g. by a quitting DPL driver) even when there
   // is no data pending to be processed.
   auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
-  uv_signal_init(mState.loop, sigusr1Handle);
+  uv_signal_init(state.loop, sigusr1Handle);
   sigusr1Handle->data = &mServiceRegistry;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
@@ -876,7 +882,7 @@ void DataProcessingDevice::InitTask()
   /// * Make sure region registration callbacks are invoked
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
-  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
+  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(state.loop, UV_RUN_ONCE)) {
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
@@ -972,11 +978,13 @@ void DataProcessingDevice::Reset()
 
 void DataProcessingDevice::Run()
 {
-  mState.loopReason = DeviceState::LoopReason::FIRST_LOOP;
-  while (mState.transitionHandling != TransitionHandlingState::Expired) {
-    if (mState.nextFairMQState.empty() == false) {
-      this->ChangeState(mState.nextFairMQState.back());
-      mState.nextFairMQState.pop_back();
+  ServiceRegistryRef ref{mServiceRegistry};
+  auto &state = ref.get<DeviceState>();
+  state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
+  while (state.transitionHandling != TransitionHandlingState::Expired) {
+    if (state.nextFairMQState.empty() == false) {
+      this->ChangeState(state.nextFairMQState.back());
+      state.nextFairMQState.pop_back();
     }
     // Notify on the main thread the new region callbacks, making sure
     // no callback is issued if there is something still processing.
@@ -994,22 +1002,22 @@ void DataProcessingDevice::Run()
       ServiceRegistryRef ref{mServiceRegistry};
       ref.get<DriverClient>().flushPending();
       auto shouldNotWait = (mWasActive &&
-                            (mState.streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
-                           (mState.streaming == StreamingState::EndOfStreaming);
+                            (state.streaming != StreamingState::Idle) && (state.activeSignals.empty())) ||
+                           (state.streaming == StreamingState::EndOfStreaming);
       if (mWasActive) {
-        mState.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
+        state.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
       }
       if (NewStatePending()) {
         shouldNotWait = true;
-        mState.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
+        state.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
-      if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
-        mState.transitionHandling = TransitionHandlingState::Requested;
+      if (state.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
+        state.transitionHandling = TransitionHandlingState::Requested;
         auto& deviceContext = ref.get<DeviceContext>();
         auto timeout = deviceContext.exitTransitionTimeout;
-        if (timeout != 0 && mState.streaming != StreamingState::Idle) {
-          mState.transitionHandling = TransitionHandlingState::Requested;
-          uv_update_time(mState.loop);
+        if (timeout != 0 && state.streaming != StreamingState::Idle) {
+          state.transitionHandling = TransitionHandlingState::Requested;
+          uv_update_time(state.loop);
           uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
@@ -1017,7 +1025,7 @@ void DataProcessingDevice::Run()
             LOGP(info, "New state requested. Waiting for {} seconds before switching to READY state.", timeout);
           }
         } else {
-          mState.transitionHandling = TransitionHandlingState::Expired;
+          state.transitionHandling = TransitionHandlingState::Expired;
           if (timeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. No timeout set, quitting immediately as per --completion-policy");
           } else if (timeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
@@ -1030,20 +1038,20 @@ void DataProcessingDevice::Run()
         }
       }
       // If we are Idle, we can then consider the transition to be expired.
-      if (mState.transitionHandling == TransitionHandlingState::Requested && mState.streaming == StreamingState::Idle) {
-        mState.transitionHandling = TransitionHandlingState::Expired;
+      if (state.transitionHandling == TransitionHandlingState::Requested && state.streaming == StreamingState::Idle) {
+        state.transitionHandling = TransitionHandlingState::Expired;
       }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
-      if (mState.severityStack.empty() == false) {
-        fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
-        mState.severityStack.pop_back();
+      if (state.severityStack.empty() == false) {
+        fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+        state.severityStack.pop_back();
       }
       // for (auto &info : mDeviceContext.state->inputChannelInfos)  {
       //   shouldNotWait |= info.readPolled;
       // }
-      mState.loopReason = DeviceState::NO_REASON;
-      if ((mState.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
-        mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+      state.loopReason = DeviceState::NO_REASON;
+      if ((state.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
+        state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
       }
       // Run the asynchronous queue just before sleeping again, so that:
@@ -1066,26 +1074,26 @@ void DataProcessingDevice::Run()
       auto& queue = ref.get<AsyncQueue>();
       auto oldestPossibleTimeslice = relayer.getOldestPossibleOutput();
       AsyncQueueHelpers::run(queue, {oldestPossibleTimeslice.timeslice.value});
-      uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
-      if ((mState.loopReason & mState.tracingFlags) != 0) {
-        mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+      uv_run(state.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      if ((state.loopReason & state.tracingFlags) != 0) {
+        state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
-      } else if (mState.severityStack.empty() == false) {
-        fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
-        mState.severityStack.pop_back();
+      } else if (state.severityStack.empty() == false) {
+        fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+        state.severityStack.pop_back();
       }
-      TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
+      TracyPlot("loopReason", (int64_t)(uint64_t)state.loopReason);
       LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
-           mState.loopReason, mState.tracingFlags,
-           mState.loopReason & mState.tracingFlags);
+           state.loopReason, state.tracingFlags,
+           state.loopReason & state.tracingFlags);
 
-      if ((mState.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
+      if ((state.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
         LOGP(debug, "We were awakened by a OOB event. Rescanning everything.");
         relayer.rescan();
       }
 
-      if (!mState.pendingOffers.empty()) {
-        ref.get<ComputingQuotaEvaluator>().updateOffers(mState.pendingOffers, uv_now(mState.loop));
+      if (!state.pendingOffers.empty()) {
+        ref.get<ComputingQuotaEvaluator>().updateOffers(state.pendingOffers, uv_now(state.loop));
       }
     }
 
@@ -1135,7 +1143,7 @@ void DataProcessingDevice::Run()
       // Deciding wether to run or not can be done by passing a request to
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
-      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(state.loop));
 
       if (enough) {
         stream.id = streamRef;
@@ -1143,7 +1151,7 @@ void DataProcessingDevice::Run()
         stream.registry = &mServiceRegistry;
 #ifdef DPL_ENABLE_THREADING
         stream.task.data = &handle;
-        uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
+        uv_queue_work(state.loop, &stream.task, run_callback, run_completion);
 #else
         run_callback(&handle);
         run_completion(&handle, 0);
@@ -1158,15 +1166,13 @@ void DataProcessingDevice::Run()
     }
     FrameMark;
   }
-  auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& spec = ref.get<DeviceSpec const>();
-  auto& state = ref.get<DeviceState>();
   /// Cleanup messages which are still pending on exit.
   for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
     auto& info = state.inputChannelInfos[ci];
     info.parts.fParts.clear();
   }
-  mState.transitionHandling = TransitionHandlingState::NoTransition;
+  state.transitionHandling = TransitionHandlingState::NoTransition;
 }
 
 /// We drive the state loop ourself so that we will be able to support
