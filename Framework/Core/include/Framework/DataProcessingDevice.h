@@ -121,14 +121,12 @@ class DataProcessingDevice : public fair::mq::Device
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
-  DataProcessingStats mStats;                        /// Stats about the actual data processing.
   std::vector<fair::mq::RegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   std::mutex mRegionInfoMutex;
   ProcessingPolicies mProcessingPolicies;                        /// User policies related to data processing
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
-  ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
   /// Handle to wake up the main loop from other threads
   /// e.g. when FairMQ notifies some callback in an asynchronous way
   uv_async_t* mAwakeHandle = nullptr;
