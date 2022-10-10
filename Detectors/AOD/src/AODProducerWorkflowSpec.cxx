@@ -715,10 +715,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     if (!mcLabel.isValid()) {
       return;
     }
-    int source = mcLabel.getSourceID();
-    int event = mcLabel.getEventID();
-    int particle = mcLabel.getTrackID();
-    mToStore[Triplet_t(source, event, particle)] = 1;
+    mToStore[Triplet_t(mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID())] = 1;
   };
 
   // mark reconstructed MC particles to store them into the table
@@ -733,10 +730,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           if (!mcTruth.isValid()) {
             continue;
           }
-          int source = mcTruth.getSourceID();
-          int event = mcTruth.getEventID();
-          int particle = mcTruth.getTrackID();
-          mToStore[Triplet_t(source, event, particle)] = 1;
+          mToStore[Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID())] = 1;
           // treating contributors of global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
@@ -751,10 +745,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
               if (!mcLabel.isValid()) {
                 continue;
               }
-              int contribSource = mcLabel.getSourceID();
-              int contribEvent = mcLabel.getEventID();
-              int contribParticle = mcLabel.getTrackID();
-              mToStore[Triplet_t(source, event, particle)] = 1;
+              mToStore[Triplet_t(mcLabel.getSourceID(), mcLabel.getEventID(), mcLabel.getTrackID())] = 1;
             }
           }
         }
