@@ -37,6 +37,7 @@ struct DataProcessorContext {
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;
+  AlgorithmSpec::InitCallback init;
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
