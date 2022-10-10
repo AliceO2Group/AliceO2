@@ -112,9 +112,14 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
+DeviceSpec const&getRunningDevice(RunningDeviceRef const& running, ServiceRegistryRef const& services)
+{
+  return services.get<o2::framework::RunningWorkflowInfo const>().devices[running.index];
+}
+
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
-  : mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
-    mInit{mSpec.algorithm.onInit},
+  : mRunningDevice{running},
+    mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
     mStatefulProcess{nullptr},
     mStatelessProcess{mSpec.algorithm.onProcess},
     mError{mSpec.algorithm.onError},
@@ -336,11 +341,13 @@ void DataProcessingDevice::Init()
 
   mExpirationHandlers.clear();
 
-  if (mInit) {
-    InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mStatefulProcess = mInit(initContext);
-  }
   auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto &context = ref.get<DataProcessorContext>();
+  context.init = getRunningDevice(mRunningDevice, ref).algorithm.onInit;
+  if (context.init) {
+    InitContext initContext{*mConfigRegistry, mServiceRegistry};
+    mStatefulProcess = context.init(initContext);
+  }
   auto& state= ref.get<DeviceState>();
   state.inputChannelInfos.resize(mSpec.inputChannels.size());
   /// Internal channels which will never create an actual message
