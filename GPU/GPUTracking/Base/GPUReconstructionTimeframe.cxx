@@ -21,6 +21,7 @@
 #include "GPUTPCClusterData.h"
 #include "AliHLTTPCRawCluster.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #include "GPUO2DataTypes.h"
 
 #include <cstdio>
@@ -43,7 +44,7 @@ GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, 
   mMaxBunchesFull = TIME_ORBIT / config.bunchSpacing;
   mMaxBunches = (TIME_ORBIT - config.abortGapTime) / config.bunchSpacing;
 
-  if (config.overlayRaw && chain->GetTPCTransform() == nullptr) {
+  if (config.overlayRaw && chain->GetTPCTransformHelper() == nullptr) {
     GPUInfo("Overlay Raw Events requires TPC Fast Transform");
     throw std::exception();
   }
@@ -70,7 +71,7 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
 {
   mReadEvent(iEvent);
   if (config.overlayRaw) {
-    float shiftTTotal = (((double)config.timeFrameLen - DRIFT_TIME) * ((double)TPCZ / (double)DRIFT_TIME) - shiftZ) / mChain->GetTPCTransform()->getVDrift();
+    float shiftTTotal = (((double)config.timeFrameLen - DRIFT_TIME) * ((double)TPCZ / (double)DRIFT_TIME) - shiftZ) / mChain->GetTPCTransformHelper()->getCorrMap()->getVDrift();
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       for (unsigned int j = 0; j < mChain->mIOPtrs.nRawClusters[iSlice]; j++) {
         auto& tmp = mChain->mIOMem.rawClusters[iSlice][j];

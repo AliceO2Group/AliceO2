@@ -27,7 +27,9 @@ using namespace GPUCA_NAMESPACE::gpu::tpccf;
 using namespace o2::tpc;
 using namespace o2::tpc::constants;
 
-#define DENSE_LINK_DO_PAGE_OVERFLOW
+#ifdef __HIPCC__
+#define DENSE_LINK_ENABLE_HIP_OPT
+#endif
 
 // ===========================================================================
 // ===========================================================================
@@ -214,7 +216,7 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int nBlocks, int nThreads, int iBl
   Decode<GPUTPCCFDecodeZSLink>(nBlocks, nThreads, iBlock, iThread, smem, clusterer, firstHBF);
 }
 
-GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, size_t pageDigitOffset, int firstHBF)
+GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, uint32_t pageDigitOffset, int firstHBF)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
 
@@ -246,10 +248,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
 
     // TimeBin not in fragment: Skip this timebin header and fill positions with dummy values instead
     if (not inFragment) {
-      for (unsigned int a = iThread; a < nAdc; a += nThreads) {
-        clusterer.mPpositions[pageDigitOffset + a] = INVALID_CHARGE_POS;
-      }
-      pageDigitOffset += nAdc;
+      pageDigitOffset += FillWithInvalid(clusterer, iThread, nThreads, pageDigitOffset, nAdc);
       continue;
     }
 
@@ -302,7 +301,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBSingleThread(
   int timeBin,
   int cru,
   int fecInPartition,
-  size_t pageDigitOffset)
+  uint32_t pageDigitOffset)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
 
@@ -360,7 +359,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBMultiThread(
   int timeBin,
   int cru,
   int fecInPartition,
-  size_t pageDigitOffset)
+  uint32_t pageDigitOffset)
 {
   constexpr int NTHREADS = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink);
   static_assert(NTHREADS == GPUCA_WARP_SIZE, "Decoding TB Headers in parallel assumes block size is a single warp.");
@@ -476,12 +475,13 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
 #else // CPU
   const unsigned int endpoint = iBlock;
 #endif
+
   const GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
   if (zs.count[endpoint] == 0) {
     return;
   }
-  const CfFragment& fragment = clusterer.mPmemory->fragment;
-  size_t pageDigitOffset = clusterer.mPzsOffsets[iBlock].offset;
+
+  uint32_t pageDigitOffset = clusterer.mPzsOffsets[iBlock].offset;
 
 #ifdef GPUCA_GPUCODE
   const unsigned int i = 0;
@@ -511,22 +511,8 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
 #endif
       }
 
-      // TODO: maybe move into decoder
-      [[maybe_unused]] int nDecoded = 0;
-      [[maybe_unused]] int nADCsamplesExpected = Peek<TPCZSHDR>(page, sizeof(header::RAWDataHeader))->nADCsamples; // FIXME: Metadata header will be at the end of page for version 4
-
       pageDigitOffset = Decoder::DecodePage(smem, clusterer, iBlock, nThreads, iThread, page, pageDigitOffset, firstHBF);
 
-#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
-      if (iThread == 0 && nDecoded != nADCsamplesExpected) {
-        clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, nADCsamplesExpected, nDecoded);
-        /*#ifndef GPUCA_GPUCODE
-                FILE* foo = fopen("dump.bin", "w+b");
-                fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
-                fclose(foo);
-        #endif*/
-      }
-#endif
     } // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
   }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++)
 }
@@ -549,7 +535,7 @@ GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorTy
   const TPCZSLinkMapping* gpuMapping = clusterer.GetConstantMem()->calibObjects.tpcZSLinkMapping;
   assert(gpuMapping != nullptr);
 
-  unsigned int globalSAMPAId = (static_cast<uint32_t>(fecInSector) << 8) + (static_cast<uint32_t>(sampaOnFEC) << 5) + static_cast<uint32_t>(channelOnSAMPA);
+  unsigned short globalSAMPAId = (static_cast<unsigned short>(fecInSector) << 8) + (static_cast<unsigned short>(sampaOnFEC) << 5) + static_cast<unsigned short>(channelOnSAMPA);
   const o2::tpc::PadPos pos = gpuMapping->FECIDToPadPos[globalSAMPAId];
 
   return pos;
@@ -575,6 +561,14 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   chargeMap[pos] = PackedCharge(charge);
 }
 
+GPUd() unsigned short GPUTPCCFDecodeZSLinkBase::FillWithInvalid(processorType& clusterer, int iThread, int nThreads, uint32_t pageDigitOffset, unsigned short nSamples)
+{
+  for (unsigned short i = iThread; i < nSamples; i += nThreads) {
+    clusterer.mPpositions[pageDigitOffset + i] = INVALID_CHARGE_POS;
+  }
+  return nSamples;
+}
+
 // ===========================================================================
 // ===========================================================================
 // Decode ZS Dense Link
@@ -587,12 +581,14 @@ GPUd() void GPUTPCCFDecodeZSDenseLink::Thread<0>(int nBlocks, int nThreads, int 
   Decode<GPUTPCCFDecodeZSDenseLink>(nBlocks, nThreads, iBlock, iThread, smem, clusterer, firstHBF);
 }
 
-GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, size_t pageDigitOffset, int firstHBF)
+GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, uint32_t pageDigitOffset, int firstHBF)
 {
-  // TODO: REMOVE
-  if (iThread != 0) {
-    return pageDigitOffset;
-  }
+  constexpr bool DecodeInParallel =
+#ifdef GPUCA_GPUCODE
+    true;
+#else
+    false;
+#endif
 
   const unsigned char* const pageStart = page;
 
@@ -603,6 +599,9 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, proce
   assert(decHeader->version == ZSVersionDenseLinkBased);
   assert(decHeader->magicWord == tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader);
 
+  unsigned short nSamplesWritten = 0;
+  const unsigned short nSamplesInPage = decHeader->nADCsamples;
+
   const auto* payloadEnd = Peek(pageStart, raw::RDHUtils::getMemorySize(*rawDataHeader) - sizeof(TPCZSHDRV2) - ((decHeader->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0));
   const auto* nextPage = Peek(pageStart, TPCZSHDR::TPC_ZS_PAGE_SIZE);
 
@@ -611,31 +610,84 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, proce
   for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++) {
     [[maybe_unused]] ptrdiff_t sizeLeftInPage = payloadEnd - page;
     assert(sizeLeftInPage > 0);
+    assert(nSamplesWritten < nSamplesInPage);
+
+    unsigned short nSamplesWrittenTB = 0;
 
     if (i == decHeader->nTimebinHeaders - 1 && decHeader->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage) {
       assert(o2::raw::RDHUtils::getMemorySize(*rawDataHeader) == TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      pageDigitOffset = DecodeTBSingleThread<true>(clusterer, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
+      // Disable check for dropped pages temporarily, decoding fails on large dataset when enabled...
+      if ((unsigned char)(raw::RDHUtils::getPacketCounter(rawDataHeader) + 1) == raw::RDHUtils::getPacketCounter(nextPage)) {
+        nSamplesWrittenTB = DecodeTB<DecodeInParallel, true>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
+      } else {
+        nSamplesWrittenTB = FillWithInvalid(clusterer, iThread, nThreads, pageDigitOffset, nSamplesInPage - nSamplesWritten);
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+        if (iThread == 0) {
+          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice, raw::RDHUtils::getPacketCounter(rawDataHeader), raw::RDHUtils::getPacketCounter(nextPage));
+        }
+#endif
+      }
     } else {
-      pageDigitOffset = DecodeTBSingleThread<false>(clusterer, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
+      nSamplesWrittenTB = DecodeTB<DecodeInParallel, false>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
     }
 
+    nSamplesWritten += nSamplesWrittenTB;
+    pageDigitOffset += nSamplesWrittenTB;
+
   } // for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++)
+
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+  if (iThread == 0 && nSamplesWritten != nSamplesInPage) {
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, nSamplesInPage, nSamplesWritten);
+    /*#ifndef GPUCA_GPUCODE
+            FILE* foo = fopen("dump.bin", "w+b");
+            fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
+            fclose(foo);
+    #endif*/
+  }
+#endif
 
   return pageDigitOffset;
 }
 
-template <bool PayloadExtendsToNextPage>
-GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
+template <bool DecodeInParallel, bool PayloadExtendsToNextPage>
+GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTB(
   processorType& clusterer,
+  [[maybe_unused]] GPUSharedMemory& smem,
+  int iThread,
   const unsigned char*& page,
-  size_t pageDigitOffset,
+  uint32_t pageDigitOffset,
   const header::RAWDataHeader* rawDataHeader,
   int firstHBF,
   int cru,
   [[maybe_unused]] const unsigned char* payloadEnd,
   [[maybe_unused]] const unsigned char* nextPage)
 {
-#ifdef DENSE_LINK_DO_PAGE_OVERFLOW
+
+  if CONSTEXPR17 (DecodeInParallel) {
+    return DecodeTBMultiThread<PayloadExtendsToNextPage>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, cru, payloadEnd, nextPage);
+  } else {
+    unsigned short nSamplesWritten = 0;
+    if (iThread == 0) {
+      nSamplesWritten = DecodeTBSingleThread<PayloadExtendsToNextPage>(clusterer, page, pageDigitOffset, rawDataHeader, firstHBF, cru, payloadEnd, nextPage);
+    }
+    return warp_broadcast(nSamplesWritten, 0);
+  }
+}
+
+template <bool PayloadExtendsToNextPage>
+GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
+  processorType& clusterer,
+  GPUSharedMemory& smem,
+  const int iThread,
+  const unsigned char*& page,
+  uint32_t pageDigitOffset,
+  const header::RAWDataHeader* rawDataHeader,
+  int firstHBF,
+  int cru,
+  [[maybe_unused]] const unsigned char* payloadEnd,
+  [[maybe_unused]] const unsigned char* nextPage)
+{
 #define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
   if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
     if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
@@ -645,93 +697,206 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
     }                                                              \
   } else                                                           \
     assert(pagePtr <= payloadEnd)
-#else // TODO: Debug, remove in final version
-#pragma message("DenseLink: Don't do page overflow!")
-#define MAYBE_PAGE_OVERFLOW(pagePtr)            \
-  if CONSTEXPR17 (PayloadExtendsToNextPage) {   \
-    if (pagePtr >= payloadEnd) {                \
-      return pageDigitOffset + nSamplesWritten; \
-    }                                           \
-  } else                                        \
-    assert(pagePtr <= payloadEnd)
-#endif
 
-// TODO: Debug, remove in final version
-#if 0
-#define DUMP(pagePtr) printf("%d: " #pagePtr " = %zu, payloadEnd = %zu, remainder = %td\n", __LINE__, size_t(pagePtr), size_t(payloadEnd), payloadEnd - pagePtr);
-#define DUMPX(pagePtr, extraStr, ...) printf("%d: " #pagePtr " = %zu, payloadEnd = %zu, remainder = %td" extraStr "\n", __LINE__, size_t(pagePtr), size_t(payloadEnd), payloadEnd - pagePtr, ##__VA_ARGS__);
-#else
-#define DUMP(...)
-#define DUMPX(...)
-#endif
+#define PEEK_OVERFLOW(pagePtr, offset)                                                      \
+  (*(PayloadExtendsToNextPage && (pagePtr) < nextPage && (pagePtr) + (offset) >= payloadEnd \
+       ? nextPage + sizeof(header::RAWDataHeader) + ((pagePtr) + (offset)-payloadEnd)       \
+       : (pagePtr) + (offset)))
 
-  // TODO: Debug, remove in final version
-  // printf("======================================\n");
+#define TEST_BIT(x, bit) static_cast<bool>((x) & (1 << bit))
 
-  using zerosupp_link_based::ChannelPerTBHeader;
-  constexpr int MaxNLinksPerTimebin = 16;
+  constexpr int NTHREADS = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink);
+  static_assert(NTHREADS == GPUCA_WARP_SIZE, "Decoding TB Headers in parallel assumes block size is a single warp.");
 
   const CfFragment& fragment = clusterer.mPmemory->fragment;
 
-  unsigned char linkIds[MaxNLinksPerTimebin];
-  // unsigned short nSamplesPerLink[MaxNLinksPerTimebin] = { 0 };
-  unsigned char channelMasks[MaxNLinksPerTimebin * 10] = {0};
-  unsigned int nSamplesWritten = 0;
-
   // Read timebin block header
-  DUMP(page);
   unsigned short tbbHdr = ConsumeByte(page);
   MAYBE_PAGE_OVERFLOW(page);
   tbbHdr |= static_cast<unsigned short>(ConsumeByte(page)) << CHAR_BIT;
   MAYBE_PAGE_OVERFLOW(page);
-  DUMP(page);
 
   unsigned char nLinksInTimebin = tbbHdr & 0x000F;
   unsigned short linkBC = (tbbHdr & 0xFFF0) >> 4;
   int timeBin = (linkBC + (unsigned long)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - firstHBF) * constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
-  unsigned short nTotalSamples = 0;
+  unsigned short nSamplesInTB = 0;
 
   // Read timebin link headers
   for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++) {
     unsigned char timebinLinkHeaderStart = ConsumeByte(page);
-    DUMP(page);
+    MAYBE_PAGE_OVERFLOW(page);
+
+    smem.linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
+    bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000;
+
+    unsigned short bitmaskL2 = 0x03FF;
+    if (not bitmaskIsFlat) {
+      bitmaskL2 = static_cast<unsigned short>(timebinLinkHeaderStart & 0b11000000) << 2 | static_cast<unsigned short>(ConsumeByte(page));
+      MAYBE_PAGE_OVERFLOW(page);
+    }
+
+    int nBytesBitmask = CAMath::Popcount(bitmaskL2);
+    assert(nBytesBitmask <= 10);
+
+    for (int chan = iThread; chan < CAMath::nextMultipleOf<NTHREADS>(80); chan += NTHREADS) {
+      int chanL2Idx = chan / 8;
+      bool l2 = bitmaskL2 & 1 << chanL2Idx;
+
+      int chanByteOffset = CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
+
+      unsigned char myChannelHasData = (chan < 80 && l2 ? TEST_BIT(PEEK_OVERFLOW(page, chanByteOffset), chan % 8) : 0);
+      assert(myChannelHasData == 0 || myChannelHasData == 1);
+
+#ifdef DENSE_LINK_ENABLE_HIP_OPT
+      // TODO: Add wrappers for these intrinsics? __popcll is trivial, but __ballot is requires an opencl extension.
+      uint64_t waveMask = __ballot(myChannelHasData);
+      uint64_t lowerWarpMask = (1ull << iThread) - 1ull;
+      int threadSampleOffset = __popcll(waveMask & lowerWarpMask);
+#else
+      int threadSampleOffset = int(warp_scan_inclusive_add(myChannelHasData)) - 1;
+#endif
+
+      if (myChannelHasData) {
+        smem.rawFECChannels[nSamplesInTB + threadSampleOffset] = chan;
+      }
+
+#ifdef DENSE_LINK_ENABLE_HIP_OPT
+      nSamplesInTB += __popcll(waveMask);
+#else
+      nSamplesInTB += warp_broadcast(threadSampleOffset, NTHREADS - 1) + 1;
+#endif
+    }
+
+    ConsumeBytes(page, nBytesBitmask);
+    MAYBE_PAGE_OVERFLOW(page);
+
+    smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
+
+  } // for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++)
+
+  const unsigned char* adcData = ConsumeBytes(page, (nSamplesInTB * DECODE_BITS + 7) / 8);
+  MAYBE_PAGE_OVERFLOW(page); // TODO: We don't need this check?
+
+  if (not fragment.contains(timeBin)) {
+    return FillWithInvalid(clusterer, iThread, NTHREADS, pageDigitOffset, nSamplesInTB);
+  }
+
+  // Unpack ADC
+  int iLink = 0;
+  for (unsigned short sample = iThread; sample < nSamplesInTB; sample += NTHREADS) {
+    const unsigned short adcBitOffset = sample * DECODE_BITS;
+    unsigned short adcByteOffset = adcBitOffset / CHAR_BIT;
+    const unsigned char adcOffsetInByte = adcBitOffset - adcByteOffset * CHAR_BIT;
+
+    unsigned char bits = 0;
+    unsigned short byte = 0;
+
+    static_assert(DECODE_BITS <= sizeof(unsigned short) * CHAR_BIT);
+
+    while (bits < DECODE_BITS) {
+      byte |= static_cast<unsigned short>(PEEK_OVERFLOW(adcData, adcByteOffset)) << bits;
+      adcByteOffset++;
+      bits += CHAR_BIT;
+    }
+    byte >>= adcOffsetInByte;
+
+    while (smem.samplesPerLinkEnd[iLink] <= sample) {
+      iLink++;
+    }
+
+    int rawFECChannelLink = smem.rawFECChannels[sample];
+
+    // Unpack data for cluster finder
+    o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(clusterer, cru, rawFECChannelLink, smem.linkIds[iLink]);
+
+    float charge = ADCToFloat(byte, DECODE_MASK, DECODE_BITS_FACTOR);
+    WriteCharge(clusterer, charge, padAndRow, fragment.toLocal(timeBin), pageDigitOffset + sample);
+
+  } // for (unsigned short sample = iThread; sample < nSamplesInTB; sample += NTHREADS)
+
+  assert(PayloadExtendsToNextPage || adcData <= page);
+  assert(PayloadExtendsToNextPage || page <= payloadEnd);
+
+  return nSamplesInTB;
+
+#undef TEST_BIT
+#undef PEEK_OVERFLOW
+#undef MAYBE_PAGE_OVERFLOW
+}
+
+template <bool PayloadExtendsToNextPage>
+GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
+  processorType& clusterer,
+  const unsigned char*& page,
+  uint32_t pageDigitOffset,
+  const header::RAWDataHeader* rawDataHeader,
+  int firstHBF,
+  int cru,
+  [[maybe_unused]] const unsigned char* payloadEnd,
+  [[maybe_unused]] const unsigned char* nextPage)
+{
+#define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
+  if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
+    if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
+      ptrdiff_t diff = pagePtr - payloadEnd;                       \
+      pagePtr = nextPage;                                          \
+      ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
+    }                                                              \
+  } else                                                           \
+    assert(pagePtr <= payloadEnd)
+
+  using zerosupp_link_based::ChannelPerTBHeader;
+
+  const CfFragment& fragment = clusterer.mPmemory->fragment;
+
+  unsigned char linkIds[MaxNLinksPerTimebin];
+  unsigned char channelMasks[MaxNLinksPerTimebin * 10] = {0};
+  unsigned short nSamplesWritten = 0;
+
+  // Read timebin block header
+  unsigned short tbbHdr = ConsumeByte(page);
+  MAYBE_PAGE_OVERFLOW(page);
+  tbbHdr |= static_cast<unsigned short>(ConsumeByte(page)) << CHAR_BIT;
+  MAYBE_PAGE_OVERFLOW(page);
+
+  unsigned char nLinksInTimebin = tbbHdr & 0x000F;
+  unsigned short linkBC = (tbbHdr & 0xFFF0) >> 4;
+  int timeBin = (linkBC + (unsigned long)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - firstHBF) * constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+
+  unsigned short nSamplesInTB = 0;
+
+  // Read timebin link headers
+  for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++) {
+    unsigned char timebinLinkHeaderStart = ConsumeByte(page);
     MAYBE_PAGE_OVERFLOW(page);
 
     linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
 
-    bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000; // TODO: test is otherway around to spec in reference decoder?
+    bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000;
 
     unsigned short bitmaskL2 = 0x0FFF;
-    // if (not bitmaskIsFlat) {
     if (not bitmaskIsFlat) {
       bitmaskL2 = static_cast<unsigned short>(timebinLinkHeaderStart & 0b11000000) << 2 | static_cast<unsigned short>(ConsumeByte(page));
-      DUMP(page);
       MAYBE_PAGE_OVERFLOW(page);
     }
 
     for (int i = 9; i >= 0; i--) {
       if (bitmaskL2 & 1 << i) {
-        nTotalSamples += CAMath::Popcount(*Peek(page));
+        nSamplesInTB += CAMath::Popcount(*Peek(page));
         channelMasks[10 * iLink + i] = ConsumeByte(page);
-        DUMP(page);
         MAYBE_PAGE_OVERFLOW(page);
       }
     }
 
   } // for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++)
 
-  const unsigned char* adcData = ConsumeBytes(page, (nTotalSamples * DECODE_BITS + 7) / 8);
-  DUMPX(adcData, ", nTotalSamples = %d, nLinksInTimebin = %d", nTotalSamples, nLinksInTimebin);
-  DUMP(page);
+  const unsigned char* adcData = ConsumeBytes(page, (nSamplesInTB * DECODE_BITS + 7) / 8);
   MAYBE_PAGE_OVERFLOW(page);
 
   if (not fragment.contains(timeBin)) {
-    // TODO: write in parallel
-    for (unsigned int a = 0; a < nTotalSamples; a++) {
-      clusterer.mPpositions[pageDigitOffset + a] = INVALID_CHARGE_POS;
-    }
-    return pageDigitOffset + nTotalSamples;
+    FillWithInvalid(clusterer, 0, 1, pageDigitOffset, nSamplesInTB);
+    return nSamplesInTB;
   }
 
   // Unpack ADC
@@ -739,7 +904,7 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
   unsigned short rawFECChannel = 0;
 
   // unpack adc values, assume tightly packed data
-  while (nSamplesWritten < nTotalSamples) {
+  while (nSamplesWritten < nSamplesInTB) {
     byte |= static_cast<unsigned int>(ConsumeByte(adcData)) << bits;
     MAYBE_PAGE_OVERFLOW(adcData);
     bits += CHAR_BIT;
@@ -748,16 +913,9 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
       // Find next channel with data
       for (; !ChannelIsActive(channelMasks, rawFECChannel); rawFECChannel++) {
       }
-      // if (rawFECChannel >= ChannelPerTBHeader) break;
-
-      // TODO: Debug, remove in final version
-      // if (adcData > payloadEnd && not PayloadExtendsToNextPage) {
-      //   printf("adcData = %zu, payloadEnd = %zu, nSamplesWritten = %d, nTotalSamples = %d\n", size_t(adcData), size_t(payloadEnd), nSamplesWritten, nTotalSamples);
-      // }
 
       int iLink = rawFECChannel / ChannelPerTBHeader;
       int rawFECChannelLink = rawFECChannel % ChannelPerTBHeader;
-      DUMPX(adcData, ", bits = %u, byte = %08x, nSamplesWritten = %d, iLink = %d", bits, byte, nSamplesWritten, iLink);
 
       // Unpack data for cluster finder
       o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(clusterer, cru, rawFECChannelLink, linkIds[iLink]);
@@ -772,15 +930,11 @@ GPUd() size_t GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
     }                  // while (bits >= DECODE_BITS)
   }                    // while (nSamplesWritten < nAdc)
 
-  // TODO: Debug, remove in final version
-  // if (nSamplesWritten != nTotalSamples) {
-  //   printf("nSamplesWritten = %u, nTotalSamples = %hu\n", nSamplesWritten, nTotalSamples);
-  // }
   assert(PayloadExtendsToNextPage || adcData <= page);
   assert(PayloadExtendsToNextPage || page <= payloadEnd);
-  assert(nSamplesWritten == nTotalSamples);
+  assert(nSamplesWritten == nSamplesInTB);
 
-  return pageDigitOffset + nTotalSamples;
+  return nSamplesInTB;
 
 #undef MAYBE_PAGE_OVERFLOW
 }

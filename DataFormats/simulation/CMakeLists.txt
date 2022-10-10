@@ -21,9 +21,10 @@ o2_add_library(SimulationDataFormat
                        src/MCUtils.cxx
                        src/O2DatabasePDG.cxx
                PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
+                                     FairRoot::Base
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon O2::DetectorsBase
-                                     O2::SimConfig)
+                                     O2::SimConfig ROOT::TreePlayer)
 
 o2_target_root_dictionary(
   SimulationDataFormat

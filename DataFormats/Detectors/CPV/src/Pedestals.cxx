@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsCPV/Pedestals.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <TH1.h>
 #include <TH1F.h>
 

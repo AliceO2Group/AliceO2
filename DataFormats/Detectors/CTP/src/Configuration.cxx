@@ -18,7 +18,7 @@
 #include <sstream>
 #include <regex>
 #include "CommonUtils/StringUtils.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::ctp;
 //

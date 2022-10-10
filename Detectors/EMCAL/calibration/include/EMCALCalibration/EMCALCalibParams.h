@@ -57,6 +57,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   int nBinsTimeAxis_tc = 1500;          ///< number of bins used for the time calibration
   int minValueTimeAxis_tc = -500;       ///< minimum value of the time axis in the time calibration
   int maxValueTimeAxis_tc = 1000;       ///< maximum value of the time axis in the time calibration
+  float lowGainOffset_tc = 8.8;         ///< Offset between high gain and low gain in ns. This is needed since the low gain calib will not be possible due to insuficient statistics
   unsigned int slotLength_tc = 0;       ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
   bool UpdateAtEndOfRunOnly_tc = false; ///< switsch to enable trigger of calibration only at end of run
 

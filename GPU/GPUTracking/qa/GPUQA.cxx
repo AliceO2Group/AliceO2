@@ -49,6 +49,7 @@
 #include "GPUTPCClusterRejection.h"
 #include "GPUTPCConvertImpl.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -979,8 +980,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             } else if (mTracking->GetParam().par.earlyTpcTransform) {
               comp = fabsf(trks[i].GetParam().GetZ() + trks[i].GetParam().GetTZOffset()) < fabsf(trks[revLabel].GetParam().GetZ() + trks[revLabel].GetParam().GetTZOffset());
             } else {
-              float shift1 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSLICES / 2, trks[i].GetParam().GetTZOffset());
-              float shift2 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSLICES / 2, trks[revLabel].GetParam().GetTZOffset());
+              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSLICES / 2, trks[i].GetParam().GetTZOffset());
+              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSLICES / 2, trks[revLabel].GetParam().GetTZOffset());
               comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
             }
             if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
@@ -1309,7 +1310,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
 #ifdef GPUCA_TPC_GEOMETRY_O2
           if (!mParam->par.earlyTpcTransform) {
-            float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
+            float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
             return param.GetZ() + shift - mc1.z;
           }
 #endif
@@ -1610,13 +1611,13 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       mTracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
       mNCl->Fill(track.NClustersFitted());
     }
-    if (mClNative && mTracking && mTracking->GetTPCTransform()) {
+    if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
       for (unsigned int i = 0; i < GPUChainTracking::NSLICES; i++) {
         for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
           for (unsigned int k = 0; k < mClNative->nClusters[i][j]; k++) {
             const auto& cl = mClNative->clusters[i][j][k];
             float x, y, z;
-            GPUTPCConvertImpl::convert(*mTracking->GetTPCTransform(), mTracking->GetParam(), i, j, cl.getPad(), cl.getTime(), x, y, z);
+            GPUTPCConvertImpl::convert(*mTracking->GetTPCTransformHelper()->getCorrMap(), mTracking->GetParam(), i, j, cl.getPad(), cl.getTime(), x, y, z);
             mTracking->GetParam().Slice2Global(i, x, y, z, &x, &y, &z);
             mClXY->Fill(x, y);
           }

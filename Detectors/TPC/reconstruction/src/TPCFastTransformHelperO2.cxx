@@ -24,7 +24,7 @@
 #include "TPCFastTransform.h"
 #include "Spline2DHelper.h"
 #include "Riostream.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::gpu;
 

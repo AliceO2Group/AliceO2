@@ -396,9 +396,9 @@ GPUdi() T warp_scan_inclusive_add_FUNC(T v, S& smem)
   return v;
 }
 
-#define warp_broadcast(v, i) warp_broadcast_FUNC(v, i, smem)
-template <class T, class S>
-GPUdi() T warp_broadcast_FUNC(T v, int i, S& smem)
+#define warp_broadcast(v, i) warp_broadcast_FUNC(v, i)
+template <class T>
+GPUdi() T warp_broadcast_FUNC(T v, int i)
 {
 #ifdef __CUDACC__
   return __shfl_sync(0xFFFFFFFF, v, i);

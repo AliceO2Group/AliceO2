@@ -13,6 +13,7 @@
 
 #include "Framework/RoutingIndices.h"
 #include "Framework/SendingPolicy.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/Tracing.h"
 #include "Framework/OutputSpec.h"
 #include <fairmq/Message.h>
@@ -32,14 +33,14 @@ struct DeviceSpec;
 class DataSender
 {
  public:
-  DataSender(ServiceRegistry& registry,
+  DataSender(ServiceRegistryRef registry,
              SendingPolicy const& policy);
   void send(fair::mq::Parts&, ChannelIndex index);
   std::unique_ptr<fair::mq::Message> create(RouteIndex index);
 
  private:
   FairMQDeviceProxy& mProxy;
-  ServiceRegistry& mRegistry;
+  ServiceRegistryRef mRegistry;
   DeviceSpec const& mSpec;
   std::vector<OutputSpec> mOutputs;
   SendingPolicy mPolicy;

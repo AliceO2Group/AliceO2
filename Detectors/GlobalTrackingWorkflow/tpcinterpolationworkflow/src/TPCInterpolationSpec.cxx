@@ -146,7 +146,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
   mTimer.Stop();
-  LOGF(info, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
+  LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
   mTimer.Start(true);
   mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
   // in the following step one can create one output file per TPC sector with local residuals and statistics

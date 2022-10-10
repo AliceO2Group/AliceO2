@@ -13,7 +13,7 @@
 /// \brief Implementation of General Run Parameters object
 /// \author ruben.shahoyan@cern.ch
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TFile.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>

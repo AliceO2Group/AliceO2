@@ -8,5 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_SERVICEREGISTRYREF_H_
+#define O2_FRAMEWORK_SERVICEREGISTRYREF_H_
 
-#include "MemoryResources/MemoryResources.h"
+// Until we merge the proper ServiceRegistryRef...
+#include "Framework/ServiceRegistry.h"
+#endif // O2_FRAMEWORK_SERVICEREGISTRYREF_H_
+

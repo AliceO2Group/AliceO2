@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(Base)
+add_subdirectory(Constants)
 add_subdirectory(Contour)
 add_subdirectory(Mapping)
 add_subdirectory(DigitFiltering)

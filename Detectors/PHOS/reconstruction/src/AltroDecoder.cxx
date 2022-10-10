@@ -18,7 +18,7 @@
 #include "PHOSReconstruction/RawDecodingError.h"
 
 #include "DetectorsRaw/RDHUtils.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace o2::phos;
 

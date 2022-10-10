@@ -9,35 +9,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <algorithm>
-#include <unordered_map>
-#include <vector>
+#ifndef DETECTOR_CALIB_TIMESLOTMETADATA_H_
+#define DETECTOR_CALIB_TIMESLOTMETADATA_H_
 
-#include "FairLogger.h"
-
-#include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RecoWorkflow.h"
-#include "CTPWorkflow/RawToDigitConverterSpec.h"
-#include "Framework/DataSpecUtils.h"
+/// @brief meta-data for the saved content of the timeslot
 
 namespace o2
 {
-
-namespace ctp
+namespace calibration
 {
+struct TimeSlotMetaData {
+  using TFType = uint32_t;
 
-namespace reco_workflow
-{
+  int startRun = -1;
+  int endRun = -1;
+  long startTime = -1;
+  long endTime = -1;
 
-o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
-{
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
-  return std::move(specs);
-}
+  ClassDefNV(TimeSlotMetaData, 1);
+};
 
-} // namespace reco_workflow
-
-} // namespace ctp
-
+} // namespace calibration
 } // namespace o2
+
+#endif

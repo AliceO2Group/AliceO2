@@ -42,7 +42,8 @@ class AmplitudeSpectrum
   double getRMS() const { return (mSumA2 / mNEntries) - ((mSumA * mSumA) / (mNEntries * mNEntries)); }; // return RMS of distribution
   uint32_t getNEntries() const { return mNEntries; }
   const uint32_t* getBinContent() { return mBinContent.data(); } // since C++17 std::array::data is constexpr
-  void fillBinData(TH1F* h);
+  void dumpToHisto(TH1F* h);
+  int nEventsInRange(float lR, float rR);
 
  private:
   uint32_t mNEntries;

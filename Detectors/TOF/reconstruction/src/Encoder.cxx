@@ -17,7 +17,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "CommonConstants/Triggers.h"
 #include "TString.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"

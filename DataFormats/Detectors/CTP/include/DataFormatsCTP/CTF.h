@@ -27,11 +27,14 @@ namespace ctp
 
 /// Header for a single CTF
 struct CTFHeader : public o2::ctf::CTFDictHeader {
+  uint64_t lumiCounts = 0; /// Luminosity counts moving average over lumiNHBFs orbits
+  uint32_t lumiNHBFs = 0;  /// Number of HBFs over which lumi is integrated
+  uint32_t lumiOrbit = 0;  /// 1st orbit of TF where lumi was updated, can be compared with firstOrbit
   uint32_t nTriggers = 0;  /// number of triggers
   uint32_t firstOrbit = 0; /// orbit of 1st trigger
   uint16_t firstBC = 0;    /// bc of 1st trigger
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded trigger inputs and classes of the TF
@@ -43,7 +46,7 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 4, uint32_t> {
                BLC_bytesInput, // bytes of the CTPInputMask bitset (6 bytes from lowest to highest)
                BLC_bytesClass  // bytes of the CTPClassMask bitset (8 bytes from lowest to highest)
   };
-  ClassDefNV(CTF, 1);
+  ClassDefNV(CTF, 2);
 };
 
 } // namespace ctp

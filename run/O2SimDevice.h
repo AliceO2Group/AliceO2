@@ -18,7 +18,7 @@
 #include <fairmq/Message.h>
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "../macro/o2sim.C"
 #include "TVirtualMC.h"
 #include "TMessage.h"

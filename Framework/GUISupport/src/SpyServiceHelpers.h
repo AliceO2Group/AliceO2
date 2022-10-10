@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_SPYSERVICEHELPERS_H
 #define O2_FRAMEWORK_SPYSERVICEHELPERS_H
 
+#include "Framework/ServiceRegistryRef.h"
+
 namespace o2::framework
 {
 class ServiceRegistry;
@@ -18,7 +20,7 @@ class ServiceRegistry;
 class SpyServiceHelpers
 {
  public:
-  static void webGUI(ServiceRegistry& registry);
+  static void webGUI(ServiceRegistryRef registry);
 };
 } // namespace o2::framework
 

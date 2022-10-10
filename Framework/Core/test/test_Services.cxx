@@ -42,11 +42,11 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   };
 
   struct InterfaceC {
-    virtual bool method() const = 0;
+    [[nodiscard]] virtual bool method() const = 0;
   };
 
   struct ConcreteC : InterfaceC {
-    bool method() const final { return false; }
+    [[nodiscard]] bool method() const final { return false; }
   };
 
   ServiceRegistry registry;
@@ -90,6 +90,13 @@ struct DummyService {
   int threadId;
 };
 
+namespace o2::framework
+{
+static ServiceRegistry::Salt salt_0 =  ServiceRegistry::Salt{ServiceRegistry::Context{0,0}}; 
+static ServiceRegistry::Salt salt_1 =  ServiceRegistry::Salt{ServiceRegistry::Context{1,0}};
+static ServiceRegistry::Salt salt_2 =  ServiceRegistry::Salt{ServiceRegistry::Context{2,0}};
+}
+
 BOOST_AUTO_TEST_CASE(TestSerialServices)
 {
   using namespace o2::framework;
@@ -97,11 +104,11 @@ BOOST_AUTO_TEST_CASE(TestSerialServices)
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Serial, 0);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Serial, salt_0);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 0);
   BOOST_CHECK_EQUAL(tt2->threadId, 0);
@@ -114,11 +121,11 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices)
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 0);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Global, salt_0);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 0);
   BOOST_CHECK_EQUAL(tt2->threadId, 0);
@@ -131,15 +138,16 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
 
   DummyService t0{1};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 1);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Global, salt_1);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Global));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Global));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Global));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Global));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Global));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Global));
   BOOST_CHECK_EQUAL(tt0->threadId, 1);
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 1);
 }
+
 
 BOOST_AUTO_TEST_CASE(TestStreamServices)
 {
@@ -150,13 +158,13 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   DummyService t1{1};
   DummyService t2{2};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Stream, 0);
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t1, ServiceKind::Stream, 1);
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t2, ServiceKind::Stream, 2);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{0,0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1,0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2,0}});
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Stream));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Stream));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Stream));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Stream));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Stream));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 2);

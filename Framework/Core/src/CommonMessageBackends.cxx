@@ -48,11 +48,11 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
 {
   return ServiceSpec{
     .name = "fairmq-device-proxy",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto* proxy = new FairMQDeviceProxy();
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<FairMQDeviceProxy>(), .instance = proxy, .kind = ServiceKind::Serial};
     },
-    .start = [](ServiceRegistry& services, void* instance) {
+    .start = [](ServiceRegistryRef services, void* instance) {
       auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
       auto& outputs = services.get<DeviceSpec const>().outputs;
       auto& inputs = services.get<DeviceSpec const>().inputs;
@@ -70,7 +70,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
   return ServiceSpec{
     .name = "fairmq-backend",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       auto& proxy = services.get<FairMQDeviceProxy>();
       auto context = new MessageContext(proxy);
       auto& spec = services.get<DeviceSpec const>();

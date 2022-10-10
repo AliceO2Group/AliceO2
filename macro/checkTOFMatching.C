@@ -13,7 +13,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTOF/Cluster.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #endif
 
 //#define DEBUG

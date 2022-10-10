@@ -46,7 +46,7 @@ std::vector<size_t>
 }
 } // namespace
 
-DataSender::DataSender(ServiceRegistry& registry,
+DataSender::DataSender(ServiceRegistryRef registry,
                        SendingPolicy const& policy)
   : mProxy{registry.get<FairMQDeviceProxy>()},
     mRegistry{registry},

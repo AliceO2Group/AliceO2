@@ -27,6 +27,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/RawDeviceService.h"
 #include <fairmq/Device.h>
+#include <chrono>
 
 using namespace o2::framework;
 
@@ -89,6 +90,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto runStartTime = std::chrono::high_resolution_clock::now();
     updateTimeDependentParams(pc);
 
     auto residualsData = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("unbinnedRes");
@@ -104,8 +106,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
     auto data = std::make_pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const o2::tpc::TrackResiduals::UnbinnedResid>>(std::move(*trkData), std::move(residualsData));
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
-    LOG(debug) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
+    LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
     mAggregator->process(data);
+    std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
+    LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final

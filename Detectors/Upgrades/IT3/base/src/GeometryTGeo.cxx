@@ -22,7 +22,7 @@
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "MathUtils/Cartesian.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 #include <TGeoBBox.h>         // for TGeoBBox
 #include <TGeoManager.h>      // for gGeoManager, TGeoManager

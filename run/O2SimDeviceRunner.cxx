@@ -17,7 +17,7 @@
 #include <memory>
 #include <string>
 #include <fairmq/Channel.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <fairmq/Parts.h>
 #include <fairmq/TransportFactory.h>
 #include <TStopwatch.h>

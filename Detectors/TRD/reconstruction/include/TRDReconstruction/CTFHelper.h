@@ -89,6 +89,44 @@ class CTFHelper
       return (I&)(*this);
     }
 
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
+
     difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
 
     difference_type operator-(size_t idx) const { return mIndex - idx; }
@@ -103,6 +141,8 @@ class CTFHelper
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -127,6 +167,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].getBCData().orbit == mData[id - 1].getBCData().orbit) {
+          return mData[id].getBCData().bc - mData[id - 1].getBCData().bc;
+        } else {
+          return mData[id].getBCData().bc;
+        }
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -136,6 +188,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, TriggerRecord, int32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].getBCData().orbit - mData[id - 1].getBCData().orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -145,6 +202,7 @@ class CTFHelper
    public:
     using _Iter<Iter_entriesTrk, TriggerRecord, uint32_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getNumberOfTracklets(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getNumberOfTracklets(); }
   };
 
   //_______________________________________________
@@ -154,6 +212,7 @@ class CTFHelper
    public:
     using _Iter<Iter_entriesDig, TriggerRecord, uint32_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getNumberOfDigits(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getNumberOfDigits(); }
   };
 
   //_______________________________________________
@@ -168,9 +227,11 @@ class CTFHelper
     Iter_HCIDTrk() = default;
 
     // assume sorting in HCID: for the 1st tracklet of the trigger return the abs HCID, for the following ones: difference to previous HCID
-    value_type operator*() const
+    value_type operator*() const { return (*mTrigStart)[mIndex] ? mData[mIndex].getHCID() : mData[mIndex].getHCID() - mData[mIndex - 1].getHCID(); }
+    value_type operator[](difference_type i) const
     {
-      return (*mTrigStart)[mIndex] ? mData[mIndex].getHCID() : mData[mIndex].getHCID() - mData[mIndex - 1].getHCID();
+      size_t id = mIndex + i;
+      return (*mTrigStart)[id] ? mData[id].getHCID() : mData[id].getHCID() - mData[id - 1].getHCID();
     }
   };
 
@@ -180,6 +241,7 @@ class CTFHelper
    public:
     using _Iter<Iter_padrowTrk, Tracklet64, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPadRow(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPadRow(); }
   };
 
   //_______________________________________________
@@ -188,6 +250,7 @@ class CTFHelper
    public:
     using _Iter<Iter_colTrk, Tracklet64, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getColumn(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getColumn(); }
   };
 
   //_______________________________________________
@@ -196,6 +259,7 @@ class CTFHelper
    public:
     using _Iter<Iter_posTrk, Tracklet64, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPosition(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPosition(); }
   };
 
   //_______________________________________________
@@ -204,6 +268,7 @@ class CTFHelper
    public:
     using _Iter<Iter_slopeTrk, Tracklet64, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getSlope(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getSlope(); }
   };
 
   //_______________________________________________
@@ -212,6 +277,7 @@ class CTFHelper
    public:
     using _Iter<Iter_pidTrk, Tracklet64, uint32_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPID(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPID(); }
   };
 
   //_______________________________________________
@@ -230,6 +296,11 @@ class CTFHelper
     {
       return (*mTrigStart)[mIndex] ? mData[mIndex].getDetector() : mData[mIndex].getDetector() - mData[mIndex - 1].getDetector();
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return (*mTrigStart)[id] ? mData[id].getDetector() : mData[id].getDetector() - mData[id - 1].getDetector();
+    }
   };
 
   //_______________________________________________
@@ -238,6 +309,7 @@ class CTFHelper
    public:
     using _Iter<Iter_ROBDig, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getROB(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getROB(); }
   };
 
   //_______________________________________________
@@ -246,6 +318,7 @@ class CTFHelper
    public:
     using _Iter<Iter_MCMDig, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getMCM(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getMCM(); }
   };
 
   //_______________________________________________
@@ -254,6 +327,7 @@ class CTFHelper
    public:
     using _Iter<Iter_chanDig, Digit, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getChannel(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getChannel(); }
   };
 
   //_______________________________________________
@@ -262,6 +336,11 @@ class CTFHelper
    public:
     using _Iter<Iter_ADCDig, Digit, uint16_t, constants::TIMEBINS>::_Iter;
     value_type operator*() const { return mData[mIndex / constants::TIMEBINS].getADC()[mIndex % constants::TIMEBINS]; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return mData[id / constants::TIMEBINS].getADC()[id % constants::TIMEBINS];
+    }
   };
 
   //<<< =========================== ITERATORS ========================================

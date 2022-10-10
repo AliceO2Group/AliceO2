@@ -27,6 +27,8 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibdEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
+#include "TPCBase/CDBInterface.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -36,8 +38,11 @@ namespace o2::tpc
 class CalibdEdxDevice : public Task
 {
  public:
+  CalibdEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+
   void init(framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     const auto minEntriesSector = ic.options().get<int>("min-entries-sector");
     const auto minEntries1D = ic.options().get<int>("min-entries-1d");
     const auto minEntries2D = ic.options().get<int>("min-entries-2d");
@@ -51,34 +56,35 @@ class CalibdEdxDevice : public Task
     const auto fitSnp = ic.options().get<bool>("fit-snp");
 
     mDumpToFile = ic.options().get<bool>("file-dump");
-    auto field = ic.options().get<float>("field");
-
-    if (field <= -10.f) {
-      const auto inputGRP = o2::base::NameConf::getGRPFileName();
-      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-      if (grp != nullptr) {
-        field = 5.00668f * grp->getL3Current() / 30000.;
-        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
-      }
-    }
 
     mCalib = std::make_unique<CalibdEdx>(dEdxBins, mindEdx, maxdEdx, angularBins, fitSnp);
     mCalib->setApplyCuts(false);
     mCalib->setSectorFitThreshold(minEntriesSector);
     mCalib->set1DFitThreshold(minEntries1D);
     mCalib->set2DFitThreshold(minEntries2D);
-    mCalib->setField(field);
     mCalib->setElectronCut(fitThreshold, fitPasses);
+  }
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
 
   void run(ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
     const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
     LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
-    mRunNumber = processing_helpers::getRunNumber(pc);
     mCalib->fill(tracks);
+
+    // store run number and CCDB time only once
+    if ((mTimeStampStart == 0) || (pc.services().get<o2::framework::TimingInfo>().timeslice == 0)) {
+      mRunNumber = processing_helpers::getRunNumber(pc);
+      mTimeStampStart = processing_helpers::getTimeStamp(pc, o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS());
+      LOGP(info, "Setting start time stamp for writing to CCDB to {}", mTimeStampStart);
+    }
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -96,32 +102,18 @@ class CalibdEdxDevice : public Task
  private:
   void sendOutput(DataAllocator& output)
   {
-    using clbUtils = o2::calibration::Utils;
     const auto& corr = mCalib->getCalib();
-
-    o2::ccdb::CcdbObjectInfo info;
-
-    const auto now = std::chrono::system_clock::now();
-    const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
-
-    info.setPath("TPC/Calib/dEdx");
-    info.setStartValidityTimestamp(timeStart);
-    info.setEndValidityTimestamp(timeEnd);
-
-    auto md = info.getMetaData();
-    md["runNumber"] = std::to_string(mRunNumber);
-    info.setMetaData(md);
-
+    o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, mTimeStampStart, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&corr, &info);
-
     LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", 0}, info);
   }
 
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool mDumpToFile{};
-  uint64_t mRunNumber{0}; ///< processed run number
+  uint64_t mRunNumber{0};      ///< processed run number
+  uint64_t mTimeStampStart{0}; ///< time stamp for first TF for CCDB output
   std::unique_ptr<CalibdEdx> mCalib;
 };
 
@@ -130,14 +122,22 @@ DataProcessorSpec getCalibdEdxSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
+  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                false,                          // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                true,                           // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs,
+                                                                true,
+                                                                true);
 
   return DataProcessorSpec{
     "tpc-calib-dEdx",
-    Inputs{
-      InputSpec{"tracks", "TPC", "MIPS"},
-    },
+    inputs,
     outputs,
-    adaptFromTask<CalibdEdxDevice>(),
+    adaptFromTask<CalibdEdxDevice>(ccdbRequest),
     Options{
       {"min-entries-sector", VariantType::Int, 1000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
       {"min-entries-1d", VariantType::Int, 10000, {"minimum entries per stack to fit 1D correction"}},
@@ -151,7 +151,6 @@ DataProcessorSpec getCalibdEdxSpec()
       {"angularbins", VariantType::Int, 36, {"number of angular bins: Tgl and Snp"}},
       {"fit-snp", VariantType::Bool, false, {"enable Snp correction"}},
 
-      {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 

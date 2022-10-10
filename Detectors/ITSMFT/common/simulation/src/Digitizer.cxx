@@ -24,7 +24,7 @@
 #include <climits>
 #include <vector>
 #include <numeric>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using o2::itsmft::Digit;
 using o2::itsmft::Hit;

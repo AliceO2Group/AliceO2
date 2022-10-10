@@ -88,8 +88,11 @@ class Mapper
     /// \param address Hardware address raising the exception
     AddressNotFoundException(int address) : exception(),
                                             mAddress(address),
-                                            mMessage("Hardware address " + std::to_string(address) + " not found")
+                                            mMessage()
     {
+      std::stringstream msgbuilder;
+      msgbuilder << "Hardware address " << address << "(0x" << std::hex << address << std::dec << ") not found";
+      mMessage = msgbuilder.str();
     }
 
     /// \brief Destructor
@@ -238,13 +241,13 @@ class Mapper
   /// \return Channel params corresponding to the hardware address
   /// \throw InitStatusException in case the mapping was not properly initialized
   /// \throw AddressNotFoundException in case of invalid hardware address
-  ChannelID getChannelID(int hardawareaddress) const;
+  ChannelID getChannelID(unsigned int hardawareaddress) const;
 
   /// \brief Get channel row for a given hardware address
   /// \return Row corresponding to the hardware address
   /// \throw InitStatusException in case the mapping was not properly initialized
   /// \throw AddressNotFoundException in case of invalid hardware address
-  int getRow(int hardawareaddress) const
+  uint8_t getRow(unsigned int hardawareaddress) const
   {
     return getChannelID(hardawareaddress).mRow;
   }
@@ -253,7 +256,7 @@ class Mapper
   /// \return Column corresponding to the hardware address
   /// \throw InitStatusException in case the mapping was not properly initialized
   /// \throw AddressNotFoundException in case of invalid hardware address
-  int getColumn(int hardawareaddress) const
+  uint8_t getColumn(unsigned int hardawareaddress) const
   {
     return getChannelID(hardawareaddress).mColumn;
   }
@@ -262,7 +265,7 @@ class Mapper
   /// \return Channel type corresponding to the hardware address
   /// \throw InitStatusException in case the mapping was not properly initialized
   /// \throw AddressNotFoundException in case of invalid hardware address
-  ChannelType_t getChannelType(int hardawareaddress) const
+  ChannelType_t getChannelType(unsigned int hardawareaddress) const
   {
     return getChannelID(hardawareaddress).mChannelType;
   }
@@ -273,7 +276,7 @@ class Mapper
   /// \param channeltype type of the channel
   /// \return Harware address of the channel
   /// \throw InitStatusException in case the mapping was not properly initialized
-  int getHardwareAddress(int row, int col, ChannelType_t channeltype) const;
+  unsigned int getHardwareAddress(uint8_t row, uint8_t col, ChannelType_t channeltype) const;
 
   /// \brief Initialize with new
   /// \param inputfile Name of the input file from which to read the mapping
@@ -290,9 +293,9 @@ class Mapper
   /// \throw ChannelTypeException in case hardware address with unkknown channel types are found
   void init(const std::string_view inputfile);
 
-  std::unordered_map<int, ChannelID> mMapping;                         ///< Mapping between hardware address and col / row /caloflag
-  std::unordered_map<ChannelID, int, ChannelIDHasher> mInverseMapping; ///< Inverse Mapping of channel type to hardware address
-  bool mInitStatus = false;                                            ///< Initialization status
+  std::unordered_map<unsigned int, ChannelID> mMapping;                         ///< Mapping between hardware address and col / row /caloflag
+  std::unordered_map<ChannelID, unsigned int, ChannelIDHasher> mInverseMapping; ///< Inverse Mapping of channel type to hardware address
+  bool mInitStatus = false;                                                     ///< Initialization status
 
   ClassDefNV(Mapper, 1);
 };

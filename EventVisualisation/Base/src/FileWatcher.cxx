@@ -15,7 +15,7 @@
 
 #include "EventVisualisationBase/FileWatcher.h"
 #include "EventVisualisationBase/DirectoryLoader.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <list>
 #include <filesystem>

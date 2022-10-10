@@ -23,7 +23,7 @@ namespace o2::framework
 class ErrorContext
 {
  public:
-  ErrorContext(InputRecord& inputs, ServiceRegistry& services, RuntimeErrorRef e)
+  ErrorContext(InputRecord& inputs, ServiceRegistryRef services, RuntimeErrorRef e)
     : mInputs{inputs},
       mServices{services},
       mExceptionRef{e}
@@ -36,7 +36,7 @@ class ErrorContext
 
  private:
   InputRecord& mInputs;
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
   RuntimeErrorRef mExceptionRef;
 };
 

@@ -14,7 +14,7 @@
 /// \author Roman Lietava
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsCTP/Scalers.h"

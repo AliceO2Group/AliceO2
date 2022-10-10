@@ -15,13 +15,17 @@
 /// @brief Processor for the multiple time slots calibration
 
 #include "DetectorsCalibration/TimeSlot.h"
+#include "DetectorsCalibration/TimeSlotMetaData.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonDataFormat/TFIDInfo.h"
+#include <TFile.h>
+#include <filesystem>
 #include <deque>
 #include <gsl/gsl>
 #include <limits>
 #include <type_traits>
+#include <unistd.h>
 
 namespace o2
 {
@@ -149,6 +153,32 @@ class TimeSlotCalibration
     static constexpr bool value = type::value;
   };
 
+  // methods for saving/reading data in the of the run in case of insufficient statistics
+  bool getSavedSlotAllowed() const { return mSavedSlotAllowed; }
+  void setSavedSlotAllowed(bool v) { mSavedSlotAllowed = v; }
+  std::string getSaveFilePath() const;
+  const std::string& getSaveFileName() const { return mSaveFileName; }
+  void setSaveFileName(const std::string& n) { mSaveFileName = n; }
+  void setSaveDirectory(const std::string& n) { mSaveDirectory = n; }
+  virtual bool updateSaveMetaData();
+
+  // derived class using slot saving functionality must implement this method to write the
+  // content of the slot, returning true on success
+  virtual bool saveLastSlotData(TFile& fl)
+  {
+    LOG(fatal) << "This method must be implemented by derived class to write content of the slot to save";
+    return false;
+  }
+  // derived class using slot saving functionality must implement this method to adopt the content of the
+  // saved slot, returning true on success. Provided metadata should be used to judge if the saved data is useful.
+  virtual bool adoptSavedData(const TimeSlotMetaData& metadata, TFile& fl)
+  {
+    LOG(fatal) << "This method must be implemented by derived class to adopt content of the saved slot";
+    return false;
+  }
+  virtual bool loadSavedSlot();
+  virtual bool saveLastSlot();
+
  protected:
   auto& getSlots() { return mSlots; }
   uint32_t getRunStartOrbit() const
@@ -186,6 +216,12 @@ class TimeSlotCalibration
   bool mWasCheckedInfiniteSlot = false;         // flag to know whether the statistics of the infinite slot was already checked
   bool mUpdateAtTheEndOfRunOnly = false;
   bool mFinalizeWhenReady = false; // if true: single bin is filled until ready, then closed and new one is added
+
+  std::string mSaveDirectory = ""; // directory where the file is saved
+  std::string mSaveFileName = "";  // filename for data saves in the end of the run
+  TimeSlotMetaData mSaveMetaData{};
+  bool mSavedSlotAllowed = false;
+
   ClassDef(TimeSlotCalibration, 1);
 };
 
@@ -394,6 +430,100 @@ void TimeSlotCalibration<Input, Container>::print() const
     LOG(info) << "Slot #" << i << " of " << getNSlots();
     getSlot(i).print();
   }
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+bool TimeSlotCalibration<Input, Container>::updateSaveMetaData()
+{
+  if (mSlots.empty()) {
+    LOG(warn) << "Nothing to save, no TimeSlots defined";
+    return false;
+  }
+  if (mSaveMetaData.startRun < 0) {
+    mSaveMetaData.startRun = mCurrentTFInfo.runNumber;
+  }
+  mSaveMetaData.endRun = mCurrentTFInfo.runNumber;
+  if (mSaveMetaData.startTime < 0) {
+    mSaveMetaData.startTime = mSlots.back().getStartTimeMS();
+  }
+  mSaveMetaData.endTime = mSlots.back().getEndTimeMS();
+  return true;
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+bool TimeSlotCalibration<Input, Container>::saveLastSlot()
+{
+  if (!getSavedSlotAllowed()) {
+    LOG(info) << "Slot saving is disabled";
+    return false;
+  }
+  if (!updateSaveMetaData()) {
+    return false;
+  }
+  auto pth = getSaveFilePath();
+  auto pthTmp = pth + ".part";
+  TFile flout(pthTmp.c_str(), "recreate");
+  if (flout.IsZombie()) {
+    LOGP(error, "failed to open save file {}", pth);
+    unlink(pthTmp.c_str());
+    return false;
+  }
+  if (!saveLastSlotData(flout)) { // call used method to store data
+    flout.Close();
+    unlink(pthTmp.c_str());
+    return false;
+  }
+  flout.WriteObjectAny(&mSaveMetaData, "o2::calibration::TimeSlotMetaData", "metadata");
+  flout.Close();
+  std::filesystem::rename(pthTmp, pth);
+  LOGP(info, "Saved data of the last slot to {}", pth);
+  return true;
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+bool TimeSlotCalibration<Input, Container>::loadSavedSlot()
+{
+  if (!getSavedSlotAllowed()) {
+    LOG(info) << "Saved slot usage is disabled";
+    return false;
+  }
+  auto pth = getSaveFilePath();
+  if (!std::filesystem::exists(pth)) {
+    LOGP(info, "No save file {} is found", pth);
+    return false;
+  }
+  TFile flin(pth.c_str());
+  if (flin.IsZombie()) {
+    LOGP(error, "failed to open save file {}", pth);
+    return false;
+  }
+  auto meta = (o2::calibration::TimeSlotMetaData*)flin.GetObjectChecked("metadata", "o2::calibration::TimeSlotMetaData");
+  if (!meta) {
+    LOGP(error, "Failed to read metadata from {}", pth);
+    return false;
+  }
+  auto res = adoptSavedData(*meta, flin); // up to the detector to decide if data should be accepted
+  if (res) {
+    mSaveMetaData.startRun = meta->startRun;
+    mSaveMetaData.startTime = meta->startTime;
+    updateSaveMetaData();
+  }
+  flin.Close();
+  unlink(pth.c_str()); // cleanup used file
+  return true;
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+std::string TimeSlotCalibration<Input, Container>::getSaveFilePath() const
+{
+  if (mSaveFileName.empty()) {
+    LOGP(fatal, "Save file name was not set");
+  }
+  return fmt::format("{}{}{}", mSaveDirectory, ((!mSaveDirectory.empty() && mSaveDirectory.back() != '/') ? "/" : ""), mSaveFileName);
 }
 
 } // namespace calibration

@@ -11,7 +11,7 @@
 
 //< Loader macro to run QED background generator from QEDepem.C macro, use it as e.g.
 //< o2-sim -n10000 -m PIPE ITS T0 MFT  --noemptyevents -g external --configKeyValues "GeneratorExternal.fileName=QEDloader.C"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 FairGenerator* fg = nullptr;
 

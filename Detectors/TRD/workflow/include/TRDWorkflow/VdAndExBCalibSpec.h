@@ -27,6 +27,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include <chrono>
 
 using namespace o2::framework;
 
@@ -58,12 +59,15 @@ class VdAndExBCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto runStartTime = std::chrono::high_resolution_clock::now();
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.getNEntries() << " AngularResidHistos entries";
     mCalibrator->process(data);
     sendOutput(pc.outputs());
+    std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
+    LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final

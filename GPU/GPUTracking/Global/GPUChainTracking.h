@@ -170,20 +170,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int RunRefit();
 
   // Getters / setters for parameters
-  const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
+  const CorrectionMapsHelper* GetTPCTransformHelper() const { return processors()->calibObjects.fastTransformHelper; }
   const TPCPadGainCalib* GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
   const TPCZSLinkMapping* GetTPCZSLinkMapping() const { return processors()->calibObjects.tpcZSLinkMapping; }
   const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const { return processors()->calibObjects.dEdxCalibContainer; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
   const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
-  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
-  void SetdEdxCalibContainer(std::unique_ptr<o2::tpc::CalibdEdxContainer>&& dEdxCalibContainer);
+  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
-  void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { processors()->calibObjects.fastTransform = tpcFastTransform; }
-  void SetTPCPadGainCalib(const TPCPadGainCalib* tpcPadGainCalib) { processors()->calibObjects.tpcPadGain = tpcPadGainCalib; }
-  void SetdEdxCalibContainer(const o2::tpc::CalibdEdxContainer* dEdxCalibContainer) { processors()->calibObjects.dEdxCalibContainer = dEdxCalibContainer; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
@@ -208,6 +204,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     GPUChainTracking* mChainTracking = nullptr;
     GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
+    char* mTpcTransformRefBuffer = nullptr;
     char* mdEdxSplinesBuffer = nullptr;
     char* mMatLUTBuffer = nullptr;
     short mMemoryResFlat = -1;
@@ -262,6 +259,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformRefU;           // Global TPC fast transformation ref object
+  std::unique_ptr<CorrectionMapsHelper> mTPCFastTransformHelperU;    // Global TPC fast transformation helper object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container

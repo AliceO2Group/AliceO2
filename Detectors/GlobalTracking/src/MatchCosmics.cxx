@@ -32,7 +32,7 @@
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "TPCCalibration/CorrectionMapsHelper.h"
+#include "CorrectionMapsHelper.h"
 #include <algorithm>
 #include <numeric>
 
@@ -92,7 +92,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> tpcRefitter;
   if (data.inputsTPCclusters) {
     tpcRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&data.inputsTPCclusters->clusterIndex,
-                                                                 mTPCCorrMapsHelper->getCorrMap(), mBz,
+                                                                 mTPCCorrMapsHelper, mBz,
                                                                  tpcClusRefs.data(), tpcClusShMap.data(),
                                                                  nullptr, o2::base::Propagator::Instance());
   }
@@ -580,18 +580,12 @@ void MatchCosmics::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  if (mTPCCorrMapsHelper) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 
 //______________________________________________
-void MatchCosmics::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+void MatchCosmics::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  if (mTPCVDrift > 0.f) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 
 #endif

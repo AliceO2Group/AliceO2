@@ -38,4 +38,52 @@ void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
   mSamples.clear();
 }
 
+template <>
+bool UserLogicElinkDecoder<SampleMode>::checkDataHeader()
+{
+  int chipAddMin = mDsId.elinkIndexInGroup() * 2;
+  int chipAddMax = chipAddMin + 1;
+
+  // the chip address from the SAMPA header must be consistent with
+  // the e-Link index
+  int chipAdd = mSampaHeader.chipAddress();
+  if (chipAdd < chipAddMin || chipAdd > chipAddMax) {
+    return false;
+  }
+
+  // we expect at least 3 10-bit words
+  int nof10BitWords = mSampaHeader.nof10BitWords();
+  if (nof10BitWords <= 2) {
+    return false;
+  }
+
+  return true;
+}
+
+template <>
+bool UserLogicElinkDecoder<ChargeSumMode>::checkDataHeader()
+{
+  int chipAddMin = mDsId.elinkIndexInGroup() * 2;
+  int chipAddMax = chipAddMin + 1;
+
+  // the chip address from the SAMPA header must be consistent with
+  // the e-Link index
+  int chipAdd = mSampaHeader.chipAddress();
+  if (chipAdd < chipAddMin || chipAdd > chipAddMax) {
+    return false;
+  }
+
+  // we expect at least 3 10-bit words
+  int nof10BitWords = mSampaHeader.nof10BitWords();
+  if (nof10BitWords <= 2) {
+    return false;
+  }
+  // in cluster sum mode the number of 10-bit words must be a multiple of 4
+  if ((nof10BitWords % 4) != 0) {
+    return false;
+  }
+
+  return true;
+}
+
 } // namespace o2::mch::raw

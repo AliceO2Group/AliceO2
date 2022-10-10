@@ -22,6 +22,8 @@ void HMPIDDCSProcessor::init(const std::vector<DPID>& pids)
   for (const auto& it : pids) {
     mPids[it] = false;
   }
+  arNmean.resize(43);
+  arQthre.resize(42);
 }
 
 // process span of Datapoints, function is called repeatedly in the
@@ -81,22 +83,32 @@ void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
   const auto hmpidString = alias.substr(alias.length() - 8);
 
   if (hmpidString == TEMP_IN_ID) {
-    LOG(debug) << "Temperature_in DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "Temperature_in DP: " << alias;
+    }
     fillTempIn(dp);
   } else if (hmpidString == TEMP_OUT_ID) {
-    LOG(debug) << "Temperature_out DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "Temperature_out DP: " << alias;
+    }
     fillTempOut(dp);
   } else if (hmpidString == HV_ID) {
-    LOG(debug) << "HV DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "HV DP: " << alias;
+    }
     fillHV(dp);
   } else if (hmpidString == ENV_PRESS_ID) {
-    LOG(debug) << "Environment Pressure DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "Environment Pressure DP: " << alias;
+    }
     fillEnvPressure(dp);
   } else if (hmpidString == CH_PRESS_ID) {
-    LOG(debug) << "Chamber Pressure DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "Chamber Pressure DP: " << alias;
+    }
     fillChPressure(dp);
   } else {
-    LOG(debug) << "Unknown data point: " << alias;
+    LOG(info) << "Unknown data point: " << alias;
   }
 }
 
@@ -118,36 +130,48 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
   const int num = dig1 * 10 + dig2;
 
   if (dig1 == -1 || dig2 == -1) {
-    LOG(debug) << "digits in string invalid" << dig1 << " " << dig2;
+    LOG(warn) << "digits in string invalid" << dig1 << " " << dig2;
     return;
   }
 
   if (num < 0 || num > 29) {
-    LOG(debug) << "num out of range " << num;
+    LOG(warn) << "num out of range " << num;
     return;
   }
 
   if (alias.substr(alias.length() - 10) == WAVE_LEN_ID) {
     waveLenVec[num].push_back(dp);
-    LOG(debug) << "WAVE_LEN_ID DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "WAVE_LEN_ID DP: " << alias;
+    }
   } else if (transparencyString == FREON_CELL_ID) {
     freonCellVec[num].push_back(dp);
-    LOG(debug) << "FREON_CELL_ID DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "FREON_CELL_ID DP: " << alias;
+    }
   } else if (transparencyString == ARGON_CELL_ID) {
-    LOG(debug) << "ARGON_CELL_ID DP: " << alias;
+    if (mVerbose) {
+      LOG(info) << "ARGON_CELL_ID DP: " << alias;
+    }
     argonCellVec[num].push_back(dp);
   } else if (transparencyString == REF_ID) {
     if (alias.substr(alias.length() - 14) == ARGON_REF_ID) {
-      LOG(debug) << "ARGON_REF_ID DP: " << alias;
+      if (mVerbose) {
+        LOG(info) << "ARGON_REF_ID DP: " << alias;
+      }
       argonRefVec[num].push_back(dp);
     } else if (alias.substr(alias.length() - 14) == FREON_REF_ID) {
       freonRefVec[num].push_back(dp);
-      LOG(debug) << "FREON_REF_ID DP: " << alias;
+      if (mVerbose) {
+        LOG(info) << "FREON_REF_ID DP: " << alias;
+      }
     } else {
-      LOG(debug) << "Unknown data point: " << alias;
+      if (mVerbose) {
+        LOG(info) << "Unknown data point: " << alias;
+      }
     }
   } else {
-    LOG(debug) << "Datapoint not found: " << alias;
+    LOG(info) << "Datapoint not found: " << alias;
   }
 }
 
@@ -164,7 +188,7 @@ void HMPIDDCSProcessor::fillEnvPressure(const DPCOM& dpcom)
   if (type == DeliveryType::DPVAL_DOUBLE) {
     dpVecEnv.push_back(dpcom);
   } else {
-    LOG(debug) << "Invalid Datatype for Env Pressure";
+    LOG(warn) << "Invalid Datatype for Env Pressure";
   }
 }
 
@@ -182,10 +206,10 @@ void HMPIDDCSProcessor::fillChPressure(const DPCOM& dpcom)
     if (chNum < 7 && chNum >= 0) {
       dpVecCh[chNum].push_back(dpcom);
     } else {
-      LOG(debug) << "Chamber Number out of range for Pressure : " << chNum;
+      LOG(warn) << "Chamber Number out of range for Pressure : " << chNum;
     }
   } else {
-    LOG(debug) << "Not correct datatype for Pressure : ";
+    LOG(warn) << "Not correct datatype for Pressure : ";
   }
 }
 
@@ -198,18 +222,20 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   if (type == DeliveryType::DPVAL_DOUBLE) {
     const auto chNum = aliasStringToInt(dpid, indexChHv);
     const auto secNum = aliasStringToInt(dpid, indexSecHv);
-
+    if (mVerbose) {
+      LOGP(info, "HV ch:{} sec:{} val: {}", chNum, secNum, o2::dcs::getValue<double>(dpcom));
+    }
     if (chNum < 7 && chNum >= 0) {
       if (secNum < 6 && secNum >= 0) {
         dpVecHV[6 * chNum + secNum].push_back(dpcom);
       } else {
-        LOG(debug) << "Sector Number out of range for HV : " << secNum;
+        LOG(warn) << "Sector Number out of range for HV : " << secNum;
       }
     } else {
-      LOG(debug) << "Chamber Number out of range for HV : " << chNum;
+      LOG(warn) << "Chamber Number out of range for HV : " << chNum;
     }
   } else {
-    LOG(debug) << "Not correct datatype for HV DP";
+    LOG(warn) << "Not correct datatype for HV DP";
   }
 }
 
@@ -228,13 +254,13 @@ void HMPIDDCSProcessor::fillTempIn(const DPCOM& dpcom)
       if (radNum < 3 && radNum >= 0) {
         dpVecTempIn[3 * chNum + radNum].push_back(dpcom);
       } else {
-        LOG(debug) << "Radiator Number out of range for TempIn :" << radNum;
+        LOG(warn) << "Radiator Number out of range for TempIn :" << radNum;
       }
     } else {
-      LOG(debug) << "Chamber Number out of range for TempIn DP :" << chNum;
+      LOG(warn) << "Chamber Number out of range for TempIn DP :" << chNum;
     }
   } else {
-    LOG(debug) << "Not correct datatype for TempIn DP ";
+    LOG(warn) << "Not correct datatype for TempIn DP ";
   }
 }
 
@@ -254,14 +280,13 @@ void HMPIDDCSProcessor::fillTempOut(const DPCOM& dpcom)
         dpVecTempOut[3 * chNum + radNum].push_back(dpcom);
 
       } else {
-        LOG(debug) << "Radiator Number out of range for TempOut DP : "
-                   << radNum;
+        LOG(warn) << "Radiator Number out of range for TempOut DP : " << radNum;
       }
     } else {
-      LOG(debug) << "Chamber Number out of range for TempOut DP : " << chNum;
+      LOG(warn) << "Chamber Number out of range for TempOut DP : " << chNum;
     }
   } else {
-    LOG(debug) << "Not correct datatype for TempOut DP ";
+    LOG(warn) << "Not correct datatype for TempOut DP ";
   }
 }
 
@@ -275,7 +300,7 @@ double HMPIDDCSProcessor::procTrans()
 
     if (photEn < o2::hmpid::Param::ePhotMin() ||
         photEn > o2::hmpid::Param::ePhotMax()) {
-      LOG(info) << "photon energy out of range" << photEn;
+      LOG(warn) << "photon energy out of range" << photEn;
       continue; // if photon energy is out of range
     }
 
@@ -283,7 +308,9 @@ double HMPIDDCSProcessor::procTrans()
     // ==============================================================
     refArgon = dpVector2Double(argonRefVec[i], "ARGONREF", i);
     if (refArgon == eMeanDefault) {
-      LOG(info) << "refArgon == defaultEMean()";
+      if (mVerbose) {
+        LOG(info) << "refArgon == defaultEMean()";
+      }
       return defaultEMean();
     }
 
@@ -291,7 +318,9 @@ double HMPIDDCSProcessor::procTrans()
     //==================================================================
     cellArgon = dpVector2Double(argonCellVec[i], "ARGONCELL", i);
     if (cellArgon == eMeanDefault) {
-      LOG(info) << "cellArgon == defaultEMean()";
+      if (mVerbose) {
+        LOG(info) << "cellArgon == defaultEMean()";
+      }
       return defaultEMean();
     }
 
@@ -299,7 +328,9 @@ double HMPIDDCSProcessor::procTrans()
     //================================================================
     refFreon = dpVector2Double(freonRefVec[i], "C6F14REFERENCE", i);
     if (refFreon == eMeanDefault) {
-      LOG(info) << "refFreon == defaultEMean()";
+      if (mVerbose) {
+        LOG(info) << "refFreon == defaultEMean()";
+      }
       return defaultEMean();
     }
 
@@ -307,13 +338,14 @@ double HMPIDDCSProcessor::procTrans()
     // ===================================================================
     cellFreon = dpVector2Double(freonCellVec[i], "C6F14CELL", i);
     if (cellFreon == eMeanDefault) {
-      LOG(info) << "cellFreon == defaultEMean()";
+      if (mVerbose) {
+        LOG(info) << "cellFreon == defaultEMean()";
+      }
       return defaultEMean();
     }
 
     // evaluate correction factor to calculate trasparency
-    bool isEvalCorrOk =
-      evalCorrFactor(refArgon, cellArgon, refFreon, cellFreon, photEn, i);
+    bool isEvalCorrOk = evalCorrFactor(refArgon, cellArgon, refFreon, cellFreon, photEn, i);
 
     // Returns false if dRefFreon * dRefArgon < 0
     if (!isEvalCorrOk) {
@@ -349,7 +381,9 @@ double HMPIDDCSProcessor::procTrans()
   if (sProb > 0) {
     eMean = sEnergProb / sProb;
   } else {
-    LOG(info) << " sProb < 0 ";
+    if (mVerbose) {
+      LOG(info) << " sProb < 0 ";
+    }
     return defaultEMean();
   }
 
@@ -367,7 +401,9 @@ double HMPIDDCSProcessor::procTrans()
 
 double HMPIDDCSProcessor::defaultEMean()
 {
-  LOG(info) << Form(" Mean energy photon calculated ---> %f eV ", eMeanDefault);
+  if (mVerbose) {
+    LOG(info) << Form(" Mean energy photon calculated ---> %f eV ", eMeanDefault);
+  }
   return eMeanDefault;
 }
 
@@ -377,7 +413,7 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
 {
   // if there is no entries
   if (waveLenVec[i].size() == 0) {
-    LOG(info) << Form("No Data Point values for %i.waveLenght", i);
+    LOG(warn) << Form("No Data Point values for %i.waveLenght", i);
     return defaultEMean(); // will break this entry in foor loop
   }
 
@@ -387,18 +423,12 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     lambda = o2::dcs::getValue<double>(dp);
   } else {
-    LOG(info) << Form(
-      "Not correct datatype for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> "
-      "Default E mean used!",
-      i);
+    LOG(warn) << Form("Not correct datatype for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> Default E mean used!", i);
     return defaultEMean();
   }
 
   if (lambda < 150. || lambda > 230.) {
-    LOG(info) << Form(
-      "Wrong value for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  "
-      "--> Default E mean used!",
-      i);
+    LOG(warn) << Form("Wrong value for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH --> Default E mean used!", i);
     return defaultEMean();
   }
 
@@ -460,7 +490,9 @@ bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon,
                                (dCellArgon / dRefArgon) * aCorrFactor[i],
                              aConvFactor);
   } else {
-    LOG(info) << "dRefFreon*dRefArgon<0" << dRefFreon * dRefArgon;
+    if (mVerbose) {
+      LOG(info) << "dRefFreon*dRefArgon<0" << dRefFreon * dRefArgon;
+    }
     return false;
   }
 
@@ -598,9 +630,7 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
     }
     pTout->SetTitle(Form(
       "Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
-    std::vector<TF1>::iterator itTout =
-      arNmean.begin() + 6 * iCh + 2 * iRad + 1;
-    arNmean.insert(itTout, *(pTout.get()));
+    arNmean[6 * iCh + 2 * iRad + 1] = *(pTout.get());
   } else {
     LOG(info) << Form("No entries in temp-out for ch%irad%i", iCh, iRad);
   }
@@ -640,8 +670,7 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 
     pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms]; Temp [C]",
                         iCh, iRad));
-    std::vector<TF1>::iterator itTin = arNmean.begin() + 6 * iCh + 2 * iRad;
-    arNmean.insert(itTin, *(pTin.get()));
+    arNmean[6 * iCh + 2 * iRad] = *(pTin.get());
 
   } else {
     LOG(info) << Form("No entries in temp-in for ch%irad%i", iCh, iRad);
@@ -710,6 +739,7 @@ void HMPIDDCSProcessor::finalize()
       std::unique_ptr<TF1> pHV = finalizeHv(iCh, iSec);
 
       // only fill if envP, chamP and HV datapoints are all fetched
+      LOGP(info, "Finalize ch={} sec={}, pEnv={} pChPres={} pHV={}", iCh, iSec, (void*)pEnv.get(), (void*)pChPres.get(), (void*)pHV.get());
       if (pEnv != nullptr && pChPres != nullptr && pHV != nullptr) {
 
         const char* hvChar = (pArrHv[3 * iCh + iSec]).GetName();
@@ -728,9 +758,7 @@ void HMPIDDCSProcessor::finalize()
         pQthre->SetTitle(Form(
           "Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
 
-        std::vector<TF1>::iterator itQthre = arQthre.begin() + 6 * iCh + iSec;
-
-        arQthre.insert(itQthre, *(pQthre.get()));
+        arQthre[6 * iCh + iSec] = *(pQthre.get());
 
       } else {
         LOG(info) << "Missing entries for HV, envPressure or chPressure";
@@ -745,11 +773,10 @@ void HMPIDDCSProcessor::finalize()
   std::unique_ptr<TF1> pPhotMean;
   pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0,
                           mTimeEMean.last - mTimeEMean.first));
-  std::vector<TF1>::iterator itArNmean = arNmean.begin() + 42;
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
 
-  arNmean.insert(itArNmean, *(pPhotMean.get()));
+  arNmean[42] = *(pPhotMean.get());
 
   // Check entries of CCDB-objects
   checkEntries(arQthre, arNmean);

@@ -152,7 +152,7 @@ class IDCToVectorDevice : public o2::framework::Task
           if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
             continue;
           }
-          LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
+          LOGP(debug, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
             LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
@@ -193,7 +193,7 @@ class IDCToVectorDevice : public o2::framework::Task
           // check if end poit was already processed
           auto& lastInfo = *infoIt;
           if (lastInfo.wasEPseen(endPoint)) {
-            LOGP(info, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
+            LOGP(debug, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
             continue;
           }
 
@@ -310,7 +310,7 @@ class IDCToVectorDevice : public o2::framework::Task
   //____________________________________________________________________________
   void snapshotIDCs(DataAllocator& output)
   {
-    LOGP(info, "snapshotIDCs");
+    LOGP(debug, "snapshotIDCs");
 
     // check integrety of data between CRUs
     size_t orbitsInTF = 0;
@@ -345,7 +345,7 @@ class IDCToVectorDevice : public o2::framework::Task
     for (auto& [cru, idcVec] : mIDCvectors) {
       idcVec.resize(Mapper::PADSPERREGION[CRU(cru).region()] * orbitsInTF);
       const header::DataHeader::SubSpecificationType subSpec{cru << 7};
-      LOGP(info, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
+      LOGP(debug, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
       output.snapshot(Output{gDataOriginTPC, "IDCVECTOR", subSpec}, idcVec);
       output.snapshot(Output{gDataOriginTPC, "IDCORBITS", subSpec}, orbitBCInfo);
     }

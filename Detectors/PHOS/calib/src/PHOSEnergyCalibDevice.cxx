@@ -22,7 +22,7 @@
 #include "DetectorsCalibration/Utils.h"
 
 #include <fairmq/Device.h>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <string>
 #include <filesystem>
 
@@ -139,7 +139,7 @@ void PHOSEnergyCalibDevice::stop()
 void PHOSEnergyCalibDevice::fillOutputTree()
 {
 
-  if (mOutputDigits.size() == 0) { // nothing to fill
+  if (mOutputDigits.size() < 2) { // nothing to fill, need at least 2 cluster per event
     return;
   }
 

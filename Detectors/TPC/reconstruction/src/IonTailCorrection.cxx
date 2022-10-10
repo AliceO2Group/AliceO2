@@ -22,13 +22,13 @@
 #include "TPCBase/Utils.h"
 #include "TPCBase/CRU.h"
 #include "TPCReconstruction/IonTailCorrection.h"
-#include "TPCReconstruction/IonTailCorrectionSettings.h"
+#include "TPCBase/IonTailSettings.h"
 
 using namespace o2::tpc;
 
 IonTailCorrection::IonTailCorrection()
 {
-  const auto& settings = IonTailCorrectionSettings::Instance();
+  const auto& settings = IonTailSettings::Instance();
   mKTime = settings.kTime;
   mITMultFactor = settings.ITMultFactor;
   LOGP(info, "IT settings: kTime = {}, ITMultFactor = {}, padITCorrFile = {}",

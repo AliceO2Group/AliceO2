@@ -1,0 +1,36 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#ifndef _ALICEO2_CTP_LUMIINFO_H_
+#define _ALICEO2_CTP_LUMIINFO_H_
+#include "CommonConstants/LHCConstants.h"
+#include <Rtypes.h>
+
+/// \brief Luminosity information as a moving average over certain number of TFs
+
+namespace o2
+{
+namespace ctp
+{
+struct LumiInfo {
+  LumiInfo() = default;
+  uint32_t orbit = 0;       // orbit of TF when was updated
+  uint32_t nHBFCounted = 0; // length of interval in HB
+  uint64_t counts = 0;      // counts in the interval
+  float getLumi() const { return nHBFCounted > 0 ? float(counts / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  ClassDefNV(LumiInfo, 1);
+};
+} // namespace ctp
+
+} // namespace o2
+
+#endif // _ALICEO2_CTP_LUMIINFO_H_

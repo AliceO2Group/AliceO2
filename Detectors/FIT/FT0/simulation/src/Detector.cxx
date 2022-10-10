@@ -26,7 +26,7 @@
 #include "TVector3.h"
 
 #include "FairRootManager.h" // for FairRootManager
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairVolume.h"
 
 #include "FairRootManager.h"

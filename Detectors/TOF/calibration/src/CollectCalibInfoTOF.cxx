@@ -11,7 +11,7 @@
 #include <TTree.h>
 #include <cassert>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TOFBase/Geo.h"
 
 #include <TFile.h>

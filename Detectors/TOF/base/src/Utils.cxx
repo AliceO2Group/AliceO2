@@ -43,8 +43,6 @@ uint64_t Utils::mMaskBC[16] = {};
 uint64_t Utils::mMaskBCUsed[16] = {};
 int Utils::mMaskBCchan[o2::tof::Geo::NCHANNELS][16] = {};
 int Utils::mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16] = {};
-TF1* Utils::mFitFunc = new TF1("fTOFfit", "gaus", -5000, 5000);
-;
 TChain* Utils::mTreeFit = nullptr;
 std::vector<o2::dataformats::CalibInfoTOF> Utils::mVectC;
 std::vector<o2::dataformats::CalibInfoTOF>* Utils::mPvectC = &mVectC;
@@ -321,9 +319,11 @@ int Utils::extractNewTimeSlewing(const o2::dataformats::CalibTimeSlewingParamTOF
   }
   newTS->bind();
 
-  mFitFunc->SetParameter(0, 100);
-  mFitFunc->SetParameter(1, 0);
-  mFitFunc->SetParameter(2, 200);
+  static auto fitFunc = new TF1("fTOFfit", "gaus", -5000, 5000);
+
+  fitFunc->SetParameter(0, 100);
+  fitFunc->SetParameter(1, 0);
+  fitFunc->SetParameter(2, 200);
 
   if (mTreeFit) { // remove previous tree
     delete mTreeFit;
@@ -495,6 +495,8 @@ int Utils::fitSingleChannel(int ch, TH2F* h, const o2::dataformats::CalibTimeSle
 
   float totHalfWidth = h->GetXaxis()->GetBinWidth(1) * 0.5;
 
+  static TF1* fitFunc = new TF1("fTOFfit", "gaus", -5000, 5000);
+
   int integral = 0;
   float x[10000], y[10000];
   for (int i = 1; i <= nbin; i++) {
@@ -511,11 +513,11 @@ int Utils::fitSingleChannel(int ch, TH2F* h, const o2::dataformats::CalibTimeSle
     TH1D* hfit = h->ProjectionY(Form("mypro"), ibin, i);
     float xref = hfit->GetBinCenter(hfit->GetMaximumBin());
 
-    hfit->Fit(mFitFunc, "QN0", "", xref - 500, xref + 500);
+    hfit->Fit(fitFunc, "QN0", "", xref - 500, xref + 500);
     fitted++;
 
     x[np] = (xmin + xmax) * 0.5;
-    y[np] = mFitFunc->GetParameter(1);
+    y[np] = fitFunc->GetParameter(1);
     if (x[np] > 65.534) {
       continue; // max tot acceptable in ushort representation / 1000.
     }

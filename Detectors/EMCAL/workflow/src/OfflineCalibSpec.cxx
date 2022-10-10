@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <gsl/span>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"

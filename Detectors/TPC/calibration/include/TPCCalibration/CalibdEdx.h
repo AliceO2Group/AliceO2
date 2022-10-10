@@ -73,9 +73,6 @@ class CalibdEdx
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
   bool getApplyCuts() const { return mApplyCuts; }
 
-  float getField() const { return mField; };
-  void setField(float field) { mField = field; }
-
   /// \param minEntries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information).
   void setSectorFitThreshold(int minEntries) { mSectorThreshold = minEntries; }
   /// \param minEntries per GEM stack to enable Tgl fit
@@ -141,7 +138,6 @@ class CalibdEdx
 
  private:
   bool mFitSnp{};
-  float mField = -5;             ///< Magnetic field in kG, used in track propagation
   bool mApplyCuts{true};         ///< Wether or not to apply tracks cuts
   TrackCuts mCuts{0.3, 0.7, 60}; ///< MIP
   int mSectorThreshold = 1000;   ///< Minimum entries per stack to perform a sector by sector fit.

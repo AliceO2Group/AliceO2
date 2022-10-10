@@ -21,7 +21,7 @@
 #include <DataFormatsParameters/GRPLHCIFData.h>
 #include "CommonUtils/NameConf.h"
 #include <TFile.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <string>
 #include "DetectorsRaw/HBFUtils.h"

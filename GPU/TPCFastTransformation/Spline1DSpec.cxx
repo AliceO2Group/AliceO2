@@ -14,10 +14,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
-//#include "Rtypes.h"
-#endif
-
 #include "Spline1DSpec.h"
 
 #if !defined(GPUCA_GPUCODE)

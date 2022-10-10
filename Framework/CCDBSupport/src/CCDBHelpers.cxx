@@ -261,7 +261,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       std::unordered_map<std::string, bool> accountedSpecs;
       auto defHost = options.get<std::string>("condition-backend");
-      size_t checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
+      auto checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
       helper->queryDownScaleRate = checkRate > 0 ? checkRate : static_cast<size_t>(-1l);
       LOGP(info, "CCDB Backend at: {}, validity check for every {} TF", defHost, helper->queryDownScaleRate);
       auto remapString = options.get<std::string>("condition-remap");
@@ -311,7 +311,6 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       });
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
-        char* err = nullptr;
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {

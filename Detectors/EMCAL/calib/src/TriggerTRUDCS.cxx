@@ -11,7 +11,7 @@
 
 #include "EMCALCalib/TriggerTRUDCS.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <bitset>
 #include <iomanip>

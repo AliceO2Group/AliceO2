@@ -103,6 +103,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+class CorrectionMapsHelper;
 class TPCFastTransform;
 struct TPCPadGainCalib;
 struct TPCZSLinkMapping;
@@ -210,8 +211,10 @@ struct ConstPtr {
 };
 
 template <template <typename T> class S>
-struct GPUCalibObjectsTemplate {
+struct GPUCalibObjectsTemplate { // use only pointers on PODs or flat objects here
   typename S<TPCFastTransform>::type* fastTransform = nullptr;
+  typename S<TPCFastTransform>::type* fastTransformRef = nullptr;
+  typename S<CorrectionMapsHelper>::type* fastTransformHelper = nullptr;
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;

@@ -20,6 +20,7 @@
 #include "Framework/OutputObjHeader.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
+#include "Framework/IndexBuilderHelpers.h"
 #include <string>
 namespace o2::framework
 {
@@ -219,154 +220,95 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
 
 /// Policy to control index building
 /// Exclusive index: each entry in a row has a valid index
-struct IndexExclusive {
-  /// Generic builder for in index table
-  template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...>&& tables)
-  {
-    static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
-    using tables_t = framework::pack<T...>;
-    using first_t = T1;
-    auto tail = tuple_tail(tables);
-    TableBuilder builder;
-    auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
-
-    std::array<int32_t, sizeof...(T)> values;
-    iterator_tuple_t<std::decay_t<T>...> iterators = std::apply(
-      [](auto&&... x) {
-        return std::make_tuple(x.begin()...);
-      },
-      tail);
-
-    using rest_it_t = decltype(pack_from_tuple(iterators));
-
-    auto setValue = [&](auto& x, int idx) -> bool {
-      using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
-
-      if constexpr (std::is_same_v<framework::pack_element_t<position, framework::pack<std::decay_t<T>...>>, Key>) {
-        values[position] = idx;
-        return true;
-      } else {
-        lowerBound<Key>(idx, x);
-        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) {
-          return false;
-        } else if (x.template getId<Key>() != idx) {
-          return false;
-        } else {
-          values[position] = x.globalIndex();
-          ++x;
-          return true;
-        }
-      }
-    };
-
-    auto first = std::get<first_t>(tables);
-    for (auto& row : first) {
-      auto idx = -1;
-      if constexpr (std::is_same_v<first_t, Key>) {
-        idx = row.globalIndex();
-      } else {
-        idx = row.template getId<Key>();
-      }
-      if (std::apply(
-            [](auto&... x) {
-              return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) && ...);
-            },
-            iterators)) {
-        break;
-      }
-
-      auto result = std::apply(
-        [&](auto&... x) {
-          std::array<bool, sizeof...(T)> results{setValue(x, idx)...};
-          return (results[framework::has_type_at_v<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
-        },
-        iterators);
-
-      if (result) {
-        cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
-      }
-    }
-    builder.setLabel(label);
-    return builder.finalize();
-  }
-
-  template <typename IDX, typename Key, typename T1, typename... T>
-  static auto makeIndex(Key const& key, std::tuple<T1, T...>&& tables)
-  {
-    auto t = IDX{indexBuilder(o2::aod::MetadataTrait<IDX>::metadata::tableLabel(),
-                              typename o2::aod::MetadataTrait<IDX>::metadata::index_pack_t{},
-                              key,
-                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables).asArrowTable()}}, std::decay_t<T>{{std::get<T>(tables).asArrowTable()}}...))};
-    t.bindExternalIndices(&key, &std::get<T1>(tables), &std::get<T>(tables)...);
-    return t;
-  }
-};
 /// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
 /// to T1
-struct IndexSparse {
-  template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...>&& tables)
+struct Exclusive {
+};
+struct Sparse {
+};
+
+namespace
+{
+template <typename T, typename Key>
+inline std::shared_ptr<arrow::ChunkedArray> getIndexToKey(arrow::Table* table)
+{
+  using IC = framework::pack_element_t<framework::has_type_at_conditional<soa::is_binding_compatible, Key>(typename T::external_index_columns_t{}), typename T::external_index_columns_t>;
+  return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{}));
+}
+
+template <typename C>
+struct ColumnTrait {
+  static_assert(framework::is_base_of_template_v<o2::soa::Column, C>, "Not a column type!");
+  using column_t = C;
+
+  static constexpr auto listSize()
   {
-    static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
-    using tables_t = framework::pack<T...>;
-    using first_t = T1;
-    auto tail = tuple_tail(tables);
-    TableBuilder builder;
-    auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
+    if constexpr (std::is_same_v<typename C::type, std::vector<int>>) {
+      return -1;
+    } else if constexpr (std::is_same_v<int[2], typename C::type>) {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
 
-    std::array<int32_t, sizeof...(T)> values;
+  template <typename T, typename Key>
+  static std::shared_ptr<SelfIndexColumnBuilder> makeColumnBuilder(arrow::Table* table, arrow::MemoryPool* pool)
+  {
+    if constexpr (!std::is_same_v<T, Key>) {
+      return std::make_shared<IndexColumnBuilder>(getIndexToKey<T, Key>(table), C::columnLabel(), listSize(), pool);
+    } else {
+      return std::make_shared<SelfIndexColumnBuilder>(C::columnLabel(), pool);
+    }
+  }
+};
 
-    iterator_tuple_t<std::decay_t<T>...> iterators = std::apply(
-      [](auto&&... x) {
-        return std::make_tuple(x.begin()...);
-      },
-      tail);
+template <typename Key, typename C>
+struct Reduction {
+  using type = typename std::conditional<soa::is_binding_compatible_v<Key, typename C::binding_t>(), SelfIndexColumnBuilder, IndexColumnBuilder>::type;
+};
+} // namespace
 
-    using rest_it_t = decltype(pack_from_tuple(iterators));
+template <typename Kind>
+struct IndexBuilder {
+  template <typename Key, typename C1, typename... Cs, typename T1, typename... Ts>
+  static auto indexBuilder(const char* label, std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::pack<C1, Cs...>, framework::pack<T1, Ts...>)
+  {
+    auto pool = arrow::default_memory_pool();
+    SelfIndexColumnBuilder self{C1::columnLabel(), pool};
+    std::unique_ptr<ChunkedArrayIterator> keyIndex = nullptr;
+    int64_t counter = 0;
+    if constexpr (!std::is_same_v<T1, Key>) {
+      keyIndex = std::make_unique<ChunkedArrayIterator>(getIndexToKey<T1, Key>(tables[0].get()));
+    }
 
-    auto setValue = [&](auto& x, int idx) -> bool {
-      using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
+    std::array<std::shared_ptr<framework::SelfIndexColumnBuilder>, sizeof...(Cs)> columnBuilders{ColumnTrait<Cs>::template makeColumnBuilder<framework::pack_element_t<framework::has_type_at_v<Cs>(framework::pack<Cs...>{}), framework::pack<Ts...>>, Key>(
+      tables[framework::has_type_at_v<Cs>(framework::pack<Cs...>{}) + 1].get(),
+      pool)...};
+    std::array<bool, sizeof...(Cs)> finds;
 
-      if constexpr (std::is_same_v<framework::pack_element_t<position, framework::pack<std::decay_t<T>...>>, Key>) {
-        values[position] = idx;
-        return true;
+    for (counter = 0; counter < tables[0]->num_rows(); ++counter) {
+      auto idx = -1;
+      if constexpr (std::is_same_v<T1, Key>) {
+        idx = counter;
       } else {
-        lowerBound<Key>(idx, x);
-        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) {
-          values[position] = -1;
-          return false;
-        } else if (x.template getId<Key>() != idx) {
-          values[position] = -1;
-          return false;
-        } else {
-          values[position] = x.globalIndex();
-          ++x;
-          return true;
+        idx = keyIndex->valueAt(counter);
+      }
+      finds = {std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template find<Cs>(idx)...};
+      if constexpr (std::is_same_v<Kind, Sparse>) {
+        (std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx), ...);
+        self.fill<C1>(counter);
+      } else if constexpr (std::is_same_v<Kind, Exclusive>) {
+        if (std::none_of(finds.begin(), finds.end(), [](bool const x) { return x == false; })) {
+          (std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template fill<Cs>(idx), ...);
+          self.fill<C1>(counter);
         }
       }
-    };
-
-    auto first = std::get<first_t>(tables);
-    for (auto& row : first) {
-      auto idx = -1;
-      if constexpr (std::is_same_v<first_t, Key>) {
-        idx = row.globalIndex();
-      } else {
-        idx = row.template getId<Key>();
-      }
-      std::apply(
-        [&](auto&... x) {
-          (setValue(x, idx), ...);
-        },
-        iterators);
-
-      cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
     }
-    builder.setLabel(label);
-    return builder.finalize();
+
+    return makeArrowTable(label,
+                          {self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...},
+                          {self.field(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...});
   }
 
   template <typename IDX, typename Key, typename T1, typename... T>
@@ -384,7 +326,7 @@ struct IndexSparse {
 /// This helper struct allows you to declare index tables to be created in a task
 template <typename T>
 struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
-  using IP = std::conditional_t<aod::MetadataTrait<T>::metadata::exclusive, IndexExclusive, IndexSparse>;
+  using IP = std::conditional_t<aod::MetadataTrait<T>::metadata::exclusive, IndexBuilder<Exclusive>, IndexBuilder<Sparse>>;
   using Key = typename T::indexing_t;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
@@ -410,10 +352,10 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
     return index_pack_t{};
   }
 
-  template <typename... Cs, typename Key, typename T1, typename... Ts>
-  auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...>&& tables)
+  template <typename Key, typename... Cs, typename... Ts>
+  auto build(framework::pack<Cs...>, framework::pack<Ts...>, std::vector<std::shared_ptr<arrow::Table>>&& tables)
   {
-    this->table = std::make_shared<T>(IP::indexBuilder(aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, std::forward<std::tuple<T1, Ts...>>(tables)));
+    this->table = std::make_shared<T>(IP::template indexBuilder<Key>(aod::MetadataTrait<T>::metadata::tableLabel(), std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables), framework::pack<Cs...>{}, framework::pack<Ts...>{}));
     return (this->table != nullptr);
   }
 };

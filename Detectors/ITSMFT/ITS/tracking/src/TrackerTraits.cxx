@@ -763,7 +763,7 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, c
     cov[0] = std::hypot(cov[0], mTrkParams[0].LayerMisalignment[iLayer]);
     cov[2] = std::hypot(cov[2], mTrkParams[0].LayerMisalignment[iLayer]);
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
-    if (nCl >= 3 && predChi2 > chi2cut * (nCl * 2 - 5)) {
+    if ((nCl >= 3 && predChi2 > chi2cut * (nCl * 2 - 5)) || predChi2 < 0.f) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);

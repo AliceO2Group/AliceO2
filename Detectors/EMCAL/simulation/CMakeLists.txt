@@ -13,7 +13,7 @@ o2_add_library(EMCALSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/SDigitizer.cxx
                        src/DigitsWriteoutBuffer.cxx src/DigitsVectorStream.cxx src/SpaceFrame.cxx src/SimParam.cxx
                        src/LabeledDigit.cxx src/RawWriter.cxx
-               PUBLIC_LINK_LIBRARIES O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw O2::EMCALReconstruction O2::DataFormatsCTP)
+               PUBLIC_LINK_LIBRARIES ROOT::TreePlayer O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw O2::EMCALReconstruction O2::DataFormatsCTP)
 
 o2_target_root_dictionary(EMCALSimulation
                           HEADERS include/EMCALSimulation/Detector.h

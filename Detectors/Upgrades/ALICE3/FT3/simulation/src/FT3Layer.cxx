@@ -18,7 +18,7 @@
 #include "FT3Base/GeometryTGeo.h"
 #include "FT3Simulation/Detector.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 #include <TGeoManager.h>        // for TGeoManager, gGeoManager
 #include <TGeoMatrix.h>         // for TGeoCombiTrans, TGeoRotation, etc

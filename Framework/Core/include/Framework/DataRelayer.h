@@ -91,7 +91,7 @@ class DataRelayer
   /// @a createNew true if the dangling inputs are allowed to create new slots.
   /// @return true if there were expirations, false if not.
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
-                                      ServiceRegistry& context, bool createNew);
+                                      ServiceRegistryRef context, bool createNew);
 
   using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
 

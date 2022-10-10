@@ -14,7 +14,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawDataStats.h"
 #include "DataFormatsTRD/Digit.h"

@@ -26,7 +26,7 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 
-DPLMonitoringBackend::DPLMonitoringBackend(ServiceRegistry& registry)
+DPLMonitoringBackend::DPLMonitoringBackend(ServiceRegistryRef registry)
   : mRegistry{registry}
 {
 }

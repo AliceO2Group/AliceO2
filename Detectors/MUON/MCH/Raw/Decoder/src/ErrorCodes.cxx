@@ -20,7 +20,7 @@ namespace raw
 
 uint32_t getErrorCodesSize()
 {
-  return 13;
+  return 15;
 }
 
 void append(const char* msg, std::string& to)
@@ -49,11 +49,17 @@ std::string errorCodeAsString(uint32_t ec)
   if (ec & ErrorBadClusterSize) {
     append("Cluster Size", msg);
   }
-  if (ec & ErrorBadPacketType) {
-    append("Bad Packet Type", msg);
+  if (ec & ErrorBadSyncPacket) {
+    append("Bad Sync Packet", msg);
+  }
+  if (ec & ErrorUnexpectedSyncPacket) {
+    append("Unexpected Sync", msg);
   }
   if (ec & ErrorBadHeartBeatPacket) {
     append("Bad HB Packet", msg);
+  }
+  if (ec & ErrorBadDataPacket) {
+    append("Bad Data Packet", msg);
   }
   if (ec & ErrorBadIncompleteWord) {
     append("Bad Incomplete Word", msg);
@@ -70,8 +76,8 @@ std::string errorCodeAsString(uint32_t ec)
   if (ec & ErrorUnknownLinkID) {
     append("Unknown Link ID", msg);
   }
-  if (ec & ErrorInvalidDigitTime) {
-    append("Invalid Digit Time", msg);
+  if (ec & ErrorBadHBTime) {
+    append("Bad HB Time", msg);
   }
   if (ec & ErrorNonRecoverableDecodingError) {
     append("Non Recoverable", msg);

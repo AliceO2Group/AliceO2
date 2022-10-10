@@ -13,7 +13,7 @@
 
 #include "Generators/DecayerPythia8.h"
 #include "Generators/DecayerPythia8Param.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TLorentzVector.h"
 #include "TClonesArray.h"
 #include "TParticle.h"

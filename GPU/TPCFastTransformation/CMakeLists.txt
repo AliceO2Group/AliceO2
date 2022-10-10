@@ -25,9 +25,10 @@ set(SRCS
     TPCFastSpaceChargeCorrection.cxx
     TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
+    CorrectionMapsHelper.cxx
 )
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS ${SRCS}
       Spline1DHelper.cxx
       Spline2DHelper.cxx

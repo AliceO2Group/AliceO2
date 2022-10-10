@@ -23,7 +23,7 @@
 #include "TGeoBoolNode.h"
 #include "TMath.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"

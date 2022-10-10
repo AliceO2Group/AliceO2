@@ -17,6 +17,7 @@
 
 #include "CommonConstants/Triggers.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/InputRecordWalker.h"
@@ -92,8 +93,6 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   mDisablePedestalEvaluation = ctx.options().get<bool>("no-evalpedestal");
 
   LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no");
-  LOG(info) << "Using time shift: " << RecoParam::Instance().getCellTimeShiftNanoSec() << " ns";
-  LOG(info) << "Using BCshfit phase:" << RecoParam::Instance().getPhaseBCmod4() << " BCs";
   LOG(info) << "Using L0LM delay: " << o2::ctp::TriggerOffsetsParam::Instance().LM_L0 << " BCs";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
@@ -103,6 +102,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALRawToCellConverter - run] called";
+  // for reading the reco param object from the ccdb
+  ctx.inputs().get<o2::emcal::RecoParam*>("EMC_RecoParam");
+
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
@@ -332,6 +334,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             iCol = map.getColumn(chan.getHardwareAddress());
             chantype = map.getChannelType(chan.getHardwareAddress());
           } catch (Mapper::AddressNotFoundException& ex) {
+            ErrorTypeFEE mappingError{feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, chan.getHardwareAddress()};
+            mOutputDecoderErrors.push_back(mappingError);
             if (mNumErrorMessages < mMaxErrorMessages) {
               LOG(warning) << "Mapping error DDL " << feeID << ": " << ex.what();
               mNumErrorMessages++;
@@ -591,6 +595,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 
+void RawToCellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  // check if calib params need to be updated
+  if (matcher == framework::ConcreteDataMatcher("EMC", "EMCALRECOPARAM", 0)) {
+    LOG(info) << "RecoParams updated";
+    o2::emcal::RecoParam::Instance().printKeyValues(true, true);
+    return;
+  }
+}
+
 bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
 {
   constexpr auto originEMC = header::gDataOriginEMC;
@@ -642,6 +656,8 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
+  // CCDB objects
+  inputs.emplace_back("EMC_RecoParam", o2::header::gDataOriginEMC, "EMCALRECOPARAM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("EMC/Config/RecoParam"));
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           inputs,

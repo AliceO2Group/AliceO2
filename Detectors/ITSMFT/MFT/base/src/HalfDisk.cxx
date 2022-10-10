@@ -17,7 +17,7 @@
 #include "TGeoManager.h"
 #include "TGeoBBox.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/HalfDiskSegmentation.h"
 #include "MFTBase/Ladder.h"
