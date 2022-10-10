@@ -41,6 +41,7 @@ void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
   LOGF(important, "At EoS we have read: %lu Digits, %lu Tracklets. Received %.3f MB input data and rejected %.3f MB",
        mDigitsTotal, mTrackletsTotal, mDatasizeInTotal / (1024. * 1024.), (float)mWordsRejectedTotal * 4. / (1024. * 1024.));
+  mReader.printHalfChamberHeaderReport();
 }
 
 void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
