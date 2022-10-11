@@ -233,7 +233,7 @@ void PHOSL1phaseCalibrator::endOfStream()
     } else { // RMS are slimilar, chose closer to zero Mean
       bestB = iMinMean;
     }
-    mL1phase |= (bestB << d);
+    mL1phase |= (bestB << (2 * d));
   }
   LOG(info) << "Calculated L1phase=" << mL1phase;
 }

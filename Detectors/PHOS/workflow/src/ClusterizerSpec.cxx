@@ -56,6 +56,12 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     std::decay_t<decltype(ctx.inputs().get<o2::phos::CalibParams*>("calib"))> calibPtr{};
     calibPtr = ctx.inputs().get<o2::phos::CalibParams*>("calib");
     mClusterizer.setCalibration(calibPtr.get());
+
+    if (!mSkipL1phase) {
+      auto vec = ctx.inputs().get<std::vector<int>*>("l1phase");
+      mClusterizer.setL1phase((*vec)[0]);
+    }
+
     mHasCalib = true;
   }
   if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
@@ -150,11 +156,11 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true, fullClu, defBadMap),
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true, fullClu, defBadMap, true),
                                           o2::framework::Options{}};
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC, bool fullClu, bool defBadMap)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC, bool fullClu, bool defBadMap, bool skipL1phase)
 {
   // Cluaterizer with cell input
   std::vector<o2::framework::InputSpec> inputs;
@@ -164,6 +170,9 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   if (!defBadMap) {
     inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
     inputs.emplace_back("calib", o2::header::gDataOriginPHS, "PHS_Calib", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
+    if (!skipL1phase && !propagateMC) {
+      inputs.emplace_back("l1phase", o2::header::gDataOriginPHS, "PHS_L1phase", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/L1phase"));
+    }
   }
   inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
   if (propagateMC) {
@@ -181,6 +190,6 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false, fullClu, defBadMap),
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false, fullClu, defBadMap, skipL1phase),
                                           o2::framework::Options{}};
 }

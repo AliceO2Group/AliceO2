@@ -21,12 +21,12 @@
 #include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "PHOSBase/Geometry.h"
 
 namespace o2
 {
 namespace phos
 {
-class Geometry;
 
 class Clusterer
 {
@@ -48,6 +48,11 @@ class Clusterer
 
   void setBadMap(const o2::phos::BadChannelsMap* m) { mBadMap = m; }
   void setCalibration(const o2::phos::CalibParams* c) { mCalibParams = c; }
+  void setL1phase(int phase)
+  {
+    mL1phase = phase;
+    mSkipL1phase = false;
+  }
 
  protected:
   // Calibrate energy
@@ -60,13 +65,26 @@ class Clusterer
     }
   }
   // Calibrate time
-  inline float calibrateT(float time, short absId, bool isHighGain)
+  inline float calibrateT(float time, short absId, bool isHighGain, int bc)
   {
+    // L1phase correction
+    float shift = 0;
+    if (!mSkipL1phase) {
+      char relid[3];
+      o2::phos::Geometry::absToRelNumbering(absId, relid);
+      int ddl = (relid[0] - 1) * 4 + (relid[1] - 1) / 16 - 2;
+      int l1 = (mL1phase >> (ddl * 2)) & 3; // extract 2 bits corresponding to this ddl
+      l1 = bc % 4 - l1;
+      if (l1 < 0) {
+        l1 += 4;
+      }
+      shift = l1 * 25.e-9;
+    }
     // Calibrate time
     if (isHighGain) {
-      return time - mCalibParams->getHGTimeCalib(absId);
+      return time - mCalibParams->getHGTimeCalib(absId) - shift;
     } else {
-      return time - mCalibParams->getLGTimeCalib(absId);
+      return time - mCalibParams->getLGTimeCalib(absId) - shift;
     }
   }
   // Test Bad map
@@ -88,6 +106,8 @@ class Clusterer
   bool mProcessMC = false;
   int miCellLabel = 0;
   bool mFullCluOutput = false;               ///< Write output full of reduced (no contributed digits) clusters
+  bool mSkipL1phase = true;                  /// Do not correct for L1 phase
+  int mL1phase = 0;                          /// packed shifts for 14 ddls
   Geometry* mPHOSGeom = nullptr;             ///! PHOS geometry
   const CalibParams* mCalibParams = nullptr; ///! Calibration coefficients, Clusterizer not owner
   const BadChannelsMap* mBadMap = nullptr;   ///! Bad map, Clusterizer not owner

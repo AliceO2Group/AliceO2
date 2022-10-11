@@ -15,7 +15,6 @@
 #include "TDecompBK.h"
 
 #include "PHOSReconstruction/Clusterer.h" // for LOG
-#include "PHOSBase/Geometry.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/Digit.h"
@@ -86,7 +85,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
       }
       float x = 0., z = 0.;
       Geometry::absIdToRelPosInModule(digits[i].getAbsId(), x, z);
-      mCluEl.emplace_back(absId, digitSeed.isHighGain(), energy, calibrateT(digitSeed.getTime(), absId, digitSeed.isHighGain()),
+      mCluEl.emplace_back(absId, digitSeed.isHighGain(), energy, calibrateT(digitSeed.getTime(), absId, digitSeed.isHighGain(), tr.getBCData().bc),
                           x, z, digitSeed.getLabel(), 1.);
     }
     mLastElementInEvent = cluelements.size();
@@ -140,7 +139,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
       }
       float x = 0., z = 0.;
       Geometry::absIdToRelPosInModule(absId, x, z);
-      mCluEl.emplace_back(absId, c.getHighGain(), energy, calibrateT(c.getTime(), absId, c.getHighGain()),
+      mCluEl.emplace_back(absId, c.getHighGain(), energy, calibrateT(c.getTime(), absId, c.getHighGain(), tr.getBCData().bc),
                           x, z, i, 1.);
     }
     mLastElementInEvent = cluelements.size();
