@@ -735,7 +735,7 @@ void Detector::createAsideBeamLine()
   // BEAM PIPE from 19.10 m to inner triplet beginning (22.965 m)
   tubpar[0] = 6.0 / 2.;
   tubpar[1] = 6.4 / 2.;
-  tubpar[2] = (386.28-0.18) / 2.;
+  tubpar[2] = (386.28 - 0.18) / 2.;
   TVirtualMC::GetMC()->Gsvolu("QA01", "TUBE", getMediumID(kFe), tubpar, 3);
   TVirtualMC::GetMC()->Gspos("QA01", 1, "ZDCA", 0., 0., tubpar[2] + zA, 0, "ONLY");
 
@@ -2285,13 +2285,13 @@ void Detector::createDetectors()
   double zemLength = Geometry::ZEMDIMENSION[0];
   double zemTranLength = zemLength / 20.;
   double zemPbSlice[6] = {0.15 * TMath::Sqrt(2), 3.5, 3.5, 45., 0., 0.};
-  double zemVoidLayer[6] = {(zemTranLength - 2. * zemPbSlice[0])  / 2., 3.5, 3.5, 45., 0., 0.};
+  double zemVoidLayer[6] = {(zemTranLength - 2. * zemPbSlice[0]) / 2., 3.5, 3.5, 45., 0., 0.};
   // Platform and support structures
   double zemSupportTable[3] = {55. / 2., 1.5 / 2., 110. / 2.};
   double zemSupportBox[6] = {10.5 / 2., 100. / 2., 95. / 2., 0.25 / 2., 2. / 2., 2. / 2.};
   double zemSupport1[3] = {15. / 2, 3. / 2., 95. / 2.};             //support table
   double zemSupport2[3] = {2. / 2, 5. / 2., 95. / 2.};              //support table heels (piedini)
-  double zemSupport3[3] = {3.5, 2. / 2., zemLength};                 //screens around ZEM
+  double zemSupport3[3] = {3.5, 2. / 2., zemLength};                //screens around ZEM
   double zemSupport4[6] = {20. / 2., 3.5, 1.5 / 2., 45., 0., 0.};   //detector box walls (side)
   double zemWallH[3] = {10.5 / 2., /*bthickness[1]*/ 1., 95. / 2.}; //box walls
   double zemWallVfwd[3] = {10.5 / 2., (100. - 2.) / 2., 0.2};
