@@ -113,8 +113,6 @@ class DataProcessingDevice : public fair::mq::Device
   ServiceRegistry& mServiceRegistry;
   /// Expiration handler
   std::vector<ExpirationHandler> mExpirationHandlers;
-  /// Completed actions
-  std::vector<DataRelayer::RecordAction> mCompleted;
 
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
