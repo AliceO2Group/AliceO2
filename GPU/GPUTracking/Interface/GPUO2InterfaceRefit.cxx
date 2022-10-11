@@ -25,7 +25,7 @@ using namespace o2::tpc;
 
 void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
 {
-  if (!cl || !shmap) {
+  if (!cl || (!shmap && cl->nClustersTotal > 0)) {
     throw std::runtime_error("Must provide clusters access and preallocated recepient for shared map");
   }
   memset(shmap, 0, sizeof(char) * cl->nClustersTotal);
