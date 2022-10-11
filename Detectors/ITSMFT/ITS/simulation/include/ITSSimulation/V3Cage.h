@@ -69,6 +69,12 @@ class V3Cage : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createCageSidePanel(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the shape of the Cage Side Panel core and foil
+  TGeoCompositeShape* createCageSidePanelCoreFoil(const Double_t thickness, const char* prefix);
+
+  /// Creates the shape of a Cage Side Panel rail
+  TGeoCompositeShape* createCageSidePanelRail(const Double_t length, const Int_t index);
+
   /// Creates the Cage End Cap element
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createCageEndCap(const TGeoManager* mgr = gGeoManager);
@@ -107,13 +113,19 @@ class V3Cage : public V11Geometry
   static const Double_t sCageSidePanelRail1Len;  ///< Side panel 1st rail length
   static const Double_t sCageSidePanelRail2Len;  ///< Side panel 2nd rail length
   static const Double_t sCageSidePanelRail3Len;  ///< Side panel 3rd rail length
-  static const Double_t sCageSidePanelRailThick; ///< Side panel rail thickness
-  static const Double_t sCageSidePanelRailWidth; ///< Side panel rail width
+  static const Double_t sCageSidePanelRailWidth; ///< Side panel rail Y width
+  static const Double_t sCageSidePanelRailSpan;  ///< Side panel rail X span
+  static const Double_t sCageSidePanelRailHThik; ///< Side panel rail horiz thickness
+  static const Double_t sCageSidePanelRailVThik; ///< Side panel rail vert thickness
   static const Double_t sCageSidePanelGuideLen;  ///< Side panel guide Z length
   static const Double_t sCageSidePanelGuideInHi; ///< Side panel guide in-height
   static const Double_t sCageSidePanelGuideWide; ///< Side panel guide X width
   static const Double_t sCageSidePanelGuidThik1; ///< Side panel guide thickness
   static const Double_t sCageSidePanelGuidThik2; ///< Side panel guide thickness
+
+  static const Double_t sCageSidePanelRail1Ypos[2]; ///< Side panel rail 1 Y pos
+  static const Double_t sCageSidePanelRail2Ypos;    ///< Side panel rail 2 Y pos
+  static const Double_t sCageSidePanelRail3Ypos[3]; ///< Side panel rail 3 Y pos
 
   static const Double_t sCageEndCapDext;        ///< End Cap ext diameter
   static const Double_t sCageEndCapDint;        ///< End Cap int diameter
