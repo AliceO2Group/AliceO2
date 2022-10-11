@@ -106,7 +106,6 @@ class DataProcessingDevice : public fair::mq::Device
   RunningDeviceRef mRunningDevice;
 
   AlgorithmSpec::ProcessCallback mStatefulProcess;
-  AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
