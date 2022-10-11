@@ -37,5 +37,6 @@
 #pragma link C++ class o2::phos::PHOSL1phaseCalibDevice + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSL1phaseSlot> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cell, o2::phos::PHOSL1phaseSlot> + ;
+#pragma link C++ class vector < int> + ;
 
 #endif

@@ -50,7 +50,7 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   std::vector<int> l1phase{mCalibrator->getCalibration()};
   LOG(info) << "End of stream reached, sending output to CCDB";
-  // prepare all info to be sent to CCDB
+  //prepare all info to be sent to CCDB
   auto flName = o2::ccdb::CcdbApi::generateFileName("L1phase");
   std::map<std::string, std::string> md;
   o2::ccdb::CcdbObjectInfo info("PHS/Calib/L1phase", "L1phase", flName, md, mRunStartTime - o2::ccdb::CcdbObjectInfo::MINUTE,
