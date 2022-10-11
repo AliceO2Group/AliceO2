@@ -39,7 +39,7 @@ struct DataProcessorContext {
   std::vector<ExpirationHandler> expirationHandlers;
   AlgorithmSpec::InitCallback init;
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
-  AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
+  AlgorithmSpec::ProcessCallback statelessProcess;
   AlgorithmSpec::ErrorCallback* error = nullptr;
   DataProcessorSpec* spec = nullptr;
 

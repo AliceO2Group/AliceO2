@@ -121,14 +121,11 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   : mRunningDevice{running},
     mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
     mStatefulProcess{nullptr},
-    mStatelessProcess{mSpec.algorithm.onProcess},
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
 {
-
-
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
     auto& deviceState = ref.get<DeviceState>();
@@ -150,8 +147,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   mStreams.resize(1);
   mHandles.resize(1);
 
+  ServiceRegistryRef ref{mServiceRegistry};
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
-  auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
   auto &state = ref.get<DeviceState>();
   assert(state.loop);
   int res = uv_async_init(state.loop, mAwakeHandle, on_communication_requested);
@@ -308,6 +305,10 @@ void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& context = ref.get<DataProcessorContext>();
+  auto& spec = getRunningDevice(mRunningDevice, ref);
+  context.statelessProcess = spec.algorithm.onProcess;
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
@@ -339,11 +340,8 @@ void DataProcessingDevice::Init()
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
-  auto ref = ServiceRegistryRef{mServiceRegistry};
-  auto &context = ref.get<DataProcessorContext>();
-
   context.expirationHandlers.clear();
-  context.init = getRunningDevice(mRunningDevice, ref).algorithm.onInit;
+  context.init = spec.algorithm.onInit;
   if (context.init) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
     mStatefulProcess = context.init(initContext);
@@ -605,10 +603,11 @@ void DataProcessingDevice::initPollers()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
+  auto& context = ref.get<DataProcessorContext>();
   auto& spec = ref.get<DeviceSpec const>();
   auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
-  if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
+  if ((mStatefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
@@ -892,7 +891,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 
   context.registry = &mServiceRegistry;
   context.statefulProcess = &mStatefulProcess;
-  context.statelessProcess = &mStatelessProcess;
   context.error = &mError;
   /// Callback for the error handling
   /// FIXME: move erro handling to a service?
@@ -2010,9 +2008,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
           (*context.statefulProcess)(processContext);
-        } else if (*context.statelessProcess) {
+        } else if (context.statelessProcess) {
           ZoneScopedN("stateless process");
-          (*context.statelessProcess)(processContext);
+          (context.statelessProcess)(processContext);
         } else {
           state.streaming = StreamingState::Idle;
         }
