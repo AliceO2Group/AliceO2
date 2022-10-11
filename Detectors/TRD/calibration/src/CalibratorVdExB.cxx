@@ -18,6 +18,7 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/InputRecord.h"
 #include "DataFormatsTRD/Constants.h"
+#include "TRDBase/GeometryBase.h"
 #include "TStopwatch.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -45,20 +46,20 @@ double FitFunctor::calculateDeltaAlphaSim(double vdFit, double laFit, double imp
   double lorentzSlope = (TMath::Abs(laTan) < 1e-7) ? 1e7 : 1. / laTan;
 
   // hit point of incoming track with anode plane
-  double xAnodeHit = ANODEPLANE / slope;
-  double yAnodeHit = ANODEPLANE;
+  double xAnodeHit = mAnodePlane / slope;
+  double yAnodeHit = mAnodePlane;
 
   // hit point at anode plane of Lorentz angle shifted cluster from the entrance -> independent of true drift velocity
-  double xLorentzAnodeHit = ANODEPLANE / lorentzSlope;
-  double yLorentzAnodeHit = ANODEPLANE;
+  double xLorentzAnodeHit = mAnodePlane / lorentzSlope;
+  double yLorentzAnodeHit = mAnodePlane;
 
   // cluster location within drift cell of cluster from entrance after drift velocity ratio is applied
   double xLorentzDriftHit = xLorentzAnodeHit;
-  double yLorentzDriftHit = ANODEPLANE - ANODEPLANE * (vdPreCorr[currDet] / vdFit);
+  double yLorentzDriftHit = mAnodePlane - mAnodePlane * (vdPreCorr[currDet] / vdFit);
 
   // reconstructed hit of first cluster at chamber entrance after pre Lorentz angle correction
-  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (ANODEPLANE - yLorentzDriftHit) * TMath::Tan(laPreCorr[currDet]);
-  double yLorentzDriftHitPreCorr = ANODEPLANE - ANODEPLANE * (vdPreCorr[currDet] / vdFit);
+  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (mAnodePlane - yLorentzDriftHit) * TMath::Tan(laPreCorr[currDet]);
+  double yLorentzDriftHitPreCorr = mAnodePlane - mAnodePlane * (vdPreCorr[currDet] / vdFit);
 
   double impactAngleSim = TMath::ATan2(yAnodeHit, xAnodeHit);
 
@@ -106,6 +107,7 @@ void CalibratorVdExB::initProcessing()
 
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
+  mFitFunctor.mAnodePlane = GeometryBase::camHght() / (2.f * 100.f);
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
