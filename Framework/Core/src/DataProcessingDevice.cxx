@@ -119,7 +119,6 @@ DeviceSpec const&getRunningDevice(RunningDeviceRef const& running, ServiceRegist
 
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mRunningDevice{running},
-    mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
@@ -309,14 +308,14 @@ void DataProcessingDevice::Init()
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
   context.error = spec.algorithm.onError;
-  TracyAppInfo(mSpec.name.data(), mSpec.name.size());
+  TracyAppInfo(spec.name.data(), spec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
-  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, mSpec.name.c_str(), mSpec.options);
+  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, spec.name.c_str(), spec.options);
   if (configStore == nullptr) {
     std::vector<std::unique_ptr<ParamRetriever>> retrievers;
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
-    configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
+    configStore = std::make_unique<ConfigParamStore>(spec.options, std::move(retrievers));
     configStore->preload();
     configStore->activate();
   }
@@ -347,14 +346,14 @@ void DataProcessingDevice::Init()
     context.statefulProcess = context.init(initContext);
   }
   auto& state= ref.get<DeviceState>();
-  state.inputChannelInfos.resize(mSpec.inputChannels.size());
+  state.inputChannelInfos.resize(spec.inputChannels.size());
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
   /// expect them to create any data.
   int validChannelId = 0;
-  for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
-    auto& name = mSpec.inputChannels[ci].name;
-    if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
+  for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+    auto& name = spec.inputChannels[ci].name;
+    if (name.find(spec.channelPrefix + "from_internal-dpl-clock") == 0) {
       state.inputChannelInfos[ci].state = InputChannelState::Pull;
       state.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
       validChannelId++;
@@ -364,9 +363,9 @@ void DataProcessingDevice::Init()
   }
 
   // Invoke the callback policy for this device.
-  if (mSpec.callbacksPolicy.policy != nullptr) {
+  if (spec.callbacksPolicy.policy != nullptr) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()), initContext);
+    spec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()), initContext);
   }
 }
 
@@ -626,7 +625,7 @@ void DataProcessingDevice::initPollers()
         continue;
       }
       // We only watch receiving sockets.
-      if (channelName.rfind("from_" + mSpec.name + "_", 0) == 0) {
+      if (channelName.rfind("from_" + spec.name + "_", 0) == 0) {
         LOGP(detail, "{} is to send data. Not polling.", channelName);
         continue;
       }
@@ -681,11 +680,11 @@ void DataProcessingDevice::initPollers()
         deviceContext.exitTransitionTimeout = 0;
       }
       for (auto& [channelName, channel] : fChannels) {
-        if (channelName.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
+        if (channelName.rfind(spec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOGP(detail, "{} is an internal channel. Not polling.", channelName);
           continue;
         }
-        if (channelName.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0) {
+        if (channelName.rfind(spec.channelPrefix + "from_" + spec.name + "_", 0) == 0) {
           LOGP(detail, "{} is an out of band channel. Not polling for output.", channelName);
           continue;
         }
@@ -778,11 +777,12 @@ void DataProcessingDevice::InitTask()
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
   auto& context = ref.get<DataProcessorContext>();
-  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  auto& spec = getRunningDevice(mRunningDevice, mServiceRegistry);
+  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(spec.inputs);
   auto& state = ref.get<DeviceState>();
   int i = 0;
   for (auto& di : distinct) {
-    auto& route = mSpec.inputs[di];
+    auto& route = spec.inputs[di];
     if (route.configurator.has_value() == false) {
       i++;
       continue;
@@ -881,7 +881,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     context.balancingInputs = false;
   }
   if (enableRateLimiting) {
-    for (auto& spec : mSpec.outputs) {
+    for (auto& spec : spec.outputs) {
       if (spec.matcher.binding.value == "dpl-summary") {
         context.isSink = true;
         break;
@@ -927,8 +927,8 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
-  context.canForwardEarly = (mSpec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
-  for (auto& forwarded : mSpec.forwards) {
+  context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+  for (auto& forwarded : spec.forwards) {
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
       LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
@@ -1144,7 +1144,8 @@ void DataProcessingDevice::Run()
       // Deciding wether to run or not can be done by passing a request to
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
-      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(state.loop));
+      auto& spec = ref.get<DeviceSpec const>();
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
 
       if (enough) {
         stream.id = streamRef;

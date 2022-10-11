@@ -49,7 +49,7 @@ struct DataProcessorContext {
   bool isSink = false;
   bool balancingInputs = true;
 
-  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)> errorHandling = nullptr;
+  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)> errorHandling;
 };
 
 } // namespace o2::framework

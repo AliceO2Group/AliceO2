@@ -102,10 +102,8 @@ class DataProcessingDevice : public fair::mq::Device
   void startPollers();
   void stopPollers();
   /// The specification used to create the initial state of this device
-  DeviceSpec const& mSpec;
   RunningDeviceRef mRunningDevice;
 
-  std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
 
