@@ -890,7 +890,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   context.registry = &mServiceRegistry;
-  context.completed = &mCompleted;
   context.expirationHandlers = &mExpirationHandlers;
   context.statefulProcess = &mStatefulProcess;
   context.statelessProcess = &mStatelessProcess;
@@ -1343,9 +1342,9 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     return;
   }
 
-  context.completed->clear();
-  context.completed->reserve(16);
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
+  context.completed.clear();
+  context.completed.reserve(16);
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, context.completed);
   DanglingContext danglingContext{*context.registry};
 
   context.registry->preDanglingCallbacks(danglingContext);
@@ -1356,8 +1355,8 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   auto activity = ref.get<DataRelayer>().processDanglingInputs(*context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
-  context.completed->clear();
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
+  context.completed.clear();
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, context.completed);
 
   context.registry->postDanglingCallbacks(danglingContext);
 
@@ -1381,7 +1380,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     /// timers as they do not need to be further processed.
     bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
     auto &relayer = ref.get<DataRelayer>();
-    while (DataProcessingDevice::tryDispatchComputation(context, *context.completed) && hasOnlyGenerated == false) {
+    while (DataProcessingDevice::tryDispatchComputation(context, context.completed) && hasOnlyGenerated == false) {
       relayer.processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
