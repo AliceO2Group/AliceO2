@@ -76,6 +76,11 @@ void ITSDCSParser::run(ProcessingContext& pc)
     this->mConfigDCS.clear();
   }
 
+  // Reset saved information for the next EOR file
+  this->mRunNumber = UNSET_INT;
+  this->mConfigVersion = UNSET_INT;
+  this->mRunType = UNSET_SHORT;
+
   return;
 }
 
@@ -204,7 +209,7 @@ void ITSDCSParser::updateAndCheck(int& memValue, const int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -219,7 +224,7 @@ void ITSDCSParser::updateAndCheck(short int& memValue, const short int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;

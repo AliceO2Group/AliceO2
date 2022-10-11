@@ -85,9 +85,6 @@ class ITSDCSParser : public Task
 
   std::string mSelfName = "";
 
-  // Keep track of whether the endOfStream() or stop() has been called
-  bool mStopped = false;
-
   // Whether to use verbose output
   bool mVerboseOutput = false;
 
