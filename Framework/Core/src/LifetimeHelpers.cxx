@@ -110,7 +110,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // We do it here because if we do it in configure, long delays
     // between configure and run will cause this to behave
     // incorrrectly.
-    if (*last == 0ULL) {
+    if (*last == 0ULL || index.didReceiveData() == false) {
       std::random_device r;
       std::default_random_engine e1(r());
       std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
