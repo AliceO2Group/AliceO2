@@ -14,17 +14,22 @@
 /// \author Ole Schmidt
 
 #include "TRDCalibration/CalibratorVdExB.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/TimingInfo.h"
+#include "Framework/InputRecord.h"
 #include "Fit/Fitter.h"
 #include "TStopwatch.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
-#include <string>
-#include <map>
-#include <memory>
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include <TFile.h>
 #include <TTree.h>
+
+#include <string>
+#include <map>
+#include <memory>
+#include <ctime>
 
 using namespace o2::trd::constants;
 
@@ -101,14 +106,38 @@ void CalibratorVdExB::initProcessing()
   if (mInitDone) {
     return;
   }
+
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
-  mFitFunctor.vdPreCorr.fill(1.546);    // TODO: will be taken from CCDB in the future
-  mFitFunctor.laPreCorr.fill(0.);       // TODO: will be taken from CCDB in the future
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
   mInitDone = true;
+}
+
+void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
+{
+  static bool doneOnce = false;
+  if (!doneOnce) {
+    doneOnce = true;
+    mFitFunctor.vdPreCorr.fill(1.546);
+    mFitFunctor.laPreCorr.fill(0.);
+    // Getting the current unix epoch in ms.
+    // If the Run is recent enough, then the previous object's validity extends to now as well.
+    // Otherwise we restart from scratch.
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
+    auto dataCalVdriftExB = pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
+    if (!dataCalVdriftExB) { // if nothing is found go with standard values
+                             // maybe a default object is returned all the time but lets be save
+      LOG(info) << "Calibrator: Did not find last valid fit values, using default";
+    } else {
+      for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+        mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
+        mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
+      }
+      LOG(info) << "Calibrator: Found last valid fit values, using those to start";
+    }
+  }
 }
 
 void CalibratorVdExB::finalizeSlot(Slot& slot)

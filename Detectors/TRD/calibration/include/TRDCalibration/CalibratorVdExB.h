@@ -38,8 +38,8 @@ struct FitFunctor {
   double operator()(const double* par) const;
   double calculateDeltaAlphaSim(double vdFit, double laFit, double impactAng) const;
   std::array<std::unique_ptr<TProfile>, constants::MAXCHAMBER> profiles; ///< profile histograms for each TRD chamber
-  std::array<double,constants::MAXCHAMBER> vdPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
-  std::array<double,constants::MAXCHAMBER> laPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
+  std::array<double,constants::MAXCHAMBER> vdPreCorr;                                                      ///< vDrift from previous Run
+  std::array<double,constants::MAXCHAMBER> laPreCorr;                                                      ///< LorentzAngle from previous Run
   int currDet;                                                           ///< the current TRD chamber number
   float lowerBoundAngleFit;
   float upperBoundAngleFit;
@@ -66,6 +66,10 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbObjectInfoVector() { return mInfoVector; }
 
   void initProcessing();
+
+  /// Initialize the fit values once with the previous valid ones if they are
+  /// available.
+  void retrievePrev(o2::framework::ProcessingContext& pc);
 
  private:
   bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
