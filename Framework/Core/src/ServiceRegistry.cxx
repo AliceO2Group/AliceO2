@@ -289,6 +289,11 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     O2_BUILTIN_UNREACHABLE();
   }
 
+  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && salt.context.streamId <= 0) {
+    throwError(runtime_error_f("A stream service cannot be retrieved from a non stream salt %d", salt.context.streamId));
+    O2_BUILTIN_UNREACHABLE();
+  }
+
   if (pos != -1) {
     mServicesKey[pos].load();
     std::atomic_thread_fence(std::memory_order_acquire);
