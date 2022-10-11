@@ -61,6 +61,8 @@ class _ParamHelper
   static void outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger);
   static void printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv, bool useLogger);
 
+  static size_t getHashImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members);
+
   template <typename P>
   friend class ConfigurableParamHelper;
 };
@@ -102,6 +104,12 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     }
     auto members = getDataMembers();
     _ParamHelper::printMembersImpl(getName(), members, showProv, useLogger);
+  }
+
+  //
+  size_t getHash() const final
+  {
+    return _ParamHelper::getHashImpl(getName(), getDataMembers());
   }
 
   // ----------------------------------------------------------------

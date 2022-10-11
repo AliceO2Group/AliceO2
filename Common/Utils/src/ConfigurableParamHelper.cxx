@@ -24,6 +24,7 @@
 #include <sstream>
 #include <fairlogger/Logger.h>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/functional/hash.hpp>
 #include <functional>
 #ifdef NDEBUG
 #undef NDEBUG
@@ -326,6 +327,16 @@ void _ParamHelper::outputMembersImpl(std::ostream& out, std::string const& maink
       out << member.toString(mainkey, showProv) << "\n";
     }
   }
+}
+
+size_t _ParamHelper::getHashImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members)
+{
+  size_t hash = 0;
+  boost::hash_combine(hash, mainkey);
+  for (auto& member : *members) {
+    boost::hash_combine(hash, member.value);
+  }
+  return hash;
 }
 
 // ----------------------------------------------------------------------
