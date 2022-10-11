@@ -362,16 +362,15 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
   TGeoBBox* outFoilSh = new TGeoBBox(xlen, ylen, zlen);
 
   // The intermediate core layer: a TGeoCompositeShape
-  xlen = sCageSidePanelCoreThick / 2;
   TGeoCompositeShape* coreSh = createCageSidePanelCoreFoil(sCageSidePanelCoreThick, "core");
 
-  // The longest rails (approx): a BBox
+  // The longest rails
   TGeoCompositeShape* rail1Sh = createCageSidePanelRail(sCageSidePanelRail1Len, 1);
 
-  // The intermediate rails (approx): a BBox
+  // The intermediate rails
   TGeoCompositeShape* rail2Sh = createCageSidePanelRail(sCageSidePanelRail2Len, 2);
 
-  // The shortest rails (approx): a BBox
+  // The shortest rails
   TGeoCompositeShape* rail3Sh = createCageSidePanelRail(sCageSidePanelRail3Len, 3);
 
   // The elements of the guide:
