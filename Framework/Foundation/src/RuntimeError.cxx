@@ -158,12 +158,12 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         char path[1024];
 
         fp = popen(syscom, "r");
-        if (fp == NULL) {
+        if (fp == nullptr) {
           dprintf(fd, "-- no source could be retrieved --\n");
           continue;
         }
 
-        while (fgets(path, sizeof(path) - 1, fp) != NULL) {
+        while (fgets(path, sizeof(path) - 1, fp) != nullptr) {
           dprintf(fd, "    %s", path);
         }
 
