@@ -105,7 +105,6 @@ class DataProcessingDevice : public fair::mq::Device
   DeviceSpec const& mSpec;
   RunningDeviceRef mRunningDevice;
 
-  AlgorithmSpec::ErrorCallback mError;
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;

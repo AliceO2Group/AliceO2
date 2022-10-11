@@ -120,7 +120,6 @@ DeviceSpec const&getRunningDevice(RunningDeviceRef const& running, ServiceRegist
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mRunningDevice{running},
     mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
-    mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
@@ -309,6 +308,7 @@ void DataProcessingDevice::Init()
   auto& spec = getRunningDevice(mRunningDevice, ref);
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
+  context.error = spec.algorithm.onError;
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
@@ -890,11 +890,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   context.registry = &mServiceRegistry;
-  context.error = &mError;
   /// Callback for the error handling
   /// FIXME: move erro handling to a service?
-  if (mError != nullptr) {
-    context.errorHandling = [&errorCallback = mError,
+  if (context.error != nullptr) {
+    context.errorHandling = [&errorCallback = context.error,
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       /// FIXME: we should pass the salt in, so that the message
@@ -2037,7 +2036,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         runNoCatch(action);
       } catch (o2::framework::RuntimeErrorRef e) {
         ZoneScopedN("error handling");
-        (*context.errorHandling)(e, record);
+        (context.errorHandling)(e, record);
       }
     } else {
       try {
