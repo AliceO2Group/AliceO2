@@ -17,7 +17,7 @@ o2_add_library(HMPIDWorkflow
                        src/DigitsToRootSpec.cxx
                        src/ClustersReaderSpec.cxx
                        src/ClustersToRootSpec2.h
-                       src/ClustersToRootSpec.cxx
+                       src/ClustersWriterSpec.cxx
                        src/DumpDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
                        src/RawToDigitsSpec.cxx
@@ -86,10 +86,10 @@ o2_add_executable(digits-to-root-workflow
               SOURCES src/digits-to-root-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
-o2_add_executable(clusters-to-root-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/clusters-to-root-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+#o2_add_executable(clusters-to-root-workflow
+#              COMPONENT_NAME hmpid
+#              SOURCES src/clusters-to-root-workflow.cxx
+#              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(digits-to-raw-stream-workflow
               COMPONENT_NAME hmpid

@@ -64,6 +64,7 @@ void ClusterReaderTask::init(framework::InitContext& ic)
 {
   LOG(info) << "[HMPID Cluster reader - init() ] ";
      // open input file
+  auto mReadFile = ic.options().get<bool>("read-from-file");
 
   // specify location and filename for output in case of writing to file
   if (mReadFile) {
@@ -84,18 +85,6 @@ void ClusterReaderTask::init(framework::InitContext& ic)
 
 void ClusterReaderTask::run(framework::ProcessingContext& pc)
 {
-
-  
-  // outputs
-
-  /*
-  std::vector<o2::hmpid::Cluster> clusters;
-  std::vector<o2::hmpid::Trigger> clusterTriggers;
-  LOG(info) << "[HMPID DClusterization - run() ] Enter ...";
-  clusters.clear();
-  clusterTriggers.clear();
-  */
-
 
   //===============mReadFromFile=============================================
   if (mReadFile) {
@@ -121,17 +110,8 @@ void ClusterReaderTask::run(framework::ProcessingContext& pc)
 
       pc.outputs().snapshot(Output{ "HMP", "CLUSTERS", 0, Lifetime::Timeframe }, mClustersFromFile);
       pc.outputs().snapshot(Output{ "HMP", "INTRECORDS", 0, Lifetime::Timeframe },mClusterTriggersFromFile);
-      // =============== create clusters =====================
-      /* for (const auto& trig : *mTriggersFromFile) {
-        if (trig.getNumberOfObjects()) {
-        }
-      } 
-      LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
-           mTriggersFromFile->size(), mDigitsFromFile->size(), clusterTriggers.size(),
-           clusters.size());
-      mDigitsReceived += mDigitsFromFile->size();*/
-    } // <end else of num entries>
-  }   //===============  <end mReadFromFile>
+    }
+  }
 
 
   else { // read from stream
@@ -159,6 +139,7 @@ void ClusterReaderTask::endOfStream(framework::EndOfStreamContext& ec)
 void ClusterReaderTask::initFileIn(const std::string& filename)
 {
   // Create the TFIle
+  mTree.reset(nullptr);
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get("o2sim"));
@@ -180,7 +161,7 @@ void ClusterReaderTask::initFileIn(const std::string& filename)
 //_________________________________________________________________________________________________
 
 
-o2::framework::DataProcessorSpec getClusterReaderSpec(/*std::string inputSpec,*/ bool readFile)
+o2::framework::DataProcessorSpec getClusterReaderSpec(std::string inputSpec, bool readFile)
 {
   std::vector<o2::framework::InputSpec> inputs;
 
@@ -196,8 +177,9 @@ o2::framework::DataProcessorSpec getClusterReaderSpec(/*std::string inputSpec,*/
     "HMP-ClusterReader",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClusterReaderTask>(readFile)}, 
-    Options{{"qc-hmpid-clusters", VariantType::String, "hmpidclusters.root", { "Name of the input file with clusters" } } } };
+    AlgorithmSpec{adaptFromTask<ClusterReaderTask>()}, 
+    Options{{"qc-hmpid-clusters", VariantType::String, "hmpidclusters.root", { "Name of the input file with clusters" }},
+    {"input-dir", VariantType::String, "./", { "Input directory" } } } };
 }
 
 } // namespace hmpid

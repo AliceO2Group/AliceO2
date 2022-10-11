@@ -16,8 +16,8 @@
 /// \brief Definition of a data processor to run the raw decoding
 ///
 
-#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_CLUSTERREADERSPEC_H_
-#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_CLUSTERREADERSPEC_H_
+#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_CLUSTERSREADERSPEC_H_
+#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_CLUSTERSREADERSPEC_H_
 
 // ROOT
 #include <TFile.h>
@@ -40,8 +40,8 @@ namespace hmpid
 class ClusterReaderTask : public framework::Task
 {
  public:
-  ClusterReaderTask(bool readFile)
-    : mReadFile(readFile) {}
+  ClusterReaderTask()= default;
+  //  : mReadFile(readFile) {}
   ~ClusterReaderTask() override = default;
  
   void init(framework::InitContext& ic) final;
@@ -63,8 +63,8 @@ class ClusterReaderTask : public framework::Task
   
   std::unique_ptr<TFile> mFile;                                   // root file with Clusters
   std::unique_ptr<TTree> mTree;                                                   // tree inside the file
-  std::vector<o2::hmpid::Trigger> mClusterTriggersFromFile; //, *pintrecords= &intrecords; // pointer to InteractionRecords branch
-  std::vector<o2::hmpid::Cluster> mClustersFromFile; //, *pclusters = &clusters; // pointer to HMPIDCluster branch
+  std::vector<o2::hmpid::Trigger> mClusterTriggersFromFile, *mClusterTriggersFromFilePtr =&mClusterTriggersFromFile; //, *pintrecords= &intrecords; // pointer to InteractionRecords branch
+  std::vector<o2::hmpid::Cluster> mClustersFromFile, *mClustersFromFilePtr =&mClustersFromFile; //, *pclusters = &clusters; // pointer to HMPIDCluster branch
   
   unsigned long mNumberOfEntries = 0; // number of entries from TTree
   unsigned long mCurrentEntry = 0;    // index of current entry
@@ -74,7 +74,7 @@ class ClusterReaderTask : public framework::Task
  
 };
 
-o2::framework::DataProcessorSpec getClusterReaderSpec(bool readFile = false);
+o2::framework::DataProcessorSpec getClusterReaderSpec(std::string inputSpec = "HMP/CLUSTERS",bool readFile = false);
 
 } // end namespace hmpid
 } // end namespace o2

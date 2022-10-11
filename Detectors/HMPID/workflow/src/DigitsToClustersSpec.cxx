@@ -124,6 +124,7 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
     // check if more entries in tree
 
     if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+      LOG(info) << "[HMPID DClusterization - run() ] 127 ";
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       mExTimer.stop();
@@ -133,29 +134,36 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
 
     // there are more entries in file
     else {
+      LOG(info) << "[HMPID DClusterization - run() ] 137 ";
       // =============== read digits and digit-triggers =====================
       // iterate through TTree
 
       auto entry = mTree->GetReadEntry() + 1;
       assert(entry < mTree->GetEntries());
-      mTree->GetEntry(0);
+      LOG(info) << "[HMPID DClusterization - run() ] curr entry =  " << mTree->GetReadEntry();
+      LOG(info) << "[HMPID DClusterization - run() ] entries in tree =  " << mTree->GetEntries();
 
+      
+      mTree->GetEntry(0);
+      LOG(info) << "[HMPID DClusterization - run() ] 144 ";
       // =============== create clusters =====================
-      for (const auto& trig : *mTriggersFromFile) {
+      for (const auto& trig : *mTriggersFromFilePtr) {
         if (trig.getNumberOfObjects()) {
           gsl::span<const o2::hmpid::Digit> trigDigits{
-            mDigitsFromFile->data() + trig.getFirstEntry(),
+            mDigitsFromFilePtr->data() + trig.getFirstEntry(),
             size_t(trig.getNumberOfObjects())};
           size_t clStart = clusters.size();
           mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
           clusterTriggers.emplace_back(trig.getIr(), clStart,
                                        clusters.size() - clStart);
         }
-      }
-      LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
-           mTriggersFromFile->size(), mDigitsFromFile->size(), clusterTriggers.size(),
+      } 
+
+      LOG(info) << "[HMPID DClusterization - run() ] 158 ";
+     /* LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
+           mTriggersFromFilePtr->size(), mDigitsFromFilePtr->size(), clusterTriggers.size(),
            clusters.size());
-      mDigitsReceived += mDigitsFromFile->size();
+      mDigitsReceived += mDigitsFromFilePtr->size(); */
     } // <end else of num entries>
   }   //===============  <end mReadFromFile>
 
@@ -178,7 +186,8 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
     }
   } //========= <end readfromStream>
   //=====================================================================================
-  
+    
+    LOG(info) << "[HMPID DClusterization - run() ] 186 ";
 
     pc.outputs().snapshot(
     o2::framework::Output{"HMP", "CLUSTERS", 0,
@@ -218,8 +227,8 @@ void DigitsToClustersTask::initFileIn(const std::string& filename)
       "o2sim file in digits tree");
   }
 
-  mTree->SetBranchAddress("HMPDigit", &mDigitsFromFile);
-  mTree->SetBranchAddress("InteractionRecords", &mTriggersFromFile);
+  mTree->SetBranchAddress("HMPDigit", &mDigitsFromFilePtr);
+  mTree->SetBranchAddress("InteractionRecords", &mTriggersFromFilePtr);
   mTree->Print("toponly");
 }
 

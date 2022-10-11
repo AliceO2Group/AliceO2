@@ -53,8 +53,8 @@ class DigitsToClustersTask : public framework::Task
   std::unique_ptr<TFile> mFile; ///< input file containin the tree
   std::unique_ptr<TTree> mTree; ///< input tree
 
-  std::vector<o2::hmpid::Digit>* mDigitsFromFile;
-  std::vector<o2::hmpid::Trigger>* mTriggersFromFile;
+  std::vector<o2::hmpid::Digit> mDigitsFromFile, *mDigitsFromFilePtr = &mDigitsFromFile;
+  std::vector<o2::hmpid::Trigger> mTriggersFromFile, *mTriggersFromFilePtr = &mTriggersFromFile;
 
   std::unique_ptr<o2::hmpid::Clusterer> mRec; // ef: changed to smart-pointer
   long mDigitsReceived;
