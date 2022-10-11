@@ -25,6 +25,7 @@
 
 #include "Rtypes.h"
 #include "TProfile.h"
+#include "Fit/Fitter.h"
 
 #include <array>
 #include <cstdlib>
@@ -72,13 +73,15 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   void retrievePrev(o2::framework::ProcessingContext& pc);
 
  private:
-  bool mInitDone{false};                             ///< flag to avoid creating the TProfiles multiple times
-  size_t mMinEntriesTotal;                           ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
-  size_t mMinEntriesChamber;                         ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
+  bool mInitDone{false};                             //< flag to avoid creating the TProfiles multiple times
+  size_t mMinEntriesTotal;                           //< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesChamber;                         //< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
   bool mEnableOutput;                                //< enable output of calibration fits and tprofiles in a root file instead of the ccdb
-  FitFunctor mFitFunctor;                            ///< used for minimization procedure
-  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
-  std::vector<o2::trd::CalVdriftExB> mObjectVector;  ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
+  FitFunctor mFitFunctor;                            //< used for minimization procedure
+  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; //< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
+  std::vector<o2::trd::CalVdriftExB> mObjectVector;  //< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
+  ROOT::Fit::Fitter mFitter;                         //< Fitter object will be reused across slots
+  double mParamsStart[2];                            //< Start fit parameter
   ClassDefOverride(CalibratorVdExB, 3);
 };
 

@@ -18,7 +18,6 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/InputRecord.h"
 #include "DataFormatsTRD/Constants.h"
-#include "Fit/Fitter.h"
 #include "TStopwatch.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -110,6 +109,20 @@ void CalibratorVdExB::initProcessing()
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
+
+  mFitter.SetFCN<FitFunctor>(2, mFitFunctor, mParamsStart);
+  mFitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);
+  mFitter.Config().ParSettings(ParamIndex::LA).SetStepSize(.01);
+  mFitter.Config().ParSettings(ParamIndex::VD).SetLimits(0., 3.);
+  mFitter.Config().ParSettings(ParamIndex::VD).SetStepSize(.01);
+  ROOT::Math::MinimizerOptions opt;
+  opt.SetMinimizerType("Minuit2");
+  opt.SetMinimizerAlgorithm("Migrad");
+  opt.SetPrintLevel(0);
+  opt.SetMaxFunctionCalls(1'000);
+  opt.SetTolerance(.001);
+  mFitter.Config().SetMinimizerOptions(opt);
+
   mInitDone = true;
 }
 
@@ -165,24 +178,11 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
       LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit", iDet);
       continue;
     }
-    ROOT::Fit::Fitter fitter;
-    double paramsStart[2];
-    paramsStart[ParamIndex::LA] = 0. * TMath::DegToRad();
-    paramsStart[ParamIndex::VD] = 1.;
-    fitter.SetFCN<FitFunctor>(2, mFitFunctor, paramsStart);
-    fitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);
-    fitter.Config().ParSettings(ParamIndex::LA).SetStepSize(.01);
-    fitter.Config().ParSettings(ParamIndex::VD).SetLimits(0., 3.);
-    fitter.Config().ParSettings(ParamIndex::VD).SetStepSize(.01);
-    ROOT::Math::MinimizerOptions opt;
-    opt.SetMinimizerType("Minuit2");
-    opt.SetMinimizerAlgorithm("Migrad");
-    opt.SetPrintLevel(0);
-    opt.SetMaxFunctionCalls(1'000);
-    opt.SetTolerance(.001);
-    fitter.Config().SetMinimizerOptions(opt);
-    fitter.FitFCN();
-    auto fitResult = fitter.Result();
+    // Reset Start Parameter
+    mParamsStart[ParamIndex::LA] = 0.0;
+    mParamsStart[ParamIndex::VD] = 1.0;
+    mFitter.FitFCN();
+    auto fitResult = mFitter.Result();
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
     LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
