@@ -17,21 +17,6 @@
 
 using namespace o2::emcal;
 
-const float TIME_SHIFT = 600.,
-            TIME_RANGE = 1500.,
-            TIME_RESOLUTION = TIME_RANGE / 2047.,
-            ENERGY_BITS = static_cast<float>(0x3FFF),
-            HGLGTRANSITION = o2::emcal::constants::EMCAL_HGLGTRANSITION * o2::emcal::constants::EMCAL_ADCENERGY,
-            ENERGY_TRUNCATION = 250.,
-            ENERGY_BUFFER = 0.1, // 10% buffer in case calibrations shift the energy out of HG/LG range
-  ENERGY_RESOLUTION_LG = (ENERGY_TRUNCATION - (HGLGTRANSITION * (1 - ENERGY_BUFFER))) / ENERGY_BITS,
-            ENERGY_RESOLUTION_HG = HGLGTRANSITION * (1 + ENERGY_BUFFER) / ENERGY_BITS,
-            ENERGY_RESOLUTION_TRU = ENERGY_TRUNCATION / ENERGY_BITS,
-            ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS,
-            CHI2_TRUNCATION = 10.,
-            CHI_2BITS = static_cast<float>(0x3F),
-            CHI2_RESOLUTION = CHI2_TRUNCATION / CHI_2BITS;
-
 Cell::Cell()
 {
   memset(mCellWords, 0, sizeof(uint16_t) * 3);

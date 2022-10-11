@@ -174,6 +174,14 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
 
   Cell cell;
   TriggerRecord trg;
+
+  // perform a check on dict we have old CTF with different energy compression
+  Bool_t isVersion1 = kFALSE;
+  if (header.majorVersion == 0 && header.minorVersion == 1) {
+    isVersion1 = kTRUE;
+  }
+  double energyTmp,truncatedEnergyTmp; // temporary energy used for conversion if old dictionary found
+  uint16_t packedEnergy; // packed energy
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
@@ -184,8 +192,40 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
     }
 
     firstEntry = cellVec.size();
+
+ 
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
-      cell.setPacked(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount], chi2[cellCount]);
+      // if old verion of CTF, do conversion to energy and then repack before setting packed content
+      if(isVersion1){
+          energyTmp = energy[cellCount] * Cell::ENERGY_RESOLUTION_OLD;
+          truncatedEnergyTmp = energy;
+          if (truncatedEnergyTmp < 0.) {
+            truncatedEnergyTmp = 0.;
+          } else if (truncatedEnergyTmp > Cell::ENERGY_TRUNCATION) {
+            truncatedEnergyTmp = Cell::ENERGY_TRUNCATION;
+          }
+          switch (static_cast<o2::emcal::ChannelType_t>(status[cellCount])) {
+            case o2::emcal::ChannelType_t::HIGH_GAIN: {
+              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_HG));
+              break;
+            }
+            case o2::emcal::ChannelType_t::LOW_GAIN: {
+              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_LG));
+              break;
+            }
+            case o2::emcal::ChannelType_t::TRU: {
+              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_TRU));
+              break;
+            }
+            case o2::emcal::ChannelType_t::LEDMON: {
+              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_LEDMON));
+              break;
+            }
+          }
+      } else{ // new CTFs don't require any repacking
+        packedEnergy = energy[cellCount];     
+      }
+      cell.setPacked(tower[cellCount], cellTime[cellCount], packedEnergy, status[cellCount], chi2[cellCount]);
       cellVec.emplace_back(cell);
       cellCount++;
     }
