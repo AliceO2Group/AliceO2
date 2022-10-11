@@ -77,7 +77,7 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
     // If the service slot was not taken, take it atomically
     bool expected = false;
     if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
-                                                                  std::memory_order_seq_cst)) {
+                                                                 std::memory_order_seq_cst)) {
       mServicesValue[i + index.index] = service;
       mServicesMeta[i + index.index] = Meta{kind, salt};
       mServicesKey[i + index.index] = typeHash.hash;
@@ -263,6 +263,61 @@ void ServiceRegistry::postRenderGUICallbacks()
 void ServiceRegistry::throwError(RuntimeErrorRef const& ref) const
 {
   throw ref;
+}
+
+int ServiceRegistry::getPos(ServiceTypeHash typeHash, Salt salt) const
+{
+  InstanceId instanceId = instanceFromTypeSalt(typeHash, salt);
+  Index index = indexFromInstance(instanceId);
+  for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+    if (mServicesKey[i + index.index].load() == typeHash.hash) {
+      return i + index.index;
+    }
+  }
+  return -1;
+}
+
+void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name) const
+{
+  // Look for the service. If found, return it.
+  // Notice how due to threading issues, we might
+  // find it with getPos, but the value can still
+  // be nullptr.
+  auto pos = getPos(typeHash, salt);
+  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].salt.value != salt.value) {
+    throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.context.streamId, mServicesMeta[pos].salt.context.streamId));
+    O2_BUILTIN_UNREACHABLE();
+  }
+
+  if (pos != -1) {
+    mServicesKey[pos].load();
+    std::atomic_thread_fence(std::memory_order_acquire);
+    void* ptr = mServicesValue[pos];
+    if (ptr) {
+      return ptr;
+    }
+  }
+  // We are looking up a service which is not of
+  // stream kind and was not looked up by this thread
+  // before.
+  if (salt.value != GLOBAL_CONTEXT_SALT.value) {
+    int pos = getPos(typeHash, GLOBAL_CONTEXT_SALT);
+    if (pos != -1 && kind != ServiceKind::Stream) {
+      mServicesKey[pos].load();
+      std::atomic_thread_fence(std::memory_order_acquire);
+      registerService(typeHash, mServicesValue[pos], kind, salt, name);
+    }
+    if (pos != -1) {
+      mServicesKey[pos].load();
+      std::atomic_thread_fence(std::memory_order_acquire);
+      return mServicesValue[pos];
+    } else {
+      throwError(runtime_error_f("Unable to find requested service %s", name));
+    }
+  }
+  // If we are here it means we never registered a
+  // service for the 0 thread (i.e. the main thread).
+  return nullptr;
 }
 
 } // namespace o2::framework
