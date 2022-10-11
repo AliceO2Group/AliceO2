@@ -339,10 +339,10 @@ void DataProcessingDevice::Init()
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
-  mExpirationHandlers.clear();
-
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto &context = ref.get<DataProcessorContext>();
+
+  context.expirationHandlers.clear();
   context.init = getRunningDevice(mRunningDevice, ref).algorithm.onInit;
   if (context.init) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
@@ -778,6 +778,7 @@ void DataProcessingDevice::InitTask()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& deviceContext = ref.get<DeviceContext>();
+  auto& context = ref.get<DataProcessorContext>();
   auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
   auto& state = ref.get<DeviceState>();
   int i = 0;
@@ -794,7 +795,7 @@ void DataProcessingDevice::InitTask()
       .creator = route.configurator->creatorConfigurator(state, mServiceRegistry, *mConfigRegistry),
       .checker = route.configurator->danglingConfigurator(state, *mConfigRegistry),
       .handler = route.configurator->expirationConfigurator(state, *mConfigRegistry)};
-    mExpirationHandlers.emplace_back(std::move(handler));
+    context.expirationHandlers.emplace_back(std::move(handler));
   }
 
   if (state.awakeMainThread == nullptr) {
@@ -890,7 +891,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   context.registry = &mServiceRegistry;
-  context.expirationHandlers = &mExpirationHandlers;
   context.statefulProcess = &mStatefulProcess;
   context.statelessProcess = &mStatelessProcess;
   context.error = &mError;
@@ -1352,7 +1352,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     ServiceRegistryRef ref{*context.registry};
     ref.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = ref.get<DataRelayer>().processDanglingInputs(*context.expirationHandlers, *context.registry, true);
+  auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
   context.completed.clear();
@@ -1381,7 +1381,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
     auto &relayer = ref.get<DataRelayer>();
     while (DataProcessingDevice::tryDispatchComputation(context, context.completed) && hasOnlyGenerated == false) {
-      relayer.processDanglingInputs(*context.expirationHandlers, *context.registry, false);
+      relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
