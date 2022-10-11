@@ -40,7 +40,8 @@ struct DataProcessorContext {
   AlgorithmSpec::InitCallback init;
   AlgorithmSpec::ProcessCallback statefulProcess;
   AlgorithmSpec::ProcessCallback statelessProcess;
-  AlgorithmSpec::ErrorCallback* error = nullptr;
+  AlgorithmSpec::ErrorCallback error = nullptr;
+
   DataProcessorSpec* spec = nullptr;
 
   /// Wether or not the associated DataProcessor can forward things early
