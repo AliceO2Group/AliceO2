@@ -22,8 +22,7 @@ namespace o2
 namespace zdc
 {
 
-ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger)
-  : mRawReader(rawReader), mVerifyTrigger(verifyTrigger)
+ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRawReader(rawReader)
 {
 }
 
@@ -81,9 +80,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
-    mRawReader.setVerifyTrigger(mVerifyTrigger);
     mRawReader.setVerbosity(mVerbosity);
-    LOG(info) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
 
   uint64_t count = 0;
@@ -131,7 +128,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool askSTFDist)
 {
   LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
@@ -144,7 +141,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     "zdc-datareader-dpl",
     inputSpec,
     outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader),
     Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}},
             {"log-level", o2::framework::VariantType::Int, 0, {"ZDC data reader verbosity level"}}}};
 }
