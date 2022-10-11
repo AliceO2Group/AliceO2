@@ -120,7 +120,6 @@ DeviceSpec const&getRunningDevice(RunningDeviceRef const& running, ServiceRegist
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mRunningDevice{running},
     mSpec{registry.get<RunningWorkflowInfo const>(ServiceRegistry::globalDeviceSalt()).devices[running.index]},
-    mStatefulProcess{nullptr},
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
@@ -309,6 +308,7 @@ void DataProcessingDevice::Init()
   auto& context = ref.get<DataProcessorContext>();
   auto& spec = getRunningDevice(mRunningDevice, ref);
   context.statelessProcess = spec.algorithm.onProcess;
+  context.statefulProcess = nullptr;
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
@@ -344,7 +344,7 @@ void DataProcessingDevice::Init()
   context.init = spec.algorithm.onInit;
   if (context.init) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mStatefulProcess = context.init(initContext);
+    context.statefulProcess = context.init(initContext);
   }
   auto& state= ref.get<DeviceState>();
   state.inputChannelInfos.resize(mSpec.inputChannels.size());
@@ -607,7 +607,7 @@ void DataProcessingDevice::initPollers()
   auto& spec = ref.get<DeviceSpec const>();
   auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
-  if ((mStatefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
+  if ((context.statefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
@@ -890,7 +890,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   }
 
   context.registry = &mServiceRegistry;
-  context.statefulProcess = &mStatefulProcess;
   context.error = &mError;
   /// Callback for the error handling
   /// FIXME: move erro handling to a service?
@@ -2005,9 +2004,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           // Callbacks from users
           ref.get<CallbackService>()(CallbackService::Id::PreProcessing, ServiceRegistryRef{*(context.registry)}, (int)action.op);
         }
-        if (*context.statefulProcess) {
+        if (context.statefulProcess) {
           ZoneScopedN("statefull process");
-          (*context.statefulProcess)(processContext);
+          (context.statefulProcess)(processContext);
         } else if (context.statelessProcess) {
           ZoneScopedN("stateless process");
           (context.statelessProcess)(processContext);
