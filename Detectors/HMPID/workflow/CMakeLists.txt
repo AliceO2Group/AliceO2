@@ -37,7 +37,7 @@ o2_add_library(HMPIDWorkflow
                                      O2::HMPIDReconstruction)
 
 o2_add_executable(clusters-reader-workflow
-              COMPONENT_NAME hhmpid
+              COMPONENT_NAME hmpid
               SOURCES src/clusters-reader-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 

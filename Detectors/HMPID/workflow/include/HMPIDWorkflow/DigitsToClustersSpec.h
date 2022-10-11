@@ -68,9 +68,9 @@ class DigitsToClustersTask : public framework::Task
 
 // ef : read from stream by default:
 o2::framework::DataProcessorSpec
-  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false);
+  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false, bool writeFile = false);
 
-o2::framework::DataProcessorSpec getClustersToRootWriter();
+//o2::framework::DataProcessorSpec getClustersToRootWriter();
 } // end namespace hmpid
 } // end namespace o2
 

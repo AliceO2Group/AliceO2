@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   cluster-reader-workflow.cxx
-/// \author Annalisa Mastroserio
+/// \file   clusters-to-root-workflow.cxx
+/// \author Antonio Franco - INFN Bari
 /// \version 1.0
-/// \date 22 Jun 2022
+/// \date 22 nov 2021
 ///
 
 #include "Framework/WorkflowSpec.h"
@@ -40,7 +40,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("clusters-hmpid-read", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("clusters-hmpid-root", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -49,16 +49,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
-
-  workflowOptions.push_back(
-    o2::framework::ConfigParamSpec{"read-from-file",
-                                   o2::framework::VariantType::Bool,
-                                   false,
-                                   {"read upstream by default"}});
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/ClustersReaderSpec.h"
+#include "HMPIDWorkflow/ClustersToRootSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -66,13 +60,12 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   WorkflowSpec specs;
-
-  auto fromFile = configcontext.options().get<bool>(
-    "read-from-file"); // read upstream by default
-
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec consumer = o2::hmpid::getClusterReaderSpec(fromFile);
-
+  DataProcessorSpec consumer = o2::hmpid::getClustersToRootSpec();
   specs.push_back(consumer);
+
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+
   return specs;
 }

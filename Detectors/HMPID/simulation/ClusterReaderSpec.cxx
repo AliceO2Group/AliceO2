@@ -24,8 +24,6 @@
 #include <functional>
 #include <vector>
 
-#include "CommonUtils/StringUtils.h" // o2::utils::Str
-
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -47,7 +45,7 @@
 #include "HMPIDBase/Geo.h"
 
 
-#include "HMPIDWorkflow/ClustersReaderSpec.h"
+#include "HMPIDWorkflow/ClusterReaderSpec.h"
 
 namespace o2
 {
@@ -73,8 +71,6 @@ void ClusterReaderTask::init(framework::InitContext& ic)
         ic.options().get<std::string>("input-dir")),
       ic.options().get<std::string>("hmpid-digit-infile"));
     initFileIn(filename);
-  
-    int mTriggersFromFile, mDigitsReceived = 0;
   }
 
 }
@@ -85,7 +81,7 @@ void ClusterReaderTask::init(framework::InitContext& ic)
 void ClusterReaderTask::run(framework::ProcessingContext& pc)
 {
 
-  
+
   // outputs
 
   /*
@@ -106,8 +102,8 @@ void ClusterReaderTask::run(framework::ProcessingContext& pc)
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       mExTimer.stop();
-      //mExTimer.logMes("End ClusterReader !  clusters = " +
-      //                std::to_string(mClustersReceived));
+      mExTimer.logMes("End ClusterReader !  clusters = " +
+                      std::to_string(mClustersReceived));
     }
 
     // there are more entries in file
@@ -119,17 +115,17 @@ void ClusterReaderTask::run(framework::ProcessingContext& pc)
       assert(entry < mTree->GetEntries());
       mTree->GetEntry(0);
 
-      pc.outputs().snapshot(Output{ "HMP", "CLUSTERS", 0, Lifetime::Timeframe }, mClustersFromFile);
-      pc.outputs().snapshot(Output{ "HMP", "INTRECORDS", 0, Lifetime::Timeframe },mClusterTriggersFromFile);
+      pc.outputs().snapshot(Output{ "HMP", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
+      pc.outputs().snapshot(Output{ "HMP", "INTRECORDS", 0, Lifetime::Timeframe }, clusterTriggers);
       // =============== create clusters =====================
       /* for (const auto& trig : *mTriggersFromFile) {
         if (trig.getNumberOfObjects()) {
         }
-      } 
+      } */
       LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
            mTriggersFromFile->size(), mDigitsFromFile->size(), clusterTriggers.size(),
            clusters.size());
-      mDigitsReceived += mDigitsFromFile->size();*/
+      mDigitsReceived += mDigitsFromFile->size();
     } // <end else of num entries>
   }   //===============  <end mReadFromFile>
 
@@ -140,7 +136,7 @@ void ClusterReaderTask::run(framework::ProcessingContext& pc)
 
     // Output vectors
     pc.outputs().snapshot(Output{ "HMP", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
-    pc.outputs().snapshot(Output{ "HMP", "INTRECORDS", 0, Lifetime::Timeframe }, triggers);
+    pc.outputs().snapshot(Output{ "HMP", "INTRECORDS", 0, Lifetime::Timeframe }, clusterTriggers);
   }
 
 
@@ -180,7 +176,7 @@ void ClusterReaderTask::initFileIn(const std::string& filename)
 //_________________________________________________________________________________________________
 
 
-o2::framework::DataProcessorSpec getClusterReaderSpec(/*std::string inputSpec,*/ bool readFile)
+o2::framework::DataProcessorSpec getClusterReaderSpec(/*std::string inputSpec*/)
 {
   std::vector<o2::framework::InputSpec> inputs;
 
@@ -196,8 +192,9 @@ o2::framework::DataProcessorSpec getClusterReaderSpec(/*std::string inputSpec,*/
     "HMP-ClusterReader",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClusterReaderTask>(readFile)}, 
-    Options{{"qc-hmpid-clusters", VariantType::String, "hmpidclusters.root", { "Name of the input file with clusters" } } } };
+    AlgorithmSpec{adaptFromTask<ClusterReaderTask>()}, 
+   // Options{{"sigma-cut", VariantType::String, "", {"sigmas as comma separated list"}}}};
+    Options{ { "qc-hmpid-clusters", VariantType::String, "hmpidclusters.root", { "Name of the input file with clusters" } } } };
 }
 
 } // namespace hmpid

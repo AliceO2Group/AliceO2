@@ -51,14 +51,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 
   workflowOptions.push_back(
-    o2::framework::ConfigParamSpec{"read-from-file",
+    o2::framework::ConfigParamSpec{"readm-from-file",
                                    o2::framework::VariantType::Bool,
                                    false,
                                    {"read upstream by default"}});
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/ClustersReaderSpec.h"
+#include "HMPIDWorkflow/ClusterReaderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -67,11 +67,11 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   WorkflowSpec specs;
 
-  auto fromFile = configcontext.options().get<bool>(
+  auto mFromFile = configcontext.options().get<bool>(
     "read-from-file"); // read upstream by default
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec consumer = o2::hmpid::getClusterReaderSpec(fromFile);
+  DataProcessorSpec consumer = o2::hmpid::getClusterReaderSpec();
 
   specs.push_back(consumer);
   return specs;
