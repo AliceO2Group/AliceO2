@@ -265,17 +265,7 @@ struct ServiceRegistry {
   // as guaranteed by the atomic, mServicesKey[i + id] will
   // either be 0 or the final value.
   // This method should NEVER register a new service, event when requested.
-  int getPos(ServiceTypeHash typeHash, Salt salt) const
-  {
-    InstanceId instanceId = instanceFromTypeSalt(typeHash, salt);
-    Index index = indexFromInstance(instanceId);
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesKey[i + index.index].load() == typeHash.hash) {
-        return i + index.index;
-      }
-    }
-    return -1;
-  }
+  int getPos(ServiceTypeHash typeHash, Salt salt) const;
 
   // Basic, untemplated API. This will require explicitly
   // providing the @a typeHash for the Service type,
@@ -285,48 +275,7 @@ struct ServiceRegistry {
   // if the service is not a stream service and the global
   // zero service is available.
   // Use this API only if you know what you are doing.
-  void* get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name = nullptr) const
-  {
-    // Look for the service. If found, return it.
-    // Notice how due to threading issues, we might
-    // find it with getPos, but the value can still
-    // be nullptr.
-    auto pos = getPos(typeHash, salt);
-    if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].salt.value != salt.value) {
-      throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.context.streamId, mServicesMeta[pos].salt.context.streamId));
-      O2_BUILTIN_UNREACHABLE();
-    }
-
-    if (pos != -1) {
-      mServicesKey[pos].load();
-      std::atomic_thread_fence(std::memory_order_acquire);
-      void* ptr = mServicesValue[pos];
-      if (ptr) {
-        return ptr;
-      }
-    }
-    // We are looking up a service which is not of
-    // stream kind and was not looked up by this thread
-    // before.
-    if (salt.value != GLOBAL_CONTEXT_SALT.value) {
-      int pos = getPos(typeHash, GLOBAL_CONTEXT_SALT);
-      if (pos != -1 && kind != ServiceKind::Stream) {
-        mServicesKey[pos].load();
-        std::atomic_thread_fence(std::memory_order_acquire);
-        registerService(typeHash, mServicesValue[pos], kind, salt, name);
-      }
-      if (pos != -1) {
-        mServicesKey[pos].load();
-        std::atomic_thread_fence(std::memory_order_acquire);
-        return mServicesValue[pos];
-      } else {
-        throwError(runtime_error_f("Unable to find requested service %s", name));
-      }
-    }
-    // If we are here it means we never registered a
-    // service for the 0 thread (i.e. the main thread).
-    return nullptr;
-  }
+  void* get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name = nullptr) const;
 
   /// Register a service given an handle
   void registerService(ServiceHandle handle, Salt salt = ServiceRegistry::globalDeviceSalt())
