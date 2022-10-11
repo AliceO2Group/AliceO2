@@ -115,6 +115,8 @@ class TimesliceIndex
   ///         of the messages.
   std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
 
+  /// @return true if the device got some data.
+  [[nodiscard]] bool didReceiveData() const;
   /// Set the older possible input per channel
   /// @return the updated oldest possible input. Notice that this should be
   /// used with the validateSlots below to actually discard the slots.
