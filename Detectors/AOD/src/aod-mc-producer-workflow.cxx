@@ -38,9 +38,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
   WorkflowSpec wf;
-  wf.emplace_back(o2::aodmcproducer::getAODMcProducerWorkflowSpec(resFile));
+  wf.emplace_back(o2::aodmcproducer::getAODMcProducerWorkflowSpec());
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
   return std::move(wf);
 }

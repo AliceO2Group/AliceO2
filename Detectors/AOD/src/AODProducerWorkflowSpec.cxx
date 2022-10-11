@@ -1323,34 +1323,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mZDCTDCMap[(string)ChannelName] = 999;
   }
 
-  // writing metadata if it's not yet in AOD file
-  // note: `--aod-writer-resmode "UPDATE"` has to be used,
-  //       so that metadata is not overwritten
-  mResFile += ".root";
-  auto* fResFile = TFile::Open(mResFile, "UPDATE");
-  if (!fResFile) {
-    LOGF(fatal, "Could not open file %s", mResFile);
-  }
-  if (fResFile->FindObjectAny("metaData")) {
-    LOGF(warning, "Metadata: target file %s already has metadata, preserving it", mResFile);
-  } else {
-    // populating metadata map
-    TString dataType = mUseMC ? "MC" : "RAW";
-    mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
-    mMetaData.Add(new TObjString("Run"), new TObjString("3"));
-    TString O2Version = o2::fullVersion();
-    TString ROOTVersion = ROOT_RELEASE;
-    mMetaData.Add(new TObjString("O2Version"), new TObjString(O2Version));
-    mMetaData.Add(new TObjString("ROOTVersion"), new TObjString(ROOTVersion));
-    mMetaData.Add(new TObjString("RecoPassName"), new TObjString(mRecoPass));
-    mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(mAnchorProd));
-    mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
-    mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
-    LOGF(info, "Metadata: writing into %s", mResFile);
-    fResFile->WriteObject(&mMetaData, "metaData", "Overwrite");
-  }
-  fResFile->Close();
-
   mTimer.Reset();
 }
 
@@ -1876,6 +1848,18 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   originCursor(0, tfNumber);
 
+  // sending metadata to writer
+  if (!mIsMDSent) {
+    TString dataType = mUseMC ? "MC" : "RAW";
+    TString O2Version = o2::fullVersion();
+    TString ROOTVersion = ROOT_RELEASE;
+    mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag"};
+    mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag};
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0, Lifetime::Timeframe}, mMetaDataKeys);
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0, Lifetime::Timeframe}, mMetaDataVals);
+    mIsMDSent = true;
+  }
+
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
   pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
 
@@ -2238,7 +2222,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile, bool CTPConfigPerRun)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, bool CTPConfigPerRun)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -2307,13 +2291,15 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
+  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataKeys"});
+  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataVals"});
 
   LOGF(info, "Call for DataProcessorSPec aod-produce-workflow");
   return DataProcessorSpec{
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, resFile, useMC)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, useMC)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
