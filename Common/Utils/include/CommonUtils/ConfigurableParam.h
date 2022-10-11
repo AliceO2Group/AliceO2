@@ -162,6 +162,10 @@ class ConfigurableParam
   // print the current keys and values to screen (optionally with provenance information)
   virtual void printKeyValues(bool showprov = true, bool useLogger = false) const = 0;
 
+  // get a single size_t hash_value of this parameter (can be used as a checksum to see
+  // if object changed or different)
+  virtual size_t getHash() const = 0;
+
   // return the provenance of the member key
   virtual EParamProvenance getMemberProvenance(const std::string& key) const = 0;
 
