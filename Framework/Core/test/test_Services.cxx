@@ -97,8 +97,8 @@ namespace o2::framework
 static ServiceRegistry::Salt salt_0 =  ServiceRegistry::Salt{ServiceRegistry::Context{0,0}}; 
 static ServiceRegistry::Salt salt_1 =  ServiceRegistry::Salt{ServiceRegistry::Context{1,0}};
 static ServiceRegistry::Salt salt_2 =  ServiceRegistry::Salt{ServiceRegistry::Context{2,0}};
-static ServiceRegistry::Salt salt_3 =  ServiceRegistry::Salt{ServiceRegistry::Context{3,0}};
-static ServiceRegistry::Salt salt_1_1 =  ServiceRegistry::Salt{ServiceRegistry::Context{1,1}};
+static ServiceRegistry::Salt salt_3 = ServiceRegistry::Salt{ServiceRegistry::Context{3, 0}};
+static ServiceRegistry::Salt salt_1_1 = ServiceRegistry::Salt{ServiceRegistry::Context{1, 1}};
 }
 
 BOOST_AUTO_TEST_CASE(TestSerialServices)
@@ -162,9 +162,9 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   DummyService t1{1};
   DummyService t2{2};
   /// We register it pretending to be on thread 0
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1,0}});
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2,0}});
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{3,0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1, 0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2, 0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{3, 0}});
 
   auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Stream));
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Stream));
