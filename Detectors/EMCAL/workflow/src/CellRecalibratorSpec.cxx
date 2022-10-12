@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <algorithm>
 #include <filesystem>
 #include <gsl/span>
 #include "DataFormatsEMCAL/Cell.h"
@@ -52,22 +53,14 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
   uint32_t currentfirst = outputcells.size();
   for (const auto& trg : intputtriggers) {
     if (!trg.getNumberOfObjects()) {
-      o2::emcal::TriggerRecord nexttrigger(trg.getBCData(), currentfirst, trg.getNumberOfObjects());
-      nexttrigger.setTriggerBits(trg.getTriggerBits());
-      outputtriggers.push_back(nexttrigger);
+      outputtriggers.emplace_back(trg.getBCData(), currentfirst, trg.getNumberOfObjects()).setTriggerBits(trg.getTriggerBits());
       continue;
     }
-    uint32_t cellsEvent = 0;
-    for (const auto& cell : gsl::span<const o2::emcal::Cell>(inputcells.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
-      auto calibrated = getCalibratedCell(cell);
-      if (calibrated) {
-        outputcells.push_back(calibrated.value());
-        cellsEvent++;
-      }
+    auto calibratedCells = mCellRecalibrator.getCalibratedCells(gsl::span<const o2::emcal::Cell>(inputcells.data() + trg.getFirstEntry(), trg.getNumberOfObjects()));
+    if (calibratedCells.size()) {
+      std::copy(calibratedCells.begin(), calibratedCells.end(), std::back_insert_iterator(outputcells));
     }
-    o2::emcal::TriggerRecord nexttrigger(trg.getBCData(), currentfirst, cellsEvent);
-    nexttrigger.setTriggerBits(trg.getTriggerBits());
-    outputtriggers.push_back(nexttrigger);
+    outputtriggers.emplace_back(trg.getBCData(), currentfirst, calibratedCells.size()).setTriggerBits(trg.getTriggerBits());
     currentfirst = outputcells.size();
   }
 
@@ -86,45 +79,25 @@ void CellRecalibratorSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
   }
 }
 
-std::optional<o2::emcal::Cell> CellRecalibratorSpec::getCalibratedCell(const o2::emcal::Cell& input) const
-{
-  if (isRunBadChannlCalibration() && mBadChannelMap) {
-    auto cellstatus = mBadChannelMap->getChannelStatus(input.getTower());
-    // reject bad and dead cells
-    if (cellstatus == BadChannelMap::MaskType_t::BAD_CELL || cellstatus == BadChannelMap::MaskType_t::DEAD_CELL) {
-      return std::optional<o2::emcal::Cell>();
-    }
-  }
-  auto celltime = input.getTimeStamp();
-  auto cellenergy = input.getEnergy();
-  if (isRunTimeCalibration() && mTimeCalibration) {
-    celltime -= mTimeCalibration->getTimeCalibParam(input.getTower(), input.getLowGain());
-  }
-  if (isRunGainCalibration() && mGainCalibration) {
-    cellenergy *= mGainCalibration->getGainCalibFactors(input.getTower());
-  }
-  o2::emcal::Cell outputcell(input.getTower(), cellenergy, celltime, input.getType());
-  return std::optional<o2::emcal::Cell>(outputcell);
-}
-
 void CellRecalibratorSpec::updateCalibObjects()
 {
-  auto badmapOld = mBadChannelMap;
-  auto timeCalibOld = mTimeCalibration;
   if (isRunBadChannlCalibration()) {
-    mBadChannelMap = mCalibrationHandler->getBadChannelMap();
-    if (badmapOld != mBadChannelMap) {
+    if (mCalibrationHandler->hasUpdateBadChannelMap()) {
       LOG(info) << "updateCalibObjects: Bad channel map changed";
+      mCellRecalibrator.setBadChannelMap(mCalibrationHandler->getBadChannelMap());
     }
   }
   if (isRunTimeCalibration()) {
-    mTimeCalibration = mCalibrationHandler->getTimeCalibration();
-    if (timeCalibOld != mTimeCalibration) {
+    if (mCalibrationHandler->hasUpdateTimeCalib()) {
       LOG(info) << "updateCalibObjects: Time calib params changed";
+      mCellRecalibrator.setTimeCalibration(mCalibrationHandler->getTimeCalibration());
     }
   }
   if (isRunGainCalibration()) {
-    mGainCalibration = mCalibrationHandler->getGainCalibration();
+    if (mCalibrationHandler->hasUpdateGainCalib()) {
+      LOG(info) << "updateCalibObjects: Time calib params changed";
+      mCellRecalibrator.setGainCalibration(mCalibrationHandler->getGainCalibration());
+    }
   }
 }
 

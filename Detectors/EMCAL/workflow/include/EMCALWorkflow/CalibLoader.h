@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <bitset>
 #include <vector>
 #include <Framework/ProcessingContext.h>
 #include "Framework/ConcreteDataMatcher.h"
@@ -70,6 +71,18 @@ class CalibLoader
   /// \return True if the gain calibration factors are handled, false otherwise
   bool hasGainCalib() const { return mEnableGainCalib; }
 
+  /// \brief Check whether the bad channel map has been updated
+  /// \return True if the bad channel map has been updated, false otherwise
+  bool hasUpdateBadChannelMap() const { return mUpdateStatus.test(OBJ_BADCHANNELMAP); }
+
+  /// \brief Check whether the time calibration params have been updated
+  /// \return True if the time calibration params have been updated, false otherwise
+  bool hasUpdateTimeCalib() const { return mUpdateStatus.test(OBJ_TIMECALIB); }
+
+  /// \brief Check whether the gain calibration params have been updated
+  /// \return True if the gain calibration params have been updated, false  otherwise
+  bool hasUpdateGainCalib() const { return mUpdateStatus.test(OBJ_GAINCALIB); }
+
   /// \brief Enable loading of the bad channel map
   /// \param doEnable If true the bad channel map is loaded (per default from CCDB)
   void enableBadChannelMap(bool doEnable) { mEnableBadChannelMap = doEnable; }
@@ -81,6 +94,18 @@ class CalibLoader
   /// \brief Enable loading of the gain calibration factors
   /// \param doEnable If true the gain calibration factors are loaded (per default from CCDB)
   void enableGainCalib(bool doEnable) { mEnableGainCalib = doEnable; }
+
+  /// \brief Mark bad channel map as updated
+  void setUpdateBadChannelMap() { mUpdateStatus.set(OBJ_BADCHANNELMAP, true); }
+
+  /// \brief Mark time calibration params as updated
+  void setUpdateTimeCalib() { mUpdateStatus.set(OBJ_TIMECALIB, true); }
+
+  /// \brief Mark gain calibration params as updated
+  void setUpdateGainCalib() { mUpdateStatus.set(OBJ_GAINCALIB, true); }
+
+  /// \brief Reset the update status (all objects marked as false)
+  void resetUpdateStatus() { mUpdateStatus.reset(); }
 
   /// \brief Define input specs in workflow for calibration objects to be loaded from the CCDB
   /// \param ccdbInputs List of inputs where the CCDB input specs will be added to
@@ -104,12 +129,18 @@ class CalibLoader
   bool finalizeCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
 
  private:
+  enum CalibObject_t {
+    OBJ_BADCHANNELMAP,
+    OBJ_TIMECALIB,
+    OBJ_GAINCALIB
+  };
   bool mEnableBadChannelMap;                                     ///< Switch for enabling / disabling loading of the bad channel map
   bool mEnableTimeCalib;                                         ///< Switch for enabling / disabling loading of the time calibration params
   bool mEnableGainCalib;                                         ///< Switch for enabling / disabling loading of the gain calibration params
   o2::emcal::BadChannelMap* mBadChannelMap = nullptr;            ///< Container of current bad channel map
   o2::emcal::TimeCalibrationParams* mTimeCalibParams = nullptr;  ///< Container of current time calibration object
   o2::emcal::GainCalibrationFactors* mGainCalibParams = nullptr; ///< Container of current gain calibration object
+  std::bitset<16> mUpdateStatus;                                 ///< Object update status
 };
 
 } // namespace emcal

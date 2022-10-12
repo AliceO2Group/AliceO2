@@ -12,6 +12,7 @@
 #include <bitset>
 #include <cstdint>
 #include <optional>
+#include "EMCALCalib/CellRecalibrator.h"
 #include "EMCALWorkflow/CalibLoader.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessorSpec.h"
@@ -107,15 +108,7 @@ class CellRecalibratorSpec : public framework::Task
   bool isRunGainCalibration() const { return mCalibrationSettings.test(GAIN_CALIB); }
 
  private:
-  /// \brief Apply requested calibrations to the cell
-  /// \param inputcell Cell to be calibrated
-  /// \return Optional of calibrated cell (empty optional in case the cell is rejected as bad or dead)
-  ///
-  /// Recalibrating cell for energy and time, and check whether the corresponding tower is not
-  /// marked as bad or dead. Only calibrations which are enabled are applied.
-  std::optional<o2::emcal::Cell> getCalibratedCell(const o2::emcal::Cell& inputcell) const;
-
-  /// \brief Update internal cache of calibration objects
+  /// \brief Update calibration objects (if changed)
   void updateCalibObjects();
 
   /// \enum CalibrationType_t
@@ -126,12 +119,10 @@ class CellRecalibratorSpec : public framework::Task
     GAIN_CALIB = 2        ///< Gain calibration
   };
 
-  uint32_t mOutputSubspec = 0;                              ///< output subspecification;
-  std::bitset<8> mCalibrationSettings;                      ///< Recalibration settings (which calibration to be applied)
-  std::shared_ptr<CalibLoader> mCalibrationHandler;         ///< Handler loading calibration objects
-  const BadChannelMap* mBadChannelMap = nullptr;            ///< Bad channelMap
-  const TimeCalibrationParams* mTimeCalibration = nullptr;  ///< Time calibration coefficients
-  const GainCalibrationFactors* mGainCalibration = nullptr; ///< Gain calibration factors
+  uint32_t mOutputSubspec = 0;                      ///< output subspecification;
+  std::bitset<8> mCalibrationSettings;              ///< Recalibration settings (which calibration to be applied)
+  std::shared_ptr<CalibLoader> mCalibrationHandler; ///< Handler loading calibration objects
+  CellRecalibrator mCellRecalibrator;               ///< Recalibrator at cell level
 };
 
 /// \brief Create CellRecalibrator processor spec
