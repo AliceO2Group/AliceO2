@@ -1336,8 +1336,9 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     auto posStart = tracOut.getXYZGlo();
     auto tImposed = timeC * mTPCTBinMUSInv;
     if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) {
-      LOGP(error, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{} | Trc: {}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
-           mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT, mTPCTracksArray[tTPC.sourceID].asString());
+      LOGP(alarm, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
+           mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT);
+      LOGP(info, "Trc: {}", mTPCTracksArray[tTPC.sourceID].asString());
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
