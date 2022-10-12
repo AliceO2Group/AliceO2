@@ -113,7 +113,7 @@ void CalibratorVdExB::initProcessing()
   mFitter.SetFCN<FitFunctor>(2, mFitFunctor, mParamsStart);
   mFitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);
   mFitter.Config().ParSettings(ParamIndex::LA).SetStepSize(.01);
-  mFitter.Config().ParSettings(ParamIndex::VD).SetLimits(0., 3.);
+  mFitter.Config().ParSettings(ParamIndex::VD).SetLimits(0.01, 3.);
   mFitter.Config().ParSettings(ParamIndex::VD).SetStepSize(.01);
   ROOT::Math::MinimizerOptions opt;
   opt.SetMinimizerType("Minuit2");
