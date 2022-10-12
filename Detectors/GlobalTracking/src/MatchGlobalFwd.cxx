@@ -156,14 +156,13 @@ bool MatchGlobalFwd::prepareMCHData()
       if (BCDiffErrCount < MAXBCDiffErrCount) {
         LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData(), mStartIR);
       }
-      continue;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + rofRec.getBCWidth()) * o2::constants::lhc::LHCBunchSpacingMUS;
     auto mchTime = rofRec.getTimeMUS(mStartIR).first;
 
     mMCHROFTimes.emplace_back(tMin, tMax); // MCH ROF min/max time
-    LOG(debug) << "MCH ROF # " << irof << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
+    LOG(debug) << "MCH ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
     int trlim = rofRec.getFirstIdx() + rofRec.getNEntries();
     for (int it = rofRec.getFirstIdx(); it < trlim; it++) {
       auto& trcOrig = mMCHTracks[it];
@@ -253,7 +252,6 @@ bool MatchGlobalFwd::prepareMFTData()
       if (BCDiffErrCount < MAXBCDiffErrCount) {
         LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData(), mStartIR);
       }
-      continue;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mMFTROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -265,7 +263,7 @@ bool MatchGlobalFwd::prepareMFTData()
       mMFTTrackROFContMapping[irofCont] = irof;
     }
     mMFTROFTimes.emplace_back(tMin, tMax); // MFT ROF min/max time
-    LOG(debug) << "MFT ROF # " << irof << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
+    LOG(debug) << "MFT ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
 
     int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
@@ -336,32 +334,35 @@ void MatchGlobalFwd::doMatching()
     LOG(debug) << "MFT ROF = " << MFTROFId << "; interval: [" << thisMFTBracket.getMin() << "," << thisMFTBracket.getMax() << "]";
     LOG(debug) << "ROF " << MFTROFId << " : firstMFTTrackIdInROF " << firstMFTTrackIdInROF << " ; nMFTTracksInROF = " << nMFTTracksInROF;
     firstMFTTrackIdInROF += nMFTTracksInROF;
-    int mchROF = 0;
-    while (mchROF < nMCHROFs && (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
-      mchROF++;
-    }
-    if (mchROF >= nMCHROFs) {
-      continue;
-    }
+
     int mchROFMatchFirst = -1;
     int mchROFMatchLast = -1;
-
-    if (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]) == 0) {
-      mchROFMatchFirst = mchROF;
-
-      while (mchROF < nMCHROFs && !(thisMFTBracket < mMCHROFTimes[mchROF])) {
-        mchROF++;
+    int mchROF = 0;
+    // loop over MCH ROFs that are not newer than the current MFT ROF
+    while (mchROF < nMCHROFs && !(thisMFTBracket < mMCHROFTimes[mchROF])) {
+      // only consider non-empty MCH ROFs that overlap with the MFT one
+      if (mMCHTrackROFRec[mchROF].getNEntries() > 0 && !(thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
+        // set the index of the first MCH ROF if not yet initialized
+        if (mchROFMatchFirst < 0) {
+          mchROFMatchFirst = mchROF;
+        }
+        // update the index of the last MCH ROF
+        mchROFMatchLast = mchROF;
       }
-      if (mchROF >= nMCHROFs) {
-        continue;
-      }
-      mchROFMatchLast = mchROF - 1;
-    } else {
-      LOG(debug) << "No compatible MCH ROF with MFT ROF " << MFTROFId << std::endl;
+      mchROF++;
     }
-    if (mchROFMatchFirst >= 0) {
-      ROFMatch<saveAllMode>(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
+    // skip if the index of the first MCH ROF is not set
+    if (mchROFMatchFirst < 0) {
+      continue;
     }
+    LOG(debug) << "FIRST MCH ROF " << mchROFMatchFirst << "; interval: ["
+               << mMCHROFTimes[mchROFMatchFirst].getMin() << ","
+               << mMCHROFTimes[mchROFMatchFirst].getMax() << "]  size: " << mMCHTrackROFRec[mchROFMatchFirst].getNEntries();
+    LOG(debug) << "LAST  MCH ROF " << mchROFMatchLast << "; interval: ["
+               << mMCHROFTimes[mchROFMatchLast].getMin() << ","
+               << mMCHROFTimes[mchROFMatchLast].getMax() << "]  size: " << mMCHTrackROFRec[mchROFMatchLast].getNEntries();
+
+    ROFMatch<saveAllMode>(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
   }
 
   if constexpr (saveAllMode == SaveMode::kBestMatch) { // Otherwise output container is filled by ROFMatch()
@@ -403,6 +404,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
   auto firstMCHTrackID = firstMCHROF.getFirstIdx();
   auto lastMCHTrackID = lastMCHROF.getLastIdx();
+
   auto nMFTTracks = thisMFTROF.getNEntries();
   auto nMCHTracks = lastMCHTrackID - firstMCHTrackID + 1;
 
@@ -410,7 +412,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
   LOG(debug) << "Matching MFT ROF " << MFTROFId << " with MCH ROFs [" << firstMCHROFId << "->" << lastMCHROFId << "]";
   LOG(debug) << "   firstMFTTrackID = " << firstMFTTrackID << " ; lastMFTTrackID = " << lastMFTTrackID;
-  LOG(debug) << "   firstMCHTrackID = " << firstMCHTrackID << " ; lastMCHTrackID = " << lastMCHTrackID << std::endl;
+  LOG(debug) << "   firstMCHTrackID = " << firstMCHTrackID << " ; lastMCHTrackID = " << lastMCHTrackID;
+  LOG(debug) << "   thisMFTROF:  " << thisMFTROF.getBCData();
+  LOG(debug) << "   firstMCHROF: " << firstMCHROF;
+  LOG(debug) << "   lastMCHROF:  " << lastMCHROF;
 
   // loop over all MCH tracks
   for (auto MCHId = firstMCHTrackID; MCHId <= lastMCHTrackID; MCHId++) {
