@@ -289,8 +289,16 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     O2_BUILTIN_UNREACHABLE();
   }
 
-  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && salt.context.streamId <= 0) {
+  bool isStream = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DeviceStream;
+  bool isDataProcessor = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DataProcessorGlobal || mServicesMeta[pos].kind == ServiceKind::DataProcessorSerial;
+
+  if (pos != -1 && isStream && salt.context.streamId <= 0) {
     throwError(runtime_error_f("A stream service cannot be retrieved from a non stream salt %d", salt.context.streamId));
+    O2_BUILTIN_UNREACHABLE();
+  }
+  
+  if (pos != -1 && isDataProcessor && salt.context.dataProcessorId < 0) {
+    throwError(runtime_error_f("A data processor service cannot be retrieved from a non dataprocessor context %d", salt.context.dataProcessorId));
     O2_BUILTIN_UNREACHABLE();
   }
 
