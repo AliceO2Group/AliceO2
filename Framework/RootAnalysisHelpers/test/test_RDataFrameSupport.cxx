@@ -309,10 +309,10 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   auto left = [](int lx, int) { return lx; };
   auto right = [](int, int rx) { return rx; };
 
-  BOOST_CHECK_EQUAL(*finalDF.Define("s1", sum, { "left_x", "left_y" }).Sum("s1"), 448);
-  BOOST_CHECK_EQUAL(*finalDF.Define("s4", sum, { "right_x", "left_x" }).Sum("s4"), 448);
-  BOOST_CHECK_EQUAL(*finalDF.Define("s2", left, { "left_x", "left_y" }).Sum("s2"), 224);
-  BOOST_CHECK_EQUAL(*finalDF.Define("s3", right, { "right_x", "left_x" }).Sum("s3"), 224);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s1", sum, {"left_x", "left_y"}).Sum("s1"), 448);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s4", sum, {"right_x", "left_x"}).Sum("s4"), 448);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s2", left, {"left_x", "left_y"}).Sum("s2"), 224);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s3", right, {"right_x", "left_x"}).Sum("s3"), 224);
   BOOST_CHECK_EQUAL(*indexedDF.Define("s4", sum, {"right_x", "left_x"}).Sum("s4"), 56);
   BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
   BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
