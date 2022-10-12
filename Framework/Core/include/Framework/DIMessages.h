@@ -11,7 +11,7 @@ namespace DIMessages
 struct RegisterDevice
 {
   std::string name;
-  std::string analysisId;
+  std::string runId;
 
   struct Specs
   {
@@ -117,7 +117,7 @@ struct RegisterDevice
   void serialize(Archive & ar, const unsigned int version)
   {
     ar & name;
-    ar & analysisId;
+    ar & runId;
     ar & specs;
   }
 };
