@@ -81,6 +81,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
     mAggregator->setWriteBinnedResiduals(mWriteBinnedResiduals);
     mAggregator->setWriteUnbinnedResiduals(mWriteUnbinnedResiduals);
     mAggregator->setWriteTrackData(mWriteTrackData);
+    mAggregator->setCompression(ic.options().get<int>("compression"));
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -170,6 +171,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeOutput
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},
       {"max-delay", VariantType::UInt32, 1u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
+      {"compression", VariantType::Int, 101, {"ROOT compression setting for output file (see TFile documentation for meaning of this number)"}},
       {"output-dir", VariantType::String, "none", {"Output directory for residuals, must exist"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}},
       {"autosave-interval", VariantType::Int, 0, {"Write output to file for every n-th TF. 0 means this feature is OFF"}}}};

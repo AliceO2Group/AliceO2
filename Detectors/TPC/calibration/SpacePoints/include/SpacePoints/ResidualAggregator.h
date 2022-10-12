@@ -42,7 +42,7 @@ struct ResidualsContainer {
   ResidualsContainer& operator=(const ResidualsContainer& src) = delete;
   ~ResidualsContainer();
 
-  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave);
+  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression);
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
@@ -105,6 +105,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Unb
   void setWriteTrackData(bool f) { mWriteTrackData = f; }
   void setAutosaveInterval(int n) { mAutosaveInterval = n; }
   void disableFileWriting() { mWriteOutput = false; }
+  void setCompression(int c) { mCompressionSetting = c; }
 
   bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
@@ -123,6 +124,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Unb
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
   int mAutosaveInterval{0};            ///< if >0 then the output is written to a file for every n-th TF
+  int mCompressionSetting{101};        ///< single integer defining the ROOT compression algorithm and level (see TFile doc for details)
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)
 
   ClassDefOverride(ResidualAggregator, 4);

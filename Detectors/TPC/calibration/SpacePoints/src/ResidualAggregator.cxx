@@ -67,7 +67,7 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   sumOfResiduals = std::move(rhs.sumOfResiduals);
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression)
 {
   trackResiduals = residualsEngine;
   writeToRootFile = wFile;
@@ -80,7 +80,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
     fileName += ".root";
     std::string fileNameTmp = outputDir + fileName;
     fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
-    fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate");
+    fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate", "", compression);
   }
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
@@ -358,6 +358,6 @@ Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval, mCompressionSetting);
   return slot;
 }
