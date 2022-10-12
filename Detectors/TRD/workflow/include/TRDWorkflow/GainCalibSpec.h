@@ -9,16 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRD_VDANDEXBCALIBSPEC_H
-#define O2_TRD_VDANDEXBCALIBSPEC_H
+#ifndef O2_TRD_GAINCALIBSPEC_H
+#define O2_TRD_GAINCALIBSPEC_H
 
-/// \file   VdAndExBCalibSpec.h
-/// \brief DPL device for steering the TRD vD and ExB time slot based calibration
-/// \author Ole Schmidt
+/// \file GainCalibSpec.h
+/// \brief DPL device for steering the TRD gain time slot based calibration
+/// \author Felix Schlepper
 
-#include "TRDCalibration/CalibratorVdExB.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DataFormatsTRD/AngularResidHistos.h"
+#include "TRDCalibration/CalibratorGain.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -27,6 +26,8 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+
 #include <chrono>
 
 using namespace o2::framework;
@@ -36,18 +37,17 @@ namespace o2
 namespace calibration
 {
 
-class VdAndExBCalibDevice : public o2::framework::Task
+class GainCalibDevice : public o2::framework::Task
 {
  public:
-  VdAndExBCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  GainCalibDevice(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> req) : mDataRequest(dataRequest), mCCDBRequest(req) {}
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    int minEnt = ic.options().get<int>("min-entries");
     auto enableOutput = ic.options().get<bool>("enable-root-output");
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
-    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt, enableOutput);
+    mCalibrator = std::make_unique<o2::trd::CalibratorGain>(enableOutput);
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
@@ -61,10 +61,13 @@ class VdAndExBCalibDevice : public o2::framework::Task
   {
     auto runStartTime = std::chrono::high_resolution_clock::now();
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
+    o2::globaltracking::RecoContainer inputData;
+    inputData.collectData(pc, *mDataRequest);
+    auto dataGain = pc.inputs().get<o2::trd::GainCalibration>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.getNEntries() << " AngularResidHistos entries";
-    mCalibrator->process(data);
+    // TODO
+    /* LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataGain.getNEntries() << " AngularResidHistos entries"; */
+    mCalibrator->process(dataGain);
     sendOutput(pc.outputs());
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
     LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
@@ -78,7 +81,8 @@ class VdAndExBCalibDevice : public o2::framework::Task
   }
 
  private:
-  std::unique_ptr<o2::trd::CalibratorVdExB> mCalibrator;
+  std::unique_ptr<o2::trd::CalibratorGain> mCalibrator;
+  std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -87,22 +91,23 @@ class VdAndExBCalibDevice : public o2::framework::Task
     // TODO in principle, this routine is generic, can be moved to Utils.h
 
     using clbUtils = o2::calibration::Utils;
-    const auto& payloadVec = mCalibrator->getCcdbObjectVector();
+    /* const auto& payloadVec = mCalibrator->getCcdbObjectVector(); */
     auto& infoVec = mCalibrator->getCcdbObjectInfoVector(); // use non-const version as we update it
     assert(payloadVec.size() == infoVec.size());
 
-    for (uint32_t i = 0; i < payloadVec.size(); i++) {
-      auto& w = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+    // TODO
+    /* for (uint32_t i = 0; i < payloadVec.size(); i++) { */
+    /*   auto& w = infoVec[i]; */
+    /*   auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w); */
+    /*   LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size() */
+    /*             << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp(); */
 
-      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "VDRIFTEXB", i}, *image.get()); // vector<char>
-      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "VDRIFTEXB", i}, w);            // root-serialized
-    }
-    if (payloadVec.size()) {
-      mCalibrator->initOutput(); // reset the outputs once they are already sent
-    }
+    /*   output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "GAIN", i}, *image.get()); // vector<char> */
+    /*   output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "GAIN", i}, w);            // root-serialized */
+    /* } */
+    /* if (payloadVec.size()) { */
+    /*   mCalibrator->initOutput(); // reset the outputs once they are already sent */
+    /* } */
   }
 };
 
@@ -111,15 +116,17 @@ class VdAndExBCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTRDVdAndExBCalibSpec()
+DataProcessorSpec getTRDGainCalibSpec()
 {
-  using device = o2::calibration::VdAndExBCalibDevice;
+  using device = o2::calibration::GainCalibDevice;
   using clbUtils = o2::calibration::Utils;
 
+  auto dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "VDRIFTEXB"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "VDRIFTEXB"}, Lifetime::Sporadic);
-  std::vector<InputSpec> inputs{{"input", "TRD", "ANGRESHISTS"}};
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "GAIN"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "GAIN"}, Lifetime::Sporadic);
+  auto& inputs = dataRequest->inputs;
+  inputs.emplace_back("input", "TRD", "GAINCALIB");
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -128,18 +135,18 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
   return DataProcessorSpec{
-    "vdexb-opts",
+    "gain-opts",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(dataRequest, ccdbRequest)},
     Options{
       {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
       {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
-      {"min-entries", VariantType::Int, 40'000, {"minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
+    }}; // around 3 entries per bin per chamber
 }
 
 } // namespace framework
 } // namespace o2
 
-#endif // O2_TRD_VDANDEXBCALIBSPEC_H
+#endif // O2_TRD_GAINCALIBSPEC_H

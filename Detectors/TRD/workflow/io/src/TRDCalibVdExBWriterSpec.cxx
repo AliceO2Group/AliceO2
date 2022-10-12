@@ -12,7 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "TRDWorkflowIO/TRDCalibWriterSpec.h"
+#include "TRDWorkflowIO/TRDCalibVdExBWriterSpec.h"
 #include "DataFormatsTRD/AngularResidHistos.h"
 
 using namespace o2::framework;
@@ -25,10 +25,10 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getTRDCalibWriterSpec()
+o2::framework::DataProcessorSpec getTRDCalibVdExBWriterSpec()
 {
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-  return MakeRootTreeWriterSpec("TRDCalibWriter",
+  return MakeRootTreeWriterSpec("TRDCalibVdExBWriter",
                                 "trdangreshistos.root",
                                 "calibdata",
                                 BranchDefinition<o2::trd::AngularResidHistos>{InputSpec{"calibdata", "TRD", "ANGRESHISTS"}, "AngularResids"})();

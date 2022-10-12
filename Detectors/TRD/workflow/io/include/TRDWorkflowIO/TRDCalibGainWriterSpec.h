@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDCALIBWRITERSPEC_H
-#define O2_TRDCALIBWRITERSPEC_H
+#ifndef O2_TRDCALIBGAINWRITERSPEC_H
+#define O2_TRDCALIBGAINWRITERSPEC_H
 
 namespace o2
 {
@@ -25,9 +25,9 @@ namespace o2
 namespace trd
 {
 
-o2::framework::DataProcessorSpec getTRDCalibWriterSpec();
+o2::framework::DataProcessorSpec getTRDCalibGainWriterSpec();
 
 } // end namespace trd
 } // end namespace o2
 
-#endif // O2_TRDCALIBWRITERSPEC_H
+#endif // O2_TRDCALIBGAINWRITERSPEC_H

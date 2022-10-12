@@ -45,6 +45,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_PHS_TURNONCALIB = $CALIB_PHS_TURNONCALIB" 1>&2
   echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
   echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
+  echo "CALIB_TRD_GAIN = $CALIB_TRD_GAIN" 1>&2
   echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
@@ -185,7 +186,10 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TRD
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
-    add_W o2-calibration-trd-vdrift-exb ""
+    add_W o2-calibration-trd "--vdexb"
+  fi
+  if [[ $CALIB_TRD_GAIN == 1 ]]; then
+    add_W o2-calibration-trd "--gain"
   fi
 fi
 

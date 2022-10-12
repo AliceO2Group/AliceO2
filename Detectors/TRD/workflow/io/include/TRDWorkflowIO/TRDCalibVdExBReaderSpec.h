@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TRDCalibReaderSpec.h
+/// @file   TRDCalibVdExBReaderSpec.h
 
-#ifndef O2_TRD_CALIBREADER
-#define O2_TRD_CALIBREADER
+#ifndef O2_TRD_CALIBVDEXBREADER
+#define O2_TRD_CALIBVDEXBREADER
 
 #include "TFile.h"
 #include "TTree.h"
@@ -26,11 +26,11 @@ namespace o2
 namespace trd
 {
 
-class TRDCalibReader : public o2::framework::Task
+class TRDCalibVdExBReader : public o2::framework::Task
 {
  public:
-  TRDCalibReader() = default;
-  ~TRDCalibReader() override = default;
+  TRDCalibVdExBReader() = default;
+  ~TRDCalibVdExBReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
@@ -45,9 +45,9 @@ class TRDCalibReader : public o2::framework::Task
 
 /// create a processor spec
 /// read TRD calibration data from a root file
-framework::DataProcessorSpec getTRDCalibReaderSpec();
+framework::DataProcessorSpec getTRDCalibVdExBReaderSpec();
 
 } // namespace trd
 } // namespace o2
 
-#endif /* O2_TRD_CALIBREADER */
+#endif /* O2_TRD_CALIBVDEXBREADER */

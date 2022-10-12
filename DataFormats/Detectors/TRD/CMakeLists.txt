@@ -35,6 +35,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/CalibratedTracklet.h
                        include/DataFormatsTRD/DcsCcdbObjects.h
                        include/DataFormatsTRD/AngularResidHistos.h
+                       include/DataFormatsTRD/GainCalibration.h
                        include/DataFormatsTRD/HelperMethods.h
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/Digit.h
@@ -43,6 +44,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/NoiseCalibration.h
                        include/DataFormatsTRD/CTF.h
                        include/DataFormatsTRD/CalVdriftExB.h
+                       include/DataFormatsTRD/CalGain.h
                        include/DataFormatsTRD/CalT0.h
                        include/DataFormatsTRD/SignalArray.h
                        include/DataFormatsTRD/CompressedDigit.h

@@ -15,7 +15,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "TRDWorkflowIO/TRDCalibWriterSpec.h"
+#include "TRDWorkflowIO/TRDCalibVdExBWriterSpec.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 #include "TRDWorkflow/TrackBasedCalibSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
@@ -94,7 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
     }
     if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-      specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
+      specs.emplace_back(o2::trd::getTRDCalibVdExBWriterSpec());
     }
     if (configcontext.options().get<bool>("enable-qc")) {
       specs.emplace_back(o2::trd::getTRDTrackingQCWriterSpec());

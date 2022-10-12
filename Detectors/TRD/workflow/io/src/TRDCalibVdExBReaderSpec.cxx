@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TRDCalibReaderSpec.cxx
+/// @file   TRDCalibVdExBReaderSpec.cxx
 
-#include "TRDWorkflowIO/TRDCalibReaderSpec.h"
+#include "TRDWorkflowIO/TRDCalibVdExBReaderSpec.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -25,10 +25,10 @@ namespace o2
 namespace trd
 {
 
-void TRDCalibReader::init(InitContext& ic)
+void TRDCalibVdExBReader::init(InitContext& ic)
 {
   // get the option from the init context
-  LOG(info) << "Init TRD tracklet reader!";
+  LOG(info) << "Init TRD VdExB calibration reader!";
   mInFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                               ic.options().get<std::string>("trd-calib-infile"));
   mInTreeName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
@@ -36,7 +36,7 @@ void TRDCalibReader::init(InitContext& ic)
   connectTree();
 }
 
-void TRDCalibReader::connectTree()
+void TRDCalibVdExBReader::connectTree()
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(mInFileName.c_str()));
@@ -47,7 +47,7 @@ void TRDCalibReader::connectTree()
   LOG(info) << "Loaded tree from " << mInFileName << " with " << mTree->GetEntries() << " entries";
 }
 
-void TRDCalibReader::run(ProcessingContext& pc)
+void TRDCalibVdExBReader::run(ProcessingContext& pc)
 {
   auto currEntry = mTree->GetReadEntry() + 1;
   assert(currEntry < mTree->GetEntries()); // this should not happen
@@ -61,16 +61,16 @@ void TRDCalibReader::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTRDCalibReaderSpec()
+DataProcessorSpec getTRDCalibVdExBReaderSpec()
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "TRDCalibReader",
+    "TRDCalibVdExBReader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDCalibReader>()},
+    AlgorithmSpec{adaptFromTask<TRDCalibVdExBReader>()},
     Options{
       {"trd-calib-infile", VariantType::String, "trdangreshistos.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},

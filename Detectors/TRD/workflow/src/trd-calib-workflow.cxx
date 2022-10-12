@@ -10,8 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessorSpec.h"
-#include "TRDWorkflowIO/TRDCalibReaderSpec.h"
+#include "TRDWorkflowIO/TRDCalibVdExBReaderSpec.h"
+#include "TRDWorkflowIO/TRDCalibGainReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
+#include "TRDWorkflow/GainCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -20,7 +22,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
+    {"vdexb", o2::framework::VariantType::Bool, false, {"enable VDrift and ExB calibration"}},
+    {"enable-root-input-vdexb", o2::framework::VariantType::Bool, false, {"enable root-files input readers for vdexb"}},
+    {"gain", o2::framework::VariantType::Bool, false, {"enable gain calibration"}},
+    {"enable-root-input-gain", o2::framework::VariantType::Bool, false, {"enable root-files input readers for gain"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -32,11 +37,25 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  auto enableRootInp = configcontext.options().get<bool>("enable-root-input");
+  auto enableRootInpVDEXB = configcontext.options().get<bool>("enable-root-input-vdexb");
+  auto enableRootInpGain = configcontext.options().get<bool>("enable-root-input-gain");
+  auto enableVDEXB = configcontext.options().get<bool>("vdexb");
+  auto enableGain = configcontext.options().get<bool>("gain");
   WorkflowSpec specs;
-  if (enableRootInp) {
-    specs.emplace_back(o2::trd::getTRDCalibReaderSpec());
+  if (enableVDEXB) {
+    if (enableRootInpVDEXB) {
+      specs.emplace_back(o2::trd::getTRDCalibVdExBReaderSpec());
+    }
+    specs.emplace_back(getTRDVdAndExBCalibSpec());
   }
-  specs.emplace_back(getTRDVdAndExBCalibSpec());
+  if (enableGain) {
+    if (enableRootInpGain) {
+      specs.emplace_back(o2::trd::getTRDCalibGainReaderSpec());
+    }
+    specs.emplace_back(getTRDGainCalibSpec());
+  }
+  if(specs.empty()){
+    LOG(warn) << "No Calibration Mode selected, dilly-dallying...";
+  }
   return specs;
 }
