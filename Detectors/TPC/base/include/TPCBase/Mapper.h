@@ -518,6 +518,7 @@ class Mapper
   static constexpr unsigned int NSECTORS{36};                                                                                                                         ///< total number of sectors in the TPC
   static constexpr unsigned int NREGIONS{10};                                                                                                                         ///< total number of regions in one sector
   static constexpr unsigned int PADROWS{152};                                                                                                                         ///< total number of pad rows
+  static constexpr unsigned int NENDPOINTS{2};                                                                                                                        ///< number of end points
   static constexpr unsigned int PADSPERREGION[NREGIONS]{1200, 1200, 1440, 1440, 1440, 1440, 1600, 1600, 1600, 1600};                                                  ///< number of pads per CRU
   static constexpr unsigned int GLOBALPADOFFSET[NREGIONS]{0, 1200, 2400, 3840, 5280, 6720, 8160, 9760, 11360, 12960};                                                 ///< offset of number of pads for region
   static constexpr unsigned int ROWSPERREGION[NREGIONS]{17, 15, 16, 15, 18, 16, 16, 14, 13, 12};                                                                      ///< number of pad rows for region
@@ -578,6 +579,19 @@ class Mapper
     0, 118, 236, 356, 476, 598, 720, 844, 968, 1092, 1218, 1344, 1472,                          // region 8
     0, 128, 258, 388, 520, 652, 784, 918, 1052, 1188, 1324, 1462                                // region 9
   };                                                                                            ///< row offset in cru for given global pad row
+
+  static constexpr unsigned int LinksPerRegionPerEndpoint[NREGIONS][NENDPOINTS]{
+    {8, 7},   // region 0
+    {8, 7},   // region 1
+    {9, 9},   // region 2
+    {9, 9},   // region 3
+    {9, 9},   // region 4
+    {9, 9},   // region 5
+    {10, 10}, // region 6
+    {10, 10}, // region 7
+    {10, 10}, // region 8
+    {10, 10}, // region 9
+  };          ///< number of links per region per end point
 
  private:
   Mapper(const std::string& mappingDir);
