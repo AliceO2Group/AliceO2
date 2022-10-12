@@ -62,4 +62,4 @@ o2_add_test_root_macro(g3Config.C
 
 
 o2_data_file(COPY data  DESTINATION Detectors/gconfig/)
-install(FILES src/FlukaRuntimeConfig.macro DESTINATION share/Detectors/gconfig/)
+install(FILES src/StandardSteppingTrackRefHook.macro src/FlukaRuntimeConfig.macro DESTINATION share/Detectors/gconfig/)
