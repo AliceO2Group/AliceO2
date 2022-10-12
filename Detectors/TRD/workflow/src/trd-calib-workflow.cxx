@@ -54,7 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
     specs.emplace_back(getTRDGainCalibSpec());
   }
-  if(specs.empty()){
+  if (specs.empty()) {
     LOG(warn) << "No Calibration Mode selected, dilly-dallying...";
   }
   return specs;

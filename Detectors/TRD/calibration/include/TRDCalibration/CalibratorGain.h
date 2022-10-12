@@ -54,10 +54,10 @@ class CalibratorGain final : public o2::calibration::TimeSlotCalibration<o2::trd
   void initProcessing();
 
  private:
-  bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
-  bool mEnableOutput;    ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
+  bool mInitDone{false};                             ///< flag to avoid creating the TProfiles multiple times
+  bool mEnableOutput;                                ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
   std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
-  std::vector<o2::trd::CalGain> mObjectVector;  ///< vector of CCDB calibration objects; the extracted ... TODO
+  std::vector<o2::trd::CalGain> mObjectVector;       ///< vector of CCDB calibration objects; the extracted ... TODO
 
   ClassDefOverride(CalibratorGain, 1);
 };

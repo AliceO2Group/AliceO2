@@ -51,7 +51,7 @@ TODO...
 If you want to run the calibration from a local file with residuals, ?.root, you can run:
 
     o2-calibration-trd -b --gain --enable-root-input-gain --gain-opts '--tf-per-slot 1 --min-entries 50000'
-    
+
 ## DCS data points
 
 To process the DCS data points for the TRD the list of aliases for example "trd_gaschromatographXe" has to be available in the CCDB.

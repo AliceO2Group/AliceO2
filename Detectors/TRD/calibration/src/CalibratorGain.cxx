@@ -28,7 +28,6 @@ using namespace o2::trd::constants;
 namespace o2::trd
 {
 
-
 using Slot = o2::calibration::TimeSlot<GainCalibration>;
 
 void CalibratorGain::initOutput()
