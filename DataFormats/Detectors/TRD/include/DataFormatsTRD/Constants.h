@@ -67,6 +67,7 @@ constexpr int ADCBASELINE = 10;                                       // baselin
 constexpr int TIMEBINS = 30;           // the number of time bins
 constexpr float MAXIMPACTANGLE = 25.f; // the maximum impact angle for tracks relative to the TRD detector plane to be considered for vDrift and ExB calibration
 constexpr int NBINSANGLEDIFF = 25;     // the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking
+constexpr double ANODEPLANE = 0.0335; // distance of the TRD anode plane from the drift cathodes in [m]
 
 // Trigger parameters
 constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.

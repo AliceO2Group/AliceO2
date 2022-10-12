@@ -17,6 +17,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/InputRecord.h"
+#include "DataFormatsTRD/Constants.h"
 #include "Fit/Fitter.h"
 #include "TStopwatch.h"
 #include "CCDB/CcdbApi.h"
@@ -38,9 +39,6 @@ namespace o2::trd
 
 double FitFunctor::calculateDeltaAlphaSim(double vdFit, double laFit, double impactAng) const
 {
-
-  double trdAnodePlane = .0335; // distance of the TRD anode plane from the drift cathodes in [m]
-
   auto xDir = TMath::Cos(impactAng);
   auto yDir = TMath::Sin(impactAng);
   double slope = (TMath::Abs(xDir) < 1e-7) ? 1e7 : yDir / xDir;
@@ -48,20 +46,20 @@ double FitFunctor::calculateDeltaAlphaSim(double vdFit, double laFit, double imp
   double lorentzSlope = (TMath::Abs(laTan) < 1e-7) ? 1e7 : 1. / laTan;
 
   // hit point of incoming track with anode plane
-  double xAnodeHit = trdAnodePlane / slope;
-  double yAnodeHit = trdAnodePlane;
+  double xAnodeHit = ANODEPLANE / slope;
+  double yAnodeHit = ANODEPLANE;
 
   // hit point at anode plane of Lorentz angle shifted cluster from the entrance -> independent of true drift velocity
-  double xLorentzAnodeHit = trdAnodePlane / lorentzSlope;
-  double yLorentzAnodeHit = trdAnodePlane;
+  double xLorentzAnodeHit = ANODEPLANE / lorentzSlope;
+  double yLorentzAnodeHit = ANODEPLANE;
 
   // cluster location within drift cell of cluster from entrance after drift velocity ratio is applied
   double xLorentzDriftHit = xLorentzAnodeHit;
-  double yLorentzDriftHit = trdAnodePlane - trdAnodePlane * (vdPreCorr[currDet] / vdFit);
+  double yLorentzDriftHit = ANODEPLANE - ANODEPLANE * (vdPreCorr[currDet] / vdFit);
 
   // reconstructed hit of first cluster at chamber entrance after pre Lorentz angle correction
-  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (trdAnodePlane - yLorentzDriftHit) * TMath::Tan(laPreCorr[currDet]);
-  double yLorentzDriftHitPreCorr = trdAnodePlane - trdAnodePlane * (vdPreCorr[currDet] / vdFit);
+  double xLorentzDriftHitPreCorr = xLorentzAnodeHit - (ANODEPLANE - yLorentzDriftHit) * TMath::Tan(laPreCorr[currDet]);
+  double yLorentzDriftHitPreCorr = ANODEPLANE - ANODEPLANE * (vdPreCorr[currDet] / vdFit);
 
   double impactAngleSim = TMath::ATan2(yAnodeHit, xAnodeHit);
 
