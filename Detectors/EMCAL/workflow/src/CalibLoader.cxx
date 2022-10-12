@@ -37,6 +37,7 @@ void CalibLoader::defineInputSpecs(std::vector<o2::framework::InputSpec>& inputs
 
 void CalibLoader::checkUpdates(o2::framework::ProcessingContext& ctx)
 {
+  resetUpdateStatus();
   if (hasBadChannelMap()) {
     ctx.inputs().get<o2::emcal::BadChannelMap*>("badChannelMap");
   }
@@ -54,6 +55,7 @@ bool CalibLoader::finalizeCCDB(o2::framework::ConcreteDataMatcher& matcher, void
     if (hasBadChannelMap()) {
       LOG(info) << "New bad channel map loaded";
       mBadChannelMap = reinterpret_cast<o2::emcal::BadChannelMap*>(obj);
+      setUpdateBadChannelMap();
     } else {
       LOG(error) << "New bad channel map available even though bad channel calibration was not enabled, not loading";
     }
@@ -63,6 +65,7 @@ bool CalibLoader::finalizeCCDB(o2::framework::ConcreteDataMatcher& matcher, void
     if (hasTimeCalib()) {
       LOG(info) << "New time calibration paramset loaded";
       mTimeCalibParams = reinterpret_cast<o2::emcal::TimeCalibrationParams*>(obj);
+      setUpdateTimeCalib();
     } else {
       LOG(error) << "New time calibration paramset available even though time calibration was not enabled, not loading";
     }
@@ -72,6 +75,7 @@ bool CalibLoader::finalizeCCDB(o2::framework::ConcreteDataMatcher& matcher, void
     if (hasGainCalib()) {
       LOG(info) << "New gain calibration paramset loaded";
       mGainCalibParams = reinterpret_cast<o2::emcal::GainCalibrationFactors*>(obj);
+      setUpdateGainCalib();
     } else {
       LOG(error) << "New gain calibration paramset available even though the gain calibration was not enabled, not loading";
     }
