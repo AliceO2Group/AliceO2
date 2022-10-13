@@ -133,8 +133,8 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
   static bool doneOnce = false;
   if (!doneOnce) {
     doneOnce = true;
-    mFitFunctor.vdPreCorr.fill(1.546);
-    mFitFunctor.laPreCorr.fill(0.);
+    mFitFunctor.vdPreCorr.fill(constants::VDRIFTDEFAULT);
+    mFitFunctor.laPreCorr.fill(constants::EXBDEFAULT);
     // We either get a pointer to a valid object from the last ~hour or to the default object
     // which is always present. The first has precedence over the latter.
     auto dataCalVdriftExB = pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
