@@ -129,6 +129,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       }
     }
 #endif
+    bool tryAddr2Line = true;
     if (begin && end) {
       *begin++ = '\0';
       *end = '\0';
@@ -139,14 +140,11 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       if (ret) {
         // return value may be a realloc() of the input
         function = ret;
-      } else {
-        // demangling failed, just pretend it's a C function with no args
-        std::strncpy(function, begin, sz);
-        std::strncat(function, "()", sz);
-        function[sz - 1] = '\0';
+        dprintf(fd, "    %s: %s\n", stackStrings[i], function);
+        tryAddr2Line = false;
       }
-      dprintf(fd, "    %s: %s\n", stackStrings[i], function);
-    } else {
+    }
+    if (tryAddr2Line) {
       // didn't find the mangled name, just print the whole line
       dprintf(fd, "    %s: ", stackStrings[i]);
       if (stackTrace[i] && hasExe) {
