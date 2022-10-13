@@ -99,10 +99,25 @@ struct ServiceRegistry {
     int32_t index = -1;
   };
 
-  // Metadata about the service
+  // Metadata about the service. This
+  // might be interesting for debugging purposes.
+  // however it's not used to uniquely identify
+  // the service.
   struct Meta {
     ServiceKind kind = ServiceKind::Serial;
-    Salt salt = {0, 0};
+    char const* name = nullptr;
+  };
+
+  // Unique identifier for a service.
+  // While we use the salted hash to find the bucket
+  // in the hashmap, the service can be uniquely identified
+  // only by this 64 bit value.
+  union Key {
+    struct Store {
+      ServiceTypeHash typeHash;
+      Salt salt;
+    } store;
+    uint64_t value = 0;
   };
 
   /// The maximum distance a entry can be from the optimal slot.
@@ -284,7 +299,7 @@ struct ServiceRegistry {
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
-  mutable std::array<std::atomic<uint32_t>, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
+  mutable std::array<std::atomic<Key>, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
   mutable std::array<Meta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;

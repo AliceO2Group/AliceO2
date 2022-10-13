@@ -45,7 +45,7 @@ ServiceRegistry& ServiceRegistry::operator=(ServiceRegistry const& other)
 ServiceRegistry::ServiceRegistry()
 {
   for (size_t i = 0; i < MAX_SERVICES; ++i) {
-    mServicesKey[i].store(0L);
+    mServicesKey[i].store({0L, 0L});
   }
 
   mServicesValue.fill(nullptr);
@@ -79,8 +79,8 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
     if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
                                                                  std::memory_order_seq_cst)) {
       mServicesValue[i + index.index] = service;
-      mServicesMeta[i + index.index] = Meta{kind, salt};
-      mServicesKey[i + index.index] = typeHash.hash;
+      mServicesMeta[i + index.index] = Meta{kind, name ? strdup(name) : nullptr};
+      mServicesKey[i + index.index] = Key{.store = {.typeHash = typeHash, .salt = salt}};
       std::atomic_thread_fence(std::memory_order_release);
       return;
     }
@@ -270,7 +270,7 @@ int ServiceRegistry::getPos(ServiceTypeHash typeHash, Salt salt) const
   InstanceId instanceId = instanceFromTypeSalt(typeHash, salt);
   Index index = indexFromInstance(instanceId);
   for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-    if (mServicesKey[i + index.index].load() == typeHash.hash) {
+    if (mServicesKey[i + index.index].load().value == Key{typeHash.hash, salt}.value) {
       return i + index.index;
     }
   }
@@ -279,30 +279,36 @@ int ServiceRegistry::getPos(ServiceTypeHash typeHash, Salt salt) const
 
 void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name) const
 {
+  // Cannot find a stream service using a global salt.
+  if (salt.context.streamId == GLOBAL_CONTEXT_SALT.value && kind == ServiceKind::Stream) {
+    throwError(runtime_error("Cannot find a global service using a stream salt."));
+  }
   // Look for the service. If found, return it.
   // Notice how due to threading issues, we might
   // find it with getPos, but the value can still
   // be nullptr.
   auto pos = getPos(typeHash, salt);
-  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].salt.value != salt.value) {
-    throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.context.streamId, mServicesMeta[pos].salt.context.streamId));
-    O2_BUILTIN_UNREACHABLE();
-  }
-
-  bool isStream = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DeviceStream;
-  bool isDataProcessor = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DataProcessorGlobal || mServicesMeta[pos].kind == ServiceKind::DataProcessorSerial;
-
-  if (pos != -1 && isStream && salt.context.streamId <= 0) {
-    throwError(runtime_error_f("A stream service cannot be retrieved from a non stream salt %d", salt.context.streamId));
-    O2_BUILTIN_UNREACHABLE();
-  }
-  
-  if (pos != -1 && isDataProcessor && salt.context.dataProcessorId < 0) {
-    throwError(runtime_error_f("A data processor service cannot be retrieved from a non dataprocessor context %d", salt.context.dataProcessorId));
+  // If we are here it means we never registered a
+  // service for the 0 thread (i.e. the main thread).
+  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesKey[pos].load().store.salt.value != salt.value) {
+    throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.context.streamId, mServicesKey[pos].load().store.salt.context.streamId));
     O2_BUILTIN_UNREACHABLE();
   }
 
   if (pos != -1) {
+    bool isStream = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DeviceStream;
+    bool isDataProcessor = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DataProcessorGlobal || mServicesMeta[pos].kind == ServiceKind::DataProcessorSerial;
+
+    if (isStream && salt.context.streamId <= 0) {
+      throwError(runtime_error_f("A stream service cannot be retrieved from a non stream salt %d", salt.context.streamId));
+      O2_BUILTIN_UNREACHABLE();
+    }
+    
+    if (isDataProcessor && salt.context.dataProcessorId < 0) {
+      throwError(runtime_error_f("A data processor service cannot be retrieved from a non dataprocessor context %d", salt.context.dataProcessorId));
+      O2_BUILTIN_UNREACHABLE();
+    }
+
     mServicesKey[pos].load();
     std::atomic_thread_fence(std::memory_order_acquire);
     void* ptr = mServicesValue[pos];
@@ -328,8 +334,6 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
       throwError(runtime_error_f("Unable to find requested service %s", name));
     }
   }
-  // If we are here it means we never registered a
-  // service for the 0 thread (i.e. the main thread).
   return nullptr;
 }
 

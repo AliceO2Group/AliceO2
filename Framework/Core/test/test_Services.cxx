@@ -161,6 +161,7 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   DummyService t0{0};
   DummyService t1{1};
   DummyService t2{2};
+  DummyService t2_d1{2};
   /// We register it pretending to be on thread 0
   registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1, 0}});
   registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2, 0}});
@@ -172,9 +173,16 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 2);
+  // Check that Context{1,1} throws, because we registerd it for a different data processor.
+  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
   // Check that Context{0,0} throws.
   BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream), RuntimeErrorRef);
-  // Check that Context{1,1} throws, because we registerd it for a different data processor.
+
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2_d1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{3, 1}});
+  
+  auto tt2_dp1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, ServiceRegistry::Salt{3, 1}, ServiceKind::Stream));
+  BOOST_CHECK_EQUAL(tt2_dp1->threadId, 2);
+
   BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
 }
 
