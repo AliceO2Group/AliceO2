@@ -35,6 +35,10 @@ class O2DatabasePDG
     auto db = TDatabasePDG::Instance();
     if (!initialized) {
       addALICEParticles(db);
+      if (const char* o2Root = std::getenv("O2_ROOT")) {
+        auto inputExtraPDGs = std::string(o2Root) + "/share/Detectors/gconfig/data/extra_ions_pdg_table.dat";
+        db->ReadPDGTable(inputExtraPDGs.c_str());
+      }
       initialized = true;
     }
     return db;
