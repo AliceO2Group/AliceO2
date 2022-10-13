@@ -150,6 +150,11 @@ class TPCFastTransform : public FlatObject
   /// but also may be called afterwards to reset these parameters.
   void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
 
+  /// Set Lumi info
+  void setLumi(float l) { mLumi = l; }
+  void setLumiError(float e) { mLumiError = e; }
+  void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
+
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
 
@@ -226,6 +231,15 @@ class TPCFastTransform : public FlatObject
 
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
+
+  /// Return map lumi
+  GPUd() float getLumi() const { return mLumi; }
+
+  /// Return map lumi error
+  GPUd() float getLumiError() const { return mLumiError; }
+
+  /// Return map user defined lumi scale factor
+  GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
   /// maximal possible drift timre of the active area
   GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
@@ -307,11 +321,15 @@ class TPCFastTransform : public FlatObject
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 
+  float mLumi;            ///< luminosity estimator
+  float mLumiError;       ///< error on luminosity
+  float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
+
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 1);
+  ClassDefNV(TPCFastTransform, 2);
 #endif
 };
 
