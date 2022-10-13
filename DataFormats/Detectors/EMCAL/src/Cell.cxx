@@ -19,96 +19,30 @@ using namespace o2::emcal;
 
 Cell::Cell()
 {
-  memset(mCellWords, 0, sizeof(uint16_t) * 3);
+  mtower = std::numeric_limits<short>::max();
+  menergy = std::numeric_limits<float>::min();
+  mtime = std::numeric_limits<float>::min();
+  mchi2 = std::numeric_limits<float>::max();
+  mtype = ChannelType_t::HIGH_GAIN;
 }
 
-Cell::Cell(short tower, float energy, float time, ChannelType_t ctype, float chi2)
+Cell::Cell(short tower, float energy, float time, ChannelType_t type, float chi2)
 {
-  memset(mCellWords, 0, sizeof(uint16_t) * 3);
-  setTower(tower);
-  setTimeStamp(time);
-  setType(ctype); // type needs to be set before energy to allow for proper conversion
-  setEnergy(energy);
-  setChi2(chi2);
+  mtower = tower;
+  menergy = energy;
+  mtime = time;
+  mtype = type;
+  mchi2 = chi2;
+  
 }
 
-void Cell::setTimeStamp(float timestamp)
+void Cell::setAll(short tower, float energy, float time, ChannelType_t type, float chi2)
 {
-  // truncate:
-  const float TIME_MIN = -1. * TIME_SHIFT,
-              TIME_MAX = TIME_RANGE - TIME_SHIFT;
-  if (timestamp < TIME_MIN) {
-    timestamp = TIME_MIN;
-  } else if (timestamp > TIME_MAX) {
-    timestamp = TIME_MAX;
-  }
-  getDataRepresentation()->mTime = static_cast<uint16_t>(std::round((timestamp + TIME_SHIFT) / TIME_RESOLUTION));
-}
-
-float Cell::getTimeStamp() const
-{
-  return (static_cast<float>(getDataRepresentation()->mTime) * TIME_RESOLUTION) - TIME_SHIFT;
-}
-
-void Cell::setEnergy(float energy)
-{
-  double truncatedEnergy = energy;
-  if (truncatedEnergy < 0.) {
-    truncatedEnergy = 0.;
-  } else if (truncatedEnergy > ENERGY_TRUNCATION) {
-    truncatedEnergy = ENERGY_TRUNCATION;
-  }
-  switch (getType()) {
-    case ChannelType_t::HIGH_GAIN: {
-      getDataRepresentation()->mEnergy = static_cast<uint16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION_HG));
-      break;
-    }
-    case ChannelType_t::LOW_GAIN: {
-      getDataRepresentation()->mEnergy = static_cast<uint16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION_LG));
-      break;
-    }
-    case ChannelType_t::TRU: {
-      getDataRepresentation()->mEnergy = static_cast<uint16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION_TRU));
-      break;
-    }
-    case ChannelType_t::LEDMON: {
-      getDataRepresentation()->mEnergy = static_cast<uint16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION_LEDMON));
-      break;
-    }
-  }
-}
-
-float Cell::getEnergy() const
-{
-  switch (getType()) {
-    case ChannelType_t::HIGH_GAIN: {
-      return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION_HG;
-    }
-    case ChannelType_t::LOW_GAIN: {
-      return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION_LG;
-    }
-    case ChannelType_t::TRU: {
-      return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION_TRU;
-    }
-    case ChannelType_t::LEDMON: {
-      return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION_LEDMON;
-    }
-  }
-}
-
-void Cell::setChi2(float chi2)
-{
-  if (chi2 < 0.) {
-    chi2 = 0.;
-  } else if (chi2 > CHI2_TRUNCATION) {
-    chi2 = CHI2_TRUNCATION;
-  }
-  getDataRepresentation()->mChi2 = static_cast<uint16_t>(std::round(chi2 / CHI2_RESOLUTION));
-}
-
-float Cell::getChi2() const
-{
-  return static_cast<float>(getDataRepresentation()->mChi2) * CHI2_RESOLUTION;
+  mtower = tower;
+  menergy = energy;
+  mtime = time;
+  mtype = type;
+  mchi2 = chi2;
 }
 
 void Cell::PrintStream(std::ostream& stream) const

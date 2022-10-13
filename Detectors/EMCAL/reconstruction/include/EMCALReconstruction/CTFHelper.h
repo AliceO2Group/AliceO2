@@ -28,7 +28,7 @@ class CTFHelper
 {
 
  public:
-  CTFHelper(const gsl::span<const TriggerRecord>& trgData, const gsl::span<const Cell>& cellData)
+  CTFHelper(const gsl::span<const TriggerRecord>& trgData, const gsl::span<const CellCompressed>& cellData)
     : mTrigData(trgData), mCellData(cellData) {}
 
   CTFHeader createHeader()
@@ -42,7 +42,7 @@ class CTFHelper
     return h;
   }
 
-  size_t getSize() const { return mTrigData.size() * sizeof(TriggerRecord) + mCellData.size() * sizeof(Cell); }
+  size_t getSize() const { return mTrigData.size() * sizeof(TriggerRecord) + mCellData.size() * sizeof(CellCompressed); }
 
   //>>> =========================== ITERATORS ========================================
 
@@ -197,46 +197,46 @@ class CTFHelper
   };
 
   //_______________________________________________
-  class Iter_towerID : public _Iter<Iter_towerID, Cell, uint16_t>
+  class Iter_towerID : public _Iter<Iter_towerID, CellCompressed, uint16_t>
   {
    public:
-    using _Iter<Iter_towerID, Cell, uint16_t>::_Iter;
+    using _Iter<Iter_towerID, CellCompressed, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedTowerID(); }
     value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTowerID(); }
   };
 
   //_______________________________________________
-  class Iter_time : public _Iter<Iter_time, Cell, uint16_t>
+  class Iter_time : public _Iter<Iter_time, CellCompressed, uint16_t>
   {
    public:
-    using _Iter<Iter_time, Cell, uint16_t>::_Iter;
+    using _Iter<Iter_time, CellCompressed, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedTime(); }
     value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTime(); }
   };
 
   //_______________________________________________
-  class Iter_energy : public _Iter<Iter_energy, Cell, uint16_t>
+  class Iter_energy : public _Iter<Iter_energy, CellCompressed, uint16_t>
   {
    public:
-    using _Iter<Iter_energy, Cell, uint16_t>::_Iter;
+    using _Iter<Iter_energy, CellCompressed, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedEnergy(); }
     value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedEnergy(); }
   };
 
   //_______________________________________________
-  class Iter_status : public _Iter<Iter_status, Cell, uint8_t>
+  class Iter_status : public _Iter<Iter_status, CellCompressed, uint8_t>
   {
    public:
-    using _Iter<Iter_status, Cell, uint8_t>::_Iter;
+    using _Iter<Iter_status, CellCompressed, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedCellStatus(); }
     value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedCellStatus(); }
   };
 
   //_______________________________________________
-  class Iter_chi2 : public _Iter<Iter_chi2, Cell, uint16_t>
+  class Iter_chi2 : public _Iter<Iter_chi2, CellCompressed, uint16_t>
   {
    public:
-    using _Iter<Iter_chi2, Cell, uint16_t>::_Iter;
+    using _Iter<Iter_chi2, CellCompressed, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedChi2(); }
   };
 
@@ -271,7 +271,7 @@ class CTFHelper
 
  private:
   const gsl::span<const o2::emcal::TriggerRecord> mTrigData;
-  const gsl::span<const o2::emcal::Cell> mCellData;
+  const gsl::span<const o2::emcal::CellCompressed> mCellData;
 };
 
 } // namespace emcal

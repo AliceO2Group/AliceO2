@@ -21,10 +21,10 @@ namespace emcal
 {
 
 /// \class Cell
-/// \brief EMCAL compressed cell information
-/// \author Anders Knospe, University of Houston
+/// \brief EMCAL uncompressed cell information
+/// \author Florian Jonas <florian.jonas@cern.ch>, Oak Ridge National Laboratory
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
-/// \since March 6, 2019
+/// \since October 12, 2022
 /// \ingroup EMCALDataFormat
 ///
 /// # Base format for EMCAL cell information in the Compressed Timeframe
@@ -34,88 +34,41 @@ namespace emcal
 /// - Energy of the raw fit
 /// - Time of the raw fit
 /// - Type of the cell
-/// While cell type and tower ID have a predefined range based on the hardware
-/// design, energy and time have a finite resolution influenced by the resolution
-/// of the digitizer. This is used in order to compress the information stored
-/// in the compressed timeframe by not storing the full double values but instead
-/// assigning a certain amount of bits to each information. Therefore for certain
-/// information (energy, time) precision loss has to be taken into account.
-///
-/// # Internal structure and resolution
-///
-/// The internal structure is a bit field compressing the information to
-/// 48 bits. The definition of the bit field as well as the value range and the resolution
-/// is listed in the table below:
-///
-/// | Bits  | Content       | Resolution    | Range                       |
-/// |-------|---------------|---------------|-----------------------------|
-/// | 0-14  | Tower ID      | -             | 0 to 17644                  |
-/// | 15-26 | Time (ns)     | 0.73 ns       | -600 to 900 ns              |
-/// | 27-40 | Energy (GeV)  | 0.0153 GeV    | 0 to 250 GeV                |
-/// | 41-42 | Cell type     | -             | 0=LG, 1=HG, 2=LEMon, 4=TRU  |
-/// | 42-47 | Chi2 of raw fit | 0.159        | 0 to 10                 |
-/// The remaining bits are 0
 class Cell
 {
  public:
   // constants
-  static const float TIME_SHIFT = 600.,
-            TIME_RANGE = 1500.,
-            TIME_RESOLUTION = TIME_RANGE / 2047.,
-            ENERGY_BITS = static_cast<float>(0x3FFF),
-            HGLGTRANSITION = o2::emcal::constants::EMCAL_HGLGTRANSITION * o2::emcal::constants::EMCAL_ADCENERGY,
-            ENERGY_TRUNCATION = 250.,
-            ENERGY_BUFFER = 0.1, // 10% buffer in case calibrations shift the energy out of HG/LG range
-            ENERGY_RESOLUTION_LG = (ENERGY_TRUNCATION - (HGLGTRANSITION * (1 - ENERGY_BUFFER))) / ENERGY_BITS,
-            ENERGY_RESOLUTION_HG = HGLGTRANSITION * (1 + ENERGY_BUFFER) / ENERGY_BITS,
-            ENERGY_RESOLUTION_TRU = ENERGY_TRUNCATION / ENERGY_BITS,
-            ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS,
-            CHI2_TRUNCATION = 10.,
-            CHI_2BITS = static_cast<float>(0x3F),
-            CHI2_RESOLUTION = CHI2_TRUNCATION / CHI_2BITS,
-            ENERGY_RESOLUTION_OLD = ENERGY_TRUNCATION / 16383.;
   Cell();
-  Cell(short tower, float energy, float time, ChannelType_t ctype = ChannelType_t::LOW_GAIN, float chi2 = 10.);
+  Cell(short tower, float energy, float time, ChannelType_t type = ChannelType_t::LOW_GAIN, float chi2 = 10.);
   ~Cell() = default; // override
 
-  void setTower(short tower) { getDataRepresentation()->mTowerID = tower; }
-  short getTower() const { return getDataRepresentation()->mTowerID; }
+  void setTower(short tower) { mtower = tower; }
+  short getTower() const { return mtower; }
 
   /// \brief Set the time stamp
   /// \param time Time in ns
   ///
-  /// The time stamp is expressed in ns and has
-  /// a resolution of 1 ns. The time range which can
-  /// be stored is from -1023 to 1023 ns. In case the
-  /// range is exceeded the time is set to the limit
-  /// of the range.
-  void setTimeStamp(float time);
+  /// The time stamp is expressed in ns
+  void setTimeStamp(float time) { mtime = time; }
 
   /// \brief Get the time stamp
   /// \return Time in ns
   ///
-  /// Time has a resolution of 1 ns and can cover
-  /// a range from -1023 to 1023 ns
-  float getTimeStamp() const;
+  /// Time stamp is expressed in ns
+  float getTimeStamp() const { return mtime; }
 
   /// \brief Set the energy of the cell
   /// \brief Energy of the cell in GeV
   ///
   /// The energy range covered by the cell
-  /// is 0 - 250 GeV, with a resolution of
-  /// 0.0153 GeV. In case an energy exceeding
-  /// the limits is provided the energy is
-  /// set to the limits (0 in case of negative
-  /// energy, 250. in case of energies > 250 GeV)
-  void setEnergy(float energy);
+  /// is 0 - 250 GeV
+  void setEnergy(float energy) { menergy = energy; }
 
   /// \brief Get the energy of the cell
-  /// \return Energy of the cell
+  /// \return Energy of the cell GeV
   ///
-  /// The energy is truncated to a range
-  /// covering 0 to 250 GeV with a resolution
-  /// of 0.0153 GeV
-  float getEnergy() const;
+  /// Return the energy in GeV
+  float getEnergy() const { return menergy; }
 
   /// \brief Set the amplitude of the cell
   /// \param amplitude Cell amplitude
@@ -130,17 +83,17 @@ class Cell
   float getAmplitude() const { return getEnergy(); }
 
   /// \brief Set the type of the cell
-  /// \param ctype Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
-  void setType(ChannelType_t ctype) { getDataRepresentation()->mCellStatus = static_cast<uint16_t>(ctype); }
+  /// \param type Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
+  void setType(ChannelType_t type) { mtype = static_cast<ChannelType_t>(type); }
 
   /// \brief Get the type of the cell
   /// \return Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
-  ChannelType_t getType() const { return static_cast<ChannelType_t>(getDataRepresentation()->mCellStatus); }
+  ChannelType_t getType() const { return mtype; }
 
   /// \brief Check whether the cell is of a given type
-  /// \param ctype Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
+  /// \param type Type of the cell (HIGH_GAIN, LOW_GAIN, LEDMON, TRU)
   /// \return True if the type of the cell matches the requested type, false otherwise
-  bool isChannelType(ChannelType_t ctype) const { return getType() == ctype; }
+  bool isChannelType(ChannelType_t type) const { return getType() == type; }
 
   /// \brief Mark cell as low gain cell
   void setLowGain() { setType(ChannelType_t::LOW_GAIN); }
@@ -172,44 +125,22 @@ class Cell
 
   /// \brief Set the chi2 of the raw fitter
   /// \param chi2 Chi2 of the raw fitter
-  void setChi2(float chi2);
+  void setChi2(float chi2) { mchi2 = chi2; }
 
   /// \brief Get the chi2 of the raw fitter
   /// \return Chi2 of the raw fitter
-  float getChi2() const;
+  float getChi2() const { return mchi2; }
+
+  void setAll(short tower, float energy, float time, ChannelType_t type = ChannelType_t::LOW_GAIN, float chi2 = 10.);
 
   void PrintStream(std::ostream& stream) const;
 
-  /// used for CTF encoding/decoding: access to packed data
-  void setPacked(uint16_t tower, uint16_t t, uint16_t en, uint16_t status, uint16_t chi2)
-  {
-    auto dt = getDataRepresentation();
-    dt->mTowerID = tower;
-    dt->mTime = t;
-    dt->mEnergy = en;
-    dt->mCellStatus = status;
-    dt->mChi2 = chi2;
-  }
-
-  auto getPackedTowerID() const { return getDataRepresentation()->mTowerID; }
-  auto getPackedTime() const { return getDataRepresentation()->mTime; }
-  auto getPackedEnergy() const { return getDataRepresentation()->mEnergy; }
-  auto getPackedCellStatus() const { return getDataRepresentation()->mCellStatus; }
-  auto getPackedChi2() const { return getDataRepresentation()->mChi2; }
-
  private:
-  struct __attribute__((packed)) CellData {
-    uint16_t mTowerID : 15;   ///< bits 0-14   Tower ID
-    uint16_t mTime : 11;      ///< bits 15-25: Time (signed, can become negative after calibration)
-    uint16_t mEnergy : 14;    ///< bits 26-39: Energy
-    uint16_t mCellStatus : 2; ///< bits 40-41: Cell status
-    uint16_t mChi2 : 6;       ///< bits 42-47: chi2 of raw fitter
-  };
-
-  CellData* getDataRepresentation() { return reinterpret_cast<CellData*>(mCellWords); }
-  const CellData* getDataRepresentation() const { return reinterpret_cast<const CellData*>(mCellWords); }
-
-  uint16_t mCellWords[3]; ///< data word
+  short mtower;
+  float menergy;
+  float mtime;
+  ChannelType_t mtype;
+  float mchi2;
 
   ClassDefNV(Cell, 1);
 };

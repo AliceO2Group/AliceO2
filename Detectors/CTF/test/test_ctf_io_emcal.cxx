@@ -28,7 +28,7 @@ using namespace o2::emcal;
 BOOST_AUTO_TEST_CASE(CTFTest)
 {
   std::vector<TriggerRecord> triggers;
-  std::vector<Cell> cells;
+  std::vector<CellCompressed> cells;
   //  gSystem->Load("libO2DetectorsCommonDataFormats");
   TStopwatch sw;
   sw.Start();
@@ -126,9 +126,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   for (size_t i = 0; i < cells.size(); i++) {
     const auto& cor = cells[i];
     const auto& cdc = cellsD[i];
-    BOOST_CHECK_EQUAL(cor.getPackedTowerID(), cdc.getPackedTowerID());
-    BOOST_CHECK_EQUAL(cor.getPackedTime(), cdc.getPackedTime());
-    BOOST_CHECK_EQUAL(cor.getPackedEnergy(), cdc.getPackedEnergy());
-    BOOST_CHECK_EQUAL(cor.getPackedCellStatus(), cdc.getPackedCellStatus());
+    BOOST_CHECK_EQUAL(cor.getTower(), cdc.getTower());
+    BOOST_CHECK_EQUAL(cor.getTimeStamp(), cdc.getTimeStamp());
+    BOOST_CHECK_EQUAL(cor.getEnergy(), cdc.getEnergy());
+    BOOST_CHECK_EQUAL(cor.getType(), cdc.getType());
   }
 }

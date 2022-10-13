@@ -20,6 +20,7 @@
 #include <Rtypes.h>
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/CellCompressed.h"
 #include "DataFormatsEMCAL/Cell.h"
 
 namespace o2

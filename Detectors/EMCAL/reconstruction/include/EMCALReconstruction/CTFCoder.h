@@ -41,7 +41,10 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const CellCompressed>& cellData);
+
+  // repack energy old format -> new format
+  template <typename  T, typename U> T repackE(T packedE, U packedStatus);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCELL>
@@ -51,16 +54,16 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   template <typename VEC>
-  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData);
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const CellCompressed>& cellDComprCellCompressedata);
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Cell>& cellVec);
   std::vector<TriggerRecord> mTrgDataFilt;
-  std::vector<Cell> mCellDataFilt;
+  std::vector<CellCompressed> mCellDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const CellCompressed>& cellData)
 {
   if (mIRFrameSelector.isSet()) { // preselect data
     mTrgDataFilt.clear();
@@ -80,7 +83,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerReco
 }
 
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData)
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const CellCompressed>& cellData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -128,9 +131,40 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
   finaliseCTFOutput<CTF>(buff);
-  iosize.rawIn = sizeof(TriggerRecord) * trigData.size() + sizeof(Cell) * cellData.size();
+  iosize.rawIn = sizeof(TriggerRecord) * trigData.size() + sizeof(CellCompressed) * cellData.size();
   return iosize;
 }
+
+// repack cell energy (needed for old version of CTF (subversion 1)
+ template <typename  T, typename U> T CTFCoder::repackE(T packedE, U packedStatus){
+    T repackedE = packedE;
+    double energyTmp = packedE * CellCompressed::ENERGY_RESOLUTION_OLD;
+    double truncatedEnergyTmp = energyTmp;
+    if (truncatedEnergyTmp < 0.) {
+      truncatedEnergyTmp = 0.;
+    } else if (truncatedEnergyTmp > CellCompressed::ENERGY_TRUNCATION) {
+      truncatedEnergyTmp = CellCompressed::ENERGY_TRUNCATION;
+    }
+    switch (static_cast<o2::emcal::ChannelType_t>(packedStatus)) {
+      case o2::emcal::ChannelType_t::HIGH_GAIN: {
+        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_HG));
+        break;
+      }
+      case o2::emcal::ChannelType_t::LOW_GAIN: {
+        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LG));
+        break;
+      }
+      case o2::emcal::ChannelType_t::TRU: {
+        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_TRU));
+        break;
+      }
+      case o2::emcal::ChannelType_t::LEDMON: {
+        repackedE = static_cast<T>(std::round(truncatedEnergyTmp / CellCompressed::ENERGY_RESOLUTION_LEDMON));
+        break;
+      }
+    }
+    return repackedE;
+ }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VTRG, typename VCELL>
@@ -172,6 +206,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   uint32_t firstEntry = 0, cellCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
 
+  CellCompressed cellCompressed;
   Cell cell;
   TriggerRecord trg;
 
@@ -180,7 +215,6 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   if (header.majorVersion == 0 && header.minorVersion == 1) {
     isVersion1 = kTRUE;
   }
-  double energyTmp,truncatedEnergyTmp; // temporary energy used for conversion if old dictionary found
   uint16_t packedEnergy; // packed energy
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
@@ -197,35 +231,12 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
       // if old verion of CTF, do conversion to energy and then repack before setting packed content
       if(isVersion1){
-          energyTmp = energy[cellCount] * Cell::ENERGY_RESOLUTION_OLD;
-          truncatedEnergyTmp = energy;
-          if (truncatedEnergyTmp < 0.) {
-            truncatedEnergyTmp = 0.;
-          } else if (truncatedEnergyTmp > Cell::ENERGY_TRUNCATION) {
-            truncatedEnergyTmp = Cell::ENERGY_TRUNCATION;
-          }
-          switch (static_cast<o2::emcal::ChannelType_t>(status[cellCount])) {
-            case o2::emcal::ChannelType_t::HIGH_GAIN: {
-              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_HG));
-              break;
-            }
-            case o2::emcal::ChannelType_t::LOW_GAIN: {
-              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_LG));
-              break;
-            }
-            case o2::emcal::ChannelType_t::TRU: {
-              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_TRU));
-              break;
-            }
-            case o2::emcal::ChannelType_t::LEDMON: {
-              packedEnergy = static_cast<uint16_t>(std::round(truncatedEnergyTmp / Cell::ENERGY_RESOLUTION_LEDMON));
-              break;
-            }
-          }
+        packedEnergy = repackE(energy[cellCount],status[cellCount]);
       } else{ // new CTFs don't require any repacking
         packedEnergy = energy[cellCount];     
       }
-      cell.setPacked(tower[cellCount], cellTime[cellCount], packedEnergy, status[cellCount], chi2[cellCount]);
+      cellCompressed.setPacked(tower[cellCount], cellTime[cellCount], packedEnergy, status[cellCount], chi2[cellCount]);
+      cell.setAll(cellCompressed.getTower(), cellCompressed.getEnergy(), cellCompressed.getTimeStamp(), cellCompressed.getType(), cellCompressed.getChi2());
       cellVec.emplace_back(cell);
       cellCount++;
     }

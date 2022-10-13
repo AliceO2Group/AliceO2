@@ -50,7 +50,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   mCTFCoder.updateTimeDependentParams(pc);
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
-  auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
+  auto cells = pc.inputs().get<gsl::span<CellCompressed>>("cells");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"EMC", "CTFDATA", 0, Lifetime::Timeframe});
   if (mSelIR) {
