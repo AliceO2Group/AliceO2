@@ -18,6 +18,8 @@ o2_add_library(EMCALReconstruction
         src/Bunch.cxx
         src/Channel.cxx
         src/RecoParam.cxx
+        src/RawDecodingError.cxx
+        src/ReconstructionErrors.cxx
         src/CaloFitResults.cxx
         src/CaloRawFitter.cxx
         src/CaloRawFitterStandard.cxx
@@ -60,6 +62,30 @@ o2_add_executable(rawreader-file
         COMPONENT_NAME emcal
         PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
         SOURCES run/rawReaderFile.cxx)
+
+o2_add_test(AltroDecoderError
+        SOURCES test/testAltroDecoderError.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(MinorAltroDecodingError
+        SOURCES test/testMinorAltroDecodingError.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(CaloRawFitterError
+        SOURCES test/testCaloRawFitterError.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(RawDecodingError
+        SOURCES test/testRawDecodingError.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
 
 o2_add_test_root_macro(macros/RawFitterTESTs.C
         PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers

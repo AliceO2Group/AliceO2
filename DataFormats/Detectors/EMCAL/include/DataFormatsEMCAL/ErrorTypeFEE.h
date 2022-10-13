@@ -171,6 +171,20 @@ class ErrorTypeFEE
   /// Helper function, called in the output stream operator for the ErrorTypeFEE
   void PrintStream(std::ostream& stream) const;
 
+  /// \brief Get the number of error types
+  /// \return Number of error types (including undefined)
+  static constexpr int getNumberOfErrorTypes() { return 7; }
+
+  /// \brief Get the name of the error type
+  /// \param errorTypeID ID of the error type
+  /// \return Name of the error type
+  static const char* getErrorTypeName(unsigned int errorTypeID);
+
+  /// \brief Get the title of the error type
+  /// \param errorTypeID ID of the error type
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(unsigned int errorTypeID);
+
  private:
   /// \brief Helper function getting the error code under condition that the error is of a certain type
   /// \return Error code (-1 in case the error handle by the object is not of the given type)
