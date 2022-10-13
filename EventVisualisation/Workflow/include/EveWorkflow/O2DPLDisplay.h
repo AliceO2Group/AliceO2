@@ -73,7 +73,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
  private:
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
 
-  bool mDisableWrite = false;              // skip writing result (for testing performance)
+  bool mDisableWrite = false; // skip writing result (for testing performance)
   bool mUseMC = false;
   bool mEveHostNameMatch;                  // empty or correct hostname
   int mMinITSTracks;                       // minimum number of ITS tracks to produce a file

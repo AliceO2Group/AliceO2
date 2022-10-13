@@ -166,7 +166,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         save = false;
       }
 
-      if(this->mDisableWrite) {
+      if (this->mDisableWrite) {
         save = false;
       }
 
@@ -177,7 +177,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setTfCounter(tinfo.tfCounter);
         helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
         helper.mEvent.setPrimaryVertex(pv);
-        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber,tinfo.creation);
+        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
         filesSaved++;
       }
 
