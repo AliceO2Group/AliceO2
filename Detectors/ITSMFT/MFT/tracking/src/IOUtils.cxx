@@ -45,6 +45,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
   int clusterId{0};
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
+  event.Reserve(clusters_in_frame.size());
   for (auto& c : clusters_in_frame) {
     auto sensorID = c.getSensorID();
     int layer = geom->getLayer(sensorID);

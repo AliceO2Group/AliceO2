@@ -46,7 +46,7 @@ class TrackerDPL : public o2::framework::Task
 
   bool mUseMC = false;
   bool mFieldOn = true;
-  int mNThreads = 1;
+  int mNThreads = 4;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;

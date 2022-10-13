@@ -41,7 +41,15 @@ template <typename T>
 class ROframe
 {
  public:
-  ROframe(int nReservedTracks = 1000) { mTracks.reserve(nReservedTracks); }
+  void Reserve(int nClusters = 0, float fraction = 0.12f)
+  {
+    auto layer = constants::mft::LayersNumber;
+    while (layer--) {
+      mClusters[layer].reserve(nClusters * fraction);
+      mClusterExternalIndices[layer].reserve(nClusters * fraction);
+    }
+    mTracks.reserve(nClusters * fraction);
+  }
   Int_t getTotalClusters() const;
 
   std::vector<Cluster>& getClustersInLayer(Int_t layerId) { return mClusters[layerId]; }

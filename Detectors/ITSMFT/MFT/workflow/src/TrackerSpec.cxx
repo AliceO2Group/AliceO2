@@ -105,10 +105,8 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     for (auto& rof : rofs) {
       int worker = std::min(int(iROF / rofsPerWorker), mNThreads - 1);
-      // std::cout << "iROF = " << iROF << " ; nROFs = " << nROFs << " ; worker = " << worker << std::endl;
       auto& roFrameData = roFrameDataVec[worker].emplace_back();
       int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get());
-
       roFrameData.initialize(trackingParam.FullClusterScan);
       LOG(debug) << "ROframeId: " << roFrameId << ", clusters loaded : " << nclUsed;
       iROF++;
@@ -119,25 +117,22 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& rofData : *workerROFs) {
       tracker->findLTFTracks(rofData);
     }
-    return true;
   };
 
   auto launchCA = [](auto* tracker, auto* workerROFs) {
     for (auto& rofData : *workerROFs) {
       tracker->findCATracks(rofData);
     }
-    return true;
   };
 
   auto launchFitter = [](auto* tracker, auto* workerROFs) {
     for (auto& rofData : *workerROFs) {
       tracker->fitTracks(rofData);
     }
-    return true;
   };
 
   auto runLTFTrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
-    std::vector<std::future<bool>> finder;
+    std::vector<std::future<void>> finder;
     for (int i = 0; i < mNThreads; i++) {
       auto& tracker = trackerVec[i];
       auto& workerData = roFrameDataVec[i];
@@ -151,7 +146,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   auto runCATrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
-    std::vector<std::future<bool>> finder;
+    std::vector<std::future<void>> finder;
     for (int i = 0; i < mNThreads; i++) {
       auto& tracker = trackerVec[i];
       auto& workerData = roFrameDataVec[i];
@@ -165,7 +160,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   auto runTrackFitter = [&, this](auto& trackerVec, auto& roFrameDataVec) {
-    std::vector<std::future<bool>> fitter;
+    std::vector<std::future<void>> fitter;
     for (int i = 0; i < mNThreads; i++) {
       auto& tracker = trackerVec[i];
       auto& workerData = roFrameDataVec[i];
@@ -194,9 +189,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mFieldOn) {
 
     std::vector<std::vector<o2::mft::ROframe<TrackLTF>>> roFrameVec(mNThreads); // One vector of ROFrames per thread
-    std::vector<std::vector<TrackLTF>> tracksROFVec(mNThreads);
     for (auto& rof : roFrameVec) {
-      rof.reserve(rofsPerWorker * 2);
+      rof.reserve(rofsPerWorker);
     }
 
     mTimer[SWLoadData].Start(false);
@@ -248,7 +242,6 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   } else {
     std::vector<std::vector<o2::mft::ROframe<TrackLTFL>>> roFrameVec(mNThreads); // One vector of ROFrames per thread
-    std::vector<std::vector<TrackLTFL>> tracksROFVec(mNThreads);
     for (auto& rof : roFrameVec) {
       rof.reserve(rofsPerWorker);
     }
@@ -339,6 +332,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     auto Bz = field->getBz(centerMFT);
     if (Bz == 0 || trackingParam.forceZeroField) {
       LOG(info) << "Starting MFT Linear tracker: Field is off!";
+      LOG(info) << "  MFT tracker running with " << mNThreads << " threads";
       mFieldOn = false;
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerLVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC));
@@ -347,6 +341,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
       }
     } else {
       LOG(info) << "Starting MFT tracker: Field is on! Bz = " << Bz;
+      LOG(info) << "  MFT tracker running with " << mNThreads << " threads";
       mFieldOn = true;
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC));
