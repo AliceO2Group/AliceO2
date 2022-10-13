@@ -135,20 +135,24 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
     doneOnce = true;
     mFitFunctor.vdPreCorr.fill(1.546);
     mFitFunctor.laPreCorr.fill(0.);
-    // Getting the current unix epoch in ms.
-    // If the Run is recent enough, then the previous object's validity extends to now as well.
-    // Otherwise we restart from scratch.
-    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
+    // We either get a pointer to a valid object from the last ~hour or to the default object
+    // which is always present. The first has precedence over the latter.
     auto dataCalVdriftExB = pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
-    if (!dataCalVdriftExB) { // if nothing is found go with standard values
-                             // maybe a default object is returned all the time but lets be save
-      LOG(info) << "Calibrator: Did not find last valid fit values, using default";
-    } else {
-      for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-        mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
-        mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
+    std::string msg = "Default Object";
+    // We check if the object we got is the default one by comparing it to the defaults.
+    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+      if (dataCalVdriftExB->getVdrift(iDet) != constants::VDRIFTDEFAULT ||
+          dataCalVdriftExB->getExB(iDet) != constants::EXBDEFAULT) {
+        msg = "Previous Object";
+        break;
       }
-      LOG(info) << "Calibrator: Found last valid fit values, using those to start";
+    }
+    LOG(info) << "Calibrator: From CCDB retrieved " << msg;
+
+    // Here we set each entry regardless if it is the default or not.
+    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+      mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
+      mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
     }
   }
 }
