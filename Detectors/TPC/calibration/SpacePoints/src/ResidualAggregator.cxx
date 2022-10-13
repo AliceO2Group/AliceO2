@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <numeric>
 #include <algorithm>
+#include <chrono>
 
 using namespace o2::tpc;
 
@@ -321,6 +322,7 @@ void ResidualAggregator::initOutput()
 void ResidualAggregator::finalizeSlot(Slot& slot)
 {
   LOG(info) << "Finalizing slot";
+  auto finalizeStartTime = std::chrono::high_resolution_clock::now();
   auto cont = slot.getContainer();
   cont->print();
   if (!mWriteOutput) {
@@ -351,13 +353,18 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
       LOG(error) << "Failed to store residuals meta data file " << metaFileName << ", reason: " << e.what();
     }
   }
+  std::chrono::duration<double, std::milli> finalizeDuration = std::chrono::high_resolution_clock::now() - finalizeStartTime;
+  LOGP(info, "Finalizing calibration slot took: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(finalizeDuration).count());
 }
 
 Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
+  auto emplaceStartTime = std::chrono::high_resolution_clock::now();
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
   slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval, mCompressionSetting);
+  std::chrono::duration<double, std::milli> emplaceDuration = std::chrono::high_resolution_clock::now() - emplaceStartTime;
+  LOGP(info, "Emplacing new calibration slot took: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(emplaceDuration).count());
   return slot;
 }
