@@ -50,6 +50,7 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   bool doIonTailPerPad = false;                                                 ///< add ion tail in simulation using pad-by-pad values
   bool doSaturationTail = false;                                                ///< add saturation tail in simulation
   bool doNoiseEmptyPads = false;                                                ///< add noise in pads without signal in simulation
+  float commonModeCoupling = 0.5f;                                              ///< average coupling of common mode signal
   DigitzationMode DigiMode = DigitzationMode::ZeroSuppression;                  ///< Digitization mode [full / ... ]
 
   /// Average time from the start of the signal shaping to the COG of the sampled distribution

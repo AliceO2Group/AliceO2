@@ -144,7 +144,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
       prevDigit.signal = digit.getChargePad(); // to make hasSignal() check work in next time bin
     }
     const CRU cru = mapper.getCRU(sector, iPad);
-    mCommonMode[cru.gemStack()] += digit.getChargePad() * 0.5; // TODO: Replace 0.5 by k-factor, take into account ion tail
+    mCommonMode[cru.gemStack()] += digit.getChargePad() * eleParam.commonModeCoupling; // TODO: Add pad-by-pad variaion
   }
 
   // fill common mode output container
