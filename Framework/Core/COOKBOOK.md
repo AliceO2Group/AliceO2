@@ -124,6 +124,9 @@ Note that in this case your workflow should be started with the `-b` option and 
 ```bash
 [INFO] Driver listening on port: 34855
 ```
+
+Notice you can customise the port to your preference using the `DPL_REMOTE_GUI_PORT` variable.
+
 In order to connect to this port with your browser you should go to https://aliceo2group.github.io/DebugGUI/remote/remote.html, enter the port and click on the `LAUNCH` button. If you are running the DebugGUI remotely, but still the processing is done on your laptop (e.g. because the native DebugGUI is not working for some reason) you can download the web page and then open the local html file in your browser.
 
 ![DebugGUI](https://user-images.githubusercontent.com/26281793/192991412-f26a271d-919a-4dd5-af2b-6a8425d6d1eb.png)
