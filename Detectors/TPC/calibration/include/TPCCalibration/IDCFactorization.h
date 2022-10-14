@@ -238,6 +238,10 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const float minZ = 0, const float maxZ = -1, const std::string filename = "IDCsSide.pdf") const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename, minZ, maxZ); }
 
+  /// draw GIF for IDCs
+  /// \param integrationIntervals number of ms to draw
+  void drawIDCsSideGIF(const unsigned int integrationIntervals = 0, const float minZ = 0, const float maxZ = -1, const int run = -1, const std::string filename = "IDCsSideGIF") const { drawIDCHelper(true, Sector(0), integrationIntervals, filename, minZ, maxZ, true, run); }
+
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
@@ -344,7 +348,7 @@ class IDCFactorization : public IDCGroupHelperSector
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;
 
   /// helper function for drawing IDCs
-  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const;
+  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ, const bool drawGIF = false, const int run = 0) const;
 
   /// helper function for drawing IDCZero
   void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;

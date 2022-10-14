@@ -66,6 +66,20 @@ class IDCDrawHelper
   static void drawRadialProfile(const IDCDraw& idc, TH2F& hist, const o2::tpc::Side side);
   static void drawIDCZeroStackCanvas(const IDCDraw& idc, const o2::tpc::Side side, const std::string_view type, const int nbins1D, const float xMin1D, const float xMax1D, TCanvas& outputCanvas, int integrationInterval);
 
+  struct IDCDrawGIF {
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int, const unsigned int)> mIDCFunc; ///< function returning the value which will be drawn for sector, region, row, pad
+    std::function<float(const o2::tpc::Side side, const unsigned int)> mIDCOneFunc;                                                    ///< function returning the value which will be drawn for side, slice
+  };
+
+  /// \brief make a GIF of IDCs for A and C side and the 1D IDCs
+  /// \param idc IDCDraw struct containing function to get the IDCs + 1D IDCs which will be drawn
+  /// \param zAxisTitle axis title of the z axis
+  /// \param fileName name of the output file (.gif is added automatically)
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param run run of the IDCs (if =-1 then no run number is drawn)
+  static void drawSideGIF(const IDCDrawGIF& idcs, const unsigned int slices, const std::string zAxisTitle, const std::string filename = "IDCs", const float minZ = 0, const float maxZ = -1, const int run = -1);
+
   /// \return returns z axis title
   /// \param type IDC type
   /// \param compression compression of the IDCs if used (only for IDCDelta)

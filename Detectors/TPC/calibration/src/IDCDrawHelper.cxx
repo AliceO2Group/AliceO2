@@ -15,6 +15,8 @@
 #include "TH2Poly.h"
 #include "TCanvas.h"
 #include "TLatex.h"
+#include "TGraphErrors.h"
+#include "TMultiGraph.h"
 #include <fmt/format.h>
 
 unsigned int o2::tpc::IDCDrawHelper::getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side)
@@ -266,8 +268,143 @@ std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCD
         }
       }
     case IDCType::IDCOne: {
-      return fmt::format("#Delta#it{{{}}}_{{1}}", stype);
+      return fmt::format("#it{{{}}}_{{1}}", stype);
       break;
     }
+  }
+}
+
+void o2::tpc::IDCDrawHelper::drawSideGIF(const IDCDrawGIF& idcs, const unsigned int slices, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ, const int run)
+{
+  const int gifSpeed = 40;
+
+  TCanvas can("canvas", "canvas", 3350, 2000);
+  TPad padIDCA("padIDCA", "padIDCA", 0, 0.25, 0.5, 1);
+  TPad padIDCC("padIDCC", "padIDCC", 0.5, 0.25, 1, 1);
+  TPad padIDCOne("padIDCOne", "padIDCOne", 0, 0, 1, 0.25);
+
+  const float tm = 0.04f;
+  const float rm = 0.14f;
+  const float lm = 0.1f;
+  const float bm = 0.2f;
+  padIDCA.SetTopMargin(tm);
+  padIDCA.SetRightMargin(rm);
+  padIDCA.SetLeftMargin(lm);
+  padIDCC.SetTopMargin(tm);
+  padIDCC.SetRightMargin(rm);
+  padIDCC.SetLeftMargin(lm);
+  padIDCOne.SetTopMargin(tm);
+  padIDCOne.SetRightMargin(rm / 2);
+  padIDCOne.SetLeftMargin(lm / 2);
+  padIDCOne.SetBottomMargin(bm);
+
+  padIDCA.Draw();
+  padIDCC.Draw();
+  padIDCOne.Draw();
+
+  std::array<TGraphErrors, SIDES> graphIDCOne;
+  std::array<TGraphErrors, SIDES> graphIDCOneSlice;
+  TMultiGraph multiGraph;
+  float minY = 1000;
+  float maxY = -1;
+  const float widthLine = 0.005f;
+  const float idcWH = 0.5; // IDC width half: 1ms/2
+  for (unsigned int sideT = 0; sideT < SIDES; ++sideT) {
+    const Side side = (sideT == 0) ? Side::A : Side::C;
+    const auto col = (sideT == 0) ? (kGreen + 2) : kBlue;
+    graphIDCOne[sideT].SetFillColorAlpha(col, 0.3);
+    graphIDCOne[sideT].SetLineWidth(5);
+    graphIDCOneSlice[sideT] = graphIDCOne[sideT];
+    graphIDCOneSlice[sideT].Set(1);
+    graphIDCOneSlice[sideT].SetFillColorAlpha(col, 1);
+    for (unsigned int slice = 0; slice < slices; ++slice) {
+      const auto idc = idcs.mIDCOneFunc(side, slice);
+      if (idc < minY) {
+        minY = idc;
+      }
+      if (idc > maxY) {
+        maxY = idc;
+      }
+      graphIDCOne[sideT].AddPoint(slice + idcWH, idc);
+      graphIDCOne[sideT].SetPointError(slice, idcWH, widthLine);
+    }
+    multiGraph.Add(&graphIDCOne[sideT]);
+  }
+
+  const int font = 63;
+  const int fontsize = 50;
+  multiGraph.GetXaxis()->SetTitleFont(font);
+  multiGraph.GetXaxis()->SetLabelFont(font);
+  multiGraph.GetYaxis()->SetTitleFont(font);
+  multiGraph.GetYaxis()->SetLabelFont(font);
+  multiGraph.GetXaxis()->SetLabelSize(fontsize);
+  multiGraph.GetXaxis()->SetTitleSize(fontsize);
+  multiGraph.GetYaxis()->SetLabelSize(fontsize);
+  multiGraph.GetYaxis()->SetTitleSize(fontsize);
+  multiGraph.GetXaxis()->SetTitle("#it{t} (ms)");
+  multiGraph.GetXaxis()->SetTitleOffset(0.9f);
+  multiGraph.GetYaxis()->SetTitleOffset(1.5f);
+  multiGraph.GetYaxis()->SetTitle(IDCDrawHelper::getZAxisTitle(IDCType::IDCOne).data());
+  multiGraph.SetMinimum(0.9 * minY);
+  multiGraph.SetMaximum(1.1 * maxY);
+  multiGraph.GetXaxis()->SetLimits(0, slices);
+
+  for (unsigned int slice = 0; slice < slices; ++slice) {
+    LOGP(info, "Drawing slice {} from {}", slice, slices - 1);
+    IDCDrawHelper::IDCDraw drawFun;
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [slice, idcs](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
+      return idcs.mIDCFunc(sector, region, irow, pad, slice);
+    };
+    drawFun.mIDCFunc = idcFunc;
+
+    TH2Poly* poly[SIDES]{nullptr, nullptr};
+    for (int sideT = 0; sideT < SIDES; ++sideT) {
+      const Side side = (sideT == 0) ? Side::A : Side::C;
+      poly[sideT] = o2::tpc::IDCDrawHelper::drawSide(drawFun, side, zAxisTitle);
+      poly[sideT]->GetXaxis()->SetTitleFont(font);
+      poly[sideT]->GetXaxis()->SetLabelFont(font);
+      poly[sideT]->GetYaxis()->SetTitleFont(font);
+      poly[sideT]->GetYaxis()->SetLabelFont(font);
+      poly[sideT]->GetXaxis()->SetLabelSize(fontsize);
+      poly[sideT]->GetXaxis()->SetTitleSize(fontsize);
+      poly[sideT]->GetYaxis()->SetLabelSize(fontsize);
+      poly[sideT]->GetYaxis()->SetTitleSize(fontsize);
+
+      if (minZ < maxZ) {
+        poly[sideT]->SetMinimum(minZ);
+        poly[sideT]->SetMaximum(maxZ);
+      }
+
+      if (sideT == 0) {
+        padIDCA.cd();
+      } else {
+        padIDCC.cd();
+      }
+
+      poly[sideT]->Draw("colz");
+      const std::string sideName = (side == Side::A) ? "A-Side" : "C-Side";
+      TLatex latex;
+      const auto col = (side == Side::A) ? (kGreen + 2) : kBlue;
+      latex.SetTextColor(col);
+      latex.DrawLatexNDC(0.13, 0.9, sideName.data());
+      if (run > 0) {
+        latex.DrawLatexNDC(0.62, 0.9, fmt::format("Run {}", run).data());
+      }
+      graphIDCOneSlice[sideT].SetPoint(0, slice + idcWH, idcs.mIDCOneFunc(side, slice));
+      graphIDCOneSlice[sideT].SetPointError(0, idcWH, widthLine);
+    }
+
+    padIDCOne.cd();
+    multiGraph.Draw("ZA E2");
+    graphIDCOneSlice[0].Draw("Z E2 SAME");
+    graphIDCOneSlice[1].Draw("Z E2 SAME");
+
+    can.Print(Form("%s.gif+%i", filename.data(), gifSpeed));
+    if (slice == (slices - 1)) {
+      can.Print(Form("%s.gif++", filename.data()));
+    }
+
+    delete poly[0];
+    delete poly[1];
   }
 }
