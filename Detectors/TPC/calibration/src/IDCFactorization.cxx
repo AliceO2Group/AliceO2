@@ -786,17 +786,38 @@ void o2::tpc::IDCFactorization::drawIDCZeroHelper(const bool type, const Sector 
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
-void o2::tpc::IDCFactorization::drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const
+void o2::tpc::IDCFactorization::drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ, const bool drawGIF, const int run) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
-    return this->getIDCValUngrouped(sector, region, irow, pad, integrationInterval);
-  };
-
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = idcFunc;
-
   const std::string zAxisTitleDraw = IDCDrawHelper::getZAxisTitle(IDCType::IDC);
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitleDraw, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitleDraw, filename, minZ, maxZ);
+  if (!drawGIF) {
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
+      return this->getIDCValUngrouped(sector, region, irow, pad, integrationInterval);
+    };
+
+    IDCDrawHelper::IDCDraw drawFun;
+    drawFun.mIDCFunc = idcFunc;
+
+    type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitleDraw, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitleDraw, filename, minZ, maxZ);
+  } else {
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad, const unsigned int slice) {
+      return this->getIDCValUngrouped(sector, region, irow, pad, slice);
+    };
+
+    if (mIDCOne.front().mIDCOne.empty()) {
+      LOGP(warning, "Factorised IDCs are missing!");
+      return;
+    }
+
+    std::function<float(const o2::tpc::Side, const unsigned int)> idcOneFunc = [this](const o2::tpc::Side side, const unsigned int slice) {
+      return this->getIDCOneVec(side)[slice];
+    };
+
+    IDCDrawHelper::IDCDrawGIF drawFun;
+    drawFun.mIDCFunc = idcFunc;
+    drawFun.mIDCOneFunc = idcOneFunc;
+    const int nSlices = (integrationInterval == 0) ? getNIntegrationIntervals() : integrationInterval;
+    IDCDrawHelper::drawSideGIF(drawFun, nSlices, zAxisTitleDraw, filename, minZ, maxZ, run);
+  }
 }
 
 void o2::tpc::IDCFactorization::setGainMap(const char* inpFile, const char* mapName)
