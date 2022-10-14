@@ -345,10 +345,16 @@ inline int FastHisto<T>::findBin(const float val) const
 template <class T>
 inline const FastHisto<T>& FastHisto<T>::operator+=(const FastHisto& other)
 {
+  if (other.mBinCount == 0) {
+    return *this;
+  }
+
   // make sure the calibration objects have the same substructure
   if (mNBins != other.mNBins || mXmin != other.mXmin || mXmax != other.mXmax || mUseUnderflow != other.mUseUnderflow || mUseOverflow != other.mUseOverflow) {
-    if (mBinCount) {
-      LOG(error) << "histograms properties are not equal! Setting equal properties...";
+    static int errCount = 0;
+    if (mBinCount && errCount < 10) {
+      errCount++;
+      LOGP(warning, "mBinCount {} other.mBinCount: {} mNBins {}, other.mNBins {}, mXmin {}, other.mXmin {}, mXmax {}, other.mXmax {}, mUseUnderflow {}, other.mUseUnderflow {}, mUseOverflow {}, other.mUseOverflow {}", mBinCount, other.mBinCount, mNBins, other.mNBins, mXmin, other.mXmin, mXmax, other.mXmax, mUseUnderflow, other.mUseUnderflow, mUseOverflow, other.mUseOverflow);
     }
     *this = other;
     return *this;
