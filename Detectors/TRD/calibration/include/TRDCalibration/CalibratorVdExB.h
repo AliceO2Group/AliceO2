@@ -54,10 +54,10 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
     LA,
     VD
   };
-  CalibratorVdExB(size_t nMin = 40'000, bool enableOut = false) : mMinEntries(nMin), mEnableOutput(enableOut) {}
+  CalibratorVdExB(size_t nMinTotal = 40'500, size_t nMinChamber = 75, bool enableOut = false) : mMinEntriesTotal(nMinTotal), mMinEntriesChamber(nMinChamber), mEnableOutput(enableOut) {}
   ~CalibratorVdExB() final = default;
 
-  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntries; }
+  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntriesTotal; }
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
@@ -69,12 +69,13 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
 
  private:
   bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
-  size_t mMinEntries; ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesTotal; ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesChamber; ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
   bool mEnableOutput; //< enable output of calibration fits and tprofiles in a root file instead of the ccdb
   FitFunctor mFitFunctor; ///< used for minimization procedure
   std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
   std::vector<o2::trd::CalVdriftExB> mObjectVector;  ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
-  ClassDefOverride(CalibratorVdExB, 2);
+  ClassDefOverride(CalibratorVdExB, 3);
 };
 
 } // namespace trd

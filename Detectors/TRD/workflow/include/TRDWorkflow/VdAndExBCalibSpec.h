@@ -43,11 +43,12 @@ class VdAndExBCalibDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    int minEnt = ic.options().get<int>("min-entries");
+    int minEntTotal = ic.options().get<int>("min-entries-total");
+    int minEntChamber = ic.options().get<int>("min-entries-chamber");
     auto enableOutput = ic.options().get<bool>("enable-root-output");
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
-    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt, enableOutput);
+    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEntTotal, minEntChamber, enableOutput);
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
@@ -136,7 +137,9 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
       {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
       {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
-      {"min-entries", VariantType::Int, 40'000, {"minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
+      {"min-entries-chamber", VariantType::Int, 75, {"minimum number of entries per chamber to fit single time slot"}},
+      {"min-entries-total", VariantType::Int, 40'500, {"total minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
+
 }
 
 } // namespace framework

@@ -116,20 +116,27 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   // do actual calibration for the data provided in the given slot
   TStopwatch timer;
   timer.Start();
-  std::array<float, MAXCHAMBER> laFitResults{};
-  std::array<float, MAXCHAMBER> vdFitResults{};
-  auto residHists = slot.getContainer();
   initProcessing();
+  auto laFitResults = mFitFunctor.laPreCorr;
+  auto vdFitResults = mFitFunctor.vdPreCorr;
+  auto residHists = slot.getContainer();
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+    int sumEntries = 0;
     mFitFunctor.profiles[iDet]->Reset();
     mFitFunctor.currDet = iDet;
     for (int iBin = 0; iBin < NBINSANGLEDIFF; ++iBin) {
       // fill profiles
       auto angleDiffSum = residHists->getHistogramEntry(iDet * NBINSANGLEDIFF + iBin);
       auto nEntries = residHists->getBinCount(iDet * NBINSANGLEDIFF + iBin);
+      sumEntries += nEntries;
       if (nEntries > 0) {
         mFitFunctor.profiles[iDet]->Fill(2 * iBin - MAXIMPACTANGLE, angleDiffSum / nEntries, nEntries);
       }
+    }
+    // Check if we have the minimum amount of entries
+    if(sumEntries < mMinEntriesChamber){
+      LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit", iDet);
+      continue;
     }
     ROOT::Fit::Fitter fitter;
     double paramsStart[2];
@@ -189,8 +196,8 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   // assemble CCDB object
   CalVdriftExB calObject;
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-    // OS: what about chambers for which we had no data in this slot? should we use the initial parameters or something else?
-    // maybe it is better not to overwrite an older result if we don't have anything better?
+    // For Chambers which did not have the minimum amount of entries in this slot e.g. missing, empty chambers.
+    // We will reuse the prevoius one. This would have been read either from the ccdb or come from a previous successful fit.
     calObject.setVdrift(iDet, vdFitResults[iDet]);
     calObject.setExB(iDet, laFitResults[iDet]);
   }
