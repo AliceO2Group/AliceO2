@@ -456,7 +456,7 @@ void o2::tpc::IDCFactorization::createStatusMap()
 
           if (iter == 0) {
             // exclude dead pads
-            if (idcZeroVal != -1) {
+            if ((idcZeroVal != -1) && (idcZeroVal > paramIDCGroup.minIDC0Val) && (idcZeroVal < paramIDCGroup.maxIDC0Val)) {
               average.addValue(idcZeroVal);
             }
           } else {
@@ -464,9 +464,9 @@ void o2::tpc::IDCFactorization::createStatusMap()
             o2::tpc::PadFlags flag = o2::tpc::PadFlags::flagGoodPad;
             if (idcZeroVal == -1) {
               flag = o2::tpc::PadFlags::flagDeadPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
-            } else if (idcZeroVal > median + stdDev * paramIDCGroup.maxIDC0Median) {
+            } else if ((idcZeroVal > paramIDCGroup.maxIDC0Val) || (idcZeroVal > median + stdDev * paramIDCGroup.maxIDC0Median)) {
               flag = o2::tpc::PadFlags::flagHighPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
-            } else if (idcZeroVal < median - stdDev * paramIDCGroup.minIDC0Median) {
+            } else if ((idcZeroVal < paramIDCGroup.minIDC0Val) || (idcZeroVal < median - stdDev * paramIDCGroup.minIDC0Median)) {
               flag = o2::tpc::PadFlags::flagLowPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
             }
             mPadFlagsMap->getCalArray(cru).setValue(padInRegion, flag);

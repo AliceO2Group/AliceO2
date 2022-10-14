@@ -338,7 +338,7 @@ class IDCFactorization : public IDCGroupHelperSector
   std::unique_ptr<CalDet<float>> mGainMap;                          ///<! static Gain map object used for filling missing IDC_0 values
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                   ///< status flag for each pad (i.e. if the pad is dead)
   bool mInputGrouped{false};                                        ///< flag which is set to true if the input IDCs are grouped (checked via the grouping parameters from the constructor)
-  bool mUsePadStatusMap{false};                                     ///< flag for using the pad-by-pad status map during the factorization of the IDCs
+  bool mUsePadStatusMap{true};                                      ///< flag for using the pad-by-pad status map during the factorization of the IDCs
   const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
   std::array<unsigned int, SIDES> mSideIndex{0, 1};                 ///< index to mIDCZero, mIDCOne and mIDCDelta for TPC side
   std::vector<Side> mSides{};                                       ///< processed TPC sides
