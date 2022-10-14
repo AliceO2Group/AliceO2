@@ -478,31 +478,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-    uv_lib_t supportLib;
-    int result = 0;
-#ifdef __APPLE__
-    result = uv_dlopen("libO2FrameworkAnalysisSupport.dylib", &supportLib);
-#else
-    result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
-#endif
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
-
-    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    if (dpl_plugin_callback == nullptr) {
-      LOG(fatal) << "Could not find the AnalysisSupport plugin.";
-      return;
-    }
-    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
-    aodReader.algorithm = creator->create();
+    aodReader.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -556,32 +532,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
 
     // Load the CCDB backend from the plugin
-    uv_lib_t supportLib;
-    int result = 0;
-#ifdef __APPLE__
-    result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
-#else
-    result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
-#endif
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
-
-    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    if (dpl_plugin_callback == nullptr) {
-      LOG(fatal) << "Could not find the CCDBSupport plugin.";
-      return;
-    }
-    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
-    ccdbBackend.algorithm = creator->create();
-
+    ccdbBackend.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "CCDBFetcherPlugin");
     extraSpecs.push_back(ccdbBackend);
   } else {
     // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb

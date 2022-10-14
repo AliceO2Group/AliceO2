@@ -92,6 +92,9 @@ struct PluginManager {
   /// On successfull completion @a onSuccess is called passing
   /// the DPLPluginHandle provided by the library.
   static void load(std::vector<PluginInfo>& infos, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess);
+  /// Load an called @plugin from a library called @a library and
+  /// return the associtated AlgorithmSpec.
+  static auto loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec;
 };
 
 } // namespace o2::framework
