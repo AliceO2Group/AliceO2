@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "SpacePoints/ResidualAggregator.h"
 #include "TPCInterpolationWorkflow/TPCResidualAggregatorSpec.h"
+#include "TPCInterpolationWorkflow/TPCUnbinnedResidualReaderSpec.h"
 
 using namespace o2::framework;
 
@@ -21,6 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"output-type", VariantType::String, "binnedResid", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
+    {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", VariantType::Bool, false, {"Disables ROOT file writing"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
@@ -64,6 +66,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto fileOutput = !configcontext.options().get<bool>("disable-root-output");
 
   WorkflowSpec specs;
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput));
+  }
   specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, fileOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
   return specs;
 }

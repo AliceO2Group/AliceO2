@@ -40,6 +40,9 @@ namespace tpc
 
 void TPCInterpolationDPL::init(InitContext& ic)
 {
+  if (mWriteUnfiltered) {
+    mInterpolation.setWriteUnfiltered();
+  }
   //-------- init geometry and field --------//
   mTimer.Stop();
   mTimer.Reset();
@@ -147,25 +150,20 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
   mTimer.Stop();
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
-  mTimer.Start(true);
-  mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
-  // in the following step one can create one output file per TPC sector with local residuals and statistics
-  mResidualProcessor.doOutlierRejection(false); // if parameter is 'true', then the unbinned filtered residuals will be written to a debug file
-  mTimer.Stop();
-  LOGF(info, "TPC outlier filtering and local residual extraction timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
 
-  if (mWriteResiduals) {
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  if (mWriteUnfiltered) {
+    // these are the residuals and tracks before outlier rejection; they are not used in production
+    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResidualsUnfiltered());
+    if (mSendTrackData) {
+      pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracksUnfiltered());
+    }
   }
-  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mResidualProcessor.getUnbinnedResiduals());
+  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
   if (mSendTrackData) {
-    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mResidualProcessor.getTrackDataOut());
+    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   }
 
   mInterpolation.reset();
-  mResidualProcessor.resetUnbinnedResiduals();
-  mResidualProcessor.resetTrackData();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
@@ -174,7 +172,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals, bool sendTrackData)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeUnfiltered, bool sendTrackData)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -195,7 +193,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  if (writeResiduals) {
+  if (writeUnfiltered) {
     outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
   }
@@ -206,7 +204,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, writeResiduals, sendTrackData)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, writeUnfiltered, sendTrackData)},
     Options{}};
 }
 

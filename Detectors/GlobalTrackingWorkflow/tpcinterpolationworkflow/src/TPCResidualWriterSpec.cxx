@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "SpacePoints/TrackInterpolation.h"
+#include "SpacePoints/TrackResiduals.h"
 #include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 
@@ -26,43 +27,16 @@ namespace tpc
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTPCResidualWriterSpec(bool useMC)
+DataProcessorSpec getTPCResidualWriterSpec(bool writeUnfiltered, bool writeTrackData)
 {
-  // TODO: not clear if the writer is supposed to write MC labels at some point
-  // this is just a dummy definition for the template branch definition below
-  // define the correct type and the input specs
-  using LabelsType = std::vector<int>;
-  // force, this will disable the branch for now, can be adjusted in the future
-  useMC = false;
 
-  // A spectator to store the size of the data array for the logger below
-  auto tracksSize = std::make_shared<int>();
-  auto tracksLogger = [tracksSize](std::vector<TrackData> const& tracks) {
-    *tracksSize = tracks.size();
-  };
-  // A spectator for logging
-  auto residualsLogger = [tracksSize](std::vector<TPCClusterResiduals> const& residuals) {
-    LOG(info) << "ResidualWriterTPC pulled " << *tracksSize << " reference tracks and " << residuals.size() << " TPC cluster residuals";
-  };
   return MakeRootTreeWriterSpec("tpc-residuals-writer",
                                 "o2residuals_tpc.root",
                                 "residualsTPC",
-                                BranchDefinition<std::vector<TrackData>>{InputSpec{"tracks", "GLO", "TPCINT_TRK", 0},
-                                                                         "tracks",
-                                                                         "tracks-branch-name",
-                                                                         1,
-                                                                         tracksLogger},
-                                BranchDefinition<std::vector<TPCClusterResiduals>>{InputSpec{"residuals", "GLO", "TPCINT_RES", 0},
-                                                                                   "residuals",
-                                                                                   "residuals-branch-name",
-                                                                                   1,
-                                                                                   residualsLogger},
-                                // NOTE: this branch template is to show how the conditional MC labels can
-                                // be defined, the '0' disables the branch for the moment
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},
-                                                             "labels",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             "labels-branch-name"})();
+                                BranchDefinition<std::vector<TrackData>>{InputSpec{"tracksUnfiltered", "GLO", "TPCINT_TRK", 0}, "tracksUnfiltered", ((writeUnfiltered && writeTrackData) ? 1 : 0)},
+                                BranchDefinition<std::vector<TPCClusterResiduals>>{InputSpec{"residualsUnfiltered", "GLO", "TPCINT_RES", 0}, "residualsUnfiltered", (writeUnfiltered ? 1 : 0)},
+                                BranchDefinition<std::vector<UnbinnedResid>>{InputSpec{"residuals", "GLO", "UNBINNEDRES"}, "residuals"},
+                                BranchDefinition<std::vector<TrackData>>{InputSpec{"tracks", "GLO", "TRKDATA"}, "tracks", (writeTrackData ? 1 : 0)})();
 }
 
 } // namespace tpc

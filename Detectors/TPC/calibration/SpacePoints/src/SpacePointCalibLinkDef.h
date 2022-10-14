@@ -24,12 +24,12 @@
 #pragma link C++ class o2::tpc::TrackResiduals::LocalResid + ;
 #pragma link C++ class o2::tpc::TrackResiduals::VoxRes + ;
 #pragma link C++ class o2::tpc::TrackResiduals::VoxStats + ;
-#pragma link C++ class o2::tpc::TrackResiduals::UnbinnedResid + ;
-#pragma link C++ class std::vector < o2::tpc::TrackResiduals::UnbinnedResid> + ;
+#pragma link C++ class o2::tpc::UnbinnedResid + ;
+#pragma link C++ class std::vector < o2::tpc::UnbinnedResid> + ;
 #pragma link C++ class std::vector < o2::tpc::TrackResiduals::LocalResid> + ;
 #pragma link C++ class std::vector < o2::tpc::TrackResiduals::VoxStats> + ;
 #pragma link C++ class o2::tpc::ResidualAggregator + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::ResidualsContainer> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackResiduals::UnbinnedResid, o2::tpc::ResidualsContainer> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::UnbinnedResid, o2::tpc::ResidualsContainer> + ;
 
 #endif
