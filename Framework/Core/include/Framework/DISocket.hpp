@@ -74,7 +74,8 @@ struct DIMessage {
       DEVICE_ON = 2,
       DEVICE_OFF = 3,
       INSPECT_ON = 4,
-      INSPECT_OFF = 5
+      INSPECT_OFF = 5,
+      TERMINATE = 6
     };
 
     Header() = default;
