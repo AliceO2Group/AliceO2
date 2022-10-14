@@ -76,6 +76,11 @@ void ITSDCSParser::run(ProcessingContext& pc)
     this->mConfigDCS.clear();
   }
 
+  // Reset saved information for the next EOR file
+  this->mRunNumber = UNSET_INT;
+  this->mConfigVersion = UNSET_INT;
+  this->mRunType = UNSET_SHORT;
+
   return;
 }
 
@@ -204,7 +209,7 @@ void ITSDCSParser::updateAndCheck(int& memValue, const int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -219,7 +224,7 @@ void ITSDCSParser::updateAndCheck(short int& memValue, const short int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -392,20 +397,34 @@ void ITSDCSParser::writeChipInfo(
 void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 {
   // Timestamps for CCDB entry
-  long tstart = o2::ccdb::getCurrentTimestamp();
-  long tend = tstart + 365L * 24 * 3600 * 1000;
+  long tstart = 0, tend = 0;
+  // retireve run start/stop times from CCDB
+  o2::ccdb::CcdbApi api;
+  api.init("http://alice-ccdb.cern.ch");
+  // Initialize empty metadata object for search
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers = api.retrieveHeaders(
+    "RCT/Info/RunInformation", metadata, this->mRunNumber);
+  if (headers.empty()) { // No CCDB entry is found
+    LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
+               << "\nWill default to using the current time for timestamp information";
+    tstart = o2::ccdb::getCurrentTimestamp();
+    tend = tstart + 365L * 24 * 3600 * 1000;
+  } else {
+    tstart = std::stol(headers["SOR"]);
+    tend = std::stol(headers["EOR"]);
+  }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
 
   // Create metadata for database object
-  std::map<std::string, std::string> md = {
-    {"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
+  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
   if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
-    md.insert({"runNumber", std::to_string(this->mRunNumber)});
+    metadata.insert({"runNumber", std::to_string(this->mRunNumber)});
   }
   std::string path("ITS/DCS_CONFIG/");
   const char* filename = "dcs_config.root";
-  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
   info.setFileName(filename);
 
