@@ -1199,7 +1199,7 @@ void O2MCApplicationBase::initTrackRefHook()
       mTrackRefFcn = o2::conf::GetFromMacro<TrackRefFcn>(mCutParams.stepTrackRefHookFile, "trackRefHook()", "o2::steer::O2MCApplicationBase::TrackRefFcn", "o2mc_stepping_trackref_hook");
       LOG(info) << "Hook initialized from file " << expandedTrackRefHookFileName;
     } else {
-      LOG(ERROR) << "Did not file TrackRefHook file " << expandedTrackRefHookFileName << " ; Will not execute hook";
+      LOG(error) << "Did not file TrackRefHook file " << expandedTrackRefHookFileName << " ; Will not execute hook";
       mTrackRefFcn = [](TVirtualMC const*) {}; // do nothing
     }
   }
