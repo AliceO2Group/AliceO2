@@ -47,9 +47,6 @@ void ClustererDPL::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   mState = 1;
-  if (mDoSquashing) { // MC: Need to find proper place to inform about squashing enabling
-    LOGP(info, "Pixel squashing is enabled");
-  }
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
@@ -71,9 +68,8 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSClusterer pulled " << labels.getNElements() << " labels ";
 
   o2::itsmft::DigitPixelReader reader;
-  if (mDoSquashing) {
-    reader.setSquashingDepth(2);
-  }
+  reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+  reader.setSquashingDist(mClusterer->getMaxRowColDiffToSquash());
   reader.setDigits(digits);
   reader.setROFRecords(rofs);
   if (mUseMC) {
@@ -127,6 +123,11 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
     nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
     mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+    mClusterer->setMaxRowColDiffToSquash(clParams.maxRowColDiffToSquash);
+    mClusterer->setMaxROFDepthToSquash(clParams.maxROFSquashingDepth);
+    if (mClusterer->getMaxROFDepthToSquash()) { // M.C.: Need to find proper place to inform about squashing enabling
+      LOGP(info, "Pixel squashing is enabled");
+    }
     mClusterer->print();
   }
   // we may have other params which need to be queried regularly
@@ -160,7 +161,7 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getClustererSpec(bool useMC, bool doSquashing)
+DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
@@ -192,7 +193,7 @@ DataProcessorSpec getClustererSpec(bool useMC, bool doSquashing)
     "its-clusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC, doSquashing)},
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
     Options{
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};

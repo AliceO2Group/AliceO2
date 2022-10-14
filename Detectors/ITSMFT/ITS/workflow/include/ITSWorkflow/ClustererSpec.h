@@ -36,7 +36,7 @@ namespace its
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool doSquashing = false) : mGGCCDBRequest(gr), mUseMC(useMC), mDoSquashing{doSquashing} {}
+  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -49,7 +49,6 @@ class ClustererDPL : public Task
   int mState = 0;
   bool mUseMC = true;
   bool mUseClusterDictionary = true;
-  bool mDoSquashing = false;
   int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
@@ -58,7 +57,7 @@ class ClustererDPL : public Task
 
 /// create a processor spec
 /// run ITS cluster finder
-framework::DataProcessorSpec getClustererSpec(bool useMC, bool doSquashing = false);
+framework::DataProcessorSpec getClustererSpec(bool useMC);
 
 } // namespace its
 } // namespace o2

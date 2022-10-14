@@ -29,14 +29,14 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig, bool doSquashing)
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig)
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {
     specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, true, "itsdigits.root"));
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::its::getClustererSpec(useMC, doSquashing));
+    specs.emplace_back(o2::its::getClustererSpec(useMC));
   }
   if (!disableRootOutput) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));

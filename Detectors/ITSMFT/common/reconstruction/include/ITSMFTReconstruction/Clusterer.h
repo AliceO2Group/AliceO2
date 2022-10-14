@@ -211,6 +211,12 @@ class Clusterer
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
 
+  int getMaxRowColDiffToSquash() const { return mSquashingRCdist; }
+  void setMaxRowColDiffToSquash(int v) { mSquashingRCdist = v; }
+
+  int getMaxROFDepthToSquash() const { return mSquashingDepth; }
+  void setMaxROFDepthToSquash(int v) { mSquashingDepth = v; }
+
   void print() const;
   void clear();
 
@@ -232,7 +238,8 @@ class Clusterer
 
   // clusterization options
   bool mContinuousReadout = true; ///< flag continuous readout
-  bool mSquashing = false;        ///< flag squashing is applied
+  int mSquashingDepth = 0;        ///< squashing is applied to next N rofs
+  int mSquashingRCdist = 0;       ///< seeked neighbours distance
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;

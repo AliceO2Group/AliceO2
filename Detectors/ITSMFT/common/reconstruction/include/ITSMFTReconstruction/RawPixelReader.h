@@ -1440,7 +1440,6 @@ class RawPixelReader : public PixelReader
   // get the link
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
-  uint16_t getSquashingDepth() override { return 0; }
 
  private:
   std::ifstream mIOFile;

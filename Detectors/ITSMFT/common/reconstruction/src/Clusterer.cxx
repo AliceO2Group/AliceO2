@@ -35,7 +35,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     nThreads = 1;
   }
   auto autoDecode = reader.getDecodeNextAuto();
-  mSquashing = reader.getSquashingDepth();
   int rofcount{0};
   do {
     if (autoDecode) {
@@ -154,9 +153,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
   } while (autoDecode);
   reader.setDecodeNextAuto(autoDecode); // restore setting
 #ifdef _PERFORM_TIMING_
-  // if (mSquashing) {
-  //   reader.print();
-  // }
   mTimer.Stop();
 #endif
 }
@@ -224,7 +220,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       pixArrBuff.push_back(pix); // needed for cluster topology
       bbox.adjust(pix.getRowDirect(), pix.getCol());
       if (labelsClusPtr) {
-        if (parent->mSquashing) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+        if (parent->mSquashingDepth) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
           fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
         } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
           fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
@@ -244,7 +240,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         pixArrBuff.push_back(pix);                 // needed for cluster topology
         bbox.adjust(pix.getRowDirect(), pix.getCol());
         if (labelsClusPtr) {
-          if (parent->mSquashing) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+          if (parent->mSquashingDepth) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
             fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
           } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
             fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
