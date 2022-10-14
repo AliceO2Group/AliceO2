@@ -82,9 +82,9 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   chipData.setInteractionRecord(mInteractionRecord);
   chipData.setTrigger(mTrigger);
   if (mSquashOverflowsDepth) {
-    if (!mMaskSquashedDigits[did]) {
+    if (!mSquashedDigitsMask[did]) {
       chipData.getData().emplace_back(digit);
-      mMaskSquashedDigits[did] = true;
+      mSquashedDigitsMask[did] = true;
       if (mDigitsMCTruth) {
         chipData.getPixIds().push_back(did); // this we do only with squashing + MC
       }
@@ -95,9 +95,9 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   int lim = mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries();
   while ((++did < lim) && (digit = &mDigits[did])->getChipIndex() == chipData.getChipID()) {
     if (mSquashOverflowsDepth) {
-      if (!mMaskSquashedDigits[did]) {
+      if (!mSquashedDigitsMask[did]) {
         chipData.getData().emplace_back(digit);
-        mMaskSquashedDigits[did] = true;
+        mSquashedDigitsMask[did] = true;
         if (mDigitsMCTruth) {
           chipData.getPixIds().push_back(did); // this we do only with squashing + MC
         }
@@ -119,8 +119,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   // Loop over next ROFs
   for (uint16_t iROF{1}; iROF <= mSquashOverflowsDepth && (mIdROF + iROF) < mROFRecVec.size(); ++iROF) {
     int idNextROF{mIdROF + iROF};
-    if (std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[mIdROF].getBCData())) > mMaxBCSeparationToSquash) {
-      LOGP(info, "rof: {} delta: is {}, separation is {}", iROF, std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[mIdROF].getBCData())), mMaxBCSeparationToSquash);
+    if (std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[idNextROF - 1].getBCData())) > mMaxBCSeparationToSquash) {
       break; // ROFs are too distant in BCs
     }
     if (!mROFRecVec[idNextROF].getNEntries()) {
@@ -158,14 +157,14 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
         iDigitNext--;
       }
       for (; iDigitNext < nDigits; iDigitNext++) {
-        if (mMaskSquashedDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
+        if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
           continue;
         }
         const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
         auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
         auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
         if (!dcol && !drow) {
-          mMaskSquashedDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
           break;
         }
       }
@@ -184,7 +183,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
         iDigitNext--;
       }
       for (; iDigitNext < nDigits; iDigitNext++) {
-        if (mMaskSquashedDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
+        if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
           continue;
         }
         const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
@@ -192,7 +191,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
         auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
         if (!dcol && !drow) {
           // same pixel fired in two ROFs
-          mMaskSquashedDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
           continue;
         }
         if (dcol > mMaxSquashDist || (dcol == mMaxSquashDist && drow > mMaxSquashDist)) {
@@ -202,7 +201,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
           continue;
         } else {
           chipData.getData().emplace_back(digitNext); // push squashed pixel
-          mMaskSquashedDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
           if (mDigitsMCTruth) {
             chipData.getPixIds().push_back(mBookmarkNextROFs[iROF - 1] + iDigitNext);
           }

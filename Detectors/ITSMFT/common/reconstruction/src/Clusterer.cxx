@@ -442,11 +442,11 @@ void Clusterer::print() const
 {
   // print settings
   if (getMaxROFDepthToSquash()) {
-    LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col down to {} ROFs", mMaxBCSeparationToMask, mMaxRowColDiffToMask, mSquashingDepth);
-  } else {
-    LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
-              << mMaxRowColDiffToMask << " in row/col";
+    LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col down to {} ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
   }
+  LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
+            << mMaxRowColDiffToMask << " in row/col";
+
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
   auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);

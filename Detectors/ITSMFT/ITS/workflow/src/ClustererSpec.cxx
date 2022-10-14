@@ -69,8 +69,8 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   o2::itsmft::DigitPixelReader reader;
   reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
-  reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask());             // Sharing same parameter/logic with masking
-  reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToMask()); // Sharing same parameter/logic with masking
+  reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+  reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
   reader.setDigits(digits);
   reader.setROFRecords(rofs);
   if (mUseMC) {
@@ -124,7 +124,9 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
     nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
     mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-    // Squash
+    // Squasher
+    int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
+    mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
     int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
     if (clParams.maxSOTMUS > 0) {
       nROFsToSquash = 2 + nbc * o2::constants::lhc::LHCBunchSpacingMUS / clParams.maxSOTMUS; // use squashing
