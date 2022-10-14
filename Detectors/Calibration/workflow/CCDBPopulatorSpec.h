@@ -70,11 +70,11 @@ class CCDBPopulator : public o2::framework::Task
       auto refWrp = pc.inputs().get("clbWrapper", isl);
       auto refPld = pc.inputs().get("clbPayload", isl);
       if (!o2::framework::DataRefUtils::isValid(refWrp)) {
-        LOGP(info, "Wrapper is not valid for slot {}", isl);
+        LOGP(alarm, "Wrapper is not valid for slot {}", isl);
         continue;
       }
       if (!o2::framework::DataRefUtils::isValid(refPld)) {
-        LOGP(info, "Payload is not valid for slot {}", isl);
+        LOGP(alarm, "Payload is not valid for slot {}", isl);
         continue;
       }
       if (mSSpecMin >= 0 && mSSpecMin <= mSSpecMax) { // there is a selection
@@ -97,8 +97,8 @@ class CCDBPopulator : public o2::framework::Task
         md = &metadata;
       }
 
-      LOG(info) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
-                << " Valid for " << wrp->getStartValidityTimestamp() << " : " << wrp->getEndValidityTimestamp();
+      LOG(important) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
+                     << " Valid for " << wrp->getStartValidityTimestamp() << " : " << wrp->getEndValidityTimestamp();
       int res = mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
                                        *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
       if (res && mFatalOnFailure) {

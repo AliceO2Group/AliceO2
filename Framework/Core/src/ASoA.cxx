@@ -101,6 +101,15 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
   return result;
 }
 
+arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
+{
+  auto index = table->schema()->GetAllFieldIndices(label);
+  if (index.empty() == true) {
+    o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s", label));
+  }
+  return table->column(index[0]).get();
+}
+
 void notBoundTable(const char* tableName)
 {
   throw o2::framework::runtime_error_f("Index pointing to %s is not bound! Did you subscribe to the table?", tableName);

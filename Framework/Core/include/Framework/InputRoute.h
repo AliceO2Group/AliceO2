@@ -12,6 +12,7 @@
 #define FRAMEWORK_INPUTROUTE_H
 
 #include "Framework/ExpirationHandler.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/InputSpec.h"
 #include <cstddef>
 #include <string>
@@ -27,7 +28,7 @@ struct DeviceState;
 class ConfigParamRegistry;
 
 struct RouteConfigurator {
-  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistry&, ConfigParamRegistry const&)>;
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistryRef, ConfigParamRegistry const&)>;
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(DeviceState&, ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(DeviceState&, ConfigParamRegistry const&)>;
   std::string name = "unknown";

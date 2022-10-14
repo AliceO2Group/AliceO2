@@ -17,7 +17,7 @@ o2_add_library(CommonDataFormat
                        src/AbstractRefAccessor.cxx
                        src/TFIDInfo.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
-                                     ROOT::Core FairRoot::Base O2::MathUtils Microsoft.GSL::GSL)
+                                     ROOT::Core O2::MathUtils Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(CommonDataFormat
                           HEADERS include/CommonDataFormat/TimeStamp.h

@@ -14,7 +14,7 @@
 //
 #include "CCDB/BasicCCDBManager.h"
 #include <boost/lexical_cast.hpp>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <string>
 
 namespace o2
@@ -59,7 +59,7 @@ std::string CCDBManagerInstance::getSummaryString() const
     }
     res += fmt::format(" for {} objects", nfailObj);
   }
-  res += fmt::format("), instance: {}", mCCDBAccessor.getUniqueAgentID());
+  res += fmt::format(") in {} ms, instance: {}", fmt::group_digits(mTimerMS), mCCDBAccessor.getUniqueAgentID());
   return res;
 }
 

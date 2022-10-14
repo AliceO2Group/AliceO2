@@ -19,7 +19,7 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFReconstruction/Decoder.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #endif
 

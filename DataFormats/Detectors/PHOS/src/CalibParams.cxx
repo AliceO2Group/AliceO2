@@ -12,7 +12,7 @@
 #include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSBase/Geometry.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <TH2.h>
 

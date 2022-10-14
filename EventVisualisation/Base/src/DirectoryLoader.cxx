@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <climits>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace std;
 using namespace o2::event_visualisation;

@@ -102,7 +102,7 @@ TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 }
 
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
-                                                              ServiceRegistry& services, bool createNew)
+                                                              ServiceRegistryRef services, bool createNew)
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);

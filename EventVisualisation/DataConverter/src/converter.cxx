@@ -22,7 +22,7 @@
 #include <TEveManager.h>
 #include <TEnv.h>
 #include <filesystem>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 int main(int argc, char** argv)
 {

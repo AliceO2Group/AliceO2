@@ -31,7 +31,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit simpleServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    return [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -40,7 +40,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit singletonServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    return [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance(), ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -53,8 +53,6 @@ struct CommonServices {
   static ServiceSpec driverClientSpec();
   static ServiceSpec monitoringSpec();
   static ServiceSpec datatakingContextSpec();
-  static ServiceSpec infologgerContextSpec();
-  static ServiceSpec infologgerSpec();
   static ServiceSpec configurationSpec();
   static ServiceSpec controlSpec();
   static ServiceSpec rootFileSpec();
@@ -80,14 +78,13 @@ struct CommonServices {
 };
 
 struct CommonAnalysisServices {
-  static ServiceSpec databasePDGSpec();
-
   template <typename T>
   static void addAnalysisService(std::vector<ServiceSpec>& specs)
   {
-    if constexpr (std::is_same_v<T, TDatabasePDG>) {
-      specs.push_back(databasePDGSpec());
-    }
+    std::vector<LoadableService> loadableServices = {};
+    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupport";
+    loadableServices = ServiceHelpers::parseServiceSpecString(analysisServices);
+    ServiceHelpers::loadFromPlugin(loadableServices, specs);
   }
 };
 

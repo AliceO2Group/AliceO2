@@ -15,7 +15,7 @@
 #include <TTree.h>
 #include <TGeoGlobalMagField.h>
 #include <string>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "TOFCalibration/CollectCalibInfoTOF.h"
 #endif

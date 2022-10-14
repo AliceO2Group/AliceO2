@@ -24,6 +24,7 @@
 #include "EMCALCalib/BadChannelMap.h"
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
@@ -223,7 +224,7 @@ class EMCALCalibExtractor
         double sumVal = boost::histogram::algorithm::sum(slicedHist);
         if (sumVal > 0.) {
           // fill the output map with the desired slicing etc.
-          outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal));
+          outputMapEnergyPerHit[sliceIndex][cellID] = meanVal;
           outputMapNHits[sliceIndex][cellID] = sumVal;
         }
 
@@ -339,10 +340,12 @@ class EMCALCalibExtractor
         auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(boostHist1d);
         mean = fitValues.at(1);
         // add mean to time calib params
-        TCP.addTimeCalibParam(i, mean, 0);
+        TCP.addTimeCalibParam(i, mean, false);                                                // highGain calib factor
+        TCP.addTimeCalibParam(i, mean + EMCALCalibParams::Instance().lowGainOffset_tc, true); // lowGain calib factor
       } catch (o2::utils::FitGausError_t err) {
         LOG(warning) << createErrorMessageFitGaus(err) << "; for cell " << i << " (Will take the parameter of the previous cell: " << mean << "ns)";
-        TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
+        TCP.addTimeCalibParam(i, mean, false);                                                // take calib value of last cell; or 400 ns shift default value
+        TCP.addTimeCalibParam(i, mean + EMCALCalibParams::Instance().lowGainOffset_tc, true); // take calib value of last cell; or 400 ns shift default value
       }
     }
     return TCP;

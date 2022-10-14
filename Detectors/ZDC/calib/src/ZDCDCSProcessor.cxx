@@ -274,7 +274,9 @@ uint64_t ZDCDCSProcessor::processFlags(const uint64_t flags, const char* pid)
   // anything else means that there was an issue
 
   // for now, I don't know how to use the flags, so I do nothing
-
+  if (!mVerbose) {
+    return 0;
+  }
   if (flags & DataPointValue::KEEP_ALIVE_FLAG) {
     LOG(debug) << "KEEP_ALIVE_FLAG active for DP " << pid;
   }

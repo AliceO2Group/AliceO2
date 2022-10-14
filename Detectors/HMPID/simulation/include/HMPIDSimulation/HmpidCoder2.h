@@ -32,7 +32,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "HMPIDBase/Geo.h"
 #include "DataFormatsHMP/Digit.h"
 

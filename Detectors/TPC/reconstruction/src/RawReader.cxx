@@ -23,7 +23,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PartitionInfo.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::tpc;
 

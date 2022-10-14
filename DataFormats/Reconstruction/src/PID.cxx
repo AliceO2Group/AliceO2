@@ -15,7 +15,7 @@
 
 #include "ReconstructionDataFormats/PID.h"
 #include <cassert>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::track;
 

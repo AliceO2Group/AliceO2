@@ -28,7 +28,7 @@
 
 #include "TPCBase/Mapper.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 ClassImp(o2::tpc::Digitizer);
 

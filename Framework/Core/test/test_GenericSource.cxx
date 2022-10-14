@@ -25,7 +25,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         {"TST", "A1", Lifetime::Timeframe}},
       AlgorithmSpec{
         [](const InputRecord& inputs,
-           ServiceRegistry& services,
+           ServiceRegistryRef services,
            DataAllocator& allocator) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
           auto& aData = allocator.make<int>(Output{"TST", "A1", 0}, 1);

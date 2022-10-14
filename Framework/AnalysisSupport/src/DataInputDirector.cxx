@@ -54,10 +54,11 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   return fileNameHolder;
 }
 
-DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mAlienSupport(alienSupport),
-                                                                                                                                                    mMonitoring(monitoring),
-                                                                                                                                                    mParentFileReplacement(parentFileReplacement),
-                                                                                                                                                    mLevel(level)
+DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement) : mAlienSupport(alienSupport),
+                                                                                                                                                                            mMonitoring(monitoring),
+                                                                                                                                                                            mAllowedParentLevel(allowedParentLevel),
+                                                                                                                                                                            mParentFileReplacement(parentFileReplacement),
+                                                                                                                                                                            mLevel(level)
 {
 }
 
@@ -245,8 +246,12 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
     }
   }
 
+  if (mLevel == mAllowedParentLevel) {
+    throw std::runtime_error(fmt::format(R"(parent file requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", mLevel, mAllowedParentLevel, folderName.c_str(), mcurrentFile->GetName()));
+  }
+
   LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
-  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring, mParentFileReplacement);
+  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
   mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
   mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
   mParentFile->fillInputfiles();
@@ -414,7 +419,7 @@ DataInputDirector::DataInputDirector()
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mMonitoring(monitoring), mParentFileReplacement(parentFileReplacement)
+DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement) : mMonitoring(monitoring), mAllowedParentLevel(allowedParentLevel), mParentFileReplacement(parentFileReplacement)
 {
   if (inputFile.size() && inputFile[0] == '@') {
     inputFile.erase(0, 1);
@@ -426,7 +431,7 @@ DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Moni
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring, std::string parentFileReplacement) : mMonitoring(monitoring), mParentFileReplacement(parentFileReplacement)
+DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring, int allowedParentLevel, std::string parentFileReplacement) : mMonitoring(monitoring), mAllowedParentLevel(allowedParentLevel), mParentFileReplacement(parentFileReplacement)
 {
   for (auto inputFile : inputFiles) {
     mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
@@ -461,7 +466,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mParentFileReplacement);
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -586,7 +591,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mParentFileReplacement);
+      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring, mAllowedParentLevel, mParentFileReplacement);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";

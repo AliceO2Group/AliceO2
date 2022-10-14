@@ -15,7 +15,8 @@ o2_add_library(PHOSBase
                        src/PHOSSimParams.cxx
                        src/RCUTrailer.cxx
                        src/Mapping.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat 
+               PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                     O2::SimulationDataFormat
                                      O2::SimConfig)
 
 o2_target_root_dictionary(PHOSBase

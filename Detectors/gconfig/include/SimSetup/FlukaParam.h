@@ -26,8 +26,11 @@ namespace o2
  **/
 struct FlukaParam : public o2::conf::ConfigurableParamHelper<FlukaParam> {
   bool activationSimulation = false; // whether FLUKA is used for activation studies
+  bool lowNeutron = false;           // switch for low energy neutron transport
+  bool userStepping = true;          // switch for hit scoring
   float activationHadronCut = 0.003; // hadron kinetic energy cut for activation studies
   std::string scoringFile = "";      // input file for user scoring options
+
   O2ParamDef(FlukaParam, "FlukaParam");
 };
 } // end namespace o2

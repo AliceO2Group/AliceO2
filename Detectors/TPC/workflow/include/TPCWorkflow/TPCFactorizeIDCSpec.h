@@ -81,19 +81,21 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     }
 
     const auto currTF = processing_helpers::getCurrentTF(pc);
-    if (pc.inputs().isValid("firstTF")) {
+    if ((mTFFirst == -1) && pc.inputs().isValid("firstTF")) {
       mTFFirst = pc.inputs().get<long>("firstTF");
     }
-    const unsigned int relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
     if (mTFFirst == -1) {
-      LOGP(warning, "firstTF not Found!!! Found {} valid inputs {}", pc.inputs().countValidInputs());
+      mTFFirst = currTF;
+      LOGP(warning, "firstTF not Found!!! Found valid inputs {}. Setting {} as first TF", pc.inputs().countValidInputs(), mTFFirst);
     }
+
+    const long relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
     // loop over input data
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       ++mProcessedCRUs;
-      if (relTF >= mIDCFactorization.getNTimeframes()) {
+      if ((relTF >= mIDCFactorization.getNTimeframes()) || (relTF < 0)) {
         continue;
       }
 

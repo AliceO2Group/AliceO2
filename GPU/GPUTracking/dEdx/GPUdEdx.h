@@ -20,10 +20,10 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUdEdxInfo.h"
-#include "CommonUtils/DebugStreamer.h"
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "DataFormatsTPC/Defs.h"
 #include "CalibdEdxContainer.h"
+#include "CommonUtils/DebugStreamer.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -126,20 +126,12 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   }
 
   // setting maximum for snp for which the calibration object was created
-  const float maxSnp = calibContainer->getMaxSinPhiTopologyCorrection();
-  float snp = CAMath::Abs(trackSnp);
-  if (snp > maxSnp) {
-    snp = maxSnp;
-  }
+  const float snp = CAMath::Abs(trackSnp);
 
   // tanTheta local dip angle: z angle - dz/dx (cm/cm)
   const float sec2 = 1.f / (1.f - snp2);
   const float tgl2 = trackTgl * trackTgl;
-  float tanTheta = CAMath::Sqrt(tgl2 * sec2);
-  const float maxTanTheta = calibContainer->getMaxTanThetaTopologyCorrection();
-  if (tanTheta > maxTanTheta) {
-    tanTheta = maxTanTheta;
-  }
+  const float tanTheta = CAMath::Sqrt(tgl2 * sec2);
 
   // getting the topology correction
   const int padPos = int(pad + 0.5f); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
@@ -148,7 +140,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   z = CAMath::Abs(z);
   const float threshold = calibContainer->getZeroSupressionThreshold(slice, padRow, padPos); // TODO: Use the mean zero supresion threshold of all pads in the cluster?
   const bool useFullGainMap = calibContainer->isUsageOfFullGainMap();
-  float qTotIn = CAMath::Clamp(qtot, calibContainer->getMinqTot(), calibContainer->getMaxqTot());
+  float qTotIn = qtot;
   const float fullGainMapGain = calibContainer->getGain(slice, padRow, padPos);
   if (useFullGainMap) {
     qmax /= fullGainMapGain;
@@ -197,12 +189,19 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     float qTotResidualCorrTmp = qTotResidualCorr;
     float residualGainMapGainTmp = residualGainMapGain;
     float fullGainMapGainTmp = fullGainMapGain;
+    float tanThetaTmp = tanTheta;
+    float padlx = param.tpcGeometry.Row2X(padRow);
+    float padly = param.tpcGeometry.LinearPad2Y(slice, padRow, padPos);
+
     mStreamer.getStreamer() << mStreamer.getUniqueTreeName("tree").data()
                             << "qTot=" << mChargeTot[mCount - 1]
                             << "qMax=" << mChargeMax[mCount - 1]
                             << "region=" << regionTmp
                             << "padRow=" << padRow
-                            << "tanTheta=" << tanTheta
+                            << "sector=" << slice
+                            << "lx=" << padlx
+                            << "ly=" << padly
+                            << "tanTheta=" << tanThetaTmp
                             << "trackTgl=" << trackTgl
                             << "sinPhi=" << trackSnp
                             << "z=" << z

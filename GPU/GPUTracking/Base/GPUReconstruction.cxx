@@ -328,12 +328,14 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mNStreams = std::max<int>(mProcessingSettings.nStreams, 3);
   }
 
+#ifdef GPUCA_HAVE_O2HEADERS
   if (mProcessingSettings.nTPCClustererLanes == -1) {
     mProcessingSettings.nTPCClustererLanes = (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) ? 3 : std::max<int>(1, std::min<int>(GPUCA_NSLICES, mProcessingSettings.ompKernels ? (mProcessingSettings.ompThreads >= 4 ? std::min<int>(mProcessingSettings.ompThreads / 2, mProcessingSettings.ompThreads >= 32 ? GPUCA_NSLICES : 4) : 1) : mProcessingSettings.ompThreads));
   }
   if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
     mProcessingSettings.overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mProcessingSettings.ompThreads / mProcessingSettings.nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
   }
+#endif
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
     GPUError("Must use double pipeline mode only with exactly one chain that must support it");

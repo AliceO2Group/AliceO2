@@ -156,6 +156,7 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
       unsigned int timeFrame = 0;
       unsigned int interval = 0;
       getTF(0, integrationInterval, timeFrame, interval);
+      int iside = mSideIndex[side];
 
       pcstream << "tree"
                << "integrationInterval=" << integrationInterval
@@ -176,7 +177,7 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
                << "gx.=" << vGlobalXPos
                << "gy.=" << vGlobalYPos
                << "sector.=" << sectorv
-               << "side.=" << side
+               << "side=" << iside
                << "\n";
     }
   }

@@ -17,7 +17,7 @@
 #include <TFile.h>      // for TFile
 #include <TPRegexp.h>   // for TPRegexp
 #include <TSystem.h>    // for TSystem, gSystem
-#include "FairLogger.h" // for FairLogger
+#include <fairlogger/Logger.h> // for FairLogger
 #include "FairParamList.h"
 #include "FairRun.h"
 #include "FairRuntimeDb.h"

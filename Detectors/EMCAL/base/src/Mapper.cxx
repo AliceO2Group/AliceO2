@@ -66,14 +66,14 @@ void Mapper::init(const std::string_view filename)
 
     auto chantype = o2::emcal::intToChannelType(caloflag);
 
-    mMapping.insert(std::pair<int, ChannelID>(address, {uint8_t(row), uint8_t(col), chantype}));
-    mInverseMapping.insert(std::pair<ChannelID, int>({uint8_t(row), uint8_t(col), chantype}, address));
+    mMapping.insert(std::pair<int, ChannelID>(static_cast<unsigned int>(address), {uint8_t(row), uint8_t(col), chantype}));
+    mInverseMapping.insert(std::pair<ChannelID, int>({uint8_t(row), uint8_t(col), chantype}, static_cast<unsigned int>(address)));
   }
 
   mInitStatus = true;
 }
 
-Mapper::ChannelID Mapper::getChannelID(int hardawareaddress) const
+Mapper::ChannelID Mapper::getChannelID(unsigned int hardawareaddress) const
 {
   if (!mInitStatus) {
     throw InitStatusException();
@@ -85,12 +85,12 @@ Mapper::ChannelID Mapper::getChannelID(int hardawareaddress) const
   return res->second;
 }
 
-int Mapper::getHardwareAddress(int row, int col, ChannelType_t channeltype) const
+unsigned int Mapper::getHardwareAddress(uint8_t row, uint8_t col, ChannelType_t channeltype) const
 {
   if (!mInitStatus) {
     throw InitStatusException();
   }
-  ChannelID channelToFind{uint8_t(row), uint8_t(col), channeltype};
+  ChannelID channelToFind{row, col, channeltype};
   auto found = mInverseMapping.find(channelToFind);
   if (found == mInverseMapping.end()) {
     throw ChannelNotFoundException(channelToFind);
@@ -101,9 +101,9 @@ int Mapper::getHardwareAddress(int row, int col, ChannelType_t channeltype) cons
 MappingHandler::MappingHandler()
 {
   const std::array<char, 2> SIDES = {{'A', 'C'}};
-  const int NDDL = 2;
-  for (int iside = 0; iside < 2; iside++) {
-    for (int iddl = 0; iddl < NDDL; iddl++) {
+  const unsigned int NDDL = 2;
+  for (unsigned int iside = 0; iside < 2; iside++) {
+    for (unsigned int iddl = 0; iddl < NDDL; iddl++) {
       mMappings[iside * NDDL + iddl].setMapping(Form("%s/share/Detectors/EMC/files/RCU%d%c.data", gSystem->Getenv("O2_ROOT"), iddl, SIDES[iside]));
     }
   }
@@ -114,10 +114,15 @@ Mapper& MappingHandler::getMappingForDDL(unsigned int ddl)
   if (ddl >= 40) {
     throw MappingHandler::DDLInvalid(ddl);
   }
-  const int NDDLSM = 2, NSIDES = 2;
-  int ddlInSM = ddl % NDDLSM,
-      sideID = (ddl / NDDLSM) % NSIDES;
-  return mMappings[sideID * NDDLSM + ddlInSM];
+  const unsigned int NDDLSM = 2, NSIDES = 2;
+  unsigned int ddlInSM = ddl % NDDLSM,
+               sideID = (ddl / NDDLSM) % NSIDES;
+  unsigned int mappingIndex = sideID * NDDLSM + ddlInSM;
+  if (mappingIndex < 0 || mappingIndex >= mMappings.size()) {
+    std::cout << "Access to invalid mapping position for ddl " << ddl << std::endl;
+    throw MappingHandler::DDLInvalid(ddl);
+  }
+  return mMappings[mappingIndex];
 }
 
 int MappingHandler::getFEEForChannelInDDL(unsigned int ddl, unsigned int channelFEC, unsigned int branch)

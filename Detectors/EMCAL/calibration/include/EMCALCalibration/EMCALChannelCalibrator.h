@@ -168,9 +168,13 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
 
       TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
       fLocalStorage.cd();
-      TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
-      std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());
+      TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false); // high gain calibration
+      std::string nameTCHist = "TCParams_HG_" + std::to_string(slot.getStartTimeMS());
       histTCparams->Write(nameTCHist.c_str(), TObject::kOverwrite);
+
+      TH1F* histTCparams_LG = (TH1F*)tcd.getHistogramRepresentation(true); // low gain calibration
+      std::string nameTCHist_LG = "TCParams_LG_" + std::to_string(slot.getStartTimeMS());
+      histTCparams_LG->Write(nameTCHist_LG.c_str(), TObject::kOverwrite);
 
       TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
       std::string nameTCInputHist = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());

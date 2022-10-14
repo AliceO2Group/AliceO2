@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "CommonConstants/LHCConstants.h"
 #include "TString.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsRaw/RDHUtils.h"
 
 //#define VERBOSE

@@ -32,7 +32,8 @@ o2_add_library(MFTAlignment
                 O2::DataFormatsMFT
                 O2::MFTTracking
                 O2::CCDB
-                O2::Steer)
+                O2::Steer
+                ROOT::TreePlayer)
 
 o2_target_root_dictionary(MFTAlignment
         HEADERS include/MFTAlignment/AlignConfig.h

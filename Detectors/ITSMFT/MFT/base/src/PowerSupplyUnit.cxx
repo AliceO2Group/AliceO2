@@ -23,7 +23,7 @@
 #include "TGeoBBox.h"
 #include "TGeoSphere.h"
 #include "TGeoVolume.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "MFTBase/Constants.h"
 #include "MFTBase/PowerSupplyUnit.h"
 #include "MFTBase/Geometry.h"

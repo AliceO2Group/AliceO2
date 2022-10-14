@@ -155,7 +155,11 @@ int CruRawReader::processHBFs()
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mOptions[TRDVerboseBit]) {
       LOG(info) << "Current RDH is as follows:";
-      o2::raw::RDHUtils::printRDH(rdh);
+      try {
+        o2::raw::RDHUtils::printRDH(rdh);
+      } catch (std::runtime_error& e) {
+        LOG(error) << e.what();
+      }
     }
     if (!checkRDH(rdh)) {
       return -1;
@@ -187,7 +191,11 @@ int CruRawReader::processHBFs()
 
     if (mOptions[TRDVerboseBit]) {
       LOG(info) << "Next RDH is as follows:";
-      o2::raw::RDHUtils::printRDH(rdh);
+      try {
+        o2::raw::RDHUtils::printRDH(rdh);
+      } catch (std::runtime_error& e) {
+        LOG(error) << e.what();
+      }
     }
 
     if (!o2::raw::RDHUtils::getStop(rdh) && offsetToNext >= mCurrRdhPtr - mDataBufferPtr) {
@@ -640,13 +648,12 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
   int detHeader = HelperMethods::getDetector(((~header.supermodule) & 0x1f), ((~header.stack) & 0x7), ((~header.layer) & 0x7));
   int hcidHeader = (detHeader * 2 + ((~header.side) & 0x1));
   if (hcid != hcidHeader) {
-    if (mMaxWarnPrinted > 0) {
-      LOGF(alarm, "RDH HCID %i, TrackletHCHeader HCID %i. Taking the TrackletHCHedaer as authority", hcid, hcidHeader);
-      checkNoWarn();
-    }
-    hcid = hcidHeader;
+    mHalfChamberMismatches.insert(std::make_pair(hcid, hcidHeader));
+    return false;
+  } else {
+    mHalfChamberHeaderOK.insert(hcid);
+    return true;
   }
-  return (hcid == hcidHeader);
 }
 
 int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejected)
@@ -1072,6 +1079,37 @@ void CruRawReader::run()
     }
   }
 };
+
+void CruRawReader::printHalfChamberHeaderReport() const
+{
+  LOG(info) << "Listing the half-chambers from which we have seen correct TrackletHCHeaders:";
+  int prevSec = -1;
+  int currSec = -1;
+  std::string message;
+  for (auto hcid : mHalfChamberHeaderOK) {
+    int currDet = hcid / 2;
+    currSec = HelperMethods::getSector(currDet);
+    std::string side = (hcid % 2 == 0) ? "A" : "B";
+    if (currSec != prevSec) {
+      if (!message.empty()) {
+        LOG(info) << message;
+        message.clear();
+      }
+      prevSec = currSec;
+    }
+    message += fmt::format("{:#02}_{}_{}{} ", currSec, HelperMethods::getStack(currDet), HelperMethods::getLayer(currDet), side.c_str());
+  }
+  if (!message.empty()) {
+    LOG(info) << message;
+  }
+
+  if (!mHalfChamberMismatches.empty()) {
+    LOG(warn) << "Found HCID mismatch(es). Printing one by one.";
+  }
+  for (const auto& elem : mHalfChamberMismatches) {
+    LOGF(info, "HCID deduced from RDH (link ID): %i, HCID from TrackletHCHeader: %i", elem.first, elem.second);
+  }
+}
 
 //write the output data directly to the given DataAllocator from the datareader task.
 void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)

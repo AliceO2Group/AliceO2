@@ -24,6 +24,7 @@
 #include <iostream>
 #include "MCHRawElecMap/Mapper.h"
 #include "dslist.h"
+#include "DetectionElements.h"
 
 namespace o2::mch::raw::impl
 {
@@ -92,9 +93,9 @@ std::map<VALUE, KEY> inverseMap(const std::map<KEY, VALUE>& src)
 template <typename T>
 std::set<uint16_t> getSolarUIDs(int deid)
 {
-  auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
+  static auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
   std::set<uint16_t> solarsForDE;
-  auto dslist = createDualSampaMapper();
+  static auto dslist = createDualSampaMapper();
   for (auto dsid : dslist(deid)) {
     DsDetId id{static_cast<uint16_t>(deid), static_cast<uint16_t>(dsid)};
     auto dsel = d2e(id);
@@ -110,7 +111,7 @@ std::set<uint16_t> getSolarUIDs()
 {
   std::set<uint16_t> solarUIDs;
 
-  for (auto deid : deIdsForAllMCH) {
+  for (auto deid : o2::mch::constants::deIdsForAllMCH) {
     std::set<uint16_t> solarsForDE = getSolarUIDs<T>(deid);
     for (auto s : solarsForDE) {
       solarUIDs.insert(s);
@@ -123,7 +124,7 @@ template <typename T>
 std::set<uint16_t> getSolarUIDsPerFeeId(uint16_t feeid)
 {
   std::set<uint16_t> solars;
-  auto feeLink2Solar = createFeeLink2SolarMapper<T>();
+  static auto feeLink2Solar = createFeeLink2SolarMapper<T>();
   for (uint8_t link = 0; link < 12; link++) {
     auto solar = feeLink2Solar(FeeLinkId{feeid, link});
     if (solar.has_value()) {
@@ -153,7 +154,7 @@ std::vector<std::string> solar2FeeLinkConsistencyCheck()
 
   // All solars must have a FeeLinkId
   std::set<uint16_t> solarIds = getSolarUIDs<T>();
-  auto solar2feeLink = createSolar2FeeLinkMapper<T>();
+  static auto solar2feeLink = createSolar2FeeLinkMapper<T>();
   std::vector<o2::mch::raw::FeeLinkId> feeLinkIds;
   for (auto s : solarIds) {
     auto p = solar2feeLink(s);
@@ -180,10 +181,10 @@ std::set<DsElecId> getAllDs()
 {
   std::set<DsElecId> dsElecIds;
 
-  auto dslist = createDualSampaMapper();
-  auto det2ElecMapper = createDet2ElecMapper<T>();
+  static auto dslist = createDualSampaMapper();
+  static auto det2ElecMapper = createDet2ElecMapper<T>();
 
-  for (auto deId : o2::mch::raw::deIdsForAllMCH) {
+  for (auto deId : o2::mch::constants::deIdsForAllMCH) {
     for (auto dsId : dslist(deId)) {
       auto dsElecId = det2ElecMapper(DsDetId{deId, dsId});
       if (dsElecId.has_value()) {
@@ -200,7 +201,7 @@ std::set<DsDetId> getDualSampas(uint16_t solarId)
 {
   std::set<DsDetId> dualSampas;
 
-  auto elec2det = o2::mch::raw::createElec2DetMapper<T>();
+  static auto elec2det = o2::mch::raw::createElec2DetMapper<T>();
   for (uint8_t group = 0; group < 8; group++) {
     for (uint8_t index = 0; index < 5; index++) {
       DsElecId dsElecId{solarId, group, index};

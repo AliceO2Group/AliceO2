@@ -23,7 +23,7 @@
 
 // FairRoot includes
 #include "FairDetector.h"    // for FairDetector
-#include "FairLogger.h"      // for LOG, LOG_IF
+#include <fairlogger/Logger.h> // for LOG, LOG_IF
 #include "FairModule.h"      // for FairModule
 #include "FairRootManager.h" // for FairRootManager
 #include "FairRun.h"         // for FairRun

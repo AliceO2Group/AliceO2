@@ -14,6 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
+#include <cmath>
 
 using namespace o2::calibration;
 
@@ -40,14 +41,17 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
   LOG(info) << "input size = " << data.size();
   for (int i = data.size(); i--;) {
     // filling the histogram in binned mode
-    auto x = data[i].getX();
-    auto y = data[i].getY();
-    auto z = data[i].getZ();
-    if (mVerbose) {
-      LOG(info) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
+    std::array<float, 3> xyz{data[i].getX(), data[i].getY(), data[i].getZ()};
+    auto entries1 = entries + 1;
+    for (int j = 0; j < 3; j++) {
+      means[j] = (means[j] * entries + xyz[j]) / entries1;
+      meanSquares[j] = (meanSquares[j] * entries + xyz[j] * xyz[j]) / entries1;
     }
-    entries++;
-    histoVtx.push_back({x, y, z});
+    if (mVerbose) {
+      LOG(info) << "i = " << i << " --> x = " << xyz[0] << ", y = " << xyz[1] << ", z = " << xyz[2];
+    }
+    entries = entries + 1;
+    histoVtx.push_back(xyz);
   }
 }
 
@@ -55,7 +59,17 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
 void MeanVertexData::subtract(const MeanVertexData* prev)
 {
   // remove entries from prev
-
+  int totEntries = entries - prev->entries;
+  if (totEntries > 0) {
+    for (int i = 0; i < 3; i++) {
+      means[i] = (means[i] * entries - prev->means[i] * prev->entries) / totEntries;
+      meanSquares[i] = (meanSquares[i] * entries - prev->meanSquares[i] * prev->entries) / totEntries;
+    }
+  } else {
+    for (int i = 0; i < 3; i++) {
+      means[i] = meanSquares[i] = 0.;
+    }
+  }
   histoVtx.erase(histoVtx.begin(), histoVtx.begin() + prev->entries);
   entries -= prev->entries;
 }
@@ -65,7 +79,20 @@ void MeanVertexData::merge(const MeanVertexData* prev)
 {
   // merge data of 2 slots
   histoVtx.insert(histoVtx.end(), prev->histoVtx.begin(), prev->histoVtx.end());
-  entries += prev->entries;
+  auto totEntries = entries + prev->entries;
+  if (totEntries) {
+    for (int i = 0; i < 3; i++) {
+      means[i] = (means[i] * entries + prev->means[i] * prev->entries) / totEntries;
+      meanSquares[i] = (meanSquares[i] * entries + prev->meanSquares[i] * prev->entries) / totEntries;
+    }
+  }
+  entries = totEntries;
+}
+
+double MeanVertexData::getRMS(int i) const
+{
+  double rms2 = meanSquares[i] - means[i] * means[i];
+  return rms2 > 0. ? std::sqrt(rms2) : 0;
 }
 
 } // end namespace calibration

@@ -91,6 +91,19 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
 {
   char** stackStrings;
   stackStrings = backtrace_symbols(stackTrace, stackDepth);
+  char exe[1024];
+  bool hasExe = false;
+  int ret = 0;
+
+#if __linux__
+  ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+  if (ret == -1) {
+    dprintf(fd, "Unable to detect exectuable name\n");
+  }
+  dprintf(fd, "Executable is %s\n", exe);
+  hasExe = true;
+#endif
+
   for (size_t i = 1; i < stackDepth; i++) {
 
     size_t sz = 64000; // 64K ought to be enough for our templates...
@@ -107,7 +120,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       }
     }
 #else
-    for (char* j = stackStrings[i]; *j; ++j) {
+    for (char* j = stackStrings[i]; j && *j; ++j) {
       if (*j == '(') {
         begin = j;
       } else if (*j == '+') {
@@ -135,7 +148,29 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       dprintf(fd, "    %s: %s\n", stackStrings[i], function);
     } else {
       // didn't find the mangled name, just print the whole line
-      dprintf(fd, "    %s\n", stackStrings[i]);
+      dprintf(fd, "    %s: ", stackStrings[i]);
+      if (stackTrace[i] && hasExe) {
+        char syscom[4096];
+
+        snprintf(syscom, 4096, "addr2line %p -a -p -s -f -i -e %s 2>/dev/null | c++filt -r ", stackTrace[i], exe); //last parameter is the name of this app
+
+        FILE* fp;
+        char path[1024];
+
+        fp = popen(syscom, "r");
+        if (fp == nullptr) {
+          dprintf(fd, "-- no source could be retrieved --\n");
+          continue;
+        }
+
+        while (fgets(path, sizeof(path) - 1, fp) != nullptr) {
+          dprintf(fd, "    %s", path);
+        }
+
+        pclose(fp);
+      } else {
+        dprintf(fd, "-- no source avaliable --\n");
+      }
     }
     free(function);
   }

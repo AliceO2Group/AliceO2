@@ -30,6 +30,7 @@ o2_add_library(DetectorsCalibration
 o2_target_root_dictionary(DetectorsCalibration
                           HEADERS include/DetectorsCalibration/TimeSlotCalibration.h
                                   include/DetectorsCalibration/TimeSlot.h
+                                  include/DetectorsCalibration/TimeSlotMetaData.h
                                   include/DetectorsCalibration/Utils.h
                                   include/DetectorsCalibration/MeanVertexData.h
                                   include/DetectorsCalibration/MeanVertexCalibrator.h

@@ -28,7 +28,7 @@
 #include <thread>
 #include <csignal>
 #include "TStopwatch.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonUtils/ShmManager.h"
 #include "TFile.h"
 #include "TTree.h"

@@ -12,7 +12,7 @@
 #include <TTree.h>
 #include <cassert>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "Field/MagneticField.h"
 #include "Field/MagFieldFast.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -178,18 +178,12 @@ void MatchTPCITS::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
-  if (mTPCCorrMapsHelper) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 
 //______________________________________________
-void MatchTPCITS::setTPCCorrMaps(o2::tpc::CorrectionMapsHelper* maph)
+void MatchTPCITS::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  if (mTPCVDrift > 0.f) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCCorrMapsHelper->getCorrMap(), 0, mTPCVDriftCorrFact, mTPCVDriftRef);
-  }
 }
 
 //______________________________________________
@@ -525,7 +519,7 @@ bool MatchTPCITS::prepareTPCData()
     mITSROFofTPCBin[ib] = itsROF;
   }
 */
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper->getCorrMap(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 
   mTimer[SWPrepTPC].Stop();
   return mTPCWork.size() > 0;
@@ -1341,8 +1335,10 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
     auto tImposed = timeC * mTPCTBinMUSInv;
-    if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) { // RS FIXME: should be removed once TOF fixes https://github.com/AliceO2Group/AliceO2/pull/6540#issuecomment-880060760
-      LOG(error) << "Impossible imposed timebin " << tImposed << " for TPC track with timebin0 " << mTPCTracksArray[tTPC.sourceID].getTime0() << " TB";
+    if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) {
+      LOGP(alarm, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
+           mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT);
+      LOGP(info, "Trc: {}", mTPCTracksArray[tTPC.sourceID].asString());
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }

@@ -127,7 +127,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
       Double_t const nPhotons = hitEdep * DP::N_PHOTONS_PER_MEV;
       float const nPhE = SimulateLightYield(detId, nPhotons);
       float const mipFraction = float(nPhE / FV0DigParam::Instance().avgNumberPhElectronPerMip);
-      Float_t timeHit = hitTime;
+      Long64_t timeHit = hitTime;
       timeHit += mIntRecord.getTimeNS();
       o2::InteractionTimeRecord const irHit(timeHit);
       std::array<o2::InteractionRecord, NBC2Cache> cachedIR;

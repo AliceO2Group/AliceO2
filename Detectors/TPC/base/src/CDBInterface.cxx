@@ -17,6 +17,7 @@
 #include <cxxabi.h>
 #include <ctime>
 #include <memory>
+#include <filesystem>
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
@@ -98,16 +99,20 @@ const CalPad& CDBInterface::getNoise()
 //______________________________________________________________________________
 const CalPad& CDBInterface::getZeroSuppressionThreshold()
 {
-  if (mUseDefaults) {
+  // ===| load gain map from file if requested |=====================
+  if (mThresholdMapFileName.size()) {
+    if (!mZeroSuppression) {
+      loadThresholdMapFromFile();
+    }
+  } else if (mUseDefaults) {
     if (!mZeroSuppression) {
       createDefaultZeroSuppression();
     }
-    return *mZeroSuppression;
   } else {
     // return from CDB, assume that check for object existence are done there
     return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ThresholdMap");
-    ;
   }
+  return *mZeroSuppression;
 }
 
 //______________________________________________________________________________
@@ -132,6 +137,54 @@ const CalPad& CDBInterface::getGainMap()
   }
 
   return *mGainMap;
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getITFraction()
+{
+  // ===| load gain map from file if requested |=====================
+  if (mIonTailParamFileName.size()) {
+    if (!mITFraction) {
+      loadIonTailParamsFromFile();
+    }
+  } else if (mUseDefaults) {
+    if (!mITFraction) {
+      createDefaultIonTailParams();
+    }
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalITParams)).at("fraction");
+  }
+
+  if (!mITFraction) {
+    LOG(fatal) << "No valid ion tail fraction parameters were loaded";
+  }
+
+  return *mITFraction;
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getITExpLambda()
+{
+  // ===| load gain map from file if requested |=====================
+  if (mIonTailParamFileName.size()) {
+    if (!mITExpLambda) {
+      loadIonTailParamsFromFile();
+    }
+  } else if (mUseDefaults) {
+    if (!mITExpLambda) {
+      createDefaultIonTailParams();
+    }
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalITParams)).at("expLamda");
+  }
+
+  if (!mITExpLambda) {
+    LOG(fatal) << "No valid ion tail slope (expLamda) parameters were loaded";
+  }
+
+  return *mITExpLambda;
 }
 
 //______________________________________________________________________________
@@ -222,6 +275,44 @@ void CDBInterface::loadGainMapFromFile()
 
   LOG(info) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
+
+//______________________________________________________________________________
+void CDBInterface::loadThresholdMapFromFile()
+{
+  if (mThresholdMapFileName.empty()) {
+    return;
+  }
+
+  auto calPads = o2::tpc::utils::readCalPads(mThresholdMapFileName, "ThresholdMap");
+
+  if (calPads.size() != 1) {
+    LOGP(fatal, "Missing 'ThresholdMap' object in file {}", mThresholdMapFileName);
+  }
+
+  mZeroSuppression.reset(calPads[0]);
+}
+
+//______________________________________________________________________________
+void CDBInterface::loadIonTailParamsFromFile()
+{
+  if (mIonTailParamFileName.empty() || !std::filesystem::exists(mIonTailParamFileName)) {
+    LOGP(fatal, "Could not find IF param file {}", mIonTailParamFileName);
+  }
+
+  auto calDets = utils::readCalPads(mIonTailParamFileName, "fraction,expLambda");
+  if (!calDets[0]) {
+    LOGP(fatal, "Could not read IT fraction object from file {}", mIonTailParamFileName);
+  }
+  if (!calDets[1]) {
+    LOGP(fatal, "Could not read IT expLambda object from file {}", mIonTailParamFileName);
+  }
+
+  mITFraction.reset(calDets[0]);
+  mITExpLambda.reset(calDets[1]);
+
+  LOGP(info, "Loaded ion tail parameters from file {}", mIonTailParamFileName);
+}
+
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
 {
@@ -276,19 +367,24 @@ void CDBInterface::createDefaultNoise()
       val = random;
     }
   }
+
+  LOGP(info, "created default noise map");
 }
 
 //______________________________________________________________________________
 void CDBInterface::createDefaultZeroSuppression()
 {
-  // default map is 3*noise
+  // default map is mDefaultZSsigma * noise
   mZeroSuppression = std::unique_ptr<CalPad>(new CalPad(getNoise()));
   mZeroSuppression->setName("ThresholdMap");
 
+  const auto zsSigma = mDefaultZSsigma;
   for (auto& calArray : mZeroSuppression->getData()) {
     auto& data = calArray.getData();
-    std::transform(data.begin(), data.end(), data.begin(), [](const auto value) { return 3.f * value; });
+    std::transform(data.begin(), data.end(), data.begin(), [zsSigma](const auto value) { return zsSigma * value; });
   }
+
+  LOGP(info, "created default threshold map");
 }
 
 //______________________________________________________________________________
@@ -317,6 +413,19 @@ void CDBInterface::createDefaultGainMap()
       val = random;
     }
   }
+  LOGP(info, "created default gain map");
+}
+
+//______________________________________________________________________________
+void CDBInterface::createDefaultIonTailParams()
+{
+  mITFraction = std::make_unique<CalPad>("fraction");
+  mITExpLambda = std::make_unique<CalPad>("expLambda");
+
+  *mITFraction += 0.1276;
+  *mITExpLambda += std::exp(-0.0515);
+
+  LOGP(info, "created default ion tail per-pad parameters");
 }
 
 //______________________________________________________________________________

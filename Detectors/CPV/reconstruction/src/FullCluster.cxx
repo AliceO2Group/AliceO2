@@ -14,7 +14,7 @@
 #include "CPVBase/Geometry.h"
 #include "CPVBase/CPVSimParams.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::cpv;
 

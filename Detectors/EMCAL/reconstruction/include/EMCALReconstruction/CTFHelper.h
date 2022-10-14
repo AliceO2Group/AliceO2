@@ -70,6 +70,43 @@ class CTFHelper
       mIndex--;
       return (I&)(*this);
     }
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
 
     difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
 
@@ -85,6 +122,8 @@ class CTFHelper
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -109,6 +148,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].getBCData().orbit == mData[id - 1].getBCData().orbit) {
+          return mData[id].getBCData().bc - mData[id - 1].getBCData().bc;
+        } else {
+          return mData[id].getBCData().bc;
+        }
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -118,6 +169,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, TriggerRecord, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].getBCData().orbit - mData[id - 1].getBCData().orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -127,6 +183,7 @@ class CTFHelper
    public:
     using _Iter<Iter_entriesTrig, TriggerRecord, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getNumberOfObjects(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getNumberOfObjects(); }
   };
 
   //_______________________________________________
@@ -136,6 +193,7 @@ class CTFHelper
    public:
     using _Iter<Iter_trigger, TriggerRecord, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getTriggerBitsCompressed(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getTriggerBitsCompressed(); }
   };
 
   //_______________________________________________
@@ -144,6 +202,7 @@ class CTFHelper
    public:
     using _Iter<Iter_towerID, Cell, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedTowerID(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTowerID(); }
   };
 
   //_______________________________________________
@@ -152,6 +211,7 @@ class CTFHelper
    public:
     using _Iter<Iter_time, Cell, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedTime(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTime(); }
   };
 
   //_______________________________________________
@@ -160,6 +220,7 @@ class CTFHelper
    public:
     using _Iter<Iter_energy, Cell, uint16_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedEnergy(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedEnergy(); }
   };
 
   //_______________________________________________
@@ -168,6 +229,7 @@ class CTFHelper
    public:
     using _Iter<Iter_status, Cell, uint8_t>::_Iter;
     value_type operator*() const { return mData[mIndex].getPackedCellStatus(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedCellStatus(); }
   };
 
   //<<< =========================== ITERATORS ========================================

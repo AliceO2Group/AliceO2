@@ -15,35 +15,48 @@
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+
 #include "CCDB/CcdbApi.h"
-#include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsFIT/BadChannelMap.h"
 
+#include <algortihm>
 #include <chrono>
 #include <string>
 #include <time.h>
 #include <vector>
-#include <iterator>
 
-void readFITBadChannelMap(const std::string& detectorName = "FT0",
-                          long timestamp = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP,
-                          const std::string& ccdbUrl = "http://localhost:8080",
+#endif
+
+#include "Framework/Logger.h"
+
+#include <boost/algorithm/string.hpp>
+
+void readFITBadChannelMap(std::string detectorName,
+                          long timestamp = -1,
+                          const std::string& ccdbUrl = "https://alice-ccdb.cern.ch",
                           const bool verbose = false)
 {
-  LOG(info) << "Reading bad channel map for " << detectorName;
-  o2::ccdb::CcdbApi api;
-  api.init(ccdbUrl);
+  // Parse and check detector name
+  boost::to_upper(detectorName);
+  if (detectorName != "FT0" && detectorName != "FV0" && detectorName != "FDD") {
+    LOGP(fatal, "Invalid detector name provided: '{}'. Please use [FT0/FV0/FDD].", detectorName);
+    return;
+  }
+  LOGP(info, "Fetching bad channel map for {}.", detectorName);
 
+  // Init CCDB stuff
+  o2::ccdb::CcdbApi ccdbApi;
+  ccdbApi.init(ccdbUrl);
   const std::string ccdbPath = detectorName + "/Calib/BadChannelMap";
-
   std::map<std::string, std::string> metadata;
-  if (timestamp == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
-    timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+  if (timestamp < 0) {
+    timestamp = o2::ccdb::getCurrentTimestamp();
   }
 
-  o2::fit::BadChannelMap* map = api.retrieveFromTFileAny<o2::fit::BadChannelMap>(ccdbPath, metadata, timestamp);
-  if (map == nullptr) {
-    LOGP(fatal, "Bad channel map not found in {}/{} for timestamp {}", ccdbUrl, ccdbPath, timestamp);
+  o2::fit::BadChannelMap* map = ccdbApi.retrieveFromTFileAny<o2::fit::BadChannelMap>(ccdbPath, metadata, timestamp);
+  if (!map) {
+    LOGP(fatal, "Bad channel map not found in {}/{} for timestamp {}.", ccdbUrl, ccdbPath, timestamp);
     return;
   }
 
@@ -63,6 +76,9 @@ void readFITBadChannelMap(const std::string& detectorName = "FT0",
     }
   }
 
+  std::sort(goodChannels.begin(), goodChannels.end());
+  std::sort(badChannels.begin(), badChannels.end());
+
   LOG(info) << "Good channels: ";
   for (auto& ch : goodChannels) {
     LOGP(info, "{}", ch);
@@ -72,8 +88,9 @@ void readFITBadChannelMap(const std::string& detectorName = "FT0",
     LOGP(info, "{}", ch);
   }
 
-  LOG(info) << "Number of channels = " << map->map.size();
+  LOGP(info, "Number of channels      = {}", map->map.size());
+  LOGP(info, "Number of good channels = {}", goodChannels.size());
+  LOGP(info, "Number of bad channels  = {}", badChannels.size());
+
   return;
 }
-
-#endif

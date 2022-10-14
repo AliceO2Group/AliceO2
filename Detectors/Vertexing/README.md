@@ -68,6 +68,15 @@ to the V0 with requested material corrections, one new V0 minimization will be d
 Since this is CPU consiming, it is reccomended to disable propagation to V0 by default (`ft.setPropagateToPCA(false)`) and call separately `ft.propagateTracksToVertex()`
 after preliminary checks on the V0 candidate.
 
+By default the final V0 position is defined as
+1) With `useAbsDCA = true`: simple average of tracks position propagated to respective `X_dca` parameters and rotated to the lab. frame.
+2) With `useAbsDCA = false`: weighted (by tracks covariances) average of tracks position propagated to respective `X_dca` parameters and rotated to the lab. frame.
+
+Extra method `setWeightedFinalPCA(bool)` is provided for the "mixed" mode: if `setWeightedFinalPCA(true)` is set with `useAbsDCA = true` before the `process` call, the minimization will be done neglecting the track covariances,
+but the final V0 position will be calculated using weighted average. One can also recalculate the V0 position by the weighted average method by calling explicitly
+`ft.recalculatePCAWithErrors(int icand=0)`, w/o prior call of `setWeightedFinalPCA(true)`: this will update the position returned by the `getPCACandidate(int cand = 0)`.
+
+The covariance matrix of the V0 position is calculated as an inversed sum of tracks inversed covariances at respective `X_dca` points.
 
 See ``O2/Detectors/Base/test/testDCAFitterN.cxx`` for more extended example.
 Currently only 2 and 3 prongs permitted, thought this can be changed by modifying ``DCAFitterN::NMax`` constant.

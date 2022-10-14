@@ -76,9 +76,11 @@ enum class CDBType {
   CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   CalSACFourier,       ///< Fourier coefficients of CalSAC1
-
-  CalCorrMap,    ///< Cluster correction map
-  CalCorrMapRef, ///< Cluster correction reference map (static distortions)
+                       ///
+  CalCorrMap,          ///< Cluster correction map
+  CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
+                       ///
+  CalITParams,         ///< Ion tail parameters
 };
 
 /// Upload intervention type
@@ -101,7 +103,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalGas, "TPC/Calib/Gas"},
   {CDBType::CalTemperature, "TPC/Calib/Temperature"},
   {CDBType::CalHV, "TPC/Calib/HV"},
-  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGain"},
+  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGainPiecewise"},
   {CDBType::CalVDriftTgl, "TPC/Calib/VDriftTgl"},
   //
   {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
@@ -111,26 +113,28 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::ParGas, "TPC/Parameter/Gas"},
   {CDBType::ParGEM, "TPC/Parameter/GEM"},
   // IDCs
-  {CDBType::CalIDC0A, "TPC/Calib/IDC/IDC0/A"},
-  {CDBType::CalIDC0C, "TPC/Calib/IDC/IDC0/C"},
-  {CDBType::CalIDC1A, "TPC/Calib/IDC/IDC1/A"},
-  {CDBType::CalIDC1C, "TPC/Calib/IDC/IDC1/C"},
-  {CDBType::CalIDCDeltaA, "TPC/Calib/IDC/IDCDELTA/A"},
-  {CDBType::CalIDCDeltaC, "TPC/Calib/IDC/IDCDELTA/C"},
-  {CDBType::CalIDCFourierA, "TPC/Calib/IDC/FOURIER/A"},
-  {CDBType::CalIDCFourierC, "TPC/Calib/IDC/FOURIER/C"},
-  {CDBType::CalIDCPadStatusMapA, "TPC/Calib/IDC/PadStatusMap/A"},
-  {CDBType::CalIDCPadStatusMapC, "TPC/Calib/IDC/PadStatusMap/C"},
-  {CDBType::CalIDCGroupingParA, "TPC/Calib/IDC/GROUPINGPAR/A"},
-  {CDBType::CalIDCGroupingParC, "TPC/Calib/IDC/GROUPINGPAR/C"},
+  {CDBType::CalIDC0A, "TPC/Calib/IDC_0_A"},
+  {CDBType::CalIDC0C, "TPC/Calib/IDC_0_C"},
+  {CDBType::CalIDC1A, "TPC/Calib/IDC_1_A"},
+  {CDBType::CalIDC1C, "TPC/Calib/IDC_1_C"},
+  {CDBType::CalIDCDeltaA, "TPC/Calib/IDC_DELTA_A"},
+  {CDBType::CalIDCDeltaC, "TPC/Calib/IDC_DELTA_C"},
+  {CDBType::CalIDCFourierA, "TPC/Calib/IDC_FOURIER_A"},
+  {CDBType::CalIDCFourierC, "TPC/Calib/IDC_FOURIER_C"},
+  {CDBType::CalIDCPadStatusMapA, "TPC/Calib/IDC_PadStatusMap_A"},
+  {CDBType::CalIDCPadStatusMapC, "TPC/Calib/IDC_PadStatusMap_C"},
+  {CDBType::CalIDCGroupingParA, "TPC/Calib/IDC_GROUPINGPAR_A"},
+  {CDBType::CalIDCGroupingParC, "TPC/Calib/IDC_GROUPINGPAR_C"},
   // SACs
-  {CDBType::CalSAC0, "TPC/Calib/SAC/SAC0"},
-  {CDBType::CalSAC1, "TPC/Calib/SAC/SAC1"},
-  {CDBType::CalSACDelta, "TPC/Calib/SAC/SACDELTA"},
-  {CDBType::CalSACFourier, "TPC/Calib/SAC/FOURIER"},
+  {CDBType::CalSAC0, "TPC/Calib/SAC_0"},
+  {CDBType::CalSAC1, "TPC/Calib/SAC_1"},
+  {CDBType::CalSACDelta, "TPC/Calib/SAC_DELTA"},
+  {CDBType::CalSACFourier, "TPC/Calib/SAC_FOURIER"},
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
+  // ion tail parameters
+  {CDBType::CalITParams, "TPC/Calib/IonTailParameters"},
 };
 
 /// Poor enum reflection ...
@@ -189,6 +193,16 @@ class CDBInterface
   /// \return gain map object
   const CalPad& getGainMap();
 
+  /// Return the ion tail coupling fraction
+  ///
+  /// \return ion tail fraction
+  const CalPad& getITFraction();
+
+  /// Return the ion tail exponential decay parameter
+  ///
+  /// \return ion tail exponential decay parameter
+  const CalPad& getITExpLambda();
+
   /// Return the Detector parameters
   ///
   /// The function checks if the object is already loaded and returns it
@@ -228,6 +242,10 @@ class CDBInterface
   template <typename T>
   T& getSpecificObjectFromCDB(const std::string_view path, long timestamp = -1, const std::map<std::string, std::string>& metaData = std::map<std::string, std::string>());
 
+  /// read an object from CCDB
+  template <typename T>
+  T& getObjectFromCDB(std::string_view path);
+
   /// Set noise and pedestal object from file
   ///
   /// This assumes that the objects are stored under the name
@@ -242,6 +260,20 @@ class CDBInterface
   ///
   /// \param fileName name of the file containing gain map
   void setGainMapFromFile(const std::string_view fileName) { mGainMapFileName = fileName; }
+
+  /// Set zero suppression thresholds from file
+  ///
+  /// This assumes that the objects is stored under the name 'ThresholdMap'
+  ///
+  /// \param fileName name of the file containing the threshold map
+  void setThresholdMapFromFile(const std::string_view fileName) { mThresholdMapFileName = fileName; }
+
+  /// Set ion tail parameters from file
+  ///
+  /// This assumes that the objects are stored under the name 'fraction,expLambda'
+  ///
+  /// \param fileName name of the file containing the ion tail parameters
+  void setIonTailParamsFromFile(const std::string_view fileName) { mIonTailParamFileName = fileName; }
 
   /// Force using default values instead of reading the CCDB
   ///
@@ -265,6 +297,13 @@ class CDBInterface
     cdb.setURL(url.data());
   }
 
+  /// set the Zero suppression threshold in sigma of noise in case
+  /// the default object is created and not loaded from file or ccdb
+  void setDefaultZSsigma(float zs)
+  {
+    mDefaultZSsigma = zs;
+  }
+
   /// Reset the local calibration
   void resetLocalCalibration()
   {
@@ -280,27 +319,32 @@ class CDBInterface
   // ===| Pedestal and noise |==================================================
   std::unique_ptr<CalPad> mPedestals;       ///< Pedestal object
   std::unique_ptr<CalPad> mNoise;           ///< Noise object
-  std::unique_ptr<CalPad> mZeroSuppression; ///< Noise object
+  std::unique_ptr<CalPad> mZeroSuppression; ///< Zero suppression object
   std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
+  std::unique_ptr<CalPad> mITFraction;      ///< Ion Tail fraction
+  std::unique_ptr<CalPad> mITExpLambda;     ///< Ion Tail exp(-lambda)
 
   // ===| switches and parameters |=============================================
-  bool mUseDefaults = false; ///< use defaults instead of CCDB
+  bool mUseDefaults = false;   ///< use defaults instead of CCDB
+  float mDefaultZSsigma = 3.f; ///< sigma to use in case the default zero suppression is created
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map
+  std::string mThresholdMapFileName;  ///< optional file name for the threshold map
+  std::string mIonTailParamFileName;  ///< optional file name for the ion tail parameters
 
   // ===========================================================================
   // ===| functions |===========================================================
   //
   void loadNoiseAndPedestalFromFile(); ///< load noise and pedestal values from mPedestalNoiseFileName
   void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
+  void loadThresholdMapFromFile();     ///< load zero suppression threshold map from mThresholdMapFileName
+  void loadIonTailParamsFromFile();    ///< load ion tail paramters
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
   void createDefaultZeroSuppression(); ///< creation of default noise if requested
   void createDefaultGainMap();         ///< creation of default gain map if requested
-
-  template <typename T>
-  T& getObjectFromCDB(std::string_view path);
+  void createDefaultIonTailParams();   ///< creation of default gain map if requested
 };
 
 /// Get an object from the CCDB.

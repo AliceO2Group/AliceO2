@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_DigitTime_H_
 
 #include "TPCBase/Mapper.h"
+#include "TPCBase/CalDet.h"
 #include "TPCSimulation/DigitGlobalPad.h"
 #include "SimulationDataFormat/LabelContainer.h"
 #include "CommonUtils/DebugStreamer.h"
@@ -76,7 +77,7 @@ class DigitTime
   /// \param prevTime Previous time bin to calculate CM and ToT
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr);
+                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr, const CalPad* itParams[2] = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -126,7 +127,7 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           PrevDigitInfoArray* prevTime, Streamer* debugStream)
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* itParams[2])
 {
   const auto& mapper = Mapper::instance();
   const auto& eleParam = ParameterElectronics::Instance();
@@ -138,7 +139,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     if (prevTime) {
       auto& prevDigit = (*prevTime)[iPad];
       if (prevDigit.hasSignal()) {
-        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream);
+        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream, itParams);
       }
       prevDigit.signal = digit.getChargePad(); // to make hasSignal() check work in next time bin
     }

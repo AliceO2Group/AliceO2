@@ -30,6 +30,7 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   using Slot = o2::calibration::TimeSlot<CalibPadGainTracksBase>;
   using TFinterval = std::vector<std::pair<TFType, TFType>>;
   using CalibVector = std::vector<std::unordered_map<std::string, CalPad>>; // extracted gain map
+  using TimeInterval = std::vector<std::pair<long, long>>;
 
  public:
   /// construcor
@@ -89,6 +90,9 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   /// \return CCDB output informations
   const TFinterval& getTFinterval() const { return mIntervals; }
 
+  /// \return Time frame time information
+  const TimeInterval& getTimeIntervals() const { return mTimeIntervals; }
+
   /// \return returns calibration objects (pad-by-pad gain maps)
   auto getCalibs() && { return std::move(mCalibs); }
 
@@ -97,6 +101,7 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
 
  private:
   TFinterval mIntervals;                                                      ///< start and end time frames of each calibration time slots
+  TimeInterval mTimeIntervals;                                                ///< start and end times of each calibration time slots
   CalibVector mCalibs;                                                        ///< Calibration object containing for each pad a histogram with normalized charge
   float mLowTruncation{0.05f};                                                ///< lower truncation range for calculating mean of the histograms
   float mUpTruncation{0.6f};                                                  ///< upper truncation range for calculating mean of the histograms

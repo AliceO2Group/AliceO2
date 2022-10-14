@@ -14,7 +14,8 @@ o2_add_library(
   SOURCES src/Transformations.cxx src/VolumePaths.cxx src/ClusterTransformerSpec.cxx
   PUBLIC_LINK_LIBRARIES ROOT::Geom O2::MathUtils Microsoft.GSL::GSL
                         RapidJSON::RapidJSON O2::Framework O2::DetectorsBase
-                        O2::DataFormatsMCH)
+                        O2::DataFormatsMCH
+  PRIVATE_LINK_LIBRARIES O2::MCHConstants)
 
 o2_add_executable(
   convert-geometry

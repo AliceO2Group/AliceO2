@@ -12,7 +12,7 @@
 #ifndef ALICEO2_EMCAL_ANALYSISCLUSTER_H_
 #define ALICEO2_EMCAL_ANALYSISCLUSTER_H_
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <gsl/span>
 #include <array>
 #include "Rtypes.h"

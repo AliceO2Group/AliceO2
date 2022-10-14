@@ -16,7 +16,7 @@
 #include "Generators/PrimaryGenerator.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "FairPrimaryGenerator.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <cmath>
 #include "TClonesArray.h"
 #include "TParticle.h"

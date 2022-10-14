@@ -11,7 +11,7 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <bitset>
 #include <cassert>
 #include <exception>

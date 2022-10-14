@@ -22,7 +22,7 @@
 #include "TH1.h"
 #include "TGraphAsymmErrors.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <fstream> // std::ifstream
 
 using namespace o2::phos;

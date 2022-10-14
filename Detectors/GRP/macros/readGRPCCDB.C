@@ -26,7 +26,7 @@
 // ccdb can be
 // http://localhost:8080 (as by default)
 // http://ccdb-test.cern.ch:8080 (test CCDB)
-// http://alice-ccdb.cern.ch (production CCDB)
+// https://alice-ccdb.cern.ch (production CCDB)
 // http://o2-ccdb.internal (production CCDB, only from FLPs and EPNs)
 
 void readGRPCCDB(long ts = 9999999999000, const char* ccdb = "http://localhost:8080")

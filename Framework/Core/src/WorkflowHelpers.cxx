@@ -25,7 +25,6 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
-#include "CCDBHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -215,7 +214,7 @@ std::string defaultConditionBackend()
   if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
     return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
   }
-  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
+  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "https://alice-ccdb.cern.ch";
 }
 
 // get the default value for condition query rate
@@ -241,7 +240,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   DataProcessorSpec ccdbBackend{
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
-    .algorithm = CCDBHelpers::fetchFromCCDB(),
     .options = {{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
@@ -289,6 +287,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     AlgorithmSpec::dummyAlgorithm(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
      ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
@@ -555,6 +554,34 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         }
       }
     }
+
+    // Load the CCDB backend from the plugin
+    uv_lib_t supportLib;
+    int result = 0;
+#ifdef __APPLE__
+    result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
+#else
+    result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
+#endif
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+      return;
+    }
+    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+      return;
+    }
+    if (dpl_plugin_callback == nullptr) {
+      LOG(fatal) << "Could not find the CCDBSupport plugin.";
+      return;
+    }
+    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
+    ccdbBackend.algorithm = creator->create();
+
     extraSpecs.push_back(ccdbBackend);
   } else {
     // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb

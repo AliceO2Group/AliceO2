@@ -37,6 +37,8 @@ float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName,
   int nCand = fitter.getNCandidates();
   std::array<float, 3> p;
   float distMin = 1e9;
+  bool absDCA = fitter.getUseAbsDCA();
+  bool useWghDCA = fitter.getWeightedFinalPCA();
   for (int ic = 0; ic < nCand; ic++) {
     const auto& vtx = fitter.getPCACandidate(ic);
     auto df = vgen;
@@ -53,11 +55,13 @@ float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName,
     auto chi2 = fitter.getChi2AtPCACandidate(ic);
     double dst = TMath::Sqrt(df[0] * df[0] + df[1] * df[1] + df[2] * df[2]);
     distMin = dst < distMin ? dst : distMin;
+    auto parentTrack = fitter.createParentTrackParCov(ic);
     //    float genX
     outs << treeName.c_str() << "cand=" << ic << "ncand=" << nCand << "nIter=" << nIter << "chi2=" << chi2
          << "genPart=" << genPar << "recPart=" << moth
          << "genX=" << vgen[0] << "genY=" << vgen[1] << "genZ=" << vgen[2]
-         << "dx=" << df[0] << "dy=" << df[1] << "dz=" << df[2] << "dst=" << dst << "\n";
+         << "dx=" << df[0] << "dy=" << df[1] << "dz=" << df[2] << "dst=" << dst
+         << "useAbsDCA=" << absDCA << "useWghDCA=" << useWghDCA << "parent=" << parentTrack << "\n";
   }
   return distMin;
 }
@@ -165,11 +169,12 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
     ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-    std::string treeName2A = "pr2a", treeName2W = "pr2w";
-    TStopwatch swA, swW;
-    int nfoundA = 0, nfoundW = 0;
-    double meanDA = 0, meanDW = 0;
+    std::string treeName2A = "pr2a", treeName2AW = "pr2aw", treeName2W = "pr2w";
+    TStopwatch swA, swAW, swW;
+    int nfoundA = 0, nfoundAW = 0, nfoundW = 0;
+    double meanDA = 0, meanDAW = 0, meanDW = 0;
     swA.Stop();
+    swAW.Stop();
     swW.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
@@ -185,7 +190,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundA++;
       }
 
+      ft.setUseAbsDCA(true);
+      ft.setWeightedFinalPCA(true);
+      swAW.Start(false);
+      int ncAW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      swAW.Stop();
+      LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
+      if (ncAW) {
+        auto minD = checkResults(outStream, treeName2AW, ft, vtxGen, genParent, k0dec);
+        meanDAW += minD;
+        nfoundAW++;
+      }
+
       ft.setUseAbsDCA(false);
+      ft.setWeightedFinalPCA(false);
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
@@ -198,15 +216,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     }
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
+    BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
     BOOST_CHECK(meanDA < 0.1);
+    BOOST_CHECK(meanDAW < 0.1);
     BOOST_CHECK(meanDW < 0.1);
   }
 
@@ -222,11 +245,12 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
     ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-    std::string treeName2A = "pr2aHL", treeName2W = "pr2wHL";
-    TStopwatch swA, swW;
-    int nfoundA = 0, nfoundW = 0;
-    double meanDA = 0, meanDW = 0;
+    std::string treeName2A = "pr2aHL", treeName2AW = "pr2awHL", treeName2W = "pr2wHL";
+    TStopwatch swA, swAW, swW;
+    int nfoundA = 0, nfoundAW = 0, nfoundW = 0;
+    double meanDA = 0, meanDAW = 0, meanDW = 0;
     swA.Stop();
+    swAW.Stop();
     swW.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       forceQ[iev % 2] = 1;
@@ -237,14 +261,27 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swA.Start(false);
       int ncA = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
-      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
         auto minD = checkResults(outStream, treeName2A, ft, vtxGen, genParent, k0dec);
         meanDA += minD;
         nfoundA++;
       }
 
+      ft.setUseAbsDCA(true);
+      ft.setWeightedFinalPCA(true);
+      swAW.Start(false);
+      int ncAW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      swAW.Stop();
+      LOG(debug) << "fit abs.dist  " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
+      if (ncAW) {
+        auto minD = checkResults(outStream, treeName2AW, ft, vtxGen, genParent, k0dec);
+        meanDAW += minD;
+        nfoundAW++;
+      }
+
       ft.setUseAbsDCA(false);
+      ft.setWeightedFinalPCA(false);
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
@@ -257,15 +294,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     }
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Helix : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
+    BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
     BOOST_CHECK(meanDA < 0.1);
+    BOOST_CHECK(meanDAW < 0.1);
     BOOST_CHECK(meanDW < 0.1);
   }
 
@@ -281,11 +323,12 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
     ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-    std::string treeName2A = "pr2aLL", treeName2W = "pr2wLL";
-    TStopwatch swA, swW;
-    int nfoundA = 0, nfoundW = 0;
-    double meanDA = 0, meanDW = 0;
+    std::string treeName2A = "pr2aLL", treeName2AW = "pr2awLL", treeName2W = "pr2wLL";
+    TStopwatch swA, swAW, swW;
+    int nfoundA = 0, nfoundAW = 0, nfoundW = 0;
+    double meanDA = 0, meanDAW = 0, meanDW = 0;
     swA.Stop();
+    swAW.Stop();
     swW.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       forceQ[0] = forceQ[1] = 0;
@@ -302,7 +345,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundA++;
       }
 
+      ft.setUseAbsDCA(true);
+      ft.setWeightedFinalPCA(true);
+      swAW.Start(false);
+      int ncAW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      swAW.Stop();
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
+      if (ncAW) {
+        auto minD = checkResults(outStream, treeName2AW, ft, vtxGen, genParent, k0dec);
+        meanDAW += minD;
+        nfoundAW++;
+      }
+
       ft.setUseAbsDCA(false);
+      ft.setWeightedFinalPCA(false);
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
@@ -315,15 +371,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     }
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Line : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
+    BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
     BOOST_CHECK(meanDA < 0.1);
+    BOOST_CHECK(meanDAW < 0.1);
     BOOST_CHECK(meanDW < 0.1);
   }
 
@@ -339,11 +400,12 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
     ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-    std::string treeName3A = "pr3a", treeName3W = "pr3w";
-    TStopwatch swA, swW;
-    int nfoundA = 0, nfoundW = 0;
-    double meanDA = 0, meanDW = 0;
+    std::string treeName3A = "pr3a", treeName3AW = "pr3aw", treeName3W = "pr3w";
+    TStopwatch swA, swAW, swW;
+    int nfoundA = 0, nfoundAW = 0, nfoundW = 0;
+    double meanDA = 0, meanDAW = 0, meanDW = 0;
     swA.Stop();
+    swAW.Stop();
     swW.Stop();
     for (int iev = 0; iev < NTest; iev++) {
       auto genParent = generate(vtxGen, vctracks, bz, genPHS, dch, dchdec, forceQ);
@@ -359,7 +421,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundA++;
       }
 
+      ft.setUseAbsDCA(true);
+      ft.setWeightedFinalPCA(true);
+      swAW.Start(false);
+      int ncAW = ft.process(vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+      swAW.Stop();
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
+      if (ncAW) {
+        auto minD = checkResults(outStream, treeName3AW, ft, vtxGen, genParent, dchdec);
+        meanDAW += minD;
+        nfoundAW++;
+      }
+
       ft.setUseAbsDCA(false);
+      ft.setWeightedFinalPCA(false);
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
       swW.Stop();
@@ -372,15 +447,20 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     }
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 3-prong vertices";
     LOG(info) << "3-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+    LOG(info) << "3-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
+              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
     LOG(info) << "3-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
-    BOOST_CHECK(nfoundA > 0.9 * NTest);
-    BOOST_CHECK(nfoundW > 0.9 * NTest);
+    BOOST_CHECK(nfoundA > 0.99 * NTest);
+    BOOST_CHECK(nfoundAW > 0.99 * NTest);
+    BOOST_CHECK(nfoundW > 0.99 * NTest);
     BOOST_CHECK(meanDA < 0.1);
+    BOOST_CHECK(meanDAW < 0.1);
     BOOST_CHECK(meanDW < 0.1);
   }
 

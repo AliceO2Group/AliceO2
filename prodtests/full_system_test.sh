@@ -57,7 +57,7 @@ NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
-FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
+FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-4}
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
@@ -73,8 +73,8 @@ FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
-# enable memory monitoring (independent on whether DPL or not)
-JOBUTILS_MONITORMEM=ON
+# potentially enable memory monitoring (independent on whether DPL or not)
+# JOBUTILS_MONITORMEM=ON
 # CPU monitoring JOBUTILS_MONITORCPU=ON
 
 # prepare some metrics file for the monitoring system

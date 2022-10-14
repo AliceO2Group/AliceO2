@@ -29,4 +29,7 @@
 // TODO AM: Set this here when unused class warning is solved.
 // #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;
 
+// Needed in O2/Detectors/FIT/macros/readFITDCSdata.C
+#pragma link C++ class std::map < std::string, o2::fit::DCSDPValues> + ;
+
 #endif

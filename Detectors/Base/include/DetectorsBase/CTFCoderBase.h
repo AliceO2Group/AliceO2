@@ -119,7 +119,7 @@ class CTFCoderBase
   template <typename CTF>
   bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
 
-  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc, bool askTree = false);
 
   o2::utils::IRFrameSelector& getIRFramesSelector() { return mIRFrameSelector; }
   size_t getIRFrameSelMarginBwd() const { return mIRFrameSelMarginBwd; }
@@ -127,8 +127,10 @@ class CTFCoderBase
 
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
-
   void checkDictVersion(const CTFDictHeader& h) const;
+  bool isTreeDictionary(const void* buff) const;
+  template <typename CTF>
+  std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
   CTFDictHeader mExtHeader;      // external dictionary header
@@ -172,6 +174,18 @@ void CTFCoderBase::createCodersFromFile(const std::string& dictPath, o2::ctf::CT
 
 ///________________________________
 template <typename CTF>
+std::vector<char> CTFCoderBase::loadDictionaryFromTree(TTree* tree)
+{
+  std::vector<char> bufVec;
+  CTFHeader ctfHeader;
+  if (readFromTree(*tree, "CTFHeader", ctfHeader) && ctfHeader.detectors[mDet]) {
+    CTF::readFromTree(bufVec, *tree, mDet.getName());
+  }
+  return bufVec;
+}
+
+///________________________________
+template <typename CTF>
 std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPath, bool mayFail)
 {
   std::vector<char> bufVec;
@@ -188,26 +202,22 @@ std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPa
     }
     return bufVec;
   }
-  std::unique_ptr<TTree> tree((TTree*)fileDict->Get(std::string(o2::base::NameConf::CTFDICT).c_str()));
+  std::unique_ptr<TTree> tree;
   std::unique_ptr<std::vector<char>> bv((std::vector<char>*)fileDict->GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), "std::vector<char>"));
+  tree.reset((TTree*)fileDict->GetObjectChecked(o2::base::NameConf::CTFDICT.data(), "TTree"));
+  if (!tree) {
+    tree.reset((TTree*)fileDict->GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), "TTree"));
+  }
   if (tree) {
-    CTFHeader ctfHeader;
-    if (!readFromTree(*tree.get(), "CTFHeader", ctfHeader) || !ctfHeader.detectors[mDet]) {
-      std::string errstr = fmt::format("CTF dictionary file for detector {} is absent in the tree from file {}", mDet.getName(), dictPath);
-      if (mayFail) {
-        LOGP(info, "{}, will assume dictionary stored in CTF", errstr);
-      } else {
-        throw std::runtime_error(errstr);
-      }
-      return bufVec;
-    }
-    CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
+    auto v = loadDictionaryFromTree<CTF>(tree.get());
+    bufVec.swap(v);
   } else if (bv) {
     bufVec.swap(*bv);
     if (bufVec.size()) {
       auto dictHeader = static_cast<const o2::ctf::CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
       if (dictHeader.det != mDet) {
-        throw std::runtime_error(fmt::format("{} contains dictionary vector for {}, expected {}", dictPath, dictHeader.det.getName(), mDet.getName()));
+        bufVec.clear();
+        LOGP(error, "{} contains dictionary vector for {}, expected {}", dictPath, dictHeader.det.getName(), mDet.getName());
       }
     }
   }
@@ -215,11 +225,10 @@ std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPa
     mExtHeader = static_cast<CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
     LOGP(debug, "Found {} in {}", mExtHeader.asString(), dictPath);
   } else {
-    std::string errstr = fmt::format("CTF dictionary file for detector {} is empty", mDet.getName());
     if (mayFail) {
-      LOGP(info, "{}, will assume dictionary stored in CTF", errstr);
+      LOGP(info, "{}, will assume dictionary stored in CTF", mDet.getName());
     } else {
-      throw std::runtime_error(errstr);
+      LOGP(fatal, "CTF dictionary file for detector {} is empty", mDet.getName());
     }
   }
   return bufVec;
@@ -273,6 +282,12 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
     if (dict->empty()) {
       LOGP(info, "Empty dictionary object fetched from CCDB, internal per-TF CTF Dict will be created");
     } else {
+      std::vector<char> bufVec;
+      if (isTreeDictionary(obj)) {
+        auto v = loadDictionaryFromTree<CTF>(reinterpret_cast<TTree*>(obj));
+        bufVec.swap(v);
+        dict = &bufVec;
+      }
       createCoders(*dict, mOpType);
       mExtHeader = static_cast<const CTFDictHeader&>(CTF::get(dict->data())->getHeader());
       LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());

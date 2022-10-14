@@ -23,7 +23,7 @@
 #include <TPRegexp.h>
 #include <TObject.h>
 #include <fmt/core.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 namespace o2
 {

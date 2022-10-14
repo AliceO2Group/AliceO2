@@ -17,13 +17,10 @@
 ///
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
-#include "FairLogger.h"
 
 using namespace std;
 
-namespace o2
-{
-namespace event_visualisation
+namespace o2::event_visualisation
 {
 
 VisualisationTrack::VisualisationTrack() = default;
@@ -86,5 +83,4 @@ VisualisationCluster& VisualisationTrack::addCluster(float pos[])
   return mClusters.back();
 }
 
-} // namespace event_visualisation
 } // namespace o2

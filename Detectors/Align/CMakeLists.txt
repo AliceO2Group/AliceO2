@@ -44,8 +44,6 @@ o2_add_library(Align
                                      O2::DataFormatsGlobalTracking
                                      ROOT::Core
                                      ROOT::Geom
-                                     ROOT::Gpad
-                                     ROOT::Graf3d
                                      ROOT::MathCore
                                      ROOT::Matrix
                                      ROOT::Hist

@@ -48,7 +48,7 @@ o2_add_library(TPCCalibration
                        src/SACParameter.cxx
                        src/SACDrawHelper.cxx
                        src/VDriftHelper.cxx
-                       src/CorrectionMapsHelper.cxx
+                       src/CorrectionMapsLoader.cxx
                        src/SACCCDBHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
@@ -123,6 +123,15 @@ o2_add_test_root_macro(macro/dumpDigits.C
                        LABELS tpc
                        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 o2_add_test_root_macro(macro/preparePedestalFiles.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+                       LABELS tpc)
+o2_add_test_root_macro(macro/prepareCMFiles.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+                       LABELS tpc)
+o2_add_test_root_macro(macro/prepareITFiles.C
+                       COMPILE_ONLY
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
 

@@ -320,9 +320,10 @@ class FileReaderTask
     }
 
     if (mPrint) {
-      std::cout << "Sending TF" << std::endl
+      std::cout << "Sending TF " << orbitMin << " (previous " << mLastTForbit << "  delta " << (orbitMin - mLastTForbit) << ")" << std::endl
                 << std::endl;
     }
+    mLastTForbit = orbitMin;
     auto freefct = [](void* data, void* /*hint*/) { free(data); };
     pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, outBuf, outSize, freefct, nullptr);
 
@@ -448,7 +449,7 @@ class FileReaderTask
       // increment the total buffer size
       mTimeFrameSizes[feeID][linkID] += pageSize;
 
-      if ((triggerType & 0x800) != 0 && stopBit == 0 && pageCounter == 0 && bc == 0) {
+      if ((triggerType & 0x800) != 0 && /*stopBit == 0 && pageCounter == 0 &&*/ bc == 0) {
         // This is the start of a new TimeFrame, so we need to push a new empty TimeFrame in the queue
         if (mPrint) {
           std::cout << "tfQueue.size(): " << tfQueue.size() << std::endl;
@@ -615,6 +616,7 @@ class FileReaderTask
   bool mFullTF;               ///< send full time frames
   bool mSaveTF;               ///< save individual time frames to file
   int mOverlap;               ///< overlap between contiguous TimeFrames
+  int mLastTForbit{0};        ///< first orbit number of last transmitted TimeFrame
   bool mPrint = false;        ///< print debug messages
   o2::dataformats::TFIDInfo mTFIDInfo{}; // struct to modify output headers
 

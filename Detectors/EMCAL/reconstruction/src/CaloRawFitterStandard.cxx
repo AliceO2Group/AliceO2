@@ -12,7 +12,7 @@
 /// \file CaloRawFitterStandard.cxx
 /// \author Hadi Hassan (hadi.hassan@cern.ch)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <random>
 
 // ROOT sytem

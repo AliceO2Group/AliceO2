@@ -51,6 +51,7 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 /// \param subspecification Subspecification in case of running on different FLPs
 /// \param cfgInput Input objects processed in the workflow
 /// \param cfgOutput Output objects created in the workflow
+/// \param loadRecoParamsFromCCDB Load the reco params from the CCDB
 /// \return EMCAL reconstruction workflow for the configuration provided
 /// \ingroup EMCALwokflow
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,

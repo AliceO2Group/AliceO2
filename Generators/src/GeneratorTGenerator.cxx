@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Generators/GeneratorTGenerator.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include "TGenerator.h"
 #include "TClonesArray.h"

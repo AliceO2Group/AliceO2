@@ -24,7 +24,9 @@
 #include <vector>
 #if !defined(GPUCA_STANDALONE)
 #include "TLinearFitter.h"
+#ifndef GPUCA_ALIROOT_LIB
 #include "CommonUtils/TreeStreamRedirector.h"
+#endif
 #include <TFile.h>
 #endif
 #endif
@@ -465,17 +467,11 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[], const float max[], const unsigned int n[])
 {
-#ifndef GPUCA_ALIROOT_LIB
-  LOGP(info, "--- Initalizing regular grid ---");
-#endif
   for (unsigned int i = 0; i < Dim; ++i) {
     mMin[i] = min[i];
     mMax[i] = max[i];
     mN[i] = n[i];
     mInvSpacing[i] = (mN[i] - 1) / (mMax[i] - mMin[i]);
-#ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, "Setting {} fits for x[{}]", getNPolynomials(i), i);
-#endif
   }
   construct();
 }
@@ -587,6 +583,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const st
   std::copy(params.begin(), params.end(), &mParams[index]);
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName, const char* treeName, const bool recreateFile) const
 {
@@ -624,6 +621,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsi
   }
   pcstream.Close();
 }
+#endif
 
 #endif
 

@@ -3,7 +3,7 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TStopwatch.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <vector>
 #include <string>
 #include <iomanip>

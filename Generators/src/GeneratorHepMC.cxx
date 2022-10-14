@@ -22,7 +22,7 @@
 #include "TParticle.h"
 #include "TSystem.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include <cmath>
 

@@ -13,7 +13,7 @@
 #include <TGeoPhysicalNode.h>
 #include <TMath.h>
 #include <TVirtualMC.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Utils.h" // math_utils::bit2Mask

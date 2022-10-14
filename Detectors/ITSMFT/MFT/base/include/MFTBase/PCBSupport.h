@@ -27,7 +27,7 @@
 #include "TMath.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 class TGeoVolume;
 class TGeoCompositeShape;
