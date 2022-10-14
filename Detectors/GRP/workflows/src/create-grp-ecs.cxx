@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <chrono>
+#include <regex>
 #include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -32,9 +33,9 @@ void createGRPECSObject(const std::string& dataPeriod,
                         int run,
                         int runTypeI,
                         int nHBPerTF,
-                        const std::string& detsReadout,
-                        const std::string& detsContinuousRO,
-                        const std::string& detsTrigger,
+                        const std::string& _detsReadout,
+                        const std::string& _detsContinuousRO,
+                        const std::string& _detsTrigger,
                         const std::string& flpList,
                         long tstart,
                         long tend,
@@ -44,6 +45,12 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& metaDataStr = "",
                         CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
+  // substitute TRG by CTP
+  std::regex regCTP("(^\\s*|,\\s*)(TRG)(\\s*,|\\s*$)");
+  std::string detsReadout{std::regex_replace(_detsReadout, regCTP, "$1CTP$3")};
+  std::string detsContinuousRO{std::regex_replace(_detsContinuousRO, regCTP, "$1CTP$3")};
+  std::string detsTrigger{std::regex_replace(_detsTrigger, regCTP, "$1CTP$3")};
+
   auto detMask = DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
     throw std::runtime_error("empty detectors list is provided");
