@@ -356,7 +356,7 @@ void AlignableVolume::prepareMatrixT2L()
   }
   //
   mAlp = TMath::ATan2(tot[1], tot[0]);
-  utils::bringToPiPM(mAlp);
+  math_utils::detail::bringToPMPi(mAlp);
   //
   mX = TMath::Sqrt(tot[0] * tot[0] + tot[1] * tot[1]);
   //
@@ -854,30 +854,28 @@ void AlignableVolume::fillDOFStat(DOFStatistics& h) const
 }
 
 //________________________________________
-void AlignableVolume::addAutoConstraints(TObjArray* constrArr)
+void AlignableVolume::addAutoConstraints()
 {
   // adds automatic constraints
   int nch = getNChildren();
   //
   if (hasChildrenConstraint()) {
-    GeometricalConstraint* constr = new GeometricalConstraint();
-    constr->setConstrainPattern(mConstrChild);
-    constr->setParent(this);
+    auto& cstr = getController()->getConstraints().emplace_back();
+    cstr.setConstrainPattern(mConstrChild);
+    cstr.setParent(this);
     for (int ich = nch; ich--;) {
-      AlignableVolume* child = getChild(ich);
+      auto child = getChild(ich);
       if (child->getExcludeFromParentConstraint()) {
         continue;
       }
-      constr->addChild(child);
+      cstr.addChild(child);
     }
-    if (constr->getNChildren()) {
-      constrArr->Add(constr);
-    } else {
-      delete constr;
+    if (!cstr.getNChildren()) {
+      getController()->getConstraints().pop_back(); // destroy
     }
   }
   for (int ich = 0; ich < nch; ich++) {
-    getChild(ich)->addAutoConstraints(constrArr);
+    getChild(ich)->addAutoConstraints();
   }
 }
 

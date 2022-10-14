@@ -112,11 +112,11 @@ class AlignableVolume : public DOFSet
   uint32_t getFreeDOFPattern() const { return mDOF; }
   uint32_t getFreeDOFGeomPattern() const { return mDOF & kAllGeomDOF; }
   //
-  void addAutoConstraints(TObjArray* constrArr);
+  void addAutoConstraints();
   bool isChildrenDOFConstrained(int dof) const { return mConstrChild & 0x1 << dof; }
   uint8_t getChildrenConstraintPattern() const { return mConstrChild; }
   void constrainChildrenDOF(int dof) { mConstrChild |= 0x1 << dof; }
-  void uConstrainChildrenDOF(int dof) { mConstrChild &= ~(0x1 << dof); }
+  void unConstrainChildrenDOF(int dof) { mConstrChild &= ~(0x1 << dof); }
   void setChildrenConstrainPattern(uint32_t pat) { mConstrChild = pat; }
   bool hasChildrenConstraint() const { return mConstrChild; }
   //
@@ -192,6 +192,9 @@ class AlignableVolume : public DOFSet
   bool ownsDOFID(int id) const;
   AlignableVolume* getVolOfDOFID(int id) const;
   //
+  bool isDummy() const { return mIsDummy; }
+  void setDummy(bool v) { mIsDummy = v; }
+  //
   virtual bool isSensor() const { return false; }
   //
   virtual const char* getDOFName(int i) const;
@@ -217,6 +220,7 @@ class AlignableVolume : public DOFSet
   double mAlp = 0.;         // tracking frame alpa
   //
   uint32_t mDOF = 0;        // pattern of DOFs
+  bool mIsDummy = false;    // placeholder (e.g. inactive), used to have the numbering corresponding to position in the container
   char mNDOFGeomFree = 0;   // number of free geom degrees of freedom
   uint8_t mConstrChild = 0; // bitpattern for constraints on children corrections
   //

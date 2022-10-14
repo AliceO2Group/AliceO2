@@ -23,19 +23,12 @@
 #include "Align/GeometricalConstraint.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/Logger.h"
-//#include "AliGeomManager.h"
-//#include "AliCDBManager.h"
-//#include "AliCDBMetaData.h"
-//#include "AliCDBEntry.h"
-//#include "AliAlignObj.h"
-//#include "AliCDBId.h"
-//#include "AliExternalTrackParam.h"
-//#include "AliAlignObjParams.h"
 #include <TString.h>
 #include <TH1.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <cstdio>
+#include <regex>
 
 ClassImp(o2::align::AlignableDetector);
 
@@ -182,11 +175,11 @@ void AlignableDetector::defineMatrices()
   TIter next(&mVolumes);
   AlignableVolume* vol(nullptr);
   while ((vol = (AlignableVolume*)next())) {
-    // modified global-local matrix
-    vol->prepareMatrixL2G();
-    // ideal global-local matrix
-    vol->prepareMatrixL2GIdeal();
-    //
+    if (vol->isDummy()) {
+      continue;
+    }
+    vol->prepareMatrixL2G();      // modified global-local matrix
+    vol->prepareMatrixL2GIdeal(); // ideal global-local matrix
   }
   // Now set tracking-local matrix (MUST be done after ALL L2G matrices are done!)
   // Attention: for sensor it is a real tracking matrix extracted from
@@ -195,6 +188,9 @@ void AlignableDetector::defineMatrices()
   // see its definition in the AlignableVolume::PrepateMatrixT2L
   next.Reset();
   while ((vol = (AlignableVolume*)next())) {
+    if (vol->isDummy()) {
+      continue;
+    }
     vol->prepareMatrixT2L();
     if (vol->isSensor()) {
       ((AlignableSensor*)vol)->prepareMatrixClAlg();
@@ -338,10 +334,7 @@ void AlignableDetector::Print(const Option_t* opt) const
   printf("Obligatory in Collisions: %7s | Cosmic: %7s\n",
          isObligatory(Coll) ? " YES " : "  NO ", isObligatory(Cosm) ? " YES " : "  NO ");
   //
-  fmt::printf("Sel. flags in Collisions: {:05#x}%05 | Cosmic: 0x{:05#x}%05\n", mTrackFlagSel[Coll], mTrackFlagSel[Cosm]);
-  //
-  printf("Min.points in Collisions: %7d | Cosmic: %7d\n",
-         mNPointsSel[Coll], mNPointsSel[Cosm]);
+  printf("Min.points in Collisions: %7d | Cosmic: %7d\n", mNPointsSel[Coll], mNPointsSel[Cosm]);
   //
   if (!(IsDisabledColl() && IsDisabledCosm()) && opts.Contains("long")) {
     for (int iv = 0; iv < getNVolumes(); iv++) {
@@ -510,7 +503,7 @@ void AlignableDetector::addAutoConstraints() const
   for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
     AlignableVolume* vol = getVolume(iv);
     if (!vol->getParent()) {
-      vol->addAutoConstraints((TObjArray*)mController->getConstraints());
+      vol->addAutoConstraints();
     }
   }
 }
@@ -530,24 +523,21 @@ void AlignableDetector::fixNonSensors()
 }
 
 //________________________________________
-int AlignableDetector::selectVolumes(TObjArray* arr, int lev, const char* match)
+int AlignableDetector::selectVolumes(std::vector<AlignableVolume*> cont, int lev, const std::string& regexStr)
 {
   // select volumes matching to pattern and/or hierarchy level
   //
-  if (!arr) {
-    return 0;
-  }
+  std::regex selRegEx(regexStr);
   int nadd = 0;
-  TString mts = match, syms;
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
     if (lev >= 0 && vol->countParents() != lev) {
       continue;
     } // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+    if (!regexStr.empty() && !std::regex_match(vol->getSymName(), selRegEx)) {
       continue;
-    } //wrong name
-    arr->AddLast(vol);
+    }
+    cont.push_back(vol);
     nadd++;
   }
   //
@@ -555,40 +545,39 @@ int AlignableDetector::selectVolumes(TObjArray* arr, int lev, const char* match)
 }
 
 //________________________________________
-void AlignableDetector::setFreeDOFPattern(uint32_t pat, int lev, const char* match)
+void AlignableDetector::setFreeDOFPattern(uint32_t pat, int lev, const std::string& regexStr)
 {
-  // set free DOFs to volumes matching either to hierarchy level or
-  // whose name contains match
+  // set free DOFs to volumes matching either to hierarchy level or whose name contains match
   //
-  TString mts = match, syms;
+  std::regex selRegEx(regexStr);
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
     if (lev >= 0 && vol->countParents() != lev) {
       continue;
     } // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+    if (!regexStr.empty() && !std::regex_match(vol->getSymName(), selRegEx)) {
       continue;
-    } //wrong name
+    } // wrong name
     vol->setFreeDOFPattern(pat);
   }
   //
 }
 
 //________________________________________
-void AlignableDetector::setDOFCondition(int dof, float condErr, int lev, const char* match)
+void AlignableDetector::setDOFCondition(int dof, float condErr, int lev, const std::string& regexStr)
 {
   // set condition for DOF of volumes matching either to hierarchy level or
   // whose name contains match
   //
-  TString mts = match, syms;
+  std::regex selRegEx(regexStr);
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
     if (lev >= 0 && vol->countParents() != lev) {
       continue;
     } // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+    if (!regexStr.empty() && !std::regex_match(vol->getSymName(), selRegEx)) {
       continue;
-    } //wrong name
+    } // wrong name
     if (dof >= vol->getNDOFs()) {
       continue;
     }
@@ -610,14 +599,14 @@ void AlignableDetector::constrainOrphans(const double* sigma, const char* match)
   // sigma>0 : dof constrained by gaussian constraint
   //
   TString mts = match, syms;
-  GeometricalConstraint* constr = new GeometricalConstraint();
+  auto cstr = getController()->getConstraints().emplace_back();
   for (int i = 0; i < AlignableVolume::kNDOFGeom; i++) {
     if (sigma[i] >= 0) {
-      constr->constrainDOF(i);
+      cstr.constrainDOF(i);
     } else {
-      constr->unConstrainDOF(i);
+      cstr.unConstrainDOF(i);
     }
-    constr->setSigma(i, sigma[i]);
+    cstr.setSigma(i, sigma[i]);
   }
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
@@ -627,14 +616,12 @@ void AlignableDetector::constrainOrphans(const double* sigma, const char* match)
     if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
       continue;
     } //wrong name
-    constr->addChild(vol);
+    cstr.addChild(vol);
   }
   //
-  if (!constr->getNChildren()) {
+  if (!cstr.getNChildren()) {
     LOG(info) << "No volume passed filter " << match;
-    delete constr;
-  } else {
-    ((TObjArray*)mController->getConstraints())->Add(constr);
+    getController()->getConstraints().pop_back();
   }
 }
 

@@ -29,8 +29,8 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
                    Cosmic,
                    NTrackTypes };
 
-  float maxStep = 2.; // max step for propagation
-  float maxSnp = 0.9; // max snp for propagation
+  float maxStep = 3.;  // max step for propagation
+  float maxSnp = 0.95; // max snp for propagation
   o2::base::PropagatorD::MatCorrType matCorType = o2::base::PropagatorD::MatCorrType::USEMatCorrTGeo;
   float q2PtMin[NTrackTypes] = {0.01, 0.01};
   float q2PtMax[NTrackTypes] = {10., 10.};
@@ -45,9 +45,26 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int vtxMinContVC = 20;  // min number of contributors to use as constraint
 
   int minPointTotal = 4; // total min number of alignment point to account track
+  int minDetectors = 1;  // min number of detectors per track
 
   float maxDCAforVC[2]; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC;   // track-vertex chi2 cut to allow the track be subjected to vertex constraint
+
+  float controlFraction = 1.; // fraction for which control output is requested
+  bool MilleOut = true;       // Mille output
+  bool MPRecOut = true;       // compact Millepede2Record
+  bool KalmanResid = true;    // Kalman residuals
+  bool MilleOutBin = true;    // text vs binary output for mille data
+
+  std::string mpDatFileName{"mpData"};            //  file name for records mille data output
+  std::string mpParFileName{"mpParams.txt"};      //  file name for MP params
+  std::string mpConFileName{"mpConstraints.txt"}; //  file name for MP constraints
+  std::string mpSteerFileName{"mpSteer.txt"};     //  file name for MP steering
+  std::string residFileName{"mpContolRes.root"};  //  file name for optional control residuals
+  //
+  std::string outCDBPath{};        // output OCDB path
+  std::string outCDBComment{};     // optional comment to add to output cdb objects
+  std::string outCDBResponsible{}; // optional responsible for output metadata
 
   O2ParamDef(AlignConfig, "alignConf");
 };
