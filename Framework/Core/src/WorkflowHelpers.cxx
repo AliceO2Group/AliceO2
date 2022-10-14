@@ -556,31 +556,35 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
 
     // Load the CCDB backend from the plugin
-    uv_lib_t supportLib;
-    int result = 0;
+    std::shared_ptr<AlgorithmSpec> algorithm{nullptr};
+    ccdbBackend.algorithm = {[algorithm](InitContext& ic) -> AlgorithmSpec::ProcessCallback {
+      /// Load it only once.
+      if (algorithm == nullptr) {
+        uv_lib_t supportLib;
+        int result = 0;
 #ifdef __APPLE__
-    result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
+        result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
 #else
-    result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
+        result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
 #endif
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+        if (result == -1) {
+          LOG(fatal) << uv_dlerror(&supportLib);
+        }
+        DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
-    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    if (dpl_plugin_callback == nullptr) {
-      LOG(fatal) << "Could not find the CCDBSupport plugin.";
-      return;
-    }
-    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
-    ccdbBackend.algorithm = creator->create();
+        result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+        if (result == -1) {
+          LOG(fatal) << uv_dlerror(&supportLib);
+        }
+        if (dpl_plugin_callback == nullptr) {
+          LOG(fatal) << "Could not find the CCDBSupport plugin.";
+        }
+        DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+        auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
+        *algorithm = creator->create();
+      };
+      return algorithm->onInit(ic);
+    }};
 
     extraSpecs.push_back(ccdbBackend);
   } else {
