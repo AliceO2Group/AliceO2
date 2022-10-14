@@ -23,7 +23,7 @@ void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::fu
   if (plugin != libs.end()) {
     return onSuccess(plugin->instance);
   }
-  uv_lib_t* supportLib = (uv_lib_t*)malloc(sizeof(uv_lib_t));
+  auto* supportLib = (uv_lib_t*)malloc(sizeof(uv_lib_t));
   int result = 0;
 #ifdef __APPLE__
   char const* extension = "dylib";
@@ -36,7 +36,6 @@ void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::fu
     LOG(fatal) << uv_dlerror(supportLib);
     return;
   }
-  void* callback = nullptr;
   DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
   result = uv_dlsym(supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
@@ -52,4 +51,42 @@ void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::fu
   libs.push_back({supportLib, dso});
   onSuccess(pluginInstance);
 }
+
+auto PluginManager::loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec
+{
+  std::shared_ptr<AlgorithmSpec> algorithm{nullptr};
+  return AlgorithmSpec{[algorithm, library, plugin](InitContext& ic) mutable -> AlgorithmSpec::ProcessCallback {
+    if (algorithm.get()) {
+      return algorithm->onInit(ic);
+    }
+
+    uv_lib_t supportLib;
+    std::string libName = "lib" + library;
+#ifdef __APPLE__
+    libName += ".dylib";
+#else
+    libName += ".so";
+#endif
+    int result = uv_dlopen(libName.c_str(), &supportLib);
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+    }
+    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+    if (result == -1) {
+      LOG(fatal) << uv_dlerror(&supportLib);
+    }
+    if (dpl_plugin_callback == nullptr) {
+      LOGP(fatal, "Could not find the {} plugin in {}.", plugin, libName);
+    }
+    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, plugin.c_str());
+    if (!creator) {
+      LOGP(fatal, "Could not find the {} plugin in {}.", plugin, libName);
+    }
+    algorithm = std::make_shared<AlgorithmSpec>(creator->create());
+    return algorithm->onInit(ic);
+  }};
+};
 } // namespace o2::framework
