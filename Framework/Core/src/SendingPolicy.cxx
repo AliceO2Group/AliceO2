@@ -59,6 +59,7 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
             },
             .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistry& registry) {
               auto& diService = registry.get<DataInspectorProxyService>();
+              diService.receive(); // Check for messages from proxy
 
               // Check if message is inspected and prepare DataRefs for processing
               if(diService.isInspected()){

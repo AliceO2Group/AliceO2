@@ -34,9 +34,6 @@ inline bool isNonInternalDevice(const DeviceSpec& spec)
   return spec.name.find("internal") == std::string::npos;
 }
 
-/* Injects onProcess interceptor to check for messages from Proxy. */
-void injectInterceptors(WorkflowSpec& workflow);
-
 void sendToProxy(DataInspectorProxyService& diProxyService, const std::vector<DataRef>& refs, const std::string& deviceName);
 }
 

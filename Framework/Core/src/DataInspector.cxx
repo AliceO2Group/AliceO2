@@ -129,33 +129,4 @@ namespace o2::framework::DataInspector
       diProxyService.send(DIMessage{DIMessage::Header::Type::DATA, std::string{buffer.GetString(), buffer.GetSize()}});
     }
   }
-
-  inline bool isNonInternalDevice(const DataProcessorSpec &device)
-  {
-    return device.name.find("internal") == std::string::npos;
-  }
-
-  void injectInterceptors(WorkflowSpec &workflow)
-  {
-    for (DataProcessorSpec &device: workflow) {
-      if (isNonInternalDevice(device)) {
-        if(device.algorithm.onInit != nullptr) {
-          auto& originalInitAlg = device.algorithm.onInit;
-          device.algorithm.onInit = [originalInitAlg](InitContext& context) -> AlgorithmSpec::ProcessCallback {
-            auto onProcess = originalInitAlg(context);
-            return [onProcess](ProcessingContext& context) -> void {
-              context.services().get<DataInspectorProxyService>().receive();
-              onProcess(context);
-            };
-          };
-        } else {
-          auto& originalProcAlg = device.algorithm.onProcess;
-          device.algorithm.onProcess = [originalProcAlg](ProcessingContext& context) -> void {
-            context.services().get<DataInspectorProxyService>().receive();
-            originalProcAlg(context);
-          };
-        }
-      }
-    }
-  }
 }
