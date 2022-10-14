@@ -825,7 +825,11 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
 
-  std::string loadableServicesStr = "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
+  std::string loadableServicesStr;
+  // Do not load InfoLogger by default if we are not at P2.
+  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+    loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
+  }
   // Load plugins depending on the environment
   std::vector<LoadableService> loadableServices = {};
   char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
@@ -833,7 +837,9 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   //
   // library1:name1,library2:name2,...
   if (loadableServicesEnv) {
-    loadableServicesStr += ",";
+    if (loadableServicesStr.empty() == false) {
+      loadableServicesStr += ",";
+    }
     loadableServicesStr += loadableServicesEnv;
   }
   loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesStr.c_str());
