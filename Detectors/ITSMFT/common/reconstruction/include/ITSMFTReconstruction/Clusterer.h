@@ -211,9 +211,6 @@ class Clusterer
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
 
-  int getMaxRowColDiffToSquash() const { return mSquashingRCdist; }
-  void setMaxRowColDiffToSquash(int v) { mSquashingRCdist = v; }
-
   int getMaxROFDepthToSquash() const { return mSquashingDepth; }
   void setMaxROFDepthToSquash(int v) { mSquashingDepth = v; }
 

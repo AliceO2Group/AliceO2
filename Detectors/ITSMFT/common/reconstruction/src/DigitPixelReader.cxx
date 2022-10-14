@@ -38,7 +38,6 @@ int DigitPixelReader::decodeNextTrigger()
   while (++mIdROF < mROFRecVec.size()) {
     if (mROFRecVec[mIdROF].getNEntries() > 0) {
       mIdDig = 0; // jump to the 1st digit of the trigger
-      // mIdDigNext.resize(mSquashOverflowsDepth, 0); // jump to the 1st digits in next triggers if squashing
       mInteractionRecord = mROFRecVec[mIdROF].getBCData();
       return mROFRecVec[mIdROF].getNEntries();
     }
@@ -120,6 +119,10 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   // Loop over next ROFs
   for (uint16_t iROF{1}; iROF <= mSquashOverflowsDepth && (mIdROF + iROF) < mROFRecVec.size(); ++iROF) {
     int idNextROF{mIdROF + iROF};
+    if (std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[mIdROF].getBCData())) > mMaxBCSeparationToSquash) {
+      LOGP(info, "rof: {} delta: is {}, separation is {}", iROF, std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[mIdROF].getBCData())), mMaxBCSeparationToSquash);
+      break; // ROFs are too distant in BCs
+    }
     if (!mROFRecVec[idNextROF].getNEntries()) {
       break; // if empty rof -> no persistent information
     }

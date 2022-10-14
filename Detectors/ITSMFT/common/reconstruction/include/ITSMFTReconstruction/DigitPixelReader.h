@@ -106,6 +106,12 @@ class DigitPixelReader : public PixelReader
     mMaxSquashDist = v;
   }
 
+  int getMaxBCSeparationToSquash() const { return mMaxBCSeparationToSquash; }
+  void setMaxBCSeparationToSquash(int n)
+  {
+    mMaxBCSeparationToSquash = n;
+  }
+
  private:
   void addPixel(ChipPixelData& chipData, const Digit* dig)
   {
@@ -134,6 +140,7 @@ class DigitPixelReader : public PixelReader
   int16_t mSquashOverflowsDepth = 0;     // merge overflow pixels in next N ROF(s) into first ROF and mask them
   std::vector<bool> mMaskSquashedDigits; // keep info of squashed pixels
   uint16_t mMaxSquashDist = 1;           // maximum pixel distance to allow for squashing
+  int mMaxBCSeparationToSquash;          // frames can be separated by less than this amount of BCs
   std::vector<int> mBookmarkNextROFs;    // keep track of the position of the last processed digits in next rof
   int mIdROFLast = 0;                    // ROFRecord red last iteration
 
