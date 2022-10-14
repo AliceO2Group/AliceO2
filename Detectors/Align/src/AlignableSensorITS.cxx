@@ -47,7 +47,7 @@ void AlignableSensorITS::prepareMatrixT2L()
   auto geom = o2::its::GeometryTGeo::Instance();
   geom->getSensorXAlphaRefPlane(getVolID(), x, alp);
   mAlp = alp;
-  mX = 0;
+  mX = x;
   t2l.RotateZ(mAlp * RadToDeg()); // rotate in direction of normal to the sensor plane
   const TGeoHMatrix* matL2G = base::GeometryManager::getMatrix(mDet->getDetID(), getSID());
   const TGeoHMatrix& matL2Gi = matL2G->Inverse();

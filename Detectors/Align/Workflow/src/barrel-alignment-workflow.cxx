@@ -85,17 +85,39 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-  if (GID::includesDet(DetID::TPC, src)) {
-    src |= GID::getSourceMask(GID::TPC);
-    LOG(info) << "adding TPC request";
+  GID::mask_t srcCl{};
+  GID::mask_t srcMP = src; // we may need to load more track types than requested to satisfy dependencies, but only those will be fed to millipede
+  if (GID::includesDet(DetID::ITS, src)) {
+    src |= GID::getSourceMask(GID::ITS);
+    srcCl |= GID::getSourceMask(GID::ITS);
+    LOG(info) << "adding ITS request";
   }
   if (GID::includesDet(DetID::TPC, src)) {
     src |= GID::getSourceMask(GID::TPC);
     LOG(info) << "adding TPC request";
+  }
+  if (GID::includesDet(DetID::TRD, src)) {
+    src |= GID::getSourceMask(GID::TRD);
+    srcCl |= GID::getSourceMask(GID::TRD);
+    if (GID::includesDet(DetID::ITS, src)) {
+      src |= GID::getSourceMask(GID::ITSTPC);
+    }
+    LOG(info) << "adding TRD request";
+  }
+  if (GID::includesDet(DetID::TOF, src)) {
+    src |= GID::getSourceMask(GID::TOF);
+    srcCl |= GID::getSourceMask(GID::TOF);
+    if (GID::includesDet(DetID::ITS, src)) {
+      src |= GID::getSourceMask(GID::ITSTPC);
+    }
+    if (GID::includesDet(DetID::TRD, src)) {
+      src |= GID::getSourceMask(GID::ITSTPCTRD);
+    }
+    LOG(info) << "adding TOF request";
   }
 
   GID::mask_t dummy;
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(src, dets));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets));
   // RS FIXME: check which clusters are really needed
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, false, dummy); // clusters MC is not needed
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false);

@@ -38,7 +38,7 @@ void AlignmentPoint::init()
   if (!isZeroPos(mErrYZTracking[0] + mErrYZTracking[2])) {
     //
     // is there a correlation?
-    if (smallerAbs(mErrYZTracking[1] * mErrYZTracking[1] / (mErrYZTracking[0] * mErrYZTracking[2]), kCorrToler)) {
+    if (math_utils::detail::abs(mErrYZTracking[1] * mErrYZTracking[1] / (mErrYZTracking[0] * mErrYZTracking[2])) < kCorrToler) {
       mCosDiagErr = 1.;
       mSinDiagErr = 0.;
       mErrDiag[0] = mErrYZTracking[0];
@@ -184,7 +184,7 @@ void AlignmentPoint::dumpCoordinates() const
   print3d(xyz); // track after mat corr
 
   printf("%+.4f ", mAlphaSens);
-  printf("%+.4e ", getXPoint());
+  printf("%+.4e ", getXTracking());
   printf("%+.4e ", getYTracking());
   printf("%+.4e ", getZTracking());
   //
@@ -216,8 +216,8 @@ bool AlignmentPoint::isAfter(const AlignmentPoint& pnt) const
   // 1) for tracks from collision: range in decreasing tracking X
   // 2) for cosmic tracks: upper leg (pnt->isInvDir()==true) ranged in increasing X
   //                       lower leg - in decreasing X
-  double x = getXPoint();
-  double xp = pnt.getXPoint();
+  double x = getXTracking();
+  double xp = pnt.getXTracking();
   if (!isInvDir()) {        // track propagates from low to large X via this point
     if (!pnt.isInvDir()) {  // via this one also
       return x > xp ? -1 : 1;
@@ -240,7 +240,7 @@ void AlignmentPoint::getXYZGlo(double r[3]) const
   // position in lab frame
   double cs = TMath::Cos(mAlphaSens);
   double sn = TMath::Sin(mAlphaSens);
-  double x = getXPoint();
+  double x = getXTracking();
   r[0] = x * cs - getYTracking() * sn;
   r[1] = x * sn + getYTracking() * cs;
   r[2] = getZTracking();
@@ -260,7 +260,7 @@ double AlignmentPoint::getPhiGlo() const
 int AlignmentPoint::getAliceSector() const
 {
   // get global sector ID corresponding to this point phi
-  return phi2Sector(getPhiGlo());
+  return math_utils::detail::angle2Sector(getPhiGlo());
 }
 
 //__________________________________________________________________
@@ -366,7 +366,7 @@ void AlignmentPoint::getTrWSA(trackParam_t& etp) const
   params_t tmp;
   std::copy(std::begin(mTrParamWSA), std::end(mTrParamWSA), std::begin(tmp));
 
-  etp.set(getXPoint(), getAlphaSens(), tmp, covDum);
+  etp.set(getXTracking(), getAlphaSens(), tmp, covDum);
 }
 
 //__________________________________________________________________
@@ -382,7 +382,7 @@ void AlignmentPoint::getTrWSB(trackParam_t& etp) const
   params_t tmp;
   std::copy(std::begin(mTrParamWSB), std::end(mTrParamWSB), std::begin(tmp));
 
-  etp.set(getXPoint(), getAlphaSens(), tmp, covDum);
+  etp.set(getXTracking(), getAlphaSens(), tmp, covDum);
 }
 
 } // namespace align
