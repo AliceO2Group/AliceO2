@@ -102,12 +102,12 @@ else
   fi
 fi
 
-MCH_CONFIG_KEY="MCHTracking.maxCandidates=$(($BEAMTYPE == "Pb-Pb" ? 50000 : 20000));MCHTracking.maxTrackingDuration=$(($BEAMTYPE == "Pb-Pb" ? 20 : 10));"
-
 if [[ $BEAMTYPE == "PbPb" ]]; then
   PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+  MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
 elif [[ $BEAMTYPE == "pp" ]]; then
   PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+  MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
 fi
 
 if [[ $BEAMTYPE == "cosmic" ]]; then
