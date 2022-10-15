@@ -1,0 +1,14 @@
+// A default implementation of a hook called during
+// MC stepping, with the aim to produce track references in the 
+// generic step function.
+
+o2::steer::O2MCApplicationBase::TrackRefFcn trackRefHook() {
+  return [](TVirtualMC const* vmc) {
+    auto stack = (o2::data::Stack*)vmc->GetStack();
+    if (vmc->IsTrackStop() && stack->currentTrackLeftTrackRef()) {
+       // we add a stopping TrackRef when the current track already
+       // registered previous TrackRefs
+       stack->addTrackReference(o2::TrackReference(*vmc, 0));
+    }
+  };
+}

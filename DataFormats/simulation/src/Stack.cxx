@@ -646,6 +646,7 @@ void Stack::addHit(int iDet)
     auto& part = mParticles[iTrack];
     part.setHit(iDet);
   }
+  mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
   mHitCounter++;
 }
 void Stack::addHit(int iDet, Int_t iTrack)
@@ -653,6 +654,7 @@ void Stack::addHit(int iDet, Int_t iTrack)
   mHitCounter++;
   auto& part = mParticles[iTrack];
   part.setHit(iDet);
+  mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
 }
 
 Int_t Stack::GetCurrentParentTrackNumber() const
