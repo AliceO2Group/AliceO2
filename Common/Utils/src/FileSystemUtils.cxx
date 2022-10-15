@@ -68,7 +68,7 @@ void createDirectoriesIfAbsent(std::string const& path)
 // existing solution.
 std::string expandShellVarsInFileName(std::string const& input)
 {
-  std::regex e("\\$\\{?[a-zA-Z0-9_]*\\}?");
+  std::regex e(R"(\$\{?[a-zA-Z0-9_]*\}?)");
   std::regex e3("[a-zA-Z0-9_]+");
   std::string finalstr;
   std::sregex_iterator iter;
