@@ -35,7 +35,7 @@ class MCAppDummy : public TVirtualMCApplication
 {
  public:
   MCAppDummy() : TVirtualMCApplication("MCAppDummy", "MCAppDummy") {}
-  virtual ~MCAppDummy() = default;
+  ~MCAppDummy() override = default;
   MCAppDummy(MCAppDummy const& app) {}
   void ConstructGeometry() override
   {
