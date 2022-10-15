@@ -46,7 +46,7 @@ void createGRPECSObject(const std::string& dataPeriod,
                         CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
   // substitute TRG by CTP
-  std::regex regCTP("(^\\s*|,\\s*)(TRG)(\\s*,|\\s*$)");
+  std::regex regCTP(R"((^\s*|,\s*)(TRG)(\s*,|\s*$))");
   std::string detsReadout{std::regex_replace(_detsReadout, regCTP, "$1CTP$3")};
   std::string detsContinuousRO{std::regex_replace(_detsContinuousRO, regCTP, "$1CTP$3")};
   std::string detsTrigger{std::regex_replace(_detsTrigger, regCTP, "$1CTP$3")};
@@ -58,7 +58,7 @@ void createGRPECSObject(const std::string& dataPeriod,
   if (runTypeI < 0 || runTypeI >= int(GRPECSObject::RunType::NRUNTYPES)) {
     LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runTypeI);
   }
-  GRPECSObject::RunType runType = (GRPECSObject::RunType)runTypeI;
+  auto runType = (GRPECSObject::RunType)runTypeI;
   auto detMaskCont = detMask & DetID::getMask(detsContinuousRO);
   auto detMaskTrig = detMask & DetID::getMask(detsTrigger);
   LOG(info) << tstart << " " << tend;
