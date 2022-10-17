@@ -380,15 +380,13 @@ inline void MCTrackT<T>::Print(Int_t trackId) const
 template <typename T>
 inline Double_t MCTrackT<T>::GetMass() const
 {
-  TDatabasePDG* pdgdb = O2DatabasePDG::Instance();
-  if (pdgdb) {
-    auto particle = pdgdb->GetParticle(mPdgCode);
-    if (particle) {
-      return particle->Mass();
-    }
+  bool success{};
+  auto mass = O2DatabasePDG::Mass(mPdgCode, success);
+  if (!success) {
+    // coming here is a mistake which should not happen
+    MCTrackHelper::printMassError(mPdgCode);
   }
-  MCTrackHelper::printMassError(mPdgCode);
-  return 0; // coming here is a mistake which should not happen
+  return mass;
 }
 
 template <typename T>
