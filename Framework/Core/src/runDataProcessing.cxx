@@ -2753,6 +2753,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       fair::Logger::SetConsoleSeverity(fair::Severity::warning);
     } else if (logLevel == "error") {
       fair::Logger::SetConsoleSeverity(fair::Severity::error);
+    } else if (logLevel == "important") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::important);
+    } else if (logLevel == "alarm") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::alarm);
     } else if (logLevel == "fatal") {
       fair::Logger::SetConsoleSeverity(fair::Severity::fatal);
     } else {
