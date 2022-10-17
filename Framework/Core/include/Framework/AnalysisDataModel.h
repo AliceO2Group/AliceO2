@@ -1109,13 +1109,14 @@ using HepMCHeavyIon = HepMCHeavyIons::iterator;
 
 namespace indices
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);               //!
-DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);             //!
-DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);           //!
-DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);           //!
-DECLARE_SOA_INDEX_COLUMN(FT0, ft0);             //!
-DECLARE_SOA_INDEX_COLUMN(FDD, fdd);             //!
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);        //!
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collisions); //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
+DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);                    //!
+DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);                  //!
+DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);                  //!
+DECLARE_SOA_INDEX_COLUMN(FT0, ft0);                    //!
+DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                    //!
 } // namespace indices
 
 // First entry: Collision
@@ -1132,6 +1133,11 @@ DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_E
                                   indices::BCId, indices::CollisionId);
 DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparse, BCs, "MA_BCCOL_SP", //!
                         indices::BCId, indices::CollisionId);
+
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusiveMulti, BCs, "MA_BCCOLS_EX", //!
+                                  indices::BCId, indices::CollisionIds);
+DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparseMulti, BCs, "MA_BCCOLS_SP", //!
+                        indices::BCId, indices::CollisionIds);
 
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedToBCExclusive, BCs, "MA_RN3_BC_EX", //!
                                   indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);

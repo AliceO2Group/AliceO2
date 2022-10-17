@@ -70,6 +70,7 @@ struct SelfIndexColumnBuilder {
   }
 
   std::string mColumnName;
+  std::shared_ptr<arrow::DataType> mArrowType;
   std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
 };
 
@@ -133,7 +134,6 @@ class IndexColumnBuilder : public SelfIndexColumnBuilder, public ChunkedArrayIte
   std::shared_ptr<arrow::ChunkedArray> resultMulti() const;
 
   int mListSize = 1;
-  std::shared_ptr<arrow::DataType> mArrowType;
   arrow::ArrayBuilder* mValueBuilder = nullptr;
   std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
 
