@@ -479,6 +479,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     static auto countEoS = [](fair::mq::Parts& inputs) -> int {
       int count = 0;
       for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
+        // Skip when we have nullptr for the header.
+        // Not sure it can actually happen, but does not hurt.
+        if (inputs.At(msgidx * 2).get() == nullptr) {
+          continue;
+        }
         auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
         if (sih != nullptr && sih->state == InputChannelState::Completed) {
           count++;
