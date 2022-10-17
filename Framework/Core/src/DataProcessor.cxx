@@ -60,7 +60,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
 
 void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistryRef services)
 {
-  FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
+  auto& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
@@ -87,7 +87,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   auto& monitoring = registry.get<Monitoring>();
 
   std::regex invalid_metric(" ");
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
+  auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -110,7 +110,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
                                        origin,
                                        description)}
                       .addTag(Key::Subsystem, Value::DPL));
-    LOGP(info, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
+    LOGP(detail, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
@@ -148,7 +148,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
 
 void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistryRef registry)
 {
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
+  auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
