@@ -119,7 +119,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   if (!disableRootOut) {
-    specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(srcVT.none(), useMC));
+    specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(false, useMC));
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
