@@ -89,6 +89,7 @@ std::vector<GPUChainTracking::InOutMemory> ioMemEvents;
 
 void SetCPUAndOSSettings()
 {
+#if not(defined(__ARM_NEON) or defined(__aarch64__)) // ARM doesn't have SSE
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV // Flush and load denormals to zero in any case
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #else
@@ -100,6 +101,7 @@ void SetCPUAndOSSettings()
 #endif
   _mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
 #endif
+#endif // ARM
 }
 
 int ReadConfiguration(int argc, char** argv)
