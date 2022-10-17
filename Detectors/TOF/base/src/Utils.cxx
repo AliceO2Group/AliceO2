@@ -331,7 +331,8 @@ int Utils::extractNewTimeSlewing(const o2::dataformats::CalibTimeSlewingParamTOF
 
   mTreeFit = new TChain("treeCollectedCalibInfo", "treeCollectedCalibInfo");
 
-  system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  auto retval = system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  (void)retval;
   FILE* f = fopen("listaCal", "r");
 
   if (!f) { // no inputs -> return
