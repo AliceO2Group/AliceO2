@@ -168,7 +168,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest, ggRequest)},
-    Options{{"prescale-logs", VariantType::Int, 50, {"print vertex logs for each n-th TFNumber of afterburner threads"}}}};
+    Options{{"prescale-logs", VariantType::Int, 50, {"print vertex logs for each n-th TF"}}}};
 }
 
 } // namespace vertexing
