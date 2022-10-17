@@ -32,9 +32,9 @@ void TrackletTransformer::init()
   mXtb0 = -100;
 }
 
-float TrackletTransformer::calculateY(int hcid, int column, int position)
+float TrackletTransformer::calculateY(int hcid, int column, int position, const PadPlane* padPlane) const
 {
-  double padWidth = mPadPlane->getWidthIPad();
+  double padWidth = padPlane->getWidthIPad();
   int side = hcid % 2;
   position += 1 << (NBITSTRKLPOS - 1); // shift such that position = 1 << (NBITSTRKLPOS - 1) corresponds to the MCM center
   // slightly modified TDP eq 16.1 (appended -1 to the end to account for MCM shared pads)
@@ -44,18 +44,18 @@ float TrackletTransformer::calculateY(int hcid, int column, int position)
   return y;
 }
 
-float TrackletTransformer::calculateZ(int padrow)
+float TrackletTransformer::calculateZ(int padrow, const PadPlane* padPlane) const
 {
-  double rowPos = mPadPlane->getRowPos(padrow);
-  double rowSize = mPadPlane->getRowSize(padrow);
-  double middleRowPos = mPadPlane->getRowPos(mPadPlane->getNrows() / 2);
+  double rowPos = padPlane->getRowPos(padrow);
+  double rowSize = padPlane->getRowSize(padrow);
+  double middleRowPos = padPlane->getRowPos(padPlane->getNrows() / 2);
 
   return rowPos - rowSize / 2. - middleRowPos;
 }
 
-float TrackletTransformer::calculateDy(int detector, int slope)
+float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* padPlane) const
 {
-  double padWidth = mPadPlane->getWidthIPad();
+  double padWidth = padPlane->getWidthIPad();
 
   float vDrift = mCalVdriftExB->getVdrift(detector);
   float exb = mCalVdriftExB->getExB(detector);
@@ -75,14 +75,14 @@ float TrackletTransformer::calculateDy(int detector, int slope)
   return calibratedDy;
 }
 
-float TrackletTransformer::calibrateX(double x)
+float TrackletTransformer::calibrateX(double x) const
 {
   // Hard-coded value will be replaced once t0 calibration is available from CCDB
   float t0Correction = -0.279;
   return x += t0Correction;
 }
 
-std::array<float, 3> TrackletTransformer::transformL2T(int detector, std::array<double, 3> point)
+std::array<float, 3> TrackletTransformer::transformL2T(int detector, std::array<double, 3> point) const
 {
   auto transformationMatrix = mGeo->getMatrixT2L(detector);
 
@@ -92,7 +92,7 @@ std::array<float, 3> TrackletTransformer::transformL2T(int detector, std::array<
   return {(float)gobalPoint.x(), (float)gobalPoint.y(), (float)gobalPoint.z()};
 }
 
-CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
+CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, bool trackingFrame) const
 {
   auto detector = tracklet.getDetector();
   auto hcid = tracklet.getHCID();
@@ -115,28 +115,29 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   }
 
   // calculate raw local chamber space point
-  mPadPlane = mGeo->getPadPlane(detector);
+  const auto padPlane = mGeo->getPadPlane(detector);
 
   float x = getXDrift();
-  float y = calculateY(hcid, column, position);
-  float z = calculateZ(padrow);
+  float y = calculateY(hcid, column, position, padPlane);
+  float z = calculateZ(padrow, padPlane);
 
-  float dy = calculateDy(detector, slope);
+  float dy = calculateDy(detector, slope, padPlane);
 
   float calibratedX = calibrateX(x);
 
   // NOTE: Correction to y position based on x calibration NOT YET implemented. Need t0.
-
-  std::array<float, 3> sectorSpacePoint = transformL2T(detector, std::array<double, 3>{calibratedX, y, z});
-
-  LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
-             << "y: " << sectorSpacePoint[1] << " | "
-             << "z: " << sectorSpacePoint[2];
-
-  return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+  if (trackingFrame) {
+    std::array<float, 3> sectorSpacePoint = transformL2T(detector, std::array<double, 3>{calibratedX, y, z});
+    LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
+               << "y: " << sectorSpacePoint[1] << " | "
+               << "z: " << sectorSpacePoint[2];
+    return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+  } else {
+    return CalibratedTracklet(calibratedX, y, z, dy); // local frame
+  }
 }
 
-double TrackletTransformer::getTimebin(int detector, double x)
+double TrackletTransformer::getTimebin(int detector, double x) const
 {
   // calculate timebin from x position within chamber
   float vDrift = mCalVdriftExB->getVdrift(detector);
