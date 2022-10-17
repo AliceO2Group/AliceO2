@@ -42,9 +42,10 @@ class AODMcProducerWorkflowDPL : public Task
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  int64_t mTFNumber{-1};
+  int64_t mTFNumber{1};
   int mTruncate{1};
   int mFilterMC{0};
+  bool mEnableEmbed{false};
   std::string mMCHeaderFNames;
   TString mLPMProdTag{""};
   TString mAnchorPass{""};

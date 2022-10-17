@@ -194,13 +194,17 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleMom = 0xFFFFFFFF;
   }
 
-  // parse list of sim prefixes into vector
-  mMCHeaderFNames = ic.options().get<std::string>("mckine-fnames");
-  std::stringstream ss(mMCHeaderFNames);
-  while (ss.good()) {
-    std::string substr;
-    std::getline(ss, substr, ',');
-    mSimPrefixes.push_back(substr);
+  mEnableEmbed = ic.options().get<bool>("enable-embedding");
+
+  if (!mEnableEmbed) {
+    // parse list of sim prefixes into vector
+    mMCHeaderFNames = ic.options().get<std::string>("mckine-fnames");
+    std::stringstream ss(mMCHeaderFNames);
+    while (ss.good()) {
+      std::string substr;
+      std::getline(ss, substr, ',');
+      mSimPrefixes.push_back(substr);
+    }
   }
 
   mTimer.Reset();
@@ -220,32 +224,66 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
 
-  auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>(mSimPrefixes);
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
+
+  if (!mEnableEmbed) {
+    mcReader->initFromKinematics(mSimPrefixes);
+  } else {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  }
+
+  // filling mcCollision table
 
   // TODO: figure out collision weight
   float mcColWeight = 1.;
+
   // dummy time information
   int bcID = 0;
   float time = 0;
-  // filling mcCollision table
-  int icol = 0;
-  int nSources = mcReader->getNSources();
-  for (int isrc = 0; isrc < nSources; isrc++) {
-    short generatorID = isrc;
-    int nEvents = mcReader->getNEvents(isrc);
-    for (int ievt = 0; ievt < nEvents; ievt++) {
-      auto& header = mcReader->getMCEventHeader(isrc, ievt);
-      mcCollisionsCursor(0,
-                         bcID,
-                         generatorID,
-                         truncateFloatFraction(header.GetX(), mCollisionPosition),
-                         truncateFloatFraction(header.GetY(), mCollisionPosition),
-                         truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                         truncateFloatFraction(time, mCollisionPosition),
-                         truncateFloatFraction(mcColWeight, mCollisionPosition),
-                         header.GetB());
-      mMCColToEvSrc.emplace(std::pair<int, int>(ievt, isrc), icol); // point background and injected signal events to one collision
-      icol++;
+
+  auto updateMCCollisions = [this, mcColWeight, bcID, time, &mcCollisionsCursor](dataformats::MCEventHeader const& header, short generatorID) {
+    mcCollisionsCursor(0,
+                       bcID,
+                       generatorID,
+                       truncateFloatFraction(header.GetX(), mCollisionPosition),
+                       truncateFloatFraction(header.GetY(), mCollisionPosition),
+                       truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                       truncateFloatFraction(time, mCollisionPosition),
+                       truncateFloatFraction(mcColWeight, mCollisionPosition),
+                       header.GetB());
+  };
+
+  if (!mEnableEmbed) { // simply store all MC events into table
+    int icol = 0;
+    int nSources = mcReader->getNSources();
+    for (int isrc = 0; isrc < nSources; isrc++) {
+      short generatorID = isrc;
+      int nEvents = mcReader->getNEvents(isrc);
+      for (int ievt = 0; ievt < nEvents; ievt++) {
+        auto& header = mcReader->getMCEventHeader(isrc, ievt);
+        updateMCCollisions(header, generatorID);
+        mMCColToEvSrc.emplace(std::pair<int, int>(ievt, isrc), icol);
+        icol++;
+      }
+    }
+  } else { // treat embedded events using collisioncontext: injected events will be stored together with background events into the same collisions
+    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
+    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
+    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
+    for (int icol = 0; icol < nMCCollisions; icol++) {
+      auto& colParts = mcParts[icol];
+      auto nParts = colParts.size();
+      for (auto colPart : colParts) {
+        auto eventID = colPart.entryID;
+        auto sourceID = colPart.sourceID;
+        // enable embedding: if several colParts exist, then they are saved as one collision
+        if (nParts == 1 || sourceID == 0) {
+          short generatorID = sourceID;
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          updateMCCollisions(header, generatorID);
+        }
+        mMCColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), icol); // point background and injected signal events to one collision
+      }
     }
   }
 
@@ -310,7 +348,8 @@ DataProcessorSpec getAODMcProducerWorkflowSpec()
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"filter-mctracks", VariantType::Int, 1, {"Store only physical primary MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
-      ConfigParamSpec{"mckine-fnames", VariantType::String, "o2sim", {"List of comma-separated MC kinematics file names: e.g. 'bkg,sgn_1'"}}}};
+      ConfigParamSpec{"enable-embedding", VariantType::Int, 0, {"Use collisioncontext.root to process embedded events"}},
+      ConfigParamSpec{"mckine-fnames", VariantType::String, "o2sim", {"List of comma-separated MC kinematics file names: e.g. 'bkg,sgn_1'. Used only if 'enable-embedding' is 0"}}}};
 }
 
 } // namespace o2::aodmcproducer
