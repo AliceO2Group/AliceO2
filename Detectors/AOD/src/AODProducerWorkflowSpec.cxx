@@ -1846,6 +1846,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mIndexTableMFT.clear();
   mIndexMFTID = 0;
 
+  mBCLookup.clear();
+
   originCursor(0, tfNumber);
 
   // sending metadata to writer
@@ -2209,7 +2211,7 @@ std::uint64_t AODProducerWorkflowDPL::fillBCSlice(int (&slice)[2], double tmin, 
   slice[0] = p.first;
   slice[1] = upperindex;
 
-  auto bcOfTimeRef = p.first - this->mStartIR.toLong();
+  auto bcOfTimeRef = p.second - this->mStartIR.toLong();
   LOG(debug) << "BC slice t:" << tmin << " " << slice[0]
              << " t: " << tmax << " " << slice[1]
              << " bcref: " << bcOfTimeRef;
