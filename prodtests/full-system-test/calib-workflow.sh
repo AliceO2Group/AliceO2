@@ -40,6 +40,9 @@ if workflow_has_parameter CALIB_PROXIES; then
       add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_C output)" "" 0
     fi
   fi
+  if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCSAC\" $(get_proxy_connection tpcsac output)" "" 0
+  fi
   if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output)" "" 0
   fi
