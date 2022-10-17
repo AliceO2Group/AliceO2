@@ -38,7 +38,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
-    {"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing CTFs from 2021 pilot beam)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -50,12 +49,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
   // MC labels are passed through for the global tracking downstream
   // in case ROOT output is requested the tracklet labels are duplicated
   bool useMC = !configcontext.options().get<bool>("disable-mc");
-
-  auto applyXOR = configcontext.options().get<bool>("apply-xor");
 
   WorkflowSpec spec;
 
@@ -64,11 +60,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, false));
   }
 
+  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
   if (trigRecFilterActive) {
     o2::globaltracking::InputHelper::addInputSpecsIRFramesITS(configcontext, spec);
   }
 
-  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive, applyXOR));
+  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {
     spec.emplace_back(o2::trd::getTRDCalibratedTrackletWriterSpec(useMC));
