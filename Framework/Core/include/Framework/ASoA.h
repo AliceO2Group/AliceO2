@@ -42,16 +42,17 @@ struct Preslice {
     if (newDataframe) {
       fullSize = input->num_rows();
       newDataframe = false;
-      return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
-    } else {
-      return arrow::Status::OK();
+      if (fullSize != 0) {
+        return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
+      }
     }
+    return arrow::Status::OK();
   };
 
   void setNewDF()
   {
     newDataframe = true;
-  };
+  }
 
   std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
   std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
@@ -62,6 +63,11 @@ struct Preslice {
   arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
   {
     arrow::Status status;
+    if (fullSize == 0) {
+      offset = 0;
+      output = input->Slice(0, 0);
+      return arrow::Status::OK();
+    }
     for (auto slice = 0; slice < mValues->length(); ++slice) {
       if (mValues->Value(slice) == value) {
         output = input->Slice(offset, mCounts->Value(slice));
