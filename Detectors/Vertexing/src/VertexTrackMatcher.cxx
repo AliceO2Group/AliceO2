@@ -124,6 +124,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     vr.setEnd(trackIndex.size());
     LOG(info) << vr;
   }
+  logCounter++;
   LOG(info) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambiguously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
 }
 
