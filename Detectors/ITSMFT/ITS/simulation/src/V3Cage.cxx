@@ -63,6 +63,28 @@ const Double_t V3Cage::sCageCoverRibXBaseInt = 944.0 * sMm;
 const Double_t V3Cage::sCageCoverRibYBaseHi = 245.0 * sMm;
 const Double_t V3Cage::sCageCoverRibFoldHi = 31.5 * sMm;
 
+const Double_t V3Cage::sCageSidePanelLength = 3457.0 * sMm;
+const Double_t V3Cage::sCageSidePanelWidth = 490.0 * sMm;
+const Double_t V3Cage::sCageSidePanelFoilThick = 1.0 * sMm;
+const Double_t V3Cage::sCageSidePanelCoreThick = 20.0 * sMm;
+const Double_t V3Cage::sCageSidePanelXDist = 988.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRail1Len = 3320.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRail2Len = 1550.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRail3Len = 302.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRailWidth = 25.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRailSpan = 20.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRailHThik = 5.0 * sMm;
+const Double_t V3Cage::sCageSidePanelRailVThik = 2.5 * sMm;
+const Double_t V3Cage::sCageSidePanelGuideLen = 3587.0 * sMm;
+const Double_t V3Cage::sCageSidePanelGuideInHi = 204.0 * sMm;
+const Double_t V3Cage::sCageSidePanelGuideWide = 44.0 * sMm;
+const Double_t V3Cage::sCageSidePanelGuidThik1 = 6.0 * sMm;
+const Double_t V3Cage::sCageSidePanelGuidThik2 = 8.0 * sMm;
+
+const Double_t V3Cage::sCageSidePanelRail1Ypos[2] = {226.5 * sMm, 147.5 * sMm};
+const Double_t V3Cage::sCageSidePanelRail2Ypos = 74.5 * sMm;
+const Double_t V3Cage::sCageSidePanelRail3Ypos[3] = {180.0 * sMm, 107.0 * sMm, 24.0 * sMm};
+
 const Double_t V3Cage::sCageEndCapDext = 1096.0 * sMm;
 const Double_t V3Cage::sCageEndCapDint = 304.0 * sMm;
 const Double_t V3Cage::sCageEndCapFoamThick = 8.0 * sMm;
@@ -111,12 +133,13 @@ void V3Cage::createAndPlaceCage(TGeoVolume* mother, const TGeoManager* mgr)
   //
 
   // Local variables
-  Double_t zunit, zpos;
+  Double_t zunit, xpos, zpos;
 
   // Create the cover elements
   TGeoVolume* cageCover = createCageCover(mgr);
   TGeoVolume* cageCoverRib = createCageCoverRib(mgr);
   TGeoVolume* cageEndCap = createCageEndCap(mgr);
+  TGeoVolume* cageSidePanel = createCageSidePanel(mgr);
 
   // Now place all elements
   mother->AddNode(cageCover, 1, new TGeoTranslation(0, sCageYInBarrel, 0));
@@ -136,8 +159,15 @@ void V3Cage::createAndPlaceCage(TGeoVolume* mother, const TGeoManager* mgr)
   mother->AddNode(cageCover, 5, new TGeoTranslation(0, sCageYInBarrel, -zpos));
   mother->AddNode(cageCover, 6, new TGeoCombiTrans(0, sCageYInBarrel, -zpos, new TGeoRotation("", 180, 0, 0)));
 
+  zpos += sCageCoverZLength / 2;
+
+  Double_t zposSP = -zpos + sCageSidePanelLength / 2;
+  xpos = sCageSidePanelXDist / 2 - sCageSidePanelCoreThick / 2 - sCageSidePanelFoilThick;
+  mother->AddNode(cageSidePanel, 1, new TGeoTranslation(xpos, sCageYInBarrel, zposSP));
+  mother->AddNode(cageSidePanel, 2, new TGeoCombiTrans(-xpos, sCageYInBarrel, zposSP, new TGeoRotation("", 180, 0, 0)));
+
   // The end cap is only on C side
-  zpos += sCageCoverZLength / 2 + sCageECCableCrosTotZ / 2;
+  zpos += sCageECCableCrosTotZ / 2;
   mother->AddNode(cageEndCap, 1, new TGeoTranslation(0, sCageYInBarrel, -zpos));
 
   // Third ribs are only on A side
@@ -296,6 +326,299 @@ TGeoVolume* V3Cage::createCageCoverRib(const TGeoManager* mgr)
 
   // Finally return the cover rib volume
   return ribVol;
+}
+
+TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
+{
+  //
+  // Creates the Cage Side Panel (from drawings ALIITSUP0247, ALIITSUP0248,
+  // ALIITSUP0243, ALIITSUP0244, ALIITSUP0280, ALIITSUP0245)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         The side panel as a TGeoVolumeAssembly
+  //
+  // Created:      30 Sep 2022  Mario Sitta
+  //
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t xpos, ypos, zpos;
+
+  // The TGeoVolumeAssembly holding all elements
+  TGeoVolumeAssembly* sidePanelVol = new TGeoVolumeAssembly("CageSidePanel");
+
+  // The inner foil: a TGeoCompositeShape
+  TGeoCompositeShape* inFoilSh = createCageSidePanelCoreFoil(sCageSidePanelFoilThick, "foil");
+
+  // The outer foil: a BBox (each)
+  xlen = sCageSidePanelFoilThick / 2;
+  ylen = sCageSidePanelWidth / 2;
+  zlen = sCageSidePanelLength / 2;
+  TGeoBBox* outFoilSh = new TGeoBBox(xlen, ylen, zlen);
+
+  // The intermediate core layer: a TGeoCompositeShape
+  TGeoCompositeShape* coreSh = createCageSidePanelCoreFoil(sCageSidePanelCoreThick, "core");
+
+  // The longest rails
+  TGeoCompositeShape* rail1Sh = createCageSidePanelRail(sCageSidePanelRail1Len, 1);
+
+  // The intermediate rails
+  TGeoCompositeShape* rail2Sh = createCageSidePanelRail(sCageSidePanelRail2Len, 2);
+
+  // The shortest rails
+  TGeoCompositeShape* rail3Sh = createCageSidePanelRail(sCageSidePanelRail3Len, 3);
+
+  // The elements of the guide:
+  // - the vertical part: a BBox
+  xlen = sCageSidePanelGuidThik2 / 2;
+  ylen = sCageSidePanelGuideInHi / 2;
+  zlen = sCageSidePanelGuideLen / 2;
+  TGeoBBox* guideVert = new TGeoBBox(xlen, ylen, zlen);
+  guideVert->SetName("guidevert");
+
+  // - the horizontal part: a BBox
+  xlen = sCageSidePanelGuideWide / 2;
+  ylen = sCageSidePanelGuidThik1 / 2;
+  TGeoBBox* guideHor = new TGeoBBox(xlen, ylen, zlen);
+  guideHor->SetName("guidehor");
+
+  xpos = (sCageSidePanelGuideWide - sCageSidePanelGuidThik2) / 2;
+  ypos = (sCageSidePanelGuidThik1 + sCageSidePanelGuideInHi) / 2;
+  TGeoTranslation* guideHorMat1 = new TGeoTranslation(xpos, ypos, 0);
+  guideHorMat1->SetName("guidehormat1");
+  guideHorMat1->RegisterYourself();
+
+  TGeoTranslation* guideHorMat2 = new TGeoTranslation(xpos, -ypos, 0);
+  guideHorMat2->SetName("guidehormat2");
+  guideHorMat2->RegisterYourself();
+
+  // The actual guide: a CompositeShape
+  TGeoCompositeShape* guideSh = new TGeoCompositeShape("guidevert+guidehor:guidehormat1+guidehor:guidehormat2");
+
+  // We have all shapes: now create the real volume
+  TGeoMedium* medFabric = mgr->GetMedium("ITS_M46J6K$");
+  TGeoMedium* medFoam = mgr->GetMedium("ITS_ROHACELL$");
+  TGeoMedium* medAlAlloy = mgr->GetMedium("ITS_ENAW7075$");
+
+  TGeoVolume* inFoilVol = new TGeoVolume("CageSidePanelInFoil", inFoilSh, medFabric);
+  inFoilVol->SetFillColor(kBlue);
+  inFoilVol->SetLineColor(kBlue);
+
+  TGeoVolume* outFoilVol = new TGeoVolume("CageSidePanelOutFoil", outFoilSh, medFabric);
+  outFoilVol->SetFillColor(kBlue);
+  outFoilVol->SetLineColor(kBlue);
+
+  TGeoVolume* coreVol = new TGeoVolume("CageSidePanelCore", coreSh, medFoam);
+  coreVol->SetFillColor(kYellow);
+  coreVol->SetLineColor(kYellow);
+
+  TGeoVolume* rail1Vol = new TGeoVolume("CageSidePanelRail1st", rail1Sh, medAlAlloy);
+  rail1Vol->SetFillColor(kGray);
+  rail1Vol->SetLineColor(kGray);
+
+  TGeoVolume* rail2Vol = new TGeoVolume("CageSidePanelRail2nd", rail2Sh, medAlAlloy);
+  rail2Vol->SetFillColor(kGray);
+  rail2Vol->SetLineColor(kGray);
+
+  TGeoVolume* rail3Vol = new TGeoVolume("CageSidePanelRail3rd", rail3Sh, medAlAlloy);
+  rail3Vol->SetFillColor(kGray);
+  rail3Vol->SetLineColor(kGray);
+
+  TGeoVolume* guideVol = new TGeoVolume("CageSidePanelGuide", guideSh, medFabric);
+  guideVol->SetFillColor(kViolet);
+  guideVol->SetLineColor(kViolet);
+
+  // Then build up the panel
+  sidePanelVol->AddNode(coreVol, 1, nullptr);
+
+  xpos = (sCageSidePanelCoreThick + sCageSidePanelFoilThick) / 2;
+  sidePanelVol->AddNode(inFoilVol, 1, new TGeoTranslation(-xpos, 0, 0));
+  sidePanelVol->AddNode(outFoilVol, 1, new TGeoTranslation(xpos, 0, 0));
+
+  xpos = (sCageSidePanelCoreThick - sCageSidePanelRailVThik) / 2;
+  zpos = (sCageSidePanelLength - sCageSidePanelRail1Len) / 2;
+  for (Int_t j = 0; j < 2; j++) {
+    ypos = sCageSidePanelRail1Ypos[j];
+    sidePanelVol->AddNode(rail1Vol, j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    sidePanelVol->AddNode(rail1Vol, j + 3, new TGeoTranslation(xpos, -ypos, zpos));
+  }
+
+  zpos = (sCageSidePanelLength - sCageSidePanelRail2Len) / 2;
+  ypos = sCageSidePanelRail2Ypos;
+  sidePanelVol->AddNode(rail2Vol, 1, new TGeoTranslation(xpos, ypos, zpos));
+  sidePanelVol->AddNode(rail2Vol, 2, new TGeoTranslation(xpos, -ypos, zpos));
+
+  zpos = (sCageSidePanelLength - sCageSidePanelRail3Len) / 2;
+  for (Int_t j = 0; j < 3; j++) {
+    ypos = sCageSidePanelRail3Ypos[j];
+    sidePanelVol->AddNode(rail3Vol, j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    sidePanelVol->AddNode(rail3Vol, j + 4, new TGeoTranslation(xpos, -ypos, zpos));
+  }
+
+  xpos = sCageSidePanelCoreThick / 2 + sCageSidePanelFoilThick + sCageSidePanelGuidThik2 / 2;
+  zpos = (sCageSidePanelLength - sCageSidePanelGuideLen) / 2;
+  sidePanelVol->AddNode(guideVol, 1, new TGeoTranslation(xpos, 0, -zpos));
+
+  // Finally return the side panel volume
+  return sidePanelVol;
+}
+
+TGeoCompositeShape* V3Cage::createCageSidePanelCoreFoil(const Double_t xthick, const char* shpref)
+{
+  //
+  // Creates the shape of the core and the internal foil of the
+  // Cage Side Panel, which contain proper cuts to host the rails
+  //
+  // Input:
+  //         xthick : the shape thickness along X
+  //         shpref : prefix of the shape name
+  //
+  // Output:
+  //
+  // Return:
+  //         The side panel core or foil as a TGeoCompositeShape
+  //
+  // Created:      07 Oct 2022  Mario Sitta
+  //
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t ypos, zpos;
+
+  // The main body: a BBox
+  xlen = xthick / 2;
+  ylen = sCageSidePanelWidth / 2;
+  zlen = sCageSidePanelLength / 2;
+  TGeoBBox* bodySh = new TGeoBBox(xlen, ylen, zlen);
+  bodySh->SetName(Form("%sbodyshape", shpref));
+
+  // The hole for the longest rails (approx): a BBox
+  xlen = 1.1 * xthick / 2;
+  ylen = sCageSidePanelRailWidth / 2;
+  zlen = sCageSidePanelRail1Len;
+  TGeoBBox* rail1Sh = new TGeoBBox(xlen, ylen, zlen);
+  rail1Sh->SetName(Form("%slongrail", shpref));
+
+  zpos = sCageSidePanelLength / 2;
+  TGeoTranslation* rail1Mat[4];
+  for (Int_t j = 0; j < 2; j++) {
+    ypos = sCageSidePanelRail1Ypos[j];
+    rail1Mat[j] = new TGeoTranslation(0, ypos, zpos);
+    rail1Mat[j]->SetName(Form("longrailmat%d", j));
+    rail1Mat[j]->RegisterYourself();
+    rail1Mat[j + 2] = new TGeoTranslation(0, -ypos, zpos);
+    rail1Mat[j + 2]->SetName(Form("longrailmat%d", j + 2));
+    rail1Mat[j + 2]->RegisterYourself();
+  }
+
+  // The hole for the intermediate rails (approx): a BBox
+  zlen = sCageSidePanelRail2Len;
+  TGeoBBox* rail2Sh = new TGeoBBox(xlen, ylen, zlen);
+  rail2Sh->SetName(Form("%smedrail", shpref));
+
+  ypos = sCageSidePanelRail2Ypos;
+  TGeoTranslation* rail2Mat[2];
+  rail2Mat[0] = new TGeoTranslation(0, ypos, zpos);
+  rail2Mat[0]->SetName("medrailmat0");
+  rail2Mat[0]->RegisterYourself();
+  rail2Mat[1] = new TGeoTranslation(0, -ypos, zpos);
+  rail2Mat[1]->SetName("medrailmat1");
+  rail2Mat[1]->RegisterYourself();
+
+  // The hole for the shortest rails (approx): a BBox
+  zlen = sCageSidePanelRail3Len;
+  TGeoBBox* rail3Sh = new TGeoBBox(xlen, ylen, zlen);
+  rail3Sh->SetName(Form("%sshortrail", shpref));
+
+  TGeoTranslation* rail3Mat[6];
+  for (Int_t j = 0; j < 3; j++) {
+    ypos = sCageSidePanelRail3Ypos[j];
+    rail3Mat[j] = new TGeoTranslation(0, ypos, zpos);
+    rail3Mat[j]->SetName(Form("shortrailmat%d", j));
+    rail3Mat[j]->RegisterYourself();
+    rail3Mat[j + 3] = new TGeoTranslation(0, -ypos, zpos);
+    rail3Mat[j + 3]->SetName(Form("shortrailmat%d", j + 3));
+    rail3Mat[j + 3]->RegisterYourself();
+  }
+
+  // The actual shape: a CompositeShape
+  TString compoShape = Form("%sbodyshape", shpref);
+  for (Int_t j = 0; j < 4; j++) {
+    compoShape += Form("-%slongrail:longrailmat%d", shpref, j);
+  }
+  for (Int_t j = 0; j < 2; j++) {
+    compoShape += Form("-%smedrail:medrailmat%d", shpref, j);
+  }
+  for (Int_t j = 0; j < 6; j++) {
+    compoShape += Form("-%sshortrail:shortrailmat%d", shpref, j);
+  }
+
+  TGeoCompositeShape* corefoilSh = new TGeoCompositeShape(compoShape);
+
+  // Now return the shape
+  return corefoilSh;
+}
+
+TGeoCompositeShape* V3Cage::createCageSidePanelRail(const Double_t zlength, const Int_t index)
+{
+  //
+  // Creates the shape of a Cage Side Panel rail
+  // (slightly approximated as a linear structure)
+  //
+  // Input:
+  //         zlength : the rail length along Z
+  //         index : an integer to distinguish subvolume names
+  //
+  // Output:
+  //
+  // Return:
+  //         The side panel rail as a TGeoCompositeShape
+  //
+  // Created:      08 Oct 2022  Mario Sitta
+  //
+
+  // Local variables
+  Double_t xlen, ylen;
+  Double_t xpos, ypos;
+
+  // The elements of the rail:
+  // - the vertical part: a BBox
+  xlen = sCageSidePanelRailVThik / 2;
+  ylen = (sCageSidePanelRailWidth - 2 * sCageSidePanelRailHThik) / 2;
+  TGeoBBox* railVert = new TGeoBBox(xlen, ylen, zlength / 2);
+  railVert->SetName(Form("railvert%d", index));
+
+  // - the horizontal part: a BBox
+  xlen = sCageSidePanelRailSpan / 2;
+  ylen = sCageSidePanelRailHThik / 2;
+  TGeoBBox* railHor = new TGeoBBox(xlen, ylen, zlength / 2);
+  railHor->SetName(Form("railhor%d", index));
+
+  // The relative matrices
+  xpos = (sCageSidePanelRailVThik - sCageSidePanelRailSpan) / 2;
+  ypos = (sCageSidePanelRailWidth - sCageSidePanelRailHThik) / 2;
+  TGeoTranslation* railHorMat1 = new TGeoTranslation(xpos, ypos, 0);
+  railHorMat1->SetName("railhormat1");
+  railHorMat1->RegisterYourself();
+
+  TGeoTranslation* railHorMat2 = new TGeoTranslation(xpos, -ypos, 0);
+  railHorMat2->SetName("railhormat2");
+  railHorMat2->RegisterYourself();
+
+  // The actual guide: a CompositeShape
+  TString compoShape = Form("railvert%d", index);
+  compoShape += Form("+railhor%d:railhormat1", index);
+  compoShape += Form("+railhor%d:railhormat2", index);
+
+  TGeoCompositeShape* railSh = new TGeoCompositeShape(compoShape);
+
+  // Now return the shape
+  return railSh;
 }
 
 TGeoVolume* V3Cage::createCageEndCap(const TGeoManager* mgr)
