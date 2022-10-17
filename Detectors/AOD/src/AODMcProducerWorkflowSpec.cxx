@@ -250,10 +250,10 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling mc particles table
-  fillMCParticlesTable(*mcReader,
-                       mcParticlesCursor);
+  fillMCParticlesTable(*mcReader, mcParticlesCursor);
 
   mMCColToEvSrc.clear();
+  mSimPrefixes.clear();
   mToStore.clear();
 
   originCursor(0, tfNumber);
