@@ -55,12 +55,22 @@ class MCKinematicsReader
     }
   }
 
+  /// Initialize the reader from a list of kinematic files
+  explicit MCKinematicsReader(std::vector<std::string> names)
+  {
+    initFromKinematics(names);
+  }
+
   /// inits the reader from a digitization context
   /// returns true if successful
   bool initFromDigitContext(std::string_view filename);
 
   /// inits the reader from a simple kinematics file
   bool initFromKinematics(std::string_view filename);
+
+  /// inits the reader from a list of kinematic files
+  /// e.g. {"bkg", "sgn"}
+  bool initFromKinematics(std::vector<std::string> filenames);
 
   bool isInitialized() const { return mInitialized; }
 

@@ -175,3 +175,33 @@ bool MCKinematicsReader::initFromKinematics(std::string_view name)
 
   return true;
 }
+
+bool MCKinematicsReader::initFromKinematics(std::vector<std::string> names)
+{
+  if (mInitialized) {
+    LOG(info) << "MCKinematicsReader already initialized; doing nothing";
+    return false;
+  }
+
+  if (names.empty()) {
+    LOG(warn) << "List of sim prefixes is empty! Can't initialize MC reader";
+    return false;
+  }
+
+  // add the main file
+  mInputChains.emplace_back(new TChain("o2sim"));
+  mInputChains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(names[0].data()).c_str());
+
+  // add signal files
+  for (int source = 1; source < names.size(); ++source) {
+    mInputChains.emplace_back(new TChain("o2sim"));
+    mInputChains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(names[source].data()).c_str());
+  }
+
+  mTracks.resize(mInputChains.size());
+  mHeaders.resize(mInputChains.size());
+  mIndexedTrackRefs.resize(mInputChains.size());
+  mInitialized = true;
+
+  return true;
+}
