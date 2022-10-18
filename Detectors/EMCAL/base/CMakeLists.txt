@@ -18,7 +18,7 @@ o2_add_library(EMCALBase
         src/TriggerMappingV2.cxx
         PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers Boost::serialization
         O2::MathUtils O2::DataFormatsEMCAL
-        O2::SimulationDataFormat ROOT::Physics)
+        O2::SimulationDataFormat)
 
 o2_target_root_dictionary(EMCALBase
         HEADERS include/EMCALBase/GeometryBase.h

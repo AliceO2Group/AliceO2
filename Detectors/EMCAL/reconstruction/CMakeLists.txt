@@ -30,10 +30,9 @@ o2_add_library(EMCALReconstruction
         src/DigitReader.cxx
         src/CTFCoder.cxx
         src/CTFHelper.cxx
-        PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
+        PUBLIC_LINK_LIBRARIES O2::Headers
         AliceO2::InfoLogger
         O2::DataFormatsEMCAL
-        O2::DetectorsBase
         O2::DetectorsRaw
         O2::EMCALBase
         O2::rANS
