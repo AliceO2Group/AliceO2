@@ -66,8 +66,12 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
     has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
   fi
 done
+
 [[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
-PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
+[[ -z $VERTEX_TRACK_MATCHING_SOURCES ]] && VERTEX_TRACK_MATCHING_SOURCES="$TRACK_SOURCES"
+[[ ! -z $VERTEXING_SOURCES ]] && PVERTEX_CONFIG+=" --vertexing-sources $VERTEXING_SOURCES"
+[[ ! -z $VERTEX_TRACK_MATCHING_SOURCES ]] && PVERTEX_CONFIG+=" --vertex-track-matching-sources $VERTEX_TRACK_MATCHING_SOURCES"
+
 [[ -z $SVERTEXING_SOURCES ]] && SVERTEXING_SOURCES=$(echo $VERTEXING_SOURCES | sed -E -e "s/(^|,)TPC(-TRD|-TOF)+//g" -e "s/,TPC,/,/")
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
