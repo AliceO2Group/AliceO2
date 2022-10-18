@@ -145,7 +145,9 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
       }
     }
   }
-  pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
+  if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
+    pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
+  }
 }
 
 void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)

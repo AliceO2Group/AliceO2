@@ -107,6 +107,11 @@ int AlignableDetectorTOF::processPoints(GIndex gid, bool inv)
   // rotate back to tracking
   matT2L.MasterToLocal(locCorr, traCorr);
   //
+  // alternative method via TOF methods from PR10102
+  //  float posS[3] = {};
+  //  o2::tof::Geo::getPos(det, posS);
+  //  o2::tof::Geo::getPosInStripCoord(ch, posS);
+
   mFirstPoint = algTrack->getNPoints();
   auto& pnt = algTrack->addDetectorPoint();
 
