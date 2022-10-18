@@ -224,8 +224,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
   };
 
   return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](TimingInfo& timingInfo, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
-    std::unordered_map<std::string, fair::mq::Parts> outputs;
-    std::vector<std::string> unmatchedDescriptions;
+    // FIXME: this in not thread safe, but better than an alloc of a map per message...
+    static std::unordered_map<std::string, fair::mq::Parts> outputs;
+    static std::vector<std::string> unmatchedDescriptions;
+    outputs.clear();
+    unmatchedDescriptions.clear();
+
     static int64_t dplCounter = -1;
     dplCounter++;
     static bool override_creation_env = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
@@ -236,7 +240,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       creationVal = creationValBase;
       override_creation = true;
     } else {
-      std::string orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+      auto orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
       char* err = nullptr;
       creationVal = std::strtoll(orbitResetTimeUrl.c_str(), &err, 10);
       if (err && *err == 0 && creationVal) {
@@ -245,6 +249,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     }
 
     for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+      if (parts.At(msgidx).get() == nullptr) {
+        LOG(error) << "unexpected nullptr found. Skipping message pair.";
+        continue;
+      }
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
@@ -497,7 +505,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
                         &timingInfo = ctx.services().get<TimingInfo>(),
-                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int) {
+                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int, size_t ci) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -510,21 +518,20 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       };
 
       bool everyEoS = true;
-      for (size_t ci = 0; ci < channels.size(); ++ci) {
-        auto& channel = channels[ci];
-        // we buffer the condition since the converter will forward messages by move
-        numberOfEoS[ci] += countEoS(inputs);
-        converter(timingInfo, *device, inputs, channelRetriever);
+      std::string const& channel = channels[ci];
+      // we buffer the condition since the converter will forward messages by move
+      numberOfEoS[ci] += countEoS(inputs);
+      converter(timingInfo, *device, inputs, channelRetriever);
 
-        // If we have enough EoS messages, we can stop the device
-        // Notice that this has a number of failure modes:
-        // * If a connection sends the EoS and then closes.
-        // * If a connection sends two EoS.
-        // * If a connection sends an end of stream closes and another one opens.
-        if (numberOfEoS[ci] < device->GetNumberOfConnectedPeers(channel)) {
-          everyEoS = false;
-        }
+      // If we have enough EoS messages, we can stop the device
+      // Notice that this has a number of failure modes:
+      // * If a connection sends the EoS and then closes.
+      // * If a connection sends two EoS.
+      // * If a connection sends an end of stream closes and another one opens.
+      if (numberOfEoS[ci] < device->GetNumberOfConnectedPeers(channel)) {
+        everyEoS = false;
       }
+
       if (everyEoS) {
         // Mark all input channels as closed
         for (auto& info : deviceState->inputChannelInfos) {
@@ -540,9 +547,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       auto device = ctx.services().get<RawDeviceService>().device();
       limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
 
-      for (auto& channel : channels) {
+      for (size_t ci = 0; ci < channels.size(); ++ci) {
+        std::string const& channel = channels[ci];
         fair::mq::Parts parts;
-        device->Receive(parts, channel, 0);
+        device->Receive(parts, channel, 0, device->fChannels.size() == 1 ? -1 : 1);
         // Populate TimingInfo from the first message
         if (parts.Size() != 0) {
           auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
@@ -557,8 +565,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             timingInfo.timeslice = dph->startTime;
             timingInfo.creation = dph->creation;
           }
+          dataHandler(parts, 0, ci);
         }
-        dataHandler(parts, 0);
       }
     };
 
