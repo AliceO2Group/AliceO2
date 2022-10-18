@@ -356,11 +356,11 @@ class Geo
   static void Init();
   static void InitIndices();
   static void getPosInSectorCoord(int ch, float* pos);
-  static int getPosInStripCoord(int ch, float* pos);
-  static int getPosInPadCoord(int ch, float* pos);
+  static void getPosInStripCoord(int ch, float* pos);
+  static void getPosInPadCoord(int ch, float* pos);
   static void getPosInSectorCoord(const Int_t* detId, float* pos);
-  static int getPosInStripCoord(const Int_t* detId, float* pos);
-  static int getPosInPadCoord(const Int_t* detId, float* pos);
+  static void getPosInStripCoord(const Int_t* detId, float* pos);
+  static void getPosInPadCoord(const Int_t* detId, float* pos);
 
  private:
   static Int_t getSector(const Float_t* pos);

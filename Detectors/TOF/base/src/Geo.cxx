@@ -544,30 +544,33 @@ void Geo::getPosInSectorCoord(const Int_t* detId, float* pos)
   pos[2] = -pos[2];
 }
 
-int Geo::getPosInStripCoord(const Int_t* detId, float* pos)
+void Geo::getPosInStripCoord(const Int_t* detId, float* pos)
 {
   Init();
   fromGlobalToSector(pos, detId[0]);
 
-  if (fromPlateToStrip(pos, detId[1], detId[0]) == -1) {
-    return -1;
-  }
-  pos[0] -= XHALFSTRIP;
-  pos[2] -= ZPAD;
-  return 0;
+  float step[3];
+  step[0] = getGeoX(detId[0], detId[1], detId[2]);
+  step[1] = getGeoHeights(detId[0], detId[1], detId[2]);
+  step[2] = -getGeoDistances(detId[0], detId[1], detId[2]);
+  translate(pos[0], pos[1], pos[2], step);
+  rotateToStrip(pos, detId[1], detId[2], detId[0]);
 }
 
-int Geo::getPosInPadCoord(const Int_t* detId, float* pos)
+void Geo::getPosInPadCoord(const Int_t* detId, float* pos)
 {
   Init();
   fromGlobalToSector(pos, detId[0]);
 
-  if (fromPlateToStrip(pos, detId[1], detId[0]) == -1) {
-    return -1;
-  }
-  pos[0] -= (detId[4] + 0.5) * XPAD;
-  pos[2] -= (detId[3] + 0.5) * ZPAD;
-  return 0;
+  float step[3];
+  step[0] = getGeoX(detId[0], detId[1], detId[2]);
+  step[1] = getGeoHeights(detId[0], detId[1], detId[2]);
+  step[2] = -getGeoDistances(detId[0], detId[1], detId[2]);
+  translate(pos[0], pos[1], pos[2], step);
+  rotateToStrip(pos, detId[1], detId[2], detId[0]);
+
+  pos[0] -= (detId[4] + 0.5) * XPAD - XHALFSTRIP;
+  pos[2] -= (detId[3] - 0.5) * ZPAD;
 }
 
 void Geo::getPosInSectorCoord(int ch, float* pos)
@@ -577,18 +580,18 @@ void Geo::getPosInSectorCoord(int ch, float* pos)
   getPosInSectorCoord(det, pos);
 }
 
-int Geo::getPosInStripCoord(int ch, float* pos)
+void Geo::getPosInStripCoord(int ch, float* pos)
 {
   int det[5];
   getVolumeIndices(ch, det);
-  return getPosInStripCoord(det, pos);
+  getPosInStripCoord(det, pos);
 }
 
-int Geo::getPosInPadCoord(int ch, float* pos)
+void Geo::getPosInPadCoord(int ch, float* pos)
 {
   int det[5];
   getVolumeIndices(ch, det);
-  return getPosInPadCoord(det, pos);
+  getPosInPadCoord(det, pos);
 }
 
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
