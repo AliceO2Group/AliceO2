@@ -12,6 +12,7 @@
 #include "Framework/RuntimeError.h"
 
 #include <cstdio>
+#include <climits>
 #include <atomic>
 #include <cstdarg>
 #include <execinfo.h>
@@ -91,17 +92,19 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
 {
   char** stackStrings;
   stackStrings = backtrace_symbols(stackTrace, stackDepth);
-  char exe[1024];
+  char exe[PATH_MAX];
   bool hasExe = false;
-  int ret = 0;
+  int exeSize = 0;
 
 #if __linux__
-  ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
-  if (ret == -1) {
+  exeSize = readlink("/proc/self/exe", exe, PATH_MAX);
+  if (exeSize == -1) {
     dprintf(fd, "Unable to detect exectuable name\n");
+    hasExe = false;
+  } else {
+    dprintf(fd, "Executable is %.*s\n", exeSize, exe);
+    hasExe = true;
   }
-  dprintf(fd, "Executable is %s\n", exe);
-  hasExe = true;
 #endif
 
   for (size_t i = 1; i < stackDepth; i++) {
@@ -119,6 +122,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
+    bool tryAddr2Line = false;
 #else
     for (char* j = stackStrings[i]; j && *j; ++j) {
       if (*j == '(') {
@@ -128,8 +132,8 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
-#endif
     bool tryAddr2Line = true;
+#endif
     if (begin && end) {
       *begin++ = '\0';
       *end = '\0';
@@ -148,9 +152,9 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       // didn't find the mangled name, just print the whole line
       dprintf(fd, "    %s: ", stackStrings[i]);
       if (stackTrace[i] && hasExe) {
-        char syscom[4096];
+        char syscom[4096 + PATH_MAX];
 
-        snprintf(syscom, 4096, "addr2line %p -a -p -s -f -i -e %s 2>/dev/null | c++filt -r ", stackTrace[i], exe); //last parameter is the name of this app
+        snprintf(syscom, 4096, "addr2line %p -a -p -s -f -e %.*s 2>/dev/null | c++filt -r ", stackTrace[i], exeSize, exe); // last parameter is the name of this app
 
         FILE* fp;
         char path[1024];
