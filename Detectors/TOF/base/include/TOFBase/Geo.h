@@ -67,6 +67,7 @@ class Geo
   static void rotateToSector(Float_t* xyz, Int_t isector);
   static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector);
   static void antiRotateToSector(Float_t* xyz, Int_t isector);
+  static void antiRotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector);
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);
@@ -354,6 +355,7 @@ class Geo
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
 
   static void Init();
+  static void InitIdeal();
   static void InitIndices();
   static void getPosInSectorCoord(int ch, float* pos);
   static void getPosInStripCoord(int ch, float* pos);
