@@ -533,6 +533,64 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
   return index;
 }
 
+void Geo::getPosInSectorCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  float swap = pos[0];
+  pos[0] = pos[1];
+  pos[1] = swap;
+  pos[2] = -pos[2];
+}
+
+int Geo::getPosInStripCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  if (fromPlateToStrip(pos, detId[1], detId[0]) == -1) {
+    return -1;
+  }
+  pos[0] -= XHALFSTRIP;
+  pos[2] -= ZPAD;
+  return 0;
+}
+
+int Geo::getPosInPadCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  if (fromPlateToStrip(pos, detId[1], detId[0]) == -1) {
+    return -1;
+  }
+  pos[0] -= (detId[4] + 0.5) * XPAD;
+  pos[2] -= (detId[3] + 0.5) * ZPAD;
+  return 0;
+}
+
+void Geo::getPosInSectorCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  getPosInSectorCoord(det, pos);
+}
+
+int Geo::getPosInStripCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  return getPosInStripCoord(det, pos);
+}
+
+int Geo::getPosInPadCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  return getPosInPadCoord(det, pos);
+}
+
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
