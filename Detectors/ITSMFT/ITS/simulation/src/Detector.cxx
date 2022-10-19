@@ -732,8 +732,8 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
 
   const Double_t suppRingAZlen = 4.;
   const Double_t coneRingARmax = 33.96;
-  const Double_t coneRingAZlen = 5.6;
-  const Double_t suppRingCZlen[3] = {4.8, 4.0, 2.4};
+  const Double_t coneRingAZlen[2] = {5.6, 0.3};
+  const Double_t suppRingCZlen[3] = {4.8, 4.0, 2.1};
   const Double_t suppRingsRmin[3] = {23.35, 20.05, 35.4};
 
   if (mWrapperMinRadius[id] < 0 || mWrapperMaxRadius[id] < 0 || mWrapperZSpan[id] < 0) {
@@ -771,10 +771,11 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
       zlen -= suppRingCZlen[2];
       wrap->DefineSection(1, -zlen, suppRingsRmin[2], mWrapperMaxRadius[id]);
       wrap->DefineSection(2, -zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
-      zlen = mWrapperZSpan[id] / 2 - coneRingAZlen;
+      zlen = mWrapperZSpan[id] / 2 - coneRingAZlen[0];
       wrap->DefineSection(3, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
       wrap->DefineSection(4, zlen, coneRingARmax, mWrapperMaxRadius[id]);
-      wrap->DefineSection(5, mWrapperZSpan[id] / 2, coneRingARmax, mWrapperMaxRadius[id]);
+      zlen = mWrapperZSpan[id] / 2 + coneRingAZlen[1];
+      wrap->DefineSection(5, zlen, coneRingARmax, mWrapperMaxRadius[id]);
       tube = (TGeoShape*)wrap;
     } break;
     default: // Can never happen, keeps gcc quiet
