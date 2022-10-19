@@ -46,6 +46,7 @@ enum RunType : int {
   CALIBRATION,
   COSMICS,
   SYNTHETIC,
+  NOISE,
   NRUNTYPES
 };
 static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
@@ -64,6 +65,7 @@ static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
   "CALIBRATION_ALPIDE_SCAN",
   "CALIBRATION",
   "COSMICS",
+  "NOISE",
   "SYNTHETIC"};
 
 //_______________________________________________
