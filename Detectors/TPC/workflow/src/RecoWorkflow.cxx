@@ -62,6 +62,8 @@ namespace tpc
 namespace reco_workflow
 {
 
+static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
+
 using namespace framework;
 
 template <typename T>
@@ -441,6 +443,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
 
     auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(policyData, cfg, tpcSectors, tpcSectorMask, ggRequest);
+    gTask = task;
     Inputs taskInputs = task->inputs();
     std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
@@ -522,6 +525,13 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }
 
   return std::move(specs);
+}
+
+void cleanupCallback()
+{
+  if (gTask) {
+    gTask->deinitialize();
+  }
 }
 
 } // end namespace reco_workflow

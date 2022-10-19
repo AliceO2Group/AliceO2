@@ -23,6 +23,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/CustomWorkflowTerminationHook.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -101,6 +102,13 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TPC|tpc).*[w,W]riter.*"));
   // the custom completion policy for the tracker
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
+}
+
+void customize(o2::framework::OnWorkflowTerminationHook& hook)
+{
+  hook = [](const char* idstring) {
+    o2::tpc::reco_workflow::cleanupCallback();
+  };
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
