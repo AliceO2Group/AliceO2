@@ -151,11 +151,11 @@ o2_add_library(Framework
                                      O2::PCG
                                      ROOT::Tree
                                      RapidJSON::RapidJSON
-                                     arrow::arrow_shared
+                                     Arrow::arrow_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
                                      ${BOOST_FILESYSTEM}
-                                     arrow::gandiva_shared
+                                     Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
 
