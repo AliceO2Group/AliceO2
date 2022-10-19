@@ -83,6 +83,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool askDISTSTF = true,
                                     bool selIR = false);
 
+void cleanupCallback();
+
 } // end namespace reco_workflow
 } // end namespace tpc
 } // end namespace o2
