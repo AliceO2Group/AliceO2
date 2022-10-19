@@ -11,11 +11,11 @@
 
 #include "MCHGlobalMapping/Mapper.h"
 
-#include "DetectionElements.h"
 #include "HV.h"
 #include "LV.h"
 #include "MCHConditions/DCSAliases.h"
 #include "MCHConditions/SolarCrate.h"
+#include "MCHConstants/DetectionElements.h"
 #include "MCHGlobalMapping/DsIndex.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawElecMap/Mapper.h"

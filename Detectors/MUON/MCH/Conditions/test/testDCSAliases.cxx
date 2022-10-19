@@ -14,8 +14,8 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "DetectionElements.h"
 #include "MCHConditions/DCSAliases.h"
+#include "MCHConstants/DetectionElements.h"
 #include <algorithm>
 #include <fmt/format.h>
 #include <map>

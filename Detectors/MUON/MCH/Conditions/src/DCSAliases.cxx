@@ -11,9 +11,9 @@
 
 #include "MCHConditions/DCSAliases.h"
 
-#include "DetectionElements.h"
 #include "HVAliases.h"
 #include "LVAliases.h"
+#include "MCHConstants/DetectionElements.h"
 #include <array>
 #include <fmt/core.h>
 #include <iostream>

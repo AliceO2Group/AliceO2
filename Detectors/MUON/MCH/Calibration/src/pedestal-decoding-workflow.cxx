@@ -45,7 +45,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 
-#include "DetectionElements.h"
+#include "MCHConstants/DetectionElements.h"
 
 static const size_t SOLAR_ID_MAX = 100 * 8;
 

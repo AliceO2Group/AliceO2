@@ -11,10 +11,10 @@
 
 #include "LV.h"
 
-#include "DetectionElements.h"
 #include "MCHConditions/Cathode.h"
 #include "MCHConditions/Chamber.h"
 #include "MCHConditions/Plane.h"
+#include "MCHConstants/DetectionElements.h"
 #include "MCHGlobalMapping/DsIndex.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "Quadrant.h"

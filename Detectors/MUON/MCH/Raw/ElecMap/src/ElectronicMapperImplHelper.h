@@ -12,19 +12,19 @@
 #ifndef O2_MCH_RAW_ELECMAP_ELECTRONIC_MAPPER_IMPL_HELPER_H
 #define O2_MCH_RAW_ELECMAP_ELECTRONIC_MAPPER_IMPL_HELPER_H
 
+#include "MCHConstants/DetectionElements.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawElecMap/FeeLinkId.h"
-#include <functional>
-#include <optional>
-#include <map>
-#include <cstdint>
-#include <set>
-#include <fmt/format.h>
-#include <iostream>
 #include "MCHRawElecMap/Mapper.h"
 #include "dslist.h"
-#include "DetectionElements.h"
+#include <cstdint>
+#include <fmt/format.h>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <optional>
+#include <set>
 
 namespace o2::mch::raw::impl
 {

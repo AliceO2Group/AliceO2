@@ -9,7 +9,5 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_header_only_library(
-  MCHConstants
-  INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIRECTORY})
+o2_add_header_only_library(MCHConstants)
 
