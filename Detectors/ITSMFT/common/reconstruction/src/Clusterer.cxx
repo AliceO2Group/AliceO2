@@ -441,9 +441,7 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  if (getMaxROFDepthToSquash()) {
-    LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col down to {} ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
-  }
+  LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col seeking down to {} neighbour ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
   LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
             << mMaxRowColDiffToMask << " in row/col";
 
