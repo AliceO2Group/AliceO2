@@ -99,7 +99,7 @@ void on_connect(uv_connect_t* connection, int status)
       LOG(error) << "Malformed shared memory offer";
       return;
     }
-    LOGP(info, "Received {}MB shared memory offer", offerSize);
+    LOGP(detail, "Received {}MB shared memory offer", offerSize);
     ComputingQuotaOffer offer;
     offer.cpu = 0;
     offer.memory = 0;
