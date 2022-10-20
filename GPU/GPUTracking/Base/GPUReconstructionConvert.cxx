@@ -1151,7 +1151,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
       hdr->nADCsamples = 0;
       rawcru = iSector * 10 + outputRegion;
       rawendpoint = outputEndpoint & 1;
-      hdr->timeOffset = (long)tmpBuffer[k].getTimeStamp() * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
+      hdr->timeOffset = (long)(needAnotherPage ? firstTimebinInPage : tmpBuffer[k].getTimeStamp()) * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
       firstTimebinInPage = tmpBuffer[k].getTimeStamp();
       initPage();
       totalPages++;
