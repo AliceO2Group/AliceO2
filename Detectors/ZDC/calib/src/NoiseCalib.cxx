@@ -28,6 +28,9 @@ int NoiseCalib::init()
   // Inspect calibration parameters
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   for (int isig = 0; isig < NChannels; isig++) {
     mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
@@ -81,6 +84,9 @@ int NoiseCalib::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "Finalizing NoiseCalibData object");
     mData.print();
+  }
+  if (mSaveDebugHistos) {
+    saveDebugHistos();
   }
 
   for (int isig = 0; isig < NChannels; isig++) {

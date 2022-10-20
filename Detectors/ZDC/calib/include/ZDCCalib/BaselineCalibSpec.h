@@ -23,6 +23,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "ZDCCalib/BaselineCalib.h"
 #include "ZDCCalib/BaselineCalibConfig.h"
 #include "ZDCReconstruction/BaselineParam.h"
@@ -52,6 +53,12 @@ class BaselineCalibSpec : public o2::framework::Task
   bool mInitialized = false;   // Connect once to CCDB during initialization
   BaselineCalib mWorker;       // Baseline calibration object
   TStopwatch mTimer;
+  long mRunStartTime = 0;                                            /// start time of the run (ms)
+  std::string mOutputDir;                                            /// where to write calibration digits
+  std::string mHistoFileName;                                        /// file name of output calib digits
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData; /// metadata for collected histograms
+  std::string mLHCPeriod;
+  int mRunNumber = -1;
 };
 
 framework::DataProcessorSpec getBaselineCalibSpec();

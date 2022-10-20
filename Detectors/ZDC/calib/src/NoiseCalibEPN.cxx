@@ -35,7 +35,7 @@ int NoiseCalibEPN::init()
   // Inspect calibration parameters
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
-  if (opt.rootOutput == true) {
+  if (opt.debugOutput == true) {
     setSaveDebugHistos();
   }
 
@@ -144,6 +144,7 @@ int NoiseCalibEPN::endOfRun()
 //______________________________________________________________________________
 int NoiseCalibEPN::saveDebugHistos(const std::string fn)
 {
+  LOG(info) << "Saving debug histograms on file " << fn;
   int ierr = mData.saveDebugHistos(fn);
   if (ierr != 0) {
     return ierr;

@@ -29,6 +29,7 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"

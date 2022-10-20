@@ -71,7 +71,6 @@ void InterCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 void InterCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("ZDC", "INTERCALIBCONFIG", 0)) {
-    // InterCalib configuration
     auto* config = (const o2::zdc::InterCalibConfig*)obj;
     if (mVerbosity > DbgZero) {
       config->print();
