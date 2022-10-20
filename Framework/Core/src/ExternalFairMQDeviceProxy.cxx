@@ -548,7 +548,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       for (size_t ci = 0; ci < channels.size(); ++ci) {
         std::string const& channel = channels[ci];
         fair::mq::Parts parts;
-        device->Receive(parts, channel, 0, device->fChannels.size() == 1 ? -1 : 1);
+        device->Receive(parts, channel, 0, channels.size() == 1 ? -1 : 1);
         // Populate TimingInfo from the first message
         if (parts.Size() != 0) {
           auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
