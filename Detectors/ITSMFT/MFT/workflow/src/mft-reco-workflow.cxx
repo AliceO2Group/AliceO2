@@ -41,7 +41,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"run-assessment", o2::framework::VariantType::Bool, false, {"run MFT assessment workflow"}},
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks (depends on --run-assessment)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"nThreads", VariantType::Int, 4, {"Number of threads"}},
+    {"nThreads", VariantType::Int, 1, {"Number of threads"}},
     {"run-tracks2records", o2::framework::VariantType::Bool, false, {"run MFT alignment tracks to records workflow"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
