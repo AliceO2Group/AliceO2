@@ -39,7 +39,7 @@ std::vector<std::string> getColumnNames(o2::header::DataHeader dh)
   auto origin = std::string(dh.dataOrigin.str);
 
   // default: column names = {}
-  return {{}};
+  return {};
 }
 
 namespace o2::framework
