@@ -246,7 +246,7 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     sumX += (fitResSlicesX[iFit][2] * weightSigmaX);
     weightSumX += weightSigmaX;
 
-    double weightSigmaY = covMatrixX[iFit](2, 2) > 0 ? 1. / covMatrixY[iFit](2, 2) : 1.; // covMatrix is already an error squared
+    double weightSigmaY = covMatrixY[iFit](2, 2) > 0 ? 1. / covMatrixY[iFit](2, 2) : 1.; // covMatrix is already an error squared
     sumY += (fitResSlicesY[iFit][2] * weightSigmaY);
     weightSumY += weightSigmaY;
   }
