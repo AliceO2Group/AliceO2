@@ -682,7 +682,7 @@ void handleChildrenStdio(uv_loop_t* loop,
   }
 }
 
-void handle_crash(int /* sig */)
+void handle_crash(int sig)
 {
   // dump demangled stack trace
   void* array[1024];
@@ -691,8 +691,20 @@ void handle_crash(int /* sig */)
 
   {
     char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL)\nBacktrace by DPL:\n";
-    int len = strlen(msg); /* the byte length of the string */
-    auto retVal = write(STDERR_FILENO, msg, len);
+    auto retVal = write(STDERR_FILENO, msg, strlen(msg));
+    msg = "UNKNOWN SIGNAL\n";
+    if (sig == SIGSEGV) {
+      msg = "SEGMENTATION FAULT\n";
+    } else if (sig == SIGABRT) {
+      msg = "ABRT\n";
+    } else if (sig == SIGBUS) {
+      msg = "BUS ERROR\n";
+    } else if (sig == SIGILL) {
+      msg = "ILLEGAL INSTRUCTION\n";
+    } else if (sig == SIGFPE) {
+      msg = "FLOATING POINT EXCEPTION\n";
+    }
+    retVal = write(STDERR_FILENO, msg, strlen(msg));
     (void)retVal;
   }
   demangled_backtrace_symbols(array, size, STDERR_FILENO);
