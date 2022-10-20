@@ -314,8 +314,10 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
   uint32_t mMcParticlePos = 0xFFFFFFF0;        // 19 bits
   uint32_t mMcParticleMom = 0xFFFFFFF0;        // 19 bits
-  uint32_t mCaloAmp = 0xFFFFFF00;              // 15 bits
-  uint32_t mCaloTime = 0xFFFFFF00;             // 15 bits
+  uint32_t mCaloAmp = 0xFFFFFF00;              // 15 bits todo check which truncation should actually be used
+  uint32_t mCaloTime = 0xFFFFFF00;             // 15 bits todo check which truncation should actually be used
+  uint32_t mCPVPos = 0xFFFFF800;               // 12 bits
+  uint32_t mCPVAmpl = 0xFFFFFF00;              // 15 bits
   uint32_t mMuonTr1P = 0xFFFFFC00;             // 13 bits
   uint32_t mMuonTrThetaX = 0xFFFFFF00;         // 15 bits
   uint32_t mMuonTrThetaY = 0xFFFFFF00;         // 15 bits

@@ -665,6 +665,30 @@ DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //! Trigger information fr
                   calotrigger::LnAmplitude, calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
+namespace cpvcluster
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                          //! BC index
+DECLARE_SOA_COLUMN(PosX, posX, float);                     //! X position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                     //! Z position in cm
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float);           //! Signal amplitude
+DECLARE_SOA_COLUMN(ClusterStatus, clusterStatus, uint8_t); //! 8 bits packed cluster status (bits 0-4 = pads mult, bits 5-6 = (module number - 2), bit 7 = isUnfolded)
+DECLARE_SOA_DYNAMIC_COLUMN(PadMult, padMult, [](uint8_t status) -> uint8_t {
+  return status & 0b00011111;
+}); //! Multiplicity of pads in cluster
+DECLARE_SOA_DYNAMIC_COLUMN(ModuleNumber, moduleNumber, [](uint8_t status) -> uint8_t {
+  return 2 + ((status & 0b01100000) >> 5);
+}); //! CPV module number (2, 3 or 4)
+DECLARE_SOA_DYNAMIC_COLUMN(IsUnfolded, isUnfolded, [](uint8_t status) -> bool {
+  return (status & 0b01100000) >> 7;
+}); //! Number of local maxima in cluster
+} // namespace cpvcluster
+
+DECLARE_SOA_TABLE(CPVClusters, "AOD", "CPVCLUSTER", //! CPV clusters
+                  o2::soa::Index<>, cpvcluster::BCId, cpvcluster::PosX, cpvcluster::PosZ, cpvcluster::Amplitude,
+                  cpvcluster::ClusterStatus, cpvcluster::PadMult<cpvcluster::ClusterStatus>,
+                  cpvcluster::ModuleNumber<cpvcluster::ClusterStatus>, cpvcluster::IsUnfolded<cpvcluster::ClusterStatus>);
+using CPVCluster = CPVClusters::iterator;
+
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
