@@ -43,6 +43,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
     {"enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}},
+    {"disable-root-output", VariantType::Bool, false, {"Do not write the digits and tracklets to file"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
@@ -74,6 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
   binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
+  binaryoptions[o2::trd::TRDDisableRootOutputBit] = cfgc.options().get<bool>("disable-root-output");
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
 
@@ -96,6 +98,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     algoSpec,
     Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
             {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}}}});
+
+  if (!cfgc.options().get<bool>("disable-root-output")) {
+    workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
+    workflow.emplace_back(o2::trd::getTRDTrackletWriterSpec(false));
+  }
 
   return workflow;
 }
