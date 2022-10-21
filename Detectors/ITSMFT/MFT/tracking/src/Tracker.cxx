@@ -905,7 +905,7 @@ void Tracker<T>::runBackwardInRoad(ROframe<T>& event)
 
         for (Int_t iLN = 0; iLN < cellRC.getNLeftNeighbours(); ++iLN) {
 
-          auto leftNeighbour = cellRC.getLeftNeighbours()[iLN];
+          const auto& leftNeighbour = cellRC.getLeftNeighbours()[iLN];
           layerL = leftNeighbour.first;
           cellIdL = leftNeighbour.second;
 

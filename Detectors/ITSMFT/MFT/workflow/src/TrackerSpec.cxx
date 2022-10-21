@@ -95,6 +95,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::uint32_t roFrameId = 0;
   auto nROFs = rofs.size();
   auto rofsPerWorker = nROFs / mNThreads;
+  LOG(debug) << "nROFs = " << nROFs << " rofsPerWorker = " << rofsPerWorker;
 
   auto loadData = [&, this](auto& trackerVec, auto& roFrameDataVec) {
     auto& trackingParam = MFTTrackingParam::Instance();
@@ -108,7 +109,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       auto& roFrameData = roFrameDataVec[worker].emplace_back();
       int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get());
       roFrameData.initialize(trackingParam.FullClusterScan);
-      LOG(debug) << "ROframeId: " << roFrameId << ", clusters loaded : " << nclUsed;
+      LOG(debug) << "ROframeId: " << iROF << ", clusters loaded : " << nclUsed << " on worker " << worker;
       iROF++;
     }
   };
@@ -189,27 +190,38 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mFieldOn) {
 
     std::vector<std::vector<o2::mft::ROframe<TrackLTF>>> roFrameVec(mNThreads); // One vector of ROFrames per thread
+    LOG(debug) << "Reserving ROFs ";
+
     for (auto& rof : roFrameVec) {
       rof.reserve(rofsPerWorker);
     }
+    LOG(debug) << "Loading data into ROFs.";
 
     mTimer[SWLoadData].Start(false);
     loadData(mTrackerVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
+    LOG(debug) << "Running LTF Finder.";
+
     mTimer[SWFindLTFTracks].Start(false);
     runLTFTrackFinder(mTrackerVec, roFrameVec);
     mTimer[SWFindLTFTracks].Stop();
 
+    LOG(debug) << "Running CA finder.";
+
     mTimer[SWFindCATracks].Start(false);
     runCATrackFinder(mTrackerVec, roFrameVec);
     mTimer[SWFindCATracks].Stop();
+
+    LOG(debug) << "Runnig track fitter.";
 
     mTimer[SWFitTracks].Start(false);
     runTrackFitter(mTrackerVec, roFrameVec);
     mTimer[SWFitTracks].Stop();
 
     if (mUseMC) {
+      LOG(debug) << "Computing MC Labels.";
+
       mTimer[SWComputeLabels].Start(false);
       auto& tracker = mTrackerVec[0];
 
