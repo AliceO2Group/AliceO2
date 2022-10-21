@@ -119,6 +119,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     }
     mController->setTRDTransformer(mTRDTransformer.get());
   }
+  mController->setAllowAfterburnerTracks(ic.options().get<bool>("allow-afterburner-tracks"));
 }
 
 void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -221,6 +222,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets)},
     Options{
       ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
+      ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
       ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}}}};
 }
 

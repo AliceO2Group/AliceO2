@@ -293,8 +293,11 @@ class Controller : public TObject
 
   void setTRDTransformer(const o2::trd::TrackletTransformer* trans) { mTRDTransformer = trans; }
   void setTRDTrigRecFilterActive(bool v) { mTRDTrigRecFilterActive = v; }
+  void setAllowAfterburnerTracks(bool v) { mAllowAfterburnerTracks = v; }
+
   const o2::trd::TrackletTransformer* getTRDTransformer() const { return mTRDTransformer; }
   bool getTRDTrigRecFilterActive() const { return mTRDTrigRecFilterActive; }
+  bool getAllowAfterburnerTracks() const { return mAllowAfterburnerTracks; }
 
  protected:
   //
@@ -317,6 +320,7 @@ class Controller : public TObject
   const o2::globaltracking::RecoContainer* mRecoData = nullptr; // externally set RecoContainer
   const o2::trd::TrackletTransformer* mTRDTransformer = nullptr;  // TRD tracket transformer
   bool mTRDTrigRecFilterActive = false;                           // select TRD triggers processed with ITS
+  bool mAllowAfterburnerTracks = false;                           // allow using ITS-TPC afterburner tracks
   std::array<AlignableDetector*, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
 
   std::unique_ptr<EventVertex> mVtxSens; // fake sensor for the vertex
