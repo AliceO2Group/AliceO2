@@ -525,42 +525,41 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   //  }
 }
 
-void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
+void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC, DetID::mask_t skipDetClusters)
 {
   // request clusters for detectors of the sources probided by the mask
-
   // clusters needed for refits
-  if (GTrackID::includesDet(DetID::ITS, src)) {
+  if (GTrackID::includesDet(DetID::ITS, src) && !skipDetClusters[DetID::ITS]) {
     requestITSClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::MFT, src)) {
+  if (GTrackID::includesDet(DetID::MFT, src) && !skipDetClusters[DetID::MFT]) {
     requestMFTClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TPC, src)) {
+  if (GTrackID::includesDet(DetID::TPC, src) && !skipDetClusters[DetID::TPC]) {
     requestTPCClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TOF, src)) {
+  if (GTrackID::includesDet(DetID::TOF, src) && !skipDetClusters[DetID::TOF]) {
     requestTOFClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TRD, src)) {
+  if (GTrackID::includesDet(DetID::TRD, src) && !skipDetClusters[DetID::TRD]) {
     requestTRDTracklets(useMC);
   }
-  if (GTrackID::includesDet(DetID::CTP, src)) {
+  if (GTrackID::includesDet(DetID::CTP, src) && !skipDetClusters[DetID::CTP]) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
-  if (GTrackID::includesDet(DetID::CPV, src)) {
+  if (GTrackID::includesDet(DetID::CPV, src) && !skipDetClusters[DetID::CPV]) {
     requestCPVClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::PHS, src)) {
+  if (GTrackID::includesDet(DetID::PHS, src) && !skipDetClusters[DetID::PHS]) {
     requestPHOSCells(useMC);
   }
-  if (GTrackID::includesDet(DetID::EMC, src)) {
+  if (GTrackID::includesDet(DetID::EMC, src) && !skipDetClusters[DetID::EMC]) {
     requestEMCALCells(useMC);
   }
-  if (GTrackID::includesDet(DetID::MCH, src)) {
+  if (GTrackID::includesDet(DetID::MCH, src) && !skipDetClusters[DetID::MCH]) {
     requestMCHClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::HMP, src)) {
+  if (GTrackID::includesDet(DetID::HMP, src) && !skipDetClusters[DetID::HMP]) {
     requestHMPClusters(useMC);
   }
 }

@@ -196,7 +196,7 @@ struct DataRequest {
 
   bool isRequested(const std::string& t) const { return !t.empty() && requestMap.find(t) != requestMap.end(); }
   void requestTracks(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
-  void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+  void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, o2::detectors::DetID::mask_t skipDetClusters = {});
 
   void requestITSTracks(bool mc);
   void requestMFTTracks(bool mc);
