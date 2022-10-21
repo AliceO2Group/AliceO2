@@ -174,6 +174,14 @@ void Controller::process()
           continue;
         }
         auto contributorsGID = mRecoData->getSingleDetectorRefs(trackIndex);
+
+        std::string trComb;
+        for (int ig = 0; ig < GIndex::NSources; ig++) {
+          if (contributorsGID[ig].isIndexSet()) {
+            trComb += " " + contributorsGID[ig].asString();
+          }
+        }
+        LOG(info) << "processing track " << trackIndex.asString() << " contributors: " << trComb;
         resetForNextTrack();
 
         const auto& trcKin = mRecoData->getTrackParam(trackIndex); // RS FIXME : make sure this is a barrel track
@@ -181,9 +189,17 @@ void Controller::process()
         AlignableDetector* det = nullptr;
         int ndet = 0, npntDet = 0;
 
-        if ((det = getDetector(DetID::ITS)) && contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false))) {
-          npnt += npntDet;
-          ndet++;
+        if ((det = getDetector(DetID::ITS))) {
+          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false))) {
+            npnt += npntDet;
+            ndet++;
+          } else if (mAllowAfterburnerTracks && contributorsGID[GIndex::ITSAB].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITSAB], false))) {
+            npnt += npntDet;
+            ndet++;
+            LOG(info) << npntDet << " from AB";
+          } else {
+            continue;
+          }
         }
         if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false))) {
           npnt += npntDet;
