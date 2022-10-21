@@ -30,18 +30,15 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output)" "" 0
   fi
-  if [[ ! -z $CALIB_TPC_IDC_BOTH && $FLP_TPC_IDC -ne 1 ]]; then
+  if [[ "0$CALIB_TPC_IDC_BOTH" == "01" && "0$FLP_TPC_IDC" != "01" ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both output)" "" 0
   else
-    if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
+    if [[ ! -z $CALIBDATASPEC_TPCIDC_A && "0$FLP_TPC_IDC" != "01" ]]; then
       add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A\" $(get_proxy_connection tpcidc_A output)" "" 0
     fi
-    if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
+    if [[ ! -z $CALIBDATASPEC_TPCIDC_C && "0$FLP_TPC_IDC" != "01" ]]; then
       add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_C output)" "" 0
     fi
-  fi
-  if [[ ! -z $CALIBDATASPEC_TPCSAC && $FLP_TPC_SAC -ne 1 ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCSAC\" $(get_proxy_connection tpcsac output)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output)" "" 0
