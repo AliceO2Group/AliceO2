@@ -50,6 +50,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"detectors", VariantType::String, std::string{"ITS,TPC,TRD,TOF"}, {"comma-separated list of detectors"}},
+    {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
+    {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -72,7 +74,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS,MFT,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   DetID::mask_t allowedDets = DetID::getMask("ITS,TPC,TRD,TOF,CPV,PHS,EMC,HMP");
 
   // Update the (declared) parameters if changed from the command line
@@ -81,9 +83,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");
 
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  bool loadTPCClusters = configcontext.options().get<bool>("enable-tpc-clusters");
+  bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
-
+  DetID::mask_t skipDetClusters; // optionally skip automatically loaded clusters
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCl{};
   GID::mask_t srcMP = src; // we may need to load more track types than requested to satisfy dependencies, but only those will be fed to millipede
@@ -92,9 +96,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcCl |= GID::getSourceMask(GID::ITS);
     LOG(info) << "adding ITS request";
   }
+
   if (GID::includesDet(DetID::TPC, src)) {
-    src |= GID::getSourceMask(GID::TPC);
-    LOG(info) << "adding TPC request";
+    if (loadTPCTracks || loadTPCClusters) {
+      src |= GID::getSourceMask(GID::TPC);
+      LOG(info) << "adding TPC request";
+    }
+    if (loadTPCClusters) {
+      srcCl |= GID::getSourceMask(GID::TPC);
+    } else {
+      skipDetClusters |= DetID::getMask(DetID::TPC);
+      LOG(info) << "Skipping TPC clusters";
+    }
   }
   if (GID::includesDet(DetID::TRD, src)) {
     src |= GID::getSourceMask(GID::TRD);
@@ -117,9 +130,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   GID::mask_t dummy;
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters));
   // RS FIXME: check which clusters are really needed
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, false, dummy); // clusters MC is not needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src, src, false, dummy); // clusters MC is not needed
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false);
 
   if (!disableRootOut) {

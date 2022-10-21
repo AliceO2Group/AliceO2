@@ -194,14 +194,13 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(src, false);
-  dataRequest->requestClusters(src, false);
+  dataRequest->requestClusters(src, false, skipDetClusters);
   dataRequest->requestPrimaryVertertices(false);
-
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
                                                                 true,                                 // GRPECS=true
                                                                 false,                                // GRPLHCIF
