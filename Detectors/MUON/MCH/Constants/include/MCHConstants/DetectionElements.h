@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_MCH_CONSTANTS_DETECTION_ELEMENTS_H
+#define O2_MCH_CONSTANTS_DETECTION_ELEMENTS_H
+
 #include <array>
 #include <algorithm>
 
@@ -32,3 +35,5 @@ inline bool isValidDetElemId(int deId)
   return std::find(begin(deIdsForAllMCH), end(deIdsForAllMCH), deId) != deIdsForAllMCH.end();
 }
 } // namespace o2::mch::constants
+
+#endif
