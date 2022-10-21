@@ -505,7 +505,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   auto lInt = std::sqrt(d2XY + dZ * dZ);
   trk.getLTIntegralOut().addStep(lInt, trk.getP2Inv());
   // trk.getLTIntegralOut().addX2X0(lInt * mTPCmeanX0Inv); // do we need to account for the material budget here? probably
-
+  nClRefit = 0;
   for (int icl = 0; icl < nCl; icl++) {
     const auto& clus = mITSClustersArray[clRefs[icl]];
     if (!trk.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
