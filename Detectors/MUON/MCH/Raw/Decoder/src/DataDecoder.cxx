@@ -18,17 +18,17 @@
 
 #include "MCHRawDecoder/DataDecoder.h"
 
-#include <fstream>
-#include <fairlogger/Logger.h>
-#include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "MCHBase/DecoderError.h"
-#include "MCHMappingInterface/Segmentation.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
+#include "Headers/RAWDataHeader.h"
+#include "MCHBase/DecoderError.h"
+#include "MCHConstants/DetectionElements.h"
+#include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawDecoder/ErrorCodes.h"
-#include "DetectionElements.h"
+#include <fairlogger/Logger.h>
+#include <fstream>
 
 #define MCH_DECODER_MAX_ERROR_COUNT 100
 

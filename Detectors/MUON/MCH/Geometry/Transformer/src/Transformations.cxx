@@ -11,15 +11,15 @@
 
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MCHGeometryTransformer/VolumePaths.h"
-#include <array>
-#include <string>
-#include <vector>
+#include "MCHConstants/DetectionElements.h"
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
+#include <array>
+#include <fmt/format.h>
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
-#include <fmt/format.h>
-#include "DetectionElements.h"
+#include <string>
+#include <vector>
 
 namespace o2::mch::geo
 {
