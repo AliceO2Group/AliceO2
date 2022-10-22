@@ -47,15 +47,14 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
  public:
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides)
-    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides} {};
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides, const int nTFsBuffer)
+    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides}, mNTFsBuffer{nTFsBuffer} {};
 
   void init(o2::framework::InitContext& ic) final
   {
     mUpdateGroupingPar = mLaneId == 0 ? !(ic.options().get<bool>("update-not-grouping-parameter")) : false;
     mIDCFactorization.setUsePadStatusMap(ic.options().get<bool>("enablePadStatusMap"));
     mEnableWritingPadStatusMap = ic.options().get<bool>("enableWritingPadStatusMap");
-    mTFsMessaged = ic.options().get<int>("nTFsMessage") * mCRUs.size();
     mNOrbitsIDC = ic.options().get<int>("orbits-IDCs");
     mDumpIDC0 = ic.options().get<bool>("dump-IDC0");
     mDumpIDC1 = ic.options().get<bool>("dump-IDC1");
@@ -63,7 +62,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     mDumpIDCs = ic.options().get<bool>("dump-IDCs");
     mOffsetCCDB = ic.options().get<bool>("add-offset-for-CCDB-timestamp");
     mDisableIDCDelta = ic.options().get<bool>("disable-IDCDelta");
-
     const std::string refGainMapFile = ic.options().get<std::string>("gainMapFile");
     if (!refGainMapFile.empty()) {
       LOGP(info, "Loading GainMap from file {}", refGainMapFile);
@@ -91,7 +89,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       LOGP(warning, "firstTF not Found!!! Found valid inputs {}. Setting {} as first TF", pc.inputs().countValidInputs(), mTFFirst);
     }
 
-    const long relTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
+    const long relTF = (mTFFirst == -1) ? 0 : (currTF - mTFFirst) / mNTFsBuffer;
 
     // loop over input data
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
@@ -110,11 +108,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       mIDCFactorization.setIDCs(std::move(data), cru, relTF);
     }
 
-    if (!(mProcessedCRUs % mTFsMessaged)) {
-      LOGP(info, "ProcessedTFs: {}   currTF: {}  relTF: {}   OrbitResetTime: {} orbits per TF: {}", mProcessedCRUs / mCRUs.size(), currTF, relTF, mTFInfo.first, mTFInfo.second);
-    }
-
     if (mProcessedCRUs == mCRUs.size() * mIDCFactorization.getNTimeframes()) {
+      LOGP(info, "ProcessedTFs: {}   currTF: {}  relTF: {}  OrbitResetTime: {} orbits per TF: {}", mProcessedCRUs / mCRUs.size(), currTF, relTF, mTFInfo.first, mTFInfo.second);
       mProcessedCRUs = 0; // reset processed TFs for next aggregation interval
 
       if (mDumpIDCs) {
@@ -142,8 +137,9 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
       // storing to CCDB
       const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
-      const long timestampStart = mUsePrecisetimeStamp ? (mTFInfo.first + (tinfo.firstTForbit - relTF * mTFInfo.second) * o2::constants::lhc::LHCOrbitMUS * 0.001) : tinfo.creation;
-      LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}", mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF);
+      const auto nOrbitsOffset = (relTF * mNTFsBuffer + (mNTFsBuffer - 1)) * mTFInfo.second; // offset to first orbit of IDCs of current orbit
+      const long timestampStart = mUsePrecisetimeStamp ? (mTFInfo.first + (tinfo.firstTForbit - nOrbitsOffset) * o2::constants::lhc::LHCOrbitMUS * 0.001) : tinfo.creation;
+      LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}", mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, mTFInfo.second, relTF, nOrbitsOffset);
 
       sendOutput(pc.outputs(), timestampStart);
       mTFFirst = -1;
@@ -180,8 +176,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   bool mUpdateGroupingPar{true};                                                                                                                                          ///< flag to set if grouping parameters should be updated or not
   const int mLaneId{0};                                                                                                                                                   ///< the id of the current process within the parallel pipeline
   std::vector<Side> mSides{};                                                                                                                                             ///< processed TPC sides
+  const int mNTFsBuffer{1};                                                                                                                                               ///< number of TFs for which the IDCs will be buffered
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                                                                                                         ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
-  unsigned int mTFsMessaged{10};                                                                                                                                          ///< send info messages only every mTFsMessaged
   int mNOrbitsIDC{12};                                                                                                                                                    ///< Number of orbits over which the IDCs are integrated.
   bool mDumpIDC0{false};                                                                                                                                                  ///< Dump IDC0 to file
   bool mDumpIDC1{false};                                                                                                                                                  ///< Dump IDC1 to file
@@ -353,7 +349,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB)
+DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int nTFsBuffer = 1)
 {
   const auto sides = o2::tpc::IDCFactorization::getSides(crus);
 
@@ -402,9 +398,8 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
     fmt::format("tpc-factorize-idc-{:02}", lane).data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides)},
+    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides, nTFsBuffer)},
     Options{{"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
-            {"nTFsMessage", VariantType::Int, 200, {"Send messages only every nTFs."}},
             {"enablePadStatusMap", VariantType::Bool, false, {"Enabling the usage of the pad-by-pad status map during factorization."}},
             {"enableWritingPadStatusMap", VariantType::Bool, false, {"Write the pad status map to CCDB."}},
             {"orbits-IDCs", VariantType::Int, 12, {"Number of orbits over which the IDCs are integrated."}},

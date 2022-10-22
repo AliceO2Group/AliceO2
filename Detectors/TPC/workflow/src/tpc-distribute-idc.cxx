@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are split per lane)"}},
     {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
+    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPIDCSpec."}},
     {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
 
   std::swap(workflowOptions, options);
@@ -56,12 +57,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
   const auto nCRUs = tpcCRUs.size();
-  const auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
+  auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
   const auto outlanes = static_cast<unsigned int>(config.options().get<int>("output-lanes"));
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("lanes"));
   const auto firstTF = static_cast<unsigned int>(config.options().get<int>("firstTF"));
   const bool sendPrecisetimeStamp = config.options().get<bool>("send-precise-timestamp");
-
+  int nTFsBuffer = config.options().get<int>("n-TFs-buffer");
+  if (nTFsBuffer <= 0) {
+    nTFsBuffer = 1;
+  }
+  assert(timeframes >= nTFsBuffer);
+  timeframes /= nTFsBuffer;
+  LOGP(info, "using {} timeframes as each TF contains {} IDCs", timeframes, nTFsBuffer);
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
   WorkflowSpec workflow;
   for (int ilane = 0; ilane < nLanes; ++ilane) {
@@ -71,7 +78,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp));
+    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp, nTFsBuffer));
   }
 
   return workflow;
