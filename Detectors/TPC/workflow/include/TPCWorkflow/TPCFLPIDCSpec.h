@@ -43,8 +43,8 @@ namespace o2::tpc
 class TPCFLPIDCDevice : public o2::framework::Task
 {
  public:
-  TPCFLPIDCDevice(const int lane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool loadIDC0CCDB, const bool enableSynchProc)
-    : mLane{lane}, mCRUs{crus}, mRangeIDC{rangeIDC}, mLoadPadMapCCDB{loadStatusMap}, mLoadIDC0CCDB{loadIDC0CCDB}, mEnableSynchProc{enableSynchProc}, mOneDIDCs{std::vector<float>(rangeIDC), std::vector<unsigned int>(rangeIDC)}
+  TPCFLPIDCDevice(const int lane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool loadIDC0CCDB, const bool enableSynchProc, const int nTFsBuffer)
+    : mLane{lane}, mCRUs{crus}, mRangeIDC{rangeIDC}, mLoadPadMapCCDB{loadStatusMap}, mLoadIDC0CCDB{loadIDC0CCDB}, mEnableSynchProc{enableSynchProc}, mNTFsBuffer{nTFsBuffer}, mOneDIDCs{std::vector<float>(rangeIDC), std::vector<unsigned int>(rangeIDC)}
   {
     const auto nSizeDeque = std::ceil(static_cast<float>(mRangeIDC) / mMinIDCsPerTF);
     for (const auto& cru : mCRUs) {
@@ -90,11 +90,24 @@ class TPCFLPIDCDevice : public o2::framework::Task
     }
 
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
+      ++mCountTFsForBuffer;
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int cru = tpcCRUHeader->subSpecification >> 7;
-      mIDCs[cru] = pc.inputs().get<o2::pmr::vector<float>>(ref);
-      // calculate 1D-IDCs and send data
-      sendOutput(pc.outputs(), cru);
+      auto vecIDCs = pc.inputs().get<o2::pmr::vector<float>>(ref);
+      mIDCs[cru].insert(mIDCs[cru].end(), vecIDCs.begin(), vecIDCs.end());
+
+      if (mEnableSynchProc) {
+        sendOutputSync(pc.outputs(), vecIDCs, cru);
+      }
+    }
+
+    // check if the condition for sending the data is met
+    if (mCountTFsForBuffer >= mNTFsBuffer) {
+      mCountTFsForBuffer = 0;
+      for (const auto cru : mCRUs) {
+        LOGP(debug, "Sending IDCs of size {} for TF {}", mIDCs[cru].size(), processing_helpers::getCurrentTF(pc));
+        sendOutput(pc.outputs(), cru);
+      }
     }
 
     if (mDumpIDCs) {
@@ -111,7 +124,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
   {
     if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADSTATUSMAP", 0)) {
-      LOGP(info, "Updating pad status from CCDB");
+      LOGP(debug, "Updating pad status from CCDB");
       mPadFlagsMap = static_cast<o2::tpc::CalDet<PadFlags>*>(obj);
     }
   }
@@ -147,7 +160,9 @@ class TPCFLPIDCDevice : public o2::framework::Task
   const bool mLoadPadMapCCDB{};                                                                                                                                                                      ///< load status map for pads from CCDB
   bool mLoadIDC0CCDB{};                                                                                                                                                                              ///< loading reference IDC0 from CCDB
   const bool mEnableSynchProc{};                                                                                                                                                                     ///< flag for enabling calculation of 1D-IDCs
+  int mNTFsBuffer{1};                                                                                                                                                                                ///< number of TFs for which the IDCs will be buffered
   bool mDumpIDCs{};                                                                                                                                                                                  ///< dump IDCs to tree for debugging
+  int mCountTFsForBuffer{0};                                                                                                                                                                         ///< count processed TFs to track when the output will be send
   std::pair<std::vector<float>, std::vector<unsigned int>> mOneDIDCs{};                                                                                                                              ///< 1D-IDCs which will be send to the EPNs
   std::unordered_map<unsigned int, o2::pmr::vector<float>> mIDCs{};                                                                                                                                  ///< object for averaging and grouping of the IDCs
   std::unordered_map<unsigned int, std::deque<std::pair<std::vector<float>, std::vector<unsigned int>>>> mBuffer1DIDCs{};                                                                            ///< buffer for 1D-IDCs. The buffered 1D-IDCs for n TFs will be send to the EPNs for synchronous reco. Zero initialized to avoid empty first TFs!
@@ -158,36 +173,36 @@ class TPCFLPIDCDevice : public o2::framework::Task
   /// update the time dependent parameters if they have changed (i.e. update the pad status map)
   void updateTimeDependentParams(ProcessingContext& pc) { pc.inputs().get<o2::tpc::CalDet<PadFlags>*>("tpcpadmap").get(); }
 
-  void sendOutput(DataAllocator& output, const uint32_t cru)
+  void sendOutputSync(DataAllocator& output, const o2::pmr::vector<float>& idc, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
     const CRU cruTmp(cru);
-    if (mEnableSynchProc) {
-      std::pair<std::vector<float>, std::vector<unsigned int>> idcOne;
-      const int integrationIntervalOffset = 0;
-      const auto region = cruTmp.region();
-      const unsigned int indexOffset = (cruTmp.sector() % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region]; // TODO get correct offset for TPCFLPIDCDeviceGroup case
-      const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[region];
-      const auto integrationIntervals = mIDCs[cru].size() / nIDCsPerIntegrationInterval;
-      idcOne.first.resize(integrationIntervals);
-      idcOne.second.resize(integrationIntervals);
-      IDCFactorization::calcIDCOne(mIDCs[cru], nIDCsPerIntegrationInterval, integrationIntervalOffset, indexOffset, cruTmp, idcOne.first, idcOne.second, &mIDCZero, mPadFlagsMap);
+    std::pair<std::vector<float>, std::vector<unsigned int>> idcOne;
+    const int integrationIntervalOffset = 0;
+    const auto region = cruTmp.region();
+    const unsigned int indexOffset = (cruTmp.sector() % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region]; // TODO get correct offset for TPCFLPIDCDeviceGroup case
+    const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[region];
+    const auto integrationIntervals = idc.size() / nIDCsPerIntegrationInterval;
+    idcOne.first.resize(integrationIntervals);
+    idcOne.second.resize(integrationIntervals);
+    IDCFactorization::calcIDCOne(idc, nIDCsPerIntegrationInterval, integrationIntervalOffset, indexOffset, cruTmp, idcOne.first, idcOne.second, &mIDCZero, mPadFlagsMap);
 
-      // normalize to pad size
-      std::transform(idcOne.first.begin(), idcOne.first.end(), idcOne.first.begin(), [normVal = Mapper::INVPADAREA[region]](auto& val) { return val * normVal; });
+    // normalize to pad size
+    std::transform(idcOne.first.begin(), idcOne.first.end(), idcOne.first.begin(), [normVal = Mapper::INVPADAREA[region]](auto& val) { return val * normVal; });
 
-      mBuffer1DIDCs[cru].emplace_back(std::move(idcOne));
-      mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
+    mBuffer1DIDCs[cru].emplace_back(std::move(idcOne));
+    mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
 
-      fill1DIDCs(cru);
-      LOGP(debug, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
-      output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
-      output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
-    }
+    fill1DIDCs(cru);
+    LOGP(debug, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
+    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
+    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
+  }
 
-    LOGP(debug, "Sending IDCs of size {}", mIDCs[cru].size());
-    const Side side = cruTmp.side();
-    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(side), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]));
+  void sendOutput(DataAllocator& output, const uint32_t cru)
+  {
+    const header::DataHeader::SubSpecificationType subSpec{cru << 7};
+    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(CRU(cru).side()), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]));
   }
 
   void fill1DIDCs(const uint32_t cru)
@@ -206,7 +221,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool disableIDC0CCDB, const bool enableSynchProc)
+DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool disableIDC0CCDB, const bool enableSynchProc, const int nTFsBuffer = 1)
 {
   std::vector<OutputSpec> outputSpecs;
   std::vector<InputSpec> inputSpecs;
@@ -241,7 +256,7 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice>(ilane, crus, rangeIDC, loadStatusMap, idc0File, loadIDC0CCDB, enableSynchProc)},
+    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice>(ilane, crus, rangeIDC, loadStatusMap, idc0File, loadIDC0CCDB, enableSynchProc, nTFsBuffer)},
     Options{{"dump-idcs-flp", VariantType::Bool, false, {"Dump IDCs to file"}}}}; // end DataProcessorSpec
 }
 

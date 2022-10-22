@@ -223,7 +223,7 @@ nTFs_SAC=1000
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPCIDC_A || $AGGREGATOR_TASKS == TPCIDC_C || $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs}"
-    add_W o2-tpc-idc-factorize "--input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --nTFsMessage 500 --enable-CCDB-output true --enablePadStatusMap true --use-precise-timestamp true --add-offset-for-CCDB-timestamp true" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
+    add_W o2-tpc-idc-factorize "--input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true --use-precise-timestamp true --add-offset-for-CCDB-timestamp true" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
