@@ -329,7 +329,7 @@ struct ServiceRegistry {
   }
 
   /// Register a service given an handle
-  void registerService(ServiceHandle handle, Salt salt)
+  void registerService(ServiceHandle handle, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
     ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
   }
@@ -342,7 +342,7 @@ struct ServiceRegistry {
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C* service, Salt salt)
+  void registerService(C* service, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
@@ -355,7 +355,7 @@ struct ServiceRegistry {
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C const* service, Salt salt)
+  void registerService(C const* service, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
