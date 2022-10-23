@@ -403,6 +403,7 @@ void DataRequest::requestSecondaryVertertices(bool)
 void DataRequest::requestCTPDigits(bool mc)
 {
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
+  addInput({"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(warning) << "MC truth not implemented for CTP";
     // addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
@@ -1086,6 +1087,7 @@ void RecoContainer::addMIDClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addCTPDigits(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::CTP].registerContainer(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>("CTPDigits"), CLUSTERS);
+  mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
   if (mc) {
     //  pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("CTPDigitsMC");
   }

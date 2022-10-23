@@ -29,12 +29,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"no-lumi", o2::framework::VariantType::Bool, false, {"do not produce luminosity output"}},
     {"no-digits", o2::framework::VariantType::Bool, false, {"do not produce digits output"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
 #include "CTPWorkflow/RawDecoderSpec.h"
+#include "CTPWorkflowIO/DigitWriterSpec.h"
 
 /// The workflow executable for the stand alone CTP reconstruction workflow
 /// - digit and lumi reader
@@ -47,5 +49,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   specs.emplace_back(o2::ctp::reco_workflow::getRawDecoderSpec(!cfgc.options().get<bool>("ignore-dist-stf"),
                                                                !cfgc.options().get<bool>("no-digits"),
                                                                !cfgc.options().get<bool>("no-lumi")));
+  if (!cfgc.options().get<bool>("disable-root-output")) {
+    specs.emplace_back(o2::ctp::getDigitWriterSpec(true));
+  }
   return specs;
 }
