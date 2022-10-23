@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include <gsl/span>
 #include <memory>
 
@@ -314,6 +315,7 @@ struct RecoContainer {
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDTrackClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDClusters;
   std::unique_ptr<const std::vector<o2::MCCompLabel>> mcMIDTracks;
+  o2::ctp::LumiInfo mCTPLumi;
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
@@ -634,6 +636,7 @@ struct RecoContainer {
 
   // CTP
   auto getCTPDigits() const { return getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS); }
+  const o2::ctp::LumiInfo& getCTPLumi() const { return mCTPLumi; }
 
   // CPV
   auto getCPVClusters() const { return getSpan<const o2::cpv::Cluster>(GTrackID::CPV, CLUSTERS); }
