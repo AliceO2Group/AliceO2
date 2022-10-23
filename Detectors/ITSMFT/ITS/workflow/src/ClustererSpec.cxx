@@ -131,8 +131,8 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
     int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
     mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
     int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
-    if (clParams.maxSOTMUS > 0) {
-      nROFsToSquash = 2 + nbc * o2::constants::lhc::LHCBunchSpacingMUS / clParams.maxSOTMUS; // use squashing
+    if (clParams.maxSOTMUS > 0 && rofBC > 0) {
+      nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
     }
     mClusterer->setMaxROFDepthToSquash(clParams.maxBCDiffToSquashBias > 0 ? nROFsToSquash : 0);
     mClusterer->print();
