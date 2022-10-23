@@ -39,6 +39,7 @@ o2_add_library(Framework
                        src/ControlWebSocketHandler.cxx
                        src/DataInspectorService.cxx
                        src/DISocket.cxx
+                       src/DIMessages.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DomainInfoHeader.cxx

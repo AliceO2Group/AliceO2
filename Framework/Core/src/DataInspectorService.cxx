@@ -14,16 +14,20 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
 
   msg.specs.inputs = std::vector<DIMessages::RegisterDevice::Specs::Input>{};
   std::transform(spec.inputs.begin(), spec.inputs.end(), std::back_inserter(msg.specs.inputs), [](const InputRoute& input) -> DIMessages::RegisterDevice::Specs::Input{
-    auto dataDescriptorMatcher = input.matcher.matcher.index() == 1;
-    auto origin = dataDescriptorMatcher ? "" : std::get<ConcreteDataMatcher>(input.matcher.matcher).origin.str;
-    auto description = dataDescriptorMatcher ? "" : std::get<ConcreteDataMatcher>(input.matcher.matcher).description.str;
-    auto subSpec = dataDescriptorMatcher ? 0 : std::get<ConcreteDataMatcher>(input.matcher.matcher).subSpec;
+    boost::optional<std::string> origin;
+    boost::optional<std::string> description;
+    boost::optional<uint32_t> subSpec;
+
+    if (std::holds_alternative<ConcreteDataMatcher>(input.matcher.matcher)) {
+      origin = std::get<ConcreteDataMatcher>(input.matcher.matcher).origin.str;
+      description = std::get<ConcreteDataMatcher>(input.matcher.matcher).description.str;
+      subSpec = std::get<ConcreteDataMatcher>(input.matcher.matcher).subSpec;
+    }
 
     return DIMessages::RegisterDevice::Specs::Input{
       .binding = input.matcher.binding,
       .sourceChannel = input.sourceChannel,
       .timeslice = input.timeslice,
-      .dataDescriptorMatcher = dataDescriptorMatcher,
       .origin = origin,
       .description = description,
       .subSpec = subSpec
@@ -32,11 +36,18 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
 
   msg.specs.outputs = std::vector<DIMessages::RegisterDevice::Specs::Output>{};
   std::transform(spec.outputs.begin(), spec.outputs.end(), std::back_inserter(msg.specs.outputs), [](const OutputRoute& output) -> DIMessages::RegisterDevice::Specs::Output{
-    //TODO
-    auto index = output.matcher.matcher.index();
-    auto origin = index == 0 ? std::get<ConcreteDataMatcher>(output.matcher.matcher).origin.str : std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).origin.str;
-    auto description = index == 0 ? std::get<ConcreteDataMatcher>(output.matcher.matcher).origin.str : std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).origin.str;
-    auto subSpec = index == 0 ? std::get<ConcreteDataMatcher>(output.matcher.matcher).subSpec : 0;
+    std::string origin;
+    std::string description;
+    boost::optional<uint32_t> subSpec;
+
+    if (std::holds_alternative<ConcreteDataMatcher>(output.matcher.matcher)) {
+      origin = std::get<ConcreteDataMatcher>(output.matcher.matcher).origin.str;
+      description = std::get<ConcreteDataMatcher>(output.matcher.matcher).description.str;
+      subSpec = std::get<ConcreteDataMatcher>(output.matcher.matcher).subSpec;
+    } else {
+      origin = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).origin.str;
+      description = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).description.str;
+    }
 
     return DIMessages::RegisterDevice::Specs::Output{
       .binding = output.matcher.binding.value,
@@ -51,17 +62,21 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
 
   msg.specs.forwards = std::vector<DIMessages::RegisterDevice::Specs::Forward>{};
   std::transform(spec.forwards.begin(), spec.forwards.end(), std::back_inserter(msg.specs.forwards), [](const ForwardRoute& forward) -> DIMessages::RegisterDevice::Specs::Forward{
-    auto dataDescriptorMatcher = forward.matcher.matcher.index() == 1;
-    auto origin = dataDescriptorMatcher ? "" : std::get<ConcreteDataMatcher>(forward.matcher.matcher).origin.str;
-    auto description = dataDescriptorMatcher ? "" : std::get<ConcreteDataMatcher>(forward.matcher.matcher).description.str;
-    auto subSpec = dataDescriptorMatcher ? 0 : std::get<ConcreteDataMatcher>(forward.matcher.matcher).subSpec;
+    boost::optional<std::string> origin;
+    boost::optional<std::string> description;
+    boost::optional<uint32_t> subSpec;
+
+    if (std::holds_alternative<ConcreteDataMatcher>(forward.matcher.matcher)) {
+      origin = std::get<ConcreteDataMatcher>(forward.matcher.matcher).origin.str;
+      description = std::get<ConcreteDataMatcher>(forward.matcher.matcher).description.str;
+      subSpec = std::get<ConcreteDataMatcher>(forward.matcher.matcher).subSpec;
+    }
 
     return DIMessages::RegisterDevice::Specs::Forward{
       .binding = forward.matcher.binding,
       .timeslice = forward.timeslice,
       .maxTimeslices = forward.maxTimeslices,
       .channel = forward.channel,
-      .dataDescriptorMatcher = dataDescriptorMatcher,
       .origin = origin,
       .description = description,
       .subSpec = subSpec
@@ -87,9 +102,9 @@ DataInspectorProxyService::DataInspectorProxyService(ServiceRegistry& serviceReg
                                                          runId(runId)
 {
   try{
-    socket.send(DIMessage{DIMessage::Header::Type::DEVICE_ON, createRegisterMessage(spec, runId)});
+    socket.send(DIMessage{DIMessage::Header::Type::DEVICE_ON, createRegisterMessage(spec, runId).toJson()});
   } catch(const std::runtime_error& error) {
-    LOG(ERROR) << error.what();
+    LOG(error) << error.what();
     terminate();
   }
 }
@@ -99,7 +114,7 @@ DataInspectorProxyService::~DataInspectorProxyService()
   try {
     socket.send(DIMessage{DIMessage::Header::Type::DEVICE_OFF, std::string{deviceName}});
   } catch(const std::runtime_error& error) {
-    LOG(ERROR) << error.what();
+    LOG(error) << error.what();
     terminate();
   }
 }
@@ -121,7 +136,7 @@ void DataInspectorProxyService::receive()
       handleMessage(msg);
     }
   } catch(const std::runtime_error& error) {
-    LOG(ERROR) << error.what();
+    LOG(error) << error.what();
     terminate();
   }
 }
@@ -131,7 +146,7 @@ void DataInspectorProxyService::send(DIMessage&& msg)
   try {
     socket.send(std::move(msg));
   } catch(const std::runtime_error& error) {
-    LOG(ERROR) << error.what();
+    LOG(error) << error.what();
     terminate();
   }
 }

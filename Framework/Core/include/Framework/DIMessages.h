@@ -4,15 +4,12 @@
 #include <string>
 #include <cstdint>
 #include <vector>
-#include "boost/serialization/vector.hpp"
+#include <boost/optional.hpp>
 
 namespace DIMessages
 {
 struct RegisterDevice
 {
-  std::string name;
-  std::string runId;
-
   struct Specs
   {
     struct Input
@@ -21,22 +18,9 @@ struct RegisterDevice
       std::string sourceChannel;
       size_t timeslice;
 
-      bool dataDescriptorMatcher;
-      std::string origin;
-      std::string description;
-      uint32_t subSpec;
-
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-        ar & binding;
-        ar & sourceChannel;
-        ar & timeslice;
-        ar & dataDescriptorMatcher;
-        ar & origin;
-        ar & description;
-        ar & subSpec;
-      }
+      boost::optional<std::string> origin;
+      boost::optional<std::string> description;
+      boost::optional<uint32_t> subSpec;
     };
 
     struct Output
@@ -48,19 +32,7 @@ struct RegisterDevice
 
       std::string origin;
       std::string description;
-      uint32_t subSpec;
-
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-        ar & binding;
-        ar & channel;
-        ar & timeslice;
-        ar & maxTimeslices;
-        ar & origin;
-        ar & description;
-        ar & subSpec;
-      }
+      boost::optional<uint32_t> subSpec;
     };
 
     struct Forward
@@ -70,23 +42,9 @@ struct RegisterDevice
       size_t maxTimeslices;
       std::string channel;
 
-      bool dataDescriptorMatcher;
-      std::string origin;
-      std::string description;
-      uint32_t subSpec;
-
-      template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-      {
-        ar & binding;
-        ar & timeslice;
-        ar & maxTimeslices;
-        ar & channel;
-        ar & dataDescriptorMatcher;
-        ar & origin;
-        ar & description;
-        ar & subSpec;
-      }
+      boost::optional<std::string> origin;
+      boost::optional<std::string> description;
+      boost::optional<uint32_t> subSpec;
     };
 
     std::vector<Input> inputs;
@@ -97,29 +55,13 @@ struct RegisterDevice
     size_t nSlots;
     size_t inputTimesliceId;
     size_t maxInputTimeslices;
-
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-      ar & inputs;
-      ar & outputs;
-      ar & forwards;
-      ar & rank;
-      ar & nSlots;
-      ar & inputTimesliceId;
-      ar & maxInputTimeslices;
-    }
   };
 
+  std::string name;
+  std::string runId;
   Specs specs;
 
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version)
-  {
-    ar & name;
-    ar & runId;
-    ar & specs;
-  }
+  std::string toJson();
 };
 }
 

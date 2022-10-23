@@ -57,7 +57,7 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               // Use this policy only when DatInspector is turned on
               return std::any_of(config.argv(), config.argv() + config.argc(), DataInspector::isInspectorArgument) && DataInspector::isNonInternalDevice(spec);
             },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistry& registry) {
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
               auto& diService = registry.get<DataInspectorProxyService>();
               diService.receive(); // Check for messages from proxy
 
