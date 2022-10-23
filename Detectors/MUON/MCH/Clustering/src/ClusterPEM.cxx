@@ -1718,8 +1718,8 @@ int ClusterPEM::renumberGroupsFromMap(short* grpToGrp, int nGrp)
   // short renumber[nGrp+1];
   // vectorSetShort( renumber, 0, nGrp+1 );
   int maxIdx = vectorMaxShort(grpToGrp, nGrp + 1);
-  short counters[maxIdx + 1];
-  vectorSetShort(counters, 0, maxIdx + 1);
+  std::vector<short> counters(maxIdx + 1);
+  vectorSetShort(counters.data(), 0, maxIdx + 1);
 
   for (int g = 1; g <= nGrp; g++) {
     if (grpToGrp[g] != 0) {
