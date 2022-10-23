@@ -2,40 +2,10 @@
 #define O2_DISOCKET_HPP
 
 #include <cstring>
-#include "Framework/TypeTraits.h"
+#include "Framework/Traits.h"
 #include "boost/asio.hpp"
 #include "boost/endian/conversion.hpp"
-#include "boost/archive/binary_oarchive.hpp"
-#include "boost/archive/binary_iarchive.hpp"
 #include <sstream>
-
-template <typename T>
-std::tuple<char*, uint64_t> boostSerialize(const T& obj)
-{
-  std::ostringstream buffer;
-  boost::archive::binary_oarchive outputArchive(buffer);
-  outputArchive << obj;
-
-  auto str = buffer.str();
-  auto size = str.length();
-
-  char* serialized = new char[size];
-  std::memcpy(serialized, str.c_str(), size);
-
-  return {serialized, size};
-}
-
-template <typename T>
-T boostDeserialize(char* payload, uint64_t size)
-{
-  T t{};
-
-  std::istringstream buffer({payload, size});
-  boost::archive::binary_iarchive inputArchive(buffer);
-  inputArchive >> t;
-
-  return t;
-}
 
 struct DIMessage {
   struct __attribute__ ((packed)) Header {
@@ -74,10 +44,6 @@ struct DIMessage {
       payload = boost::endian::native_to_little(payload);
       this->payload = new char[payloadSize];
       std::memcpy(this->payload, &payload, payloadSize);
-    } else if constexpr (o2::framework::is_boost_serializable<T>::value) {
-      auto [serialized, size] = boostSerialize(payload);
-      payloadSize = size;
-      this->payload = serialized;
     } else {
       static_assert(o2::framework::always_static_assert_v<T>, "DISocket: Cannot create message of this type.");
     }
@@ -101,8 +67,6 @@ struct DIMessage {
       return std::string{payload, header.payloadSize()};
     } else if constexpr (std::is_integral_v<T>) {
       return boost::endian::little_to_native(*((T*) payload));
-    } else if constexpr (o2::framework::is_boost_serializable<T>::value) {
-      return boostDeserialize<T>(payload, header.payloadSize());
     } else {
       static_assert(o2::framework::always_static_assert_v<T>, "DISocket: Cannot create object of this type.");
     }
