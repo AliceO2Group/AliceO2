@@ -73,7 +73,6 @@ class STFDecoder : public Task
   bool mDoPatterns = false;
   bool mDoDigits = false;
   bool mDoCalibData = false;
-  bool mDoSquashing = false;
   bool mUnmutExtraLanes = false;
   bool mFinalizeDone = false;
   bool mAllowReporting = true;
