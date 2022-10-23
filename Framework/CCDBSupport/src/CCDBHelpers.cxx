@@ -177,7 +177,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
   bool checkValidityGlo = timingInfo.timeslice % helper->queryDownScaleRate == 0;
   for (auto& route : helper->routes) {
-    LOGP(debug, "Fetching object for route {}", route.matcher);
+    LOGP(debug, "Fetching object for route {}", DataSpecUtils::describe(route.matcher));
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
     Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
@@ -293,7 +293,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         accountedSpecs[specStr] = true;
         helper->routes.push_back(route);
-        LOGP(info, "The following route is a condition {}", route.matcher);
+        LOGP(info, "The following route is a condition {}", DataSpecUtils::describe(route.matcher));
         for (auto& metadata : route.matcher.metadata) {
           if (metadata.type == VariantType::String) {
             LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());

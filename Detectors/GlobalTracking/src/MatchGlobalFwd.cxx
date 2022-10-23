@@ -154,7 +154,7 @@ bool MatchGlobalFwd::prepareMCHData()
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
       if (BCDiffErrCount < MAXBCDiffErrCount) {
-        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData(), mStartIR);
+        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -250,7 +250,7 @@ bool MatchGlobalFwd::prepareMFTData()
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
       if (BCDiffErrCount < MAXBCDiffErrCount) {
-        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData(), mStartIR);
+        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
