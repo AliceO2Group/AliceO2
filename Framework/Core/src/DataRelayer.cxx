@@ -90,7 +90,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    // mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
@@ -288,7 +288,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
-          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
@@ -615,7 +615,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
     if (timeslice) {
-      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", (int)op, li.index, *timeslice);
       completed.emplace_back(RecordAction{li, {*timeslice}, op});
     } else {
       LOGP(debug, "No timeslice associated with slot ", li.index);

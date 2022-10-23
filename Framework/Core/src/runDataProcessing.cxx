@@ -254,7 +254,7 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
       LOGP(error, "SEVERE: Device {} ({}) had at least one message above severity {}: {}",
            spec.name,
            info.pid,
-           info.minFailureLevel,
+           (int)info.minFailureLevel,
            std::regex_replace(info.firstSevereError, regexp, ""));
       return 1;
     }
@@ -2678,11 +2678,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
               str << physicalWorkflow[x].name << ":\n";
               str << "inputs:\n";
               for (auto& input : physicalWorkflow[x].inputs) {
-                str << fmt::format("- {}\n", input);
+                str << "- " << input << "\n";
               }
               str << "outputs:\n";
               for (auto& output : physicalWorkflow[x].outputs) {
-                str << fmt::format("- {}\n", output);
+                str << "- " << output << "\n";
               }
             }
             throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name + ":\n" + str.str());

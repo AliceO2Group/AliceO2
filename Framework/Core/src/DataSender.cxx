@@ -68,7 +68,7 @@ DataSender::DataSender(ServiceRegistryRef registry,
     assert(mDistinctRoutesIndex[i] < routes.size());
     mOutputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     DataSpecUtils::describe(buffer, 127, mOutputs.back());
-    monitoring.send({fmt::format("{} ({})", buffer, mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
+    monitoring.send({fmt::format("{} ({})", buffer, (int)mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 

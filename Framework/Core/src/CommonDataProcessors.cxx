@@ -374,7 +374,7 @@ DataProcessorSpec
         // get the TableConsumer and corresponding arrow table
         auto msg = pc.inputs().get(ref.spec->binding);
         if (msg.header == nullptr) {
-          LOGP(error, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          LOGP(error, "No header for message {}:{}", ref.spec->binding, DataSpecUtils::describe(*ref.spec));
           continue;
         }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);

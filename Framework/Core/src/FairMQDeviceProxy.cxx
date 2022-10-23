@@ -253,7 +253,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
         LOGP(detail, "Using index {} for channel {}", channelPos->second.value, route.channel);
         channelIndex = channelPos->second;
       }
-      LOGP(detail, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices, ri, channelIndex.value);
+      LOGP(detail, "Binding route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices, ri, channelIndex.value);
       mOutputRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
@@ -287,7 +287,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
         LOGP(detail, "Using index {} for channel {}", channelPos->second.value, route.sourceChannel);
         channelIndex = channelPos->second;
       }
-      LOGP(detail, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, maxLanes, ri, channelIndex.value);
+      LOGP(detail, "Binding route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, maxLanes, ri, channelIndex.value);
       mInputRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
@@ -324,7 +324,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
         LOGP(detail, "Using index {} for forward channel {}", channelPos->second.value, route.channel);
         channelIndex = channelPos->second;
       }
-      LOGP(detail, "Binding forward route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices, ri, channelIndex.value);
+      LOGP(detail, "Binding forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices, ri, channelIndex.value);
       mForwardRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
@@ -335,7 +335,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
     LOGP(detail, "Total forward channels found {}, total routes {}", mForwardChannelInfos.size(), mForwardRoutes.size());
     // List all routes
     for (auto& route : mForwards) {
-      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices);
+      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices);
     }
     assert(mForwardRoutes.size() == forwards.size());
   }

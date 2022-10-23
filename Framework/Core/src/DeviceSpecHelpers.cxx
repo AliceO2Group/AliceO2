@@ -1391,7 +1391,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
               if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
                 stringRep = *v;
               } else if (auto v = boost::any_cast<EarlyForwardPolicy>(&varit.second.value())) {
-                stringRep = fmt::format("{}", *v);
+                std::stringstream tmp;
+                tmp << *v;
+                stringRep = fmt::format("{}", tmp.str());
               }
               if (varit.first == "channel-config") {
                 // FIXME: the parameter to channel-config can be a list of configurations separated
