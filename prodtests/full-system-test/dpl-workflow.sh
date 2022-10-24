@@ -43,6 +43,11 @@ if [[ -z $TIMEFRAME_RATE_LIMIT ]] && [[ $DIGITINPUT != 1 ]]; then
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
 fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
+if [[ $EPNSYNCMODE == 1 ]]; then
+  SYNCRAWMODE=1
+elif [[ -z $SYNCRAWMODE ]]; then
+  SYNCRAWMODE=0
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
@@ -84,7 +89,7 @@ if [[ $SYNCMODE == 1 ]]; then
   fi
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
-  if [[ $EPNSYNCMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
+  if [[ $SYNCRAWMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
     PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
@@ -147,12 +152,14 @@ has_detector_flp_processing CPV && CPV_INPUT=digits
 if [[ $EPNSYNCMODE == 1 ]]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
+  if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
+fi
+if [[ $SYNCRAWMODE == 1 ]]; then
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;GPU_proc.conservativeMemoryEstimate=1;"
   # option for avoinding masking problematic channels from previous calibrations
   TOF_CONFIG+=" --for-calib"
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
   if [[ -z $TRD_DECODER_OPTIONS ]]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
-  if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
 fi
 
 if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "01" && $BEAMTYPE == "PbPb" ]] && has_detector ITS; then
@@ -223,8 +230,8 @@ if has_processing_step MUON_SYNC_RECO; then
   [[ $RUNTYPE == "COSMICS" ]] && [[ -z $CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow ]] && CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow="MFTTracking.LTFclsRCut=0.2;MFTTracking.forceZeroField=true;MFTTracking.FullClusterScan=true"
 fi
 [[ "0$ED_VERTEX_MODE" == "01" ]] && has_detectors_reco ITS && has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && EVE_CONFIG+=" --primary-vertex-mode"
-[[ $EPNSYNCMODE == 1 ]] && [[ -z $CONFIG_EXTRA_PROCESS_o2_trd_global_tracking ]] && CONFIG_EXTRA_PROCESS_o2_trd_global_tracking='GPU_rec_trd.maxChi2=25;GPU_rec_trd.penaltyChi2=20;GPU_rec_trd.extraRoadY=4;GPU_rec_trd.extraRoadZ=10;GPU_rec_trd.applyDeflectionCut=0;GPU_rec_trd.trkltResRPhiIdeal=1'
-[[ $EPNSYNCMODE == 1 ]] && [[ -z $ARGS_EXTRA_PROCESS_o2_phos_reco_workflow ]] && ARGS_EXTRA_PROCESS_o2_phos_reco_workflow='--presamples 2 --fitmethod semigaus'
+[[ $SYNCRAWMODE == 1 ]] && [[ -z $CONFIG_EXTRA_PROCESS_o2_trd_global_tracking ]] && CONFIG_EXTRA_PROCESS_o2_trd_global_tracking='GPU_rec_trd.maxChi2=25;GPU_rec_trd.penaltyChi2=20;GPU_rec_trd.extraRoadY=4;GPU_rec_trd.extraRoadZ=10;GPU_rec_trd.applyDeflectionCut=0;GPU_rec_trd.trkltResRPhiIdeal=1'
+[[ $SYNCRAWMODE == 1 ]] && [[ -z $ARGS_EXTRA_PROCESS_o2_phos_reco_workflow ]] && ARGS_EXTRA_PROCESS_o2_phos_reco_workflow='--presamples 2 --fitmethod semigaus'
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Start of workflow command generation
