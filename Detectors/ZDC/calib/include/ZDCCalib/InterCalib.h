@@ -67,7 +67,6 @@ class InterCalib
 
   const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
 
-
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
