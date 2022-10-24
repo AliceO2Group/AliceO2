@@ -86,7 +86,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
 
-  std::regex invalid_metric(" ");
+  static const std::regex invalid_metric(" ");
   auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
