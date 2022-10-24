@@ -5,6 +5,8 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0tf" ]; then
   exit 1
 fi
 
+if [[ -f local_env.sh ]]; then source ./local_env.sh; fi
+
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
   export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY,CALIB_LOCAL_AGGREGATOR"
   if [[ "0$FST_TMUX_INTEGRATED_AGGREGATOR" == "01" ]]; then
