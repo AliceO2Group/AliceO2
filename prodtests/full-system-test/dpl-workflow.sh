@@ -26,16 +26,6 @@ if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       #
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
-[[ -z $NITSDECTHREADS ]] && NITSDECTHREADS=2
-[[ -z $NMFTDECTHREADS ]] && NMFTDECTHREADS=2
-
-[[ -z $SVERTEX_THREADS ]] && SVERTEX_THREADS=$(( $SYNCMODE == 1 ? 1 : 2 ))
-# FIXME: multithreading in the itsmft reconstruction does not work on macOS.
-if [[ $(uname) == "Darwin" ]]; then
-    NITSDECTHREADS=1
-    NMFTDECTHREADS=1
-fi
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 source $MYDIR/getCommonArgs.sh
@@ -53,6 +43,11 @@ if [[ -z $TIMEFRAME_RATE_LIMIT ]] && [[ $DIGITINPUT != 1 ]]; then
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
 fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Process multiplicities
+
+{ source $O2DPG_ROOT/DATA/production/workflow-multiplicities.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
@@ -94,13 +89,13 @@ if [[ $SYNCMODE == 1 ]]; then
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
-  TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
   if [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
   fi
 fi
+[[ ! -z $NTRDTRKTHREADS ]] && TRD_CONFIG_KEY+="GPU_proc.ompThreads=$NTRDTRKTHREADS;"
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
   PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
@@ -210,67 +205,6 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
 fi
 
 [[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Process multiplicities
-
-# Helper function to apply scaling factors for process type (RAW/CTF/REST) and detector, or override multiplicity set for individual process externally.
-N_F_REST=$MULTIPLICITY_FACTOR_REST
-N_F_RAW=$MULTIPLICITY_FACTOR_RAWDECODERS
-N_F_CTF=$MULTIPLICITY_FACTOR_CTFENCODERS
-
-N_TPCTRK=$NGPUS
-if [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]]; then
-  # Tuned multiplicities for async Pb-Pb processing
-  if [[ $SYNCMODE == "1" ]]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE" 1>&2; exit 1; fi
-  if [[ $NUMAGPUIDS != 0 ]]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
-  GPU_CONFIG_KEY+="GPU_proc.ompThreads=6;"
-  TRD_CONFIG_KEY+="GPU_proc.ompThreads=2;"
-  if [[ $GPUTYPE == "CPU" ]]; then
-    N_TPCENTDEC=$((2 * $N_NUMAFACTOR))
-    N_MFTTRK=$((3 * $N_NUMAFACTOR))
-    N_ITSTRK=$((3 * $N_NUMAFACTOR))
-    N_TPCITS=$((2 * $N_NUMAFACTOR))
-    N_MCHTRK=$((1 * $N_NUMAFACTOR))
-    N_TOFMATCH=$((9 * $N_NUMAFACTOR))
-    N_TPCTRK=$((6 * $N_NUMAFACTOR))
-  else
-    N_TPCENTDEC=$(math_max $((3 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-    N_MFTTRK=$(math_max $((6 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-    N_ITSTRK=$(math_max $((6 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-    N_TPCITS=$(math_max $((4 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-    N_MCHTRK=$(math_max $((2 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-    N_TOFMATCH=$(math_max $((20 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
-  fi
-elif [[ $EPNPIPELINES != 0 ]]; then
-  # Tuned multiplicities for sync Pb-Pb processing
-  N_TPCENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_TPCITS=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  if [[ $BEAMTYPE == "pp" ]]; then
-    N_ITSTRK=$(math_max $((6 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  else
-    N_ITSTRK=$(math_max $((2 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  fi
-  N_ITSRAWDEC=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_EMCREC=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_TRDENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_TRDTRK=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_TPCRAWDEC=$(math_max $((12 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  if [[ $GPUTYPE == "CPU" ]]; then
-    N_TPCTRK=8
-    GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
-  fi
-  # Scale some multiplicities with the number of nodes
-  RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS != 0 ? 2 : 1))) # Limit the lower scaling factor, multiply by 2 if we have 2 NUMA domains
-  N_ITSRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSRAWDEC:-1}) # This means, if we have 60 EPN nodes, we need at least 3 ITS RAW decoders
-  N_MFTRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_MFTRAWDEC:-1})
-  N_ITSTRK=$(math_max $((1 * 200 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSTRK:-1})
-  N_MFTTRK=$(math_max $((1 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_MFTTRK:-1})
-  N_CTPRAWDEC=$(math_max $((1 * 30 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_CTPRAWDEC:-1})
-  N_TRDRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_TRDRAWDEC:-1})
-  N_GENERICRAWDEV=
-fi
-N_MCHCL=2
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Temporary extra options
