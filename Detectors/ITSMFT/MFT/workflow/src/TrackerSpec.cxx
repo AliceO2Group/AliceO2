@@ -54,7 +54,7 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   // tracking configuration parameters
-  auto& trackingParam = MFTTrackingParam::Instance(); // to avoi loading interpreter during the run
+  auto& trackingParam = MFTTrackingParam::Instance(); // to avoid loading interpreter during the run
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
@@ -73,16 +73,34 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  LOG(info) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
-            << rofsinput.size() << " RO frames";
+  ROFFilter filter = [](const o2::itsmft::ROFRecord& r) { return true; };
+
+  LOG(info) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in " << rofsinput.size() << " RO frames";
+
+  auto& trackingParam = MFTTrackingParam::Instance();
+  if (trackingParam.irFramesOnly) {
+    // selects only those ROFs that overlap ITS IRFrame
+    LOG(info) << "MFTTracker IRFrame filter enabled: loading ITS IR Frames. ";
+    auto irFrames = pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("IRFramesITS");
+    filter = createIRFrameFilter(irFrames);
+
+    if (fair::Logger::Logging(fair::Severity::debug)) {
+      for (const auto& irf : irFrames) {
+        LOG(debug) << "IRFrame.info = " << irf.info << " ; min = " << irf.getMin().bc << " ; max = " << irf.getMax().bc;
+      }
+    }
+  }
+
+  if (trackingParam.isMultCutRequested()) {
+    LOG(info) << "MFTTracker multiplicity filter enabled. ROF selection: Min nClusters =  " << trackingParam.cutMultClusLow << " ; Max nClusters = " << trackingParam.cutMultClusHigh;
+  }
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = mUseMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mUseMC) {
     // get the array as read-only span, a snapshot of the object is sent forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
-    LOG(info) << labels->getIndexedSize() << " MC label objects , in "
-              << mc2rofs.size() << " MC events";
+    LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
@@ -98,16 +116,15 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(debug) << "nROFs = " << nROFs << " rofsPerWorker = " << rofsPerWorker;
 
   auto loadData = [&, this](auto& trackerVec, auto& roFrameDataVec) {
-    auto& trackingParam = MFTTrackingParam::Instance();
     auto& tracker = trackerVec[0]; // Use first tracker to load the data: serial operation
     gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
     auto iROF = 0;
 
-    for (auto& rof : rofs) {
+    for (const auto& rof : rofs) {
       int worker = std::min(int(iROF / rofsPerWorker), mNThreads - 1);
       auto& roFrameData = roFrameDataVec[worker].emplace_back();
-      int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get());
+      int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get(), filter);
       roFrameData.initialize(trackingParam.FullClusterScan);
       LOG(debug) << "ROframeId: " << iROF << ", clusters loaded : " << nclUsed << " on worker " << worker;
       iROF++;
@@ -330,14 +347,20 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
-    // tracking configuration parameters
-
     bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT);
-    LOG(info) << "MFTTracker RO: continuous=" << continuous;
+    LOG(info) << "MFTTracker RO: continuous =" << continuous;
+    mMFTTriggered = !continuous;
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    if (mMFTTriggered) {
+      setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
+    } else {
+      setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
+    }
 
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
+    // tracking configuration parameters
     auto& trackingParam = MFTTrackingParam::Instance();
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
@@ -377,6 +400,23 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
+///_______________________________________
+void TrackerDPL::setMFTROFrameLengthMUS(float fums)
+{
+  mMFTROFrameLengthMUS = fums;
+  mMFTROFrameLengthMUSInv = 1. / mMFTROFrameLengthMUS;
+  mMFTROFrameLengthInBC = std::max(1, int(mMFTROFrameLengthMUS / (o2::constants::lhc::LHCBunchSpacingNS * 1e-3)));
+}
+
+///_______________________________________
+void TrackerDPL::setMFTROFrameLengthInBC(int nbc)
+{
+  mMFTROFrameLengthInBC = nbc;
+  mMFTROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+  mMFTROFrameLengthMUSInv = 1. / mMFTROFrameLengthMUS;
+}
+
+///_______________________________________
 DataProcessorSpec getTrackerSpec(bool useMC, int nThreads)
 {
   std::vector<InputSpec> inputs;
@@ -384,6 +424,12 @@ DataProcessorSpec getTrackerSpec(bool useMC, int nThreads)
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
+
+  auto& trackingParam = MFTTrackingParam::Instance();
+  if (trackingParam.irFramesOnly) {
+    inputs.emplace_back("IRFramesITS", "ITS", "IRFRAMES", 0, Lifetime::Timeframe);
+  }
+
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               false,                             // GRPLHCIF

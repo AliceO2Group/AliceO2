@@ -20,6 +20,7 @@
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
 #include "MFTWorkflow/TracksToRecordsSpec.h"
+#include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 
 namespace o2
 {
@@ -51,6 +52,11 @@ framework::WorkflowSpec getWorkflow(
   if (!disableRootOutput) {
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
+  auto& trackingParam = MFTTrackingParam::Instance();
+  if (trackingParam.irFramesOnly) {
+    specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec("ITS", 0, "its-irframe-reader", "o2_its_irframe.root"));
+  }
+
   if (runTracking) {
     specs.emplace_back(o2::mft::getTrackerSpec(useMC, nThreads));
     if (!disableRootOutput) {

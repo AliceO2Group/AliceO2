@@ -27,7 +27,8 @@ o2_add_library(MFTWorkflow
                                      O2::MFTAssessment
                                      O2::DataFormatsMFT
                                      O2::ITSMFTWorkflow
-                                     O2::MFTAlignment)
+                                     O2::MFTAlignment
+                                     O2::GlobalTrackingWorkflowReaders)
 o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx
                   COMPONENT_NAME mft
