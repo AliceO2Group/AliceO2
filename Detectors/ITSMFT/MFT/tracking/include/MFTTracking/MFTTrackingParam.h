@@ -67,6 +67,14 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   /// road for CA algo : cylinder or cone (default)
   Bool_t CAConeRadius = kFALSE;
 
+  // cuts to reject to low or too high mult events, or externally provided IRFrames
+  float cutMultClusLow = 0;   /// reject ROF with estimated cluster mult. below this value (no cut if <0)
+  float cutMultClusHigh = -1; /// reject ROF with estimated cluster mult. above this value (no cut if <0)
+  bool irFramesOnly = false;  ///< track only ROFs that overlap one of the IRFrames (provided externally by ITS)
+
+  bool isMultCutRequested() const { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };
+  bool isPassingMultCut(float mult) const { return mult >= cutMultClusLow && (mult <= cutMultClusHigh || cutMultClusHigh <= 0.f); }
+
   O2ParamDef(MFTTrackingParam, "MFTTracking");
 };
 

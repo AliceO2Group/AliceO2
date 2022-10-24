@@ -16,6 +16,7 @@
 
 #include "MFTTracking/Tracker.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "MFTTracking/TrackCA.h"
@@ -43,7 +44,16 @@ class TrackerDPL : public o2::framework::Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
+  ///< MFT readout mode
+  bool mMFTTriggered = false; ///< MFT readout is triggered
 
+  ///< set MFT ROFrame duration in microseconds
+  void setMFTROFrameLengthMUS(float fums);
+  ///< set MFT ROFrame duration in BC (continuous mode only)
+  void setMFTROFrameLengthInBC(int nbc);
+  int mMFTROFrameLengthInBC = 0;       ///< MFT RO frame in BC (for MFT cont. mode only)
+  float mMFTROFrameLengthMUS = -1.;    ///< MFT RO frame in \mus
+  float mMFTROFrameLengthMUSInv = -1.; ///< MFT RO frame in \mus inverse
   bool mUseMC = false;
   bool mFieldOn = true;
   int mNThreads = 4;
@@ -67,6 +77,24 @@ class TrackerDPL : public o2::framework::Task
                                                    "FitTracks",
                                                    "ComputeLabels"};
   TStopwatch mTimer[NStopWatches];
+
+  ROFFilter createIRFrameFilter(gsl::span<const o2::dataformats::IRFrame> irframes)
+  {
+    return [this, irframes](const ROFRecord& rof) {
+      InteractionRecord rofStart{rof.getBCData()};
+      InteractionRecord rofEnd = rofStart + mMFTROFrameLengthInBC - 1;
+      IRFrame ref(rofStart, rofEnd);
+      for (const auto& ir : irframes) {
+        if (ir.info > 0) {
+          auto overlap = ref.getOverlap(ir);
+          if (overlap.isValid()) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+  }
 };
 
 /// create a processor spec

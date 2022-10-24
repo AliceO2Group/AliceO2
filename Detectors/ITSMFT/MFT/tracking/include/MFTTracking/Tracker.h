@@ -24,6 +24,8 @@
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian.h"
 #include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -32,6 +34,10 @@ namespace o2
 {
 namespace mft
 {
+
+using o2::dataformats::IRFrame;
+using o2::itsmft::ROFRecord;
+typedef std::function<bool(const ROFRecord&)> ROFFilter;
 
 class T;
 
@@ -59,7 +65,6 @@ class Tracker : public TrackerConfig
   void findLTFTracks(ROframe<T>&);
   void findCATracks(ROframe<T>&);
   bool fitTracks(ROframe<T>&);
-
   void computeTracksMClabels(const std::vector<T>&);
 
   void initialize(bool fullClusterScan = false);
