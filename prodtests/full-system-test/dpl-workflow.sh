@@ -159,8 +159,8 @@ if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "01" && $BEAMTYPE == "PbPb" 
   EVE_CONFIG+=" --filter-its-rof"
 fi
 
-if [[ $BEAMTYPE == "PbPb" ]]; then
-  EVE_CONFIG+=" --only-nth-event=2"
+if [[ ! -z $EVE_NTH_EVENT ]]; then
+  EVE_CONFIG+=" --only-nth-event=$EVE_NTH_EVENT"
 fi
 
 if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
