@@ -24,6 +24,13 @@ void o2::zdc::CalibParamZDC::print()
     }
     printf("rootOutput=%s\n", rootOutput ? "true" : "false");
   }
+  if (debugOutput) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("debugOutput=%s\n", debugOutput ? "true" : "false");
+  }
   if (outputDir.compare("./")) {
     if (!printed) {
       LOG(info) << "CalibParamZDC::print()";

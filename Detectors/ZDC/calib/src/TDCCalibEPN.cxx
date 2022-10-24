@@ -17,6 +17,7 @@
 #include <TDirectory.h>
 #include <TPaveStats.h>
 #include <TAxis.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include "ZDCCalib/TDCCalibData.h"
 #include "ZDCCalib/TDCCalibEPN.h"
 #include "ZDCCalib/TDCCalib.h"
@@ -33,6 +34,14 @@ int TDCCalibEPN::init()
     LOG(fatal) << "o2::zdc::TDCCalibEPN: missing configuration object";
     return -1;
   }
+
+  // Inspect calibration parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
+
   clear();
   auto* cfg = mTDCCalibConfig;
   int ih;

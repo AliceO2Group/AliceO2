@@ -20,10 +20,12 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "ZDCCalib/TDCCalib.h"
 #include "ZDCCalib/TDCCalibData.h"
 #include "ZDCCalib/TDCCalibConfig.h"
@@ -53,6 +55,12 @@ class TDCCalibSpec : public o2::framework::Task
   bool mInitialized = false;   // Connect once to CCDB during initialization
   TDCCalib mWorker;            // TDC calibration object
   TStopwatch mTimer;
+  long mRunStartTime = 0;                                            /// start time of the run (ms)
+  std::string mOutputDir;                                            /// where to write calibration digits
+  std::string mHistoFileName;                                        /// file name of output calib digits
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData; /// metadata for collected histograms
+  std::string mLHCPeriod;
+  int mRunNumber = -1;
 };
 
 framework::DataProcessorSpec getTDCCalibSpec();
