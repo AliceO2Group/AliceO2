@@ -55,7 +55,7 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 
  private:
   GPUd() static ChargePos padToChargePos(int& pad, const GPUTPCClusterFinder&);
-  GPUd() static void updatePadBaseline(int pad, const GPUTPCClusterFinder&, int totalCharges, int consecCharges);
+  GPUd() static void updatePadBaseline(int pad, const GPUTPCClusterFinder&, int totalCharges, int consecCharges, unsigned short maxCharge);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
