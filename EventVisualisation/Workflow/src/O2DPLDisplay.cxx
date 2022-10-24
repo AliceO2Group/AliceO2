@@ -271,7 +271,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::string eveHostName = cfgc.options().get<std::string>("eve-hostname");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool useMC = !cfgc.options().get<bool>("disable-mc");
-  bool disableWrite = !cfgc.options().get<bool>("disable-write");
+  bool disableWrite = cfgc.options().get<bool>("disable-write");
 
   char hostname[_POSIX_HOST_NAME_MAX];
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
