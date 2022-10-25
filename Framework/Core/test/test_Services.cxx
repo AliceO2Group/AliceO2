@@ -80,9 +80,6 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   auto cb = [&]() { cbCalled = true; };
   registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, cb);
 
-  // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
-
   // execute and check
   registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt())(CallbackService::Id::Stop);
   BOOST_CHECK(cbCalled);

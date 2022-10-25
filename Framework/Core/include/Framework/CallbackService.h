@@ -11,9 +11,9 @@
 #ifndef O2_FRAMEWORK_CALLBACKSERVICE_H_
 #define O2_FRAMEWORK_CALLBACKSERVICE_H_
 
-#include "CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "ServiceRegistry.h"
 
 #include <fairmq/FwdDecls.h>
@@ -89,47 +89,173 @@ class CallbackService
   using ClockTickCallback = std::function<void()>;
   using DataConsumedCallback = std::function<void(ServiceRegistryRef)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
+
   using RegionInfoCallback = std::function<void(fair::mq::RegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
+
   using PreProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
   using PostProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
-  using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
-  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
   using DeviceStateChangedCallback = std::function<void(ServiceRegistryRef, int newState)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                                  //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                          //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                            //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                          //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                            //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                  //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,            //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,              //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,        //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,            //
-                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,          //
-                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,        //
-                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,    //
-                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,  //
-                                     RegistryPair<Id, Id::DeviceStateChanged, DeviceStateChangedCallback> //
-                                     >;                                                                   //
+  using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
+
+  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
 
   // set callback for specified processing step
   template <typename U>
   void set(Id id, U&& cb)
   {
-    mCallbacks.set(id, std::forward<U>(cb));
+    auto f = std::function(std::forward<U>(cb));
+    using T = std::decay_t<decltype(f)>;
+    if constexpr (std::is_same_v<T, StartCallback>) {
+      switch (id) {
+        case Id::Start:
+          mStartCallback = f;
+          break;
+        case Id::Stop:
+          mStopCallback = f;
+          break;
+        case Id::Reset:
+          mResetCallback = f;
+          break;
+        case Id::Idle:
+          mIdleCallback = f;
+          break;
+        case Id::ClockTick:
+          mClockTickCallback = f;
+          break;
+        default:
+          throw std::runtime_error("Invalid callback type");
+      }
+    } else if constexpr (std::is_same_v<T, DataConsumedCallback>) {
+      mDataConsumedCallback = f;
+    } else if constexpr (std::is_same_v<T, EndOfStreamCallback>) {
+      mEndOfStreamCallback = f;
+    } else if constexpr (std::is_same_v<T, RegionInfoCallback>) {
+      mRegionInfoCallback = f;
+    } else if constexpr (std::is_same_v<T, NewTimesliceCallback>) {
+      mNewTimesliceCallback = f;
+    } else if constexpr (std::is_same_v<T, PreProcessingCallback>) {
+      switch (id) {
+        case Id::PreProcessing:
+          mPreProcessingCallback = f;
+          break;
+        case Id::PostProcessing:
+          mPostProcessingCallback = f;
+          break;
+        case Id::DeviceStateChanged:
+          mDeviceStateChangedCallback = f;
+          break;
+        default:
+          throw std::runtime_error("Invalid callback type");
+      }
+    } else if constexpr (std::is_same_v<T, CCDBDeserializedCallback>) {
+      mCCDBDeserializedCallback = f;
+    } else if constexpr (std::is_same_v<T, DomainInfoUpdatedCallback>) {
+      mDomainInfoUpdatedCallback = f;
+    } else {
+      static_assert(always_static_assert_v<T>, "Unsupported callback type");
+    }
   }
 
-  // execute callback for specified processing step with argument pack
   template <typename... TArgs>
-  auto operator()(Id id, TArgs&&... args)
+  void operator()(Id id, TArgs&&... args)
   {
-    mCallbacks(id, std::forward<TArgs>(args)...);
+    using T = std::function<void(TArgs...)>;
+    if constexpr (std::is_same_v<T, StartCallback>) {
+      switch (id) {
+        case Id::Start:
+          if (mStartCallback) {
+            mStartCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::Stop:
+          if (mStopCallback) {
+            mStopCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::Reset:
+          if (mResetCallback) {
+            mResetCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::Idle:
+          if (mIdleCallback) {
+            mIdleCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::ClockTick:
+          if (mClockTickCallback) {
+            mClockTickCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        default:
+          throw std::runtime_error("Invalid callback type");
+      }
+    } else if constexpr (std::is_same_v<T, DataConsumedCallback>) {
+      if (mDataConsumedCallback) {
+        mDataConsumedCallback(std::forward<TArgs>(args)...);
+      }
+    } else if constexpr (std::is_same_v<T, EndOfStreamCallback>) {
+      if (mEndOfStreamCallback) {
+        mEndOfStreamCallback(std::forward<TArgs>(args)...);
+      }
+    } else if constexpr (std::is_same_v<T, RegionInfoCallback>) {
+      if (mRegionInfoCallback) {
+        mRegionInfoCallback(std::forward<TArgs>(args)...);
+      }
+    } else if constexpr (std::is_same_v<T, NewTimesliceCallback>) {
+      if (mNewTimesliceCallback) {
+        mNewTimesliceCallback(std::forward<TArgs>(args)...);
+      }
+    } else if constexpr (std::is_same_v<T, PreProcessingCallback>) {
+      switch (id) {
+        case Id::PreProcessing:
+          if (mPreProcessingCallback) {
+            mPreProcessingCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::PostProcessing:
+          if (mPostProcessingCallback) {
+            mPostProcessingCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        case Id::DeviceStateChanged:
+          if (mDeviceStateChangedCallback) {
+            mDeviceStateChangedCallback(std::forward<TArgs>(args)...);
+          }
+          break;
+        default:
+          throw std::runtime_error("Invalid callback type");
+      }
+    } else if constexpr (std::is_same_v<T, CCDBDeserializedCallback>) {
+      if (mCCDBDeserializedCallback) {
+        mCCDBDeserializedCallback(std::forward<TArgs>(args)...);
+      }
+    } else if constexpr (std::is_same_v<T, DomainInfoUpdatedCallback>) {
+      if (mDomainInfoUpdatedCallback) {
+        mDomainInfoUpdatedCallback(std::forward<TArgs>(args)...);
+      }
+    } else {
+      static_assert(always_static_assert_v<T>, "Unsupported callback type");
+    }
   }
 
  private:
-  Callbacks mCallbacks;
+  StartCallback mStartCallback;
+  StopCallback mStopCallback;
+  ResetCallback mResetCallback;
+  IdleCallback mIdleCallback;
+  ClockTickCallback mClockTickCallback;
+  DataConsumedCallback mDataConsumedCallback;
+  EndOfStreamCallback mEndOfStreamCallback;
+  RegionInfoCallback mRegionInfoCallback;
+  NewTimesliceCallback mNewTimesliceCallback;
+  PreProcessingCallback mPreProcessingCallback;
+  PostProcessingCallback mPostProcessingCallback;
+  CCDBDeserializedCallback mCCDBDeserializedCallback;
+  DomainInfoUpdatedCallback mDomainInfoUpdatedCallback;
+  DeviceStateChangedCallback mDeviceStateChangedCallback;
 };
 
 } // namespace o2::framework

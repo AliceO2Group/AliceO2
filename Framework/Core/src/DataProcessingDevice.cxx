@@ -164,7 +164,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     auto& control = ref.get<ControlService>();
     auto& callbacks = ref.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
-    callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
+    callbacks(CallbackService::Id::DeviceStateChanged, ServiceRegistryRef{ref}, (int)state);
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
@@ -2057,7 +2057,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       context.registry->postDispatchingCallbacks(processContext);
-      ref.get<CallbackService>()(CallbackService::Id::DataConsumed, *(context.registry));
+      ref.get<CallbackService>()(CallbackService::Id::DataConsumed, ServiceRegistryRef{*(context.registry)});
     }
     if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
       LOGP(debug, "Late forwarding");

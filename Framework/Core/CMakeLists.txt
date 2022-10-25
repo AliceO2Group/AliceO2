@@ -173,7 +173,6 @@ foreach(t
         ASoAHelpers
         BoostOptionsRetriever
         ConfigurationOptionsRetriever
-        CallbackRegistry
         ChannelSpecHelpers
         CheckTypes
         CompletionPolicy
