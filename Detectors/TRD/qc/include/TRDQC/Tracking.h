@@ -53,7 +53,7 @@ struct TrackQC {
   float dEdxTotTPC;  //< raw total dEdx information for seeding track in TPC
 
   // layer-wise information for seeding track and assigned tracklet (if available)
-  std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
+  std::array<bool, constants::NLAYER> findable{};  ///< flag if track was in geometrical acceptance
   std::array<float, constants::NLAYER> trackX{};   ///< x-position of seeding track (sector coordinates)
   std::array<float, constants::NLAYER> trackY{};   ///< y-position of seeding track (sector coordinates)
   std::array<float, constants::NLAYER> trackZ{};   ///< z-position of seeding track (sector coordinates)
