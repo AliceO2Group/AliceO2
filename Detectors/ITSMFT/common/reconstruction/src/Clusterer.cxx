@@ -69,13 +69,13 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 #ifndef WITH_OPENMP
     nThreads = 1;
 #endif
-    uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : (nThreads < 5 ? 5 : 1)) : nFired;
+    uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : 10) : nFired;
     int dynGrp = std::min(4, std::max(1, nThreads / 2));
     if (nThreads > mThreads.size()) {
       int oldSz = mThreads.size();
       mThreads.resize(nThreads);
       for (int i = oldSz; i < nThreads; i++) {
-        mThreads[i] = std::make_unique<ClustererThread>(this);
+        mThreads[i] = std::make_unique<ClustererThread>(this, i);
       }
     }
 #ifdef WITH_OPENMP
@@ -105,6 +105,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       size_t nClTot = 0, nPattTot = 0;
       int chid = 0, thrStatIdx[nThreads];
       for (int ith = 0; ith < nThreads; ith++) {
+        std::sort(mThreads[ith]->stats.begin(), mThreads[ith]->stats.end(), [](const ThreadStat& a, const ThreadStat& b) { return a.firstChip < b.firstChip; });
         thrStatIdx[ith] = 0;
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();
@@ -159,7 +160,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                                          const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
-  if (stats.empty() || stats.back().firstChip + stats.back().nChips < chip) { // there is a jump, register new block
+  if (stats.empty() || stats.back().firstChip + stats.back().nChips != chip) { // there is a jump, register new block
     stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
   }
   for (int ic = 0; ic < nChips; ic++) {
