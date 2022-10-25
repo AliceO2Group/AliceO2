@@ -26,7 +26,7 @@
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
-#include "DataFormatsEMCAL/Cell.h"
+//#include "DataFormatsEMCAL/CellCompressed.h"
 #include "EMCALBase/Geometry.h"
 // #include "CCDB/CcdbObjectInfo.h"
 
@@ -49,7 +49,7 @@ class EMCALCalibExtractor;
 class EMCALChannelData
 {
   //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
-  using Cells = o2::emcal::Cell;
+  // using Cells = o2::emcal::Cell;
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
   using BadChannelMap = o2::emcal::BadChannelMap;
 
@@ -79,7 +79,25 @@ class EMCALChannelData
   /// \brief Print a useful message about the container.
   void print();
   /// \brief Fill the container with the cell ID and amplitude.
-  void fill(const gsl::span<const o2::emcal::Cell> data);
+  template <typename CellType>
+  void fill(const gsl::span<const CellType> data)
+  {
+    //the fill function is called once per event
+    mEvents++;
+    for (auto cell : data) {
+      double cellEnergy = cell.getEnergy();
+      int id = cell.getTower();
+      LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
+      mHisto(cellEnergy, id);
+      mNEntriesInHisto++;
+
+      if (cellEnergy > o2::emcal::EMCALCalibParams::Instance().minCellEnergyTime_bc) {
+        double cellTime = cell.getTimeStamp();
+        LOG(debug) << "inserting in cell ID " << id << ": time = " << cellTime;
+        mHistoTime(cellTime, id);
+      }
+    }
+  }
   /// \brief Merge the data of two slots.
   void merge(const EMCALChannelData* prev);
   // int findBin(float v) const;

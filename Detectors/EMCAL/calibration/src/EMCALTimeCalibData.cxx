@@ -73,23 +73,6 @@ bool EMCALTimeCalibData::hasEnoughData() const
 
   return enough;
 }
-//_____________________________________________
-void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
-{
-  // the fill function is called once per event
-  mEvents++;
-
-  for (auto cell : data) {
-    double cellEnergy = cell.getEnergy();
-    double cellTime = cell.getTimeStamp();
-    int id = cell.getTower();
-    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergy_tc) {
-      LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
-      mTimeHisto(cellTime, id);
-      mNEntriesInHisto++;
-    }
-  }
-}
 
 //_____________________________________________
 o2::emcal::TimeCalibrationParams EMCALTimeCalibData::process()

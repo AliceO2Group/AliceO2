@@ -15,13 +15,17 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap> + ;
+#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::Cell> + ;
+#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::CellCompressed> + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::emcal::EMCALChannelData> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::emcal::Cell, o2::emcal::EMCALChannelData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::emcal::CellCompressed, o2::emcal::EMCALChannelData> + ;
 
-#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams> + ;
+#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::Cell> + ;
+#pragma link C++ class o2::emcal::EMCALChannelCalibrator < o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::CellCompressed> + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::emcal::EMCALTimeCalibData> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::emcal::Cell, o2::emcal::EMCALTimeCalibData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::emcal::CellCompressed, o2::emcal::EMCALTimeCalibData> + ;
 
 #pragma link C++ class o2::emcal::EMCALCalibParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::emcal::EMCALCalibParams> + ;

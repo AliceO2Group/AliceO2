@@ -45,25 +45,6 @@ std::ostream& operator<<(std::ostream& stream, const EMCALChannelData& emcdata)
   return stream;
 }
 //_____________________________________________
-void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
-{
-  //the fill function is called once per event
-  mEvents++;
-  for (auto cell : data) {
-    double cellEnergy = cell.getEnergy();
-    int id = cell.getTower();
-    LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
-    mHisto(cellEnergy, id);
-    mNEntriesInHisto++;
-
-    if (cellEnergy > o2::emcal::EMCALCalibParams::Instance().minCellEnergyTime_bc) {
-      double cellTime = cell.getTimeStamp();
-      LOG(debug) << "inserting in cell ID " << id << ": time = " << cellTime;
-      mHistoTime(cellTime, id);
-    }
-  }
-}
-//_____________________________________________
 void EMCALChannelData::print()
 {
   LOG(debug) << *this;

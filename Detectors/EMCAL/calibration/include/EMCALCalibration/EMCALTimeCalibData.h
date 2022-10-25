@@ -20,7 +20,6 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
-#include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
@@ -44,7 +43,7 @@ namespace emcal
 class EMCALTimeCalibData
 {
  public:
-  using Cells = o2::emcal::Cell;
+  //using Cells = o2::emcal::Cell;
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
@@ -63,7 +62,23 @@ class EMCALTimeCalibData
   ~EMCALTimeCalibData() = default;
 
   /// \brief Fill the container with the cell ID and amplitude and time information.
-  void fill(const gsl::span<const o2::emcal::Cell> data);
+  template <typename CellType>
+  void fill(const gsl::span<const CellType> data)
+  {
+    // the fill function is called once per event
+    mEvents++;
+
+    for (auto cell : data) {
+      double cellEnergy = cell.getEnergy();
+      double cellTime = cell.getTimeStamp();
+      int id = cell.getTower();
+      if (cellEnergy > EMCALCalibParams::Instance().minCellEnergy_tc) {
+        LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
+        mTimeHisto(cellTime, id);
+        mNEntriesInHisto++;
+      }
+    }
+  }
 
   /// \brief Merge the data of two slots.
   void merge(const EMCALTimeCalibData* prev);

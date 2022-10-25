@@ -38,6 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"calibType", VariantType::String, "time", {"choose which calibration should be performed: time for tiem calibration, badchannel for bad channel calibration"}},
+    {"cellType", VariantType::String, "CellCompressed", {"Specify cell input type, can be Cell or CellCompressed"}},
     {"no-loadCalibParamsFromCCDB", VariantType::Bool, false, {"disabled by default such that calib params are taken from the ccdb. If enabled, calib params are taken from EMCALCalibParams.h directly"}},
     {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}}};
 
@@ -53,9 +54,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::string calibType = cfgc.options().get<std::string>("calibType");
   bool loadCalibParamsFromCCDB = !cfgc.options().get<bool>("no-loadCalibParamsFromCCDB");
   bool rejectCalibTrigger = !cfgc.options().get<bool>("no-rejectCalibTrigger");
+  std::string cellType = cfgc.options().get<std::string>("cellType");
+  if (cellType != "Cell" && cellType != "CellCompressed") {
+    std::runtime_error(fmt::format("Cell type {} undefined, choose either Cell or CompressedCell", cellType.data()));
+  }
 
   WorkflowSpec specs;
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger));
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, cellType, loadCalibParamsFromCCDB, rejectCalibTrigger));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

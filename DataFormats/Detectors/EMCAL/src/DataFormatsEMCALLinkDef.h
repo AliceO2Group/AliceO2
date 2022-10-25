@@ -18,6 +18,7 @@
 #pragma link C++ class o2::emcal::TriggerRecord + ;
 #pragma link C++ class o2::dataformats::TimeStamp < Float16_t> + ;
 #pragma link C++ class o2::emcal::Cell + ;
+#pragma link C++ class o2::emcal::CellCompressed + ;
 #pragma link C++ class o2::emcal::Digit + ;
 #pragma link C++ class o2::emcal::Cluster + ;
 #pragma link C++ class o2::emcal::AnalysisCluster + ;
@@ -26,6 +27,7 @@
 
 #pragma link C++ class std::vector < o2::emcal::TriggerRecord> + ;
 #pragma link C++ class std::vector < o2::emcal::Cell> + ;
+#pragma link C++ class std::vector < o2::emcal::CellCompressed> + ;
 #pragma link C++ class std::vector < o2::emcal::Digit> + ;
 #pragma link C++ class std::vector < o2::emcal::Cluster> + ;
 #pragma link C++ class std::vector < o2::emcal::AnalysisCluster> + ;
