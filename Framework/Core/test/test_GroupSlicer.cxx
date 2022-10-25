@@ -14,6 +14,7 @@
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include <arrow/util/config.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -547,7 +548,11 @@ BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
   std::vector<uint64_t> offsts;
   auto status = sliceByColumn("fID", "BigE", b_e.asArrowTable(), 20, &slices, &offsts);
   for (auto i = 0u; i < 5; ++i) {
+#if ARROW_VERSION_MAJOR < 10
     auto tbl = arrow::util::get<std::shared_ptr<arrow::Table>>(slices[i].value);
+#else
+    auto tbl = slices[i].table();
+#endif
     auto ca = tbl->GetColumnByName("fArr");
     auto cb = tbl->GetColumnByName("fBoo");
     auto cv = tbl->GetColumnByName("fLst");
@@ -561,7 +566,11 @@ BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
 
   int j = 0u;
   for (auto i = 0u; i < 5; ++i) {
+#if ARROW_VERSION_MAJOR < 10
     auto tbl = BigE::table_t{arrow::util::get<std::shared_ptr<arrow::Table>>(slices[i].value), static_cast<uint64_t>(offsts[i])};
+#else
+    auto tbl = BigE::table_t{slices[i].table(), static_cast<uint64_t>(offsts[i])};
+#endif
     BOOST_CHECK_EQUAL(tbl.size(), counts[i]);
     for (auto& row : tbl) {
       BOOST_CHECK_EQUAL(row.id(), ids[i]);
