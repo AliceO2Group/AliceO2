@@ -2000,7 +2000,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           // Callbacks from services
           context.registry->preProcessingCallbacks(processContext);
           // Callbacks from users
-          ref.get<CallbackService>()(CallbackService::Id::PreProcessing, *(context.registry), (int)action.op);
+          ref.get<CallbackService>()(CallbackService::Id::PreProcessing, ServiceRegistryRef{*(context.registry)}, (int)action.op);
         }
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
@@ -2020,7 +2020,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         {
           ZoneScopedN("service post processing");
-          ref.get<CallbackService>()(CallbackService::Id::PostProcessing, *(context.registry), (int)action.op);
+          ref.get<CallbackService>()(CallbackService::Id::PostProcessing, ServiceRegistryRef{*(context.registry)}, (int)action.op);
           context.registry->postProcessingCallbacks(processContext);
         }
       }
