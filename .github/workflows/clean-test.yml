@@ -5,6 +5,16 @@ on:
       pr:
         description: PR to be cleaned
         required: true
+      check_o2_cc7:
+        description: build/O2/o2
+        type: boolean
+        required: false
+        default: true
+      check_o2_macos:
+        description: build/AliceO2/O2/o2/macOS
+        type: boolean
+        required: false
+        default: true
       checks:
         description: Checks to be cleaned
         required: true
