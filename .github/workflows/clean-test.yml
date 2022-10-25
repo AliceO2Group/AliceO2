@@ -35,10 +35,6 @@ on:
         type: boolean
         required: false
         default: true
-      checks:
-        description: Checks to be cleaned
-        required: true
-        default: 'build/O2/o2,build/AliceO2/O2/o2/macOS,build/O2/fullCI,build/O2/o2-cs8,build/O2/o2-dataflow,build/O2/o2-dataflow-cs8'
       owner:
         description: Organization
         required: true
@@ -90,16 +86,14 @@ jobs:
           EOF
           COMMIT=$(jq -r '.repository.pullRequest.commits.nodes[].commit.oid' results.json)
           echo $COMMIT
-          EXTRA_CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
-          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_macos && 'build/AliceO2/O2/o2/macOS' || ''}}"
-          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_fullci && 'build/O2/fullCI' || ''}}"
-          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_cs8 && 'build/O2/o2-cs8' || ''}}"
-          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_dataflow && 'build/O2/o2-dataflow' || ''}}"
-          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_dataflow_cs8 && 'build/O2/o2-dataflow-cs8' || ''}}"
-          for check in `echo ${{ github.event.inputs.checks }} | tr , \\\\n`; do
-            set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
-          done
-          for check in `echo $EXTRA_CHECKS | tr , \\\\n`; do
+          echo ${{ github.event.inputs.check_o2_macos }}
+          CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
+          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_macos == 'true' && 'build/AliceO2/O2/o2/macOS' || ''}}"
+          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_fullci == 'true' && 'build/O2/fullCI' || ''}}"
+          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_cs8 == 'true' && 'build/O2/o2-cs8' || ''}}"
+          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_dataflow == 'true' && 'build/O2/o2-dataflow' || ''}}"
+          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_dataflow_cs8 == 'true' && 'build/O2/o2-dataflow-cs8' || ''}}"
+          for check in `echo $CHECKS | tr , \\\\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
         env:
