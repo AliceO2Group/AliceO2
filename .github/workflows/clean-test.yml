@@ -88,12 +88,12 @@ jobs:
           echo $COMMIT
           echo ${{ github.event.inputs.check_o2_macos }}
           CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
-          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_macos == 'true' && 'build/AliceO2/O2/o2/macOS' || ''}}"
-          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_fullci == 'true' && 'build/O2/fullCI' || ''}}"
-          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_cs8 == 'true' && 'build/O2/o2-cs8' || ''}}"
-          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_dataflow == 'true' && 'build/O2/o2-dataflow' || ''}}"
-          CHECKS="${CHECKS}${CHECKS:+,}${{github.event.inputs.check_o2_dataflow_cs8 == 'true' && 'build/O2/o2-dataflow-cs8' || ''}}"
-          for check in `echo $CHECKS | tr , \\\\n`; do
+          CHECKS="${CHECKS},${{github.event.inputs.check_o2_macos == 'true' && 'build/AliceO2/O2/o2/macOS' || ''}}"
+          CHECKS="${CHECKS},${{github.event.inputs.check_o2_fullci == 'true' && 'build/O2/fullCI' || ''}}"
+          CHECKS="${CHECKS},${{github.event.inputs.check_o2_cs8 == 'true' && 'build/O2/o2-cs8' || ''}}"
+          CHECKS="${CHECKS},${{github.event.inputs.check_o2_dataflow == 'true' && 'build/O2/o2-dataflow' || ''}}"
+          CHECKS="${CHECKS},${{github.event.inputs.check_o2_dataflow_cs8 == 'true' && 'build/O2/o2-dataflow-cs8' || ''}}"
+          for check in `echo $CHECKS | sed -e "s/,\+/,/g;s/,$//;s/^,//" | tr , \\\\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
         env:
