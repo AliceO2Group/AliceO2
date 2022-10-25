@@ -60,6 +60,8 @@ jobs:
           EOF
           COMMIT=$(jq -r '.repository.pullRequest.commits.nodes[].commit.oid' results.json)
           echo $COMMIT
+          EXTRA_CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
+          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_macos && 'build/AliceO2/O2/o2/macOS' || ''}}"
           for check in `echo ${{ github.event.inputs.checks }} | tr , \\\\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
