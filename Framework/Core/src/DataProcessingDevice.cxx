@@ -2031,7 +2031,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       fair::Logger::SetConsoleSeverity(fair::Severity::trace);
     }
     if (noCatch) {
-      runNoCatch(action);
+      try {
+        runNoCatch(action);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (*context.errorHandling)(e, record);
+      }
     } else {
       try {
         runNoCatch(action);
