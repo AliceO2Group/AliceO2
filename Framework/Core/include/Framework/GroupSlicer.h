@@ -15,6 +15,7 @@
 #include "Framework/Pack.h"
 #include "Framework/Kernels.h"
 
+#include <arrow/util/config.h>
 #include <arrow/util/key_value_metadata.h>
 #include <type_traits>
 #include <string>
@@ -245,7 +246,11 @@ struct GroupSlicer {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
             }
+#if ARROW_VERSION_MAJOR < 10
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
+#else
+            auto groupedElementsTable = ((groups[index])[pos]).table();
+#endif
 
             // for each grouping element we need to slice the selection vector
             auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
@@ -265,7 +270,11 @@ struct GroupSlicer {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}};
             }
+#if ARROW_VERSION_MAJOR < 10
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
+#else
+            auto groupedElementsTable = ((groups[index])[pos]).table();
+#endif
             std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
             typedTable.bindInternalIndicesTo(&originalTable);
             return typedTable;
