@@ -85,7 +85,12 @@ if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   elif [[ $BEAMTYPE == "pp" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;fastMultConfig.cutRandomFraction=0.9;"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
+    if [[ "0$HIGH_RATE_PP" == "01" ]]; then
+      ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=0.95;"
+    else
+      ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=0.9;"
+    fi
   fi
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
