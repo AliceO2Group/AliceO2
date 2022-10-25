@@ -15,6 +15,26 @@ on:
         type: boolean
         required: false
         default: true
+      check_o2_fullci:
+        description: build/O2/fullCI
+        type: boolean
+        required: false
+        default: true
+      check_o2_cs8:
+        description: build/O2/o2-cs8
+        type: boolean
+        required: false
+        default: true
+      check_o2_dataflow:
+        description: build/O2/o2-dataflow
+        type: boolean
+        required: false
+        default: true
+      check_o2_dataflow_cs8:
+        description: build/O2/o2-dataflow-cs8
+        type: boolean
+        required: false
+        default: true
       checks:
         description: Checks to be cleaned
         required: true
@@ -72,7 +92,14 @@ jobs:
           echo $COMMIT
           EXTRA_CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
           EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_macos && 'build/AliceO2/O2/o2/macOS' || ''}}"
+          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_fullci && 'build/O2/fullCI' || ''}}"
+          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_cs8 && 'build/O2/o2-cs8' || ''}}"
+          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_dataflow && 'build/O2/o2-dataflow' || ''}}"
+          EXTRA_CHECKS="${EXTRA_CHECKS}${EXTRA_CHECKS:+,}${{github.event.inputs.check_o2_dataflow_cs8 && 'build/O2/o2-dataflow-cs8' || ''}}"
           for check in `echo ${{ github.event.inputs.checks }} | tr , \\\\n`; do
+            set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
+          done
+          for check in `echo $EXTRA_CHECKS | tr , \\\\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
         env:
