@@ -187,6 +187,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
         if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
           continue;
         }
+        const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
         auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
         auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
         if (!dcol && !drow) {
