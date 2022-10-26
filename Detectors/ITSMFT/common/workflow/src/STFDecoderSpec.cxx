@@ -149,8 +149,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) {                  // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec); // lot of copying involved
+    if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+      mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
       if (mDoCalibData) {
         mDecoder->fillCalibData(calVec);
       }

@@ -39,7 +39,13 @@ int DigitPixelReader::decodeNextTrigger()
     if (mROFRecVec[mIdROF].getNEntries() > 0) {
       mIdDig = 0; // jump to the 1st digit of the trigger
       mInteractionRecord = mROFRecVec[mIdROF].getBCData();
-      return mROFRecVec[mIdROF].getNEntries();
+      if (mSquashOverflowsDepth) {
+        auto nUsed = std::accumulate(mSquashedDigitsMask.begin() + mROFRecVec[mIdROF].getFirstEntry(),
+                                     mSquashedDigitsMask.begin() + mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries() - 1, 0);
+        return mROFRecVec[mIdROF].getNEntries() - nUsed;
+      } else {
+        return mROFRecVec[mIdROF].getNEntries();
+      }
     }
   }
   return 0;
@@ -75,7 +81,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   }
   chipData.clear();
   int did = mROFRecVec[mIdROF].getFirstEntry() + mIdDig;
-  chipData.setStartID(did); // for the MC references
+  chipData.setStartID(did); // for the MC references, not used if squashing
   const auto* digit = &mDigits[did];
   chipData.setChipID(digit->getChipIndex());
   chipData.setROFrame(mROFRecVec[mIdROF].getROFrame());
@@ -122,27 +128,22 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
     if (std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[idNextROF - 1].getBCData())) > mMaxBCSeparationToSquash) {
       break; // ROFs are too distant in BCs
     }
-    if (!mROFRecVec[idNextROF].getNEntries()) {
-      break; // if empty rof -> no persistent information
-    }
 
-    int nDigits{0};
+    int nDigitsNext{0};
     for (int i{mBookmarkNextROFs[iROF - 1]}; i < mROFRecVec[idNextROF].getFirstEntry() + mROFRecVec[idNextROF].getNEntries(); ++i) {
       if (mDigits[i].getChipIndex() < chipData.getChipID()) {
         ++mBookmarkNextROFs[iROF - 1];
       } else {
         if (mDigits[i].getChipIndex() == chipData.getChipID()) {
-          ++nDigits;
+          ++nDigitsNext;
         } else {
           break;
         }
       }
     }
-
-    if (!nDigits) { // No data related to this chip in next rof, we stop squashing, assuming continue persistence
+    if (!nDigitsNext) { // No data related to this chip in next rof, we stop squashing, assuming continue persistence
       break;
     }
-
     size_t initialSize{chipData.getData().size()};
     // Compile mask for repeated digits (digits with same row,col)
     for (size_t iPixel{0}, iDigitNext{0}; iPixel < initialSize; ++iPixel) {
@@ -150,13 +151,13 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
       // seek to iDigitNext which is inferior than itC - mMaxSquashDist
       auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
       auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
-      if (iDigitNext == nDigits) { // in case iDigitNext loop below reached the end
+      if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
         iDigitNext--;
       }
       while ((mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getColumn() > mincol || mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getRow() > minrow) && iDigitNext > 0) {
         iDigitNext--;
       }
-      for (; iDigitNext < nDigits; iDigitNext++) {
+      for (; iDigitNext < nDigitsNext; iDigitNext++) {
         if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
           continue;
         }
@@ -176,17 +177,16 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
       // seek to iDigitNext which is inferior than itC - mMaxSquashDist
       auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
       auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
-      if (iDigitNext == nDigits) { // in case iDigitNext loop below reached the end
+      if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
         iDigitNext--;
       }
       while ((mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getColumn() > mincol || mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getRow() > minrow) && iDigitNext > 0) {
         iDigitNext--;
       }
-      for (; iDigitNext < nDigits; iDigitNext++) {
+      for (; iDigitNext < nDigitsNext; iDigitNext++) {
         if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
           continue;
         }
-        const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
         auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
         auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
         if (!dcol && !drow) {
@@ -205,11 +205,10 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
           if (mDigitsMCTruth) {
             chipData.getPixIds().push_back(mBookmarkNextROFs[iROF - 1] + iDigitNext);
           }
-          break;
         }
       }
     }
-    mBookmarkNextROFs[iROF - 1] += nDigits;
+    mBookmarkNextROFs[iROF - 1] += nDigitsNext;
   }
   if (mSquashOverflowsDepth) {
     if (mDigitsMCTruth) {

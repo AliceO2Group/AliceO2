@@ -55,7 +55,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       nPix += curChipData->getData().size();
     }
 
-    auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), 0, compClus->size(), 0); // create new ROF
+    auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), vecROFRec->size(), compClus->size(), 0); // create new ROF
 
     uint16_t nFired = mFiredChipsPtr.size();
     if (!nFired) {
