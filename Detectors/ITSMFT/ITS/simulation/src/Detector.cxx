@@ -116,7 +116,7 @@ static void configITS(Detector* its)
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.2, 33.32};
-  const double wrpRMax[kNWrapVol] = {15.4, 29.14, 44.9};
+  const double wrpRMax[kNWrapVol] = {16.4, 29.14, 44.9};
   const double wrpZSpan[kNWrapVol] = {70., 93., 163.0};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
@@ -919,6 +919,7 @@ void Detector::constructDetectorGeometry()
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
 
+  mServicesGeometry->createIBGammaConvWire(wrapVols[0]);
   mServicesGeometry->createOBGammaConvWire(vITSV);
 
   // Finally create and place the cage
