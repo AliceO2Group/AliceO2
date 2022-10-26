@@ -53,7 +53,7 @@ class AODMcProducerWorkflowDPL : public Task
   TString mRecoPass{""};
   TStopwatch mTimer;
 
-  std::vector<std::string> mSimPrefixes;
+  std::string mSimPrefix;
 
   o2::aodhelpers::TripletsMap_t mToStore;
 

@@ -198,13 +198,7 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
 
   if (!mEnableEmbed) {
     // parse list of sim prefixes into vector
-    mMCHeaderFNames = ic.options().get<std::string>("mckine-fnames");
-    std::stringstream ss(mMCHeaderFNames);
-    while (ss.good()) {
-      std::string substr;
-      std::getline(ss, substr, ',');
-      mSimPrefixes.push_back(substr);
-    }
+    mSimPrefix = ic.options().get<std::string>("mckine-fname");
   }
 
   mTimer.Reset();
@@ -227,7 +221,7 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
 
   if (!mEnableEmbed) {
-    mcReader->initFromKinematics(mSimPrefixes);
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>(mSimPrefix, steer::MCKinematicsReader::Mode::kMCKine);
   } else {
     mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
   }
@@ -291,7 +285,6 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   fillMCParticlesTable(*mcReader, mcParticlesCursor);
 
   mMCColToEvSrc.clear();
-  mSimPrefixes.clear();
   mToStore.clear();
 
   originCursor(0, tfNumber);
@@ -349,7 +342,7 @@ DataProcessorSpec getAODMcProducerWorkflowSpec()
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"filter-mctracks", VariantType::Int, 1, {"Store only physical primary MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"enable-embedding", VariantType::Int, 0, {"Use collisioncontext.root to process embedded events"}},
-      ConfigParamSpec{"mckine-fnames", VariantType::String, "o2sim", {"List of comma-separated MC kinematics file names: e.g. 'bkg,sgn_1'. Used only if 'enable-embedding' is 0"}}}};
+      ConfigParamSpec{"mckine-fname", VariantType::String, "o2sim", {"MC kinematics file name prefix: e.g. 'o2sim', 'bkg', 'sgn_1'. Used only if 'enable-embedding' is 0"}}}};
 }
 
 } // namespace o2::aodmcproducer
