@@ -17,6 +17,8 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/Configuration.h"
+#include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/TriggerRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
@@ -1298,8 +1300,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleW = 0xFFFFFFFF;
     mMcParticlePos = 0xFFFFFFFF;
     mMcParticleMom = 0xFFFFFFFF;
-    mCaloAmp = 0xFFFFFFFF;  // todo check which truncation should actually be used
-    mCaloTime = 0xFFFFFFFF; // todo check which truncation should actually be used
+    mCaloAmp = 0xFFFFFFFF;
+    mCaloTime = 0xFFFFFFFF;
+    mCPVPos = 0xFFFFFFFF;
+    mCPVAmpl = 0xFFFFFFFF;
     mMuonTr1P = 0xFFFFFFFF;
     mMuonTrThetaX = 0xFFFFFFFF;
     mMuonTrThetaY = 0xFFFFFFFF;
@@ -1357,6 +1361,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto caloPHOSCells = recoData.getPHOSCells();
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+
+  auto cpvClusters = recoData.getCPVClusters();
+  auto cpvTrigRecs = recoData.getCPVTriggers();
+
   auto ctpDigits = recoData.getCTPDigits();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
@@ -1372,6 +1380,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(debug) << "FOUND " << fddRecPoints.size() << " FDD rec. points";
   LOG(debug) << "FOUND " << caloEMCCells.size() << " EMC cells";
   LOG(debug) << "FOUND " << caloEMCCellsTRGR.size() << " EMC Trigger Records";
+  LOG(debug) << "FOUND " << cpvClusters.size() << " CPV clusters";
+  LOG(debug) << "FOUND " << cpvTrigRecs.size() << " CPV trigger records";
 
   LOG(info) << "FOUND " << primVertices.size() << " primary vertices";
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
@@ -1400,6 +1410,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
   auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
+  auto& cpvClustersBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CPVCLUSTER"});
   auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
@@ -1428,6 +1439,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
+  auto cpvClustersCursor = cpvClustersBuilder.cursor<o2::aod::CPVClusters>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
@@ -1801,6 +1813,31 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mInputSources[GIndex::PHS]) {
     o2::phos::EventHandler<o2::phos::Cell> caloEventHandler;
     fillCaloTable(&caloEventHandler, caloPHOSCells, caloPHOSCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap, 0);
+  }
+
+  // fill cpvcluster table
+  if (mInputSources[GIndex::CPV]) {
+    float posX, posZ;
+    for (auto& cpvEvent : cpvTrigRecs) {
+      uint64_t bc = cpvEvent.getBCData().toLong();
+      auto item = bcsMap.find(bc);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a CPV Trigger Record; BC = " << bc;
+      }
+      for (int iClu = cpvEvent.getFirstEntry(); iClu < cpvEvent.getFirstEntry() + cpvEvent.getNumberOfObjects(); iClu++) {
+        auto& clu = cpvClusters[iClu];
+        clu.getLocalPosition(posX, posZ);
+        cpvClustersCursor(0,
+                          bcID,
+                          truncateFloatFraction(posX, mCPVPos),
+                          truncateFloatFraction(posZ, mCPVPos),
+                          truncateFloatFraction(clu.getEnergy(), mCPVAmpl),
+                          clu.getPackedClusterStatus());
+      }
+    }
   }
 
   bcsMap.clear();
@@ -2255,6 +2292,10 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
   }
+  if (src[GID::CPV]) {
+    dataRequest->requestCPVClusters(useMC);
+  }
+
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               true,                              // GRPLHCIF
@@ -2290,6 +2331,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2cpvCluster"}, "AOD", "CPVCLUSTER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
