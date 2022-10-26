@@ -616,7 +616,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 }
 
 bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata,
-                           long timestamp, bool preservePath, std::string const& localFileName) const
+                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore) const
 {
 
   // we setup the target path for this blob
@@ -632,7 +632,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   o2::pmr::vector<char> buff;
   std::map<std::string, std::string> headers;
   // avoid creating snapshot via loadFileToMemory itself
-  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", "", "", false);
+  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", createdNotAfter, createdNotBefore, false);
   if ((headers.count("Error") != 0) || (buff.empty())) {
     LOGP(error, "Unable to find object {}/{}, Aborting", path, timestamp);
     return false;
