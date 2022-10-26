@@ -275,7 +275,7 @@ elif [[ $EXTINPUT == 1 ]]; then
   PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=$EPNSYNCMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
   PROXY_IN_N=0
-  for i in `echo "$WORKFLOW_DETECTORS" | sed "s/,/ /g"`; do
+  for i in ${WORKFLOW_DETECTORS//,/ }; do
     if has_detector_flp_processing $i; then
       case $i in
         TOF)
