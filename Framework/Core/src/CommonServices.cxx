@@ -98,14 +98,14 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       service = monitoring;
       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
       assert(registry.get<DeviceSpec const>().name.empty() == false);
-      monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
+      monitoring->addGlobalTag("pipeline_id", std::to_string(registry.get<DeviceSpec const>().inputTimesliceId));
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
       monitoring->addGlobalTag("dpl_instance", options.GetPropertyAsString("shm-segment-id"));
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
     .start = [](ServiceRegistryRef services, void* service) {
-      o2::monitoring::Monitoring* monitoring = (o2::monitoring::Monitoring *) service;
+      auto* monitoring = (o2::monitoring::Monitoring *) service;
       auto& context = services.get<DataTakingContext>();
 
       try {
@@ -113,7 +113,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       } catch (...) {
       } },
     .exit = [](ServiceRegistryRef registry, void* service) {
-                       Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
+                       auto* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
     .kind = ServiceKind::Serial};
 }
