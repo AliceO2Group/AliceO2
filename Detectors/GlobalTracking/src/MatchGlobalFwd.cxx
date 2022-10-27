@@ -146,14 +146,14 @@ bool MatchGlobalFwd::prepareMCHData()
   }
   mMCHWork.reserve(mMCHTracks.size());
   static int BCDiffErrCount = 0;
-  constexpr int MAXBCDiffErrCount = 5;
+  constexpr int MAXBCDiffErrCount = 2;
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMCHTrackROFRec[irof];
 
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
-      if (BCDiffErrCount < MAXBCDiffErrCount) {
+      if (BCDiffErrCount++ < MAXBCDiffErrCount) {
         LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
     }
@@ -242,14 +242,14 @@ bool MatchGlobalFwd::prepareMFTData()
   mMFTWork.reserve(mMFTTracks.size());
 
   static int BCDiffErrCount = 0;
-  constexpr int MAXBCDiffErrCount = 5;
+  constexpr int MAXBCDiffErrCount = 2;
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
 
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
-      if (BCDiffErrCount < MAXBCDiffErrCount) {
+      if (BCDiffErrCount++ < MAXBCDiffErrCount) {
         LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
     }
