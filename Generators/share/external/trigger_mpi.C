@@ -8,7 +8,7 @@
 #include "Generators/Trigger.h"
 #include "Pythia8/Pythia.h"
 #include "TPythia6.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 o2::eventgen::DeepTrigger
   trigger_mpi(int mpiMin = 15)

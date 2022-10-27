@@ -18,7 +18,6 @@
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFT0/RecPoints.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
 #include "CommonUtils/NameConf.h"
@@ -54,7 +53,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "https://alice-ccdb.cern.ch");
 
 } // namespace ft0
 } // namespace o2

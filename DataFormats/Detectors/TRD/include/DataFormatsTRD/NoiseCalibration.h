@@ -16,6 +16,7 @@
 #include <bitset>
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Digit.h"
 
 namespace o2
 {
@@ -52,11 +53,21 @@ class NoiseStatusMCM
   bool getIsNoisy(int mcmIdxGlb) const { return mNoiseFlag.test(mcmIdxGlb); }
   auto getNumberOfNoisyMCMs() const { return mNoiseFlag.count(); }
   bool isTrackletFromNoisyMCM(const Tracklet64& trklt) const { return getIsNoisy(trklt.getHCID(), trklt.getROB(), trklt.getMCM()); }
+  bool isDigitFromNoisyMCM(const Digit& d) const { return getIsNoisy(d.getHCId(), d.getROB(), d.getMCM()); }
 
  private:
   std::bitset<constants::MAXHALFCHAMBER * constants::NMCMHCMAX> mNoiseFlag{};
 
   ClassDefNV(NoiseStatusMCM, 1);
+};
+
+struct PadAdcInfo {
+  // Struct for holding the relevant ADC information
+  // This is what is send to the aggregator
+  void fill(const gsl::span<const PadAdcInfo> input) {}
+  void merge(const PadAdcInfo* prev) {}
+  void print() {}
+  ClassDefNV(PadAdcInfo, 1);
 };
 
 } // namespace trd

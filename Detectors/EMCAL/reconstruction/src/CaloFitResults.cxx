@@ -12,7 +12,7 @@
 /// \file CaloFitResults.cxx
 /// \author Hadi Hassan (hadi.hassan@cern.ch)
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TMath.h"
 
 #include "EMCALReconstruction/CaloFitResults.h"

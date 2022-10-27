@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_PROCESSINGCONTEXT_H_
 #define O2_FRAMEWORK_PROCESSINGCONTEXT_H_
 
+#include "Framework/ServiceRegistryRef.h"
+
 namespace o2::framework
 {
 
@@ -23,7 +25,7 @@ struct InputRecord;
 class ProcessingContext
 {
  public:
-  ProcessingContext(InputRecord& inputs, ServiceRegistry& services, DataAllocator& allocator)
+  ProcessingContext(InputRecord& inputs, ServiceRegistryRef services, DataAllocator& allocator)
     : mInputs(inputs),
       mServices(services),
       mAllocator(allocator)
@@ -33,12 +35,12 @@ class ProcessingContext
   /// The inputs associated with this processing context.
   InputRecord& inputs() { return mInputs; }
   /// The services registry associated with this processing context.
-  ServiceRegistry& services() { return mServices; }
+  ServiceRegistryRef services() { return mServices; }
   /// The data allocator is used to allocate memory for the output data.
   DataAllocator& outputs() { return mAllocator; }
 
   InputRecord& mInputs;
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
   DataAllocator& mAllocator;
 };
 

@@ -39,6 +39,7 @@ namespace tpc
 class CalibdEdxContainer;
 struct ClusterGroupHeader;
 class VDriftHelper;
+class CorrectionMapsLoader;
 } // namespace tpc
 
 namespace trd
@@ -50,6 +51,7 @@ namespace gpu
 {
 struct GPUO2InterfaceConfiguration;
 class GPUDisplayFrontendInterface;
+class CorrectionMapsHelper;
 class TPCFastTransform;
 struct GPUSettingsTF;
 class GPUO2Interface;
@@ -112,7 +114,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2Interface> mTracker;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
+  std::unique_ptr<TPCFastTransform> mFastTransformRef;
   std::unique_ptr<TPCFastTransform> mFastTransformNew;
+  std::unique_ptr<TPCFastTransform> mFastTransformRefNew;
+  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
+  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelperNew;
+
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;

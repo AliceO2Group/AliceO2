@@ -50,13 +50,37 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData);
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<Trigger>& trigVec, std::vector<Digit>& digVec);
+  std::vector<Trigger> mTrgRecFilt;
+  std::vector<Digit> mDigDataFilt;
 };
 
 /// entropy-encode digits and to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData)
+{
+  if (mIRFrameSelector.isSet()) { // preselect data
+    mTrgRecFilt.clear();
+    mDigDataFilt.clear();
+    for (const auto& trig : trigData) {
+      if (mIRFrameSelector.check(trig.getIr()) >= 0) {
+        mTrgRecFilt.push_back(trig);
+        auto digIt = digData.begin() + trig.getFirstEntry();
+        auto& trigC = mTrgRecFilt.back();
+        trigC.setDataRange((int)mDigDataFilt.size(), trig.getNumberOfObjects());
+        std::copy(digIt, digIt + trig.getNumberOfObjects(), std::back_inserter(mDigDataFilt));
+      }
+    }
+    return encode_impl(buff, mTrgRecFilt, mDigDataFilt);
+  }
+  return encode_impl(buff, trigData, digData);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation

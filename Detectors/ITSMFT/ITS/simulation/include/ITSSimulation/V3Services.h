@@ -26,6 +26,8 @@ class TGeoXtru;
 
 class TGeoCombiTrans;
 
+class TGeoCompositeShape;
+
 class TGeoVolume;
 
 namespace o2
@@ -96,6 +98,16 @@ class V3Services : public V11Geometry
   /// \param mother the TGeoVolume owing the volume structure
   /// \param mgr  The GeoManager (used only to get the proper material)
   void createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Inner Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createIBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
  private:
   /// Creates a single Inner Barrel End Wheel on Side A
@@ -171,6 +183,22 @@ class V3Services : public V11Geometry
   /// \param mother  the volume containing the created wheel
   /// \param mgr  The GeoManager (used only to get the proper material)
   void obCYSS11(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Inner Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void ibConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the internal support of the Inner Barrel Gamma Conversion Wire
+  TGeoCompositeShape* ibConvWireIntSupport(const Bool_t left);
+
+  /// Creates the external support of the Inner Barrel Gamma Conversion Wire
+  TGeoCompositeShape* ibConvWireOutSupport();
+
+  /// Creates the Outer Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
   // Parameters
   static constexpr Int_t sNumberInnerLayers = 3; ///< Number of inner layers in ITSU

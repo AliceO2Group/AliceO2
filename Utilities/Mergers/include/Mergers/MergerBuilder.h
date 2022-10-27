@@ -50,6 +50,7 @@ class MergerBuilder
   void setInputSpecs(const framework::Inputs&);
   void setOutputSpec(const framework::OutputSpec&);
   void setTopologyPosition(size_t layer, size_t id);
+  void setTimePipeline(size_t timepipeline);
   void setConfig(MergerConfig);
 
   framework::DataProcessorSpec buildSpec();
@@ -76,6 +77,7 @@ class MergerBuilder
   std::string mName;
   size_t mId{0};
   size_t mLayer{1};
+  size_t mTimePipeline{1};
   framework::Inputs mInputSpecs;
   framework::OutputSpec mOutputSpec;
   MergerConfig mConfig;

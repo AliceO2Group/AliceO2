@@ -20,9 +20,9 @@
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
-//#include <TGeoArb8.h>           // for TGeoArb8
+#include <TGeoArb8.h>    // for TGeoArb8
 #include <TGeoBBox.h>    // for TGeoBBox
 #include <TGeoCone.h>    // for TGeoConeSeg, TGeoCone
 #include <TGeoPcon.h>    // for TGeoPcon
@@ -310,6 +310,46 @@ void V3Services::createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr
   // Last change:  14 Apr 2022  Matteo Concas
 
   obCYSS11(mother, mgr);
+}
+
+void V3Services::createIBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Inner Barrel Gamma Conversion Wire
+  // Volume and method names correspond to element names in blueprints
+  //
+  // Input:
+  //         mother : the volume hosting the cones
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      28 Sep 2022  Mario Sitta
+  //
+
+  ibConvWire(mother, mgr);
+}
+
+void V3Services::createOBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel Gamma Conversion Wire
+  // Volume and method names correspond to element names in blueprints
+  //
+  // Input:
+  //         mother : the volume hosting the cones
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      08 Sep 2022  Mario Sitta
+  //
+
+  obConvWire(mother, mgr);
 }
 
 void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
@@ -2489,4 +2529,539 @@ void V3Services::obCYSS11(TGeoVolume* mother, const TGeoManager* mgr)
   mother->AddNode(obCyss20Vol, 2, new TGeoTranslation(-xpos, ypos, 0));
   mother->AddNode(obCyss20Vol, 3, new TGeoTranslation(xpos, -ypos, 0));
   mother->AddNode(obCyss20Vol, 4, new TGeoTranslation(-xpos, -ypos, 0));
+}
+
+void V3Services::ibConvWire(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the 1mm wire for Gamma Conversion studies and its supports
+  // Blueprints (from EDMS) : ALIITSUP0949 (the whole assembly)
+  //                          ALIITSUP0469 (the actual wire)
+  //                          ALIITSUP0466 (each tension screw)
+  //                          ALIITSUP0918 (the inner support plate)
+  //                          ALIITSUP0914 (the outer support plate)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cylinder
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      28 Sep 2022  Mario Sitta
+  //
+
+  // The wire itself
+  static const Double_t sIBGWireLength = 492.0 * sMm;
+  static const Double_t sIBGWireDiam = 1.0 * sMm;
+
+  static const Double_t sIBGWireXPosIn = 55.1 * sMm;
+  static const Double_t sIBGWireXPosOut = 148.6 * sMm;
+  static const Double_t sIBGWireYPos = 14.0 * sMm;
+  static const Double_t sIBGWireZPos = 68.25 * sMm;
+  static const Double_t sIBGWirePhiPos = 10.9;  // Deg
+  static const Double_t sIBGWireThetaPos = 8.7; // Deg
+
+  // The inner wire support
+  static const Double_t sIBGWireIntSuppBaseCentWid = 11.54 * sMm;
+  static const Double_t sIBGWireIntSuppBaseCentHi = 11.3 * sMm;
+  static const Double_t sIBGWireIntSuppBaseCentThik = 3.9 * sMm;
+
+  static const Double_t sIBGWireIntSuppZpos = 171.5 * sMm;
+  static const Double_t sIBGWireIntSuppXDist = 116.2 * sMm;
+
+  // The outer wire support
+  static const Double_t sIBGWireOutSuppLength = 26.5 * sMm;
+  static const Double_t sIBGWireOutSuppThick = 3.0 * sMm;
+
+  static const Double_t sIBGWireOutSuppHoleXpos = 16.0 * sMm;
+  static const Double_t sIBGWireOutSuppXDist = 292.0 * sMm;
+  static const Double_t sIBGWireOutSuppYpos = 1.0 * sMm;
+  static const Double_t sIBGWireOutSuppZpos = 312.9 * sMm;
+
+  // Local variables
+  Double_t xpos, ypos, zpos;
+
+  // The wire: a Tube
+  TGeoTube* ibWireSh = new TGeoTube(0, sIBGWireDiam / 2, sIBGWireLength / 2);
+
+  // Create the support shapes
+  TGeoCompositeShape* ibWireIntSuppLeftSh = ibConvWireIntSupport(kTRUE);
+  TGeoCompositeShape* ibWireIntSuppRightSh = ibConvWireIntSupport(kFALSE);
+  TGeoCompositeShape* ibWireOutSuppSh = ibConvWireOutSupport();
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medAl = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
+
+  TGeoVolume* ibWireVol = new TGeoVolume("IBGammaConvWire", ibWireSh, medTungsten);
+  ibWireVol->SetFillColor(kGray);
+  ibWireVol->SetLineColor(kGray);
+
+  TGeoVolume* ibWireIntSuppLeftVol = new TGeoVolume("IBGammaConvWireInnerSupportLeft", ibWireIntSuppLeftSh, medAl);
+  ibWireIntSuppLeftVol->SetFillColor(kRed);
+  ibWireIntSuppLeftVol->SetLineColor(kRed);
+
+  TGeoVolume* ibWireIntSuppRightVol = new TGeoVolume("IBGammaConvWireInnerSupportRight", ibWireIntSuppRightSh, medAl);
+  ibWireIntSuppRightVol->SetFillColor(kRed);
+  ibWireIntSuppRightVol->SetLineColor(kRed);
+
+  TGeoVolume* ibWireOutSuppVol = new TGeoVolume("IBGammaConvWireOuterSupport", ibWireOutSuppSh, medAl);
+  ibWireOutSuppVol->SetFillColor(kRed);
+  ibWireOutSuppVol->SetLineColor(kRed);
+
+  // Finally put everything in the mother volume
+  xpos = (sIBGWireXPosIn + sIBGWireXPosOut) / 2;
+  ypos = sIBGWireYPos;
+  zpos = sIBGWireZPos;
+  mother->AddNode(ibWireVol, 1, new TGeoCombiTrans(xpos, -ypos, zpos, new TGeoRotation("", 90 - sIBGWireThetaPos, sIBGWirePhiPos, 0)));
+  mother->AddNode(ibWireVol, 2, new TGeoCombiTrans(-xpos, -ypos, zpos, new TGeoRotation("", 90 + sIBGWireThetaPos, -sIBGWirePhiPos, 0)));
+
+  xpos = sIBGWireIntSuppXDist / 2 - sIBGWireIntSuppBaseCentWid / 2;
+  ypos = sIBGWireIntSuppBaseCentHi / 2;
+  zpos = sIBGWireIntSuppZpos + sIBGWireIntSuppBaseCentThik;
+  mother->AddNode(ibWireIntSuppLeftVol, 1, new TGeoTranslation(xpos, -ypos, -zpos));
+  mother->AddNode(ibWireIntSuppRightVol, 1, new TGeoTranslation(-xpos, -ypos, -zpos));
+
+  xpos = sIBGWireOutSuppXDist / 2 - sIBGWireOutSuppHoleXpos;
+  ypos = -sIBGWireOutSuppLength - sIBGWireOutSuppYpos;
+  zpos = sIBGWireOutSuppZpos - sIBGWireOutSuppThick;
+  mother->AddNode(ibWireOutSuppVol, 1, new TGeoTranslation(xpos, ypos, zpos));
+
+  zpos = sIBGWireOutSuppZpos;
+  mother->AddNode(ibWireOutSuppVol, 2, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 180, 180, 0)));
+}
+
+TGeoCompositeShape* V3Services::ibConvWireIntSupport(const Bool_t left)
+{
+  //
+  // Creates the shape of the internal support of the Inner Barrel Gamma
+  // Conversion wire: being pretty complicate, we devote a dedicate method
+  // for it; the shape is a bit simplified but the total material budget
+  // is preserved
+  // The left and right supports are specular (or better, chiral), so we
+  // cannot create one volume and place two copies one of them rotated,
+  // but we have to create two different (specular) copies
+  // Blueprints (from EDMS) : ALIITSUP0918, ALIITSUP0919
+  //
+  // Input:
+  //         left : if true create the left copy, otherwise the right copy
+  //
+  // Output:
+  //
+  // Return:
+  //         The support shape as a TGeoCompositeShape
+  //
+  // Created:      01 Oct 2022  Mario Sitta
+  //
+
+  // The outer wire support
+  static const Double_t sIBGWireIntSuppBaseFullWid = 19.5 * sMm;
+  static const Double_t sIBGWireIntSuppBaseFullSpan = 18.5 * sMm;
+  static const Double_t sIBGWireIntSuppBaseOutSpan = 2.5 * sMm;
+  static const Double_t sIBGWireIntSuppBaseCentWid = 11.94 * sMm;
+  static const Double_t sIBGWireIntSuppBaseCentHi = 11.3 * sMm;
+  static const Double_t sIBGWireIntSuppBaseCentThik = 3.9 * sMm;
+  static const Double_t sIBGWireIntSuppFingerLen = 9.6 * sMm;
+  static const Double_t sIBGWireIntSuppFingerWid = 4.8 * sMm;
+  static const Double_t sIBGWireIntSuppFingerShift = 1.4 * sMm;
+  static const Double_t sIBGWireIntSuppFingerThik = 8.1 * sMm;
+  static const Double_t sIBGWireIntSuppFingerPhi = 15.0; // Deg
+  static const Double_t sIBGWireIntSuppSpikyWid = 10.0 * sMm;
+  static const Double_t sIBGWireIntSuppSpikyHi = 12.6 * sMm;
+  static const Double_t sIBGWireIntSuppSpikyXin = 2.5 * sMm;
+  static const Double_t sIBGWireIntSuppSpikyYin = 9.2 * sMm;
+  static const Double_t sIBGWireIntSuppSpikyThik = 3.0 * sMm;
+
+  // Local variables
+  Double_t xtru[11], ytru[11];
+  Double_t xlen, ylen, zlen;
+  Double_t xpos, ypos, zpos, phirot;
+
+  Int_t shapeId = 0;
+  if (left)
+    shapeId = 1;
+
+  // The outer wire support parts:
+  // - the central part: a BBox
+  xlen = (sIBGWireIntSuppBaseCentWid + sIBGWireIntSuppFingerShift) / 2;
+  ylen = sIBGWireIntSuppBaseCentHi / 2;
+  zlen = sIBGWireIntSuppBaseCentThik / 2;
+  TGeoBBox* intSuppCent = new TGeoBBox(xlen, ylen, zlen);
+  intSuppCent->SetName(Form("suppcent%d", shapeId));
+
+  // - the lateral part: a Xtru
+  xtru[0] = 0;
+  ytru[0] = 0;
+  xtru[1] = sIBGWireIntSuppBaseFullWid - sIBGWireIntSuppBaseCentWid;
+  ytru[1] = ytru[0];
+  xtru[2] = xtru[1] + sIBGWireIntSuppFingerLen * TMath::Cos(sIBGWireIntSuppFingerPhi * TMath::DegToRad());
+  ytru[2] = sIBGWireIntSuppFingerLen * TMath::Sin(sIBGWireIntSuppFingerPhi * TMath::DegToRad());
+  xtru[3] = xtru[2] - sIBGWireIntSuppFingerWid * TMath::Sin(sIBGWireIntSuppFingerPhi * TMath::DegToRad());
+  ytru[3] = ytru[2] + sIBGWireIntSuppFingerWid * TMath::Cos(sIBGWireIntSuppFingerPhi * TMath::DegToRad());
+  xtru[4] = xtru[1];
+  ytru[4] = ytru[3] - sIBGWireIntSuppFingerLen * TMath::Sin(sIBGWireIntSuppFingerPhi * TMath::DegToRad());
+  xtru[5] = sIBGWireIntSuppBaseOutSpan;
+  ytru[5] = sIBGWireIntSuppBaseCentHi;
+  xtru[6] = -sIBGWireIntSuppFingerShift;
+  ytru[6] = ytru[5];
+
+  TGeoXtru* intSuppFing = new TGeoXtru(2);
+  intSuppFing->DefinePolygon(7, xtru, ytru);
+  intSuppFing->DefineSection(0, 0);
+  intSuppFing->DefineSection(1, sIBGWireIntSuppFingerThik);
+  intSuppFing->SetName(Form("suppfinger%d", shapeId));
+
+  ypos = -intSuppCent->GetDY();
+  if (left) {
+    xpos = -intSuppCent->GetDX();
+    zpos = -intSuppCent->GetDZ() + sIBGWireIntSuppFingerThik;
+    phirot = 180;
+  } else {
+    xpos = intSuppCent->GetDX();
+    zpos = -intSuppCent->GetDZ();
+    phirot = 0;
+  }
+  TGeoCombiTrans* intSuppFingMat = new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phirot, phirot, 0));
+  intSuppFingMat->SetName(Form("suppfingermat%d", shapeId));
+  intSuppFingMat->RegisterYourself();
+
+  // - the spiky part: a Xtru
+  xtru[0] = 0;
+  ytru[0] = 0;
+  xtru[1] = sIBGWireIntSuppBaseCentWid;
+  ytru[1] = ytru[0];
+  xtru[2] = xtru[1];
+  ytru[2] = sIBGWireIntSuppBaseCentHi;
+  xtru[3] = xtru[2] - (sIBGWireIntSuppBaseFullSpan - sIBGWireIntSuppSpikyWid - sIBGWireIntSuppBaseOutSpan);
+  ytru[3] = ytru[2];
+  xtru[4] = xtru[3];
+  ytru[4] = ytru[3] + sIBGWireIntSuppSpikyHi;
+  xtru[5] = xtru[4] - (sIBGWireIntSuppSpikyWid - sIBGWireIntSuppSpikyXin) / 2;
+  ytru[5] = ytru[4] - (sIBGWireIntSuppSpikyHi - sIBGWireIntSuppSpikyYin);
+  xtru[6] = xtru[5];
+  ytru[6] = ytru[3];
+  xtru[7] = xtru[6] - sIBGWireIntSuppSpikyXin;
+  ytru[7] = ytru[6];
+  xtru[8] = xtru[7];
+  ytru[8] = ytru[5];
+  xtru[9] = xtru[8] - (sIBGWireIntSuppSpikyWid - sIBGWireIntSuppSpikyXin) / 2;
+  ytru[9] = ytru[4];
+  xtru[10] = xtru[9];
+  ytru[10] = ytru[3];
+
+  TGeoXtru* intSuppSpiky = new TGeoXtru(2);
+  intSuppSpiky->DefinePolygon(11, xtru, ytru);
+  intSuppSpiky->DefineSection(0, 0);
+  intSuppSpiky->DefineSection(1, sIBGWireIntSuppSpikyThik);
+  intSuppSpiky->SetName(Form("suppspiky%d", shapeId));
+
+  ypos = -intSuppCent->GetDY();
+  if (left) {
+    xpos = intSuppCent->GetDX();
+    zpos = intSuppCent->GetDZ() - sIBGWireIntSuppSpikyThik;
+    phirot = 180;
+  } else {
+    xpos = -intSuppCent->GetDX();
+    zpos = -intSuppCent->GetDZ() - sIBGWireIntSuppSpikyThik;
+    phirot = 0;
+  }
+  TGeoCombiTrans* intSuppSpikyMat = new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phirot, phirot, 0));
+  intSuppSpikyMat->SetName(Form("suppspikymat%d", shapeId));
+  intSuppSpikyMat->RegisterYourself();
+
+  // The actual wire outer support: a CompositeShape
+  TString compoShape = Form("suppcent%d", shapeId);
+  compoShape += Form("+suppfinger%d:suppfingermat%d", shapeId, shapeId);
+  compoShape += Form("+suppspiky%d:suppspikymat%d", shapeId, shapeId);
+  TGeoCompositeShape* supportShape = new TGeoCompositeShape(compoShape);
+
+  // Finally return the support shape
+  return supportShape;
+}
+
+TGeoCompositeShape* V3Services::ibConvWireOutSupport()
+{
+  //
+  // Creates the shape of the external support of the Inner Barrel Gamma
+  // Conversion wire: being pretty complicate, we devote a dedicate method
+  // for it; the shape is a bit simplified but the total material budget
+  // is preserved
+  // Blueprints (from EDMS) : ALIITSUP0914
+  //
+  // Input:
+  //
+  // Output:
+  //
+  // Return:
+  //         The support shape as a TGeoCompositeShape
+  //
+  // Created:      30 Sep 2022  Mario Sitta
+  //
+
+  // The outer wire support
+  static const Double_t sIBGWireOutSuppWideIn = 22.5 * sMm;
+  static const Double_t sIBGWireOutSuppWideOut = 24.0 * sMm;
+  static const Double_t sIBGWireOutSuppWideTot = 31.0 * sMm;
+  static const Double_t sIBGWireOutSuppLenIn = 8.0 * sMm;
+  static const Double_t sIBGWireOutSuppLenOut = 9.3 * sMm;
+  static const Double_t sIBGWireOutSuppLength = 26.5 * sMm;
+  static const Double_t sIBGWireOutSuppLenToSide = 10.5 * sMm;
+  static const Double_t sIBGWireOutSuppThick = 3.0 * sMm;
+  static const Double_t sIBGWireOutSuppPhi = 30.0; // Deg
+  static const Double_t sIBGWireOutSuppLenToPlate = 16.3 * sMm;
+  static const Double_t sIBGWireOutSuppWidToPlate = 27.75 * sMm;
+  static const Double_t sIBGWireOutSuppPlateWid = 17.0 * sMm;
+
+  // Local variables
+  Double_t xtru[8], ytru[8], xyarb[16];
+  Double_t xlen, ylen, zlen;
+  Double_t xpos, ypos, zpos;
+
+  // The outer wire support parts:
+  // - the base: a Xtru
+  xtru[0] = 0;
+  ytru[0] = 0;
+  xtru[1] = sIBGWireOutSuppWideIn;
+  ytru[1] = ytru[0];
+  xtru[2] = xtru[1];
+  xtru[3] = sIBGWireOutSuppWideOut;
+  ytru[3] = sIBGWireOutSuppLenToSide;
+  ytru[2] = ytru[3] - (xtru[3] - xtru[2]) * TMath::Tan((90 - sIBGWireOutSuppPhi) * TMath::DegToRad());
+  xtru[4] = xtru[3];
+  ytru[4] = sIBGWireOutSuppLength - sIBGWireOutSuppLenIn;
+  xtru[5] = xtru[2];
+  ytru[5] = ytru[4];
+  xtru[6] = xtru[5];
+  ytru[6] = sIBGWireOutSuppLength;
+  xtru[7] = xtru[0];
+  ytru[7] = ytru[6];
+
+  TGeoXtru* ibWireOutSuppBase = new TGeoXtru(2);
+  ibWireOutSuppBase->DefinePolygon(8, xtru, ytru);
+  ibWireOutSuppBase->DefineSection(0, 0);
+  ibWireOutSuppBase->DefineSection(1, sIBGWireOutSuppThick);
+  ibWireOutSuppBase->SetName("ibwireoutsuppbase");
+
+  // - the inclined side: an Arb8
+  zlen = ibWireOutSuppBase->GetY(4) - ibWireOutSuppBase->GetY(3);
+  ylen = zlen * TMath::Tan(sIBGWireOutSuppPhi * TMath::DegToRad());
+
+  xyarb[0] = sIBGWireOutSuppThick / 2;
+  xyarb[1] = 0;
+
+  xyarb[2] = -sIBGWireOutSuppThick / 2;
+  xyarb[3] = 0;
+
+  xyarb[4] = xyarb[2];
+  xyarb[5] = 0.0;
+
+  xyarb[6] = xyarb[0];
+  xyarb[7] = 0.0;
+
+  xyarb[8] = sIBGWireOutSuppPlateWid / 2;
+  xyarb[9] = 0;
+
+  xyarb[10] = -sIBGWireOutSuppPlateWid / 2;
+  xyarb[11] = 0;
+
+  xyarb[12] = xyarb[10];
+  xyarb[13] = ylen;
+
+  xyarb[14] = xyarb[8];
+  xyarb[15] = ylen;
+
+  TGeoArb8* ibWireOutSuppArb = new TGeoArb8(zlen / 2, xyarb);
+  ibWireOutSuppArb->SetName("ibwireoutsupparb");
+
+  xpos = ibWireOutSuppBase->GetX(3);
+  ypos = (ibWireOutSuppBase->GetY(3) + ibWireOutSuppBase->GetY(4)) / 2;
+  zpos = sIBGWireOutSuppThick / 2;
+  TGeoCombiTrans* ibOutSuppArbMat = new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, -90, -90));
+  ibOutSuppArbMat->SetName("iboutsupparbmat");
+  ibOutSuppArbMat->RegisterYourself();
+
+  // - the vertical plate: a BBox
+  xlen = sIBGWireOutSuppWideTot - sIBGWireOutSuppWidToPlate;
+  ylen = sIBGWireOutSuppLength + sIBGWireOutSuppLenOut - ibWireOutSuppBase->GetY(4);
+  zlen = sIBGWireOutSuppPlateWid;
+  TGeoBBox* ibWireOutSuppPlate = new TGeoBBox(xlen / 2, ylen / 2, zlen / 2);
+  ibWireOutSuppPlate->SetName("ibwireoutsuppplate");
+
+  xpos += (xyarb[15] - ibWireOutSuppPlate->GetDX());
+  ypos += (ibWireOutSuppArb->GetDz() + ibWireOutSuppPlate->GetDY());
+  TGeoTranslation* ibOutSuppPlateMat = new TGeoTranslation(xpos, ypos, zpos);
+  ibOutSuppPlateMat->SetName("iboutsuppplatemat");
+  ibOutSuppPlateMat->RegisterYourself();
+
+  // The actual wire outer support: a CompositeShape
+  TGeoCompositeShape* supportShape = new TGeoCompositeShape("ibwireoutsuppbase+ibwireoutsupparb:iboutsupparbmat+ibwireoutsuppplate:iboutsuppplatemat");
+
+  // Finally return the support shape
+  return supportShape;
+}
+
+void V3Services::obConvWire(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the 1mm wire for Gamma Conversion studies and its supports
+  // Blueprints (from EDMS) : ALIITSUP0870 (the whole assembly)
+  //                          ALIITSUP0869 (the actual wire)
+  //                          ALIITSUP0868 (each tension screw)
+  //                          ALIITSUP0866 (the support plate)
+  //                          ALIITSUP0867 (each wire holder)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cylinder
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      08 Sep 2022  Mario Sitta
+  //
+
+  // The wire
+  static const Double_t sOBGWireOverallLen = 1014.0 * sMm;
+  static const Double_t sOBGWireDout = 1.0 * sMm;
+
+  // The wire support
+  static const Double_t sOBGWireSuppLenTot = 55.0 * sMm;
+  static const Double_t sOBGWireSuppLenWide = (16.5 + 18.0) * sMm;
+  static const Double_t sOBGWireSuppLenNarrow = 3.5 * sMm;
+  static const Double_t sOBGWireSuppWideMin = 15.0 * sMm;
+  static const Double_t sOBGWireSuppWideMax = 20.0 * sMm;
+  static const Double_t sOBGWireSuppThick = 1.8 * sMm;
+  static const Double_t sOBGWireSuppBulgeH = 5.0 * sMm;
+  static const Double_t sOBGWireSuppBulgeD = 5.9 * sMm;
+  static const Double_t sOBGWireSuppBulgeYdist = 21.0 * sMm;
+  static const Double_t sOBGWireSuppHoleYpos = 16.5 * sMm;
+  static const Double_t sOBGWireSuppCylDmin = 3.1 * sMm;
+  static const Double_t sOBGWireSuppCylDmax = 6.0 * sMm;
+
+  static const Double_t sOBGWireSuppZpos = 487.5 * sMm;
+  static const Double_t sOBGWireSuppXtrans = 4.8 * sMm;
+  static const Double_t sOBGWireSuppYtrans = 4.7 * sMm;
+
+  // The wire screw
+  static const Double_t sOBGWireScrewDout = 3.0 * sMm;
+  static const Double_t sOBGWireScrewLen = 37.0 * sMm;
+
+  // Local variables
+  Double_t xtru[8], ytru[8];
+  Double_t zlen, radius;
+  Double_t xpos, ypos, zpos;
+
+  // The wire: a Tube
+  zlen = sOBGWireOverallLen - 2 * sOBGWireScrewLen;
+  TGeoTube* obWireSh = new TGeoTube(0, sOBGWireDout / 2, zlen / 2);
+
+  // The wire support parts:
+  // - the base: a Xtru
+  zpos = sOBGWireSuppLenTot - 0.5 * sOBGWireSuppCylDmax - sOBGWireSuppLenNarrow;
+
+  xtru[0] = sOBGWireSuppWideMax / 2;
+  ytru[0] = 0.;
+  xtru[1] = xtru[0];
+  ytru[1] = sOBGWireSuppLenWide;
+  xtru[2] = sOBGWireSuppWideMin / 2;
+  ytru[2] = zpos;
+  xtru[3] = xtru[2];
+  ytru[3] = ytru[2] + sOBGWireSuppLenNarrow;
+  for (Int_t j = 0; j < 4; j++) {
+    xtru[4 + j] = -xtru[3 - j];
+    ytru[4 + j] = ytru[3 - j];
+  }
+
+  TGeoXtru* obWireSuppBase = new TGeoXtru(2);
+  obWireSuppBase->DefinePolygon(8, xtru, ytru);
+  obWireSuppBase->DefineSection(0, 0);
+  obWireSuppBase->DefineSection(1, sOBGWireSuppThick);
+  obWireSuppBase->SetName("obwiresuppbase");
+
+  // - the screw bulge: a Tube
+  TGeoTube* obWireSuppBulge = new TGeoTube(0, sOBGWireSuppBulgeD / 2, sOBGWireSuppBulgeH / 2);
+  obWireSuppBulge->SetName("obwiresuppbulge");
+
+  ypos = sOBGWireSuppHoleYpos - 0.5 * sOBGWireSuppBulgeYdist;
+  zpos = sOBGWireSuppThick + obWireSuppBulge->GetDz();
+  TGeoTranslation* obWireSuppBulgeMat1 = new TGeoTranslation(0, ypos, zpos);
+  obWireSuppBulgeMat1->SetName("obwiresuppbulgemat1");
+  obWireSuppBulgeMat1->RegisterYourself();
+
+  ypos = sOBGWireSuppHoleYpos + 0.5 * sOBGWireSuppBulgeYdist;
+  TGeoTranslation* obWireSuppBulgeMat2 = new TGeoTranslation(0, ypos, zpos);
+  obWireSuppBulgeMat2->SetName("obwiresuppbulgemat2");
+  obWireSuppBulgeMat2->RegisterYourself();
+
+  // - the terminal cylinder: a Tube
+  TGeoTube* obWireSuppCyl = new TGeoTube(0, sOBGWireSuppCylDmax / 2, xtru[3]);
+  obWireSuppCyl->SetName("obwiresuppcyl");
+
+  ypos = ytru[3];
+  zpos = obWireSuppCyl->GetRmax();
+  TGeoCombiTrans* obWireSuppCylMat = new TGeoCombiTrans(0, ypos, zpos, new TGeoRotation("", 90, 90, 0));
+  obWireSuppCylMat->SetName("obwiresuppcylmat");
+  obWireSuppCylMat->RegisterYourself();
+
+  // - the terminal cylinder hole: a Tube
+  TGeoTube* obWireSuppCylHol = new TGeoTube(0, sOBGWireSuppCylDmin / 2, 1.05 * xtru[3]);
+  obWireSuppCylHol->SetName("obwiresuppcylhol");
+
+  TGeoCombiTrans* obWireSuppCylHolMat = new TGeoCombiTrans(0, ypos, zpos, new TGeoRotation("", 90, 90, 0));
+  obWireSuppCylHolMat->SetName("obwiresuppcylholmat");
+  obWireSuppCylHolMat->RegisterYourself();
+
+  // The actual wire support: a CompositeShape
+  TGeoCompositeShape* obWireSuppSh = new TGeoCompositeShape("obwiresuppbase+obwiresuppbulge:obwiresuppbulgemat1+obwiresuppbulge:obwiresuppbulgemat2+obwiresuppcyl:obwiresuppcylmat-obwiresuppcylhol:obwiresuppcylholmat");
+
+  // The wire screw: a Tube
+  TGeoTube* obWireScrewSh = new TGeoTube(0, sOBGWireScrewDout / 2, sOBGWireScrewLen / 2);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
+  TGeoMedium* medTitanium = mgr->GetMedium("ITS_TITANIUM$");
+  TGeoMedium* medBrass = mgr->GetMedium("ITS_BRASS$");
+
+  TGeoVolume* obWireVol = new TGeoVolume("OBGammaConvWire", obWireSh, medTungsten);
+  obWireVol->SetFillColor(kGray);
+  obWireVol->SetLineColor(kGray);
+
+  TGeoVolume* obWireSuppVol = new TGeoVolume("OBGammaConvWireSupport", obWireSuppSh, medTitanium);
+  obWireSuppVol->SetFillColor(kRed);
+  obWireSuppVol->SetLineColor(kRed);
+
+  TGeoVolume* obWireScrewVol = new TGeoVolume("OBGammaConvWireScrew", obWireScrewSh, medBrass);
+  obWireScrewVol->SetFillColor(kYellow);
+  obWireScrewVol->SetLineColor(kYellow);
+
+  // To simplify a lot the overall placing we put everything in a Assembly
+  TGeoVolumeAssembly* obGammaConvWire = new TGeoVolumeAssembly("OBGammaConversionWire");
+
+  zpos = sOBGWireSuppZpos;
+  obGammaConvWire->AddNode(obWireSuppVol, 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 90, 90, 90)));
+  obGammaConvWire->AddNode(obWireSuppVol, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 90, 90, 90)));
+
+  xpos = obWireSuppCyl->GetRmax();
+  ypos = ytru[3]; // The same as the hole in the support
+  zpos = 0.5 * sOBGWireOverallLen - obWireScrewSh->GetDz();
+  obGammaConvWire->AddNode(obWireScrewVol, 1, new TGeoTranslation(xpos, -ypos, zpos));
+  obGammaConvWire->AddNode(obWireScrewVol, 2, new TGeoTranslation(xpos, -ypos, -zpos));
+
+  obGammaConvWire->AddNode(obWireVol, 1, new TGeoTranslation(xpos, -ypos, 0));
+
+  // Finally put everything in the mother volume
+  TGeoVolume* obConeVol = gGeoManager->GetVolume("OBConeSideA");
+  if (!obConeVol) { // Should never happen, OB cones are created before us
+    LOG(error) << "OBConeSideA not defined in geometry, using default radius";
+    radius = 292.5 * sMm;
+  } else {
+    radius = (static_cast<TGeoPcon*>(obConeVol->GetShape()))->GetRmax(2);
+  }
+
+  xpos = radius - sOBGWireSuppXtrans;
+  ypos = sOBGWireSuppLenTot + sOBGWireSuppYtrans;
+  mother->AddNode(obGammaConvWire, 1, new TGeoCombiTrans(xpos, ypos, 0, new TGeoRotation("", 15, 0, 0)));
 }

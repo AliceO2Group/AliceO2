@@ -18,7 +18,7 @@
 #include <TH1F.h>
 #include <TCanvas.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TRDBase/Calibrations.h"
 
 #endif

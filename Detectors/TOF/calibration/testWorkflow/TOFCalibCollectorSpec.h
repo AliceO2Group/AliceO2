@@ -23,6 +23,10 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "TOFBase/Geo.h"
+#include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
+#include "Framework/CCDBParamSpec.h"
 
 #include <limits>
 
@@ -35,9 +39,11 @@ namespace calibration
 
 class TOFCalibCollectorDevice : public o2::framework::Task
 {
+  using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
+  using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  TOFCalibCollectorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  TOFCalibCollectorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool useCCDB) : mCCDBRequest(req), mUseCCDB(useCCDB) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -65,6 +71,16 @@ class TOFCalibCollectorDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
+
+    if (mUseCCDB) { // read calibration objects from ccdb
+      const auto lhcPhaseIn = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
+
+      float phase = lhcPhaseIn->getLHCphase(0);
+      int bcshift = (phase + 5000) * o2::tof::Geo::BC_TIME_INPS_INV;
+      mCollector->setLHCphase(phase - bcshift * o2::tof::Geo::BC_TIME_INPS);
+    }
+
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCollector->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCollector->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
     mCollector->process(data);
@@ -85,6 +101,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
   std::unique_ptr<o2::tof::TOFCalibCollector> mCollector;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   int mMaxNumOfHits = 0;
+  bool mUseCCDB = false;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -108,7 +125,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTOFCalibCollectorDeviceSpec()
+DataProcessorSpec getTOFCalibCollectorDeviceSpec(bool useCCDB)
 {
   using device = o2::calibration::TOFCalibCollectorDevice;
   using clbUtils = o2::calibration::Utils;
@@ -126,11 +143,17 @@ DataProcessorSpec getTOFCalibCollectorDeviceSpec()
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
+
+  if (useCCDB) {
+    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
+    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
+  }
+
   return DataProcessorSpec{
     "calib-tofcalib-collector",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, useCCDB)},
     Options{
       {"max-number-hits-to-fill-tree", VariantType::Int, 500, {"maximum number of entries in one channel to trigger teh filling of the tree"}},
       {"is-max-number-hits-to-fill-tree-absolute", VariantType::Bool, false, {"to decide if we want to multiply the max-number-hits-to-fill-tree by the number of channels (when set to true), or not (when set to false) for fast checks"}},

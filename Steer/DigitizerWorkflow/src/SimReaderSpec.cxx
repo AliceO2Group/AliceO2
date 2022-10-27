@@ -24,7 +24,7 @@
 #include <DataFormatsParameters/GRPLHCIFData.h>
 #include "DetectorsRaw/HBFUtils.h"
 #include <CCDB/BasicCCDBManager.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
 #include <cstring>    // memcpy

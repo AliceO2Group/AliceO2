@@ -16,7 +16,7 @@
 
 #include "EventVisualisationDetectors/DataReaderJSON.h"
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <filesystem>
 
 namespace o2

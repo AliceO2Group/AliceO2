@@ -30,6 +30,7 @@ CalibPadGainTracksBase::CalibPadGainTracksBase(const bool initCalPad) : mPadHist
   if (initCalPad) {
     initCalPadMemory();
     initCalPadStdDevMemory();
+    initCalPadStat();
   }
 };
 
@@ -51,23 +52,31 @@ void CalibPadGainTracksBase::dumpGainMap(const char* fileName) const
 
 void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm) const
 {
-  const auto map = (typeMap == 0) ? std::make_unique<CalPad>(*mGainMap) : std::make_unique<CalPad>(*mSigmaMap);
-  if (!map) {
-    LOGP(error, "Map not set");
+  CalPad map;
+  std::string zAxisTitle;
+  if (typeMap == 0) {
+    map = *mGainMap.get();
+    zAxisTitle = "rel. gain";
+  } else if (typeMap == 1) {
+    map = *mSigmaMap.get();
+    zAxisTitle = norm ? "sigma / rel. gain" : "sigma";
+  } else if (typeMap == 2) {
+    map = *mNClMap.get();
+    zAxisTitle = "n cluster";
+  } else {
     return;
   }
 
   if (norm) {
-    *map /= *mGainMap;
+    map /= *mGainMap;
   }
 
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [mapTmp = map.get()](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
-    return mapTmp->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
+  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [mapTmp = map](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
+    return mapTmp.getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
   };
 
   IDCDrawHelper::IDCDraw drawFun;
   drawFun.mIDCFunc = idcFunc;
-  const std::string zAxisTitle = (typeMap == 0) ? "rel. gain" : (norm ? "sigma / rel. gain" : "sigma");
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
@@ -168,19 +177,35 @@ bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
     return true;
   }
 
+  unsigned long totalEntries = 0;
   for (auto& calArray : mPadHistosDet->getData()) {
     for (auto& tHist : calArray.getData()) {
       const auto entries = tHist.getEntries();
-      if (entries > 0 && entries < minEntries) {
-        return false;
-      }
+      totalEntries += entries;
     }
   }
-  return true;
+
+  // check if mean number of entries is larger than min entries
+  if ((totalEntries / (2 * Mapper::getNumberOfPadsPerSide())) > minEntries) {
+    return true;
+  }
+  return false;
 }
 
-void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelgain, const float maxRelgain, const float low, const float high)
+void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelgain, const float maxRelgain, const float low, const float high, const float minStDev)
 {
+  if (!mGainMap) {
+    initCalPadMemory();
+  }
+
+  if (!mSigmaMap) {
+    initCalPadStdDevMemory();
+  }
+
+  if (!mNClMap) {
+    initCalPadStat();
+  }
+
   for (int roc = 0; roc < ROC::MaxROC; ++roc) {
     const auto padsInRoc = ROC(roc).isIROC() ? Mapper::getPadsInIROC() : Mapper::getPadsInOROC();
     for (int pad = 0; pad < padsInRoc; ++pad) {
@@ -199,7 +224,8 @@ void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelga
         entries -= histo.getBinContent(binOverflow);
       }
 
-      if (entries >= minEntries) {
+      mNClMap->getCalArray(roc).getData()[pad] = entries;
+      if ((entries >= minEntries) && (stat.mStdDev > minStDev)) {
         mGainMap->getCalArray(roc).getData()[pad] = cog;
         mSigmaMap->getCalArray(roc).getData()[pad] = stat.mStdDev;
       } else {

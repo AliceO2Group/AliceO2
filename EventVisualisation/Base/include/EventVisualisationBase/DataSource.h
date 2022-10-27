@@ -71,6 +71,7 @@ class DataSource
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}
   virtual std::string getEventName() { return "event"; };
+  virtual std::string getEventAbsoluteFilePath() { return ""; };
   virtual int getFirstTForbit() const { return 0; }
   virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }

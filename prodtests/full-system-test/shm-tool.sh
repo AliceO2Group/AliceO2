@@ -1,5 +1,8 @@
 #!/bin/bash
 
+[[ -z $SHMSIZE ]] && export SHMSIZE=$(( 112 << 30 )) # Please keep these defaults in sync with those in start_tmux.sh
+[[ -z $DDSHMSIZE ]] && export DDSHMSIZE=$(( 112 << 10 ))
+
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 

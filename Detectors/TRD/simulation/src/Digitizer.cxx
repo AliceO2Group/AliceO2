@@ -14,7 +14,7 @@
 #include <TGeoManager.h>
 #include <TRandom.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsBase/GeometryManager.h"
 
 #include "DataFormatsTRD/Hit.h"

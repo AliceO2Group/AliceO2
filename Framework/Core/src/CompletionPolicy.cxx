@@ -25,7 +25,7 @@ std::vector<CompletionPolicy>
   CompletionPolicy::createDefaultPolicies()
 {
   return {
-    CompletionPolicyHelpers::defineByNameOrigin("internal-dpl-aod-writer", "TFN", CompletionOp::Consume),
+    CompletionPolicyHelpers::consumeWhenAllOrdered("internal-dpl-aod-writer"),
     CompletionPolicyHelpers::consumeWhenAny("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name == "internal-dpl-injected-dummy-sink"; }),
     CompletionPolicyHelpers::consumeWhenAll()};
 }

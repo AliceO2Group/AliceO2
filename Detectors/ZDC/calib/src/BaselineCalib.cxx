@@ -39,7 +39,7 @@ int BaselineCalib::init()
     mConfig->print();
   }
 
-  if (opt.debug_output > 0) {
+  if (opt.rootOutput == true) {
     setSaveDebugHistos();
   }
 

@@ -28,6 +28,13 @@ namespace ctp
 /// raw scalers produced by CTP and send to O2 either via
 /// - ZeroMQ published at CTP control machine
 /// - CTPreadout to FLP
+struct errorCounters {
+  errorCounters() = default;
+  void printStream(std::ostream& stream) const;
+  uint32_t lmB = 0, l0B = 0, l1B = 0, lmA = 0, l0A = 0, l1A = 0;       // decreasing counters
+  uint32_t lmBlmA = 0, lmAl0B = 0, l0Bl0A = 0, l0Al1B = 0, l1Bl1A = 0; // between levels countres
+  uint32_t MAXPRINT = 3;
+};
 struct CTPScalerRaw {
   CTPScalerRaw() = default;
   uint32_t classIndex;
@@ -76,13 +83,15 @@ class CTPRunScalers
 {
  public:
   CTPRunScalers() = default;
+
   void printStream(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
+  std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
-  int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
-  int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
+  int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1, errorCounters& eCnts) const;
+  int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1, errorCounters& eCnts) const;
   void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
   void setDetectorMask(o2::detectors::DetID::mask_t mask) { mDetectorMask = mask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
@@ -92,7 +101,10 @@ class CTPRunScalers
   int printIntegrals();
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
-  static constexpr uint32_t NCOUNTERS = 1070;
+  // v1
+  // static constexpr uint32_t NCOUNTERS = 1070;
+  // v2 - orbitid added at the end
+  static constexpr uint32_t NCOUNTERS = 1071;
   static std::vector<std::string> scalerNames;
 
  private:

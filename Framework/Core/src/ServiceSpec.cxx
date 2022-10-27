@@ -12,8 +12,10 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/Logger.h"
+#include "Framework/Plugins.h"
 #include <sstream>
 #include <unordered_set>
+#include <uv.h>
 
 namespace o2::framework
 {
@@ -100,5 +102,126 @@ ServiceSpecs ServiceSpecHelpers::filterDisabled(ServiceSpecs originals, Override
     }
   }
   return result;
+}
+
+std::vector<LoadableService> ServiceHelpers::parseServiceSpecString(char const* str)
+{
+  std::vector<LoadableService> loadableServices;
+  enum struct ParserState : int {
+    IN_LIBRARY,
+    IN_NAME,
+    IN_END,
+    IN_ERROR,
+  };
+  const char* cur = str;
+  const char* next = cur;
+  ParserState state = ParserState::IN_LIBRARY;
+  std::string_view library;
+  std::string_view name;
+  while (cur && *cur != '\0') {
+    ParserState previousState = state;
+    state = ParserState::IN_ERROR;
+    switch (previousState) {
+      case ParserState::IN_LIBRARY:
+        next = strchr(cur, ':');
+        if (next != nullptr) {
+          state = ParserState::IN_NAME;
+          library = std::string_view(cur, next - cur);
+        }
+        break;
+      case ParserState::IN_NAME:
+        next = strchr(cur, ',');
+        if (next == nullptr) {
+          state = ParserState::IN_END;
+          name = std::string_view(cur, strlen(cur));
+        } else {
+          name = std::string_view(cur, next - cur);
+          state = ParserState::IN_LIBRARY;
+        }
+        loadableServices.push_back({std::string(name), std::string(library)});
+        break;
+      case ParserState::IN_END:
+        break;
+      case ParserState::IN_ERROR:
+        LOG(error) << "Error while parsing DPL_LOAD_SERVICES";
+        break;
+    }
+    if (!next) {
+      break;
+    }
+    cur = next + 1;
+  };
+  return loadableServices;
+}
+
+void ServiceHelpers::loadFromPlugin(std::vector<LoadableService> const& loadableServices, std::vector<ServiceSpec>& specs)
+{
+  struct LoadedDSO {
+    std::string library;
+    uv_lib_t handle;
+  };
+
+  struct LoadedPlugin {
+    std::string name;
+    ServicePlugin* factory;
+  };
+  std::vector<LoadedDSO> loadedDSOs;
+  std::vector<LoadedPlugin> loadedPlugins;
+  for (auto& loadableService : loadableServices) {
+    auto loadedDSO = std::find_if(loadedDSOs.begin(), loadedDSOs.end(), [&loadableService](auto& dso) {
+      return dso.library == loadableService.library;
+    });
+
+    if (loadedDSO == loadedDSOs.end()) {
+      uv_lib_t handle;
+#ifdef __APPLE__
+      auto libraryName = fmt::format("lib{}.dylib", loadableService.library);
+#else
+      auto libraryName = fmt::format("lib{}.so", loadableService.library);
+#endif
+      auto ret = uv_dlopen(libraryName.c_str(), &handle);
+      if (ret != 0) {
+        LOGP(error, "Could not load library {}", loadableService.library);
+        LOG(error) << uv_dlerror(&handle);
+        continue;
+      }
+      loadedDSOs.push_back({loadableService.library, handle});
+      loadedDSO = loadedDSOs.end() - 1;
+    }
+    int result = 0;
+
+    auto loadedPlugin = std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&loadableService](auto& plugin) {
+      return plugin.name == loadableService.name;
+    });
+
+    if (loadedPlugin == loadedPlugins.end()) {
+      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+      result = uv_dlsym(&loadedDSO->handle, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+      if (result == -1) {
+        LOG(error) << uv_dlerror(&loadedDSO->handle);
+        continue;
+      }
+
+      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+      ServicePlugin* factory = PluginManager::getByName<ServicePlugin>(pluginInstance, loadableService.name.c_str());
+      if (factory == nullptr) {
+        LOGP(error, "Could not find service {} in library {}", loadableService.name, loadableService.library);
+        continue;
+      }
+
+      loadedPlugins.push_back({loadableService.name, factory});
+      loadedPlugin = loadedPlugins.begin() + loadedPlugins.size() - 1;
+    }
+    assert(loadedPlugin != loadedPlugins.end());
+    assert(loadedPlugin->factory != nullptr);
+
+    ServiceSpec* spec = loadedPlugin->factory->create();
+    if (!spec) {
+      LOG(error) << "Plugin " << loadableService.name << " could not be created";
+      continue;
+    }
+    LOGP(debug, "Loading service {} from {}", loadableService.name, loadableService.library);
+    specs.push_back(*spec);
+  }
 }
 } // namespace o2::framework

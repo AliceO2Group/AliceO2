@@ -12,7 +12,7 @@
 // \file ChipMappingMFT.cxx
 // \brief Automatically generated MFT chip <-> module mapping
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 
 using namespace o2::itsmft;

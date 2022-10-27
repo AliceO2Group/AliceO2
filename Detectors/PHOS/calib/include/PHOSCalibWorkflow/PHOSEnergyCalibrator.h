@@ -101,10 +101,10 @@ class PHOSEnergySlot
   uint32_t mEvBC = 0;
   uint32_t mEvOrbit = 0;
   uint32_t mEvent = 0;
-  float mPtMin = 1.5;            /// minimal pi0 pt to fill inv. mass histo
-  float mEminHGTime = 1.5;       /// minimal cell energy to fill HG time histo
-  float mEminLGTime = 5.;        /// minimal cell energy to fill LG time histo
-  float mDigitEmin = 0.05;       /// minimal energy of stored digits
+  float mPtMin = 2.;             /// minimal pi0 pt to fill inv. mass histo
+  float mEminHGTime = 2.;        /// minimal cell energy to fill HG time histo
+  float mEminLGTime = 6.;        /// minimal cell energy to fill LG time histo
+  float mDigitEmin = 0.005;      /// minimal energy of stored digits
   float mClusterEmin = 0.4;      /// minimal energy of cluster which digits will be stored
   std::vector<uint32_t> mDigits; /// list of calibration digits
 };
@@ -141,9 +141,9 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
  private:
   long mRunStartTime = 0;                    /// start time of the run (ns)
-  float mPtMin = 1.5;                        /// minimal pi0 pt to fill inv. mass histo
+  float mPtMin = 2.;                         /// minimal pi0 pt to fill inv. mass histo
   float mEminHGTime = 1.5;                   /// minimal cell energy to fill HG time histo
-  float mEminLGTime = 5.;                    /// minimal cell energy to fill LG time histo
+  float mEminLGTime = 5.5;                   /// minimal cell energy to fill LG time histo
   float mDigitEmin = 0.05;                   /// minimal energy of stored digits
   float mClusterEmin = 0.4;                  /// minimal energy of cluster which digits will be stored
   const CalibParams* mCalibParams = nullptr; /// Current calibration object

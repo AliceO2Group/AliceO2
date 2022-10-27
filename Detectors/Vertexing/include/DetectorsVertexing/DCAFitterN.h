@@ -149,6 +149,9 @@ class DCAFitterN
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
   o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
 
+  ///< recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
+  bool recalculatePCAWithErrors(int cand = 0);
+
   MatSym3D calcPCACovMatrix(int cand = 0) const;
 
   std::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
@@ -171,6 +174,7 @@ class DCAFitterN
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
+  void setWeightedFinalPCA(bool v) { mWeightedFinalPCA = v; }
   void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
   void setMatCorrType(o2::base::Propagator::MatCorrType m = o2::base::Propagator::MatCorrType::USEMatCorrLUT) { mMatCorr = m; }
   void setUsePropagator(bool v) { mUsePropagator = v; }
@@ -189,6 +193,7 @@ class DCAFitterN
   float getBz() const { return mBz; }
   float getMaxDistance2ToMerge() const { return mMaxDist2ToMergeSeeds; }
   bool getUseAbsDCA() const { return mUseAbsDCA; }
+  bool getWeightedFinalPCA() const { return mWeightedFinalPCA; }
   bool getPropagateToPCA() const { return mPropagateToPCA; }
   o2::base::Propagator::MatCorrType getMatCorrType() const { return mMatCorr; }
   bool getUsePropagator() const { return mUsePropagator; }
@@ -304,6 +309,7 @@ class DCAFitterN
   int mCrossIDAlt = -1;
   bool mAllowAltPreference = true;  // if the fit converges to alternative PCA seed, abandon the current one
   bool mUseAbsDCA = false;          // use abs. distance minimization rather than chi2
+  bool mWeightedFinalPCA = false;   // recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
   bool mPropagateToPCA = true;      // create tracks version propagated to PCA
   bool mUsePropagator = false;      // use propagator with 3D B-field, set automatically if material correction is requested
   bool mRefitWithMatCorr = false;   // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
@@ -381,6 +387,12 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
       }
     }
   }
+  if (mUseAbsDCA && mWeightedFinalPCA) {
+    for (int i = mCurHyp; i--;) {
+      recalculatePCAWithErrors(i);
+    }
+  }
+
   return mCurHyp;
 }
 
@@ -628,6 +640,31 @@ void DCAFitterN<N, Args...>::calcPCA()
 
 //___________________________________________________________________
 template <int N, typename... Args>
+bool DCAFitterN<N, Args...>::recalculatePCAWithErrors(int cand)
+{
+  // recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
+  if (isPropagateTracksToVertexDone(cand) && !propagateTracksToVertex(cand)) {
+    return false;
+  }
+  int saveCurHyp = mCurHyp;
+  mCurHyp = mOrder[cand];
+  if (mUseAbsDCA) {
+    for (int i = N; i--;) {
+      mTrcEInv[mCurHyp][i].set(mCandTr[mCurHyp][i], XerrFactor); // prepare inverse cov.matrices at starting point
+    }
+    if (!calcPCACoefs()) {
+      mCurHyp = saveCurHyp;
+      return false;
+    }
+  }
+  auto oldPCA = mPCA[mOrder[cand]];
+  calcPCA();
+  mCurHyp = saveCurHyp;
+  return true;
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
 void DCAFitterN<N, Args...>::calcPCANoErr()
 {
   // calculate point of closest approach for N prongs w/o errors
@@ -654,10 +691,25 @@ ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N
 {
   // calculate covariance matrix for the point of closest approach
   MatSym3D covm;
-  for (int i = N; i--;) {
-    covm += ROOT::Math::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
+  int nAdded = 0;
+  for (int i = N; i--;) { // calculate sum of inverses
+    // MatSym3D covTr = ROOT::Math::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
+    // RS by using Similarity(mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand)) we underestimate the error, use simple rotation
+    MatSym3D covTr = ROOT::Math::Similarity(getTrackRotMatrix(i), getTrackCovMatrix(i, cand));
+    if (covTr.Invert()) {
+      covm += covTr;
+      nAdded++;
+    }
   }
-  return covm;
+  if (nAdded && covm.Invert()) {
+    return covm;
+  }
+  // correct way has failed, use simple sum
+  MatSym3D covmSum;
+  for (int i = N; i--;) {
+    MatSym3D covTr = ROOT::Math::Similarity(getTrackRotMatrix(i), getTrackCovMatrix(i, cand));
+  }
+  return covmSum;
 }
 
 //___________________________________________________________________

@@ -24,7 +24,8 @@ find_library(${PKGNAME}_LIBRARY_SHARED
 find_path(${PKGNAME}_DATA
           NAMES MainProgramSettings.xml
           PATHS ${${PKGNAME}_ROOT}/share/Pythia8/xmldoc
-                $ENV{${PKGENVNAME}_ROOT}/share/Pythia8/xmldoc)
+                $ENV{${PKGENVNAME}_ROOT}/share/Pythia8/xmldoc
+                $ENV{PYTHIA8DATA})
 
 if(${PKGNAME}_INCLUDE_DIR AND ${PKGNAME}_LIBRARY_SHARED AND ${PKGNAME}_DATA)
   add_library(pythia SHARED IMPORTED)

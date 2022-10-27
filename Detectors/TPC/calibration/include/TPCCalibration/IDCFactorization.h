@@ -238,6 +238,10 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const float minZ = 0, const float maxZ = -1, const std::string filename = "IDCsSide.pdf") const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename, minZ, maxZ); }
 
+  /// draw GIF for IDCs
+  /// \param integrationIntervals number of ms to draw
+  void drawIDCsSideGIF(const unsigned int integrationIntervals = 0, const float minZ = 0, const float maxZ = -1, const int run = -1, const std::string filename = "IDCsSideGIF") const { drawIDCHelper(true, Sector(0), integrationIntervals, filename, minZ, maxZ, true, run); }
+
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
@@ -266,6 +270,12 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param outFileName name of the output file
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
+
+  /// dump the IDC0 to file
+  void dumpIDCZeroToFile(const Side side, const char* outFileName = "IDCZero.root", const char* outName = "IDC0") const;
+
+  /// dump the IDC1 to file
+  void dumpIDCOneToFile(const Side side, const char* outFileName = "IDCOne.root", const char* outName = "IDC1") const;
 
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
@@ -314,6 +324,9 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \return returns unique_ptr to pad status map
   std::unique_ptr<CalDet<PadFlags>> getPadStatusMap() { return std::move(mPadFlagsMap); }
 
+  /// \return returns TPC sides for which the factorization is performed
+  const std::vector<Side>& getSides() const { return mSides; }
+
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored
   const unsigned int mTimeFramesDeltaIDC{};                         ///< number of timeframes of which Delta IDCs are stored
@@ -325,7 +338,7 @@ class IDCFactorization : public IDCGroupHelperSector
   std::unique_ptr<CalDet<float>> mGainMap;                          ///<! static Gain map object used for filling missing IDC_0 values
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                   ///< status flag for each pad (i.e. if the pad is dead)
   bool mInputGrouped{false};                                        ///< flag which is set to true if the input IDCs are grouped (checked via the grouping parameters from the constructor)
-  bool mUsePadStatusMap{false};                                     ///< flag for using the pad-by-pad status map during the factorization of the IDCs
+  bool mUsePadStatusMap{true};                                      ///< flag for using the pad-by-pad status map during the factorization of the IDCs
   const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
   std::array<unsigned int, SIDES> mSideIndex{0, 1};                 ///< index to mIDCZero, mIDCOne and mIDCDelta for TPC side
   std::vector<Side> mSides{};                                       ///< processed TPC sides
@@ -335,7 +348,7 @@ class IDCFactorization : public IDCGroupHelperSector
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;
 
   /// helper function for drawing IDCs
-  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const;
+  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ, const bool drawGIF = false, const int run = 0) const;
 
   /// helper function for drawing IDCZero
   void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;

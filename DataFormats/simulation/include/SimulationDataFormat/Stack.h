@@ -127,6 +127,7 @@ class Stack : public FairGenericStack
     // the const cast is necessary ... the interface should have been `const TParticle* GetCurrentParticle() const`
     return const_cast<TParticle*>(&mCurrentParticle);
   }
+
   /// Get the number of the current track
   /// Declared in TVirtualMCStack
   Int_t GetCurrentTrackNumber() const override { return mIndexOfCurrentTrack; }
@@ -227,6 +228,12 @@ class Stack : public FairGenericStack
   /// update values in the current event header
   void updateEventStats();
 
+  /// returns if current track left a hit
+  bool currentTrackLeftHit() const { return mCurrentParticle.TestBit(ParticleStatus::kHasHits); }
+
+  /// returns if current track left a TrackReference
+  bool currentTrackLeftTrackRef() const { return mCurrentParticle.TestBit(ParticleStatus::kHasTrackRefs); }
+
   typedef std::function<bool(const TParticle& p, const std::vector<TParticle>& particles)> TransportFcn;
 
  private:
@@ -248,7 +255,7 @@ class Stack : public FairGenericStack
   // (mainly for the PopPrimaryParticleInterface
   std::vector<TParticle> mPrimaryParticles;
 
-  /// vector of reducded tracks written to the output
+  /// vector of reduced/pruned tracks written to the output
   std::vector<o2::MCTrack>* mTracks;
 
   /// STL map from particle index to persistent track index
@@ -325,6 +332,7 @@ inline void Stack::addTrackReference(const o2::TrackReference& ref)
     auto& part = mParticles[iTrack];
     part.setStore(true);
   }
+  mCurrentParticle.SetBit(ParticleStatus::kHasTrackRefs, 1); // mark that this particle has track refs
   mTrackRefs->push_back(ref);
 }
 

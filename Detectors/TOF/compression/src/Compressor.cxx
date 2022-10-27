@@ -18,7 +18,7 @@
 #include "TOFBase/Geo.h"
 #include "DetectorsRaw/RDHUtils.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <cstring>
 #include <iostream>

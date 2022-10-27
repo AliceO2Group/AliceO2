@@ -43,8 +43,8 @@ class Geometry
   static constexpr double ZPFIBREDIAMETER = 28;
 
   //
-  static constexpr double ZEMDIMENSION[6] = {20.62 / 2., 3.5, 3.5, 45., 0., 0.};
-  static constexpr double ZEMFIBRE[3] = {0., 0.0275, 7.};
+  static constexpr double ZEMDIMENSION[6] = {20.614 / 2., 3.5, 3.5, 45., 0., 0.};
+  static constexpr double ZEMFIBRE[3] = {0., 0.0275, 4.92};
   static constexpr double ZEMDIVISION[3] = {92, 0, 20};
   //
   // using 1.4142135 instead of sqrt(2.): check!

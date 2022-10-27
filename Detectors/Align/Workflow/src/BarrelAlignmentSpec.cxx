@@ -13,7 +13,11 @@
 
 #include <vector>
 #include <string>
-#include "TStopwatch.h"
+#include <filesystem>
+#include <TMethodCall.h>
+#include <TStopwatch.h>
+#include <TROOT.h>
+#include "TMethodCall.h"
 #include "AlignmentWorkflow/BarrelAlignmentSpec.h"
 #include "Align/AlignableDetectorITS.h"
 #include "Align/Controller.h"
@@ -26,12 +30,13 @@
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
-
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "TRDBase/TrackletTransformer.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
+#include "Framework/CCDBParamSpec.h"
 
 /*
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -66,8 +71,8 @@ namespace align
 class BarrelAlignmentSpec : public Task
 {
  public:
-  BarrelAlignmentSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t m)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mDetMask{m} {}
+  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t detmask)
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask} {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -76,11 +81,14 @@ class BarrelAlignmentSpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
-
+  GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
   std::unique_ptr<Controller> mController;
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGRPGeomRequest;
+  std::string mConfMacro{};
+  std::unique_ptr<TMethodCall> mUsrConfMethod;
+  std::unique_ptr<o2::trd::TrackletTransformer> mTRDTransformer;
   TStopwatch mTimer;
 };
 
@@ -89,7 +97,28 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
-  mController = std::make_unique<Controller>(mDetMask);
+  mController = std::make_unique<Controller>(mDetMask, mMPsrc);
+  mConfMacro = ic.options().get<std::string>("config-macro");
+  if (!mConfMacro.empty()) {
+    if (!std::filesystem::exists(mConfMacro)) {
+      LOG(fatal) << "Requested user macro " << mConfMacro << " does not exist";
+    }
+    std::string tmpmacro = mConfMacro + "+";
+    if (gROOT->LoadMacro(tmpmacro.c_str())) {
+      LOG(fatal) << "Failed to load user macro " << tmpmacro;
+    }
+    std::filesystem::path mpth(mConfMacro);
+    mConfMacro = mpth.stem();
+    mUsrConfMethod = std::make_unique<TMethodCall>();
+    mUsrConfMethod->InitWithPrototype(mConfMacro.c_str(), "o2::align::Controller*, int");
+  }
+  if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
+    mTRDTransformer.reset(new o2::trd::TrackletTransformer);
+    if (ic.options().get<bool>("apply-xor")) {
+      mTRDTransformer->setApplyXOR();
+    }
+    mController->setTRDTransformer(mTRDTransformer.get());
+  }
 }
 
 void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -101,7 +130,23 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     if (!mController->getInitGeomDone()) {
       mController->initDetectors();
     }
-    o2::base::PropagatorD::initFieldFromGRP(); // RS FIXME, do this via GRPGeomHelper once we switch to GRPECS
+    if (mTRDTransformer) { // need geometry loaded
+      mTRDTransformer->init();
+    }
+
+    // call this in the very end
+    if (mUsrConfMethod) {
+      int dummyPar = 0, ret = 0;
+      Controller* tmpPtr = mController.get();
+      const void* args[2] = {&tmpPtr, &dummyPar};
+      mUsrConfMethod->Execute(nullptr, args, 2, &ret);
+      if (ret != 0) {
+        LOG(fatal) << "Execution of user method config method " << mConfMacro << " failed with " << ret;
+      }
+    }
+  }
+  if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
+    pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
   }
 }
 
@@ -116,6 +161,11 @@ void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
       return;
     }
   }
+  if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
+    LOG(info) << "CalVdriftExB object has been updated";
+    mTRDTransformer->setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+    return;
+  }
 }
 
 void BarrelAlignmentSpec::run(ProcessingContext& pc)
@@ -125,6 +175,7 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   mController->setRecoContainer(&recoData);
+  mController->setTimingInfo(pc.services().get<o2::framework::TimingInfo>());
   mController->process();
 
   mTimer.Stop();
@@ -132,16 +183,21 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
 
 void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
 {
-  //mBarrelAlign.end();
+  mController->closeMPRecOutput();
+  mController->closeMilleOutput();
+  mController->closeResidOutput();
+
+  mController->addAutoConstraints();
+  mController->genPedeSteerFile();
+
   LOGF(info, "Barrel alignment data pereparation total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t src, DetID::mask_t dets)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-
   dataRequest->requestTracks(src, false);
   dataRequest->requestClusters(src, false);
   dataRequest->requestPrimaryVertertices(false);
@@ -149,17 +205,24 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t src, DetID::mask_t det
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
                                                                 true,                                 // GRPECS=true
                                                                 false,                                // GRPLHCIF
-                                                                false,                                // GRPMagField
+                                                                true,                                 // GRPMagField
                                                                 false,                                // askMatLUT
                                                                 o2::base::GRPGeomRequest::Alignments, // geometry
-                                                                dataRequest->inputs);
+                                                                dataRequest->inputs,
+                                                                false, // ask update once (except field)
+                                                                true); // init PropagatorD
+  if (GTrackID::includesDet(DetID::TRD, srcMP)) {
+    dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
+  }
 
   return DataProcessorSpec{
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(dataRequest, ccdbRequest, dets)},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets)},
+    Options{
+      ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
+      ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}}}};
 }
 
 } // namespace align

@@ -26,6 +26,7 @@ struct TimingInfo {
   uint32_t tfCounter = -1;    // the counter associated to a TF
   uint32_t runNumber = -1;
   uint64_t creation = -1UL;
+  uint64_t lapse = 0; // time at the start of the processing. Per thread.
 };
 
 } // namespace o2::framework

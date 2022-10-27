@@ -38,7 +38,7 @@ using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
 CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
-std::shared_ptr<GPURecoWorkflowSpec> gTask;
+static std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -74,11 +74,8 @@ void customize(std::vector<CompletionPolicy>& policies)
 
 void customize(o2::framework::OnWorkflowTerminationHook& hook)
 {
-  fprintf(stderr, "Inserting termination hook\n");
   hook = [](const char* idstring) {
-    fprintf(stderr, "Termination callback\n");
     if (gTask) {
-      fprintf(stderr, "Deinit\n");
       gTask->deinitialize();
     }
   };

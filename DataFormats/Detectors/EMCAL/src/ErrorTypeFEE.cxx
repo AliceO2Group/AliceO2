@@ -53,6 +53,50 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
   }
 }
 
+const char* ErrorTypeFEE::getErrorTypeName(unsigned int errorTypeID)
+{
+  switch (errorTypeID) {
+    case ErrorSource_t::PAGE_ERROR:
+      return "Page";
+    case ErrorSource_t::ALTRO_ERROR:
+      return "MajorAltro";
+    case ErrorSource_t::MINOR_ALTRO_ERROR:
+      return "MinorAltro";
+    case ErrorSource_t::FIT_ERROR:
+      return "Fit";
+    case ErrorSource_t::GEOMETRY_ERROR:
+      return "Geometry";
+    case ErrorTypeFEE::GAIN_ERROR:
+      return "GainType";
+    case ErrorSource_t::UNDEFINED:
+      return "Undefined";
+    default:
+      return "";
+  };
+}
+
+const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
+{
+  switch (errorTypeID) {
+    case ErrorSource_t::PAGE_ERROR:
+      return "Page";
+    case ErrorSource_t::ALTRO_ERROR:
+      return "Major ALTRO";
+    case ErrorSource_t::MINOR_ALTRO_ERROR:
+      return "Minor ALTRO";
+    case ErrorSource_t::FIT_ERROR:
+      return "Fit";
+    case ErrorSource_t::GEOMETRY_ERROR:
+      return "Geometry";
+    case ErrorTypeFEE::GAIN_ERROR:
+      return "Gain";
+    case ErrorSource_t::UNDEFINED:
+      return "Unknown";
+    default:
+      return "";
+  };
+}
+
 std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)
 {
   error.PrintStream(stream);

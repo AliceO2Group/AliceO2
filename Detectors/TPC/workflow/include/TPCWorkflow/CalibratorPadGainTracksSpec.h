@@ -79,7 +79,6 @@ class CalibratorPadGainTracksDevice : public Task
 
     if (mCalibrator->hasCalibrationData()) {
       mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
-      mCreationTime = mCalibrator->getCurrentTFInfo().creation;
       sendOutput(pc.outputs());
     }
   }
@@ -95,14 +94,16 @@ class CalibratorPadGainTracksDevice : public Task
   void sendOutput(DataAllocator& output)
   {
     auto calibrations = std::move(*mCalibrator).getCalibs();
+    const auto& intervals = mCalibrator->getTimeIntervals();
 
+    assert(calibrations.size() == intervals.size());
     for (uint32_t iCalib = 0; iCalib < calibrations.size(); ++iCalib) {
       const auto& calib = calibrations[iCalib];
       const auto& infoVec = mCalibrator->getTFinterval();
       const auto firstTF = infoVec[iCalib].first;
       const auto lastTF = infoVec[iCalib].second;
       LOGP(info, "Writing pad-by-pad gain map to CCDB for TF {} to {}", firstTF, lastTF);
-      o2::ccdb::CcdbObjectInfo ccdbInfo(CDBTypeMap.at(CDBType::CalPadGainResidual), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, mCreationTime, o2::calibration::INFINITE_TF);
+      o2::ccdb::CcdbObjectInfo ccdbInfo(CDBTypeMap.at(CDBType::CalPadGainResidual), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[iCalib].first, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
       auto imageIDCDelta = o2::ccdb::CcdbApi::createObjectImage(&calib, &ccdbInfo);
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfo.getPath(), ccdbInfo.getFileName(), imageIDCDelta->size(), ccdbInfo.getStartValidityTimestamp(), ccdbInfo.getEndValidityTimestamp());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibResGain", iCalib}, *imageIDCDelta.get());
@@ -114,8 +115,7 @@ class CalibratorPadGainTracksDevice : public Task
   const bool mUseLastExtractedMapAsReference{false};    ///< whether to use the last extracted gain map as a reference gain map
   std::unique_ptr<CalibratorPadGainTracks> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
-  uint64_t mRunNumber{0};    ///< processed run number
-  uint64_t mCreationTime{0}; ///< creation time of current TF
+  uint64_t mRunNumber{0}; ///< processed run number
 };
 
 /// create a processor spec
@@ -140,14 +140,14 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
     adaptFromTask<CalibratorPadGainTracksDevice>(ccdbRequest, useLastExtractedMapAsReference),
     Options{
       {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 0, {"minimum entries per pad-by-pad histogram which are required"}},
+      {"max-delay", VariantType::UInt32, 0u, {"number of slots in past to consider"}},
+      {"min-entries", VariantType::Int, 40, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
       {"minAcceptedRelgain", VariantType::Float, 0.1f, {"minimum accpeted relative gain (if the gain is below this value it will be set to 1)"}},
       {"maxAcceptedRelgain", VariantType::Float, 2.f, {"maximum accpeted relative gain (if the gain is above this value it will be set to 1)"}},
-      {"gainNorm", VariantType::Int, 2, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
-      {"minEntriesMean", VariantType::Int, 10, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
+      {"gainNorm", VariantType::Int, 1, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
+      {"minEntriesMean", VariantType::Int, 40, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 

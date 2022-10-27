@@ -10,20 +10,16 @@
 // or submit itself to any jurisdiction.
 
 /// \file CollisionTimeRecoTask.h
-/// \brief Definition of the FIT collision time reconstruction task
-#ifndef ALICEO2_FIT_COLLISIONTIMERECOTASK_H
-#define ALICEO2_FIT_COLLISIONTIMERECOTASK_H
+/// \brief Definition of the FT0 collision time reconstruction task
+#ifndef ALICEO2_FT0_COLLISIONTIMERECOTASK_H
+#define ALICEO2_FT0_COLLISIONTIMERECOTASK_H
 
+#include "FT0Base/Geometry.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/RecPoints.h"
-#include "CommonDataFormat/InteractionRecord.h"
-#include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
-#include "FT0Base/Geometry.h"
 #include <gsl/span>
-#include <bitset>
-#include <vector>
 #include <array>
 #include <TGraph.h>
 
@@ -47,8 +43,7 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
-  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
-                          caliboffsets) { mCalibOffset = caliboffsets; };
+  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const* caliboffsets) { mCalibOffset = caliboffsets; };
   void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
   {
     LOG(info) << "@@@SetSlew " << calibslew->size();
@@ -57,7 +52,7 @@ class CollisionTimeRecoTask
   int getOffset(int channel, int amp);
 
  private:
-  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset;
+  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
   std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
 
   ClassDefNV(CollisionTimeRecoTask, 3);

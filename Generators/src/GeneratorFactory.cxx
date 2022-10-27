@@ -11,11 +11,12 @@
 
 /// \author S. Wenzel - Mai 2018
 
+#include <SimulationDataFormat/O2DatabasePDG.h>
 #include <Generators/GeneratorFactory.h>
 #include "FairPrimaryGenerator.h"
 #include "FairGenerator.h"
 #include "FairBoxGenerator.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #ifdef GENERATORS_WITH_PYTHIA6
@@ -33,7 +34,6 @@
 #include <Generators/GeneratorHepMCParam.h>
 #endif
 #include <Generators/BoxGunParam.h>
-#include <Generators/PDG.h>
 #include <Generators/TriggerParticle.h>
 #include <Generators/TriggerExternalParam.h>
 #include <Generators/TriggerParticleParam.h>
@@ -81,7 +81,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** generators **/
 
-  o2::PDG::addParticlesToPdgDataBase();
+  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator configurable via BoxGunparam

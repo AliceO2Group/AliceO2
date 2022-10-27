@@ -75,7 +75,7 @@ constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no 
 
 // array size to store incoming half cru payload.
 constexpr int HBFBUFFERMAX = 1048576;          // max buffer size for data read from a half cru, (all events)
-constexpr int CRUPADDING32 = 0xeeeeeeee;       // padding word used in the cru.
+constexpr unsigned int CRUPADDING32 = 0xeeeeeeee; // padding word used in the cru.
 constexpr int CHANNELNRNOTRKLT = 23;           // this marks channels in the ADC mask which don't contribute to a tracklet
 constexpr int NOTRACKLETFIT = 31;              // this value is assigned to the fit pointer in case no tracklet is available
 constexpr int TRACKLETENDMARKER = 0x10001000;  // marker for the end of tracklets in raw data, 2 of these.
@@ -87,8 +87,8 @@ constexpr int MAXEVENTCOUNTERSEPERATION = 200; // how far apart can subsequent m
 constexpr int MAXMCMCOUNT = 69120;             // at most mcm count maxchamber x nrobc1 nmcmrob
 constexpr int MAXLINKERRORHISTOGRAMS = 10;     // size of the array holding the link error plots from the raw reader
 constexpr int MAXPARSEERRORHISTOGRAMS = 60;    // size of the array holding the parsing error plots from the raw reader
-constexpr int ETYPEPHYSICSTRIGGER = 0x2;       // CRU Half Chamber header eventtype definition
-constexpr int ETYPECALIBRATIONTRIGGER = 0x3;   // CRU Half Chamber header eventtype definition
+constexpr unsigned int ETYPEPHYSICSTRIGGER = 0x2;     // CRU Half Chamber header eventtype definition
+constexpr unsigned int ETYPECALIBRATIONTRIGGER = 0x3; // CRU Half Chamber header eventtype definition
 constexpr int MAXCRUERRORVALUE = 0x2;          // Max possible value for a CRU Halfchamber link error. As of may 2022, can only be 0x0, 0x1, and 0x2, at least that is all so far(may2022).
 
 } // namespace constants

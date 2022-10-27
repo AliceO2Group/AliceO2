@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/Tracing.h"
 #include "Framework/Logger.h"
 #include <iostream>
@@ -57,17 +58,17 @@ ServiceRegistry::ServiceRegistry()
 /// hash used to identify the service, @a service is
 /// a type erased pointer to the service itself.
 /// This method is supposed to be thread safe
-void ServiceRegistry::registerService(hash_type typeHash, void* service, ServiceKind kind, uint64_t threadId, const char* name) const
+void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, const char* name) const
 {
-  hash_type id = typeHash & MAX_SERVICES_MASK;
-  hash_type threadHashId = (typeHash ^ threadId) & MAX_SERVICES_MASK;
+  InstanceId id = instanceFromTypeSalt(typeHash, salt);
+  Index index = indexFromInstance(id);
   // If kind is not stream, there is only one copy of our service.
   // So we look if it is already registered and reused it if it is.
   // If not, we register it as thread id 0 and as the passed one.
-  if (kind != ServiceKind::Stream && threadId != 0) {
-    void* oldService = this->get(typeHash, 0, kind);
+  if (kind != ServiceKind::Stream && salt.context.streamId != 0) {
+    void* oldService = this->get(typeHash, GLOBAL_CONTEXT_SALT, kind);
     if (oldService == nullptr) {
-      registerService(typeHash, service, kind, 0);
+      registerService(typeHash, service, kind, GLOBAL_CONTEXT_SALT);
     } else {
       service = oldService;
     }
@@ -75,27 +76,25 @@ void ServiceRegistry::registerService(hash_type typeHash, void* service, Service
   for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
     // If the service slot was not taken, take it atomically
     bool expected = false;
-    if (mServicesBooked[i + threadHashId].compare_exchange_strong(expected, true,
+    if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
                                                                   std::memory_order_seq_cst)) {
-      mServicesValue[i + threadHashId] = service;
-      mServicesMeta[i + threadHashId] = ServiceMeta{kind, threadId};
-      mServicesKey[i + threadHashId] = typeHash;
+      mServicesValue[i + index.index] = service;
+      mServicesMeta[i + index.index] = Meta{kind, salt};
+      mServicesKey[i + index.index] = typeHash.hash;
       std::atomic_thread_fence(std::memory_order_release);
       return;
     }
   }
-  throw std::runtime_error(std::string("Unable to find a spot in the registry for service ") +
-                           std::to_string(typeHash) +
-                           ". Make sure you use const / non-const correctly.");
+  throw runtime_error_f("Unable to find a spot in the registry for service %d. Make sure you use const / non-const correctly.", typeHash.hash);
 }
 
-void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options)
+void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt)
 {
   mSpecs.push_back(spec);
   // Services which are not stream must have a single instance created upfront.
   if (spec.kind != ServiceKind::Stream) {
-    ServiceHandle handle = spec.init(*this, state, options);
-    this->registerService(handle.hash, handle.instance, handle.kind, 0, handle.name.c_str());
+    ServiceHandle handle = spec.init({*this}, state, options);
+    this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(spec, handle.instance);
   }
 }
@@ -139,6 +138,12 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   }
   if (spec.domainInfoUpdated) {
     mDomainInfoHandles.push_back(ServiceDomainInfoHandle{spec, spec.domainInfoUpdated, service});
+  }
+  if (spec.preSendingMessages) {
+    mPreSendingMessagesHandles.push_back(ServicePreSendingMessagesHandle{spec, spec.preSendingMessages, service});
+  }
+  if (spec.postRenderGUI) {
+    mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
   }
 }
 
@@ -230,7 +235,7 @@ void ServiceRegistry::preExitCallbacks()
   // FIXME: we need to call the callback only once for the global services
   /// I guess...
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
-    exitHandle->callback(*this, exitHandle->service);
+    exitHandle->callback(ServiceRegistryRef{*this}, exitHandle->service);
   }
 }
 
@@ -238,6 +243,20 @@ void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_
 {
   for (auto& handle : mDomainInfoHandles) {
     handle.callback(*this, oldestPossibleTimeslice, channelIndex);
+  }
+}
+
+void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
+{
+  for (auto& handle : mPreSendingMessagesHandles) {
+    handle.callback(*this, parts, channelIndex);
+  }
+}
+
+void ServiceRegistry::postRenderGUICallbacks()
+{
+  for (auto& handle : mPostRenderGUIHandles) {
+    handle.callback(*this);
   }
 }
 

@@ -55,36 +55,24 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void setCheckBogusTrig(int v) { mCheckBogusTrig = v; }
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData);
+
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Tracklet64>& trkVec, std::vector<Digit>& digVec);
   int mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
   uint32_t mFirstTFOrbit = 0;
   int mCheckBogusTrig = 1;
+  // containers for locally filtered data
+  std::vector<TriggerRecord> mTrgRecFilt;
+  std::vector<Tracklet64> mTrkDataFilt;
+  std::vector<Digit> mDigDataFilt;
 };
 
 /// entropy-encode digits and tracklets to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData)
 {
-  using MD = o2::ctf::Metadata::OptStore;
-  // what to do which each field: see o2::ctd::Metadata explanation
-  constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_bcIncTrig
-    MD::EENCODE, // BLC_orbitIncTrig
-    MD::EENCODE, // BLC_entriesTrk
-    MD::EENCODE, // BLC_entriesDig
-    MD::EENCODE, // BLC_HCIDTrk
-    MD::EENCODE, // BLC_padrowTrk
-    MD::EENCODE, // BLC_colTrk
-    MD::EENCODE, // BLC_posTrk
-    MD::EENCODE, // BLC_slopeTrk
-    MD::EENCODE, // BLC_pidTrk
-    MD::EENCODE, // BLC_CIDDig
-    MD::EENCODE, // BLC_ROBDig
-    MD::EENCODE, // BLC_MCMDig
-    MD::EENCODE, // BLC_chanDig
-    MD::EENCODE, // BLC_ADCDig
-  };
   static size_t bogusWarnMsg = 0;
   if (mCheckBogusTrig && bogusWarnMsg < mCheckBogusTrig) {
     uint32_t orbitPrev = mFirstTFOrbit;
@@ -106,6 +94,50 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerReco
       }
     }
   }
+
+  if (mIRFrameSelector.isSet()) { // preselect data
+    mTrgRecFilt.clear();
+    mTrkDataFilt.clear();
+    mDigDataFilt.clear();
+    for (const auto& trig : trigData) {
+      if (mIRFrameSelector.check(trig.getBCData()) >= 0) {
+        mTrgRecFilt.push_back(trig);
+        auto trkIt = trkData.begin() + trig.getFirstTracklet();
+        auto digIt = digData.begin() + trig.getFirstDigit();
+        auto& trigC = mTrgRecFilt.back();
+        trigC.setFirstTracklet((int)mTrkDataFilt.size());
+        trigC.setFirstDigit((int)mDigDataFilt.size());
+        std::copy(trkIt, trkIt + trig.getNumberOfTracklets(), std::back_inserter(mTrkDataFilt));
+        std::copy(digIt, digIt + trig.getNumberOfDigits(), std::back_inserter(mDigDataFilt));
+      }
+    }
+    return encode_impl(buff, mTrgRecFilt, mTrkDataFilt, mDigDataFilt);
+  }
+  return encode_impl(buff, trigData, trkData, digData);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData)
+{
+  using MD = o2::ctf::Metadata::OptStore;
+  // what to do which each field: see o2::ctd::Metadata explanation
+  constexpr MD optField[CTF::getNBlocks()] = {
+    MD::EENCODE, // BLC_bcIncTrig
+    MD::EENCODE, // BLC_orbitIncTrig
+    MD::EENCODE, // BLC_entriesTrk
+    MD::EENCODE, // BLC_entriesDig
+    MD::EENCODE, // BLC_HCIDTrk
+    MD::EENCODE, // BLC_padrowTrk
+    MD::EENCODE, // BLC_colTrk
+    MD::EENCODE, // BLC_posTrk
+    MD::EENCODE, // BLC_slopeTrk
+    MD::EENCODE, // BLC_pidTrk
+    MD::EENCODE, // BLC_CIDDig
+    MD::EENCODE, // BLC_ROBDig
+    MD::EENCODE, // BLC_MCMDig
+    MD::EENCODE, // BLC_chanDig
+    MD::EENCODE, // BLC_ADCDig
+  };
 
   CTFHelper helper(trigData, trkData, digData);
   // book output size with some margin

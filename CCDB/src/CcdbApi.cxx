@@ -30,7 +30,7 @@
 #include <TMemFile.h>
 #include <TH1F.h>
 #include <TTree.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TError.h>
 #include <TClass.h>
 #include <CCDB/CCDBTimeStampUtils.h>
@@ -126,7 +126,7 @@ void CcdbApi::init(std::string const& host)
 }
 
 /**
- * Keep only the alphanumeric characters plus '_' plus '/' from the string passed in argument.
+ * Keep only the alphanumeric characters plus '_' plus '/' plus '.' from the string passed in argument.
  * @param objectName
  * @return a new string following the rule enounced above.
  */
@@ -134,7 +134,7 @@ std::string sanitizeObjectName(const std::string& objectName)
 {
   string tmpObjectName = objectName;
   tmpObjectName.erase(std::remove_if(tmpObjectName.begin(), tmpObjectName.end(),
-                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/'); }),
+                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/' && c != '.'); }),
                       tmpObjectName.end());
   return tmpObjectName;
 }
@@ -616,7 +616,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 }
 
 bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata,
-                           long timestamp, bool preservePath, std::string const& localFileName) const
+                           long timestamp, bool preservePath, std::string const& localFileName, std::string const& createdNotAfter, std::string const& createdNotBefore) const
 {
 
   // we setup the target path for this blob
@@ -632,7 +632,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   o2::pmr::vector<char> buff;
   std::map<std::string, std::string> headers;
   // avoid creating snapshot via loadFileToMemory itself
-  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", "", "", false);
+  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", createdNotAfter, createdNotBefore, false);
   if ((headers.count("Error") != 0) || (buff.empty())) {
     LOGP(error, "Unable to find object {}/{}, Aborting", path, timestamp);
     return false;

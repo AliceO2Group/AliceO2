@@ -85,8 +85,7 @@ class DataAllocator
     using value_type = T;
   };
 
-  DataAllocator(ServiceRegistry* contextes,
-                const AllowedOutputRoutes& routes);
+  DataAllocator(ServiceRegistryRef ref);
 
   DataChunk& newChunk(const Output&, size_t);
 
@@ -106,9 +105,9 @@ class DataAllocator
     if constexpr (is_specialization_v<T, UninitializedVector>) {
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
-      auto& timingInfo = mRegistry->get<TimingInfo>();
+      auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry->get<MessageContext>();
+      auto& context = mRegistry.get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
@@ -119,9 +118,9 @@ class DataAllocator
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
-      auto& timingInfo = mRegistry->get<TimingInfo>();
+      auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry->get<MessageContext>();
+      auto& context = mRegistry.get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
@@ -129,9 +128,9 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
-      auto& timingInfo = mRegistry->get<TimingInfo>();
+      auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry->get<MessageContext>();
+      auto& context = mRegistry.get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
@@ -156,13 +155,8 @@ class DataAllocator
       });
       return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
-      constexpr bool isBoostSerializable = framework::is_boost_serializable<T>::value;
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-      } else if constexpr (is_specialization_v<T, BoostSerialized> == true) {
-        return make_boost<typename T::wrapped_type>(std::move(spec));
-      } else if constexpr (is_specialization_v<T, BoostSerialized> == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
-        return make_boost<T>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
       }
@@ -172,9 +166,9 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
-          auto& timingInfo = mRegistry->get<TimingInfo>();
+          auto& timingInfo = mRegistry.get<TimingInfo>();
           auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-          auto& context = mRegistry->get<MessageContext>();
+          auto& context = mRegistry.get<MessageContext>();
 
           fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
           return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
@@ -186,8 +180,6 @@ class DataAllocator
           create(spec, &writer, schema);
           return writer;
         }
-      } else if constexpr (is_specialization_v<T, BoostSerialized>) {
-        return make_boost<FirstArg>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
       }
@@ -223,40 +215,6 @@ class DataAllocator
   void
     adopt(const Output& spec, std::shared_ptr<class arrow::Table>);
 
-  /// Adopt a raw buffer in the framework and serialize / send
-  /// it to the consumers of @a spec once done.
-  template <typename T>
-  typename std::enable_if<is_specialization_v<T, BoostSerialized> == true, void>::type
-    adopt(const Output& spec, T* ptr)
-  {
-    adopt_boost(std::move(spec), std::move(ptr()));
-  }
-
-  template <typename T>
-  void adopt_boost(const Output& spec, T* ptr)
-  {
-
-    using type = T;
-
-    char* payload = reinterpret_cast<char*>(ptr);
-    auto& timingInfo = mRegistry->get<TimingInfo>();
-    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-    // the correct payload size is set later when sending the
-    // RawBufferContext, see DataProcessor::doSend
-    auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
-
-    auto lambdaSerialize = [voidPtr = payload]() {
-      return o2::utils::BoostSerialize<type>(*(reinterpret_cast<type*>(voidPtr)));
-    };
-
-    auto lambdaDestructor = [voidPtr = payload]() {
-      auto tmpPtr = reinterpret_cast<type*>(voidPtr);
-      delete tmpPtr;
-    };
-
-    mRegistry->get<RawBufferContext>().addRawBuffer(std::move(header), std::move(payload), routeIndex, std::move(lambdaSerialize), std::move(lambdaDestructor));
-  }
-
   /// Send a snapshot of an object, depending on the object type it is serialized before.
   /// The method always takes a copy of the data, which will then be sent once the
   /// computation ends.
@@ -279,10 +237,10 @@ class DataAllocator
   template <typename T>
   void snapshot(const Output& spec, T const& object)
   {
-    auto& proxy = mRegistry->get<MessageContext>().proxy();
+    auto& proxy = mRegistry.get<MessageContext>().proxy();
     fair::mq::MessagePtr payloadMessage;
     auto serializationType = o2::header::gSerializationMethodNone;
-    RouteIndex routeIndex = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
+    RouteIndex routeIndex = matchDataHeader(spec, mRegistry.get<TimingInfo>().timeslice);
     if constexpr (is_messageable<T>::value == true) {
       // Serialize a snapshot of a trivially copyable, non-polymorphic object,
       payloadMessage = proxy.createOutputMessage(routeIndex, sizeof(T));
@@ -404,8 +362,8 @@ class DataAllocator
   //get the memory resource associated with an output
   o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
-    auto& timingInfo = mRegistry->get<TimingInfo>();
-    auto& proxy = mRegistry->get<FairMQDeviceProxy>();
+    auto& timingInfo = mRegistry.get<TimingInfo>();
+    auto& proxy = mRegistry.get<FairMQDeviceProxy>();
     RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
     return *proxy.getOutputTransport(routeIndex);
   }
@@ -460,33 +418,32 @@ class DataAllocator
 
   o2::header::DataHeader* findMessageHeader(const Output& spec)
   {
-    return mRegistry->get<MessageContext>().findMessageHeader(spec);
+    return mRegistry.get<MessageContext>().findMessageHeader(spec);
   }
 
   o2::header::DataHeader* findMessageHeader(OutputRef&& ref)
   {
-    return mRegistry->get<MessageContext>().findMessageHeader(getOutputByBind(std::move(ref)));
+    return mRegistry.get<MessageContext>().findMessageHeader(getOutputByBind(std::move(ref)));
   }
 
   o2::header::Stack* findMessageHeaderStack(const Output& spec)
   {
-    return mRegistry->get<MessageContext>().findMessageHeaderStack(spec);
+    return mRegistry.get<MessageContext>().findMessageHeaderStack(spec);
   }
 
   o2::header::Stack* findMessageHeaderStack(OutputRef&& ref)
   {
-    return mRegistry->get<MessageContext>().findMessageHeaderStack(getOutputByBind(std::move(ref)));
+    return mRegistry.get<MessageContext>().findMessageHeaderStack(getOutputByBind(std::move(ref)));
   }
 
   int countDeviceOutputs(bool excludeDPLOrigin = false)
   {
-    return mRegistry->get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
-           mRegistry->get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
+    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
+           mRegistry.get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
   }
 
  private:
-  AllowedOutputRoutes mAllowedOutputRoutes;
-  ServiceRegistry* mRegistry;
+  ServiceRegistryRef mRegistry;
 
   RouteIndex matchDataHeader(const Output& spec, size_t timeframeId);
   fair::mq::MessagePtr headerMessageFromOutput(Output const& spec,                                  //
@@ -505,11 +462,11 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
 {
   // Find a matching channel, extract the message for it form the container
   // and put it in the queue to be sent at the end of the processing
-  auto& timingInfo = mRegistry->get<TimingInfo>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
   auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
-  auto& context = mRegistry->get<MessageContext>();
-  auto* transport = mRegistry->get<FairMQDeviceProxy>().getOutputTransport(routeIndex);
+  auto& context = mRegistry.get<MessageContext>();
+  auto* transport = mRegistry.get<FairMQDeviceProxy>().getOutputTransport(routeIndex);
   fair::mq::MessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *transport);
   fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,         //
                                                                method,                   //

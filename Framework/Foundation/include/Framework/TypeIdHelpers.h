@@ -16,12 +16,6 @@
 #include <sstream>
 #include "Framework/StringHelpers.h"
 
-#if defined(__GNUC__) && (__GNUC__ < 8)
-#define PRETTY_FUNCTION_CONSTEXPR const
-#else
-#define PRETTY_FUNCTION_CONSTEXPR constexpr
-#endif
-
 namespace o2::framework
 {
 
@@ -29,7 +23,7 @@ template <typename T>
 struct unique_type_id {
   static constexpr auto get() noexcept
   {
-    PRETTY_FUNCTION_CONSTEXPR std::string_view full_name{__PRETTY_FUNCTION__};
+    constexpr std::string_view full_name{__PRETTY_FUNCTION__};
     return full_name;
   }
 
@@ -47,7 +41,7 @@ struct TypeIdHelpers {
   template <typename T>
   constexpr static uint32_t uniqueId()
   {
-    PRETTY_FUNCTION_CONSTEXPR uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
+    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
     return r;
   }
 };

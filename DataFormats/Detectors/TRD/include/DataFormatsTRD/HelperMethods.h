@@ -54,6 +54,14 @@ struct HelperMethods {
     printf("%02i_%i_%i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER);
   }
 
+  static void printSectorStackLayerSide(int hcid)
+  {
+    // for a given half-chamber number prints SECTOR_STACK_LAYER_side
+    int det = hcid / 2;
+    std::string side = (hcid % 2 == 0) ? "A" : "B";
+    printf("%02i_%i_%i%s\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER, side.c_str());
+  }
+
   static int getPadColFromADC(int irob, int imcm, int iadc)
   {
     if (iadc < 0 || iadc > constants::NADCMCM) {
@@ -155,14 +163,6 @@ struct HelperMethods {
            ((word << 8) & 0x00FF0000) |
            ((word >> 8) & 0x0000FF00) |
            (word << 24);
-  }
-  inline static unsigned int swapByteOrderreturn(unsigned int word)
-  {
-    //    word = (word >> 24) |
-    //         ((word << 8) & 0x00FF0000) |
-    //        ((word >> 8) & 0x0000FF00) |
-    //       (word << 24);
-    return word;
   }
 };
 

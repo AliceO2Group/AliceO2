@@ -13,6 +13,7 @@
 /// @brief Specs for vertex track association device
 /// @author ruben.shahoyan@cern.ch
 
+#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -58,6 +59,7 @@ void VertexTrackMatcherSpec::init(InitContext& ic)
   //-------- init geometry and field --------//
   mTimer.Stop();
   mTimer.Reset();
+  mMatcher.setPrescaleLogs(ic.options().get<int>("prescale-logs"));
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
@@ -92,9 +94,9 @@ void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // put here init-once stuff
     const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    mMatcher.setITSROFrameLengthMUS(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthTrig * 1.e-3 : alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS);
+    mMatcher.setITSROFrameLengthMUS(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsITS.roFrameLengthTrig * 1.e-3);
     const auto& alpParamsMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-    mMatcher.setMFTROFrameLengthMUS(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthTrig * 1.e-3 : alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS);
+    mMatcher.setMFTROFrameLengthMUS(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsMFT.roFrameLengthTrig * 1.e-3);
     LOGP(info, "VertexTrackMatcher ITSROFrameLengthMUS:{} MFTROFrameLengthMUS:{}", mMatcher.getITSROFrameLengthMUS(), mMatcher.getMFTROFrameLengthMUS());
   }
   // we may have other params which need to be queried regularly
@@ -166,7 +168,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest, ggRequest)},
-    Options{}};
+    Options{{"prescale-logs", VariantType::Int, 50, {"print vertex logs for each n-th TF"}}}};
 }
 
 } // namespace vertexing

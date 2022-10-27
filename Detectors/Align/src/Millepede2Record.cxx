@@ -30,18 +30,6 @@ namespace align
 {
 
 //_________________________________________________________
-Millepede2Record::Millepede2Record()
-  : mTrackID(0), mTimeStamp(0), mNResid(0), mNVarLoc(0), mNVarGlo(0), mNDLocTot(0), mNDGloTot(0), mNMeas(0), mChi2Ini(0), mQ2Pt(0), mTgl(0), mNDLoc(nullptr), mNDGlo(nullptr), mVolID(nullptr), mResid(nullptr), mResErr(nullptr), mIDLoc(nullptr), mIDGlo(nullptr), mDLoc(nullptr), mDGlo(nullptr)
-    //
-    ,
-    mNResidBook(0),
-    mNDLocTotBook(0),
-    mNDGloTotBook(0)
-{
-  // def c-tor
-}
-
-//_________________________________________________________
 Millepede2Record::~Millepede2Record()
 {
   // d-tor
@@ -84,30 +72,30 @@ void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
 }
 
 //_________________________________________________________
-bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
+bool Millepede2Record::fillTrack(AlignmentTrack& trc, const std::vector<int>& id2Lab)
 {
   // fill track info, optionally substitutind glopar par ID by label
   //
-  if (!trc->getDerivDone()) {
+  if (!trc.getDerivDone()) {
     LOG(error) << "Track derivatives are not yet evaluated";
     return false;
   }
-  mNVarLoc = trc->getNLocPar(); // number of local degrees of freedom in the track
+  mNVarLoc = trc.getNLocPar(); // number of local degrees of freedom in the track
   mNResid = 0;
   mNDLocTot = 0;
   mNDGloTot = 0;
-  mChi2Ini = trc->getChi2Ini();
-  mQ2Pt = trc->getQ2Pt();
-  mTgl = trc->getTgl();
+  mChi2Ini = trc.getChi2Ini();
+  mQ2Pt = trc.getQ2Pt();
+  mTgl = trc.getTgl();
   mNMeas = 0;
-  setCosmic(trc->isCosmic());
+  setCosmic(trc.isCosmic());
   // 1) check sizes for buffers, expand if needed
-  int np = trc->getNPoints();
+  int np = trc.getNPoints();
   int nres = 0;
   int nlocd = 0;
   int nglod = 0;
-  for (int ip = np; ip--;) {
-    auto pnt = trc->getPoint(ip);
+  for (int ip = 0; ip < np; ip++) {
+    auto pnt = trc.getPoint(ip);
     int ngl = pnt->getNGloDOFs(); // number of DOF's this point depends on
     if (pnt->containsMeasurement()) {
       nres += 2;                    // every point has 2 residuals
@@ -123,11 +111,11 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
   }
   //
   resize(nres, nlocd, nglod);
-  int nParETP = trc->getNLocExtPar(); // numnber of local parameters for reference track param
+  int nParETP = trc.getNLocExtPar(); // numnber of local parameters for reference track param
   //
-  const int* gloParID = trc->getGloParID(); // IDs of global DOFs this track depends on
+  const int* gloParID = trc.getGloParID(); // IDs of global DOFs this track depends on
   for (int ip = 0; ip < np; ip++) {
-    auto* pnt = trc->getPoint(ip);
+    auto* pnt = trc.getPoint(ip);
     if (pnt->containsMeasurement()) {
       int gloOffs = pnt->getDGloOffs(); // 1st entry of global derivatives for this point
       int nDGlo = pnt->getNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
@@ -140,11 +128,11 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
         mVolID[mNResid] = pnt->getSensor()->getVolID() + 1;
         //
         // measured residual/error
-        mResid[mNResid] = trc->getResidual(idim, ip);
+        mResid[mNResid] = trc.getResidual(idim, ip);
         mResErr[mNResid] = Sqrt(pnt->getErrDiag(idim));
         //
         // derivatives over local params
-        const double* deriv = trc->getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
+        const double* deriv = trc.getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
         int nnon0 = 0;
         for (int j = 0; j < nParETP; j++) { // derivatives over reference track parameters
           if (isZeroAbs(deriv[j])) {
@@ -171,7 +159,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
         //
         // derivatives over global params
         nnon0 = 0;
-        deriv = trc->getDResDGlo(idim, gloOffs);
+        deriv = trc.getDResDGlo(idim, gloOffs);
         const int* gloIDP = gloParID + gloOffs;
         for (int j = 0; j < nDGlo; j++) {
           if (isZeroAbs(deriv[j])) {
@@ -179,7 +167,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
           }
           nnon0++;
           mDGlo[mNDGloTot] = deriv[j];                                    // value of derivative
-          mIDGlo[mNDGloTot] = id2Lab ? id2Lab[gloIDP[j]] : gloIDP[j] + 1; // global DOF ID
+          mIDGlo[mNDGloTot] = id2Lab.empty() ? gloIDP[j] + 1 : id2Lab[gloIDP[j]]; // global DOF ID
           mNDGloTot++;
         }
         mNDGlo[mNResid] = nnon0;
@@ -258,11 +246,10 @@ void Millepede2Record::resize(int nresid, int nloc, int nglo)
 }
 
 //____________________________________________
-void Millepede2Record::Clear(const Option_t*)
+void Millepede2Record::clear()
 {
   // reset record
-  TObject::Clear();
-  ResetBit(0xffffffff);
+  mBits = 0;
   mNResid = 0;
   mNVarLoc = 0;
   mNVarGlo = 0;
@@ -271,12 +258,11 @@ void Millepede2Record::Clear(const Option_t*)
 }
 
 //____________________________________________
-void Millepede2Record::Print(const Option_t*) const
+void Millepede2Record::print() const
 {
   // print info
   //
-  printf("Track %d Event TimeStamp:%d Run:%d\n",
-         mTrackID, mTimeStamp, getRun());
+  printf("Track %s TForbit:%d Run:%d\n", mTrackID.asString().c_str(), mFirstTFOrbit, mRunNumber);
   printf("Nmeas:%3d Q/pt:%+.2e Tgl:%+.2e Chi2Ini:%.1f\n", mNMeas, mQ2Pt, mTgl, mChi2Ini);
   printf("NRes: %3d NLoc: %3d NGlo:%3d | Stored: Loc:%3d Glo:%5d\n",
          mNResid, mNVarLoc, mNVarGlo, mNDLocTot, mNDGloTot);

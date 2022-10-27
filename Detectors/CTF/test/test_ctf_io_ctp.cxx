@@ -36,7 +36,6 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
   std::random_device rd;
   std::mt19937_64 eng(rd());
   std::uniform_int_distribution<unsigned long long> distr;
-
   for (int itrg = 0; itrg < 1000; itrg++) {
     ir += 1 + distr(eng) % 200;
     auto& dig = digits.emplace_back();
@@ -44,12 +43,13 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     dig.CTPInputMask |= distr(eng);
     dig.CTPClassMask |= distr(eng);
   }
+  LumiInfo lumi{digits.front().intRecord.orbit, 30, 12345};
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
-    coder.encode(vec, digits); // compress
+    coder.encode(vec, digits, lumi); // compress
   }
   sw.Stop();
   LOG(info) << "Compressed in " << sw.CpuTime() << " s";
@@ -80,12 +80,12 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
   }
 
   std::vector<CTPDigit> digitsD;
-
+  LumiInfo lumiD;
   sw.Start();
   const auto ctfImage = o2::ctp::CTF::getImage(vec.data());
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
-    coder.decode(ctfImage, digitsD); // decompress
+    coder.decode(ctfImage, digitsD, lumiD); // decompress
   }
   sw.Stop();
   LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
@@ -93,4 +93,5 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
   LOG(info) << " BOOST_CHECK(digitsD.size() " << digitsD.size() << " digigits.size()) " << digits.size();
 
   BOOST_TEST(digits == digitsD, boost::test_tools::per_element());
+  BOOST_CHECK(lumiD.orbit == lumi.orbit && lumiD.nHBFCounted == lumi.nHBFCounted && lumiD.orbit == lumi.orbit);
 }

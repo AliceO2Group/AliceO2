@@ -29,6 +29,7 @@
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "MFTTracking/MFTTrackingParam.h"
 
 namespace o2
 {
@@ -37,7 +38,7 @@ namespace mft
 
 //_________________________________________________________
 template <typename T>
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker)
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker, ROFFilter& filter)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -45,12 +46,24 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
   int clusterId{0};
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
+  auto nClusters = clusters_in_frame.size();
+
+  bool skip_ROF = true;
+  auto& trackingParam = MFTTrackingParam::Instance();
+  if (filter(rof) && trackingParam.isPassingMultCut(nClusters)) {
+    LOG(debug) << " ROF selected! ; nClusters = " << nClusters << " ;   orbit = " << rof.getBCData().orbit << " ; bc = " << rof.getBCData().bc;
+    skip_ROF = false;
+    event.Reserve(nClusters);
+  } else {
+    nClusters = 0;
+  }
+
   for (auto& c : clusters_in_frame) {
     auto sensorID = c.getSensorID();
     int layer = geom->getLayer(sensorID);
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
-    float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; //Dummy COG errors (about half pixel size)
+    float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; // Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaX2 = dict->getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
       sigmaY2 = dict->getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
@@ -63,6 +76,10 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
       locXYZ = dict->getClusterCoordinates(c, patt, false);
+    }
+    if (skip_ROF) { // Skip filtered-out ROFs after processing pattIt
+      clusterId++;
+      continue;
     }
     // Transformation to the local --> global
     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
@@ -81,7 +98,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
-  return clusters_in_frame.size();
+  return nClusters;
 }
 
 //_________________________________________________________
@@ -120,6 +137,16 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
     cl3d.setErrors(sigmaX2, sigmaY2, 0);
   }
 }
+
+//_________________________________________________________
+template <typename T>
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker)
+{
+  ROFFilter noFilter = [](const o2::itsmft::ROFRecord r) { return true; };
+  return ioutils::loadROFrameData(rof, event, clusters, pattIt, dict, mcLabels, tracker, noFilter);
+}
+
+//_________________________________________________________
 template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTF>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTF>&, gsl::span<const itsmft::CompClusterExt>,
                                                                   gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
                                                                   const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTF>*);
@@ -127,6 +154,15 @@ template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTF>(const o2::itsm
 template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTFL>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTFL>&, gsl::span<const itsmft::CompClusterExt>,
                                                                    gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
                                                                    const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTFL>*);
+template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTF>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTF>&, gsl::span<const itsmft::CompClusterExt>,
+                                                                  gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
+                                                                  const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTF>*,
+                                                                  ROFFilter& filter);
+
+template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTFL>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTFL>&, gsl::span<const itsmft::CompClusterExt>,
+                                                                   gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
+                                                                   const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTFL>*,
+                                                                   ROFFilter& filter);
 
 } // namespace mft
 } // namespace o2

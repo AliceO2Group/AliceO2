@@ -38,7 +38,7 @@ void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view titl
 
   out << std::hex;
 
-  for (TPCFragmentTime i = 0; i < TPC_MAX_FRAGMENT_LEN_PADDED(doGPU ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST); i++) {
+  for (TPCFragmentTime i = 0; i < TPC_MAX_FRAGMENT_LEN_PADDED(mRec->GetProcessingSettings().overrideClusterizerFragmentLen); i++) {
     int zeros = 0;
     for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
       ushort q = map[{j, i}];

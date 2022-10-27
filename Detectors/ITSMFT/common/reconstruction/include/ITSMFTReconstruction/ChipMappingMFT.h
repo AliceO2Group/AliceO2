@@ -17,7 +17,7 @@
 
 #include <Rtypes.h>
 #include <array>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -256,6 +256,8 @@ class ChipMappingMFT
   static constexpr int NChips = 936, NLayers = 10, NZonesPerLayer = 2 * 4, NRUTypes = 13;
 
   const std::array<MFTChipMappingData, NChips>& getChipMappingData() const { return ChipMappingData; }
+
+  const auto& getModuleMappingData() const { return ModuleMappingData; }
 
   void print() const;
 

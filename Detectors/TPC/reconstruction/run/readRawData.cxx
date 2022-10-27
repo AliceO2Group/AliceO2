@@ -26,7 +26,7 @@
 #include "TPCReconstruction/RawReader.h"
 #include "TPCReconstruction/RawReaderEventSync.h"
 #include "TPCBase/PadPos.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace bpo = boost::program_options;
 using namespace o2::tpc;
@@ -71,10 +71,9 @@ int main(int argc, char* argv[])
   }
 
   // Initialize logger
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel(verbLevel.c_str());
-  logger->SetLogScreenLevel(logLevel.c_str());
-  logger->SetColoredLog(false);
+  fair::Logger::SetVerbosity(verbLevel.c_str());
+  fair::Logger::SetConsoleSeverity(logLevel.c_str());
+  fair::Logger::SetConsoleColor(false);
 
   std::vector<RawReader> readers;
   std::shared_ptr<RawReaderEventSync> eventSync = std::make_shared<RawReaderEventSync>();

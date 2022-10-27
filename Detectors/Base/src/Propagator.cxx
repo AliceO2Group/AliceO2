@@ -392,6 +392,29 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
 
 //_______________________________________________________________________
 template <typename value_T>
+template <typename track_T>
+GPUd() bool PropagatorImpl<value_T>::propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly, value_type maxSnp, value_type maxStep,
+                                                       MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
+{
+  // propagate to alpha,X, if needed in a few steps
+  auto snp = track.getSnpAt(alpha, x, getNominalBz());
+  // apply safety factor 0.9 for crude rotation estimate
+  if (math_utils::detail::abs<value_type>(snp) < maxSnp * 0.9 && track.rotate(alpha) && propagateTo(track, x, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
+    return true;
+  }
+  // try to go in a few steps with intermediate rotations
+  auto alphaTrg = alpha;
+  math_utils::detail::bringToPMPi<value_type>(alphaTrg);
+  auto alpCurr = track.getAlpha();
+  math_utils::detail::bringToPMPi<value_type>(alpCurr);
+  auto dalp = math_utils::detail::deltaPhiSmall<value_type>(alpCurr, alphaTrg) / 2; // effective half (alpha - alphaCurr)
+  auto xtmp = (track.getX() + x) / 2;
+  return track.rotate(alpCurr + dalp) && propagateTo(track, xtmp, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr) &&
+         track.rotate(alpha) && propagateTo(track, x, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr);
+}
+
+//_______________________________________________________________________
+template <typename value_T>
 GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::VertexBase& vtx, TrackParCov_t& track, value_type bZ,
                                                     value_type maxStep, PropagatorImpl<value_type>::MatCorrType matCorr,
                                                     o2::dataformats::DCA* dca, track::TrackLTIntegral* tofInfo,
@@ -705,5 +728,13 @@ namespace o2::base
 template class PropagatorImpl<float>;
 #ifndef GPUCA_GPUCODE_DEVICE
 template class PropagatorImpl<double>;
+#endif
+#ifndef __HIPCC__ // TODO: Fixme: must prevent HIP from compiling this, should file bug report
+template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+#ifndef GPUCA_GPUCODE_DEVICE
+template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackPar_t>(PropagatorImpl<double>::TrackPar_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackParCov_t>(PropagatorImpl<double>::TrackParCov_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+#endif
 #endif
 } // namespace o2::base

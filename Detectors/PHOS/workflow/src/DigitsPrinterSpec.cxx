@@ -12,7 +12,7 @@
 #include <vector>
 #include <iostream>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"

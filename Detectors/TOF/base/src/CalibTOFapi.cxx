@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFBase/CalibTOFapi.h"
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::tof;
 
@@ -96,6 +96,17 @@ void CalibTOFapi::readTimeSlewingParam()
     LOG(info) << "read TimeSlewingParam for TOF";
   } else {
     LOG(info) << "TimeSlewingParam for TOF not available in ccdb";
+  }
+}
+
+//______________________________________________________________________
+void CalibTOFapi::readTimeSlewingParamFromFile(const char* filename)
+{
+  TFile* f = TFile::Open(filename);
+  if (f) {
+    mSlewParam = (SlewParam*)f->Get("ccdb_object");
+  } else {
+    LOG(info) << "File " << filename << " not found";
   }
 }
 
@@ -278,8 +289,8 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase) const
   // time calibration to correct measured TOF times
 
   float corr = 0;
-  if (!mLHCphase || !mSlewParam) {
-    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+  if (!mSlewParam) {
+    LOG(warning) << "slewing object null: mSlewParam = " << mSlewParam;
     return corr;
   }
   //  printf("LHC phase apply\n");

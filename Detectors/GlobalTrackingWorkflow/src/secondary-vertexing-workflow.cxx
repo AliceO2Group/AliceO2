@@ -52,6 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
+    {"enable-3body-finder", o2::framework::VariantType::Bool, false, {"run 3 body finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -73,13 +74,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool useMC = false;
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
+  auto enable3body = configcontext.options().get<bool>("enable-3body-finder");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;

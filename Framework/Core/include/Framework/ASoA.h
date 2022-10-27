@@ -42,16 +42,17 @@ struct Preslice {
     if (newDataframe) {
       fullSize = input->num_rows();
       newDataframe = false;
-      return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
-    } else {
-      return arrow::Status::OK();
+      if (fullSize != 0) {
+        return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
+      }
     }
+    return arrow::Status::OK();
   };
 
   void setNewDF()
   {
     newDataframe = true;
-  };
+  }
 
   std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
   std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
@@ -62,6 +63,11 @@ struct Preslice {
   arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
   {
     arrow::Status status;
+    if (fullSize == 0) {
+      offset = 0;
+      output = input->Slice(0, 0);
+      return arrow::Status::OK();
+    }
     for (auto slice = 0; slice < mValues->length(); ++slice) {
       if (mValues->Value(slice) == value) {
         output = input->Slice(offset, mCounts->Value(slice));
@@ -77,11 +83,13 @@ struct Preslice {
 
 namespace o2::soa
 {
+
 template <typename... C>
-auto createSchemaFromColumns(framework::pack<C...>)
+auto createFieldsFromColumns(framework::pack<C...>)
 {
-  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...});
+  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
 }
+
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -1015,20 +1023,19 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
-template <typename T>
-using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
+template <typename T, typename B>
+struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typename B::binding_t>(), std::true_type, std::false_type> {
+};
 
+//! Helper to check if a type T is an iterator
 template <typename T>
-constexpr bool is_soa_iterator_v()
-{
-  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
-}
+inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 
 template <typename T>
-using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
+inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -1195,6 +1202,19 @@ class Table
   Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
     : Table(ArrowHelpers::joinTables(std::move(tables)), offset)
   {
+  }
+
+  template <typename Key>
+  inline arrow::ChunkedArray* getIndexToKey()
+  {
+    if constexpr (framework::has_type_conditional_v<is_binding_compatible, Key, external_index_columns_t>) {
+      using IC = framework::pack_element_t<framework::has_type_at_conditional<is_binding_compatible, Key>(external_index_columns_t{}), external_index_columns_t>;
+      return mColumnChunks[framework::has_type_at<IC>(persistent_columns_t{})];
+    } else if constexpr (std::is_same_v<table_t, Key>) {
+      return nullptr;
+    } else {
+      static_assert(framework::always_static_assert_v<Key>, "This table does not have an index to this type");
+    }
   }
 
   unfiltered_iterator begin()
@@ -2921,7 +2941,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredBase, T>;
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
@@ -2953,19 +2973,39 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 };
 
 template <typename T>
-using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
 
-template <typename T>
-struct SmallGroups : public Filtered<T> {
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
+template <typename T, bool APPLY>
+struct SmallGroupsBase : public Filtered<T> {
+  static constexpr bool applyFilters = APPLY;
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 };
+
+template <typename T>
+using SmallGroups = SmallGroupsBase<T, true>;
+
+template <typename T>
+using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
+
+template <typename T>
+struct is_smallgroups_t {
+  static constexpr bool value = false;
+};
+
+template <typename T, bool F>
+struct is_smallgroups_t<SmallGroupsBase<T, F>> {
+  static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
 
 } // namespace o2::soa
 

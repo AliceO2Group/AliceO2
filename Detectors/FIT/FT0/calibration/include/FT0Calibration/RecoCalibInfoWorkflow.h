@@ -16,7 +16,7 @@
 #ifndef O2_RECOCALIBINFO_WORKFLOW
 #define O2_RECOCALIBINFO_WORKFLOW
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <Framework/ConfigContext.h>
 #include <TMath.h>
 #include "Framework/DeviceSpec.h"

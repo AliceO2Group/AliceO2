@@ -17,7 +17,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "CommonConstants/Triggers.h"
 #include "TString.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -82,7 +82,7 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
     if (mCrateOn[crateid]) {
       if (fileFor == "all") { // single file for all links
         outFileLink = o2::utils::Str::concat_string(path, "/TOF.raw");
-      } else if (fileFor == "cru") {
+      } else if (fileFor == "cruendpoint") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), ".raw");
       } else if (fileFor == "link") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), "_link", std::to_string(RDHUtils::getLinkID(rdh)), ".raw");
@@ -148,7 +148,7 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 // start to convert digiti from istart --> then update istart to the starting position of the new TRM
 {
 
-  static unsigned long bc_shift = o2::raw::HBFUtils::Instance().orbitFirstSampled * Geo::BC_IN_ORBIT;
+  static unsigned long bc_shift = uint64_t(o2::raw::HBFUtils::Instance().orbitFirstSampled) * Geo::BC_IN_ORBIT;
 
   if (mVerbose) {
     printf("Crate %d: encode TRM %d \n", icrate, itrm);

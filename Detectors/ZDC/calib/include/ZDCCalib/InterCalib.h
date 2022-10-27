@@ -76,9 +76,6 @@ class InterCalib
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
 
-  void setSaveDebugHistos() { mSaveDebugHistos = true; }
-  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
-
   static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1"};
   static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1"};
   static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM"};
@@ -92,7 +89,6 @@ class InterCalib
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
-  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};

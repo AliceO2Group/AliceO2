@@ -31,11 +31,16 @@ class NeuralFastSimulation
 {
  public:
   NeuralFastSimulation(const std::string& modelPath,
-                       Ort::SessionOptions sessionOptions,
                        OrtAllocatorType allocatorType,
                        OrtMemType memoryType,
                        int64_t batchSize);
   virtual ~NeuralFastSimulation() = default;
+
+  /**
+   * @brief (late) init session and provide mechanism
+   * to customize ONNX session with external options
+   */
+  void initRunSession();
 
   /**
    * @brief Wrapper for converting raw input to Ort::Value.
@@ -62,10 +67,13 @@ class NeuralFastSimulation
   /// Converts flattend input data to Ort::Value. Tensor shapes are taken from loaded model metadata.
   void setTensors(std::vector<std::vector<float>>& input);
 
+  /// model path (where to find the ONNX model)
+  std::string mModelPath;
+
   /// ONNX specific attributes
   /// User shoudn't has direct access to those in derived classes
   Ort::Env mEnv;
-  Ort::Session mSession;
+  Ort::Session* mSession = nullptr; // a pointer so that we can set it up dynamically and independently of constructor
   Ort::AllocatorWithDefaultOptions mAllocator;
   Ort::MemoryInfo mMemoryInfo;
 

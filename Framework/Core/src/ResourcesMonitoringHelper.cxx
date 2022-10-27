@@ -31,16 +31,16 @@ inline static std::string retriveValue(const std::reference_wrapper<const String
   return std::string(val.get().data);
 }
 
-template <typename T>
+template <typename T, typename TIMESTAMPS>
 boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMetrics,
-                                              const T& metricsStorage, size_t labelIndex, size_t storeIndex)
+                                              const T& metricsStorage, const TIMESTAMPS& timestampsStorage, size_t labelIndex, size_t storeIndex)
 {
   unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage[storeIndex].size());
   boost::property_tree::ptree metricNode;
 
   for (unsigned int idx = 0; idx < loopRange; ++idx) {
     boost::property_tree::ptree values;
-    values.add("timestamp", deviceMetrics.timestamps[labelIndex][idx]);
+    values.add("timestamp", timestampsStorage[storeIndex][idx]);
     if constexpr (std::is_arithmetic_v<T>) {
       values.add("value", std::to_string(retriveValue(std::cref(metricsStorage[storeIndex][idx]))));
     } else {
@@ -91,19 +91,19 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
       switch (deviceMetrics.metrics[mi].type) {
         case MetricType::Int:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics, mi, storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics, deviceMetrics.intTimestamps, mi, storeIdx);
           break;
 
         case MetricType::Float:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics, mi, storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics, deviceMetrics.floatTimestamps, mi, storeIdx);
           break;
 
         case MetricType::String:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics, mi, storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics, deviceMetrics.stringTimestamps, mi, storeIdx);
           break;
 
         case MetricType::Uint64:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics, mi, storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics, deviceMetrics.uint64Timestamps, mi, storeIdx);
           break;
 
         default:
@@ -139,19 +139,19 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
     switch (driverMetrics.metrics[mi].type) {
       case MetricType::Int:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics, mi, storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics, driverMetrics.intTimestamps, mi, storeIdx);
         break;
 
       case MetricType::Float:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics, mi, storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics, driverMetrics.floatTimestamps, mi, storeIdx);
         break;
 
       case MetricType::String:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics, mi, storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics, driverMetrics.stringTimestamps, mi, storeIdx);
         break;
 
       case MetricType::Uint64:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics, mi, storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics, driverMetrics.uint64Timestamps, mi, storeIdx);
         break;
 
       default:

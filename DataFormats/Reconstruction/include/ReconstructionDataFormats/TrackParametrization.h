@@ -203,6 +203,8 @@ class TrackParametrization
   GPUd() bool getYZAt(value_t xk, value_t b, value_t& y, value_t& z) const;
   GPUd() value_t getZAt(value_t xk, value_t b) const;
   GPUd() value_t getYAt(value_t xk, value_t b) const;
+  GPUd() value_t getSnpAt(value_t xk, value_t b) const;
+  GPUd() value_t getSnpAt(value_t alpha, value_t xk, value_t b) const;
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
@@ -210,10 +212,14 @@ class TrackParametrization
   GPUd() bool rotateParam(value_t alpha);
   GPUd() bool propagateParamTo(value_t xk, value_t b);
   GPUd() bool propagateParamTo(value_t xk, const dim3_t& b);
-
-  GPUd() bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
-
   GPUd() void invertParam();
+  GPUd() bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
+  // aliases
+  GPUd() bool rotate(value_t alpha) { return rotateParam(alpha); }
+  GPUd() bool propagateTo(value_t xk, value_t b) { return propagateParamTo(xk, b); }
+  GPUd() bool propagateTo(value_t xk, const dim3_t& b) { return propagateParamTo(xk, b); }
+  GPUd() void invert() { invertParam(); }
+  GPUd() bool propagateToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f) { return propagateParamToDCA(vtx, b, dca, maxD); }
 
   GPUd() bool isValid() const;
   GPUd() void invalidate();

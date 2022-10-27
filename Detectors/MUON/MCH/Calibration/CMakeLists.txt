@@ -26,7 +26,7 @@ o2_target_root_dictionary(MCHCalibration HEADERS include/MCHCalibration/BadChann
 o2_add_executable(pedestal-decoding-workflow
         SOURCES src/pedestal-decoding-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES Boost::program_options O2::Framework O2::DPLUtils O2::MCHCalibration)
+        PUBLIC_LINK_LIBRARIES Boost::program_options O2::Framework O2::DPLUtils O2::MCHCalibration O2::MCHConstants)
 
 o2_add_executable(mch-badchannel-calib-workflow
                   COMPONENT_NAME calibration

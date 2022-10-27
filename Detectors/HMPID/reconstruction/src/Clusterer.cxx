@@ -12,7 +12,7 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the HMPID cluster finder
 #include <algorithm>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "Framework/Logger.h"
 #include "HMPIDBase/Param.h"
 #include "DataFormatsHMP/Cluster.h"

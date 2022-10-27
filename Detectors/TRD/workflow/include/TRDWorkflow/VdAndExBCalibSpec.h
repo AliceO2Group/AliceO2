@@ -27,6 +27,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include <chrono>
 
 using namespace o2::framework;
 
@@ -43,9 +44,10 @@ class VdAndExBCalibDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = ic.options().get<int>("min-entries");
+    auto enableOutput = ic.options().get<bool>("enable-root-output");
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
-    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt);
+    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt, enableOutput);
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
@@ -57,12 +59,15 @@ class VdAndExBCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto runStartTime = std::chrono::high_resolution_clock::now();
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.getNEntries() << " AngularResidHistos entries";
     mCalibrator->process(data);
     sendOutput(pc.outputs());
+    std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
+    LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -130,6 +135,7 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
     Options{
       {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
+      {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
       {"min-entries", VariantType::Int, 40'000, {"minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
 }
 

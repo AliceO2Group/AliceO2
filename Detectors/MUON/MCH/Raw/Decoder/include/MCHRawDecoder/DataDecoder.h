@@ -27,6 +27,7 @@
 #include "Headers/RDHAny.h"
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/DecoderError.h"
+#include "MCHBase/HeartBeatPacket.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 #include "MCHRawDecoder/PageDecoder.h"
 
@@ -176,7 +177,6 @@ class DataDecoder
   /// Compute the time of all the digits that have been decoded in the current TimeFrame
   void computeDigitsTimeBCRst();
   void computeDigitsTime();
-  void checkDigitsTime();
 
   /// Get the vector of digits that have been decoded in the current TimeFrame
   const RawDigitVector& getDigits() const { return mDigits; }
@@ -184,6 +184,8 @@ class DataDecoder
   const std::unordered_set<OrbitInfo, OrbitInfoHash>& getOrbits() const { return mOrbits; }
   /// Get the list of decoding errors that have been found in the current TimeFrame
   const std::vector<o2::mch::DecoderError>& getErrors() const { return mErrors; }
+  /// Get the list of heart-beat packets that have been found in the current TimeFrame
+  const std::vector<o2::mch::HeartBeatPacket>& getHBPackets() const { return mHBPackets; }
   /// Initialize the digits from an external vector. To be only used for unit tests.
   void setDigits(const RawDigitVector& digits) { mDigits = digits; }
 
@@ -235,6 +237,7 @@ class DataDecoder
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
   std::vector<o2::mch::DecoderError> mErrors;           ///< list of decoding errors in the processed buffer
+  std::vector<o2::mch::HeartBeatPacket> mHBPackets;     ///< list of heart-beat packets in the processed buffer
 
   uint32_t mOrbitsInTF{128};    ///< number of orbits in one time frame
   uint32_t mBcInOrbit;          ///< number of bunch crossings in one orbit

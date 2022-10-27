@@ -24,7 +24,7 @@
 #undef NDEBUG
 #endif
 #include <cassert>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTSimulation/Hit.h"
 #include <unordered_map>
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 {
   const char* nameprefix = argv[1];
 
-  FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
+  fair::Logger::SetConsoleSeverity("DEBUG");
   TFile f(o2::base::NameConf::getMCKinematicsFileName(nameprefix).c_str());
 
   LOG(debug) << "Checking input file :" << f.GetPath();
@@ -93,6 +93,11 @@ int main(int argc, char** argv)
     int physicalprimaries = 0;
     int secondaries = 0;
     for (auto& t : *mctracks) {
+      // perform checks on the mass
+      if (t.GetMass() < 0) {
+        LOG(info) << "Mass not found for PDG " << t.GetPdgCode();
+      }
+
       if (t.isSecondary()) {
         // check that mother indices are monotonic
         // for primaries, this may be different (for instance with Pythia8)

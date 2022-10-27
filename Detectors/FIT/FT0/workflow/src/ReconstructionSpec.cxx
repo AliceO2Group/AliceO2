@@ -70,7 +70,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   }
   */
   int nDig = digits.size();
-  LOG(debug) << " nDig " << nDig;
+  LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
   mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {

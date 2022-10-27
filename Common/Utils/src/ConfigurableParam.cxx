@@ -29,7 +29,7 @@
 #include <cassert>
 #include <iostream>
 #include <string>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <typeinfo>
 #include "TDataMember.h"
 #include "TDataType.h"
@@ -284,14 +284,14 @@ void ConfigurableParam::initPropertyTree()
 
 // ------------------------------------------------------------------
 
-void ConfigurableParam::printAllKeyValuePairs()
+void ConfigurableParam::printAllKeyValuePairs(bool useLogger)
 {
   if (!sIsFullyInitialized) {
     initialize();
   }
   std::cout << "####\n";
   for (auto p : *sRegisteredParamClasses) {
-    p->printKeyValues(true);
+    p->printKeyValues(true, useLogger);
   }
   std::cout << "----\n";
 }

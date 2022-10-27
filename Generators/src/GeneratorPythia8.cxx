@@ -14,7 +14,7 @@
 #include "Generators/GeneratorPythia8.h"
 #include "Generators/GeneratorPythia8Param.h"
 #include "CommonUtils/ConfigurationMacroHelper.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TParticle.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "Pythia8/HIUserHooks.h"

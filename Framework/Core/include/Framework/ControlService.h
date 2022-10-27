@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_CONTROLSERVICE_H_
 #define O2_FRAMEWORK_CONTROLSERVICE_H_
 
+#include "Framework/ThreadSafetyAnalysis.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/ServiceHandle.h"
 #include <mutex>
 
@@ -39,7 +41,7 @@ class ControlService
  public:
   constexpr static ServiceKind service_kind = ServiceKind::Global;
 
-  ControlService(ServiceRegistry& registry, DeviceState& deviceState);
+  ControlService(ServiceRegistryRef registry, DeviceState& deviceState);
   /// Compatibility with old API.
   void readyToQuit(bool all) { this->readyToQuit(all ? QuitRequest::All : QuitRequest::Me); }
   /// Signal control that we are potentially ready to quit some / all
@@ -54,9 +56,9 @@ class ControlService
 
  private:
   bool mOnce = false;
-  ServiceRegistry& mRegistry;
-  DeviceState& mDeviceState;
-  DriverClient& mDriverClient;
+  ServiceRegistryRef mRegistry;
+  DeviceState& mDeviceState GUARDED_BY(mMutex);
+  DriverClient& mDriverClient GUARDED_BY(mMutex);
   std::mutex mMutex;
 };
 

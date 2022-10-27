@@ -10,6 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include <array>
+#include <chrono>
+#include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
@@ -115,8 +118,28 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
 
     const int bcOffset = timeOffset + globalBCOffset + bunchCrossingHeader - triggerBCOffset;
     if (bcOffset < 0) {
-      LOGP(info, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}",
-           timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, triggerBCOffset, bcOffset);
+      using namespace std::literals::chrono_literals;
+      static std::chrono::time_point<std::chrono::steady_clock> lastReport = std::chrono::steady_clock::now();
+      const auto now = std::chrono::steady_clock::now();
+      static size_t reportedErrors = 0;
+      const size_t MAXERRORS = 10;
+      const auto sleepTime = 10min;
+
+      if ((now - lastReport) < sleepTime) {
+        if (reportedErrors < MAXERRORS) {
+          ++reportedErrors;
+          std::string sleepInfo;
+          if (reportedErrors == MAXERRORS) {
+            sleepInfo = fmt::format(", maximum error count ({}) reached, not reporting for the next {}", MAXERRORS, sleepTime);
+          }
+          LOGP(warning, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}{}",
+               timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, triggerBCOffset, bcOffset, sleepInfo);
+          lastReport = now;
+        }
+      } else {
+        lastReport = now;
+        reportedErrors = 0;
+      }
 
       // go to next time bin
       zsdata = zsdata->next();

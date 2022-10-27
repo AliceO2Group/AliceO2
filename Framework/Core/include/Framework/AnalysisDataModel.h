@@ -12,7 +12,6 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
-#include "MathUtils/Utils.h"
 #include <cmath>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
@@ -117,16 +116,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
-                             float cs, sn;
-                             math_utils::sincos(alpha, sn, cs);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             float cs = cosf(alpha), sn = sinf(alpha);
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (r * cs - snp * sn);
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
-                             float cs, sn;
-                             math_utils::sincos(alpha, sn, cs);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             float cs = cosf(alpha), sn = sinf(alpha);
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (snp * cs + r * sn);
                            });
@@ -666,6 +665,30 @@ DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //! Trigger information fr
                   calotrigger::LnAmplitude, calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
+namespace cpvcluster
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                          //! BC index
+DECLARE_SOA_COLUMN(PosX, posX, float);                     //! X position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                     //! Z position in cm
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float);           //! Signal amplitude
+DECLARE_SOA_COLUMN(ClusterStatus, clusterStatus, uint8_t); //! 8 bits packed cluster status (bits 0-4 = pads mult, bits 5-6 = (module number - 2), bit 7 = isUnfolded)
+DECLARE_SOA_DYNAMIC_COLUMN(PadMult, padMult, [](uint8_t status) -> uint8_t {
+  return status & 0b00011111;
+}); //! Multiplicity of pads in cluster
+DECLARE_SOA_DYNAMIC_COLUMN(ModuleNumber, moduleNumber, [](uint8_t status) -> uint8_t {
+  return 2 + ((status & 0b01100000) >> 5);
+}); //! CPV module number (2, 3 or 4)
+DECLARE_SOA_DYNAMIC_COLUMN(IsUnfolded, isUnfolded, [](uint8_t status) -> bool {
+  return (status & 0b01100000) >> 7;
+}); //! Number of local maxima in cluster
+} // namespace cpvcluster
+
+DECLARE_SOA_TABLE(CPVClusters, "AOD", "CPVCLUSTER", //! CPV clusters
+                  o2::soa::Index<>, cpvcluster::BCId, cpvcluster::PosX, cpvcluster::PosZ, cpvcluster::Amplitude,
+                  cpvcluster::ClusterStatus, cpvcluster::PadMult<cpvcluster::ClusterStatus>,
+                  cpvcluster::ModuleNumber<cpvcluster::ClusterStatus>, cpvcluster::IsUnfolded<cpvcluster::ClusterStatus>);
+using CPVCluster = CPVClusters::iterator;
+
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
@@ -803,6 +826,20 @@ DECLARE_SOA_TABLE_VERSIONED(Cascades_001, "AOD", "CASCADE", 1, //! Run 3 cascade
 
 using Cascades = Cascades_001; //! this defines the current default version
 using Cascade = Cascades::iterator;
+
+namespace decay3body
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(Track0, track0, int, Tracks, "_0"); //! Track 0 index
+DECLARE_SOA_INDEX_COLUMN_FULL(Track1, track1, int, Tracks, "_1"); //! Track 1 index
+DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 index
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
+} // namespace decay3body
+
+DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table
+                  o2::soa::Index<>, decay3body::CollisionId, decay3body::Track0Id, decay3body::Track1Id, decay3body::Track2Id);
+
+using Decays3Body = Decays3Body; //! this defines the current default version
+using Decay3Body = Decays3Body::iterator;
 
 namespace origin
 {
@@ -1022,17 +1059,88 @@ DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL", //! Table joined to
                   mccollisionlabel::McCollisionId, mccollisionlabel::McMask);
 using McCollisionLabel = McCollisionLabels::iterator;
 
+// --- HepMC ---
+namespace hepmcxsection
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);    //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short); //!
+DECLARE_SOA_COLUMN(Accepted, accepted, uint64_t);      //! The number of events generated so far
+DECLARE_SOA_COLUMN(Attempted, attempted, uint64_t);    //! The number of events attempted so far
+DECLARE_SOA_COLUMN(XsectGen, xsectGen, float);         //! Cross section in pb
+DECLARE_SOA_COLUMN(XsectErr, xsectErr, float);         //! Error associated with this cross section
+DECLARE_SOA_COLUMN(PtHard, ptHard, float);             //! PT-hard (event scale, for pp collisions)
+} // namespace hepmcxsection
+
+DECLARE_SOA_TABLE(HepMCXSections, "AOD", "HEPMCXSECTION", //! HepMC table for cross sections
+                  o2::soa::Index<>, hepmcxsection::McCollisionId, hepmcxsection::GeneratorsID,
+                  hepmcxsection::Accepted, hepmcxsection::Attempted, hepmcxsection::XsectGen,
+                  hepmcxsection::XsectErr, hepmcxsection::PtHard);
+using HepMCXSection = HepMCXSections::iterator;
+
+namespace hepmcpdfinfo
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);    //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short); //!
+DECLARE_SOA_COLUMN(Id1, id1, int);                     //! flavour code of first parton
+DECLARE_SOA_COLUMN(Id2, id2, int);                     //! flavour code of second parton
+DECLARE_SOA_COLUMN(PdfId1, pdfId1, int);               //! LHAPDF set id of first parton
+DECLARE_SOA_COLUMN(PdfId2, pdfId2, int);               //! LHAPDF set id of second parton
+DECLARE_SOA_COLUMN(X1, x1, float);                     //! fraction of beam momentum carried by first parton ("beam side")
+DECLARE_SOA_COLUMN(X2, x2, float);                     //! fraction of beam momentum carried by second parton ("target side")
+DECLARE_SOA_COLUMN(ScalePdf, scalePdf, float);         //! Q-scale used in evaluation of PDF's   (in GeV)
+DECLARE_SOA_COLUMN(Pdf1, pdf1, float);                 //! PDF (id1, x1, Q) = x*f(x)
+DECLARE_SOA_COLUMN(Pdf2, pdf2, float);                 //! PDF (id2, x2, Q) = x*f(x)
+} // namespace hepmcpdfinfo
+
+DECLARE_SOA_TABLE(HepMCPdfInfos, "AOD", "HEPMCPDFINFO", //! HepMC table for PDF infos
+                  o2::soa::Index<>, hepmcpdfinfo::McCollisionId, hepmcpdfinfo::GeneratorsID,
+                  hepmcpdfinfo::Id1, hepmcpdfinfo::Id2,
+                  hepmcpdfinfo::PdfId1, hepmcpdfinfo::PdfId2,
+                  hepmcpdfinfo::X1, hepmcpdfinfo::X2,
+                  hepmcpdfinfo::ScalePdf, hepmcpdfinfo::Pdf1, hepmcpdfinfo::Pdf2);
+using HepMCPdfInfo = HepMCPdfInfos::iterator;
+
+namespace hepmcheavyion
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                              //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);                           //!
+DECLARE_SOA_COLUMN(NcollHard, ncollHard, int);                                   //! Number of hard scatterings
+DECLARE_SOA_COLUMN(NpartProj, npartProj, int);                                   //! Number of projectile participants
+DECLARE_SOA_COLUMN(NpartTarg, npartTarg, int);                                   //! Number of target participants
+DECLARE_SOA_COLUMN(Ncoll, ncoll, int);                                           //! Number of NN (nucleon-nucleon) collisions
+DECLARE_SOA_COLUMN(NNwoundedCollisions, nNwoundedCollisions, int);               //! Number of N-Nwounded collisions
+DECLARE_SOA_COLUMN(NwoundedNCollisions, nwoundedNCollisions, int);               //! Number of Nwounded-N collisions
+DECLARE_SOA_COLUMN(NwoundedNwoundedCollisions, nwoundedNwoundedCollisions, int); //! Number of Nwounded-Nwounded collisions
+DECLARE_SOA_COLUMN(SpectatorNeutrons, spectatorNeutrons, int);                   //! Number of spectator neutrons
+DECLARE_SOA_COLUMN(SpectatorProtons, spectatorProtons, int);                     //! Number of spectator protons
+DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float);                     //! Impact Parameter(fm) of collision
+DECLARE_SOA_COLUMN(EventPlaneAngle, eventPlaneAngle, float);                     //! Azimuthal angle of event plane
+DECLARE_SOA_COLUMN(Eccentricity, eccentricity, float);                           //! eccentricity of participating nucleons in the transverse plane (as in phobos nucl-ex/0510031)
+DECLARE_SOA_COLUMN(SigmaInelNN, sigmaInelNN, float);                             //! nucleon-nucleon inelastic (including diffractive) cross-section
+DECLARE_SOA_COLUMN(Centrality, centrality, float);                               //! centrality (prcentile of geometric cross section)
+} // namespace hepmcheavyion
+
+DECLARE_SOA_TABLE(HepMCHeavyIons, "AOD", "HEPMCHEAVYION", //! HepMC table for cross sections
+                  o2::soa::Index<>, hepmcheavyion::McCollisionId, hepmcheavyion::GeneratorsID,
+                  hepmcheavyion::NcollHard, hepmcheavyion::NpartProj, hepmcheavyion::NpartTarg,
+                  hepmcheavyion::Ncoll, hepmcheavyion::NNwoundedCollisions, hepmcheavyion::NwoundedNCollisions,
+                  hepmcheavyion::NwoundedNwoundedCollisions, hepmcheavyion::SpectatorNeutrons,
+                  hepmcheavyion::SpectatorProtons, hepmcheavyion::ImpactParameter, hepmcheavyion::EventPlaneAngle,
+                  hepmcheavyion::Eccentricity, hepmcheavyion::SigmaInelNN, hepmcheavyion::Centrality);
+using HepMCHeavyIon = HepMCHeavyIons::iterator;
+
 // --- Matching between collisions and other tables through BC ---
 
 namespace indices
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);               //!
-DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);             //!
-DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);           //!
-DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);           //!
-DECLARE_SOA_INDEX_COLUMN(FT0, ft0);             //!
-DECLARE_SOA_INDEX_COLUMN(FDD, fdd);             //!
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);        //!
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collisions); //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
+DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);                    //!
+DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);                  //!
+DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);                  //!
+DECLARE_SOA_INDEX_COLUMN(FT0, ft0);                    //!
+DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                    //!
 } // namespace indices
 
 // First entry: Collision
@@ -1049,6 +1157,11 @@ DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_E
                                   indices::BCId, indices::CollisionId);
 DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparse, BCs, "MA_BCCOL_SP", //!
                         indices::BCId, indices::CollisionId);
+
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusiveMulti, BCs, "MA_BCCOLS_EX", //!
+                                  indices::BCId, indices::CollisionIds);
+DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparseMulti, BCs, "MA_BCCOLS_SP", //!
+                        indices::BCId, indices::CollisionIds);
 
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedToBCExclusive, BCs, "MA_RN3_BC_EX", //!
                                   indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);

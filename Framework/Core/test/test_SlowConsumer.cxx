@@ -14,7 +14,6 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
 #include <fairmq/Device.h>
-#include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
 #include <thread>

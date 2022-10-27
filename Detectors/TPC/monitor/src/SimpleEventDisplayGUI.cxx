@@ -31,7 +31,7 @@
 #include "TMath.h"
 #include "TApplication.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
@@ -600,9 +600,8 @@ void SimpleEventDisplayGUI::callEventNumber()
 //__________________________________________________________________________
 void SimpleEventDisplayGUI::runSimpleEventDisplay(std::string_view fileInfo, std::string_view pedestalFile, int firstTimeBin, int lastTimeBin, int nTimeBinsPerCall, uint32_t verbosity, uint32_t debugLevel, int selectedSector, bool showSides)
 {
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  logger->SetLogScreenLevel("DEBUG");
+  fair::Logger::SetVerbosity("LOW");
+  fair::Logger::SetConsoleSeverity("DEBUG");
   if (pedestalFile.size()) {
     TFile f(pedestalFile.data());
     if (f.IsOpen()) {

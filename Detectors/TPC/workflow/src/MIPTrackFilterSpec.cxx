@@ -19,6 +19,7 @@
 #include <iterator>
 #include <vector>
 #include <memory>
+#include <random>
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
@@ -28,6 +29,8 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
+#include "Headers/DataHeader.h"
 
 using namespace o2::framework;
 
@@ -44,8 +47,11 @@ class MIPTrackFilterDevice : public Task
  private:
   void sendOutput(DataAllocator& output);
 
-  TrackCuts mCuts{};                ///< Tracks cuts object
-  std::vector<TrackTPC> mMIPTracks; ///< Filtered MIP tracks
+  TrackCuts mCuts{};                  ///< Tracks cuts object
+  std::vector<TrackTPC> mMIPTracks;   ///< Filtered MIP tracks
+  unsigned int mProcessEveryNthTF{1}; ///< process every Nth TF only
+  int mMaxTracksPerTF{-1};            ///< max number of MIP tracks processed per TF
+  uint32_t mTFCounter{0};             ///< counter to keep track of the TFs
 };
 
 void MIPTrackFilterDevice::init(framework::InitContext& ic)
@@ -55,6 +61,15 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
   const double mindEdx = ic.options().get<double>("min-dedx");
   const double maxdEdx = ic.options().get<double>("max-dedx");
   const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
+  mMaxTracksPerTF = ic.options().get<int>("maxTracksPerTF");
+  if (mMaxTracksPerTF > 0) {
+    mMIPTracks.reserve(mMaxTracksPerTF);
+  }
+
+  mProcessEveryNthTF = ic.options().get<int>("processEveryNthTF");
+  if (mProcessEveryNthTF <= 0) {
+    mProcessEveryNthTF = 1;
+  }
 
   mCuts.setPMin(minP);
   mCuts.setPMax(maxP);
@@ -65,14 +80,45 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
 
 void MIPTrackFilterDevice::run(ProcessingContext& pc)
 {
-  const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
+  const auto currentTF = processing_helpers::getCurrentTF(pc);
+  if (mTFCounter++ % mProcessEveryNthTF) {
+    LOGP(info, "Skipping TF {}", currentTF);
+    return;
+  }
 
-  std::copy_if(tracks.begin(), tracks.end(), std::back_inserter(mMIPTracks),
-               [this](const auto& track) { return mCuts.goodTrack(track); });
+  const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
+  const auto nTracks = tracks.size();
+
+  if ((mMaxTracksPerTF != -1) && (nTracks > mMaxTracksPerTF)) {
+    // indices to good tracks
+    std::vector<size_t> indices;
+    indices.reserve(nTracks);
+    for (size_t i = 0; i < nTracks; ++i) {
+      if (mCuts.goodTrack(tracks[i])) {
+        indices.emplace_back(i);
+      }
+    }
+
+    // in case no good tracks have been found
+    if (indices.empty()) {
+      return;
+    }
+
+    // shuffle indices to good tracks
+    std::minstd_rand rng(std::time(nullptr));
+    std::shuffle(indices.begin(), indices.end(), rng);
+
+    // copy good tracks
+    const int loopEnd = (mMaxTracksPerTF > indices.size()) ? indices.size() : mMaxTracksPerTF;
+    for (int i = 0; i < loopEnd; ++i) {
+      mMIPTracks.emplace_back(tracks[indices[i]]);
+    }
+  } else {
+    std::copy_if(tracks.begin(), tracks.end(), std::back_inserter(mMIPTracks), [this](const auto& track) { return mCuts.goodTrack(track); });
+  }
 
   LOGP(info, "Filtered {} MIP tracks out of {} total tpc tracks", mMIPTracks.size(), tracks.size());
-
-  pc.outputs().snapshot(Output{"TPC", "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
+  pc.outputs().snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
   mMIPTracks.clear();
 }
 
@@ -84,7 +130,7 @@ void MIPTrackFilterDevice::endOfStream(EndOfStreamContext& eos)
 DataProcessorSpec getMIPTrackFilterSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TPC", "MIPS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(header::gDataOriginTPC, "MIPS", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-miptrack-filter",
@@ -98,7 +144,9 @@ DataProcessorSpec getMIPTrackFilterSpec()
       {"max-momentum", VariantType::Double, 0.7, {"maximum momentum cut"}},
       {"min-dedx", VariantType::Double, 20., {"minimum dEdx cut"}},
       {"max-dedx", VariantType::Double, 200., {"maximum dEdx cut"}},
-      {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}}}};
+      {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}},
+      {"processEveryNthTF", VariantType::Int, 1, {"Using only a fraction of the data: 1: Use every TF, 10: Process only every tenth TF."}},
+      {"maxTracksPerTF", VariantType::Int, -1, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}}}};
 }
 
 } // namespace o2::tpc

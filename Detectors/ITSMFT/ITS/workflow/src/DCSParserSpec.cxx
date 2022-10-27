@@ -52,7 +52,17 @@ void ITSDCSParser::run(ProcessingContext& pc)
   const auto inString = pc.inputs().get<gsl::span<char>>("inString");
   std::string inStringConv;
   std::copy(inString.begin(), inString.end(), std::back_inserter(inStringConv));
-  for (const std::string& line : this->vectorizeStringList(inStringConv, "\n")) {
+
+  // Check for DOS vs. Unix line ending
+  std::string line_ending = "\n";
+  size_t newline_pos = inStringConv.find(line_ending);
+  if (newline_pos && newline_pos != std::string::npos &&
+      inStringConv[newline_pos - 1] == '\r') {
+    line_ending = "\r\n";
+  }
+
+  // Loop over lines in the input file
+  for (const std::string& line : this->vectorizeStringList(inStringConv, line_ending)) {
     if (!line.length()) {
       continue;
     }
@@ -65,6 +75,11 @@ void ITSDCSParser::run(ProcessingContext& pc)
     this->pushToCCDB(pc);
     this->mConfigDCS.clear();
   }
+
+  // Reset saved information for the next EOR file
+  this->mRunNumber = UNSET_INT;
+  this->mConfigVersion = UNSET_INT;
+  this->mRunType = UNSET_SHORT;
 
   return;
 }
@@ -79,43 +94,47 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // Parse the individual parts of the string
   const std::string delimiter = "|";
-  unsigned int pos = 0;
-  unsigned int npos = inString.find(delimiter);
+  size_t pos = 0;
+  size_t npos = inString.find(delimiter);
+  if (npos == std::string::npos) {
+    LOG(error) << "Delimiter not found, possibly corrupted data!";
+    return;
+  }
 
   // First is the stave name
   this->mStaveName = inString.substr(pos, npos);
 
   // Next is the run number
-  std::string word = "RUN";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "RUN", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mRunNumber, std::stoi(inString.substr(pos, npos)));
 
   // Next is the config
-  word = "CONFIG";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "CONFIG", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mConfigVersion, std::stoi(inString.substr(pos, npos)));
 
   // Then it's the run type
-  word = "RUNTYPE";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "RUNTYPE", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mRunType, std::stoi(inString.substr(pos, npos)));
 
   // Then there is a semicolon-delineated list of disabled chips
-  word = "DISABLED_CHIPS";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "DISABLED_CHIPS", inString)) {
+    return;
+  }
   std::string disabledChipsStr = inString.substr(pos, npos);
   if (disabledChipsStr.length()) {
     this->mDisabledChips = this->vectorizeStringListInt(disabledChipsStr, ";");
   }
 
   // Then there is a 2D list of masked double-columns
-  word = "MASKED_DCOLS";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "MASKED_DCOLS", inString)) {
+    return;
+  }
   std::string maskedDoubleColsStr = inString.substr(pos, npos);
   if (maskedDoubleColsStr.length()) {
     std::vector<std::string> chipVect = this->vectorizeStringList(maskedDoubleColsStr, ";");
@@ -126,8 +145,9 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
   }
 
   // Finally, there are double columns which are disabled at EOR
-  word = "DCOLS_EOR";
-  pos += npos + delimiter.length() + word.length();
+  if (!this->updatePosition(pos, npos, delimiter, "DCOLS_EOR", inString, true)) {
+    return;
+  }
   std::string doubleColsEORstr = inString.substr(pos);
   if (doubleColsEORstr.length()) {
     std::vector<std::string> bigVect = this->vectorizeStringList(doubleColsEORstr, "&");
@@ -144,15 +164,39 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
         this->mDoubleColsDisableEOR[doubleColDisableVector[0]].push_back(doubleColDisableVector[1]);
       }
       // Second, update map of flagged pixels at EOR
-      std::vector<std::string> pixelFlagsEOR = this->vectorizeStringList(bigVectSplit[1], ";");
-      for (const std::string& str : pixelFlagsEOR) {
-        std::vector<unsigned short int> pixelFlagsVector = this->vectorizeStringListInt(str, ":");
-        this->mPixelFlagsEOR[pixelFlagsVector[0]].push_back(pixelFlagsVector[1]);
+      if (bigVectSplit.size() > 1) {
+        std::vector<std::string> pixelFlagsEOR = this->vectorizeStringList(bigVectSplit[1], ";");
+        for (const std::string& str : pixelFlagsEOR) {
+          std::vector<unsigned short int> pixelFlagsVector = this->vectorizeStringListInt(str, ":");
+          this->mPixelFlagsEOR[pixelFlagsVector[0]].push_back(pixelFlagsVector[1]);
+        }
       }
     }
   }
 
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Update pos and npos and check for validity. Return false if there is error
+bool ITSDCSParser::updatePosition(size_t& pos, size_t& npos,
+                                  const std::string& delimiter, const char* word,
+                                  const std::string& inString, bool ignoreNpos /*=false*/)
+{
+  pos += npos + delimiter.length() + std::string(word).length();
+  if (!ignoreNpos) {
+    npos = inString.find(delimiter, pos);
+
+    // Check that npos does not go out-of-bounds
+    if (npos == std::string::npos) {
+      LOG(error) << "Delimiter not found, possibly corrupted data!";
+      return false;
+    }
+
+    npos -= pos;
+  }
+
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -165,7 +209,7 @@ void ITSDCSParser::updateAndCheck(int& memValue, const int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -180,7 +224,7 @@ void ITSDCSParser::updateAndCheck(short int& memValue, const short int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -192,7 +236,7 @@ std::vector<std::string> ITSDCSParser::vectorizeStringList(
   const std::string& str, const std::string& delimiter)
 {
   std::vector<std::string> str_vect;
-  std::string::size_type prev_pos = 0, pos = 0;
+  size_t prev_pos = 0, pos = 0;
   while ((pos = str.find(delimiter, pos)) != std::string::npos) {
     std::string substr = str.substr(prev_pos, pos - prev_pos);
     if (substr.length()) {
@@ -213,7 +257,7 @@ std::vector<unsigned short int> ITSDCSParser::vectorizeStringListInt(
   const std::string& str, const std::string& delimiter)
 {
   std::vector<unsigned short int> int_vect;
-  std::string::size_type prev_pos = 0, pos = 0;
+  size_t prev_pos = 0, pos = 0;
   while ((pos = str.find(delimiter, pos)) != std::string::npos) {
     unsigned short int substr = std::stoi(str.substr(prev_pos, pos - prev_pos));
     int_vect.push_back(substr);
@@ -353,20 +397,34 @@ void ITSDCSParser::writeChipInfo(
 void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 {
   // Timestamps for CCDB entry
-  long tstart = o2::ccdb::getCurrentTimestamp();
-  long tend = tstart + 365L * 24 * 3600 * 1000;
+  long tstart = 0, tend = 0;
+  // retireve run start/stop times from CCDB
+  o2::ccdb::CcdbApi api;
+  api.init("http://alice-ccdb.cern.ch");
+  // Initialize empty metadata object for search
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers = api.retrieveHeaders(
+    "RCT/Info/RunInformation", metadata, this->mRunNumber);
+  if (headers.empty()) { // No CCDB entry is found
+    LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
+               << "\nWill default to using the current time for timestamp information";
+    tstart = o2::ccdb::getCurrentTimestamp();
+    tend = tstart + 365L * 24 * 3600 * 1000;
+  } else {
+    tstart = std::stol(headers["SOR"]);
+    tend = std::stol(headers["EOR"]);
+  }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
 
   // Create metadata for database object
-  std::map<std::string, std::string> md = {
-    {"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
+  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
   if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
-    md.insert({"runNumber", std::to_string(this->mRunNumber)});
+    metadata.insert({"runNumber", std::to_string(this->mRunNumber)});
   }
   std::string path("ITS/DCS_CONFIG/");
   const char* filename = "dcs_config.root";
-  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
   info.setFileName(filename);
 

@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DPLMONITORINGBACKEND_H_
 #define O2_FRAMEWORK_DPLMONITORINGBACKEND_H_
 
+#include "Framework/ServiceRegistryRef.h"
 #include "Monitoring/Backend.h"
 #include <string>
 
@@ -24,7 +25,7 @@ class DPLMonitoringBackend final : public o2::monitoring::Backend
 {
  public:
   /// Default constructor
-  DPLMonitoringBackend(ServiceRegistry& registry);
+  DPLMonitoringBackend(ServiceRegistryRef registry);
 
   /// Default destructor
   ~DPLMonitoringBackend() override = default;
@@ -45,7 +46,7 @@ class DPLMonitoringBackend final : public o2::monitoring::Backend
  private:
   std::string mTagString;    ///< Global tagset (common for each metric)
   const std::string mPrefix; ///< Metric prefix
-  ServiceRegistry& mRegistry;
+  ServiceRegistryRef mRegistry;
 };
 
 } // namespace o2::framework

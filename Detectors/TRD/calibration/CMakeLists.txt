@@ -14,6 +14,7 @@ add_subdirectory(macros)
 o2_add_library(TRDCalibration
                SOURCES src/TrackBasedCalib.cxx
                        src/CalibratorVdExB.cxx
+                       src/CalibratorNoise.cxx
                        src/KrClusterFinder.cxx
                        src/DCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
@@ -28,6 +29,7 @@ o2_add_library(TRDCalibration
  o2_target_root_dictionary(TRDCalibration
                            HEADERS include/TRDCalibration/TrackBasedCalib.h
                                    include/TRDCalibration/CalibratorVdExB.h
+                                   include/TRDCalibration/CalibratorNoise.h
                                    include/TRDCalibration/KrClusterFinder.h
                                    include/TRDCalibration/DCSProcessor.h)
 

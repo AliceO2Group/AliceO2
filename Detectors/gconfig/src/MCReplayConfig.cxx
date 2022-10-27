@@ -14,7 +14,7 @@
 #include "SimSetup/MCReplayParam.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
 #include "../commonConfig.C"
@@ -37,6 +37,8 @@ void Config()
   replay->setStepFilename(params.stepFilename);
   replay->setStepTreename(params.stepTreename);
   replay->SetCut("CUTALLE", params.energyCut);
+  replay->cutsFromConfig(params.cutFile);
+  replay->blockSetProcessesCuts();
 }
 
 void MCReplayConfig()

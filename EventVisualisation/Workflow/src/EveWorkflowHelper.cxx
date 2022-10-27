@@ -117,7 +117,7 @@ double EveWorkflowHelper::bcDiffToTFTimeMUS(const o2::InteractionRecord& ir)
   auto bcd = ir.differenceInBC(startIR);
 
   if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
-    LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+    LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir.asString(), startIR.asString());
     BCDiffErrCount++;
   }
 

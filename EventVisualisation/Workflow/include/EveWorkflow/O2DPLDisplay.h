@@ -50,7 +50,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
   static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,MID,ITS-TPC,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,ITS-TPC-TRD-TOF,MCH-MID,MFT-MCH,PHS,EMC";
   static constexpr auto allowedClusters = "ITS,TPC,TRD,TOF,MFT,MCH,MID,PHS,EMC";
 
-  O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
+  O2DPLDisplaySpec(bool disableWrite, bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest,
                    std::shared_ptr<o2::base::GRPGeomRequest> gr,
@@ -58,8 +58,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
-                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers)
+                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY)
+    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -73,6 +73,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
  private:
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
 
+  bool mDisableWrite = false; // skip writing result (for testing performance)
   bool mUseMC = false;
   bool mEveHostNameMatch;                  // empty or correct hostname
   int mMinITSTracks;                       // minimum number of ITS tracks to produce a file
@@ -92,6 +93,12 @@ class O2DPLDisplaySpec : public o2::framework::Task
   int mOnlyNthEvent;                       // process only every nth event.
   int mMaxPrimaryVertices;                 // max number of primary vertices to draw per time frame
   bool mPrimaryVertexTriggers;             // instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)
+  float mPrimaryVertexMinZ;                // minimum z position of the primary vertex
+  float mPrimaryVertexMaxZ;                // maximum z position of the primary vertex
+  float mPrimaryVertexMinX;                // minimum x position of the primary vertex
+  float mPrimaryVertexMaxX;                // maximum x position of the primary vertex
+  float mPrimaryVertexMinY;                // minimum y position of the primary vertex
+  float mPrimaryVertexMaxY;                // maximum y position of the primary vertex
   int mEventCounter = 0;
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 

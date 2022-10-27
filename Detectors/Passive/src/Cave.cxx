@@ -27,7 +27,7 @@
 #include "SimConfig/SimConfig.h"
 #include "SimConfig/SimParams.h"
 #include <TRandom.h>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 #include "TGeoPgon.h"

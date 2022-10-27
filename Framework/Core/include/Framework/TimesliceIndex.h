@@ -115,6 +115,8 @@ class TimesliceIndex
   ///         of the messages.
   std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
 
+  /// @return true if the device got some data.
+  [[nodiscard]] bool didReceiveData() const;
   /// Set the older possible input per channel
   /// @return the updated oldest possible input. Notice that this should be
   /// used with the validateSlots below to actually discard the slots.
@@ -129,12 +131,12 @@ class TimesliceIndex
   [[nodiscard]] OldestInputInfo getOldestPossibleInput() const;
   [[nodiscard]] OldestOutputInfo getOldestPossibleOutput() const;
   OldestOutputInfo updateOldestPossibleOutput();
-  InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
+  [[nodiscard]] InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.
   /// This is the timeslices for all the in flight parts.
-  inline TimesliceSlot findOldestSlot(TimesliceId) const;
+  [[nodiscard]] inline TimesliceSlot findOldestSlot(TimesliceId) const;
 
   /// The variables for each cacheline.
   std::vector<data_matcher::VariableContext> mVariables;

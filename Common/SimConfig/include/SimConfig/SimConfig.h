@@ -56,7 +56,7 @@ struct SimConfigData {
                                               // but will themselves be overridden by any values given in mKeyValueTokens.
   int mPrimaryChunkSize;                      // defining max granularity for input primaries of a sim job
   int mInternalChunkSize;                     //
-  int mStartSeed;                             // base for random number seeds
+  ULong_t mStartSeed;                         // base for random number seeds
   int mSimWorkers = 1;                        // number of parallel sim workers (when it applies)
   bool mFilterNoHitEvents = false;            // whether to filter out events not leaving any response
   std::string mCCDBUrl;                       // the URL where to find CCDB
@@ -67,6 +67,7 @@ struct SimConfigData {
   SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
+  bool mIsRun5 = false;                       // true if the simulation is for Run 5
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -114,7 +115,7 @@ class SimConfig
 
   // static helper functions to determine list of active / readout modules
   // can also be used from outside
-  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active);
+  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool isRun5 = false);
   static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
 
   // helper to parse field option
@@ -137,13 +138,14 @@ class SimConfig
   std::string getConfigFile() const { return mConfigData.mConfigFile; }
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
-  int getStartSeed() const { return mConfigData.mStartSeed; }
+  ULong_t getStartSeed() const { return mConfigData.mStartSeed; }
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
   int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
+  void setRun5(bool value = true) { mConfigData.mIsRun5 = value; }
 
  private:
   SimConfigData mConfigData; //!
@@ -173,7 +175,7 @@ struct SimReconfigData {
   // values within the config file will override values set in code by the param classes
   // but will themselves be overridden by any values given in mKeyValueTokens.
   unsigned int primaryChunkSize; // defining max granularity for input primaries of a sim job
-  int startSeed;                 // base for random number seeds
+  ULong_t startSeed;             // base for random number seeds
   bool stop;                     // to shut down the service
 
   ClassDefNV(SimReconfigData, 1);

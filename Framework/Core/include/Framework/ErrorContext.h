@@ -12,7 +12,7 @@
 #define O2_FRAMEWORK_ERROR_CONTEXT_H_
 
 #include "Framework/InputRecord.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/RuntimeError.h"
 
 namespace o2::framework
@@ -23,7 +23,7 @@ namespace o2::framework
 class ErrorContext
 {
  public:
-  ErrorContext(InputRecord& inputs, ServiceRegistry& services, RuntimeErrorRef e)
+  ErrorContext(InputRecord& inputs, ServiceRegistryRef services, RuntimeErrorRef e)
     : mInputs{inputs},
       mServices{services},
       mExceptionRef{e}
@@ -31,12 +31,12 @@ class ErrorContext
   }
 
   InputRecord const& inputs() { return mInputs; }
-  ServiceRegistry const& services() { return mServices; }
+  ServiceRegistryRef services() { return mServices; }
   RuntimeErrorRef exception() { return mExceptionRef; }
 
  private:
   InputRecord& mInputs;
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
   RuntimeErrorRef mExceptionRef;
 };
 

@@ -50,13 +50,38 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cluster>& cluData);
+
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Cluster>& cluVec);
+  std::vector<TriggerRecord> mTrgDataFilt;
+  std::vector<Cluster> mClusDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cluster>& cluData)
+{
+  if (mIRFrameSelector.isSet()) { // preselect data
+    mTrgDataFilt.clear();
+    mClusDataFilt.clear();
+    for (const auto& trig : trigData) {
+      if (mIRFrameSelector.check(trig.getBCData()) >= 0) {
+        mTrgDataFilt.push_back(trig);
+        auto clusIt = cluData.begin() + trig.getFirstEntry();
+        auto& trigC = mTrgDataFilt.back();
+        trigC.setDataRange((int)mClusDataFilt.size(), trig.getNumberOfObjects());
+        std::copy(clusIt, clusIt + trig.getNumberOfObjects(), std::back_inserter(mClusDataFilt));
+      }
+    }
+    return encode_impl(buff, mTrgDataFilt, mClusDataFilt);
+  }
+  return encode_impl(buff, trigData, cluData);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cluster>& cluData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation

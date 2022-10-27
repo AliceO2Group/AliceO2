@@ -1209,7 +1209,7 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
     mFitReg[adc].q1 += qtot;
   }
 
-  if ((timebin >= 5) &&
+  if ((timebin >= 1) &&
       (timebin < 24)) {
     mFitReg[adc].sumX += timebin;
     mFitReg[adc].sumX2 += timebin * timebin;

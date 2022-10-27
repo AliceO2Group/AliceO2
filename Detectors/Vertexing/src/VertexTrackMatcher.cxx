@@ -99,7 +99,8 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
   // build final vector of global indices
   trackIndex.clear();
   vtxRefs.clear();
-
+  static size_t logCounter = 0;
+  bool logVertices = mPrescaleLogs > 0 ? (logCounter % mPrescaleLogs) == 0 : true;
   for (int iv = 0; iv < nv1; iv++) {
     auto& trvec = tmpMap[iv];
     // sort entries in each vertex track indices list according to the source
@@ -121,8 +122,11 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       vr.setFirstEntryOfSource(oldSrc, trackIndex.size());
     }
     vr.setEnd(trackIndex.size());
-    LOG(info) << vr;
+    if (logVertices) {
+      LOG(info) << vr;
+    }
   }
+  logCounter++;
   LOG(info) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambiguously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
 }
 

@@ -83,14 +83,14 @@ bool GPUDisplayBackendOpenGL::CoreProfile()
 #endif
 
 //#define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd)                                                                           \
-  do {                                                                                        \
-    (cmd);                                                                                    \
-    GLenum err = glGetError();                                                                \
-    while (err != GL_NO_ERROR) {                                                              \
-      GPUError("OpenGL Error %d: %s (%s: %d)", err, gluErrorString(err), __FILE__, __LINE__); \
-      throw std::runtime_error("OpenGL Failure");                                             \
-    }                                                                                         \
+#define CHKERR(cmd)                                                                                             \
+  do {                                                                                                          \
+    (cmd);                                                                                                      \
+    GLenum err = glGetError();                                                                                  \
+    while (err != GL_NO_ERROR) {                                                                                \
+      GPUError("OpenGL Error %d: %s (%s: %d)", (int)err, (const char*)gluErrorString(err), __FILE__, __LINE__); \
+      throw std::runtime_error("OpenGL Failure");                                                               \
+    }                                                                                                           \
   } while (false)
 
 unsigned int GPUDisplayBackendOpenGL::DepthBits()
@@ -305,7 +305,7 @@ int GPUDisplayBackendOpenGL::InitBackendA()
 {
   if (mDisplay->param()->par.debugLevel >= 2) {
     auto renderer = glGetString(GL_RENDERER);
-    GPUInfo("Renderer: %s", renderer);
+    GPUInfo("Renderer: %s", (const char*)renderer);
   }
 
   int glVersion[2] = {0, 0};

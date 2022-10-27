@@ -30,7 +30,12 @@
 #pragma link C++ class o2::zdc::BaselineCalibBinData + ;
 #pragma link C++ class o2::zdc::BaselineCalibSummaryData + ;
 #pragma link C++ class o2::zdc::BaselineCalibConfig + ;
+#pragma link C++ class o2::zdc::NoiseCalibData + ;
+#pragma link C++ class o2::zdc::NoiseCalibBinData + ;
+#pragma link C++ class o2::zdc::NoiseCalibSummaryData + ;
 #pragma link C++ class std::vector < o2::zdc::BaselineCalibBinData> + ;
 #pragma link C++ class std::vector < o2::zdc::BaselineCalibSummaryData> + ;
+#pragma link C++ struct o2::zdc::ZDCDCSinfo + ;
+#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::zdc::ZDCDCSinfo> + ;
 
 #endif

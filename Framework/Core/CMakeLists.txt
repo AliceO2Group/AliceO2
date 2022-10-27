@@ -15,7 +15,6 @@ o2_add_library(Framework
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
-                       src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/CallbacksPolicy.cxx
@@ -38,7 +37,6 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/ControlWebSocketHandler.cxx
-                       src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DomainInfoHeader.cxx
@@ -82,6 +80,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/MermaidHelpers.cxx
                        src/HTTPParser.cxx
+                       src/IndexBuilderHelpers.cxx
                        src/InputRecord.cxx
                        src/InputRouteHelpers.cxx
                        src/InputSpan.cxx
@@ -104,7 +103,6 @@ o2_add_library(Framework
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
-                       src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
@@ -122,7 +120,6 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
-                       src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
@@ -141,27 +138,24 @@ o2_add_library(Framework
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
-                                     AliceO2::Configuration
-                                     AliceO2::InfoLogger
+               PUBLIC_LINK_LIBRARIES AliceO2::Configuration
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
-                                     O2::CommonUtils
-                                     O2::MathUtils
-                                     O2::CCDB
+                                     ROOT::Tree
+                                     ROOT::Hist
                                      O2::FrameworkFoundation
+                                     O2::CommonConstants
                                      O2::Headers
                                      O2::MemoryResources
                                      O2::PCG
+                                     ROOT::Tree
                                      RapidJSON::RapidJSON
-                                     arrow::arrow_shared
+                                     Arrow::arrow_shared
                                      Microsoft.GSL::GSL
-                                     ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
-                                     Boost::serialization
                                      ${BOOST_FILESYSTEM}
-                                     arrow::gandiva_shared
+                                     Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
 
@@ -180,7 +174,6 @@ foreach(t
         BoostOptionsRetriever
         ConfigurationOptionsRetriever
         CallbackRegistry
-        CCDBHelpers
         ChannelSpecHelpers
         CheckTypes
         CompletionPolicy
@@ -210,7 +203,6 @@ foreach(t
         HistogramRegistry
         HTTPParser
         IndexBuilder
-        InfoLogger
         InputRecord
         InputRecordWalker
         InputSpan
@@ -221,7 +213,6 @@ foreach(t
         OptionsHelpers
         OverrideLabels
         PtrHelpers
-        Root2ArrowTable
         RootConfigParamHelpers
         Services
         StringHelpers
@@ -236,8 +227,7 @@ foreach(t
         WorkflowHelpers
         WorkflowSerialization
         TreeToTable
-        DataOutputDirector
-    DataInputDirector)
+        DataOutputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -248,6 +238,18 @@ foreach(t
               LABELS framework
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
+
+o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
+            SOURCES test/test_Root2ArrowTable.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework ROOT::ROOTDataFrame)
+
+o2_add_test(InfoLogger NAME test_Framework_test_InfoLogger
+            SOURCES test/test_InfoLogger.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
 
 o2_add_executable(dpl-null-sink
                   SOURCES src/o2NullSink.cxx
@@ -261,7 +263,7 @@ o2_add_executable(dpl-run
 
 o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  PUBLIC_LINK_LIBRARIES O2::Framework ROOT::TreePlayer
                   COMPONENT_NAME Framework)
 
 # tests with a name not starting with test_...
@@ -306,7 +308,6 @@ endforeach()
 # #####################################################@
 
 foreach(w
-        BoostSerializedProcessing
         CallbackService
         RegionInfoCallbackService
         DanglingInputs
@@ -318,7 +319,6 @@ foreach(w
         ParallelProducer
         SlowConsumer
         SimpleDataProcessingDevice01
-        SimpleRDataFrameProcessing
         SimpleStatefulProcessing01
         SimpleStringProcessing
         SimpleTimer
@@ -345,9 +345,6 @@ if (BUILD_TESTING)
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem and re-enable
-set_property(TEST test_Framework_test_BoostSerializedProcessing
-             PROPERTY DISABLED TRUE)
 endif()
 
 # specific tests which needs command line options

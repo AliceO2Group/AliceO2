@@ -27,6 +27,7 @@ class TempCalibParamSM;
 class TimeCalibrationParams;
 class TimeCalibParamL1Phase;
 class GainCalibrationFactors;
+class EMCALChannelScaleFactors;
 class FeeDCS;
 class ElmbData;
 
@@ -257,6 +258,13 @@ class CalibDB
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   GainCalibrationFactors* readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
+  /// \brief Find scale factors used for bad channel calibration in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query (there is only one entry in the CCDB)
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  EMCALChannelScaleFactors* readChannelScaleFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
   /// \brief Store FEE DCS data in the CCDB
   /// \param dcs FEE DCS data to be stored
   /// \param metadata Additional metadata that can be used in the query
@@ -329,6 +337,10 @@ class CalibDB
   /// \return Path of the Temperature Sensor data in the CCDB
   static const char* getCDBPathTemperatureSensor() { return "EMC/Calib/Temperature"; }
 
+  /// \brief Get CCDB path for the scale factors used in the bad channel calibration
+  /// \return Path of the scale factors used in the bad channel calibration in the CCDB
+  static const char* getCDBPathChannelScaleFactors() { return "EMC/Config/ChannelScaleFactors"; }
+
  private:
   /// \brief Initialize CCDB server (when new object is created or the server URL changes)
   void
@@ -338,7 +350,7 @@ class CalibDB
   std::string mCCDBServer = "emcccdb-test.cern.ch"; ///< Name of the CCDB server
   Bool_t mInit = false;                             ///< Init status (needed for lazy evaluation of the CcdbApi init)
 
-  ClassDefNV(CalibDB, 1);
+  ClassDefNV(CalibDB, 2);
 };
 } // namespace emcal
 

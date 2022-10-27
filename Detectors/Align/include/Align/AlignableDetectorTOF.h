@@ -27,12 +27,13 @@ namespace align
 class AlignableDetectorTOF : public AlignableDetector
 {
  public:
-  AlignableDetectorTOF(const char* title = "");
-  virtual ~AlignableDetectorTOF();
+  AlignableDetectorTOF() = default;
+  AlignableDetectorTOF(Controller* ctr);
+  ~AlignableDetectorTOF() final = default;
   //
-  virtual void defineVolumes();
+  void defineVolumes() final;
   //
-  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
+  int processPoints(GIndex gid, bool inv) final;
   //
  protected:
   //

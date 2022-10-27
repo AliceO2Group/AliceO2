@@ -13,7 +13,7 @@
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/MatMapParams.h>
 #include <TStopwatch.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 int main(int argc, char* argv[])
 {

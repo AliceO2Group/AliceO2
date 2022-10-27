@@ -5,7 +5,7 @@
 #include <string>
 #endif
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace std;
 

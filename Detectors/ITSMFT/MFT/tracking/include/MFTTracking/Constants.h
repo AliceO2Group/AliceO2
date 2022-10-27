@@ -49,7 +49,6 @@ constexpr std::array<Float_t, LayersNumber> InverseLayerZCoordinate()
 {
   return std::array<Float_t, LayersNumber>{-1. / 45.3, -1. / 46.7, -1. / 48.6, -1. / 50.0, -1. / 52.4, -1. / 53.8, -1. / 67.7, -1. / 69.1, -1. / 76.1, -1. / 77.5};
 }
-constexpr Int_t MaxCellNeighbours{50};
 constexpr Int_t MaxPointsInRoad{100};
 constexpr Int_t MaxCellsInRoad{100};
 } // namespace mft

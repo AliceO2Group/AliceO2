@@ -39,7 +39,8 @@ class ETCalibHistos
                 kTimeHGPerCell,
                 kTimeLGPerCell,
                 kTimeHGSlewing,
-                kTimeLGSlewing };
+                kTimeLGSlewing,
+                kTimeDDL };
   static constexpr int nChannels = 14336 - 1793; // 4 full modules -1/2
   static constexpr int offset = 1793;            // 1/2 full module
   // mgg histos
@@ -47,15 +48,18 @@ class ETCalibHistos
   static constexpr float massMax = 0.3;
   static constexpr float dm = massMax / nMass;
   // time histograms
-  static constexpr int nTime = 200;
-  static constexpr float timeMin = -100.e-9;
-  static constexpr float timeMax = 100.e-9;
+  static constexpr int nTime = 400;
+  static constexpr float timeMin = -200.e-9;
+  static constexpr float timeMax = 200.e-9;
   static constexpr float dt = (timeMax - timeMin) / nTime;
 
   // pt
   static constexpr int npt = 200;
   static constexpr float ptMax = 20;
   static constexpr float dpt = ptMax / npt;
+
+  // L1 phase
+  static constexpr int nDDL = 52; // 14 DDL * 4 BC
 
   /// \brief Constructor
   ETCalibHistos() = default;
@@ -87,6 +91,11 @@ class ETCalibHistos
       for (int j = nTime; --j;) {
         mTimeHGSlewing[i][j] += other->mTimeHGSlewing[i][j];
         mTimeLGSlewing[i][j] += other->mTimeLGSlewing[i][j];
+      }
+    }
+    for (int i = nDDL; --i;) {
+      for (int j = nTime; --j;) {
+        mTimeDDL[i][j] += other->mTimeDDL[i][j];
       }
     }
   }
@@ -138,6 +147,12 @@ class ETCalibHistos
         }
       }
     }
+    if (kind == kTimeDDL) {
+      int j = int((y - timeMin) / dt);
+      if (j >= 0 && j < nTime) {
+        mTimeDDL[x][j]++;
+      }
+    }
   }
   void reset()
   {
@@ -149,6 +164,7 @@ class ETCalibHistos
     memset(&mTimeLGPerCell, 0, sizeof(mTimeLGPerCell));
     memset(&mTimeHGSlewing, 0, sizeof(mTimeHGSlewing));
     memset(&mTimeLGSlewing, 0, sizeof(mTimeLGSlewing));
+    memset(&mTimeDDL, 0, sizeof(mTimeDDL));
   }
 
  public:
@@ -160,8 +176,9 @@ class ETCalibHistos
   std::array<std::array<float, nTime>, nChannels> mTimeLGPerCell;    ///< time per cell
   std::array<std::array<float, npt>, nTime> mTimeHGSlewing;          ///< time vs pT
   std::array<std::array<float, npt>, nTime> mTimeLGSlewing;          ///< time vs pT
+  std::array<std::array<float, nDDL>, nTime> mTimeDDL;               ///< time vs DDL
 
-  ClassDef(ETCalibHistos, 1);
+  ClassDef(ETCalibHistos, 2);
 };
 
 } // namespace phos

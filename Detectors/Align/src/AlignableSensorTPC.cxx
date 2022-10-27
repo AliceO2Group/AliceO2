@@ -49,7 +49,7 @@ AlignableSensorTPC::~AlignableSensorTPC()
 void AlignableSensorTPC::prepareMatrixT2L()
 {
   // extract from geometry T2L matrix
-  double alp = sector2Alpha(fSector);
+  double alp = math_utils::detail::sector2Angle<float>(fSector);
   double loc[3] = {0, 0, 0}, glo[3];
   getMatrixL2GIdeal().LocalToMaster(loc, glo);
   double x = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);

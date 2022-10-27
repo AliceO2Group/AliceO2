@@ -13,7 +13,7 @@
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <boost/program_options.hpp>
 #include <iostream>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <thread>
 #include <cmath>
 #include <chrono>
@@ -48,43 +48,71 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
-    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>()->default_value(0), "initial seed as ULong_t (default: 0 == random)")(
     "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
-    "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
+    "CCDBUrl", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool mIsRun5)
 {
   using o2::detectors::DetID;
 
   // input args is a vector of module strings as obtained from the -m,--modules options
   // of SimConfig
   activeModules = inputargs;
+#ifdef ENABLE_UPGRADES
+  if (activeModules[0] != "all") {
+    if (mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT") {
+          LOGP(fatal, "List of active modules contains {}, which is not a run 5 module", activeModules[i]);
+        }
+      }
+    }
+    if (!mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
+          LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
+        }
+      }
+    }
+  }
+#endif
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
-    for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
-        activeModules.emplace_back(DetID::getName(d));
+    if (mIsRun5) {
+      for (int d = DetID::First; d <= DetID::Last; ++d) {
+        if (d == DetID::IT3 || d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
+          activeModules.emplace_back(DetID::getName(d));
+        }
+      }
+    } else {
+#endif
+      // add passive components manually (make a PassiveDetID for them!)
+      activeModules.emplace_back("HALL");
+      activeModules.emplace_back("MAG");
+      activeModules.emplace_back("DIPO");
+      activeModules.emplace_back("COMP");
+      activeModules.emplace_back("PIPE");
+      activeModules.emplace_back("ABSO");
+      activeModules.emplace_back("SHIL");
+      for (int d = DetID::First; d <= DetID::Last; ++d) {
+#ifdef ENABLE_UPGRADES
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
+          activeModules.emplace_back(DetID::getName(d));
+        }
       }
 #else
       activeModules.emplace_back(DetID::getName(d));
 #endif
     }
-    // add passive components manually (make a PassiveDetID for them!)
-    activeModules.emplace_back("HALL");
-    activeModules.emplace_back("MAG");
-    activeModules.emplace_back("DIPO");
-    activeModules.emplace_back("COMP");
-    activeModules.emplace_back("PIPE");
-    activeModules.emplace_back("ABSO");
-    activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
   for (auto& s : skippedModules) {
@@ -150,7 +178,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
 
   // get final set of active Modules
-  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules);
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsRun5);
   const auto& activeModules = mConfigData.mActiveModules;
 
   // get final set of detectors which are readout
@@ -171,7 +199,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mConfigFile = vm["configFile"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
-  mConfigData.mStartSeed = vm["seed"].as<int>();
+  mConfigData.mStartSeed = vm["seed"].as<ULong_t>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
@@ -286,7 +314,7 @@ bool parseSimReconfigFromString(std::string const& argumentstring, SimReconfigDa
     "configKeyValues", bpo::value<std::string>(&data.keyValueTokens)->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
     "configFile", bpo::value<std::string>(&data.configFile)->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>(&data.primaryChunkSize)->default_value(500), "max size of primary chunk (subevent) distributed by server")(
-    "seed", bpo::value<int>(&data.startSeed)->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>(&data.startSeed)->default_value(0L), "initial seed as ULong_t (default: 0 == random)")(
     "stop", bpo::value<bool>(&data.stop)->default_value(false), "control command to shut down daemon");
 
   bpo::variables_map vm;

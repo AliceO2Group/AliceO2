@@ -17,13 +17,11 @@
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
 #include "EventVisualisationDataConverter/VisualisationEventROOTSerializer.h"
-#include "FairLogger.h"
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
-namespace o2
-{
-namespace event_visualisation
+namespace o2::event_visualisation
 {
 std::map<std::string, VisualisationEventSerializer*> VisualisationEventSerializer::instances = {
   {".json", new o2::event_visualisation::VisualisationEventJSONSerializer()},
@@ -36,5 +34,4 @@ std::string VisualisationEventSerializer::fileNameIndexed(const std::string file
   return buffer.str();
 }
 
-} // namespace event_visualisation
-} // namespace o2
+} // namespace o2::event_visualisation

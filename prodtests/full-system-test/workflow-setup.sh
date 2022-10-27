@@ -66,9 +66,16 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
     has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
   fi
 done
+
 [[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
-PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
-[[ -z $SVERTEXING_SOURCES ]] && SVERTEXING_SOURCES=$(echo $VERTEXING_SOURCES | sed -E -e "s/(^|,)TPC(-TRD|-TOF)+//g" -e "s/,TPC,/,/") 
+[[ -z $VERTEX_TRACK_MATCHING_SOURCES ]] && VERTEX_TRACK_MATCHING_SOURCES="$TRACK_SOURCES"
+[[ ! -z $VERTEXING_SOURCES ]] && PVERTEX_CONFIG+=" --vertexing-sources $VERTEXING_SOURCES"
+[[ ! -z $VERTEX_TRACK_MATCHING_SOURCES ]] && PVERTEX_CONFIG+=" --vertex-track-matching-sources $VERTEX_TRACK_MATCHING_SOURCES"
+
+if [[ -z $SVERTEXING_SOURCES ]]; then
+  SVERTEXING_SOURCES="$VERTEXING_SOURCES"
+  [[ -z $TPC_TRACKS_SVERTEXING ]] && SVERTEXING_SOURCES=$(echo $SVERTEXING_SOURCES | sed -E -e "s/(^|,)TPC(-TRD|-TOF)+//g" -e "s/,TPC,/,/")
+fi
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -80,9 +87,10 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
 {
   local NAME_FACTOR="N_F_$3"
   local NAME_DET="MULTIPLICITY_FACTOR_DETECTOR_$2"
-  local NAME_PROC="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
+  local NAME_PROC="MULTIPLICITY_PROCESS_${1//-/_}"
+  local NAME_PROC_FACTOR="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
   local NAME_DEFAULT="N_$5"
-  local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
+  local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_PROC_FACTOR:-1} * ${!NAME_DEFAULT:-1}))}
   if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && ($WORKFLOWMODE != "print" || $GEN_TOPO_RUN_HOME_TEST == 1) && $4 != 0 ]]; then
     echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
   else
@@ -93,6 +101,15 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
 math_max()
 {
   echo $(($1 > $2 ? $1 : $2))
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Helper to check if root ouput is requested for certain process
+
+needs_root_output()
+{
+  local NAME_PROC_ENABLE_ROOT_OUTPUT="ENABLE_ROOT_OUTPUT_${1//-/_}"
+  [[ ! -z ${!NAME_PROC_ENABLE_ROOT_OUTPUT+x} ]]
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -107,7 +124,12 @@ add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OP
   [[ ! -z "$3" ]] && KEY_VALUES+="$3;"
   [[ ! -z ${!NAME_PROC_CONFIG} ]] && KEY_VALUES+="${!NAME_PROC_CONFIG};"
   [[ ! -z "$KEY_VALUES" ]] && KEY_VALUES="--configKeyValues \"$KEY_VALUES\""
-  WORKFLOW+="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
+  local WFADD="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
+  local NAME_PROC_ENABLE_ROOT_OUTPUT="ENABLE_ROOT_OUTPUT_${1//-/_}"
+  if [[ ! -z $DISABLE_ROOT_OUTPUT ]] && needs_root_output $1 ; then
+      WFADD=${WFADD//$DISABLE_ROOT_OUTPUT/}
+  fi
+  WORKFLOW+=$WFADD
 }
 
 fi # workflow-setup.sh sourced

@@ -50,11 +50,17 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   //the fill function is called once per event
   mEvents++;
   for (auto cell : data) {
-    Double_t cellEnergy = cell.getEnergy();
-    Int_t id = cell.getTower();
+    double cellEnergy = cell.getEnergy();
+    int id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);
     mNEntriesInHisto++;
+
+    if (cellEnergy > o2::emcal::EMCALCalibParams::Instance().minCellEnergyTime_bc) {
+      double cellTime = cell.getTimeStamp();
+      LOG(debug) << "inserting in cell ID " << id << ": time = " << cellTime;
+      mHistoTime(cellTime, id);
+    }
   }
 }
 //_____________________________________________
@@ -68,6 +74,7 @@ void EMCALChannelData::merge(const EMCALChannelData* prev)
   mEvents += prev->getNEvents();
   mNEntriesInHisto += prev->getNEntriesInHisto();
   mHisto += prev->getHisto();
+  mHistoTime += prev->getHistoTime();
 }
 
 //_____________________________________________
@@ -75,13 +82,13 @@ bool EMCALChannelData::hasEnoughData() const
 {
   bool enough = false;
 
-  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries_bc << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().useNEventsForCalib_bc && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries_bc) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration
-  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+  if (EMCALCalibParams::Instance().useNEventsForCalib_bc && mEvents > EMCALCalibParams::Instance().minNEvents_bc) {
     enough = true;
   }
 
@@ -91,7 +98,7 @@ bool EMCALChannelData::hasEnoughData() const
 //_____________________________________________
 void EMCALChannelData::analyzeSlot()
 {
-  mOutputBCM = mCalibExtractor->calibrateBadChannels(mEsumHisto);
+  mOutputBCM = mCalibExtractor->calibrateBadChannels(mEsumHisto, mHistoTime);
 }
 //____________________________________________
 

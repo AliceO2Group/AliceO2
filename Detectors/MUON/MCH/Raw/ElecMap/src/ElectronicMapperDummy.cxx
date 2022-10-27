@@ -35,7 +35,7 @@ std::map<uint32_t, uint32_t> buildDsElecId2DsDetIdMap()
   uint8_t groupId{0};
   uint8_t index{0};
 
-  for (auto deId : o2::mch::raw::deIdsForAllMCH) {
+  for (auto deId : o2::mch::constants::deIdsForAllMCH) {
     // assign a tuple (solarId,groupId,index) to the pair (deId,dsId)
     for (auto dsId : dslist(deId)) {
       // index 0..4
@@ -75,7 +75,7 @@ std::map<uint32_t, uint16_t> buildFeeLinkId2SolarIdMap()
 
   std::set<uint16_t> solarIds;
 
-  for (auto deId : o2::mch::raw::deIdsForAllMCH) {
+  for (auto deId : o2::mch::constants::deIdsForAllMCH) {
     // assign a tuple (fee,link) to each solarId
     for (auto dsId : dslist(deId)) {
       if (n % 40 == 0) {

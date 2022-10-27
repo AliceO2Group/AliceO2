@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <fairmq/Message.h>
 #include <fairmq/Device.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>

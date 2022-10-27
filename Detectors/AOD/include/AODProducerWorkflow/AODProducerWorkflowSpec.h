@@ -41,9 +41,6 @@
 #include "TMap.h"
 #include "TStopwatch.h"
 
-#include <boost/functional/hash.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/unordered_map.hpp>
 #include <string>
 #include <vector>
 
@@ -55,34 +52,158 @@ using DataRequest = o2::globaltracking::DataRequest;
 namespace o2::aodproducer
 {
 
-typedef boost::tuple<int, int, int> Triplet_t;
+/// A structure or container to organize bunch crossing data of a timeframe
+/// and to facilitate fast lookup and search within bunch crossings.
+class BunchCrossings
+{
+ public:
+  /// Constructor initializes the acceleration structure
+  BunchCrossings() = default;
 
-struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
-  std::size_t operator()(Triplet_t const& e) const
+  /// initialize this container (to be ready for lookup/search queries)
+  void init(std::map<uint64_t, int> const& bcs)
   {
-    std::size_t seed = 0;
-    boost::hash_combine(seed, e.get<0>());
-    boost::hash_combine(seed, e.get<1>());
-    boost::hash_combine(seed, e.get<2>());
-    return seed;
+    clear();
+    // init the structures
+    for (auto& key : bcs) {
+      mBCTimeVector.emplace_back(key.first);
+    }
+    initTimeWindows();
   }
-};
 
-struct TripletEqualTo : std::binary_function<Triplet_t, Triplet_t, bool> {
-  bool operator()(Triplet_t const& x, Triplet_t const& y) const
+  /// return the sorted vector of increaing BC times
+  std::vector<uint64_t> const& getBCTimeVector() const { return mBCTimeVector; }
+
+  /// Performs a "lower bound" search for timestamp within the bunch crossing data.
+  /// Returns the smallest bunch crossing (index and value) equal or greater than timestamp.
+  /// The functions is expected to perform much better than
+  /// a binary search in the bunch crossing data directly. Expect O(1) instead of O(log(N)) at the cost
+  /// of the additional memory used by this class.
+  std::pair<size_t, uint64_t> lower_bound(uint64_t timestamp) const
   {
-    return (x.get<0>() == y.get<0>() &&
-            x.get<1>() == y.get<1>() &&
-            x.get<2>() == y.get<2>());
-  }
-};
+    // a) determine the timewindow
+    const auto NofWindows = mTimeWindows.size();
+    const auto smallestBC = mBCTimeVector[0];
+    const auto largestBC = mBCTimeVector.back();
+    auto timeindex = std::max((int)0, (int)((timestamp - smallestBC) / mWindowSize));
 
-typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> TripletsMap_t;
+    if (timeindex >= NofWindows) {
+      // there is no next greater; so the bc index is at the end of the vector
+      return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+    }
+
+    const auto* timewindow = &mTimeWindows[timeindex];
+    while (timeindex < NofWindows && (!timewindow->isOccupied() || mBCTimeVector[timewindow->to] < timestamp)) {
+      timeindex = timewindow->nextOccupiedRight;
+      if (timeindex < NofWindows) {
+        timewindow = &mTimeWindows[timeindex];
+      }
+    }
+    if (timeindex >= NofWindows) {
+      // there is no next greater; so the bc index is at the end of the vector
+      return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+    }
+    // otherwise we actually do a search now
+    std::pair<int, uint64_t> p;
+    auto iter = std::lower_bound(mBCTimeVector.begin() + timewindow->from, mBCTimeVector.begin() + timewindow->to + 1, timestamp);
+    int k = std::distance(mBCTimeVector.begin(), iter);
+    p.first = k;
+    p.second = mBCTimeVector[k];
+    return p;
+  }
+
+  /// clear/reset this container
+  void clear()
+  {
+    mBCs.clear();
+    mBCTimeVector.clear();
+    mTimeWindows.clear();
+  }
+
+  /// print information about this container
+  void print()
+  {
+    LOG(info) << "Have " << mBCTimeVector.size() << " BCs";
+    for (auto t : mBCTimeVector) {
+      LOG(info) << t;
+    }
+    int twcount = 0;
+    auto wsize = mWindowSize;
+    for (auto& tw : mTimeWindows) {
+      LOG(info) << "TimeWindow " << twcount << " [ " << wsize * twcount << ":" << wsize * (twcount + 1) << " ]  : from " << tw.from << " to " << tw.to << " nextLeft " << tw.nextOccupiedLeft << " nextRight " << tw.nextOccupiedRight;
+      twcount++;
+    }
+  }
+
+ private:
+  std::map<uint64_t, int> mBCs;
+  std::vector<uint64_t> mBCTimeVector; // simple sorted vector of BC times
+
+  /// initialize the internal acceleration structure
+  void initTimeWindows()
+  {
+    // on average we want say M bunch crossings per time window
+    const int M = 5;
+    int window_number = mBCTimeVector.size() / M;
+    if (mBCTimeVector.size() % M != 0) {
+      window_number += 1;
+    }
+    mWindowSize = (mBCTimeVector.back() + 1 - mBCTimeVector[0]) / (1. * window_number);
+    // now we go through the list of times and bucket them into the correct windows
+    mTimeWindows.resize(window_number);
+    for (int bcindex = 0; bcindex < mBCTimeVector.size(); ++bcindex) {
+      auto windowindex = (int)(mBCTimeVector[bcindex] - mBCTimeVector[0]) / mWindowSize;
+      // we add "bcindex" to the TimeWindow windowindex
+      auto& tw = mTimeWindows[windowindex];
+      if (tw.from == -1) {
+        tw.from = bcindex;
+      } else {
+        tw.from = std::min(tw.from, bcindex);
+      }
+      if (tw.to == -1) {
+        tw.to = bcindex;
+      } else {
+        tw.to = std::max(tw.to, bcindex);
+      }
+    }
+
+    // now we do the neighbourhood linking of time windows
+    int lastoccupied = -1;
+    for (int windowindex = 0; windowindex < window_number; ++windowindex) {
+      mTimeWindows[windowindex].nextOccupiedLeft = lastoccupied;
+      if (mTimeWindows[windowindex].isOccupied()) {
+        lastoccupied = windowindex;
+      }
+    }
+    lastoccupied = window_number;
+    for (int windowindex = window_number - 1; windowindex >= 0; --windowindex) {
+      mTimeWindows[windowindex].nextOccupiedRight = lastoccupied;
+      if (mTimeWindows[windowindex].isOccupied()) {
+        lastoccupied = windowindex;
+      }
+    }
+  }
+
+  /// Internal structure to "cover" the time duration of all BCs with
+  /// constant time intervals to speed up searching for a particular BC.
+  /// The structure keeps indices into mBCTimeVector denoting the BCs contained within.
+  struct TimeWindow {
+    int from = -1;
+    int to = -1;
+    int nextOccupiedRight = -1; // next time window occupied to the right
+    int nextOccupiedLeft = -1;  // next time window which is occupied to the left
+    inline bool size() const { return to - from; }
+    inline bool isOccupied() const { return size() > 0; }
+  }; // end struct
+
+  std::vector<TimeWindow> mTimeWindows; // the time window structure covering the complete duration of mBCTimeVector
+  double mWindowSize;                   // the size of a single time window
+};                                      // end internal class
 
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEnableSV(enableSV), mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -101,6 +222,7 @@ class AODProducerWorkflowDPL : public Task
     return std::uint64_t(mStartIR.toLong()) + relativeTime_to_LocalBC(relativeTimeStampInNS);
   }
 
+  int mNThreads = 1;
   bool mUseMC = true;
   bool mEnableSV = true;             // enable secondary vertices
   const float cSpeed = 0.029979246f; // speed of light in TOF units
@@ -111,7 +233,6 @@ class AODProducerWorkflowDPL : public Task
   int mTruncate{1};
   int mRecoOnly{0};
   o2::InteractionRecord mStartIR{}; // TF 1st IR
-  TString mResFile{"AO2D"};
   TString mLPMProdTag{""};
   TString mAnchorPass{""};
   TString mAnchorProd{""};
@@ -141,6 +262,8 @@ class AODProducerWorkflowDPL : public Task
   std::vector<int> mIndexTableMFT;
   int mIndexMFTID{0};
 
+  BunchCrossings mBCLookup;
+
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
   map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
@@ -157,10 +280,16 @@ class AODProducerWorkflowDPL : public Task
   double mTimeMarginTrackTime = -1;         // safety margin in NS used for track-vertex matching (additive to track uncertainty)
   double mTPCBinNS = -1;                    // inverse TPC time-bin in ns
 
-  TripletsMap_t mToStore;
+  // Container used to mark MC particles to store/transfer to AOD.
+  // Mapping of eventID, sourceID, trackID to some integer.
+  // The first two indices are not sparse whereas the trackID index is sparse which explains
+  // the combination of vector and map
+  std::vector<std::vector<std::unordered_map<int, int>*>> mToStore;
 
-  // MC production metadata holder
-  TMap mMetaData;
+  // production metadata
+  std::vector<TString> mMetaDataKeys;
+  std::vector<TString> mMetaDataVals;
+  bool mIsMDSent{false};
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -185,8 +314,10 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
   uint32_t mMcParticlePos = 0xFFFFFFF0;        // 19 bits
   uint32_t mMcParticleMom = 0xFFFFFFF0;        // 19 bits
-  uint32_t mCaloAmp = 0xFFFFFF00;              // 15 bits
-  uint32_t mCaloTime = 0xFFFFFF00;             // 15 bits
+  uint32_t mCaloAmp = 0xFFFFFF00;              // 15 bits todo check which truncation should actually be used
+  uint32_t mCaloTime = 0xFFFFFF00;             // 15 bits todo check which truncation should actually be used
+  uint32_t mCPVPos = 0xFFFFF800;               // 12 bits
+  uint32_t mCPVAmpl = 0xFFFFFF00;              // 15 bits
   uint32_t mMuonTr1P = 0xFFFFFC00;             // 13 bits
   uint32_t mMuonTrThetaX = 0xFFFFFF00;         // 15 bits
   uint32_t mMuonTrThetaY = 0xFFFFFF00;         // 15 bits
@@ -203,6 +334,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
   int mCTPReadout = 0;                         // 0 = use CTP readout from CTP; 1 = create CTP readout
+  bool mCTPConfigPerRun = false;               // 0 = use common CTPconfig as for MC; 1 = run dependent CTP config
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
@@ -282,6 +414,14 @@ class AODProducerWorkflowDPL : public Task
     uint8_t fwdLabelMask = 0;
   };
 
+  // counters for TPC clusters
+  struct TPCCounters {
+    uint8_t shared = 0;
+    uint8_t found = 0;
+    uint8_t crossed = 0;
+  };
+  std::vector<TPCCounters> mTPCCounters;
+
   void updateTimeDependentParams(ProcessingContext& pc);
 
   void addRefGlobalBCsForTOF(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices,
@@ -336,8 +476,8 @@ class AODProducerWorkflowDPL : public Task
 
   void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data);
 
-  template <typename V0CursorType, typename CascadeCursorType>
-  void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);
+  template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
+  void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
@@ -358,11 +498,7 @@ class AODProducerWorkflowDPL : public Task
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
   // helper for tpc clusters
-  void countTPCClusters(const o2::tpc::TrackTPC& track,
-                        const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
-                        const gsl::span<const unsigned char>& tpcClusShMap,
-                        const o2::tpc::ClusterNativeAccess& tpcClusAcc,
-                        uint8_t& shared, uint8_t& found, uint8_t& crossed);
+  void countTPCClusters(const o2::globaltracking::RecoContainer& data);
 
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
@@ -370,11 +506,11 @@ class AODProducerWorkflowDPL : public Task
   template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
   void fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
                      const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
-                     std::map<uint64_t, int>& bcsMap, int8_t caloType);
+                     const std::map<uint64_t, int>& bcsMap, int8_t caloType);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, bool CTPConfigPerRun);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

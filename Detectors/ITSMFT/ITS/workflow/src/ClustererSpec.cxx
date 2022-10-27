@@ -44,20 +44,8 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips());
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
-  auto filenameGRP = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
-
-  if (grp) {
-    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("ITS"));
-  } else {
-    LOG(error) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-
-  mPatterns = !ic.options().get<bool>("no-patterns");
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
-
   mState = 1;
 }
 
@@ -96,7 +84,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(mNThreads, reader, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  mClusterer->process(mNThreads, reader, &clusCompVec, &clusPattVec, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
@@ -119,12 +107,13 @@ void ClustererDPL::run(ProcessingContext& pc)
 void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
     pc.inputs().get<o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>*>("cluspar");
-
+    mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
     // settings for the fired pixel overflow masking
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
@@ -140,6 +129,9 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
 ///_______________________________________
 void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
     if (mUseClusterDictionary) {
@@ -170,7 +162,14 @@ DataProcessorSpec getClustererSpec(bool useMC)
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   inputs.emplace_back("cluspar", "ITS", "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/ClustererParam"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              false,                          // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
@@ -187,10 +186,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
     "its-clusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
     Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }

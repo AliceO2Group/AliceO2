@@ -73,7 +73,16 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
-    int ompThreads = mProcessingSettings.ompKernels ? (mProcessingSettings.ompKernels == 2 ? ((mProcessingSettings.ompThreads + mNestedLoopOmpFactor - 1) / mNestedLoopOmpFactor) : mProcessingSettings.ompThreads) : 1;
+    int ompThreads = 0;
+    if (mProcessingSettings.ompKernels == 2) {
+      ompThreads = mProcessingSettings.ompThreads / mNestedLoopOmpFactor;
+      if ((unsigned int)getOMPThreadNum() < mProcessingSettings.ompThreads % mNestedLoopOmpFactor) {
+        ompThreads++;
+      }
+      ompThreads = std::max(1, ompThreads);
+    } else {
+      ompThreads = mProcessingSettings.ompKernels ? mProcessingSettings.ompThreads : 1;
+    }
     if (ompThreads > 1) {
       if (mProcessingSettings.debugLevel >= 5) {
         printf("Running %d ompThreads\n", ompThreads);
@@ -301,12 +310,12 @@ void GPUReconstructionCPU::ResetDeviceProcessorTypes()
   }
 }
 
-int GPUReconstructionCPU::getOMPThreadNum()
+int GPUReconstructionCPUBackend::getOMPThreadNum()
 {
   return omp_get_thread_num();
 }
 
-int GPUReconstructionCPU::getOMPMaxThreads()
+int GPUReconstructionCPUBackend::getOMPMaxThreads()
 {
   return omp_get_max_threads();
 }

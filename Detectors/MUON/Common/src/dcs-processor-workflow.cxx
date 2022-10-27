@@ -29,7 +29,7 @@
 #include <TStopwatch.h>
 #include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
-#include "MCHConditions/DCSNamer.h"
+#include "MCHConditions/DCSAliases.h"
 #define CCDBOBJ "MCH_DPS"
 #endif
 #if defined(MUON_SUBSYSTEM_MID)
@@ -266,16 +266,22 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   }
   auto dps = pc.inputs().get<gsl::span<o2::dcs::DataPointCompositeObject>>("input");
   for (auto dp : dps) {
-    // FIXME: check we're not adding twice the same dp (i.e. check timestamp ?)
     for (auto i = 0; i < NOBJECTS; i++) {
       if (std::find(aliases[i].begin(), aliases[i].end(), dp.id.get_alias()) != aliases[i].end()) {
-        dataPoints[i][dp.id].emplace_back(dp.data);
+        auto& v = dataPoints[i][dp.id];
+        bool shouldAdd{true};
+        if (v.size() > 0 && v.back() == dp.data) {
+          shouldAdd = false;
+        }
+        if (shouldAdd) {
+          v.emplace_back(dp.data);
+        }
       }
     }
   }
 
   for (auto i = 0; i < NOBJECTS; i++) {
-    auto duration = creationTime - t0[i];
+    auto duration = (creationTime - t0[i]) / 1000; // ms -> s
     auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i], duration);
     if (shouldOutput) {
       sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0[i]);

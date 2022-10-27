@@ -15,6 +15,7 @@
 
 // o2 includes
 #include "DataFormatsTPC/Defs.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 // root includes
 #include "TFile.h"
@@ -46,5 +47,42 @@ void CalibdEdxCorrection::loadFromFile(std::string_view fileName)
   auto tmp = file->Get<CalibdEdxCorrection>("CalibdEdxCorrection");
   if (tmp != nullptr) {
     *this = *tmp;
+  }
+}
+
+void CalibdEdxCorrection::dumpToTree(const char* outFileName) const
+{
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
+  pcstream.GetFile()->cd();
+
+  for (int sector = 0; sector < 2 * SECTORSPERSIDE; ++sector) {
+    for (int roc = 0; roc < GEMSTACKSPERSECTOR; ++roc) {
+      tpc::StackID stack{
+        sector,
+        static_cast<tpc::GEMstack>(roc)};
+
+      std::vector<float> qMaxCorrOut;
+      std::vector<float> qTotCorrOut;
+      std::vector<float> tglOut;
+      std::vector<float> snpOut;
+
+      for (float tgl = 0; tgl < 2; tgl += 0.01) {
+        for (float snp = 0; snp < 1; snp += 0.1) {
+          qMaxCorrOut.emplace_back(getCorrection(stack, ChargeType::Max, tgl, snp));
+          qTotCorrOut.emplace_back(getCorrection(stack, ChargeType::Tot, tgl, snp));
+          tglOut.emplace_back(tgl);
+          snpOut.emplace_back(snp);
+        }
+      }
+
+      pcstream << "tree"
+               << "qMaxCorr=" << qMaxCorrOut
+               << "qTotCorr=" << qTotCorrOut
+               << "tgl=" << tglOut
+               << "snp=" << snpOut
+               << "roc=" << roc
+               << "sector=" << sector
+               << "\n";
+    }
   }
 }

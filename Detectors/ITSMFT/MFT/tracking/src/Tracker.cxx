@@ -51,6 +51,7 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
   mTrackFitter->setMFTRadLength(trkParam.MFTRadLength);
   mTrackFitter->setVerbosity(trkParam.verbose);
   mTrackFitter->setTrackModel(trkParam.trackmodel);
+  mTrackFitter->setAlignResiduals(trkParam.alignResidual);
 
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
@@ -80,10 +81,27 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 
   if (printConfig) {
     LOG(info) << "Configurable tracker parameters:";
+    switch (trkParam.trackmodel) {
+      case o2::mft::MFTTrackModel::Helix:
+        LOG(info) << "Fwd track model     = Helix";
+        break;
+      case o2::mft::MFTTrackModel::Quadratic:
+        LOG(info) << "Fwd track model     = Quadratic";
+        break;
+      case o2::mft::MFTTrackModel::Linear:
+        LOG(info) << "Fwd track model     = Linear";
+        break;
+      case o2::mft::MFTTrackModel::Optimized:
+        LOG(info) << "Fwd track model     = Optimized";
+        break;
+    }
+    LOG(info) << "alignResidual       = " << trkParam.alignResidual;
     LOG(info) << "MinTrackPointsLTF   = " << mMinTrackPointsLTF;
     LOG(info) << "MinTrackPointsCA    = " << mMinTrackPointsCA;
     LOG(info) << "MinTrackStationsLTF = " << mMinTrackStationsLTF;
     LOG(info) << "MinTrackStationsCA  = " << mMinTrackStationsCA;
+    LOG(info) << "LTFConeRadius       = " << (trkParam.LTFConeRadius ? "true" : "false");
+    LOG(info) << "CAConeRadius        = " << (trkParam.CAConeRadius ? "true" : "false");
     LOG(info) << "LTFclsRCut          = " << mLTFclsRCut;
     LOG(info) << "ROADclsRCut         = " << mROADclsRCut;
     LOG(info) << "RBins               = " << mRBins;
@@ -92,6 +110,13 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
     LOG(info) << "LTFinterBinWin      = " << mLTFinterBinWin;
     LOG(info) << "FullClusterScan     = " << (trkParam.FullClusterScan ? "true" : "false");
     LOG(info) << "forceZeroField      = " << (trkParam.forceZeroField ? "true" : "false");
+    LOG(info) << "MFTRadLength        = " << trkParam.MFTRadLength;
+    LOG(info) << "irFramesOnly        = " << (trkParam.irFramesOnly ? "true" : "false");
+    LOG(info) << "isMultCutRequested  = " << (trkParam.isMultCutRequested() ? "true" : "false");
+    if (trkParam.isMultCutRequested()) {
+      LOG(info) << "cutMultClusLow      = " << trkParam.cutMultClusLow;
+      LOG(info) << "cutMultClusHigh     = " << trkParam.cutMultClusHigh;
+    }
   }
 }
 
@@ -287,7 +312,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
 
             newPoint = kTRUE;
 
-            //check if road is a cylinder or a cone
+            // check if road is a cylinder or a cone
             dz = constants::mft::LayerZCoordinate()[layer2] - constants::mft::LayerZCoordinate()[layer1];
             dRCone = 1 + dz * constants::mft::InverseLayerZCoordinate()[layer1];
 
@@ -561,7 +586,7 @@ void Tracker<T>::findTracksCA(ROframe<T>& event)
 
             for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
 
-              //check if road is a cylinder or a cone
+              // check if road is a cylinder or a cone
               dz = constants::mft::LayerZCoordinate()[layer2] - constants::mft::LayerZCoordinate()[layer1];
               dRCone = 1 + dz * constants::mft::InverseLayerZCoordinate()[layer1];
 
@@ -904,7 +929,7 @@ void Tracker<T>::runBackwardInRoad(ROframe<T>& event)
 
         for (Int_t iLN = 0; iLN < cellRC.getNLeftNeighbours(); ++iLN) {
 
-          auto leftNeighbour = cellRC.getLeftNeighbours()[iLN];
+          const auto& leftNeighbour = cellRC.getLeftNeighbours()[iLN];
           layerL = leftNeighbour.first;
           cellIdL = leftNeighbour.second;
 

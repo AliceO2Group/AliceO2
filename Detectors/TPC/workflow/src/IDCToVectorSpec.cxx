@@ -68,6 +68,9 @@ class IDCToVectorDevice : public o2::framework::Task
     if (ic.options().get<bool>("write-debug")) {
       mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("idc_vector_debug.root", "recreate");
     }
+
+    mSwapLinks = ic.options().get<bool>("swap-links");
+
     auto pedestalFile = ic.options().get<std::string>("pedestal-url");
     if (pedestalFile.length()) {
       if (pedestalFile.find("ccdb") != std::string::npos) {
@@ -152,7 +155,7 @@ class IDCToVectorDevice : public o2::framework::Task
           if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
             continue;
           }
-          LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
+          LOGP(debug, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
             LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
@@ -193,7 +196,7 @@ class IDCToVectorDevice : public o2::framework::Task
           // check if end poit was already processed
           auto& lastInfo = *infoIt;
           if (lastInfo.wasEPseen(endPoint)) {
-            LOGP(info, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
+            LOGP(debug, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
             continue;
           }
 
@@ -205,11 +208,14 @@ class IDCToVectorDevice : public o2::framework::Task
           // LOGP(info, "processing IDCs for CRU {}, ep {}, feeId {:6} ({:3}/{}/{:2}), detField: {}, orbit {}, bc {}, idcOffset {}, idcVec size {}, epSeen {:02b}", cruID, endPoint, feeId, cruID, endPoint, link, detField, orbit, bc, idcOffset, idcVec.size(), lastInfo.epSeen);
 
           const float norm = 1. / float(mTimeStampsPerIntegrationInterval);
-          for (uint32_t iLink = 0; iLink < idc::Links; ++iLink) {
+          for (uint32_t iLinkTmp = 0; iLinkTmp < Mapper::LinksPerRegionPerEndpoint[cru.region()][endPoint]; ++iLinkTmp) {
+            const uint32_t iLink = mSwapLinks ? (idc::Links - iLinkTmp - 1) : iLinkTmp;
+
             if (!idcs.hasLink(iLink)) {
               continue;
             }
-            const int fecInSector = iLink + endPoint * fecLinkOffsetCRU + fecSectorOffset;
+
+            const int fecInSector = iLinkTmp + endPoint * fecLinkOffsetCRU + fecSectorOffset;
 
             for (uint32_t iChannel = 0; iChannel < idc::Channels; ++iChannel) {
               auto val = idcs.getChannelValueFloat(iLink, iChannel);
@@ -301,6 +307,7 @@ class IDCToVectorDevice : public o2::framework::Task
   const int mNOrbitsIDC{12};                                                                    ///< number of orbits over which IDCs are integrated, TODO: take from IDC header
   const int mTimeStampsPerIntegrationInterval{(LHCMaxBunches * mNOrbitsIDC) / LHCBCPERTIMEBIN}; ///< number of time stamps for each integration interval (5346)
   const uint32_t mMaxIDCPerTF{uint32_t(std::ceil(256.f / mNOrbitsIDC))};                        ///< maximum number of IDCs expected per TF, TODO: better way to get max number of orbits
+  bool mSwapLinks{false};                                                                       ///< swap links to circumvent bug in FW
   std::vector<uint32_t> mCRUs;                                                                  ///< CRUs expected for this device
   std::unordered_map<uint32_t, std::vector<float>> mIDCvectors;                                 ///< decoded IDCs per cru for each pad in the region over all IDC packets in the TF
   std::unordered_map<uint32_t, std::vector<IDCInfo>> mIDCInfos;                                 ///< IDC packet information within the TF
@@ -310,7 +317,7 @@ class IDCToVectorDevice : public o2::framework::Task
   //____________________________________________________________________________
   void snapshotIDCs(DataAllocator& output)
   {
-    LOGP(info, "snapshotIDCs");
+    LOGP(debug, "snapshotIDCs");
 
     // check integrety of data between CRUs
     size_t orbitsInTF = 0;
@@ -345,7 +352,7 @@ class IDCToVectorDevice : public o2::framework::Task
     for (auto& [cru, idcVec] : mIDCvectors) {
       idcVec.resize(Mapper::PADSPERREGION[CRU(cru).region()] * orbitsInTF);
       const header::DataHeader::SubSpecificationType subSpec{cru << 7};
-      LOGP(info, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
+      LOGP(debug, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
       output.snapshot(Output{gDataOriginTPC, "IDCVECTOR", subSpec}, idcVec);
       output.snapshot(Output{gDataOriginTPC, "IDCORBITS", subSpec}, orbitBCInfo);
     }
@@ -458,6 +465,7 @@ o2::framework::DataProcessorSpec getIDCToVectorSpec(const std::string inputSpec,
     Options{
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
       {"pedestal-url", VariantType::String, "ccdb-default", {"ccdb-default: load from NameConf::getCCDBServer() OR ccdb url (must contain 'ccdb' OR pedestal file name"}},
+      {"swap-links", VariantType::Bool, false, {"swap links to circumvent bug in FW"}},
     } // end Options
   };  // end DataProcessorSpec
 }

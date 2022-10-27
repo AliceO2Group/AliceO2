@@ -54,7 +54,7 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
     LA,
     VD
   };
-  CalibratorVdExB(size_t nMin = 40'000) : mMinEntries(nMin) {}
+  CalibratorVdExB(size_t nMin = 40'000, bool enableOut = false) : mMinEntries(nMin), mEnableOutput(enableOut) {}
   ~CalibratorVdExB() final = default;
 
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntries; }
@@ -70,10 +70,11 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
  private:
   bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
   size_t mMinEntries; ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  bool mEnableOutput; //< enable output of calibration fits and tprofiles in a root file instead of the ccdb
   FitFunctor mFitFunctor; ///< used for minimization procedure
   std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
   std::vector<o2::trd::CalVdriftExB> mObjectVector;  ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
-  ClassDefOverride(CalibratorVdExB, 1);
+  ClassDefOverride(CalibratorVdExB, 2);
 };
 
 } // namespace trd

@@ -33,7 +33,7 @@
 #include <thread>
 #include <filesystem>
 #include <cassert>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 std::mutex mtx; // mutex for critical section
 
@@ -307,11 +307,13 @@ void EventManagerFrame::DoScreenshot()
   if (!std::filesystem::is_directory(outDirectory)) {
     std::filesystem::create_directory(outDirectory);
   }
-  Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
-                      this->mEventManager->getDataSource()->getRunNumber(),
-                      this->mEventManager->getDataSource()->getFirstTForbit(),
-                      this->mEventManager->getDataSource()->getCollisionTime());
-
+  std::filesystem::path fileName = Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
+                                                       this->mEventManager->getDataSource()->getRunNumber(),
+                                                       this->mEventManager->getDataSource()->getFirstTForbit(),
+                                                       this->mEventManager->getDataSource()->getCollisionTime());
+  fileName.replace_extension(std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
+  std::error_code ec;
+  std::filesystem::copy_file(mEventManager->getDataSource()->getEventAbsoluteFilePath(), fileName, ec);
   clearInTick();
 }
 
@@ -353,7 +355,10 @@ void EventManagerFrame::createOutreachScreenshot()
     fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
     if (!std::filesystem::is_regular_file(fileName)) {
       std::vector<std::string> ext = {".png"};
-      DirectoryLoader::removeOldestFiles(imageFolder, ext, 10);
+      TEnv settings;
+      ConfigurationManager::getInstance().getConfig(settings);
+      UInt_t outreachFilesMax = settings.GetValue("outreach.files.max", 10);
+      DirectoryLoader::removeOldestFiles(imageFolder, ext, outreachFilesMax);
       LOG(info) << "Outreach screenshot: " << fileName;
       Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
@@ -463,10 +468,14 @@ void EventManagerFrame::DoSequentialMode()
 
 void EventManagerFrame::changeRunMode(RunMode runMode)
 {
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-
   if (this->mRunMode != runMode) {
+    if (not setInTick()) {
+      return;
+    }
+
+    TEnv settings;
+    ConfigurationManager::getInstance().getConfig(settings);
+
     this->mRunMode = runMode;
     this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
 

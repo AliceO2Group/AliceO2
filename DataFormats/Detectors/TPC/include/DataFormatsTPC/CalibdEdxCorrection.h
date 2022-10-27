@@ -86,6 +86,10 @@ class CalibdEdxCorrection
 
   void writeToFile(std::string_view fileName) const;
   void loadFromFile(std::string_view fileName);
+
+  /// \param outFileName name of the output file
+  void dumpToTree(const char* outFileName = "calib_dedx.root") const;
+
 #endif
 
  private:

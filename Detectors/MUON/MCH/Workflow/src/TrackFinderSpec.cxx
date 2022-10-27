@@ -42,7 +42,6 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
-#include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
@@ -127,15 +126,6 @@ class TrackFinderTask
     auto timeStart = std::chrono::high_resolution_clock::now();
 
     for (const auto& clusterROF : clusterROFs) {
-
-      if (clusterROF.getNEntries() > TrackerParam::Instance().maxClusters) {
-        LOGP(warning, "Number of clusters above limit ({}>{}) : skipping tracking", clusterROF.getNEntries(), TrackerParam::Instance().maxClusters);
-        int trackOffset(mchTracks.size());
-        writeTracks({}, mchTracks, usedClusters, digitsIn, usedDigits);
-        trackROFs.emplace_back(clusterROF.getBCData(), trackOffset, mchTracks.size() - trackOffset,
-                               clusterROF.getBCWidth());
-        continue;
-      }
 
       // sort the input clusters of the current event per DE
       std::unordered_map<int, std::list<const Cluster*>> clusters{};

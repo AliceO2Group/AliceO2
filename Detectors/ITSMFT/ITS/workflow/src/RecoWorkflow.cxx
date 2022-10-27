@@ -17,7 +17,6 @@
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
-#include "ITSMFTWorkflow/EntropyEncoderSpec.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 
@@ -30,8 +29,7 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig,
-                                    bool eencode)
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig)
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {
@@ -54,9 +52,6 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
       specs.emplace_back(o2::globaltracking::getIRFrameWriterSpec("irfr:ITS/IRFRAMES/0", "o2_its_irframe.root", "irframe-writer-its"));
     }
-  }
-  if (eencode) {
-    specs.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
   }
   return specs;
 }

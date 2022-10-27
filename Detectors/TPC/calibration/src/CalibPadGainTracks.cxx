@@ -19,10 +19,12 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "GPUO2InterfaceRefit.h"
+#include "CorrectionMapsHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "GPUO2InterfaceRefit.h"
 #include "GPUO2Interface.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 // root includes
 #include "TFile.h"
@@ -32,16 +34,12 @@ using namespace o2::tpc;
 
 void CalibPadGainTracks::processTracks(const int nMaxTracks)
 {
-  if (!mPropagateTrack && !mFastTransform) {
-    mFastTransform = TPCFastTransformHelperO2::instance()->create(0);
-  }
-
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> refit;
   if (!mPropagateTrack) {
     mBufVec.resize(mClusterIndex->nClustersTotal);
     o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
     mClusterShMapTPC = mBufVec.data();
-    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mFastTransform.get(), mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
+    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
   }
 
   const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
@@ -105,7 +103,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
     const float charge = (mChargeType == ChargeType::Max) ? cl.qMax : cl.qTot;
     const float effectiveLength = mCalibTrackTopologyPol ? getTrackTopologyCorrectionPol(track, cl, region, charge) : getTrackTopologyCorrection(track, region);
 
-    const unsigned char pad = static_cast<unsigned char>(cl.getPad() + 0.5f); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
+    const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
     const float gain = mGainMapRef ? mGainMapRef->getValue(sectorIndex, rowIndex, pad) : 1;
     const float chargeNorm = charge / (effectiveLength * gain);
 
@@ -251,29 +249,19 @@ float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& tr
 
 float CalibPadGainTracks::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge) const
 {
-  const float trackSnp = track.getSnp();
-  const float maxSnp = mCalibTrackTopologyPol->getMaxSinPhi();
-  float snp = std::abs(trackSnp);
-  if (snp > maxSnp) {
-    snp = maxSnp;
-  }
-
+  const float trackSnp = std::abs(track.getSnp());
   float snp2 = trackSnp * trackSnp;
   const float sec2 = 1.f / (1.f - snp2);
   const float trackTgl = track.getTgl();
   const float tgl2 = trackTgl * trackTgl;
-  float tanTheta = std::sqrt(tgl2 * sec2);
-  const float maxTanTheta = mCalibTrackTopologyPol->getMaxTanTheta();
-  if (tanTheta > maxTanTheta) {
-    tanTheta = maxTanTheta;
-  }
+  const float tanTheta = std::sqrt(tgl2 * sec2);
 
   const float z = std::abs(track.getParam(1));
   const float padTmp = cl.getPad();
   const float absRelPad = std::abs(padTmp - int(padTmp + 0.5f));
   const float relTime = cl.getTime() - int(cl.getTime() + 0.5f);
 
-  const float effectiveLength = (mChargeType == ChargeType::Max) ? mCalibTrackTopologyPol->getCorrectionqMax(region, tanTheta, snp, z, absRelPad, relTime) : mCalibTrackTopologyPol->getCorrectionqTot(region, tanTheta, snp, z, 3.5f /*dummy threshold for now*/, std::clamp(charge, mCalibTrackTopologyPol->getMinqTot(), mCalibTrackTopologyPol->getMaxqTot()));
+  const float effectiveLength = (mChargeType == ChargeType::Max) ? mCalibTrackTopologyPol->getCorrectionqMax(region, tanTheta, trackSnp, z, absRelPad, relTime) : mCalibTrackTopologyPol->getCorrectionqTot(region, tanTheta, trackSnp, z, 3.5f /*dummy threshold for now*/, charge);
   return effectiveLength;
 }
 
@@ -402,4 +390,18 @@ void CalibPadGainTracks::dumpReferenceExtractedGainMap(const char* outFileName, 
 int CalibPadGainTracks::getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad)
 {
   return Mapper::instance().getPadNumber(padSub, padSubsetNumber, row, pad);
+}
+
+//______________________________________________
+void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftCorrFact = v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+}
+
+//______________________________________________
+void CalibPadGainTracks::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
 }

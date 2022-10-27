@@ -94,3 +94,5 @@ o2_add_test_root_macro(InspectCCDBFile.C
                                              O2::SimulationDataFormat O2::CCDB
                                              O2::ZDCCalib
                        LABELS zdc)
+o2_add_test_root_macro(makeZDCCCDBEntryForDCS.C
+                      PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)

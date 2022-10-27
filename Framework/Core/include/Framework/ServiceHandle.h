@@ -26,6 +26,10 @@ enum struct ServiceKind {
   Stream
 };
 
+struct ServiceTypeHash {
+  uint32_t hash = 0;
+};
+
 /// Handle to the service hash must be calculated
 /// using TypeIdHelper::uniqueId<BaseClass>() so that
 /// we can retrieve the service by its baseclass.
@@ -33,9 +37,9 @@ struct ServiceHandle {
   /// Unique hash associated to the type of service.
   unsigned int hash;
   /// Type erased pointer to a service
-  void* instance;
+  void* instance = nullptr;
   /// Kind of service
-  ServiceKind kind;
+  ServiceKind kind = ServiceKind::Serial;
   /// Mnemonic name to use for the service.
   std::string name = "unknown";
 };

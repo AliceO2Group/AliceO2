@@ -90,7 +90,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    // mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
@@ -102,7 +102,7 @@ TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 }
 
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
-                                                              ServiceRegistry& services, bool createNew)
+                                                              ServiceRegistryRef services, bool createNew)
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
@@ -251,21 +251,21 @@ size_t matchToContext(void const* data,
 void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
                                 monitoring::Monitoring& metrics, std::vector<std::string> const& names)
 {
-  const std::string nullstring{"null"};
+  static const std::string nullstring{"null"};
 
-  for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
-    auto& var = context.get(i);
-    auto& name = names[16 * slot.index + i];
+  context.publish([](ContextElement::Value const& var, std::string const& name, void* context) {
+    monitoring::Monitoring* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
     if (auto pval = std::get_if<uint64_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval = std::get_if<uint32_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval2 = std::get_if<std::string>(&var)) {
-      metrics.send(monitoring::Metric{*pval2, name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{*pval2, name, Verbosity::Debug});
     } else {
-      metrics.send(monitoring::Metric{nullstring, name, Verbosity::Debug});
+      metrics->send(monitoring::Metric{nullstring, name, Verbosity::Debug});
     }
-  }
+  },
+                  &metrics, slot, names);
 }
 
 void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
@@ -282,14 +282,13 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool droppingNotCondition = false;
     mPruneOps.push_back(PruneOp{si});
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
-          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
@@ -616,7 +615,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
     if (timeslice) {
-      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", (int)op, li.index, *timeslice);
       completed.emplace_back(RecordAction{li, {*timeslice}, op});
     } else {
       LOGP(debug, "No timeslice associated with slot ", li.index);

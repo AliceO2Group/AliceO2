@@ -42,11 +42,8 @@
 
 #include "TFile.h"
 #include "TTree.h"
-
-#include <ROOT/RSnapshotOptions.hxx>
-#include <ROOT/RDataFrame.hxx>
-#include <ROOT/RArrowDS.hxx>
-#include <ROOT/RVec.hxx>
+#include "TMap.h"
+#include "TObjString.h"
 
 #include <fairmq/Device.h>
 #include <chrono>
@@ -295,9 +292,13 @@ DataProcessorSpec
 
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
+    std::map<uint64_t, std::string> tfFilenames;
+
+    std::vector<TString> aodMetaDataKeys;
+    std::vector<TString> aodMetaDataVals;
 
     // this functor is called once per time frame
-    return [dod, tfNumbers](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers, tfFilenames, aodMetaDataKeys, aodMetaDataVals](ProcessingContext& pc) mutable -> void {
       LOGP(debug, "======== getGlobalAODSink::processing ==========");
       LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
@@ -316,12 +317,30 @@ DataProcessorSpec
         tfNumber = pc.inputs().get<uint64_t>("tfn");
         tfNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, tfNumber));
       }
+      // update tfFilenames
+      std::string aodInputFile;
+      auto ref2 = pc.inputs().get("tff");
+      if (ref2.spec && ref2.payload) {
+        startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref2)->startTime;
+        aodInputFile = pc.inputs().get<std::string>("tff");
+        tfFilenames.insert(std::pair<uint64_t, std::string>(startTime, aodInputFile));
+      }
 
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {
           LOGP(debug, "Invalid input will be skipped!");
           continue;
+        }
+
+        // get metadata
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AMD"))) {
+          if (ref.spec->binding == "aodmdk") {
+            aodMetaDataKeys = pc.inputs().get<std::vector<TString>>("aodmdk");
+          }
+          if (ref.spec->binding == "aodmdv") {
+            aodMetaDataVals = pc.inputs().get<std::vector<TString>>("aodmdv");
+          }
         }
 
         // skip non-AOD refs
@@ -338,7 +357,7 @@ DataProcessorSpec
           continue;
         }
 
-        // get TF number fro startTime
+        // get TF number from startTime
         auto it = tfNumbers.find(startTime);
         if (it != tfNumbers.end()) {
           tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
@@ -346,11 +365,16 @@ DataProcessorSpec
           LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");
         }
+        // get aod input file from startTime
+        auto it2 = tfFilenames.find(startTime);
+        if (it2 != tfFilenames.end()) {
+          aodInputFile = it2->second;
+        }
 
         // get the TableConsumer and corresponding arrow table
         auto msg = pc.inputs().get(ref.spec->binding);
         if (msg.header == nullptr) {
-          LOGP(error, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          LOGP(error, "No header for message {}:{}", ref.spec->binding, DataSpecUtils::describe(*ref.spec));
           continue;
         }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
@@ -367,11 +391,22 @@ DataProcessorSpec
         // a table can be saved in multiple ways
         // e.g. different selections of columns to different files
         for (auto d : ds) {
-          auto fileAndFolder = dod->getFileFolder(d, tfNumber);
-          auto treename = fileAndFolder.folderName + d->treename;
+          auto fileAndFolder = dod->getFileFolder(d, tfNumber, aodInputFile);
+          auto treename = fileAndFolder.folderName + "/" + d->treename;
           TableToTree ta2tr(table,
                             fileAndFolder.file,
                             treename.c_str());
+
+          // update metadata
+          if (fileAndFolder.file->FindObjectAny("metaData")) {
+            LOGF(debug, "Metadata: target file %s already has metadata, preserving it", fileAndFolder.file->GetName());
+          } else if (!aodMetaDataKeys.empty() && !aodMetaDataVals.empty()) {
+            TMap aodMetaDataMap;
+            for (uint32_t imd = 0; imd < aodMetaDataKeys.size(); imd++) {
+              aodMetaDataMap.Add(new TObjString(aodMetaDataKeys[imd]), new TObjString(aodMetaDataVals[imd]));
+            }
+            fileAndFolder.file->WriteObject(&aodMetaDataMap, "metaData", "Overwrite");
+          }
 
           if (!d->colnames.empty()) {
             for (auto& cn : d->colnames) {
@@ -509,7 +544,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice, ChannelIndex channelIndex) {
+      auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
         LOGP(debug, "Domain info updated with timeslice {}", timeslice);
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();

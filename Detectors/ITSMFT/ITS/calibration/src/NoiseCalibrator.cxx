@@ -32,22 +32,21 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
                                                gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++;
+  LOG(info) << "Processing TF# " << nTF++ << " of " << clusters.size() << " clusters in" << rofs.size() << " ROFs";
   // extract hits
   auto pattIt = patterns.begin();
+  mChipIDs.clear();
   for (const auto& rof : rofs) {
-    mChipIDs.clear();
     int chipID = -1;
-    std::vector<o2::itsmft::PixelData>* currChip = nullptr;
+    std::vector<int>* currChip = nullptr;
     auto clustersInFrame = rof.getROFData(clusters);
     for (const auto& c : clustersInFrame) {
       if (chipID != c.getSensorID()) { // data is sorted over chip IDs
         chipID = c.getSensorID();
-        if (mChipHits.size() < mChipIDs.size() + 1) {
-          mChipHits.resize(mChipIDs.size() + 1);
+        currChip = &mChipHits[chipID];
+        if (currChip->empty()) {
+          mChipIDs.push_back(chipID); // acknowledge non-empty chip
         }
-        currChip = &mChipHits[mChipIDs.size()];
-        mChipIDs.push_back(chipID);
       }
       auto pattID = c.getPatternID();
       o2::itsmft::ClusterPattern patt;
@@ -74,7 +73,7 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
       auto rowSpan = patt.getRowSpan();
       // Fast 1-pixel calibration
       if ((rowSpan == 1) && (colSpan == 1)) {
-        currChip->emplace_back(row, col);
+        currChip->push_back(o2::itsmft::NoiseMap::getKey(row, col));
         continue;
       }
       if (m1pix) {
@@ -83,7 +82,7 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
       for (int ir = 0; ir < rowSpan; ir++) {
         for (int ic = 0; ic < colSpan; ic++) {
           if (patt.isSet(ir, ic)) {
-            currChip->emplace_back(row + ir, col + ic);
+            currChip->push_back(o2::itsmft::NoiseMap::getKey(row + ir, col + ic));
           }
         }
       }
@@ -93,13 +92,9 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
-  for (size_t ic = 0; ic < mChipIDs.size(); ic++) {
-    int chipID = mChipIDs[ic];
-    auto& hits = mChipHits[ic];
-    for (const auto& hit : hits) {
-      mNoiseMap.increaseNoiseCount(chipID, hit.getRowDirect(), hit.getCol());
-    }
-    hits.clear();
+  for (int chipID : mChipIDs) {
+    mNoiseMap.increaseNoiseCount(chipID, mChipHits[chipID]);
+    mChipHits[chipID].clear();
   }
   mNumberOfStrobes += rofs.size();
   return (mNumberOfStrobes > mMinROFs) ? true : false;
@@ -109,44 +104,60 @@ bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> 
                                              gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++;
+  LOG(info) << "Processing TF# " << nTF++ << " of " << digits.size() << " digits in " << rofs.size() << " ROFs";
+  mChipIDs.clear();
   for (const auto& rof : rofs) {
-    mChipIDs.clear();
     int chipID = -1;
-    std::vector<o2::itsmft::PixelData>* currChip = nullptr;
+    std::vector<int>* currChip = nullptr;
     auto digitsInFrame = rof.getROFData(digits);
     for (const auto& dig : digitsInFrame) {
-      if (chipID != dig.getChipIndex()) { // data is sorted over chip IDs
+      if (chipID != dig.getChipIndex()) {
         chipID = dig.getChipIndex();
-        if (mChipHits.size() < mChipIDs.size() + 1) {
-          mChipHits.resize(mChipIDs.size() + 1);
+        currChip = &mChipHits[chipID];
+        if (currChip->empty()) {
+          mChipIDs.push_back(chipID); // acknowledge non-empty chip
         }
-        currChip = &mChipHits[mChipIDs.size()];
-        mChipIDs.push_back(chipID);
       }
-      currChip->emplace_back(dig.getRow(), dig.getColumn());
+      currChip->push_back(o2::itsmft::NoiseMap::getKey(dig.getRow(), dig.getColumn()));
     }
   }
   // distribute hits over the map
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
-  for (size_t ic = 0; ic < mChipIDs.size(); ic++) {
-    int chipID = mChipIDs[ic];
-    auto& hits = mChipHits[ic];
-    for (const auto& hit : hits) {
-      mNoiseMap.increaseNoiseCount(chipID, hit.getRowDirect(), hit.getCol());
-    }
-    hits.clear();
+  for (int chipID : mChipIDs) {
+    mNoiseMap.increaseNoiseCount(chipID, mChipHits[chipID]);
+    mChipHits[chipID].clear();
   }
   mNumberOfStrobes += rofs.size();
   return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
-void NoiseCalibrator::finalize()
+void NoiseCalibrator::addMap(const o2::itsmft::NoiseMap& extMap)
+{
+  // add preproprecessed map to total
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+  for (int ic = 0; ic < NChips; ic++) {
+    const auto& chExt = extMap.getChip(ic);
+    auto& chCurr = mNoiseMap.getChip(ic);
+    for (auto it : chExt) {
+      chCurr[it.first] += it.second;
+    }
+  }
+}
+
+void NoiseCalibrator::finalize(float cutIB)
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
-  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr);
+  if (cutIB > 0) {
+    mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr, 432, 24119); // to OB only
+    LOG(info) << "Applying special cut for ITS IB: " << cutIB;
+    mNoiseMap.applyProbThreshold(cutIB, mNumberOfStrobes, mProbRelErr, 0, 431); // to IB only
+  } else {
+    mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr);
+  }
   mNoiseMap.print();
 }
 

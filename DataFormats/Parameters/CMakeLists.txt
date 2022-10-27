@@ -15,7 +15,7 @@ o2_add_library(DataFormatsParameters
                        src/GRPECSObject.cxx
                        src/GRPMagField.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::CommonConstants
-                                     O2::CommonTypes
+                                     O2::CommonTypes O2::CCDB
                                      O2::DetectorsCommonDataFormats O2::SimConfig)
 
 o2_target_root_dictionary(DataFormatsParameters

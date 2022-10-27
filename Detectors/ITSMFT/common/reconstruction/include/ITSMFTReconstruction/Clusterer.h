@@ -122,7 +122,7 @@ class Clusterer
   };
 
   struct ClustererThread {
-
+    int id = -1;
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
@@ -182,7 +182,7 @@ class Clusterer
     void process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                  const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
-    ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
+    ClustererThread(Clusterer* par = nullptr, int _id = -1) : parent(par), id(_id), curr(column2 + 1), prev(column1 + 1)
     {
       std::fill(std::begin(column1), std::end(column1), -1);
       std::fill(std::begin(column2), std::end(column2), -1);

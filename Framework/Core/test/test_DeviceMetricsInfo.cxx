@@ -19,6 +19,70 @@
 #include <regex>
 #include <string_view>
 
+BOOST_AUTO_TEST_CASE(TestIndexedMetrics)
+{
+  using namespace o2::framework;
+  std::string metricString;
+  ParsedMetricMatch match;
+  bool result;
+  DeviceMetricsInfo info;
+  metricString = "[METRIC] array/1-10,0 12 1789372894 hostname=test.cern.chbar";
+  result = DeviceMetricsHelper::parseMetric(metricString, match);
+  BOOST_CHECK(result);
+  BOOST_CHECK(strncmp(match.beginKey, "array", 4) == 0);
+  BOOST_CHECK(match.firstIndex == 1);
+  BOOST_CHECK(match.lastIndex == 10);
+  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+  BOOST_REQUIRE_EQUAL(match.type, MetricType::Int);
+  BOOST_CHECK_EQUAL(match.intValue, 12);
+}
+
+BOOST_AUTO_TEST_CASE(TestEnums)
+{
+  using namespace o2::framework;
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[METRIC] data_relayer/1,0 1 1789372894 hostname=test.cern.chbar";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result);
+    BOOST_CHECK(strncmp(match.beginKey, "data_relayer/1", strlen("data_relayer/1")) == 0);
+    BOOST_CHECK(match.endKey - match.beginKey == strlen("data_relayer/1"));
+    BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+    BOOST_REQUIRE_EQUAL(match.type, MetricType::Enum);
+    BOOST_CHECK_EQUAL(match.intValue, 1);
+    BOOST_CHECK_EQUAL(match.uint64Value, 1);
+  }
+
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[METRIC] data_relayer/h,0 3 1662377068602 hostname=stillwater.dyndns.cern.ch,dataprocessor_id=D,dataprocessor_name=D,dpl_instance=0";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result);
+    BOOST_CHECK(strncmp(match.beginKey, "data_relayer/h", strlen("data_relayer/h")) == 0);
+    BOOST_CHECK(match.endKey - match.beginKey == strlen("data_relayer/h"));
+    BOOST_CHECK_EQUAL(match.timestamp, 1662377068602);
+    BOOST_REQUIRE_EQUAL(match.type, MetricType::Int);
+    BOOST_CHECK_EQUAL(match.intValue, 3);
+    BOOST_CHECK_EQUAL(match.uint64Value, 3);
+  }
+
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[14:00:44][INFO] metric-feedback[0]: in: 0 (0 MB) out: 0 (0";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result == false);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
 {
   using namespace o2::framework;
@@ -50,13 +114,13 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(info.metricLabelsPrefixesSortedIdx[0].index, 0);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.floatMetrics.size(), 0);
-  BOOST_CHECK_EQUAL(info.timestamps.size(), 1);
+  BOOST_CHECK_EQUAL(info.intTimestamps.size(), 1);
   BOOST_CHECK_EQUAL(info.metrics.size(), 1);
   BOOST_CHECK_EQUAL(info.metrics[0].type, MetricType::Int);
   BOOST_CHECK_EQUAL(info.metrics[0].storeIdx, 0);
   BOOST_CHECK_EQUAL(info.metrics[0].pos, 1);
 
-  BOOST_CHECK_EQUAL(info.timestamps[0][0], 1789372894);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][0], 1789372894);
   BOOST_CHECK_EQUAL(info.intMetrics[0][0], 12);
   BOOST_CHECK_EQUAL(info.intMetrics[0][1], 0);
 
@@ -343,6 +407,24 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(info.metricPrefixes[2].end, 11);
   BOOST_CHECK_EQUAL(info.metricPrefixes[3].begin, 2);
   BOOST_CHECK_EQUAL(info.metricPrefixes[3].end, 8);
+
+  memset(&match, 0, sizeof(match));
+  metric = "[METRIC] data_relayer/w,0 1 1789372895 hostname=test.cern.ch";
+  result = DeviceMetricsHelper::parseMetric(metric, match);
+  BOOST_CHECK(result);
+  BOOST_CHECK_EQUAL(match.type, MetricType::Int);
+
+  memset(&match, 0, sizeof(match));
+  metric = "[METRIC] data_relayer/h,0 1 1789372895 hostname=test.cern.ch";
+  result = DeviceMetricsHelper::parseMetric(metric, match);
+  BOOST_CHECK(result);
+  BOOST_CHECK_EQUAL(match.type, MetricType::Int);
+
+  memset(&match, 0, sizeof(match));
+  metric = "[METRIC] data_relayer/1,0 8 1789372895 hostname=test.cern.ch";
+  result = DeviceMetricsHelper::parseMetric(metric, match);
+  BOOST_CHECK(result);
+  BOOST_CHECK_EQUAL(match.type, MetricType::Enum);
 }
 
 BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
@@ -400,17 +482,19 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
   BOOST_CHECK_EQUAL(info.floatMetrics[0][1], 2.);
   BOOST_CHECK_EQUAL(info.floatMetrics[0][2], 3.);
   BOOST_CHECK_EQUAL(info.floatMetrics[0][3], 4.);
-  BOOST_CHECK_EQUAL(info.timestamps.size(), 3);
-  BOOST_CHECK_EQUAL(info.timestamps[0][0], 1000);
-  BOOST_CHECK_EQUAL(info.timestamps[0][1], 1001);
-  BOOST_CHECK_EQUAL(info.timestamps[0][2], 1002);
-  BOOST_CHECK_EQUAL(info.timestamps[0][3], 1003);
-  BOOST_CHECK_EQUAL(info.timestamps[0][4], 1004);
-  BOOST_CHECK_EQUAL(info.timestamps[0][5], 1005);
-  BOOST_CHECK_EQUAL(info.timestamps[1][0], 1007);
-  BOOST_CHECK_EQUAL(info.timestamps[1][1], 1008);
-  BOOST_CHECK_EQUAL(info.timestamps[1][2], 1009);
-  BOOST_CHECK_EQUAL(info.timestamps[1][3], 1010);
+  BOOST_CHECK_EQUAL(info.intTimestamps.size(), 1);
+  BOOST_CHECK_EQUAL(info.floatTimestamps.size(), 1);
+  BOOST_CHECK_EQUAL(info.uint64Timestamps.size(), 1);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][0], 1000);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][1], 1001);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][2], 1002);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][3], 1003);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][4], 1004);
+  BOOST_CHECK_EQUAL(info.intTimestamps[0][5], 1005);
+  BOOST_CHECK_EQUAL(info.floatTimestamps[0][0], 1007);
+  BOOST_CHECK_EQUAL(info.floatTimestamps[0][1], 1008);
+  BOOST_CHECK_EQUAL(info.floatTimestamps[0][2], 1009);
+  BOOST_CHECK_EQUAL(info.floatTimestamps[0][3], 1010);
   BOOST_CHECK_EQUAL(info.changed.size(), 3);
   for (int i = 0; i < 1026; ++i) {
     ckey(info, i, t++);

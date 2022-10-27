@@ -224,8 +224,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
   };
 
   return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](TimingInfo& timingInfo, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+    // FIXME: this in not thread safe, but better than an alloc of a map per message...
     std::unordered_map<std::string, fair::mq::Parts> outputs;
     std::vector<std::string> unmatchedDescriptions;
+
     static int64_t dplCounter = -1;
     dplCounter++;
     static bool override_creation_env = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
@@ -236,7 +238,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       creationVal = creationValBase;
       override_creation = true;
     } else {
-      std::string orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+      auto orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
       char* err = nullptr;
       creationVal = std::strtoll(orbitResetTimeUrl.c_str(), &err, 10);
       if (err && *err == 0 && creationVal) {
@@ -245,6 +247,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     }
 
     for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+      if (parts.At(msgidx).get() == nullptr) {
+        LOG(error) << "unexpected nullptr found. Skipping message pair.";
+        continue;
+      }
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
@@ -257,6 +263,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       if (!dph) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
+      }
+      static size_t currentRunNumber = -1;
+      if (dh->runNumber != currentRunNumber) {
+        LOGP(detail, "Run number changed from {} to {}. Resetting DPL timeslice counter", currentRunNumber, dh->runNumber);
+        currentRunNumber = dh->runNumber;
+        dplCounter = 0;
       }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       if (override_creation) {
@@ -403,11 +415,13 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   spec.name = strdup(name);
   spec.inputs = {};
   spec.outputs = outputs;
+  static std::vector<std::string> channels;
+  static std::vector<int> numberOfEoS(channels.size(), 0);
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name, minSHM](InitContext& ctx) {
-    auto device = ctx.services().get<RawDeviceService>().device();
+  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name](InitContext& ctx) {
+    auto* device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
     auto outputChannels = ctx.services().get<RawDeviceService>().spec().outputChannels;
@@ -419,29 +433,63 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     // will be multiple channels. At least we throw a more informative exception.
     // fair::mq::Device calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [channel, device, &services = ctx.services()]() {
+    auto channelConfigurationChecker = [device, deviceName, services = ctx.services()]() {
       auto& deviceState = services.get<DeviceState>();
-      if (device->fChannels.count(channel) == 0) {
-        throw std::runtime_error("the required out-of-band channel '" + channel + "' has not been configured, please check the name in the channel configuration");
+      channels.clear();
+      numberOfEoS.clear();
+      for (auto& [channelName, _] : services.get<RawDeviceService>().device()->fChannels) {
+        // Out of band channels must start with the proxy name, at least for now
+        if (strncmp(channelName.c_str(), deviceName.c_str(), deviceName.size()) == 0) {
+          channels.push_back(channelName);
+        }
       }
-      LOGP(detail, "Injecting channel '{}' into DPL configuration", channel);
-      // Converter should pump messages
-      deviceState.inputChannelInfos.push_back(InputChannelInfo{
-        .state = InputChannelState::Running,
-        .hasPendingEvents = false,
-        .readPolled = false,
-        .channel = nullptr,
-        .id = {ChannelIndex::INVALID},
-        .channelType = ChannelAccountingType::RAW,
-      });
+      for (auto& channel : channels) {
+        LOGP(detail, "Injecting channel '{}' into DPL configuration", channel);
+        // Converter should pump messages
+        deviceState.inputChannelInfos.push_back(InputChannelInfo{
+          .state = InputChannelState::Running,
+          .hasPendingEvents = false,
+          .readPolled = false,
+          .channel = nullptr,
+          .id = {ChannelIndex::INVALID},
+          .channelType = ChannelAccountingType::RAW,
+        });
+      }
+      numberOfEoS.resize(channels.size(), 0);
     };
+
+    auto drainMessages = [](ServiceRegistryRef registry, int state) {
+      auto device = registry.get<RawDeviceService>().device();
+      // We drop messages in input only when in ready.
+      // FIXME: should we drop messages in input the first time we are in ready?
+      if (fair::mq::State{state} != fair::mq::State::Ready) {
+        return;
+      }
+      while (!device->NewStatePending()) {
+        fair::mq::Parts parts;
+        for (auto& channel : channels) {
+          device->GetChannel(channel).Receive(parts, -1);
+          if (!device->NewStatePending()) {
+            LOGP(warn, "Unexpected {} message on channel {} while in Ready state. Dropping.", parts.Size(), channel);
+          }
+        }
+      }
+    };
+
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
-    static int numberOfEoS = 0;
-    numberOfEoS = 0;
+    if (ctx.options().get<std::string>("ready-state-policy") == "drain") {
+      LOG(info) << "Drain mode requested while in Ready state";
+      ctx.services().get<CallbackService>().set(CallbackService::Id::DeviceStateChanged, drainMessages);
+    }
 
     static auto countEoS = [](fair::mq::Parts& inputs) -> int {
       int count = 0;
       for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
+        // Skip when we have nullptr for the header.
+        // Not sure it can actually happen, but does not hurt.
+        if (inputs.At(msgidx * 2).get() == nullptr) {
+          continue;
+        }
         auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
         if (sih != nullptr && sih->state == InputChannelState::Completed) {
           count++;
@@ -450,12 +498,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       return count;
     };
 
-    auto dataHandler = [device, converter, &channel,
+    auto dataHandler = [device, converter,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
                         &timingInfo = ctx.services().get<TimingInfo>(),
-                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int) {
+                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int, size_t ci) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -467,8 +515,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         return {""};
       };
 
+      bool everyEoS = true;
+      std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
-      numberOfEoS += countEoS(inputs);
+      numberOfEoS[ci] += countEoS(inputs);
       converter(timingInfo, *device, inputs, channelRetriever);
 
       // If we have enough EoS messages, we can stop the device
@@ -476,44 +526,53 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       // * If a connection sends the EoS and then closes.
       // * If a connection sends two EoS.
       // * If a connection sends an end of stream closes and another one opens.
-      if (numberOfEoS >= device->GetNumberOfConnectedPeers(channel)) {
+      if (numberOfEoS[ci] < device->GetNumberOfConnectedPeers(channel)) {
+        everyEoS = false;
+      }
+
+      if (everyEoS) {
         // Mark all input channels as closed
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
         }
+        std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
         control->endOfStream();
       }
     };
 
-    auto runHandler = [dataHandler, channel, minSHM](ProcessingContext& ctx) {
+    auto runHandler = [dataHandler, minSHM](ProcessingContext& ctx) {
       static RateLimiter limiter;
       auto device = ctx.services().get<RawDeviceService>().device();
       limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
 
-      fair::mq::Parts parts;
-      device->Receive(parts, channel, 0);
-      // Populate TimingInfo from the first message
-      if (parts.Size() != 0) {
-        auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
-        auto& timingInfo = ctx.services().get<TimingInfo>();
-        if (dh != nullptr) {
-          timingInfo.runNumber = dh->runNumber;
-          timingInfo.firstTForbit = dh->firstTForbit;
-          timingInfo.tfCounter = dh->tfCounter;
-        }
-        auto const dph = o2::header::get<DataProcessingHeader*>(parts.At(0)->GetData());
-        if (dph != nullptr) {
-          timingInfo.timeslice = dph->startTime;
-          timingInfo.creation = dph->creation;
+      for (size_t ci = 0; ci < channels.size(); ++ci) {
+        std::string const& channel = channels[ci];
+        fair::mq::Parts parts;
+        device->Receive(parts, channel, 0, channels.size() == 1 ? -1 : 1);
+        // Populate TimingInfo from the first message
+        if (parts.Size() != 0) {
+          auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
+          auto& timingInfo = ctx.services().get<TimingInfo>();
+          if (dh != nullptr) {
+            timingInfo.runNumber = dh->runNumber;
+            timingInfo.firstTForbit = dh->firstTForbit;
+            timingInfo.tfCounter = dh->tfCounter;
+          }
+          auto const dph = o2::header::get<DataProcessingHeader*>(parts.At(0)->GetData());
+          if (dph != nullptr) {
+            timingInfo.timeslice = dph->startTime;
+            timingInfo.creation = dph->creation;
+          }
+          dataHandler(parts, 0, ci);
         }
       }
-      dataHandler(parts, 0);
     };
 
     return runHandler;
   }};
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
+    ConfigParamSpec{"ready-state-policy", VariantType::String, "keep", {"What to do when the device is in ready state: *keep*, drain"}},
     ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}};
   return spec;
 }
@@ -652,6 +711,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         // are no internal forwards
         throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
       }
+      channelNames->clear();
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
@@ -669,7 +729,13 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       }
       proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
     };
+    // We need to clear the channels on stop, because we will check and add them
+    auto channelConfigurationDisposer = [&deviceSpec]() {
+      auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
+      mutableDeviceSpec.forwards.clear();
+    };
     callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
+    callbacks.set(CallbackService::Id::Stop, channelConfigurationDisposer);
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {

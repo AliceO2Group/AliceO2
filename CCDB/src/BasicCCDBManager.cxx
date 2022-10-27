@@ -14,7 +14,7 @@
 //
 #include "CCDB/BasicCCDBManager.h"
 #include <boost/lexical_cast.hpp>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <string>
 
 namespace o2
@@ -41,6 +41,31 @@ std::pair<uint64_t, uint64_t> CCDBManagerInstance::getRunDuration(int runnumber)
   auto sor = boost::lexical_cast<uint64_t>(response["SOR"]);
   auto eor = boost::lexical_cast<uint64_t>(response["EOR"]);
   return std::make_pair(sor, eor);
+}
+
+std::string CCDBManagerInstance::getSummaryString() const
+{
+  std::string res = fmt::format("{} queries", mQueries);
+  if (mCachingEnabled) {
+    res += fmt::format(" for {} objects", mCache.size());
+  }
+  res += fmt::format(", {} good fetches (and {} failed ones", mFetches, mFailures);
+  if (mCachingEnabled && mFailures) {
+    int nfailObj = 0;
+    for (const auto& obj : mCache) {
+      if (obj.second.failures) {
+        nfailObj++;
+      }
+    }
+    res += fmt::format(" for {} objects", nfailObj);
+  }
+  res += fmt::format(") in {} ms, instance: {}", fmt::group_digits(mTimerMS), mCCDBAccessor.getUniqueAgentID());
+  return res;
+}
+
+void CCDBManagerInstance::endOfStream()
+{
+  LOG(info) << "CCDBManager summary: " << getSummaryString();
 }
 
 } // namespace ccdb

@@ -12,7 +12,7 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
-#include "AnalysisDataModelHelpers.h"
+#include "Framework/AnalysisDataModelHelpers.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
@@ -24,7 +24,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/DataInputDirector.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -44,11 +43,6 @@
 
 #include <thread>
 
-using o2::monitoring::Metric;
-using o2::monitoring::Monitoring;
-using o2::monitoring::tags::Key;
-using o2::monitoring::tags::Value;
-
 namespace o2::framework::readers
 {
 auto setEOSCallback(InitContext& ic)
@@ -62,7 +56,7 @@ auto setEOSCallback(InitContext& ic)
 }
 
 template <typename... Ts>
-static inline auto doExtractTypedOriginal(framework::pack<Ts...>, ProcessingContext& pc)
+static inline auto doExtractOriginal(framework::pack<Ts...>, ProcessingContext& pc)
 {
   if constexpr (sizeof...(Ts) == 1) {
     return pc.inputs().get<TableConsumer>(aod::MetadataTrait<framework::pack_element_t<0, framework::pack<Ts...>>>::metadata::tableLabel())->asArrowTable();
@@ -74,13 +68,25 @@ static inline auto doExtractTypedOriginal(framework::pack<Ts...>, ProcessingCont
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  return O{doExtractTypedOriginal(soa::make_originals_from_type<O>(), pc)};
+  return O{doExtractOriginal(soa::make_originals_from_type<O>(), pc)};
+}
+
+template <typename O>
+static inline auto extractOriginal(ProcessingContext& pc)
+{
+  return o2::soa::ArrowHelpers::joinTables({doExtractOriginal(soa::make_originals_from_type<O>(), pc)});
 }
 
 template <typename... Os>
 static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
 {
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
+}
+
+template <typename... Os>
+static inline auto extractOriginalsVector(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return std::vector{extractOriginal<Os>(pc)...};
 }
 
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& requested)
@@ -97,13 +103,15 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           using index_pack_t = typename metadata_t::index_pack_t;
           using originals = typename metadata_t::originals;
           if constexpr (metadata_t::exclusive == true) {
-            return o2::framework::IndexExclusive::indexBuilder(input.binding.c_str(), index_pack_t{},
-                                                               extractTypedOriginal<Key>(pc),
-                                                               extractOriginalsTuple(originals{}, pc));
+            return o2::framework::IndexBuilder<o2::framework::Exclusive>::indexBuilder<Key>(input.binding.c_str(),
+                                                                                            extractOriginalsVector(originals{}, pc),
+                                                                                            index_pack_t{},
+                                                                                            originals{});
           } else {
-            return o2::framework::IndexSparse::indexBuilder(input.binding.c_str(), index_pack_t{},
-                                                            extractTypedOriginal<Key>(pc),
-                                                            extractOriginalsTuple(originals{}, pc));
+            return o2::framework::IndexBuilder<o2::framework::Sparse>::indexBuilder<Key>(input.binding.c_str(),
+                                                                                         extractOriginalsVector(originals{}, pc),
+                                                                                         index_pack_t{},
+                                                                                         originals{});
           }
         };
 
@@ -119,6 +127,10 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsExclusiveMetadata{}));
         } else if (description == header::DataDescription{"MA_BCCOL_SP"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsSparseMetadata{}));
+        } else if (description == header::DataDescription{"MA_BCCOLS_EX"}) {
+          outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsExclusiveMultiMetadata{}));
+        } else if (description == header::DataDescription{"MA_BCCOLS_SP"}) {
+          outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsSparseMultiMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_SP"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::Run3MatchedToBCSparseMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_EX"}) {

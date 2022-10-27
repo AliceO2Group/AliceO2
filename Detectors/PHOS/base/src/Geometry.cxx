@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSBase/Geometry.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TSystem.h"
 #include "TFile.h"
 

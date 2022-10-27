@@ -53,6 +53,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "CorrectionMapsHelper.h"
 
 class TTree;
 
@@ -350,6 +351,7 @@ class MatchTPCITS
     mVDriftCalibOn = v;
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
 
   ///< print settings
   void print() const;
@@ -537,8 +539,10 @@ class MatchTPCITS
   float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
+  float mITSTimeResMUS = -1.;       ///< nominal ITS time resolution derived from ROF
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
   float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDriftCorrFact = 1.;       ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
   float mTPCVDriftInv = -1.;           ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
@@ -554,8 +558,7 @@ class MatchTPCITS
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
-
-  std::unique_ptr<TPCTransform> mTPCTransform; ///< TPC cluster transformation
+  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
 
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 

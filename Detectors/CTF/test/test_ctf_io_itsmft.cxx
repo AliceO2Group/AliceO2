@@ -18,6 +18,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CommonUtils/NameConf.h"
 #include "ITSMFTReconstruction/CTFCoder.h"
+#include "ITSMFTReconstruction/LookUp.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -32,7 +33,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   std::vector<ROFRecord> rofRecVec;
   std::vector<CompClusterExt> cclusVec;
   std::vector<unsigned char> pattVec;
-
+  LookUp pattIdConverter;
   TStopwatch sw;
   sw.Start();
   std::vector<int> row, col;
@@ -72,7 +73,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   std::vector<o2::ctf::BufferType> vec;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder, o2::detectors::DetID::ITS);
-    coder.encode(vec, rofRecVec, cclusVec, pattVec); // compress
+    coder.encode(vec, rofRecVec, cclusVec, pattVec, pattIdConverter, 0); // compress
   }
   sw.Stop();
   LOG(info) << "Compressed in " << sw.CpuTime() << " s";

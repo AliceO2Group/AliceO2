@@ -22,7 +22,7 @@
 #include <chrono>
 #include <TRandom.h>
 #include <TF1.h>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 

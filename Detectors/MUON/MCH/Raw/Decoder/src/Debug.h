@@ -9,4 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_MCH_RAW_DECODER_DEBUG_H
+#define O2_MCH_RAW_DECODER_DEBUG_H
+
 //#define ULDEBUG
+
+#endif

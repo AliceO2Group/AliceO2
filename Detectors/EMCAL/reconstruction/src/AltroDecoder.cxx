@@ -8,10 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <boost/format.hpp>
+#include <fmt/format.h>
 #include "InfoLogger/InfoLogger.hxx"
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/AltroDecoder.h"
@@ -43,7 +44,7 @@ void AltroDecoder::readRCUTrailer()
   } catch (RCUTrailer::Error& e) {
     AliceO2::InfoLogger::InfoLogger logger;
     logger << e.what();
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, (boost::format("RCU trailer decoding error: %s") % e.what()).str().data());
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{} {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), e.what()));
   }
 }
 
@@ -52,7 +53,7 @@ void AltroDecoder::checkRCUTrailer()
   int trailersize = mRCUTrailer.getTrailerSize();
   int buffersize = mRawReader.getPayload().getPayloadWords().size();
   if (trailersize > buffersize) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR, (boost::format("Trailer size %d exceeding buffer size %d") % trailersize % buffersize).str().data());
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR, fmt::format("{}: Trailer size {} exceeding buffer size {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR), trailersize, buffersize));
   }
 }
 
@@ -141,7 +142,7 @@ void AltroDecoder::readChannels()
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
   if (!mRCUTrailer.isInitialized()) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, "RCU trailer was not initialized");
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{}: RCU trailer was not initialized", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR)));
   }
   return mRCUTrailer;
 }
@@ -149,7 +150,7 @@ const RCUTrailer& AltroDecoder::getRCUTrailer() const
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
   if (!mChannelsInitialized) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, "Channels not initizalized");
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::CHANNEL_ERROR));
   }
   return mChannels;
 }
@@ -195,6 +196,7 @@ int AltroDecoderError::errorTypeToInt(AltroErrType errortype)
 
 AltroErrType AltroDecoderError::intToErrorType(int errornumber)
 {
+  assert(errornumber < getNumberOfErrorTypes());
 
   AltroErrType errorType;
 
@@ -230,23 +232,79 @@ AltroErrType AltroDecoderError::intToErrorType(int errornumber)
   return errorType;
 }
 
+const char* AltroDecoderError::getErrorTypeName(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCUTrailerError";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "RCUTrailerVersionError";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "RCUTrailerSizeError";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "BunchHeaderError";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "BunchLengthError";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "ALTROPayloadError";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "ALTROMappingError";
+    case AltroErrType::CHANNEL_ERROR:
+      return "ChannelError";
+  };
+  return "";
+}
+
+const char* AltroDecoderError::getErrorTypeTitle(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCU Trailer";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "RCU Version";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "RCU Trailer Size";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "ALTRO Bunch Header";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "ALTRO Bunch Length";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "ALTRO Payload";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "ALTRO Mapping";
+    case AltroErrType::CHANNEL_ERROR:
+      return "Channel";
+  };
+  return "";
+}
+
+const char* AltroDecoderError::getErrorTypeDescription(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCU trailer decoding error";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "Inconsistent RCU trailer version";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "Invalid RCU trailer size";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "Inconsistent bunch header";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "Bunch length exceeding payload size";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "Payload could not be decoded";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "Invalid hardware address in ALTRO mapping";
+    case AltroErrType::CHANNEL_ERROR:
+      return "Channels not initizalized";
+  };
+  return "";
+}
+
 std::string MinorAltroDecodingError::what() const noexcept
 {
   std::stringstream result;
-  switch (mErrorType) {
-    case ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT:
-      result << "Unexpected end of payload in altro channel payload!";
-      break;
-    case ErrorType_t::CHANNEL_PAYLOAD_EXCEED:
-      result << "Trying to access out-of-bound payload!";
-      break;
-    case ErrorType_t::BUNCH_HEADER_NULL:
-      result << "Bunch header 0 or not configured!";
-      break;
-    case ErrorType_t::BUNCH_LENGTH_EXCEED:
-      result << "Bunch length exceeding channel payload size!";
-      break;
-  };
+  result << getErrorTypeDescription(mErrorType);
   auto address = mChannelHeader & 0xFFF,
        payload = (mChannelHeader >> 16) & 0x3FF;
   bool good = (mChannelHeader >> 29) & 0x1;
@@ -284,7 +342,7 @@ int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
 
 MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
 {
-
+  assert(errornumber < getNumberOfErrorTypes());
   MinorAltroErrType errorType;
 
   switch (errornumber) {
@@ -305,4 +363,73 @@ MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
   }
 
   return errorType;
+}
+
+const char* MinorAltroDecodingError::getErrorTypeName(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "ChannelEndPayloadUnexpected";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "ChannelPayloadExceed";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "BunchHeaderNull";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "BunchLengthExceed";
+  };
+  return "";
+}
+
+const char* MinorAltroDecodingError::getErrorTypeTitle(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "Channel end unexpected";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "Channel exceed";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "Bunch header null";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "Bunch length exceed";
+  };
+  return "";
+}
+
+const char* MinorAltroDecodingError::getErrorTypeDescription(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "Unexpected end of payload in altro channel payload!";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "Trying to access out-of-bound payload!";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "Bunch header 0 or not configured!";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "Bunch length exceeding channel payload size!";
+  };
+  return "";
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const AltroDecoderError& error)
+{
+  stream << error.what();
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const AltroDecoderError::ErrorType_t& errortype)
+{
+  stream << AltroDecoderError::getErrorTypeName(errortype);
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const MinorAltroDecodingError& error)
+{
+  stream << error.what();
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const MinorAltroDecodingError::ErrorType_t& errortype)
+{
+  stream << MinorAltroDecodingError::getErrorTypeName(errortype);
+  return stream;
 }

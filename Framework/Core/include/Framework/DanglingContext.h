@@ -19,14 +19,14 @@ namespace o2::framework
 class DanglingContext
 {
  public:
-  DanglingContext(ServiceRegistry& services)
+  DanglingContext(ServiceRegistryRef services)
     : mServices(services)
   {
   }
 
-  ServiceRegistry& services() { return mServices; }
+  ServiceRegistryRef services() { return mServices; }
 
-  ServiceRegistry& mServices;
+  ServiceRegistryRef mServices;
 };
 
 } // namespace o2::framework

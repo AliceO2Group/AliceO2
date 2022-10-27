@@ -39,7 +39,6 @@ void MFTAssessmentSpec::init(InitContext& ic)
     mTimer[sw].Reset();
   }
   mTimer[SWTot].Start(false);
-  mMFTAssessment->init(mFinalizeAnalysis);
 }
 
 //_____________________________________________________________
@@ -112,6 +111,7 @@ void MFTAssessmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     LOG(info) << "Setting MFT Assessment Bz = " << Bz;
     mMFTAssessment->setBz(Bz);
     mMFTAssessment->init(mFinalizeAnalysis);
+    mMFTAssessment->setRefOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
   }
 }
 

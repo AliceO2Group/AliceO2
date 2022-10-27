@@ -28,7 +28,10 @@
 #include <fstream>
 #include <FairVolume.h>
 #include <CommonUtils/NameConf.h>
+#include <CommonUtils/ConfigurationMacroHelper.h>
 #include "SimConfig/SimUserDecay.h"
+#include <filesystem>
+#include <CommonUtils/FileSystemUtils.h>
 
 namespace o2
 {
@@ -83,7 +86,11 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
-  // dispatch first to stepping function in FairRoot
+  if (mCutParams.stepTrackRefHook) {
+    mTrackRefFcn(fMC);
+  }
+
+  // dispatch now to stepping function in FairRoot
   FairMCApplication::Stepping();
 }
 
@@ -1179,6 +1186,22 @@ void O2MCApplicationBase::AddParticles()
   while (ss >> pdg) {
     LOG(info) << "Setting user decay for PDG " << pdg;
     TVirtualMC::GetMC()->SetUserDecay(pdg);
+  }
+}
+
+void O2MCApplicationBase::initTrackRefHook()
+{
+  if (mCutParams.stepTrackRefHook) {
+    LOG(info) << "Initializing the hook for TrackReferences during stepping";
+    auto expandedTrackRefHookFileName = o2::utils::expandShellVarsInFileName(mCutParams.stepTrackRefHookFile);
+    if (std::filesystem::exists(expandedTrackRefHookFileName)) {
+      // if this file exists we will compile the hook on the fly
+      mTrackRefFcn = o2::conf::GetFromMacro<TrackRefFcn>(mCutParams.stepTrackRefHookFile, "trackRefHook()", "o2::steer::O2MCApplicationBase::TrackRefFcn", "o2mc_stepping_trackref_hook");
+      LOG(info) << "Hook initialized from file " << expandedTrackRefHookFileName;
+    } else {
+      LOG(error) << "Did not file TrackRefHook file " << expandedTrackRefHookFileName << " ; Will not execute hook";
+      mTrackRefFcn = [](TVirtualMC const*) {}; // do nothing
+    }
   }
 }
 

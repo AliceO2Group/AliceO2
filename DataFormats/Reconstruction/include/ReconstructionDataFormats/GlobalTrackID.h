@@ -93,7 +93,7 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
 #ifndef GPUCA_GPUCODE
   static auto getSourceName(int s)
   {
-    return DetID::getNames(getSourceDetectorsMask(s), '-');
+    return s == ITSAB ? std::string{"ITSAB"} : DetID::getNames(getSourceDetectorsMask(s), '-');
   }
   static mask_t getSourcesMask(const std::string_view srcList);
   static std::string getSourcesNames(mask_t srcm);

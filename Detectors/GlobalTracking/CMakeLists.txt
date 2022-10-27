@@ -34,6 +34,7 @@ o2_add_library(GlobalTracking
                         O2::GPUO2Interface
                         O2::TPCBase
                         O2::TPCReconstruction
+                        O2::TPCCalibration
                         O2::TOFBase
                         O2::TOFCalibration
                         O2::TOFWorkflowUtils

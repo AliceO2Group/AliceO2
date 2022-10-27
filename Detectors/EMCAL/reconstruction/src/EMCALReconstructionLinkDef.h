@@ -26,6 +26,7 @@
 #pragma link C++ class o2::emcal::CaloRawFitterGamma2 + ;
 
 #pragma link C++ class o2::emcal::RecoParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::emcal::RecoParam> + ;
 
 //#pragma link C++ namespace o2::emcal+;
 #pragma link C++ class o2::emcal::ClusterizerParameters + ;

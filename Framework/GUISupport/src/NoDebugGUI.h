@@ -23,11 +23,6 @@ static inline void* initGUI(const char* name)
   return nullptr;
 }
 
-static inline bool pollGUI(void* context, std::function<void(void)> guiCallback)
-{
-  // returns whether quit is requested, we return 'no'
-  return false;
-}
 static inline void disposeGUI()
 {
 }

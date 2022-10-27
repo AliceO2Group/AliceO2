@@ -29,7 +29,7 @@ template <typename T>
 struct CommonMessageBackendsHelpers {
   static ServiceInit createCallback()
   {
-    return [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) {
+    return [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) {
       auto& proxy = services.get<FairMQDeviceProxy>();
       return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(proxy)};
     };

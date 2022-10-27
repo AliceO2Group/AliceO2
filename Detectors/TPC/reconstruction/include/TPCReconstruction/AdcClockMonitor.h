@@ -15,7 +15,7 @@
 #ifndef ALICEO2_TPC_ADCCLOCKMONITOR_H_
 #define ALICEO2_TPC_ADCCLOCKMONITOR_H_
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <iosfwd>
 #include <iomanip>
 

@@ -23,7 +23,7 @@ namespace o2
 namespace emcal
 {
 
-o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagateMC, workflow_reader::Creator creator)
+o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, uint32_t subspec, bool propagateMC, workflow_reader::Creator creator)
 {
   struct ProcessAttributes {
     std::shared_ptr<o2::framework::RootTreeReader> reader;
@@ -32,7 +32,7 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     bool finished;
   };
 
-  auto initFunction = [config, propagateMC, creator](o2::framework::InitContext& ic) {
+  auto initFunction = [config, subspec, propagateMC, creator](o2::framework::InitContext& ic) {
     // get the option from the init context
     auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                   ic.options().get<std::string>("infile"));
@@ -84,15 +84,15 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     return processFunction;
   };
 
-  auto createOutputSpecs = [&config, propagateMC]() {
+  auto createOutputSpecs = [&config, subspec, propagateMC]() {
     std::vector<o2::framework::OutputSpec> outputSpecs;
     auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
     auto tro = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.triggerrecordoutput);
     auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
-    outputSpecs.emplace_back(o2::framework::OutputSpec{{"output"}, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe});
-    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputTRG"}, tro.origin, tro.description, 0, o2::framework::Lifetime::Timeframe});
+    outputSpecs.emplace_back(o2::framework::OutputSpec{{"output"}, dto.origin, dto.description, subspec, o2::framework::Lifetime::Timeframe});
+    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputTRG"}, tro.origin, tro.description, subspec, o2::framework::Lifetime::Timeframe});
     if (propagateMC) {
-      outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
+      outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, subspec, o2::framework::Lifetime::Timeframe});
     }
     return std::move(outputSpecs);
   };

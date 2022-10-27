@@ -421,6 +421,33 @@ std::shared_ptr<gandiva::Projector>
   return createProjector(Schema, createOperations(p), std::move(result));
 }
 
+std::shared_ptr<gandiva::Projector> createProjectorHelper(size_t nColumns, expressions::Projector* projectors,
+                                                          std::shared_ptr<arrow::Schema> schema,
+                                                          std::vector<std::shared_ptr<arrow::Field>> const& fields)
+{
+  std::vector<gandiva::ExpressionPtr> expressions;
+
+  for (size_t ci = 0; ci < nColumns; ++ci) {
+    expressions.push_back(
+      makeExpression(
+        framework::expressions::createExpressionTree(
+          framework::expressions::createOperations(projectors[ci]),
+          schema),
+        fields[ci]));
+  }
+
+  std::shared_ptr<gandiva::Projector> projector;
+  auto s = gandiva::Projector::Make(
+    schema,
+    expressions,
+    &projector);
+  if (s.ok()) {
+    return projector;
+  } else {
+    throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
+  }
+}
+
 gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> const& gfilter)
 {
   gandiva::Selection selection;

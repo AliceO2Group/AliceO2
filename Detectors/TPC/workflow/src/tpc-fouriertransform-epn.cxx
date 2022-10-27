@@ -25,10 +25,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   const std::string cruDefault = "0-" + std::to_string(o2::tpc::CRU::MaxCRU - 1);
 
   std::vector<ConfigParamSpec> options{
-    {"configFile", VariantType::String, "o2tpcaveragegroupidc_configuration.ini", {"configuration file for configurable parameters"}},
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"rangeIDC", VariantType::Int, 200, {"Number of 1D-IDCs which will be used for the calculation of the fourier coefficients."}},
     {"nFourierCoeff", VariantType::Int, 60, {"Number of fourier coefficients (real+imag) which will be stored in the CCDB. The maximum can be 'rangeIDC + 2'."}},
-    {"debug", VariantType::Bool, false, {"create debug files"}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}}};
@@ -49,7 +48,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
   const auto nCRUs = tpcCRUs.size();
-  const auto debug = config.options().get<bool>("debug");
   const bool fft = config.options().get<bool>("use-naive-fft");
   const auto rangeIDC = static_cast<unsigned int>(config.options().get<int>("rangeIDC"));
   const auto nFourierCoeff = std::clamp(static_cast<unsigned int>(config.options().get<int>("nFourierCoeff")), static_cast<unsigned int>(0), rangeIDC + 2);
@@ -59,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto first = tpcCRUs.begin();
   const auto last = std::min(tpcCRUs.end(), first + nCRUs);
   const std::vector<uint32_t> rangeCRUs(first, last);
-  workflow.emplace_back(getTPCFourierTransformEPNSpec(rangeCRUs, rangeIDC, nFourierCoeff, debug));
+  workflow.emplace_back(getTPCFourierTransformEPNSpec(rangeCRUs, rangeIDC, nFourierCoeff));
 
   return workflow;
 }

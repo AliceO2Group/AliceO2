@@ -30,15 +30,14 @@
 #include "DetectorsVertexing/PVertexerHelpers.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "gsl/span"
 #include <numeric>
 #include <TTree.h>
 #include <TFile.h>
 #include <TStopwatch.h>
 
-//TODO: MeanVertex and parameters input from CCDB
-
-//#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
+// #define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
 
 namespace o2
 {
@@ -56,14 +55,15 @@ class PVertexer
                                NotEnoughTracks,
                                IterateFurther,
                                OK };
-
+  PVertexer();
   void init();
   void end();
-
   template <typename TR>
   int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
               const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
+
+  int processFromExternalPool(const std::vector<TrackVF>& pool, std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
 
   bool findVertex(const VertexingInput& input, PVertex& vtx);
 
@@ -87,9 +87,13 @@ class PVertexer
   auto& getTimeZClusters() const { return mTimeZClusters; }
 
   auto& getMeanVertex() const { return mMeanVertex; }
-  void setMeanVertex(const o2d::VertexBase& v)
+  void setMeanVertex(const o2d::MeanVertexObject* v)
   {
-    mMeanVertex = v;
+    if (!v) {
+      return;
+    }
+    mMeanVertex = *v;
+    mMeanVertexSeed = *v;
     initMeanVertexConstraint();
   }
 
@@ -117,6 +121,8 @@ class PVertexer
 
   void setPoolDumpDirectory(const std::string& d) { mPoolDumpDirectory = d; }
 
+  void printInpuTracksStatus(const VertexingInput& input) const;
+
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
@@ -136,7 +142,7 @@ class PVertexer
   void initMeanVertexConstraint();
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
-  bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const;
+  bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2);
   bool relateTrackToVertex(o2::track::TrackParCov& trc, const o2d::VertexBase& vtxSeed) const;
 
   template <typename TR>
@@ -157,14 +163,17 @@ class PVertexer
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove{-1}; // closest filled bunch from above, 1st element -1 to disable usage by default
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow{-1}; // closest filled bunch from below, 1st element -1 to disable usage by default
-  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.5 * 0.5, 0., 0.5 * 0.5, 0., 0., 6. * 6.}};
+  o2d::MeanVertexObject mMeanVertex{};                                           // calibrated mean vertex object
+  o2d::VertexBase mMeanVertexSeed{};                                             // mean vertex at particular Z (accounting for slopes
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //
   std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing, sorted in time
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
   float mITSROFrameLengthMUS = 0;           ///< ITS readout time span in \mus
-  float mBz = 0.;                          ///< mag.field at beam line
-  bool mValidateWithIR = false;            ///< require vertex validation with InteractionRecords (if available)
+  float mBz = 0.;                           ///< mag.field at beam line
+  float mDBScanDeltaT = 0.;                 ///< deltaT cut for DBScan check
+  float mDBSMaxZ2InvCorePoint = 0;          ///< inverse of max sigZ^2 of the track which can be core point in the DBScan
+  bool mValidateWithIR = false;             ///< require vertex validation with InteractionRecords (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
@@ -221,8 +230,9 @@ inline void PVertexer::applyConstraint(VertexSeed& vtxSeed) const
   vtxSeed.cxx += mXYConstraintInvErr[0];
   vtxSeed.cxy += mXYConstraintInvErr[1];
   vtxSeed.cyy += mXYConstraintInvErr[2];
-  vtxSeed.cx0 += mXYConstraintInvErr[0] * mMeanVertex.getX() + mXYConstraintInvErr[1] * mMeanVertex.getY();
-  vtxSeed.cy0 += mXYConstraintInvErr[1] * mMeanVertex.getX() + mXYConstraintInvErr[2] * mMeanVertex.getY();
+  float xv = mMeanVertex.getXAtZ(vtxSeed.getZ()), yv = mMeanVertex.getYAtZ(vtxSeed.getZ());
+  vtxSeed.cx0 += mXYConstraintInvErr[0] * xv + mXYConstraintInvErr[1] * yv;
+  vtxSeed.cy0 += mXYConstraintInvErr[1] * xv + mXYConstraintInvErr[2] * yv;
 }
 
 //___________________________________________________________________
@@ -252,7 +262,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   });
 
   // check all containers
-  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
+  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2()) + mPVParams->meanVertexExtraErrSelection * mPVParams->meanVertexExtraErrSelection;
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {

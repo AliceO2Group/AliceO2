@@ -237,6 +237,7 @@ constexpr int DbgZero = 0;
 constexpr int DbgMinimal = 1;
 constexpr int DbgMedium = 2;
 constexpr int DbgFull = 3;
+constexpr int DbgExtra = 4;
 
 // paths to CCDB objects
 // TODO: eventually these paths should be retrieved from NameConfigurator class
@@ -256,6 +257,7 @@ const std::string CCDBPathWaveformCalib = "ZDC/Calib/WaveformCalib";
 const std::string CCDBPathWaveformCalibConfig = "ZDC/Calib/WaveformCalibConfig";
 const std::string CCDBPathBaselineCalib = "ZDC/Calib/BaselineCalib";
 const std::string CCDBPathBaselineCalibConfig = "ZDC/Calib/BaselineCalibConfig";
+const std::string CCDBPathNoiseCalib = "ZDC/Calib/NoiseCalib";
 
 enum Ped { PedND = 0,
            PedEv = 1,

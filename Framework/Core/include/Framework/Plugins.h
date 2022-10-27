@@ -29,7 +29,9 @@ enum struct DplPluginKind : int {
   DebugGUIImpl,
   // A plugin which implements a custom Services. Needs to return
   // an object of the kind o2::framework::ServiceSpec
-  CustomService
+  CustomService,
+  // A plugin which was not initialised properly.
+  Unknown
 };
 
 } // namespace o2::framework
@@ -37,10 +39,10 @@ enum struct DplPluginKind : int {
 /// An handle for a generic DPL plugin.
 /// The handle is returned by the dpl_plugin_callback()
 struct DPLPluginHandle {
-  void* instance;
-  char const* name;
-  enum o2::framework::DplPluginKind kind;
-  DPLPluginHandle* previous;
+  void* instance = nullptr;
+  char const* name = nullptr;
+  enum o2::framework::DplPluginKind kind = o2::framework::DplPluginKind::Unknown;
+  DPLPluginHandle* previous = nullptr;
 };
 
 // Struct to hold live plugin information which the plugin itself cannot
@@ -90,6 +92,9 @@ struct PluginManager {
   /// On successfull completion @a onSuccess is called passing
   /// the DPLPluginHandle provided by the library.
   static void load(std::vector<PluginInfo>& infos, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess);
+  /// Load an called @plugin from a library called @a library and
+  /// return the associtated AlgorithmSpec.
+  static auto loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec;
 };
 
 } // namespace o2::framework

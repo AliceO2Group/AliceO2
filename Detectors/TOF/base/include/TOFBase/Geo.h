@@ -65,8 +65,9 @@ class Geo
   static void rotate(Float_t* xyz, Double_t rotationAngles[6]);
 
   static void rotateToSector(Float_t* xyz, Int_t isector);
-  static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector);
   static void antiRotateToSector(Float_t* xyz, Int_t isector);
+  static void antiRotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector);
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);
@@ -81,6 +82,10 @@ class Geo
   static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
   static Float_t getDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
+  static Float_t getGeoHeights(Int_t isector, Int_t iplate, Int_t istrip) { return mGeoHeights[isector][iplate][istrip]; }
+  static Float_t getGeoX(Int_t isector, Int_t iplate, Int_t istrip) { return mGeoX[isector][iplate][istrip]; }
+  static Float_t getGeoDistances(Int_t isector, Int_t iplate, Int_t istrip) { return mGeoDistances[isector][iplate][istrip]; }
+
   static void getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos, int sector = -1);
   enum {
     // DAQ characteristics
@@ -135,6 +140,7 @@ class Geo
   static constexpr Float_t RMAX2 = RMAX * RMAX;
 
   static constexpr Float_t XPAD = 2.5;
+  static constexpr Float_t XHALFSTRIP = XPAD * NPADX * 0.5;
   static constexpr Float_t ZPAD = 3.5;
   static constexpr Float_t STRIPLENGTH = 122;
 
@@ -349,7 +355,14 @@ class Geo
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
 
   static void Init();
+  static void InitIdeal();
   static void InitIndices();
+  static void getPosInSectorCoord(int ch, float* pos);
+  static void getPosInStripCoord(int ch, float* pos);
+  static void getPosInPadCoord(int ch, float* pos);
+  static void getPosInSectorCoord(const Int_t* detId, float* pos);
+  static void getPosInStripCoord(const Int_t* detId, float* pos);
+  static void getPosInPadCoord(const Int_t* detId, float* pos);
 
  private:
   static Int_t getSector(const Float_t* pos);
@@ -357,17 +370,20 @@ class Geo
   static Int_t getPadZ(const Float_t* pos);
   static Int_t getPadX(const Float_t* pos);
 
-  static void fromGlobalToSector(Float_t* pos, Int_t isector); // change coords to Sector reference
-  static Int_t fromPlateToStrip(Float_t* pos, Int_t iplate);   // change coord to Strip reference and return strip number
+  static void fromGlobalToSector(Float_t* pos, Int_t isector);              // change coords to Sector reference
+  static Int_t fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector); // change coord to Strip reference and return strip number
 
   static Bool_t mToBeInit;
   static Bool_t mToBeInitIndexing;
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
-  static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+  static Float_t mRotationMatrixPlateStrip[NSECTORS][NPLATES][NMAXNSTRIP][3][3];
   static Float_t mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
+  static Float_t mGeoDistances[NSECTORS][NPLATES][NMAXNSTRIP];
+  static Float_t mGeoHeights[NSECTORS][NPLATES][NMAXNSTRIP];
+  static Float_t mGeoX[NSECTORS][NPLATES][NMAXNSTRIP];
   static Int_t mPlate[NSTRIPXSECTOR];
   static Int_t mStripInPlate[NSTRIPXSECTOR];
-  static std::array<std::vector<float>, 5> mDistances;
+  static std::array<std::vector<float>, 5> mDistances[NSECTORS];
 
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513;           // Propagation delay [ns/cm]
@@ -375,7 +391,7 @@ class Geo
   static const Int_t CHAN_TO_ELCHAN[NCHANNELS];
   static const Int_t ELCHAN_TO_CHAN[N_ELECTRONIC_CHANNELS];
 
-  ClassDefNV(Geo, 2);
+  ClassDefNV(Geo, 3);
 };
 } // namespace tof
 } // namespace o2

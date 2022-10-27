@@ -21,6 +21,7 @@
 #pragma link C++ class std::vector < o2::tpc::CommonMode> + ;
 #pragma link C++ class o2::tpc::DigitContainer + ;
 #pragma link C++ class o2::tpc::DigitGlobalPad + ;
+#pragma link C++ class o2::tpc::PrevDigitInfo + ;
 #pragma link C++ class o2::tpc::Digitizer + ;
 #pragma link C++ class o2::tpc::DigitTime + ;
 #pragma link C++ class o2::tpc::ElectronTransport + ;

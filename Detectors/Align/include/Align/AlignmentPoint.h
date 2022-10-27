@@ -57,8 +57,7 @@ class AlignmentPoint
               kOptWSB = 0x1 << 13
 
   };
-  enum { kParY = 0 // track parameters
-         ,
+  enum { kParY = 0, // track parameters
          kParZ,
          kParSnp,
          kParTgl,
@@ -77,7 +76,6 @@ class AlignmentPoint
   //
   double getAlphaSens() const { return mAlphaSens; }
   double getXSens() const { return mXSens; }
-  double getXPoint() const { return mXSens + getXTracking(); }
   double getXTracking() const { return mXYZTracking[0]; }
   double getYTracking() const { return mXYZTracking[1]; }
   double getZTracking() const { return mXYZTracking[2]; }
@@ -193,7 +191,7 @@ class AlignmentPoint
   void incrementStat();
   //
   virtual void dumpCoordinates() const;
-  void print(uint16_t opt) const;
+  void print(uint16_t opt = 0) const;
   void clear();
   //
   bool isAfter(const AlignmentPoint& pnt) const;

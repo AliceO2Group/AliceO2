@@ -61,13 +61,13 @@ void VDriftHelper::accountLaserCalibration(const LtrCalibData* calib, long fallB
     mVD.corrFact = 1. / corr;
     mUpdated = true;
     mSource = Source::Laser;
-    if (mMayRenorm) {    // this was 1st setting?
+    if (mMayRenormSrc & (0x1U << Source::Laser)) { // this was 1st setting?
       if (corr != 1.f) { // this may happen if old-style (non-normalized) standalone or non-normalized run-time laset calibration is used
         LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVD.refVDrift, mVD.corrFact, mVD.getVDrift(), getSourceName());
         mVD.normalize(); // renorm reference to have correction = 1.
       }
-      mMayRenorm = false;
-    } else if (ref != prevRef) { // we want to keep the same reference over the run, this may happen if run-time laser calibration is supplied
+      mMayRenormSrc &= ~(0x1U << Source::Laser); // unset MayRenorm
+    } else if (ref != prevRef) {                 // we want to keep the same reference over the run, this may happen if run-time laser calibration is supplied
       LOGP(warn, "VDriftHelper: renorming updated TPC refVDrift={}/correction={} previous refVDrift {}, source: {}", mVD.refVDrift, mVD.corrFact, prevRef, getSourceName());
       mVD.normalize(prevRef);
     }
@@ -85,13 +85,13 @@ void VDriftHelper::accountDriftCorrectionITSTPCTgl(const VDriftCorrFact* calib)
   mVD = *calib;
   mUpdated = true;
   mSource = Source::ITSTPCTgl;
-  if (mMayRenorm) {            // this was 1st setting?
+  if (mMayRenormSrc & (0x1U << Source::ITSTPCTgl)) { // this was 1st setting?
     if (mVD.corrFact != 1.f) { // this may happen if calibration from prevous run is used
       LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVD.refVDrift, mVD.corrFact, mVD.getVDrift(), getSourceName());
       mVD.normalize(); // renorm reference to have correction = 1.
     }
-    mMayRenorm = false;
-  } else if (mVD.refVDrift != prevRef) { // we want to keep the same reference over the run, this should not happen!
+    mMayRenormSrc &= ~(0x1U << Source::ITSTPCTgl); // unset MayRenorm
+  } else if (mVD.refVDrift != prevRef) {           // we want to keep the same reference over the run, this should not happen!
     LOGP(alarm, "VDriftHelper: renorming updated TPC refVDrift={}/correction={} previous refVDrift {}, source: {}", mVD.refVDrift, mVD.corrFact, prevRef, getSourceName());
     mVD.normalize(prevRef);
   }

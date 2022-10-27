@@ -28,7 +28,6 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "TPCCalibration/CalibdEdx.h"
-#include "TPCCalibration/FastHisto.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 namespace o2::tpc
@@ -55,7 +54,6 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
     mFitSnp = fitSnp;
   }
   void setCuts(const TrackCuts& cuts) { mCuts = cuts; }
-  void setField(float field) { mField = field; }
   void setMinEntries(int minEntries) { mMinEntries = minEntries; }
   void setFitThresholds(int minEntriesSector, int minEntries1D, int minEntries2D) { mFitThreshold = {minEntriesSector, minEntries1D, minEntriesSector}; }
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
@@ -103,7 +101,6 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   bool mFitSnp{};                       ///< enable Snp correction
   int mMinEntries{};                    ///< Minimum amount of tracks in each time slot, to get enough statics
   std::array<int, 3> mFitThreshold{};   ///< Minimum entries per stack to perform sector, 1D and 2D fit
-  float mField{};                       ///< Magnetic field
   bool mApplyCuts{true};                ///< Flag to enable tracks cuts
   std::pair<float, int> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut
   TrackCuts mCuts;                      ///< Cut object

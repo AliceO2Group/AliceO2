@@ -195,8 +195,11 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     LOG(info) << "Init Server device ";
 
     // init sim config
-    auto& conf = o2::conf::SimConfig::Instance();
     auto& vm = GetConfig()->GetVarMap();
+    auto& conf = o2::conf::SimConfig::Instance();
+    if (vm.count("isRun5")) {
+      conf.setRun5();
+    }
     conf.resetFromParsedMap(vm);
     // output varmap
     // for (auto& keyvalue : vm) {
@@ -221,7 +224,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     LOG(info) << "CHUNK SIZE SET TO " << mChunkGranularity;
 
     // initial initial seed --> we should store this somewhere
-    mInitialSeed = vm["seed"].as<int>();
+    mInitialSeed = vm["seed"].as<ULong_t>();
     mInitialSeed = o2::utils::RngHelper::setGRandomSeed(mInitialSeed);
     LOG(info) << "RNG INITIAL SEED " << mInitialSeed;
 
@@ -556,7 +559,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   int mPartCounter = 0;
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
-  int mInitialSeed = -1;
+  ULong_t mInitialSeed = 0;
   int mPipeToDriver = -1; // handle for direct piper to driver (to communicate meta info)
   int mEventCounter = 0;
 

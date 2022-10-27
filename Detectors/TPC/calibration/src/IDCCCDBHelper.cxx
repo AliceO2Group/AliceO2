@@ -17,6 +17,8 @@
 #include "TPCBase/Mapper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/Painter.h"
+#include "TCanvas.h"
+#include "TH2Poly.h"
 #include <map>
 
 #include "TProfile.h"
@@ -392,7 +394,7 @@ void o2::tpc::IDCCCDBHelper<DataT>::dumpToTree(const char* outFileName) const
   o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
   pcstream.GetFile()->cd();
 
-  const int integrationInterval = 0; //std::min(mIDCOne->getNIDCs(Side::A), mIDCOne->getNIDCs(Side::C));
+  const int integrationInterval = 0; // std::min(mIDCOne->getNIDCs(Side::A), mIDCOne->getNIDCs(Side::C));
 
   const unsigned int nIDCsSector = Mapper::getPadsInSector() * Mapper::NSECTORS;
   std::vector<int> vRow(nIDCsSector);
@@ -452,7 +454,7 @@ void o2::tpc::IDCCCDBHelper<DataT>::dumpToTree(const char* outFileName) const
 template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::dumpToFourierCoeffToTree(const char* outFileName) const
 {
-  o2::utils::TreeStreamRedirector pcstream("fourierCoeff.root", "RECREATE");
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
   pcstream.GetFile()->cd();
 
   for (int iside = 0; iside < SIDES; ++iside) {

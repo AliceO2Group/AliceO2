@@ -28,7 +28,6 @@
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"
 #include "MemoryResources/MemoryResources.h"
-#include "CCDB/CcdbApi.h"
 #include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
@@ -99,20 +98,24 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  std::random_device r;
-  std::default_random_engine e1(r());
-  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
-
-  // We start with a random offset to avoid all the devices
-  // send their first message at the same time, bring down
-  // the QC machine.
-  // We reduce the first interval rather than increasing it
-  // to avoid having a triggered timer which appears to be in
-  // the future.
-  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
-  auto last = std::make_shared<decltype(start)>(start);
+  std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
   // FIXME: should create timeslices when period expires....
   return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+    // We start with a random offset to avoid all the devices
+    // send their first message at the same time, bring down
+    // the QC machine.
+    // We reduce the first interval rather than increasing it
+    // to avoid having a triggered timer which appears to be in
+    // the future.
+    // We do it here because if we do it in configure, long delays
+    // between configure and run will cause this to behave
+    // incorrrectly.
+    if (*last == 0ULL || index.didReceiveData() == false) {
+      std::random_device r;
+      std::default_random_engine e1(r());
+      std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+      *last = getCurrentTime() - dist(e1) - period.count() * 0.1;
+    }
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
@@ -162,12 +165,12 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
 
 ExpirationHandler::Checker LifetimeHelpers::expireNever()
 {
-  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return false; };
+  return [](ServiceRegistryRef, int64_t, InputSpan const&) -> bool { return false; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireAlways()
 {
-  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return true; };
+  return [](ServiceRegistryRef, int64_t, InputSpan const&) -> bool { return true; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher)
@@ -191,7 +194,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
     index++;
   }
 
-  return [inputPositions, optionalPositions, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+  return [inputPositions, optionalPositions, routes](ServiceRegistryRef, int64_t, InputSpan const& span) -> bool {
     // Check if timeframe data is fully present.
     // If yes, we expire the optional data.
     // If not, we continue to wait for the data.
@@ -270,7 +273,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 {
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
-  return [last, period](ServiceRegistry&, int64_t, InputSpan const&) -> bool {
+  return [last, period](ServiceRegistryRef, int64_t, InputSpan const&) -> bool {
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta > period.count()) {
@@ -286,7 +289,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 /// expires via this mechanism).
 ExpirationHandler::Handler LifetimeHelpers::doNothing()
 {
-  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void { return; };
+  return [](ServiceRegistryRef, PartRef&, data_matcher::VariableContext&) -> void { return; };
 }
 
 // We simply put everything
@@ -325,7 +328,7 @@ ExpirationHandler::Handler
   LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
                                    std::string const& channelName)
 {
-  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext&) -> void {
+  return [spec, channelName](ServiceRegistryRef services, PartRef& ref, data_matcher::VariableContext&) -> void {
     auto& rawDeviceService = services.get<RawDeviceService>();
     auto device = rawDeviceService.device();
 
@@ -344,7 +347,7 @@ ExpirationHandler::Handler
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistryRef, PartRef&, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
@@ -355,7 +358,7 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistryRef, PartRef&, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
@@ -367,7 +370,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistryRef services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
     // Get the ChannelIndex associated to a given channel name
     auto& deviceProxy = services.get<FairMQDeviceProxy>();
     auto channelIndex = deviceProxy.getInputChannelIndexByName(sourceChannel);
@@ -412,7 +415,7 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+  auto f = [matcher, counter, sourceChannel](ServiceRegistryRef services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);

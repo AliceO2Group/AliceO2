@@ -25,6 +25,7 @@
 #include "TChain.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include <list>
 
 namespace bpo = boost::program_options;
 
