@@ -16,7 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ std::unordered_map < uint8_t, bool> + ;
-#pragma link C++ struct o2::fit::BadChannelMap + ;
+#pragma link C++ struct o2::fit::DeadChannelMap + ;
 
 // TODO AM: Move this to DataFormatsFIT when unused class warning is solved.
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;

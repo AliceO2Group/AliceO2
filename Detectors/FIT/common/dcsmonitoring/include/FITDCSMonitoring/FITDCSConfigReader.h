@@ -18,7 +18,7 @@
 #define O2_FIT_DCSCONFIGREADER_H
 
 #include "CCDB/CcdbObjectInfo.h"
-#include "DataFormatsFIT/BadChannelMap.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 
 #include <gsl/span>
 #include <string>
@@ -34,36 +34,36 @@ class FITDCSConfigReader
   FITDCSConfigReader() = default;
   ~FITDCSConfigReader() = default;
 
-  virtual void processBChM(gsl::span<const char> configBuf);
-  void updateBChMCcdbObjectInfo();
+  virtual void processDChM(gsl::span<const char> configBuf);
+  void updateDChMCcdbObjectInfo();
 
-  const o2::fit::BadChannelMap& getBChM() const;
-  void resetBChM();
-  const std::string& getCcdbPathBChm() const;
-  void setCcdbPathBChM(const std::string& ccdbPath);
-  const long getStartValidityBChM() const;
-  const long getEndValidityBChM() const;
-  void setStartValidityBChM(const long startValidity);
-  const bool isStartValidityBChMSet() const;
-  void resetStartValidityBChM();
-  const o2::ccdb::CcdbObjectInfo& getObjectInfoBChM() const;
-  o2::ccdb::CcdbObjectInfo& getObjectInfoBChM();
+  const o2::fit::DeadChannelMap& getDChM() const;
+  void resetDChM();
+  const std::string& getCcdbPathDChm() const;
+  void setCcdbPathDChM(const std::string& ccdbPath);
+  const long getStartValidityDChM() const;
+  const long getEndValidityDChM() const;
+  void setStartValidityDChM(const long startValidity);
+  const bool isStartValidityDChMSet() const;
+  void resetStartValidityDChM();
+  const o2::ccdb::CcdbObjectInfo& getObjectInfoDChM() const;
+  o2::ccdb::CcdbObjectInfo& getObjectInfoDChM();
 
-  const std::string& getFileNameBChM() const;
-  void setFileNameBChM(const std::string& fileName);
+  const std::string& getFileNameDChM() const;
+  void setFileNameDChM(const std::string& fileName);
 
   const bool getVerboseMode() const;
   void setVerboseMode(const bool verboseMode);
 
  protected:
-  o2::fit::BadChannelMap mBChM; ///< The bad channel map CCDB object
-  bool mVerbose = false;        ///< Verbose mode
+  o2::fit::DeadChannelMap mDChM; ///< The dead channel map CCDB object
+  bool mVerbose = false;         ///< Verbose mode
 
  private:
-  std::string mFileNameBChM;                                              ///< The expected file name of the bad channel map
-  std::string mCcdbPathBChM;                                              ///< The bad channel map CCDB path
-  long mStartValidityBChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; ///< Start validity of the bad channel map CCDB object
-  o2::ccdb::CcdbObjectInfo mCcdbObjectInfoBChM;                           ///< CCDB object info for the bad channel map
+  std::string mFileNameDChM;                                              ///< The expected file name of the dead channel map
+  std::string mCcdbPathDChM;                                              ///< The dead channel map CCDB path
+  long mStartValidityDChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; ///< Start validity of the dead channel map CCDB object
+  o2::ccdb::CcdbObjectInfo mCcdbObjectInfoDChM;                           ///< CCDB object info for the dead channel map
 
   ClassDefNV(FITDCSConfigReader, 1);
 };

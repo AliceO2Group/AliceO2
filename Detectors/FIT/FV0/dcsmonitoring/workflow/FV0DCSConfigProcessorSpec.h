@@ -33,19 +33,19 @@ namespace framework
 
 DataProcessorSpec getFV0DCSConfigProcessorSpec()
 {
-  o2::header::DataDescription ddBChM = "FV0_BCHM";
+  o2::header::DataDescription ddDChM = "FV0_DCHM";
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddBChM}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddBChM}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddDChM}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddDChM}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "fv0-dcs-config-processor",
     Inputs{{"inputConfig", o2::header::gDataOriginFV0, "DCS_CONFIG_FILE", Lifetime::Timeframe},
            {"inputConfigFileName", o2::header::gDataOriginFV0, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::fit::FITDCSConfigProcessor>("FV0", ddBChM)},
+    AlgorithmSpec{adaptFromTask<o2::fit::FITDCSConfigProcessor>("FV0", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
-            {"filename-bchm", VariantType::String, "FV0-badchannels.txt", {"Bad channel map file name"}}}};
+            {"filename-dchm", VariantType::String, "FV0-deadchannels.txt", {"Dead channel map file name"}}}};
 }
 
 } // namespace framework

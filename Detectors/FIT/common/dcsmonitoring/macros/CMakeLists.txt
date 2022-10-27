@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test_root_macro(makeDefaultBadChannelMap.C
+o2_add_test_root_macro(makeDefaultDeadChannelMap.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                                              O2::DataFormatsFIT
                                              O2::Framework

@@ -102,7 +102,7 @@ int FITDCSDataReader::processDP(const DPCOM& dpcom)
     if (mDpData[dpid].values.empty() || val.get_epoch_time() > mDpData[dpid].values.back().first) {
       dpValueConverter.raw_data = val.payload_pt1;
       if (type == DPVAL_DOUBLE) {
-        mDpData[dpid].add(val.get_epoch_time(), lround(dpValueConverter.double_value * 1000)); // store as nA
+        mDpData[dpid].add(val.get_epoch_time(), llround(dpValueConverter.double_value * 1000)); // store as nA
       } else if (type == DPVAL_UINT) {
         mDpData[dpid].add(val.get_epoch_time(), dpValueConverter.uint_value);
       }
