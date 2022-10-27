@@ -16,24 +16,30 @@
 #include <TStyle.h>
 #include <TDirectory.h>
 #include "ZDCCalib/CalibParamZDC.h"
-#include "ZDCCalib/NoiseCalib.h"
+#include "ZDCCalib/BaselineCalib.h"
 #include "Framework/Logger.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 
 using namespace o2::zdc;
 
-int NoiseCalib::init()
+int BaselineCalib::init()
 {
-  // Inspect calibration parameters
-  const auto& opt = CalibParamZDC::Instance();
+  // Inspect reconstruction parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
   if (opt.debugOutput == true) {
     setSaveDebugHistos();
   }
 
-  for (int isig = 0; isig < NChannels; isig++) {
-    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
+  if (mConfig == nullptr) {
+    LOG(fatal) << "o2::zdc::BaselineCalib: missing configuration object";
+    return -1;
+  }
+
+  if (mVerbosity > DbgZero) {
+    mModuleConfig->print();
+    mConfig->print();
   }
 
   clear();
@@ -42,13 +48,13 @@ int NoiseCalib::init()
 }
 
 //______________________________________________________________________________
-void NoiseCalib::clear()
+void BaselineCalib::clear()
 {
   mData.clear();
 }
 
 //______________________________________________________________________________
-int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
+int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 {
   if (!mInitDone) {
     init();
@@ -64,55 +70,51 @@ int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
 }
 
 //______________________________________________________________________________
-// Add histograms
-void NoiseCalib::add(int ih, o2::dataformats::FlatHisto1D<double>& h1)
-{
-  if (!mInitDone) {
-    init();
-  }
-  if (ih >= 0 && ih < NChannels) {
-    mH[ih]->add(h1);
-  } else {
-    LOG(error) << "InterCalib::add: unsupported FlatHisto1D " << ih;
-  }
-}
-
-//______________________________________________________________________________
 // Create calibration object
-int NoiseCalib::endOfRun()
+int BaselineCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
-    LOGF(info, "Finalizing NoiseCalibData object");
-    mData.print();
-  }
-  if (mSaveDebugHistos) {
-    saveDebugHistos();
+    LOGF(info, "Finalizing BaselineCalibData object");
   }
 
-  for (int isig = 0; isig < NChannels; isig++) {
-    uint64_t en = 0;
-    double mean = 0, var = 0;
-    // N.B. Histogram is used to evaluate mean variance -> OK to use mean!
-    mData.getStat(isig, en, mean, var);
-    if (en > 0) {
-      double stdev = std::sqrt(mean / double(NTimeBinsPerBC) / double(NTimeBinsPerBC - 1));
-      mParam.setCalib(isig, stdev);
-      mParam.entries[isig] = en;
+  // Compute average baseline
+  float factor = mModuleConfig->baselineFactor;
+  for (int ic = 0; ic < NChannels; ic++) {
+    double sum = 0;
+    double nsum = 0;
+    double bmin = mConfig->cutLow[ic];
+    double bmax = mConfig->cutHigh[ic];
+    for (int ib = 0; ib < BaselineRange; ib++) {
+      double bval = (BaselineMin + ib) * factor;
+      if (bval >= bmin && bval <= bmax) {
+        nsum += mData.mHisto[ic].mData[ib];
+        sum += bval * mData.mHisto[ic].mData[ib];
+      }
+    }
+    if (nsum > 0 && mConfig->min_e[ic]) {
+      float ave = sum / nsum;
+      LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      mParamUpd.setCalib(ic, ave, true);
+    } else {
+      if (mParam == nullptr) {
+        LOGF(error, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
+        mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
+      } else {
+        float val = mParam->getCalib(ic);
+        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
+        mParamUpd.setCalib(ic, val, false);
+      }
     }
   }
 
-  mParam.print();
-
   // Creating calibration object and info
-  auto clName = o2::utils::MemFileHelper::getClassName(mParam);
+  auto clName = o2::utils::MemFileHelper::getClassName(mParamUpd);
   mInfo.setObjectType(clName);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfo.setFileName(flName);
-  mInfo.setPath(CCDBPathNoiseCalib);
-
-  const auto& opt = CalibParamZDC::Instance();
+  mInfo.setPath(CCDBPathBaselineCalib);
   std::map<std::string, std::string> md;
-  md["config"] = opt.descr;
+  md["config"] = mConfig->desc;
   mInfo.setMetaData(md);
   uint64_t starting = mData.mCTimeBeg;
   if (starting >= 10000) {
@@ -124,29 +126,15 @@ int NoiseCalib::endOfRun()
   mInfo.setAdjustableEOV();
   LOGF(info, "Validity: %llu:%llu", starting, stopping);
 
+  if (mSaveDebugHistos) {
+    LOG(info) << "Saving debug histograms";
+    saveDebugHistos();
+  }
   return 0;
 }
 
 //______________________________________________________________________________
-int NoiseCalib::saveDebugHistos(const std::string fn)
+int BaselineCalib::saveDebugHistos(const std::string fn)
 {
-  LOG(info) << "Saving debug histograms on file " << fn;
-  int ierr = mData.saveDebugHistos(fn);
-  if (ierr != 0) {
-    return ierr;
-  }
-  TDirectory* cwd = gDirectory;
-  TFile* f = new TFile(fn.data(), "update");
-  if (f->IsZombie()) {
-    LOG(error) << "Cannot update file: " << fn;
-    return 1;
-  }
-  for (int32_t is = 0; is < NChannels; is++) {
-    auto p = mH[is]->createTH1F(TString::Format("hs%d", is).Data());
-    p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
-    p->Write("", TObject::kOverwrite);
-  }
-  f->Close();
-  cwd->cd();
-  return 0;
+  return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
 }

@@ -14,7 +14,7 @@
 
 O2ParamImpl(o2::zdc::CalibParamZDC);
 
-void o2::zdc::CalibParamZDC::print()
+void o2::zdc::CalibParamZDC::print() const
 {
   bool printed = false;
   if (rootOutput) {
