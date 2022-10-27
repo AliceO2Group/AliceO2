@@ -74,8 +74,6 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
       auto& mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
-      CcdbApi api;
-      api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(
                   std::chrono::system_clock::now().time_since_epoch())
                   .count();
@@ -96,10 +94,10 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
     } // end else
 
-    // LOG(info) << "Listing Data Points for HMPID:";
-    // for (auto& i : vect) {
-    // LOG(info) << i;
-    // }
+    LOG(info) << "Listing Data Points for HMPID:";
+    for (auto& i : vect) {
+      LOG(info) << i;
+    }
 
     mProcessor = std::make_unique<o2::hmpid::HMPIDDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
@@ -138,7 +136,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       const size_t logPrescale = 10;
       if (mRunChecker.getRunStatus() == RunStatus::NONE) {
         if ((runCount % logPrescale) == 0) {
-          LOGP(info, "No run with is ongoing or finished");
+          LOGP(info, "No run with HMP is ongoing or finished");
         }
       } else if (mRunChecker.getRunStatus() ==
                  RunStatus::START) { // saw new run with wanted detectors
