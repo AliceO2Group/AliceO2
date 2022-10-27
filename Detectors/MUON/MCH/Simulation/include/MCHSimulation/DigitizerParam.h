@@ -20,11 +20,26 @@ namespace o2::mch
 
 struct DigitizerParam : public o2::conf::ConfigurableParamHelper<DigitizerParam> {
 
-  bool continuous = true;           ///< whether we assume continuous mode or not
-  float noiseProba = 3.1671242e-05; ///< by default = proba to be above 4*sigma of a gaussian noise
-  uint32_t minADC = 12;             ///< minimum ADC value for a pad to respond
+  bool continuous = true; ///< whether we assume continuous mode or not
 
-  O2ParamDef(DigitizerParam, "MCHDigitizerParam")
+  int seed = 0; ///< seed for random number generators used for time, noise and threshold (0 means no seed given)
+
+  float timeSigma = 0.f; ///< time dispersion added to digit times (in bc unit)
+
+  float noiseSigma = 0.5f; ///< dispersion of noise added to physical signal per ADC sample (in ADC counts)
+
+  float noiseOnlyProba = 1.e-7f; ///< probability of noise-only signal (per pad per ROF=4BC)
+  float noiseOnlyMean = 23.f;    ///< mean value of noise-only signal (in ADC counts)
+  float noiseOnlySigma = 3.f;    ///< dispersion of noise-only signal (in ADC counts)
+
+  bool onlyNoise = false; ///< for debug only: disable treatment of physical signals (i.e. keep only noise)
+
+  float minChargeMean = 22.2f; ///< mean value of lower charge threshold for a signal to be digitized (in ADC counts)
+  float minChargeSigma = 2.8f; ///< dispersion of lower charge threshold for a signal to be digitized (in ADC counts)
+
+  bool handlePileup = true; ///< merge digits in overlapping readout windows (defined by the number of samples + 2)
+
+  O2ParamDef(DigitizerParam, "MCHDigitizer")
 };
 
 } // namespace o2::mch

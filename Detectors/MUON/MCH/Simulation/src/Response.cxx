@@ -81,11 +81,11 @@ float Response::chargeCorr() const
 }
 
 //_____________________________________________________________________
-uint32_t Response::nSamples(uint32_t adc) const
+uint32_t Response::nSamples(float charge) const
 {
   // the main purpose is to the pass the background rejection and signal selection
   // applied in data reconstruction (see MCH/DigitFiltering/src/DigitFilter.cxx).
   // a realistic estimate of nSamples would require a complete simulation of the electronic signal
   double signalParam[3] = {14., 13., 1.5};
-  return std::round(std::pow(double(adc) / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
+  return std::round(std::pow(charge / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
 }
