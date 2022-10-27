@@ -233,7 +233,7 @@ void CruRawReader::checkDigitHCHeader(int halfChamberIdRef)
   if (halfChamberIdRef != halfChamberIdHeader) {
     incrementErrors(DigitHCHeaderMismatch, halfChamberIdRef, fmt::format("HCID mismatch detected. HCID from DigitHCHeader: {}, HCID from RDH: {}", halfChamberIdHeader, halfChamberIdRef));
     if (mMaxWarnPrinted > 0) {
-      LOGF(alarm, "HCID mismatch in DigitHCHeader detected for ref HCID %i. DigitHCHeader says HCID is %i", halfChamberIdRef, halfChamberIdHeader);
+      LOGF(warning, "HCID mismatch in DigitHCHeader detected for ref HCID %i. DigitHCHeader says HCID is %i", halfChamberIdRef, halfChamberIdHeader);
       checkNoWarn();
     }
   }
