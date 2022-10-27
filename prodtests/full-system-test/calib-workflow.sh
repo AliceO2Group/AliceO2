@@ -53,11 +53,8 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output)" "" 0
   fi
-  if [[ ! -z $CALIBDATASPEC_ZDC_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_ZDC_TF\" $(get_proxy_connection zdc_tf output)" "" 0
-  fi
   if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection ft0_tf output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output)" "" 0
   fi
 
 fi
