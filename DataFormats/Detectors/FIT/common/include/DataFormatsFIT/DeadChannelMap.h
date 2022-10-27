@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file BadChannelMap.h
-/// \brief Bad channel map for FIT
+/// \file DeadChannelMap.h
+/// \brief Dead channel map for FIT
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FIT_BADCHANNELMAP_H
-#define O2_FIT_BADCHANNELMAP_H
+#ifndef O2_FIT_DEADCHANNELMAP_H
+#define O2_FIT_DEADCHANNELMAP_H
 
 #include <cstdint>
 #include <unordered_map>
@@ -25,16 +25,16 @@ namespace o2
 namespace fit
 {
 
-struct BadChannelMap {
-  /// Bad channel map as 'channel id - state' pairs. true = good, false = bad.
+struct DeadChannelMap {
+  /// Dead channel map as 'channel id - state' pairs. true = alive, false = dead.
   std::unordered_map<uint8_t, bool> map;
 
-  void setChannelGood(const uint8_t& chId, const bool isGood)
+  void setChannelAlive(const uint8_t& chId, const bool isAlive)
   {
-    map[chId] = isGood;
+    map[chId] = isAlive;
   }
 
-  const bool isChannelGood(const uint8_t& chId) const
+  const bool isChannelAlive(const uint8_t& chId) const
   {
     return map.at(chId);
   }
@@ -44,10 +44,10 @@ struct BadChannelMap {
     map.clear();
   }
 
-  ClassDefNV(BadChannelMap, 1);
+  ClassDefNV(DeadChannelMap, 1);
 };
 
 } // namespace fit
 } // namespace o2
 
-#endif // O2_FIT_BADCHANNELMAP_H
+#endif // O2_FIT_DEADCHANNELMAP_H

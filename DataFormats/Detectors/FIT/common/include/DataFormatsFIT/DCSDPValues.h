@@ -20,16 +20,16 @@ namespace o2
 namespace fit
 {
 struct DCSDPValues {
-  std::vector<std::pair<uint64_t, int>> values;
+  std::vector<std::pair<uint64_t, int64_t>> values;
 
   DCSDPValues()
   {
-    values = std::vector<std::pair<uint64_t, int>>();
+    values = std::vector<std::pair<uint64_t, int64_t>>();
   }
 
-  void add(uint64_t timestamp, int value)
+  void add(uint64_t timestamp, int64_t value)
   {
-    values.push_back(std::pair<uint64_t, int>(timestamp, value));
+    values.push_back(std::pair<uint64_t, int64_t>(timestamp, value));
   }
 
   bool empty()
@@ -57,7 +57,7 @@ struct DCSDPValues {
     }
   }
 
-  ClassDefNV(DCSDPValues, 2);
+  ClassDefNV(DCSDPValues, 3);
 };
 
 } // namespace fit
