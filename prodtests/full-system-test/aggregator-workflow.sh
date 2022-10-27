@@ -273,7 +273,7 @@ if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-zdc-tdccalib-workflow
   fi
   if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then
-     add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT"
+    add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT"
   fi
 fi
 
