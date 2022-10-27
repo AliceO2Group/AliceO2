@@ -158,7 +158,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection zdc_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input)" "" 0
     fi
   fi
 fi
