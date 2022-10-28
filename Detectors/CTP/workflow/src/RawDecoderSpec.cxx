@@ -98,7 +98,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
     LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
-    //LOG(info) << "remnant :" << remnant.count();
+    // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -117,7 +117,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       size_gbt = 0;
       orbit0 = triggerOrbit;
     }
-    //LOG(info) << "payload size:" << payload.size();
+    // LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
       // LOG(info) << wordCount << " payload:" << int(payloadWord);
       if (wordCount == 15) {
@@ -133,7 +133,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         // LOG(info) << " gbtword:" << gbtWord;
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
-        //LOG(info) << "diglets size:" << diglets.size();
+        // LOG(info) << "diglets size:" << diglets.size();
         for (auto diglet : diglets) {
           if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
             gbtword80_t pld = (diglet >> 12) & mTVXMask;
@@ -154,8 +154,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         wordCount++;
       }
     }
-    //LOG(info) << "remnant:" << remnant;
-    if((remnant.count() > 0) && stopBit) {
+    // LOG(info) << "remnant:" << remnant;
+    if ((remnant.count() > 0) && stopBit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
@@ -182,7 +182,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     for (auto const& lp : lumiPointsHBF1) {
       tfCounts += lp.counts;
     }
-    //LOG(info) << "Lumi rate:" << tfCounts/(128.*88e-6);
+    // LOG(info) << "Lumi rate:" << tfCounts/(128.*88e-6);
     mHistory.push_back(tfCounts);
     mCounts += tfCounts;
     if (mHistory.size() <= mNTFToIntegrate) {
@@ -223,7 +223,7 @@ void RawDecoderSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtwo
   size_gbt = NGBT - i;
   remnant = GBTWord;
 }
-int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t&pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
+int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
 {
   gbtword80_t pld = (diglet & pldmask);
   if (pld.count() == 0) {
@@ -233,7 +233,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
   uint32_t bcid = (diglet & bcidmask).to_ulong();
-  //LOG(info) << bcid << "    pld:" << pld;
+  // LOG(info) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir;
   ir.orbit = triggerOrbit;
   ir.bc = bcid;
