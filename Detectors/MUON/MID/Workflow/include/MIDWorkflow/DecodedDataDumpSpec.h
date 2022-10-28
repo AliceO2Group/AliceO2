@@ -9,24 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/FetToDeadSpec.h
-/// \brief  Device to convert the FEE test event into dead channels
+/// \file   MIDWorkflow/RawDumpSpec.h
+/// \brief  Device to dump decoded raw data
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   21 February 2022
+/// \date   17 February 2022
 
-#ifndef O2_MID_FETTODEADSPEC_H
-#define O2_MID_FETTODEADSPEC_H
+#ifndef O2_MID_RAWDUMPSPEC_H
+#define O2_MID_RAWDUMPSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
-#include "MIDRaw/CrateMasks.h"
-#include "MIDRaw/FEEIdConfig.h"
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getFetToDeadSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks);
-}
+framework::DataProcessorSpec getRawDumpSpec();
+} // namespace mid
 } // namespace o2
 
-#endif // O2_MID_FETTODEADSPEC_H
+#endif // O2_MID_RAWDUMPSPEC_H
