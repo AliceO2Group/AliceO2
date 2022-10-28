@@ -56,6 +56,7 @@ AddOptionRTC(cfQTotCutoff, unsigned char, 5, "", 0, "Cluster Finder rejects clus
 AddOptionRTC(cfInnerThreshold, unsigned char, 0, "", 0, "Cluster Finder extends cluster if inner charge above this threshold")
 AddOptionRTC(cfMinSplitNum, unsigned char, 1, "", 0, "Minimum number of split charges in a cluster for the cluster to be marked as split")
 AddOptionRTC(cfNoiseSuppressionEpsilon, unsigned char, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
+AddOptionRTC(cfNoiseSuppressionEpsilonRelative, unsigned char, 76, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression, relative as fraction of 255")
 AddOptionRTC(nWays, char, 3, "", 0, "Do N fit passes in final fit of merger")
 AddOptionRTC(nWaysOuter, char, 0, "", 0, "Store outer param")
 AddOptionRTC(trackFitRejectMode, char, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits")
