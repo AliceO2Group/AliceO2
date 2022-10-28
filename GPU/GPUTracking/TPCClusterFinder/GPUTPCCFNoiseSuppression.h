@@ -61,9 +61,9 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   static GPUd() void updatePeaksImpl(int, int, int, int, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
 
-  static GPUdi() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
+  static GPUdi() void checkForMinima(const float, const float, const float, PackedCharge, int, ulong*, ulong*);
 
-  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
+  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int, int, const float, const float, const float, ulong*, ulong*);
 
   static GPUdi() void findPeaks(const uchar*, const ushort, const int, int, ulong*);
 
