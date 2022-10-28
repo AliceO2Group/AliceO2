@@ -2680,9 +2680,9 @@ TGeoCompositeShape* V3Services::ibConvWireIntSupport(const Bool_t left)
   Double_t xpos, ypos, zpos, phirot;
 
   Int_t shapeId = 0;
-  if (left)
+  if (left) {
     shapeId = 1;
-
+  }
   // The outer wire support parts:
   // - the central part: a BBox
   xlen = (sIBGWireIntSuppBaseCentWid + sIBGWireIntSuppFingerShift) / 2;
