@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Workflow/src/FetToDeadSpec.cxx
-/// \brief  Device to convert the FEE test event into dead channels
+/// \file   MID/Workflow/src/CalibDataProcessorSpec.cxx
+/// \brief  Device to convert the calibration data into a list of bad channel candidates
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   21 February 2022
+/// \date   25 October 2022
 
-#include "MIDWorkflow/FetToDeadSpec.h"
+#include "MIDWorkflow/CalibDataProcessorSpec.h"
 
 #include <array>
 #include <vector>
@@ -41,10 +41,10 @@ namespace o2
 namespace mid
 {
 
-class FetToDeadDeviceDPL
+class CalibDataProcessorDPL
 {
  public:
-  FetToDeadDeviceDPL(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
+  CalibDataProcessorDPL(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
   {
     auto refMasks = makeDefaultMasksFromCrateConfig(feeIdConfig, crateMasks);
     mFetToDead.setMasks(refMasks);
@@ -52,6 +52,8 @@ class FetToDeadDeviceDPL
 
   void init(of::InitContext& ic)
   {
+    mMinDiff = ic.options().get<int64_t>("mid-merge-fet-bc-diff-min");
+    mMaxDiff = ic.options().get<int64_t>("mid-merge-fet-bc-diff-max");
   }
 
   void run(of::ProcessingContext& pc)
@@ -74,31 +76,38 @@ class FetToDeadDeviceDPL
       }
     }
 
-    std::vector<ColumnData> noisyChannels;
-    noisyChannels.insert(noisyChannels.end(), data[1].begin(), data[1].end());
+    mNoise.clear();
+    mNoiseROF.clear();
+    mDead.clear();
+    mDeadROF.clear();
 
-    std::vector<ROFRecord> noisyChannelsRof;
-    noisyChannelsRof.insert(noisyChannelsRof.end(), dataRof[1].begin(), dataRof[1].end());
+    mNoise.insert(mNoise.end(), data[1].begin(), data[1].end());
+    mNoiseROF.insert(mNoiseROF.end(), dataRof[1].begin(), dataRof[1].end());
 
-    auto deadChannelsPair = getDeadChannels(data[2], dataRof[2], data[0], dataRof[0]);
+    mergeChannels(data[2], dataRof[2], data[0], dataRof[0]);
 
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISE", 0}, noisyChannels);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISEROF", 0}, noisyChannelsRof);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEAD", 0}, deadChannelsPair.first);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEADROF", 0}, deadChannelsPair.second);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISE", 0}, mNoise);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISEROF", 0}, mNoiseROF);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEAD", 0}, mDead);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEADROF", 0}, mDeadROF);
   }
 
  private:
-  FetToDead mFetToDead{}; ///< FET to dead channels converter
+  FetToDead mFetToDead{};           ///< FET to dead channels converter
+  std::vector<ColumnData> mNoise;   ///< Merged noise
+  std::vector<ROFRecord> mNoiseROF; ///< Merged noise ROFs
+  std::vector<ColumnData> mDead;    ///< Merged dead
+  std::vector<ROFRecord> mDeadROF;  ///< Merged dead ROFs
+  int64_t mMinDiff = -1;            /// Maximum BC difference for FET merging
+  int64_t mMaxDiff = 1;             /// Minimum BC difference for FET merging
 
-  std::pair<std::vector<ColumnData>, std::vector<ROFRecord>> getDeadChannels(gsl::span<const ColumnData> fetData, gsl::span<const ROFRecord> fetDataRof, gsl::span<const ColumnData> selfTrigData, gsl::span<const ROFRecord> selfTrigDataRof)
+  void mergeChannels(gsl::span<const ColumnData> fetData, gsl::span<const ROFRecord> fetDataRof, gsl::span<const ColumnData> selfTrigData, gsl::span<const ROFRecord> selfTrigDataRof)
   {
-    int64_t maxDiff = 1;
-    int64_t minDiff = -maxDiff;
+    // This method selects the self-triggered events that are close in time with a FET event and merges them with the fet event.
+    // This is needed since the detector answer is not perfectly aligned in time.
+    // Since calibration runs occur with no beam, all other self-triggers are actually noise.
 
     ColumnDataHandler handler;
-    std::vector<ColumnData> deadChannels;
-    std::vector<ROFRecord> deadChannelROFs;
     // The FET data can be split into different BCs.
     // Try to merge the expected FET data with the data in the close BCs
     // which are probably badly tagged FET data
@@ -110,28 +119,30 @@ class FetToDeadDeviceDPL
       handler.merge(eventFetData);
       for (; auxRofIt != selfTrigDataRof.end(); ++auxRofIt) {
         auto bcDiff = auxRofIt->interactionRecord.differenceInBC(rof.interactionRecord);
-        if (bcDiff > maxDiff) {
+        if (bcDiff > mMaxDiff) {
           // ROFs are time ordered. If the difference is larger than the maximum difference for merging,
           // it means that the auxRofIt is in the future.
           // We break and compare it to the next rof.
           break;
-        } else if (bcDiff >= minDiff) {
-          // With the previous condition, this implies minDiff <= bcDiff <= maxDiff
+        } else if (bcDiff >= mMinDiff) {
+          // With the previous condition, this implies mMinDiff <= bcDiff <= mMaxDiff
           auto auxFet = selfTrigData.subspan(auxRofIt->firstEntry, auxRofIt->nEntries);
           handler.merge(auxFet);
+        } else {
+          // If bcDiff is < mMinDiff, it means that the auxRofIt is too much in the past
+          // So this was actually noise
+          mNoise.insert(mNoise.end(), selfTrigData.begin() + auxRofIt->firstEntry, selfTrigData.begin() + auxRofIt->getEndIndex());
+          mNoiseROF.emplace_back(*auxRofIt);
         }
-        // If bcDiff is < minDiff, it means that the auxRofIt is too much in the past
-        // So we do nothing, i.e. we move to the next auxRofIt in the for loop
       }
       auto eventDeadChannels = mFetToDead.process(handler.getMerged());
-      deadChannelROFs.emplace_back(rof.interactionRecord, rof.eventType, deadChannels.size(), eventDeadChannels.size());
-      deadChannels.insert(deadChannels.end(), eventDeadChannels.begin(), eventDeadChannels.end());
+      mDeadROF.emplace_back(rof.interactionRecord, rof.eventType, mDead.size(), eventDeadChannels.size());
+      mDead.insert(mDead.end(), eventDeadChannels.begin(), eventDeadChannels.end());
     }
-    return {deadChannels, deadChannelROFs};
   }
 };
 
-of::DataProcessorSpec getFetToDeadSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
+of::DataProcessorSpec getCalibDataProcessorSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
   std::vector<of::InputSpec> inputSpecs;
   inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
@@ -147,8 +158,10 @@ of::DataProcessorSpec getFetToDeadSpec(const FEEIdConfig& feeIdConfig, const Cra
     "MIDFetToDead",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::FetToDeadDeviceDPL>(feeIdConfig, crateMasks)},
-    of::Options{}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::CalibDataProcessorDPL>(feeIdConfig, crateMasks)},
+    of::Options{
+      {"mid-merge-fet-bc-diff-min", of::VariantType::Int, -1, {"Merge to FET if BC-BC_FET >= this value"}},
+      {"mid-merge-fet-bc-diff-max", of::VariantType::Int, 1, {"Merge to FET if BC-BC_FET <= this value"}}}};
 }
 } // namespace mid
 } // namespace o2

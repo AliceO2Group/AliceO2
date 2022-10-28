@@ -9,31 +9,36 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Workflow/src/calibration-workflow.cxx
-/// \brief  MID noise calibration workflow
+/// \file   MID/Workflow/src/raw-dump-workflow.cxx
+/// \brief  MID raw dump workflow
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   22 February 2022
+/// \date   17 February 2022
 
 #include <string>
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
+#include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/ElectronicsDelay.h"
+#include "MIDRaw/FEEIdConfig.h"
+#include "MIDWorkflow/RawDumpSpec.h"
+#include "MIDWorkflow/RawDecoderSpec.h"
 
 using namespace o2::framework;
 
+// add workflow options, note that customization needs to be declared before
+// including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{
-    {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
-    {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}}};
+  std::vector<ConfigParamSpec>
+    options{
+      {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
+      {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}},
+      {"electronics-delay-file", VariantType::String, "", {"Filename with electronics delay"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
 #include "Framework/runDataProcessing.h"
-#include "MIDWorkflow/CalibDataProcessorSpec.h"
-#include "MIDWorkflow/ChannelCalibratorSpec.h"
-#include "MIDRaw/CrateMasks.h"
-#include "MIDRaw/FEEIdConfig.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
@@ -47,9 +52,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (!crateMasksFilename.empty()) {
     crateMasks = o2::mid::CrateMasks(crateMasksFilename.c_str());
   }
-  WorkflowSpec specs;
-  specs.emplace_back(o2::mid::getCalibDataProcessorSpec(feeIdConfig, crateMasks));
-  specs.emplace_back(o2::mid::getChannelCalibratorSpec(feeIdConfig, crateMasks));
+  auto electronicsDelayFilename = cfgc.options().get<std::string>("electronics-delay-file");
+  o2::mid::ElectronicsDelay electronicsDelay;
+  if (!electronicsDelayFilename.empty()) {
+    electronicsDelay = o2::mid::readElectronicsDelay(electronicsDelayFilename.c_str());
+  }
 
+  WorkflowSpec specs;
+  specs.emplace_back(o2::mid::getRawDecoderSpec(true, feeIdConfig, crateMasks, electronicsDelay, false));
+  specs.emplace_back(o2::mid::getRawDumpSpec());
   return specs;
 }
