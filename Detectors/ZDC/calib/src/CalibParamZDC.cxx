@@ -14,7 +14,7 @@
 
 O2ParamImpl(o2::zdc::CalibParamZDC);
 
-void o2::zdc::CalibParamZDC::print()
+void o2::zdc::CalibParamZDC::print() const
 {
   bool printed = false;
   if (rootOutput) {
@@ -23,6 +23,13 @@ void o2::zdc::CalibParamZDC::print()
       printed = true;
     }
     printf("rootOutput=%s\n", rootOutput ? "true" : "false");
+  }
+  if (debugOutput) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("debugOutput=%s\n", debugOutput ? "true" : "false");
   }
   if (outputDir.compare("./")) {
     if (!printed) {

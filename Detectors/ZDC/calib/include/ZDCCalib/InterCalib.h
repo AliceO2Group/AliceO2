@@ -57,13 +57,16 @@ class InterCalib
   int mini(int ih);
   void add(int ih, o2::dataformats::FlatHisto1D<float>& h1);
   void add(int ih, o2::dataformats::FlatHisto2D<float>& h2);
-  int write(const std::string fn = "ZDCInterCalib.root");
+  int saveDebugHistos(const std::string fn = "ZDCInterCalib.root");
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
 
   const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
+
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
@@ -89,6 +92,7 @@ class InterCalib
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
+  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};

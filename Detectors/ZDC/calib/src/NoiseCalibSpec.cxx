@@ -29,6 +29,7 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -89,8 +90,6 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
     mTimer.Start(false);
   }
   if (mRunStartTime == 0) {
-    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-    mHistoFileMetaData->setDataTakingContext(pc.services().get<DataTakingContext>());
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     mRunStartTime = tinfo.creation; // approximate time in ms
     mRunNumber = tinfo.runNumber;
@@ -109,14 +108,15 @@ void NoiseCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  sendOutput(ec.outputs());
+  sendOutput(ec);
   LOGF(info, "ZDC Noise calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 //________________________________________________________________
-void NoiseCalibSpec::sendOutput(o2::framework::DataAllocator& output)
+void NoiseCalibSpec::sendOutput(EndOfStreamContext& ec)
 {
   std::string fn = "ZDC_NoiseCalib";
+  o2::framework::DataAllocator& output = ec.outputs();
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
@@ -134,11 +134,11 @@ void NoiseCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   if (opt.rootOutput == true) {
     mOutputDir = opt.outputDir;
     if (mOutputDir.compare("/dev/null")) {
-      mHistoFileName = mOutputDir + fmt::format("{}_{}.root", fn, mRunNumber);
+      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
       int rval = mWorker.saveDebugHistos(mHistoFileName);
       if (rval) {
         LOG(error) << "Cannot create output file " << mHistoFileName;
@@ -146,14 +146,17 @@ void NoiseCalibSpec::sendOutput(o2::framework::DataAllocator& output)
       }
       std::string metaFileDir = opt.metaFileDir;
       if (metaFileDir.compare("/dev/null")) {
-        mHistoFileMetaData->fillFileData(mHistoFileName);
-        mHistoFileMetaData->type = "calib";
-        mHistoFileMetaData->priority = "high";
-        std::string metaFileNameTmp = metaFileDir + fmt::format("{}_{}.tmp", fn, mRunNumber);
-        std::string metaFileName = metaFileDir + fmt::format("{}_{}.done", fn, mRunNumber);
+        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
+        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
+        histoFileMetaData->fillFileData(mHistoFileName);
+        histoFileMetaData->type = "calib";
+        histoFileMetaData->priority = "high";
+        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
+        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
         try {
           std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *mHistoFileMetaData.get();
+          metaFileOut << *histoFileMetaData.get();
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {

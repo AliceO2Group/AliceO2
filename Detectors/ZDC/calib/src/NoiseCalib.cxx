@@ -26,8 +26,11 @@ using namespace o2::zdc;
 int NoiseCalib::init()
 {
   // Inspect calibration parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   for (int isig = 0; isig < NChannels; isig++) {
     mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
@@ -82,6 +85,9 @@ int NoiseCalib::endOfRun()
     LOGF(info, "Finalizing NoiseCalibData object");
     mData.print();
   }
+  if (mSaveDebugHistos) {
+    saveDebugHistos();
+  }
 
   for (int isig = 0; isig < NChannels; isig++) {
     uint64_t en = 0;
@@ -104,7 +110,7 @@ int NoiseCalib::endOfRun()
   mInfo.setFileName(flName);
   mInfo.setPath(CCDBPathNoiseCalib);
 
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   std::map<std::string, std::string> md;
   md["config"] = opt.descr;
   mInfo.setMetaData(md);

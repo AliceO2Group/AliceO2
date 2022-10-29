@@ -69,7 +69,7 @@ class TDCCalibEPN
 
  private:
   bool mInitDone = false;
-  bool mSaveDebugHistos = true;
+  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   const TDCCalibConfig* mTDCCalibConfig = nullptr; /// Configuration of intercalibration
 };
