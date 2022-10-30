@@ -87,10 +87,10 @@ class DataProcessingDevice : public fair::mq::Device
   void Run() final;
 
   // Processing functions are now renetrant
-  static void doRun(DataProcessorContext& context);
-  static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, InputChannelInfo&);
-  static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
+  static void doRun(ServiceRegistryRef);
+  static void doPrepare(ServiceRegistryRef);
+  static void handleData(ServiceRegistryRef, InputChannelInfo&);
+  static bool tryDispatchComputation(ServiceRegistryRef ref, std::vector<DataRelayer::RecordAction>& completed);
 
  protected:
   void error(const char* msg);
