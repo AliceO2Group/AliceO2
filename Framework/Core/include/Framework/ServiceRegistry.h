@@ -141,9 +141,7 @@ struct ServiceRegistry {
   /// but which multiple dataprocessors can share.
   static Salt globalStreamSalt(short streamId)
   {
-    // FIXME: old behaviour for now
-    // return {streamId, 0};
-    return GLOBAL_CONTEXT_SALT;
+    return {streamId, 0};
   }
 
   /// A salt which is global to a specific data processor.
@@ -165,7 +163,7 @@ struct ServiceRegistry {
   {
     // FIXME: old behaviour for now
     // return {streamId, dataProcessorId};
-    return GLOBAL_CONTEXT_SALT;
+    return {streamId, dataProcessorId};
   }
 
   constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
