@@ -172,7 +172,7 @@ void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
   auto* task = (TaskStreamInfo*)handle->data;
-  auto ref = ServiceRegistryRef{*task->registry};
+  auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
   DataProcessingDevice::doPrepare(ref);
   DataProcessingDevice::doRun(ref);
   //  FrameMark;
@@ -1117,6 +1117,7 @@ void DataProcessingDevice::Run()
       if (taskInfo.running) {
         continue;
       }
+      // Stream 0 is for when we run in
       streamRef.index = ti;
     }
     using o2::monitoring::Metric;
@@ -1367,7 +1368,6 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
-    ServiceRegistryRef ref{*context.registry};
     ref.get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
@@ -1950,7 +1950,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     InputRecord record{spec.inputs,
                        span,
                        *context.registry};
-    ProcessingContext processContext{record, *context.registry, ref.get<DataAllocator>()};
+    ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
       ZoneScopedN("service pre processing");
       context.registry->preProcessingCallbacks(processContext);
@@ -1984,8 +1984,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
 
-    auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
-      ServiceRegistryRef ref{*context.registry};
+    auto runNoCatch = [context, ref, &processContext](DataRelayer::RecordAction& action) {
       auto& state = ref.get<DeviceState>();
       auto& spec = ref.get<DeviceSpec const>();
       if (state.quitRequested == false) {
