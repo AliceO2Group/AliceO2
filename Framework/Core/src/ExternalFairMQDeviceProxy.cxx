@@ -503,8 +503,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
-                        &timingInfo = ctx.services().get<TimingInfo>(),
-                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int, size_t ci) {
+                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -564,7 +563,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             timingInfo.timeslice = dph->startTime;
             timingInfo.creation = dph->creation;
           }
-          dataHandler(parts, 0, ci);
+          dataHandler(timingInfo, parts, 0, ci);
         }
       }
     };

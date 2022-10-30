@@ -27,13 +27,20 @@ struct ThreadPool {
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {
+  template <typename T>
+  static ServiceId simpleServiceId()
+  {
+    return []() -> uint32_t {
+      return TypeIdHelpers::uniqueId<T>();
+    };
+  }
   /// An helper for services which do not need any / much special initialization or
   /// configuration.
-  template <typename I, typename T>
+  template <typename I, typename T, enum ServiceKind KIND = ServiceKind::Serial>
   static ServiceInit simpleServiceInit()
   {
     return [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
+      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, KIND, typeid(T).name()};
     };
   }
 

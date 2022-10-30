@@ -79,14 +79,9 @@ template <typename T>
 inline constexpr ServiceKind service_kind_v = ServiceKindExtractor<T>::kind;
 
 struct ServiceRegistry {
-  struct Context {
+  struct Salt {
     short streamId = 0;
     short dataProcessorId = 0;
-  };
-
-  union Salt {
-    Context context;
-    int32_t value = 0;
   };
 
   static constexpr Salt GLOBAL_CONTEXT_SALT{0, 0};
@@ -99,6 +94,10 @@ struct ServiceRegistry {
     int32_t index = -1;
   };
 
+  struct SpecIndex {
+    int index = -1;
+  };
+
   // Metadata about the service. This
   // might be interesting for debugging purposes.
   // however it's not used to uniquely identify
@@ -106,19 +105,21 @@ struct ServiceRegistry {
   struct Meta {
     ServiceKind kind = ServiceKind::Serial;
     char const* name = nullptr;
+    // The index in the
+    SpecIndex specIndex{};
   };
 
   // Unique identifier for a service.
   // While we use the salted hash to find the bucket
   // in the hashmap, the service can be uniquely identified
   // only by this 64 bit value.
-  union Key {
-    struct Store {
-      ServiceTypeHash typeHash;
-      Salt salt;
-    } store;
-    uint64_t value = 0;
+  struct Key {
+    ServiceTypeHash typeHash;
+    Salt salt;
   };
+
+  static constexpr int32_t valueFromSalt(Salt salt) { return ((int32_t)salt.streamId) << 16 | salt.dataProcessorId; }
+  static constexpr uint64_t valueFromKey(Key key) { return ((uint64_t)key.typeHash.hash) << 32 | ((uint64_t)valueFromSalt(key.salt)); }
 
   /// The maximum distance a entry can be from the optimal slot.
   constexpr static int32_t MAX_DISTANCE = 8;
@@ -168,7 +169,7 @@ struct ServiceRegistry {
 
   constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
   {
-    return InstanceId{type.hash ^ salt.value};
+    return InstanceId{type.hash ^ valueFromSalt(salt)};
   }
 
   constexpr Index indexFromInstance(InstanceId id) const
@@ -178,33 +179,33 @@ struct ServiceRegistry {
   }
 
   /// Callbacks for services to be executed before every process method invokation
-  std::vector<ServiceProcessingHandle> mPreProcessingHandles;
+  mutable std::vector<ServiceProcessingHandle> mPreProcessingHandles;
   /// Callbacks for services to be executed after every process method invokation
-  std::vector<ServiceProcessingHandle> mPostProcessingHandles;
+  mutable std::vector<ServiceProcessingHandle> mPostProcessingHandles;
   /// Callbacks for services to be executed before every dangling check
-  std::vector<ServiceDanglingHandle> mPreDanglingHandles;
+  mutable std::vector<ServiceDanglingHandle> mPreDanglingHandles;
   /// Callbacks for services to be executed after every dangling check
-  std::vector<ServiceDanglingHandle> mPostDanglingHandles;
+  mutable std::vector<ServiceDanglingHandle> mPostDanglingHandles;
   /// Callbacks for services to be executed before every EOS user callback invokation
-  std::vector<ServiceEOSHandle> mPreEOSHandles;
+  mutable std::vector<ServiceEOSHandle> mPreEOSHandles;
   /// Callbacks for services to be executed after every EOS user callback invokation
-  std::vector<ServiceEOSHandle> mPostEOSHandles;
+  mutable std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
-  std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  mutable std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
   /// Callbacks for services to be executed after every dispatching
-  std::vector<ServiceForwardingHandle> mPostForwardingHandles;
+  mutable std::vector<ServiceForwardingHandle> mPostForwardingHandles;
   /// Callbacks for services to be executed before Start
-  std::vector<ServiceStartHandle> mPreStartHandles;
+  mutable std::vector<ServiceStartHandle> mPreStartHandles;
   /// Callbacks for services to be executed on the Stop transition
-  std::vector<ServiceStopHandle> mPostStopHandles;
+  mutable std::vector<ServiceStopHandle> mPostStopHandles;
   /// Callbacks for services to be executed on exit
-  std::vector<ServiceExitHandle> mPreExitHandles;
+  mutable std::vector<ServiceExitHandle> mPreExitHandles;
   /// Callbacks for services to be executed on exit
-  std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
+  mutable std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
   /// Callbacks for services to be executed before sending messages
-  std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
+  mutable std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
   /// Callbacks to be executed after the main GUI has been drawn
-  std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
+  mutable std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
   /// To hide exception throwing from QC
   void throwError(RuntimeErrorRef const& ref) const;
@@ -262,13 +263,14 @@ struct ServiceRegistry {
   void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt());
 
   /// Bind the callbacks of a service spec to a given service.
-  void bindService(ServiceSpec const& spec, void* service);
+  /// Notice that
+  void bindService(ServiceSpec const& spec, void* service) const;
 
   /// Type erased service registration. @a typeHash is the
   /// hash used to identify the service, @a service is
   /// a type erased pointer to the service itself.
   /// This method is supposed to be thread safe
-  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, char const* name = nullptr) const;
+  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, char const* name = nullptr, ServiceRegistry::SpecIndex specIndex = SpecIndex{-1}) const;
 
   // Lookup a given @a typeHash for a given @a threadId at
   // a unique (per typeHash) location. There might
@@ -347,7 +349,7 @@ struct ServiceRegistry {
   T& get(Salt salt) const
   {
     constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
-    auto ptr = this->get(typeHash, salt, ServiceKind::Serial, typeid(T).name());
+    auto ptr = this->get(typeHash, salt, ServiceKindExtractor<T>::kind, typeid(T).name());
     if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
       if constexpr (std::is_const_v<T>) {
         return *reinterpret_cast<T const*>(ptr);
@@ -355,7 +357,7 @@ struct ServiceRegistry {
         return *reinterpret_cast<T*>(ptr);
       }
     }
-    throwError(runtime_error_f("Unable to find service of kind %s. Make sure you use const / non-const correctly.", typeid(T).name()));
+    throwError(runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId));
     O2_BUILTIN_UNREACHABLE();
   }
 };

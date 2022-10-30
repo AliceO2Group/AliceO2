@@ -135,9 +135,10 @@ o2::framework::ServiceSpec CommonServices::timingInfoSpec()
 {
   return ServiceSpec{
     .name = "timing-info",
-    .init = simpleServiceInit<TimingInfo, TimingInfo>(),
+    .uniqueId = simpleServiceId<TimingInfo>(),
+    .init = simpleServiceInit<TimingInfo, TimingInfo, ServiceKind::Stream>(),
     .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
@@ -782,11 +783,17 @@ o2::framework::ServiceSpec CommonServices::dataAllocatorSpec()
 {
   return ServiceSpec{
     .name = "data-allocator",
+    .uniqueId = simpleServiceId<DataAllocator>(),
     .init = [](ServiceRegistryRef ref, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<DataAllocator>(), new DataAllocator(ref)};
+      return ServiceHandle{
+        .hash = TypeIdHelpers::uniqueId<DataAllocator>(),
+        .instance = new DataAllocator(ref),
+        .kind = ServiceKind::Stream,
+        .name = "data-allocator",
+      };
     },
     .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 /// Split a string into a vector of strings using : as a separator.
