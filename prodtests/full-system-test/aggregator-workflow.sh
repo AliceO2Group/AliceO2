@@ -54,10 +54,12 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_SAC = $CALIB_TPC_SAC" 1>&2
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
   echo "CALIB_ZDC_TDC = $CALIB_ZDC_TDC" 1>&2
+  echo "CALIB_FT0_TIMEOFFSET = $CALIB_FT0_TIMEOFFSET" 1>&2
 fi
 
 # beamtype dependent settings
 LHCPHASE_TF_PER_SLOT=26400
+FT0_TIMEOFFSET_TF_PER_SLOT=26400
 TOF_CHANNELOFFSETS_UPDATE=300000
 TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
 
@@ -156,7 +158,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection zdc_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input)" "" 0
     fi
   fi
 fi
@@ -269,6 +271,9 @@ if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # ZDC
   if [[ $CALIB_ZDC_TDC == 1 ]]; then
     add_W o2-zdc-tdccalib-workflow
+  fi
+  if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then
+    add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT" "FT0CalibParam.mNExtraSlots=0;FT0CalibParam.mRebinFactorPerChID[180]=4;"
   fi
 fi
 

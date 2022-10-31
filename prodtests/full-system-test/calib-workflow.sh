@@ -21,6 +21,7 @@ if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-work
 if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then add_W o2-tpc-miptrack-filter "" "" 0; fi
 if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--publish-after-tfs 30"; fi
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
+if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
@@ -52,8 +53,8 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output)" "" 0
   fi
-  if [[ ! -z $CALIBDATASPEC_ZDC_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_ZDC_TF\" $(get_proxy_connection zdc_tf output)" "" 0
+  if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output)" "" 0
   fi
 
 fi
