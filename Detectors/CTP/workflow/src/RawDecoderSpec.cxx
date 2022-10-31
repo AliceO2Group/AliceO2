@@ -33,8 +33,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 {
   mOutputDigits.clear();
   std::map<o2::InteractionRecord, CTPDigit> digits;
-  const gbtword80_t bcidmask = 0xfff;
-  gbtword80_t pldmask;
   using InputSpec = o2::framework::InputSpec;
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
@@ -80,6 +78,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
+    uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
@@ -97,12 +97,12 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
-    pldmask = 0;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+    // LOG(info) << "remnant :" << remnant.count();
+    gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
     }
-    // LOG(info) << "pldmask:" << pldmask;
     //  TF in 128 bits words
     gsl::span<const uint8_t> payload(it.data(), it.size());
     gbtword80_t gbtWord = 0;
@@ -117,6 +117,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       size_gbt = 0;
       orbit0 = triggerOrbit;
     }
+    // LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
       // LOG(info) << wordCount << " payload:" << int(payloadWord);
       if (wordCount == 15) {
@@ -132,9 +133,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         // LOG(info) << " gbtword:" << gbtWord;
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
+        // LOG(info) << "diglets size:" << diglets.size();
         for (auto diglet : diglets) {
           if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
-            gbtword80_t pld = (diglet & mTVXMask);
+            gbtword80_t pld = (diglet >> 12) & mTVXMask;
             if (pld.count() != 0) {
               countsMB++;
             }
@@ -142,51 +144,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           if (!mDoDigits) {
             continue;
           }
-          gbtword80_t pld = (diglet & pldmask);
-          if (pld.count() == 0) {
-            continue;
-          }
-          // LOG(info) << "    pld:" << pld;
-          pld >>= 12;
-          CTPDigit digit;
-          uint32_t bcid = (diglet & bcidmask).to_ulong();
-          o2::InteractionRecord ir;
-          ir.orbit = triggerOrbit;
-          ir.bc = bcid;
-          digit.intRecord = ir;
-          if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
-            LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
-            if (digits.count(ir) == 0) {
-              digit.setInputMask(pld);
-              digits[ir] = digit;
-              LOG(debug) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
-            } else if (digits.count(ir) == 1) {
-              if (digits[ir].CTPInputMask.count() == 0) {
-                digits[ir].setInputMask(pld);
-                LOG(debug) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
-              } else {
-                LOG(error) << "Two CTP IRs with the same timestamp.";
-              }
-            } else {
-              LOG(error) << "Two digits with the same rimestamp.";
-            }
-          } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
-            if (digits.count(ir) == 0) {
-              digit.setClassMask(pld);
-              digits[ir] = digit;
-              LOG(debug) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
-            } else if (digits.count(ir) == 1) {
-              if (digits[ir].CTPClassMask.count() == 0) {
-                digits[ir].setClassMask(pld);
-                LOG(debug) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
-              } else {
-                LOG(error) << "Two CTP Class masks for same timestamp";
-              }
-            } else {
-            }
-          } else {
-            LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
-          }
+          addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
         }
         gbtWord = 0;
       } else {
@@ -195,6 +153,20 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         }
         wordCount++;
       }
+    }
+    // LOG(info) << "remnant:" << remnant;
+    if ((remnant.count() > 0) && stopBit) {
+      if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
+        gbtword80_t pld = (remnant >> 12) & mTVXMask;
+        if (pld.count() != 0) {
+          countsMB++;
+        }
+      }
+      if (!mDoDigits) {
+        continue;
+      }
+      addCTPDigit(linkCRU, triggerOrbit, remnant, pldmask, digits);
+      remnant = 0;
     }
   }
   if (mDoDigits) {
@@ -210,6 +182,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     for (auto const& lp : lumiPointsHBF1) {
       tfCounts += lp.counts;
     }
+    // LOG(info) << "Lumi rate:" << tfCounts/(128.*88e-6);
     mHistory.push_back(tfCounts);
     mCounts += tfCounts;
     if (mHistory.size() <= mNTFToIntegrate) {
@@ -250,6 +223,57 @@ void RawDecoderSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtwo
   size_gbt = NGBT - i;
   remnant = GBTWord;
 }
+int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
+{
+  gbtword80_t pld = (diglet & pldmask);
+  if (pld.count() == 0) {
+    return 0;
+  }
+  pld >>= 12;
+  CTPDigit digit;
+  const gbtword80_t bcidmask = 0xfff;
+  uint32_t bcid = (diglet & bcidmask).to_ulong();
+  // LOG(info) << bcid << "    pld:" << pld;
+  o2::InteractionRecord ir;
+  ir.orbit = triggerOrbit;
+  ir.bc = bcid;
+  digit.intRecord = ir;
+  if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+    LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
+    if (digits.count(ir) == 0) {
+      digit.setInputMask(pld);
+      digits[ir] = digit;
+      LOG(debug) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
+    } else if (digits.count(ir) == 1) {
+      if (digits[ir].CTPInputMask.count() == 0) {
+        digits[ir].setInputMask(pld);
+        LOG(debug) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
+      } else {
+        LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit;
+      }
+    } else {
+      LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
+    }
+  } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+    if (digits.count(ir) == 0) {
+      digit.setClassMask(pld);
+      digits[ir] = digit;
+      LOG(debug) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
+    } else if (digits.count(ir) == 1) {
+      if (digits[ir].CTPClassMask.count() == 0) {
+        digits[ir].setClassMask(pld);
+        LOG(debug) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
+      } else {
+        LOG(error) << "Two CTP Class masks for same timestamp";
+      }
+    } else {
+    }
+  } else {
+    LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
+  }
+  return 0;
+}
+
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
   if (!digits && !lumi) {
