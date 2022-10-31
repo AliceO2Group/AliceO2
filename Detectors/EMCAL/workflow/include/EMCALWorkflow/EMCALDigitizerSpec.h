@@ -62,7 +62,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
-  void run(framework::ProcessingContext& ctx);
+  void run(framework::ProcessingContext& ctx) override;
 
  private:
   Bool_t mFinished = false;             ///< Flag for digitization finished
