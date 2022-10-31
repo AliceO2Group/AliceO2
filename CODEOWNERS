@@ -18,7 +18,7 @@
 /Common/Constants    @shahor02
 /Common/Field        @shahor02
 /Common/MathUtils    @shahor02
-/Common/SimConfig    @sawenzel
+/Common/SimConfig    @sawenzel @benedikt-voelkel
 #/Common/Topologies
 #/Common/Types
 /Common/Utils        @sawenzel
@@ -36,7 +36,7 @@
 /DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
 /DataFormats/Detectors/MUON                    @AliceO2Group/muon-experts
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
-/DataFormats/Detectors/Passive                 @sawenzel
+/DataFormats/Detectors/Passive                 @sawenzel @benedikt-voelkel
 /DataFormats/Detectors/TOF                     @noferini
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
 /DataFormats/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
@@ -51,21 +51,21 @@
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
-/DataFormats/simulation        @sawenzel
+/DataFormats/simulation        @sawenzel @benedikt-voelkel
 
-/Detectors/Base                    @sawenzel @shahor02
+/Detectors/Base                    @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa @jokonig
 /Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
-/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/Geometry                @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
 /Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
 /Detectors/MUON                    @AliceO2Group/muon-experts
 /Detectors/PHOS                    @peressounko @kharlov
-/Detectors/Passive                 @sawenzel
+/Detectors/Passive                 @sawenzel @benedikt-voelkel
 /Detectors/TOF                     @noferini
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
 /Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
@@ -109,9 +109,9 @@
 /GPU/TPCFastTransformation    @davidrohr @sgorbuno
 /GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
 
-/Generators  @sawenzel
+/Generators  @sawenzel @benedikt-voelkel
 
-/Steer @sawenzel @shahor02
+/Steer @sawenzel @shahor02 @benedikt-voelkel
 
 /Testing
 
