@@ -18,7 +18,7 @@
 /Common/Constants    @shahor02
 /Common/Field        @shahor02
 /Common/MathUtils    @shahor02
-/Common/SimConfig    @sawenzel
+/Common/SimConfig    @sawenzel @benedikt-voelkel
 #/Common/Topologies
 #/Common/Types
 /Common/Utils        @sawenzel
@@ -51,7 +51,7 @@
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
-/DataFormats/simulation        @sawenzel
+/DataFormats/simulation        @sawenzel @benedikt-voelkel
 
 /Detectors/Base                    @sawenzel @shahor02
 /Detectors/Calibration             @chiarazampolli @shahor02
