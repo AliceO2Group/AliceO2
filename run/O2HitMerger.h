@@ -135,12 +135,15 @@ class O2HitMerger : public fair::mq::Device
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
     mAsService = o2::conf::SimConfig::Instance().asService();
+    mForwardKine = o2::conf::SimConfig::Instance().forwardKine();
+    mWriteToDisc = o2::conf::SimConfig::Instance().writeToDisc();
 
     mOutFileName = outfilename.c_str();
-    mOutFile = new TFile(outfilename.c_str(), "RECREATE");
-    mOutTree = new TTree("o2sim", "o2sim");
-    mOutTree->SetDirectory(mOutFile);
-
+    if (mWriteToDisc) {
+      mOutFile = new TFile(outfilename.c_str(), "RECREATE");
+      mOutTree = new TTree("o2sim", "o2sim");
+      mOutTree->SetDirectory(mOutFile);
+    }
     // detectors init only once
     if (mDetectorInstances.size() == 0) {
       initDetInstances();
@@ -215,10 +218,11 @@ class O2HitMerger : public fair::mq::Device
     outfilename = o2::base::NameConf::getMCKinematicsFileName(reconfig.outputPrefix);
     mNExpectedEvents = reconfig.nEvents;
     mOutFileName = outfilename.c_str();
-    mOutFile = new TFile(outfilename.c_str(), "RECREATE");
-    mOutTree = new TTree("o2sim", "o2sim");
-    mOutTree->SetDirectory(mOutFile);
-
+    if (mWriteToDisc) {
+      mOutFile = new TFile(outfilename.c_str(), "RECREATE");
+      mOutTree = new TTree("o2sim", "o2sim");
+      mOutTree->SetDirectory(mOutFile);
+    }
     // reinit detectorInstance files (also make sure they are closed before continuing)
     initHitFiles(reconfig.outputPrefix);
 
@@ -422,7 +426,7 @@ class O2HitMerger : public fair::mq::Device
     std::copy(from.begin(), from.end(), std::back_inserter(to));
   }
 
-  void reorderAndMergeMCTracks(int eventID, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents, std::function<void(std::vector<MCTrack> const&)> tracks_analysis_hook)
+  void reorderAndMergeMCTracks(int eventID, TTree* target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents, std::function<void(std::vector<MCTrack> const&)> tracks_analysis_hook, o2::dataformats::MCEventHeader const* mceventheader)
   {
     // avoid doing this for trivial cases
     std::vector<MCTrack>* mcTracksPerSubEvent = nullptr;
@@ -495,10 +499,28 @@ class O2HitMerger : public fair::mq::Device
     // to be saved as part of the MCHeader structure
     tracks_analysis_hook(*filladdr);
 
-    auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &filladdr);
-    targetbr->SetAddress(&filladdr);
-    targetbr->Fill();
-    targetbr->ResetAddress();
+    if (mWriteToDisc && target) {
+      auto targetbr = o2::base::getOrMakeBranch(*target, "MCTrack", &filladdr);
+      targetbr->SetAddress(&filladdr);
+      targetbr->Fill();
+      targetbr->ResetAddress();
+    }
+    // forwarding the track data to other consumers (pub/sub)
+    if (mForwardKine) {
+      auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
+      auto& channel = fChannels.at("kineforward").at(0);
+      TMessage* tmsg = new TMessage(kMESS_OBJECT);
+      tmsg->WriteObjectAny((void*)filladdr, TClass::GetClass("std::vector<o2::MCTrack>"));
+      std::unique_ptr<fair::mq::Message> trackmessage(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
+      tmsg = new TMessage(kMESS_OBJECT);
+      tmsg->WriteObjectAny((void*)mceventheader, TClass::GetClass("o2::dataformats::MCEventHeader"));
+      std::unique_ptr<fair::mq::Message> headermessage(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
+      fair::mq::Parts reply;
+      reply.AddPart(std::move(headermessage));
+      reply.AddPart(std::move(trackmessage));
+      channel.Send(reply);
+      LOG(info) << "Forward publish MC tracks on channel";
+    }
 
     // cleanup buffered data
     for (auto ptr : vectorOfSubEventMCTracks) {
@@ -576,15 +598,20 @@ class O2HitMerger : public fair::mq::Device
   void initHitTreeAndOutFile(std::string prefix, int detID)
   {
     using o2::detectors::DetID;
-    if (mDetectorOutFiles[detID]) {
+    if (mDetectorOutFiles.find(detID) != mDetectorOutFiles.end() && mDetectorOutFiles[detID]) {
       LOG(warn) << "Hit outfile for detID " << DetID::getName(detID) << " already initialized --> Reopening";
       mDetectorOutFiles[detID]->Close();
       delete mDetectorOutFiles[detID];
     }
     std::string name(o2::base::DetectorNameConf::getHitsFileName(detID, prefix));
-    mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
-    mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
-    mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);
+    if (mWriteToDisc) {
+      mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
+      mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
+      mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);
+    } else {
+      mDetectorOutFiles[detID] = nullptr;
+      mDetectorToTTreeMap[detID] = nullptr;
+    }
   }
 
   // This method goes over the buffers containing data for a given event; potentially merges
@@ -660,9 +687,6 @@ class O2HitMerger : public fair::mq::Device
         }
       }
 
-      // put the event headers into the new TTree
-      auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
-
       // attention: We need to make sure that we write everything in the same event order
       // but iteration over keys of a standard map in C++ is ordered
 
@@ -727,13 +751,18 @@ class O2HitMerger : public fair::mq::Device
         eventheader->putInfo("prims_total", prims);
       };
 
-      reorderAndMergeMCTracks(flusheventID, *mOutTree, nprimaries, subevOrdered, mcheaderhook);
-      remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
+      reorderAndMergeMCTracks(flusheventID, mOutTree, nprimaries, subevOrdered, mcheaderhook, eventheader);
 
-      // header can be written
-      headerbr->SetAddress(&eventheader);
-      headerbr->Fill();
-      headerbr->ResetAddress();
+      if (mOutTree) {
+        // adjusting and merging track references
+        remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
+
+        // write MC event headers
+        auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
+        headerbr->SetAddress(&eventheader);
+        headerbr->Fill();
+        headerbr->ResetAddress();
+      }
 
       // c) do the merge procedure for all hits ... delegate this to detector specific functions
       // since they know about types; number of branches; etc.
@@ -742,32 +771,35 @@ class O2HitMerger : public fair::mq::Device
         auto& det = mDetectorInstances[id];
         if (det) {
           auto hittree = mDetectorToTTreeMap[id];
-          // det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
-          det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
-          hittree->SetEntries(hittree->GetEntries() + 1);
-          LOG(info) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
+          if (hittree) {
+            det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
+            hittree->SetEntries(hittree->GetEntries() + 1);
+            LOG(info) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
+          }
         }
       }
 
       // increase the entry count in the tree
-      mOutTree->SetEntries(mOutTree->GetEntries() + 1);
-      LOG(info) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
-
+      if (mOutTree) {
+        mOutTree->SetEntries(mOutTree->GetEntries() + 1);
+        LOG(info) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
+      }
       cleanEvent(flusheventID);
       LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
       if (!checkIfNextFlushable()) {
         break;
       }
     } // end while
-    LOG(info) << "Writing TTrees";
-    mOutFile->Write("", TObject::kOverwrite);
-    for (int id = 0; id < mDetectorInstances.size(); ++id) {
-      auto& det = mDetectorInstances[id];
-      if (det) {
-        mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+    if (mWriteToDisc && mOutFile) {
+      LOG(info) << "Writing TTrees";
+      mOutFile->Write("", TObject::kOverwrite);
+      for (int id = 0; id < mDetectorInstances.size(); ++id) {
+        auto& det = mDetectorInstances[id];
+        if (det && mDetectorOutFiles[id]) {
+          mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+        }
       }
     }
-
     return true;
   }
 
@@ -798,6 +830,8 @@ class O2HitMerger : public fair::mq::Device
   TStopwatch mTimer;
 
   bool mAsService = false; //! if run in deamonized mode
+  bool mForwardKine = true; //! if we forward kinematics (tracks, eventheaders) on some output channel
+  bool mWriteToDisc = true; //! if we want to write simulation products to disc
 
   int mPipeToDriver = -1;
 
