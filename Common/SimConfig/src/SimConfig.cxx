@@ -57,7 +57,9 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
-    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
+    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)")(
+    "forwardKine", bpo::bool_switch(), "forward kinematics on a FairMQ channel")(
+    "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)");
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\".");
 }
 
@@ -214,6 +216,8 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
   mConfigData.mNoGeant = vm["noGeant"].as<bool>();
+  mConfigData.mForwardKine = vm["forwardKine"].as<bool>();
+  mConfigData.mWriteToDisc = !vm["noDiscOutput"].as<bool>();
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
