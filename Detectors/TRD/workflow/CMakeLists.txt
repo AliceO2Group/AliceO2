@@ -16,6 +16,7 @@ o2_add_library(TRDWorkflow
                SOURCES src/TRDDigitizerSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
                        src/TRDTrackletTransformerSpec.cxx
+                       src/TRDPIDSpec.cxx
                        src/TRDEventDisplayFeedSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
                        src/EntropyDecoderSpec.cxx
@@ -46,6 +47,11 @@ o2_add_executable(global-tracking
 o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+o2_add_executable(pid-workflow
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-pid-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 o2_add_executable(event-display-feed
