@@ -19,19 +19,25 @@
 #include <algorithm>
 #include <cstring>
 #include <atomic>
+#include <functional>
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-template <>
-inline auto& TPCClusterDecompressor::decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative>& clusterVector)
+static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::function<void(const ClusterNative&, unsigned int)> func)
+{
+  const auto cluster = ClusterNative(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
+  func(cluster, offset);
+  return cluster;
+}
+
+static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative>& clusterVector)
 {
   clusterVector.emplace_back(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
   return clusterVector.back();
 }
 
-template <>
-inline auto& TPCClusterDecompressor::decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[NSLICES][GPUCA_ROW_COUNT])
+static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
 {
   std::vector<ClusterNative>& clusterVector = clusters[slice][row];
   auto& lock = locks[slice][row];
@@ -104,7 +110,7 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
       time = clustersCompressed->timeA[i];
       pad = clustersCompressed->padA[i];
     }
-    auto& cluster = decompressTrackStore(clustersCompressed, offset, slice, row, pad, time, args...);
+    const auto& cluster = decompressTrackStore(clustersCompressed, offset, slice, row, pad, time, args...);
     float y = param.tpcGeometry.LinearPad2Y(slice, row, cluster.getPad());
     float z = param.tpcGeometry.LinearTime2Z(slice, cluster.getTime());
     if (j == 0) {
@@ -119,10 +125,16 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
   offset += clustersCompressed->nTrackClusters[i] - j;
 }
 
-template <>
-inline auto& TPCClusterDecompressor::decompressHitsStore(const CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, ClusterNative* &cl)
+static inline const auto& decompressHitsStore(const CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, ClusterNative* &cl)
 {
   return ((*(cl++) = ClusterNative(time, clustersCompressed->flagsU[k], pad, clustersCompressed->sigmaTimeU[k], clustersCompressed->sigmaPadU[k], clustersCompressed->qMaxU[k], clustersCompressed->qTotU[k])));
+}
+
+static inline auto decompressHitsStore(const CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, std::function<void(const ClusterNative&, unsigned int)> func)
+{
+  const auto cluster = ClusterNative(time, clustersCompressed->flagsU[k], pad, clustersCompressed->sigmaTimeU[k], clustersCompressed->sigmaPadU[k], clustersCompressed->qMaxU[k], clustersCompressed->qTotU[k]);
+  func(cluster, k);
+  return cluster;
 }
 
 template <typename... Args>

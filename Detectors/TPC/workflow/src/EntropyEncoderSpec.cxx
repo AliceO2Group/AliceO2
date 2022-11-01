@@ -19,6 +19,11 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Headers/DataHeader.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUParam.h"
+#include "DataFormatsTPC/ClusterNative.h"
+#include "TPCClusterDecompressor.inc"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -27,6 +32,14 @@ namespace o2
 {
 namespace tpc
 {
+
+EntropyEncoderSpec::~EntropyEncoderSpec() = default;
+
+EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
+{
+  mTimer.Stop();
+  mTimer.Reset();
+}
 
 void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
@@ -39,6 +52,15 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.init<CTF>(ic);
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
+
+  mConfig.reset(new o2::gpu::GPUO2InterfaceConfiguration);
+  mConfig->configGRP.solenoidBz = 0;
+  mConfParam.reset(new o2::gpu::GPUSettingsO2(mConfig->ReadConfigurableParam()));
+
+  mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+
+  mParam.reset(new o2::gpu::GPUParam);
+  mParam->SetDefaults(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, nullptr);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
@@ -64,10 +86,59 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
+  std::vector<bool> rejectHits, rejectTracks, rejectTrackHits, rejectTrackHitsReduced;
   if (mSelIR) {
+    CompressedClusters clustersFiltered = clusters;
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+    rejectHits.resize(clusters.nUnattachedClusters);
+    rejectTracks.resize(clusters.nTracks);
+    rejectTrackHits.resize(clusters.nAttachedClusters);
+    rejectTrackHitsReduced.resize(clusters.nAttachedClustersReduced);
+
+    unsigned int offset = 0, lasti = 0;
+    const unsigned int maxTime = (mParam->par.continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
+    for (unsigned int i = 0; i < clusters.nTracks; i++) {
+      unsigned int tMin = maxTime, tMax = 0;
+      auto checker = [&tMin, &tMax](const o2::tpc::ClusterNative& cl, unsigned int offset) {
+        if (cl.getTimePacked() > tMax) {
+          tMax = cl.getTimePacked();
+        }
+        if (cl.getTimePacked() < tMin) {
+          tMin = cl.getTimePacked();
+        }
+      };
+      o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
+      if (false) {
+        for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
+          rejectTrackHits[k] = true;
+        }
+        for (unsigned int k = offset - clusters.nTrackClusters[i] - i; k < offset - i - 1; k++) {
+          rejectTrackHitsReduced[k] = true;
+        }
+        rejectTracks[i] = true;
+        clustersFiltered.nTracks--;
+      }
+    }
+    offset = 0;
+    for (unsigned int i = 0; i < GPUCA_NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
+          break;
+        }
+        offset += (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        auto checker = [i, j, &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
+          if (false) {
+            rejectHits[k] = true;
+            clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
+          }
+        };
+        unsigned int end = offset + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offset, end, checker);
+      }
+    }
+    clusters = clustersFiltered;
   }
-  auto iosize = mCTFCoder.encode(buffer, clusters);
+  auto iosize = mCTFCoder.encode(buffer, clusters, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   if (mSelIR) {
