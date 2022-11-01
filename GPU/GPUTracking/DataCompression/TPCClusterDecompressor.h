@@ -37,15 +37,11 @@ class TPCClusterDecompressor
   int decompress(const o2::tpc::CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param);
 
   template <typename... Args>
-  void decompressTrack(const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param, const unsigned int maxTime, const unsigned int i, unsigned int& offset, Args&... args);
+  static void decompressTrack(const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param, const unsigned int maxTime, const unsigned int i, unsigned int& offset, Args&... args);
   template <typename... Args>
-  void decompressHits(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int start, const unsigned int end, Args&... args);
+  static void decompressHits(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int start, const unsigned int end, Args&... args);
 
  protected:
-  template <typename... Args>
-  auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, Args&... args);
-  template <typename... Args>
-  auto& decompressHitsStore(const o2::tpc::CompressedClusters* clustersCompressed, unsigned int k, unsigned int time, unsigned short pad, Args&... args);
 };
 } // namespace GPUCA_NAMESPACE::gpu
 
