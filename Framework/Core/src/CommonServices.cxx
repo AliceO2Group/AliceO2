@@ -763,6 +763,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessorContextSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessorContext>(), new DataProcessorContext()};
     },
     .configure = noConfiguration(),
+    .exit = [](ServiceRegistryRef, void* service) { auto* context = (DataProcessorContext*)service; delete context; },
     .kind = ServiceKind::Serial};
 }
 
