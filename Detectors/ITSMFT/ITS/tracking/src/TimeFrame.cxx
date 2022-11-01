@@ -482,7 +482,7 @@ void TimeFrame::printROFoffsets()
 
 void TimeFrame::computeTrackletsScans(const int nThreads)
 {
-#pragma omp parallel for num_threads(nThreads > 1 ? 2 : nThreads)
+  // #pragma omp parallel for num_threads(nThreads > 1 ? 2 : nThreads)
   for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
     mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), 0);
     std::exclusive_scan(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), mNTrackletsPerROf[iLayer].begin(), 0);

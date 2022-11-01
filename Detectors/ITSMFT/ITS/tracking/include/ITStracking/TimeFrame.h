@@ -372,14 +372,14 @@ inline gsl::span<int> TimeFrame::getIndexTable(int rofId, int layer)
           static_cast<gsl::span<int>::size_type>(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)};
 }
 
-inline std::vector<Line>& TimeFrame::getLines(int tf)
+inline std::vector<Line>& TimeFrame::getLines(int rof)
 {
-  return mLines[tf];
+  return mLines[rof];
 }
 
-inline std::vector<ClusterLines>& TimeFrame::getTrackletClusters(int tf)
+inline std::vector<ClusterLines>& TimeFrame::getTrackletClusters(int rof)
 {
-  return mTrackletClusters[tf];
+  return mTrackletClusters[rof];
 }
 
 template <typename... T>
