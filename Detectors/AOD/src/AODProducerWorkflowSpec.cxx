@@ -163,6 +163,7 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
   const auto& fv0RecPoints = data.getFV0RecPoints();
   const auto& caloEMCCellsTRGR = data.getEMCALTriggers();
   const auto& caloPHOSCellsTRGR = data.getPHOSTriggers();
+  const auto& cpvTRGR = data.getCPVTriggers();
   const auto& ctpDigits = data.getCTPDigits();
   const auto& zdcBCRecData = data.getZDCBCRecData();
 
@@ -208,6 +209,11 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
 
   for (auto& phostrg : caloPHOSCellsTRGR) {
     uint64_t globalBC = phostrg.getBCData().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& cpvtrg : cpvTRGR) {
+    uint64_t globalBC = cpvtrg.getBCData().toLong();
     bcsMap[globalBC] = 1;
   }
 
