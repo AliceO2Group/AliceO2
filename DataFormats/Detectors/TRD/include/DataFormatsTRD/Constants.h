@@ -90,6 +90,7 @@ constexpr int MAXPARSEERRORHISTOGRAMS = 60;    // size of the array holding the 
 constexpr unsigned int ETYPEPHYSICSTRIGGER = 0x2;     // CRU Half Chamber header eventtype definition
 constexpr unsigned int ETYPECALIBRATIONTRIGGER = 0x3; // CRU Half Chamber header eventtype definition
 constexpr int MAXCRUERRORVALUE = 0x2;          // Max possible value for a CRU Halfchamber link error. As of may 2022, can only be 0x0, 0x1, and 0x2, at least that is all so far(may2022).
+constexpr int INVALIDPRETRIGGERPHASE = 0xf;    // Invalid value for phase, used to signify there is no hcheader.
 
 } // namespace constants
 } // namespace trd

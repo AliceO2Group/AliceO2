@@ -258,8 +258,8 @@ struct DigitHCHeader1 {
     uint32_t word;
     struct {
       uint32_t res : 2;
-      uint32_t ptrigcount : 4;
       uint32_t ptrigphase : 4;
+      uint32_t ptrigcount : 4;
       uint32_t bunchcrossing : 16;
       uint32_t numtimebins : 6;
     } __attribute__((__packed__));
