@@ -190,8 +190,8 @@ void VertexerTraits::computeTracklets()
   }
 
   mTimeFrame->computeTrackletsScans(mNThreads);
-  mTimeFrame->getTracklets()[0].reserve(mTimeFrame->getTotalTrackletsTF(0));
-  mTimeFrame->getTracklets()[1].reserve(mTimeFrame->getTotalTrackletsTF(1));
+  mTimeFrame->getTracklets()[0].resize(mTimeFrame->getTotalTrackletsTF(0));
+  mTimeFrame->getTracklets()[1].resize(mTimeFrame->getTotalTrackletsTF(1));
 
 #pragma omp parallel for num_threads(mNThreads)
   for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
