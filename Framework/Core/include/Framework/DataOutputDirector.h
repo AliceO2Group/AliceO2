@@ -90,13 +90,20 @@ struct DataOutputDirector {
   // get the matching TFile
   FileAndFolder getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber, std::string parentFileName);
 
+  // check file sizes
+  bool checkFileSizes();
+  // close all files
   void closeDataFiles();
 
+  // setters
+  void setResultDir(std::string resDir);
   void setFilenameBase(std::string dfn);
+  void setMaximumFileSize(float maxfs);
 
   void printOut();
 
  private:
+  std::string mresultDirectory;
   std::string mfilenameBase;
   std::string* const mfilenameBasePtr = &mfilenameBase;
   std::vector<DataOutputDescriptor*> mDataOutputDescriptors;
@@ -105,6 +112,8 @@ struct DataOutputDirector {
   std::vector<TFile*> mfilePtrs;
   std::vector<TMap*> mParentMaps;
   bool mdebugmode = false;
+  int mfileCounter = 1;
+  float mmaxfilesize = -1.;
   int mnumberTimeFramesToMerge = 1;
   std::string mfileMode = "RECREATE";
 
