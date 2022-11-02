@@ -301,7 +301,7 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
 {
   // Cannot find a stream service using a global salt.
   if (salt.streamId == GLOBAL_CONTEXT_SALT.streamId && kind == ServiceKind::Stream) {
-    throwError(runtime_error("Cannot find a stream service using a global salt."));
+    throwError(runtime_error_f("Cannot find %s service using a global salt.", name ? name : "a stream"));
   }
   // Look for the service. If found, return it.
   // Notice how due to threading issues, we might
