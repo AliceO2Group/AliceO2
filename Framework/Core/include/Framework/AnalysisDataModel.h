@@ -433,7 +433,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
                               ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, nabs(1.f / aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //!
-                              ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt)));
+                              ifnode((nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0) || (nabs(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) < o2::constants::math::Almost0), o2::constants::math::VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //!
                            [](float pt, float phi) -> float {
                              return pt * std::cos(phi);
