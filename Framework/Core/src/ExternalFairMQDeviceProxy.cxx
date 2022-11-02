@@ -374,15 +374,16 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
   };
 }
 
-InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::SerializationMethod method, uint64_t startTime, uint64_t step)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
 
-  return [timesliceId, spec, step](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, spec, step, method](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
     for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
+      dh.payloadSerializationMethod = method;
 
       // FIXME: this only supports fully specified output specs...
       ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(spec);
