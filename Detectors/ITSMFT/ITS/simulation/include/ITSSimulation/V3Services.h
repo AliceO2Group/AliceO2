@@ -20,7 +20,6 @@
 #include <TGeoManager.h>               // for gGeoManager
 #include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h" // for V11Geometry
-#include "ITSSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoXtru;
 
@@ -42,6 +41,9 @@ class V3Services : public V11Geometry
  public:
   // Default constructor
   V3Services();
+
+  // Standard constructor
+  V3Services(const char* name);
 
   /// Copy constructor
   V3Services(const V3Services&) = default;
