@@ -44,6 +44,7 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
     //  scl.printRates();
     scl.printIntegrals();
     ctpcfg = mng.getConfigFromCCDB(time, srun);
+    //scl.printRates();
     // std::vector<int> clsses;
     // clsses = ctpcfg.getTriggerClassList();
     // std::cout << clsses.size() << std::endl;

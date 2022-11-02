@@ -418,10 +418,14 @@ int CTPRunScalers::printRates()
   }
   LOG(info) << "Scaler rates for run:" << mRunNumber;
   CTPScalerRecordO2* scalrec0 = &mScalerRecordO2[0];
+  uint32_t orbit0 = scalrec0->intRecord.orbit;
   for (int i = 1; i < mScalerRecordO2.size(); i++) {
     CTPScalerRecordO2* scalrec1 = &mScalerRecordO2[i];
     double_t tt = (double_t)(scalrec1->intRecord.orbit - scalrec0->intRecord.orbit);
+    double_t tinrun = (double_t)(scalrec1->intRecord.orbit - orbit0);
     tt = tt * 88e-6;
+    tinrun = tinrun * 88e-6;
+    std::cout << "==> Time wrt to SOR [s]:" << tinrun << " time intervale[s]:" << tt << std::endl;
     for (int j = 0; j < scalrec1->scalers.size(); j++) {
       CTPScalerO2* s0 = &(scalrec0->scalers[j]);
       CTPScalerO2* s1 = &(scalrec1->scalers[j]);
