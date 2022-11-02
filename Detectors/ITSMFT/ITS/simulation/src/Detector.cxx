@@ -87,8 +87,8 @@ static void configITS(Detector* its)
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
-  const float ChipThicknessIB = 50.e-4;
-  const float ChipThicknessOB = 100.e-4;
+  const double ChipThicknessIB = 50.e-4;
+  const double ChipThicknessOB = 100.e-4;
 
   enum { kRmn,
          kRmd,
