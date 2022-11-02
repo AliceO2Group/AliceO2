@@ -103,7 +103,7 @@ struct DataOutputDirector {
   void printOut();
 
  private:
-  std::string mresultDirectory;
+  std::string mresultDirectory{"."};
   std::string mfilenameBase;
   std::string* const mfilenameBasePtr = &mfilenameBase;
   std::vector<DataOutputDescriptor*> mDataOutputDescriptors;

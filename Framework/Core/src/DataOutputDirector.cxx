@@ -154,6 +154,7 @@ void DataOutputDirector::reset()
   closeDataFiles();
   mfilePtrs.clear();
   mfilenameBase = std::string("");
+  mfileCounter = 1;
 };
 
 void DataOutputDirector::readString(std::string const& keepString)
