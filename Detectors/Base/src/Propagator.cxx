@@ -730,8 +730,8 @@ template class PropagatorImpl<float>;
 template class PropagatorImpl<double>;
 #endif
 #ifndef __HIPCC__ // TODO: Fixme: must prevent HIP from compiling this, should file bug report
-template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 #ifndef GPUCA_GPUCODE_DEVICE
 template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackPar_t>(PropagatorImpl<double>::TrackPar_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackParCov_t>(PropagatorImpl<double>::TrackParCov_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
