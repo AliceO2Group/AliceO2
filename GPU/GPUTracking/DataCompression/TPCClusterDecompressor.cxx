@@ -48,6 +48,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
   GPUCA_OPENMP(parallel for firstprivate(offset, lasti))
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
+    if (i < lasti) {
+      offset = lasti = 0; // dynamic OMP scheduling, need to reinitialize offset
+    }
     while (lasti < i) {
       offset += clustersCompressed->nTrackClusters[lasti++];
     }
