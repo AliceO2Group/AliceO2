@@ -108,6 +108,7 @@ else
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
   fi
 fi
+[[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
 [[ ! -z $NTRDTRKTHREADS ]] && TRD_CONFIG_KEY+="GPU_proc.ompThreads=$NTRDTRKTHREADS;"
 [[ ! -z $NGPURECOTHREADS ]] && GPU_CONFIG_KEY+="GPU_proc.ompThreads=$NGPURECOTHREADS;"
 [[ ! -z $NMFTTHREADS ]] && MFT_CONFIG+=" --nThreads $NMFTTHREADS"
