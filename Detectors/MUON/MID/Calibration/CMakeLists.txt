@@ -11,11 +11,11 @@
 
 o2_add_library(
   MIDCalibration
-  SOURCES src/ChannelCalibrator.cxx
+  SOURCES src/ChannelCalibrator.cxx src/ChannelCalibratorFinalizer.cxx src/ChannelCalibratorParam.cxx
   PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDFiltering
                         O2::DetectorsCalibration O2::CCDB Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(MIDCalibration
-                          HEADERS include/MIDCalibration/ChannelCalibrator.h)
+                          HEADERS include/MIDCalibration/ChannelCalibrator.h include/MIDCalibration/ChannelCalibratorParam.h)
 
 add_subdirectory(exe)
