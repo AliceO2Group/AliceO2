@@ -54,6 +54,7 @@ class EntropyEncoderSpec : public o2::framework::Task
 
   bool mFromFile = false;
   bool mSelIR = false;
+  unsigned int mNThreads = 1;
   TStopwatch mTimer;
 };
 
