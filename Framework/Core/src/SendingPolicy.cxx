@@ -35,6 +35,9 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               // If we have more than 10, we switch to a completely
               // non-blocking approach.
               int64_t timeout = 10;
+              if (state.droppedMessages == 10 + 1) {
+                LOGP(warning) << "Failed to send 10 messages with 10ms timeout in a row, switching to completely non-blocking mode"; 
+              } 
               if (state.droppedMessages > 10) {
                 timeout = 0;
               }
