@@ -61,6 +61,8 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 
   mParam.reset(new o2::gpu::GPUParam);
   mParam->SetDefaults(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, nullptr);
+
+  mNThreads = ic.options().get<unsigned int>("nThreads");
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
@@ -97,6 +99,9 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
     unsigned int offset = 0, lasti = 0;
     const unsigned int maxTime = (mParam->par.continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
+#ifdef WITH_OPENMP
+#pragma omp parallel for firstprivate(offset, lasti) num_threads(mNThreads)
+#endif
     for (unsigned int i = 0; i < clusters.nTracks; i++) {
       unsigned int tMin = maxTime, tMax = 0;
       auto checker = [&tMin, &tMax](const o2::tpc::ClusterNative& cl, unsigned int offset) {
@@ -107,6 +112,13 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
           tMin = cl.getTimePacked();
         }
       };
+      if (i < lasti) {
+        offset = lasti = 0; // dynamic OMP scheduling, need to reinitialize offset
+      }
+      while (lasti < i) {
+        offset += clusters.nTrackClusters[lasti++];
+      }
+      lasti++;
       o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
       if (false) {
         for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
@@ -120,20 +132,32 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
     }
     offset = 0;
+    unsigned int offsets[GPUCA_NSLICES][GPUCA_ROW_COUNT];
     for (unsigned int i = 0; i < GPUCA_NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
           break;
         }
+        offsets[i][j] = offset;
         offset += (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      }
+    }
+#ifdef WITH_OPENMP
+#pragma omp parallel for num_threads(mNThreads)
+#endif
+    for (unsigned int i = 0; i < GPUCA_NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
+          break;
+        }
         auto checker = [i, j, &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
           if (false) {
             rejectHits[k] = true;
             clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
           }
         };
-        unsigned int end = offset + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
-        o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offset, end, checker);
+        unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offsets[i][j], end, checker);
       }
     }
     clusters = clustersFiltered;
@@ -172,7 +196,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"nThreads", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
 }
 
 } // namespace tpc
