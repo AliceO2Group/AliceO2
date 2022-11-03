@@ -348,7 +348,9 @@ void printCCDBObject(const std::string detectorName = "FT0",
     if (it.second.empty()) {
       nEmptyDPs++;
     }
-    LOGP(info, "DPID = {}", it.first);
+    std::stringstream tmp;
+    tmp << it.first;
+    LOGP(info, "DPID = {}", tmp.str());
     it.second.print();
   }
 
