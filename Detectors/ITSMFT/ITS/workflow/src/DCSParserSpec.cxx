@@ -422,7 +422,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
     metadata.insert({"runNumber", std::to_string(this->mRunNumber)});
   }
-  std::string path("ITS/DCS_CONFIG/");
+  std::string path("ITS/Calib/DCS_CONFIG/");
   const char* filename = "dcs_config.root";
   o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
