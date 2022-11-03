@@ -33,8 +33,21 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 //______________________________________________
 float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
 {
-  return evalTimeSlewing(channel, 0);
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
+
+  return (*(mGlobalOffset[sector]))[channel];
 }
+
+//______________________________________________
+void CalibTimeSlewingParamTOF::setChannelOffset(int channel, float val)
+{
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
+
+  (*(mGlobalOffset[sector]))[channel] = val;
+}
+//______________________________________________
 void CalibTimeSlewingParamTOF::bind()
 {
   mGlobalOffset[0] = &mGlobalOffsetSec0;
@@ -55,12 +68,87 @@ void CalibTimeSlewingParamTOF::bind()
   mGlobalOffset[15] = &mGlobalOffsetSec15;
   mGlobalOffset[16] = &mGlobalOffsetSec16;
   mGlobalOffset[17] = &mGlobalOffsetSec17;
+
+  mChannelStart[0] = &mChannelStartSec0;
+  mChannelStart[1] = &mChannelStartSec1;
+  mChannelStart[2] = &mChannelStartSec2;
+  mChannelStart[3] = &mChannelStartSec3;
+  mChannelStart[4] = &mChannelStartSec4;
+  mChannelStart[5] = &mChannelStartSec5;
+  mChannelStart[6] = &mChannelStartSec6;
+  mChannelStart[7] = &mChannelStartSec7;
+  mChannelStart[8] = &mChannelStartSec8;
+  mChannelStart[9] = &mChannelStartSec9;
+  mChannelStart[10] = &mChannelStartSec10;
+  mChannelStart[11] = &mChannelStartSec11;
+  mChannelStart[12] = &mChannelStartSec12;
+  mChannelStart[13] = &mChannelStartSec13;
+  mChannelStart[14] = &mChannelStartSec14;
+  mChannelStart[15] = &mChannelStartSec15;
+  mChannelStart[16] = &mChannelStartSec16;
+  mChannelStart[17] = &mChannelStartSec17;
+
+  mTimeSlewing[0] = &mTimeSlewingSec0;
+  mTimeSlewing[1] = &mTimeSlewingSec1;
+  mTimeSlewing[2] = &mTimeSlewingSec2;
+  mTimeSlewing[3] = &mTimeSlewingSec3;
+  mTimeSlewing[4] = &mTimeSlewingSec4;
+  mTimeSlewing[5] = &mTimeSlewingSec5;
+  mTimeSlewing[6] = &mTimeSlewingSec6;
+  mTimeSlewing[7] = &mTimeSlewingSec7;
+  mTimeSlewing[8] = &mTimeSlewingSec8;
+  mTimeSlewing[9] = &mTimeSlewingSec9;
+  mTimeSlewing[10] = &mTimeSlewingSec10;
+  mTimeSlewing[11] = &mTimeSlewingSec11;
+  mTimeSlewing[12] = &mTimeSlewingSec12;
+  mTimeSlewing[13] = &mTimeSlewingSec13;
+  mTimeSlewing[14] = &mTimeSlewingSec14;
+  mTimeSlewing[15] = &mTimeSlewingSec15;
+  mTimeSlewing[16] = &mTimeSlewingSec16;
+  mTimeSlewing[17] = &mTimeSlewingSec17;
+
+  mFractionUnderPeak[0] = &mFractionUnderPeakSec0;
+  mFractionUnderPeak[1] = &mFractionUnderPeakSec1;
+  mFractionUnderPeak[2] = &mFractionUnderPeakSec2;
+  mFractionUnderPeak[3] = &mFractionUnderPeakSec3;
+  mFractionUnderPeak[4] = &mFractionUnderPeakSec4;
+  mFractionUnderPeak[5] = &mFractionUnderPeakSec5;
+  mFractionUnderPeak[6] = &mFractionUnderPeakSec6;
+  mFractionUnderPeak[7] = &mFractionUnderPeakSec7;
+  mFractionUnderPeak[8] = &mFractionUnderPeakSec8;
+  mFractionUnderPeak[9] = &mFractionUnderPeakSec9;
+  mFractionUnderPeak[10] = &mFractionUnderPeakSec10;
+  mFractionUnderPeak[11] = &mFractionUnderPeakSec11;
+  mFractionUnderPeak[12] = &mFractionUnderPeakSec12;
+  mFractionUnderPeak[13] = &mFractionUnderPeakSec13;
+  mFractionUnderPeak[14] = &mFractionUnderPeakSec14;
+  mFractionUnderPeak[15] = &mFractionUnderPeakSec15;
+  mFractionUnderPeak[16] = &mFractionUnderPeakSec16;
+  mFractionUnderPeak[17] = &mFractionUnderPeakSec17;
+
+  mSigmaPeak[0] = &mSigmaPeakSec0;
+  mSigmaPeak[1] = &mSigmaPeakSec1;
+  mSigmaPeak[2] = &mSigmaPeakSec2;
+  mSigmaPeak[3] = &mSigmaPeakSec3;
+  mSigmaPeak[4] = &mSigmaPeakSec4;
+  mSigmaPeak[5] = &mSigmaPeakSec5;
+  mSigmaPeak[6] = &mSigmaPeakSec6;
+  mSigmaPeak[7] = &mSigmaPeakSec7;
+  mSigmaPeak[8] = &mSigmaPeakSec8;
+  mSigmaPeak[9] = &mSigmaPeakSec9;
+  mSigmaPeak[10] = &mSigmaPeakSec10;
+  mSigmaPeak[11] = &mSigmaPeakSec11;
+  mSigmaPeak[12] = &mSigmaPeakSec12;
+  mSigmaPeak[13] = &mSigmaPeakSec13;
+  mSigmaPeak[14] = &mSigmaPeakSec14;
+  mSigmaPeak[15] = &mSigmaPeakSec15;
+  mSigmaPeak[16] = &mSigmaPeakSec16;
+  mSigmaPeak[17] = &mSigmaPeakSec17;
 }
 
 //______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 {
-
   // totIn is in ns
   // the correction is returned in ps
 
@@ -73,20 +161,24 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 
   int n = (*(mChannelStart[sector]))[channel];
   if (n < 0) {
-    return 0.;
+    return (*(mGlobalOffset[sector]))[channel];
   }
-
   int nstop = mTimeSlewing[sector]->size();
+
   if (channel < NCHANNELXSECTOR - 1) {
     nstop = (*(mChannelStart[sector]))[channel + 1];
   }
 
   if (n >= nstop) {
-    return 0.; // something went wrong!
+    return (*(mGlobalOffset[sector]))[channel]; // something went wrong!
   }
 
   if (totIn == 0) {
     return (float)((*(mTimeSlewing[sector]))[n].second + (*(mGlobalOffset[sector]))[channel]);
+  }
+
+  if (totIn > MAXTOT) {
+    totIn = MAXTOT;
   }
 
   // we convert tot from ns to ps and to unsigned short
@@ -98,7 +190,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   n--;
 
   if (n < 0) { // tot is lower than the first available value
-    return 0;
+    return (*(mGlobalOffset[sector]))[channel];
   }
 
   if (n == nstop - 1) {
@@ -111,7 +203,67 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   return (float)((*(mGlobalOffset[sector]))[channel] + (((*(mTimeSlewing[sector]))[n].second * w2 + (*(mTimeSlewing[sector]))[n + 1].second * w1) / ((*(mTimeSlewing[sector]))[n + 1].first - (*(mTimeSlewing[sector]))[n].first)));
 }
 //______________________________________________
+void CalibTimeSlewingParamTOF::setTimeSlewingInfo(int channel, float offsetold, int nold, const unsigned short* oldtot, const short* olddt, int nnew, const unsigned short* newtot, const short* newdt)
+{
+  // to be used when updating new calibration from scratch and merging it with the old one (all channels should be called in order)
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
 
+  // work with float to avoid to loose precision due to short (in case offset will be adjust before to move deltat to short)
+  std::vector<float> deltat;
+
+  float minVal = 0;
+  float maxVal = 0;
+
+  if (nnew >= nold) { // use new binning
+    int j = 0;
+    for (int i = 0; i < nnew; i++) {
+      while (j < nold && oldtot[j + 1] < newtot[i]) {
+        j++;
+      }
+      float val = float(newdt[i]) + olddt[j];
+      //      printf("%d %d -> %f\n",i,j,val);
+      deltat.push_back(val);
+      if (val < minVal) {
+        minVal = val;
+      }
+      if (val > maxVal) {
+        maxVal = val;
+      }
+    }
+    float recentering = (minVal + maxVal) * 0.5;
+    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
+    //    printf("update channel offset for sec=%d/ch=%d -> %f\n",sector,channel,(*(mGlobalOffset[sector]))[channel]);
+    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+
+    for (int i = 0; i < nnew; i++) {
+      (*(mTimeSlewing[sector])).emplace_back(newtot[i], (short)(deltat[i] - recentering));
+      //      printf("%d) %d\n",i,(*(mTimeSlewing[sector]))[i]);
+    }
+  } else { // use old binning
+    int j = 0;
+    for (int i = 0; i < nold; i++) {
+      while (j < nnew && newtot[j + 1] < oldtot[i]) {
+        j++;
+      }
+      float val = float(olddt[i]) + newdt[j];
+      deltat.push_back(val);
+      if (val < minVal) {
+        minVal = val;
+      }
+      if (val > maxVal) {
+        maxVal = val;
+      }
+    }
+    float recentering = (minVal + maxVal) * 0.5;
+    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
+    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+    for (int i = 0; i < nold; i++) {
+      (*(mTimeSlewing[sector])).emplace_back(oldtot[i], (short)(deltat[i] - recentering));
+    }
+  }
+}
+//______________________________________________
 void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float time)
 {
   // WE ARE ASSUMING THAT:
@@ -201,4 +353,6 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
     *(mSigmaPeak[i]) = *(source.mSigmaPeak[i]);
     *(mGlobalOffset[i]) = *(source.mGlobalOffset[i]);
   }
+  mStartValidity = source.mStartValidity;
+  mEndValidity = source.mEndValidity;
 }

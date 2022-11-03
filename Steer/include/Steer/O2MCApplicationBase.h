@@ -35,9 +35,10 @@ namespace steer
 class O2MCApplicationBase : public FairMCApplication
 {
  public:
-  O2MCApplicationBase() : FairMCApplication(), mCutParams(o2::conf::SimCutParams::Instance()) {}
+  O2MCApplicationBase() : FairMCApplication(), mCutParams(o2::conf::SimCutParams::Instance()) { initTrackRefHook(); }
   O2MCApplicationBase(const char* name, const char* title, TObjArray* ModList, const char* MatName) : FairMCApplication(name, title, ModList, MatName), mCutParams(o2::conf::SimCutParams::Instance())
   {
+    initTrackRefHook();
   }
 
   ~O2MCApplicationBase() override = default;
@@ -55,6 +56,8 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
+  typedef std::function<void(TVirtualMC const*)> TrackRefFcn;
+
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
   unsigned long long mStepCounter{0};
@@ -64,6 +67,8 @@ class O2MCApplicationBase : public FairMCApplication
 
   /// some common parts of finishEvent
   void finishEventCommon();
+  TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping
+  void initTrackRefHook();
 
   ClassDefOverride(O2MCApplicationBase, 1);
 };

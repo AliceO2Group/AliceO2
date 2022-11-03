@@ -57,7 +57,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      bool rejectCluster = processors.param.rec.tpc.trackFitRejectMode && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
+      bool rejectCluster = processors.param.rec.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyA && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
       if (rejectCluster) {
         compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
         continue;

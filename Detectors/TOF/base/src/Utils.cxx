@@ -15,6 +15,7 @@
 //  ALICEO2
 //
 #include <TMath.h>
+#include <TH1D.h>
 
 #include "TOFBase/Utils.h"
 
@@ -38,6 +39,14 @@ o2::dataformats::CalibInfoTOF Utils::mCalibTracks[NTRACKS_REQUESTED];
 int Utils::mNsample = 0;
 int Utils::mIsample = 0;
 float Utils::mPhases[100];
+uint64_t Utils::mMaskBC[16] = {};
+uint64_t Utils::mMaskBCUsed[16] = {};
+int Utils::mMaskBCchan[o2::tof::Geo::NCHANNELS][16] = {};
+int Utils::mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16] = {};
+TChain* Utils::mTreeFit = nullptr;
+std::vector<o2::dataformats::CalibInfoTOF> Utils::mVectC;
+std::vector<o2::dataformats::CalibInfoTOF>* Utils::mPvectC = &mVectC;
+int Utils::mNfits = 0;
 
 void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
 {
@@ -255,4 +264,276 @@ bool Utils::hasFillScheme()
   }
 
   return false;
+}
+
+int Utils::addMaskBC(int mask, int channel)
+{
+  int mask2 = (mask >> 16);
+  int cmask = 1;
+  int used = 0;
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mask & cmask) {
+      mMaskBCchan[channel][ibit]++;
+      mMaskBC[ibit]++;
+    }
+    if (mask2 & cmask) {
+      mMaskBCchanUsed[channel][ibit]++;
+      mMaskBCUsed[ibit]++;
+      used = ibit - 8;
+    }
+    cmask *= 2;
+  }
+  return used;
+}
+
+int Utils::getMaxUsed()
+{
+  int cmask = 0;
+  uint64_t val = 10; // at least 10 entry required
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mMaskBC[ibit] > val) {
+      val = mMaskBC[ibit];
+      cmask = ibit - 8;
+    }
+  }
+  return cmask;
+}
+
+int Utils::getMaxUsedChannel(int channel)
+{
+  int cmask = 0;
+  int val = 10; // at least 10 entry required
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mMaskBCchan[channel][ibit] > val) {
+      val = mMaskBCchan[channel][ibit];
+      cmask = ibit - 8;
+    }
+  }
+  return cmask;
+}
+
+int Utils::extractNewTimeSlewing(const o2::dataformats::CalibTimeSlewingParamTOF* oldTS, o2::dataformats::CalibTimeSlewingParamTOF* newTS)
+{
+  if (!oldTS || !newTS) { // objects were not defined -> to nothing
+    return 1;
+  }
+  newTS->bind();
+
+  static auto fitFunc = new TF1("fTOFfit", "gaus", -5000, 5000);
+
+  fitFunc->SetParameter(0, 100);
+  fitFunc->SetParameter(1, 0);
+  fitFunc->SetParameter(2, 200);
+
+  if (mTreeFit) { // remove previous tree
+    delete mTreeFit;
+  }
+
+  mTreeFit = new TChain("treeCollectedCalibInfo", "treeCollectedCalibInfo");
+
+  auto retval = system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  (void)retval;
+  FILE* f = fopen("listaCal", "r");
+
+  if (!f) { // no inputs -> return
+    return 2;
+  }
+
+  char namefile[50];
+  while (fscanf(f, "%s", namefile) == 1) {
+    mTreeFit->AddFile(namefile);
+  }
+
+  if (!mTreeFit->GetEntries()) { // return if no entry available
+    return 3;
+  }
+
+  mTreeFit->SetBranchAddress("TOFCollectedCalibInfo", &mPvectC);
+
+  for (int isec = 0; isec < 18; isec++) {
+    fitTimeSlewing(isec, oldTS, newTS);
+  }
+
+  return 0;
+}
+
+void Utils::fitTimeSlewing(int sector, const o2::dataformats::CalibTimeSlewingParamTOF* oldTS, o2::dataformats::CalibTimeSlewingParamTOF* newTS)
+{
+  const int nchPerSect = Geo::NCHANNELS / Geo::NSECTORS;
+  for (int i = sector * nchPerSect; i < (sector + 1) * nchPerSect; i += NCHPERBUNCH) {
+    fitChannelsTS(i, oldTS, newTS);
+  }
+}
+
+void Utils::fitChannelsTS(int chStart, const o2::dataformats::CalibTimeSlewingParamTOF* oldTS, o2::dataformats::CalibTimeSlewingParamTOF* newTS)
+{
+  // fiting NCHPERBUNCH at the same time to optimze reading from tree
+  TH2F* h[NCHPERBUNCH];
+  float time, tot;
+  int mask;
+  int bcSel[NCHPERBUNCH];
+
+  for (int ii = 0; ii < NCHPERBUNCH; ii++) {
+    h[ii] = new TH2F(Form("h%d", chStart + ii), "", 1000, 0, 100, 100, -5000, 5000);
+    bcSel[ii] = -9999;
+  }
+
+  for (int i = chStart; i + NCHPERBUNCH < mTreeFit->GetEntries(); i += 157248) {
+    for (int ii = 0; ii < NCHPERBUNCH; ii++) {
+      int ch = chStart + ii;
+      mTreeFit->GetEvent(i + ii);
+      int k = 0;
+      bool skip = false;
+      for (auto& obj : mVectC) {
+        if (obj.getTOFChIndex() != ch || skip) {
+          continue;
+        }
+        time = obj.getDeltaTimePi();
+        tot = obj.getTot();
+        mask = obj.getMask();
+        time -= addMaskBC(mask, ch) * o2::tof::Geo::BC_TIME_INPS;
+        if (time < -5000 || time > 20000) {
+          continue;
+        }
+        float tscorr = oldTS->evalTimeSlewing(ch, tot);
+        if (tscorr < -1000000 || tscorr > 1000000) {
+          skip = true;
+          continue;
+        }
+        time -= tscorr;
+
+        if (bcSel[ii] > -9000) {
+          time += bcSel[ii] * o2::tof::Geo::BC_TIME_INPS;
+        } else {
+          bcSel[ii] = 0;
+        }
+        while (time < -5000) {
+          time += o2::tof::Geo::BC_TIME_INPS;
+          bcSel[ii] += 1;
+        }
+        while (time > 20000) {
+          time -= o2::tof::Geo::BC_TIME_INPS;
+          bcSel[ii] -= 1;
+        }
+
+        // adjust to avoid borders effect
+        if (time > 12500) {
+          time -= o2::tof::Geo::BC_TIME_INPS;
+        } else if (time < -12500) {
+          time += o2::tof::Geo::BC_TIME_INPS;
+        }
+
+        h[ii]->Fill(tot, time);
+      }
+    }
+  }
+
+  for (int ii = 0; ii < NCHPERBUNCH; ii++) {
+    mNfits += fitSingleChannel(chStart + ii, h[ii], oldTS, newTS);
+    delete h[ii]; // clean histo once fitted
+  }
+}
+
+int Utils::fitSingleChannel(int ch, TH2F* h, const o2::dataformats::CalibTimeSlewingParamTOF* oldTS, o2::dataformats::CalibTimeSlewingParamTOF* newTS)
+{
+  const int nchPerSect = Geo::NCHANNELS / Geo::NSECTORS;
+
+  int fitted = 0;
+  float offset = oldTS->getChannelOffset(ch);
+  int sec = ch / nchPerSect;
+  int chInSec = ch % nchPerSect;
+  int istart = oldTS->getStartIndexForChannel(sec, chInSec);
+  int istop = oldTS->getStopIndexForChannel(sec, chInSec);
+  int nbinPrev = istop - istart;
+  int np = 0;
+
+  unsigned short oldtot[10000];
+  short oldcorr[10000];
+  unsigned short newtot[10000];
+  short newcorr[10000];
+
+  int count = 0;
+
+  const std::vector<std::pair<unsigned short, short>>& vect = oldTS->getVector(sec);
+  for (int i = istart; i < istop; i++) {
+    oldtot[count] = vect[i].first;
+    oldcorr[count] = vect[i].second;
+    count++;
+  }
+
+  TH1D* hpro = h->ProjectionX("hpro");
+
+  int ibin = 1;
+  int nbin = h->GetXaxis()->GetNbins();
+  float integralToEnd = h->Integral();
+
+  if (nbinPrev == 0) {
+    nbinPrev = 1;
+    oldtot[0] = 0;
+    oldcorr[0] = 0;
+  }
+
+  // propagate problematic from old TS
+  newTS->setFractionUnderPeak(sec, chInSec, oldTS->getFractionUnderPeak(ch));
+  newTS->setSigmaPeak(sec, chInSec, oldTS->getSigmaPeak(ch));
+  bool isProb = oldTS->getFractionUnderPeak(ch) < 0.5 || oldTS->getSigmaPeak(ch) > 1000;
+
+  if (isProb) { // if problematic
+    // skip fit procedure
+    integralToEnd = 0;
+  }
+
+  if (integralToEnd < NMINTOFIT) { // no update to be done
+    np = 1;
+    newtot[0] = 0;
+    newcorr[0] = 0;
+    newTS->setTimeSlewingInfo(ch, offset, nbinPrev, oldtot, oldcorr, np, newtot, newcorr);
+    if (hpro) {
+      delete hpro;
+    }
+    return fitted;
+  }
+
+  float totHalfWidth = h->GetXaxis()->GetBinWidth(1) * 0.5;
+
+  static TF1* fitFunc = new TF1("fTOFfit", "gaus", -5000, 5000);
+
+  int integral = 0;
+  float x[10000], y[10000];
+  for (int i = 1; i <= nbin; i++) {
+    integral += hpro->GetBinContent(i);
+    integralToEnd -= hpro->GetBinContent(i);
+
+    if (integral < NMINTOFIT || (integralToEnd < NMINTOFIT && i < nbin)) {
+      continue;
+    }
+
+    // get a point
+    float xmin = h->GetXaxis()->GetBinCenter(ibin) - totHalfWidth;
+    float xmax = h->GetXaxis()->GetBinCenter(i) + totHalfWidth;
+    TH1D* hfit = h->ProjectionY(Form("mypro"), ibin, i);
+    float xref = hfit->GetBinCenter(hfit->GetMaximumBin());
+
+    hfit->Fit(fitFunc, "QN0", "", xref - 500, xref + 500);
+    fitted++;
+
+    x[np] = (xmin + xmax) * 0.5;
+    y[np] = fitFunc->GetParameter(1);
+    if (x[np] > 65.534) {
+      continue; // max tot acceptable in ushort representation / 1000.
+    }
+    newtot[np] = x[np] * 1000;
+    newcorr[np] = y[np];
+    np++;
+    ibin = i + 1;
+    integral = 0;
+    delete hfit;
+  }
+
+  newTS->setTimeSlewingInfo(ch, offset, nbinPrev, oldtot, oldcorr, np, newtot, newcorr);
+
+  if (hpro) {
+    delete hpro;
+  }
+  return fitted;
 }

@@ -100,11 +100,11 @@ class AlignableSensor : public AlignableVolume
   //
  protected:
   //
-  int mSID;                  // sensor id in detector
-  double mAddError[2];       // additional error increment for measurement
-  AlignableDetector* mDet;   // pointer on detector
-  TGeoHMatrix mMatClAlg;     // reference cluster alignment matrix in tracking frame, i.e. the matrix we want to correct
-  TGeoHMatrix mMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
+  int mSID = -1;                     // sensor id in detector
+  double mAddError[2] = {0, 0};      // additional error increment for measurement
+  AlignableDetector* mDet = nullptr; // pointer on detector
+  TGeoHMatrix mMatClAlg;             // reference cluster alignment matrix in tracking frame, i.e. the matrix we want to correct
+  TGeoHMatrix mMatClAlgReco;         // reco-time cluster alignment matrix in tracking frame
 
   //
   ClassDefOverride(AlignableSensor, 1)

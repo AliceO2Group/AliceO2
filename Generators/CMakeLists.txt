@@ -29,7 +29,6 @@ o2_add_library(Generators
                        src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
-                       src/PDG.cxx
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
                        src/TriggerExternalParam.cxx
@@ -72,7 +71,6 @@ set(headers
     include/Generators/GeneratorExternalParam.h
     include/Generators/GeneratorFromFile.h
     include/Generators/GeneratorFromO2KineParam.h
-    include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
     include/Generators/TriggerExternalParam.h

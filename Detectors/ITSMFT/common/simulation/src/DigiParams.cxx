@@ -12,7 +12,7 @@
 /// \file DigiParams.cxx
 /// \brief Implementation of the ITS digitization steering params
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "ITSMFTSimulation/DigiParams.h"
 #include <cassert>
 

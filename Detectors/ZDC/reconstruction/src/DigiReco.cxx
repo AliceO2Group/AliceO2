@@ -285,7 +285,7 @@ void DigiReco::init()
     }
     if (ropt.beg_ped_int[ich] == DummyIntRange || ropt.end_ped_int[ich] == DummyIntRange) {
       if (!mRecoConfigZDC) {
-        LOG(error) << "Integration for pedestal " << ich << " missing configuration object and no manual override";
+        LOG(fatal) << "Integration for pedestal " << ich << " missing configuration object and no manual override";
       } else {
         ropt.beg_ped_int[ich] = mRecoConfigZDC->beg_ped_int[ich];
         ropt.end_ped_int[ich] = mRecoConfigZDC->end_ped_int[ich];
@@ -336,6 +336,30 @@ void DigiReco::init()
   }
 } // init
 
+void DigiReco::eor()
+{
+  if (mTreeDbg) {
+    LOG(info) << "o2::zdc::DigiReco: closing debug output";
+    mTDbg->Write();
+    mTDbg.reset();
+    mDbg->Close();
+    mDbg.reset();
+  }
+  if (mNLonely > 0) {
+    LOG(warn) << "Detected " << mNLonely << " lonely bunches";
+    for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+      if (mLonely[ib]) {
+        LOG(warn) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+      }
+    }
+  }
+  for (int ich = 0; ich < NChannels; ich++) {
+    if (mMissingPed[ich] > 0) {
+      LOGF(error, "Missing pedestal for ch %2d %s: %u", ich, ChannelNames[ich], mMissingPed[ich]);
+    }
+  }
+}
+
 void DigiReco::prepareInterpolation()
 {
   // Prepare tapered sinc function
@@ -376,6 +400,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   mOrbitData = orbitdata;
   mBCData = bcdata;
   mChData = chdata;
+  mInError = false;
 
   // Initialization of lookup structure for pedestals
   mOrbit.clear();
@@ -399,7 +424,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   }
   for (int ich = 0; ich < NChannels; ich++) {
     if (mVerbosity > DbgZero) {
-      LOG(info) << ChannelNames[ich] << ": " << scaler[ich];
+      LOG(info) << ChannelNames[ich] << " cnt: " << scaler[ich];
     }
   }
 
@@ -514,20 +539,29 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in TDC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
-      LOG(fatal) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
+      LOG(error) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
       return __LINE__;
     } else if (bcd > 1) {
       // Detected a gap
-      reconstructTDC(seq_beg, seq_end);
+      int rval = reconstructTDC(seq_beg, seq_end);
+      if (rval) {
+        return rval;
+      }
+
       seq_beg = ibc;
       seq_end = ibc;
     } else if (ibc == (mNBC - 1)) {
       // Last bunch
       seq_end = ibc;
-      reconstructTDC(seq_beg, seq_end);
+      int rval = reconstructTDC(seq_beg, seq_end);
+      if (rval) {
+        return rval;
+      }
+
       seq_beg = mNBC;
       seq_end = mNBC;
     } else {
@@ -550,20 +584,27 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in ADC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
-      LOG(fatal) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
+      LOG(error) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
       return __LINE__;
     } else if (bcd > 1) {
       // Detected a gap
-      reconstruct(seq_beg, seq_end);
+      int rval = reconstruct(seq_beg, seq_end);
+      if (rval != 0) {
+        return rval;
+      }
       seq_beg = ibc;
       seq_end = ibc;
     } else if (ibc == (mNBC - 1)) {
       // Last bunch
       seq_end = ibc;
-      reconstruct(seq_beg, seq_end);
+      int rval = reconstruct(seq_beg, seq_end);
+      if (rval != 0) {
+        return rval;
+      }
       seq_beg = mNBC;
       seq_end = mNBC;
     } else {
@@ -648,7 +689,7 @@ void DigiReco::lowPassFilter()
   }
 }
 
-void DigiReco::reconstructTDC(int ibeg, int iend)
+int DigiReco::reconstructTDC(int ibeg, int iend)
 {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
   LOG(info) << "________________________________________________________________________________";
@@ -671,10 +712,14 @@ void DigiReco::reconstructTDC(int ibeg, int iend)
         // A gap is detected
         if (istart >= 0 && (istop - istart) > 0) {
           // Need data for at least two consecutive bunch crossings
+          int rval = 0;
           if (mRecoConfigZDC->extendedSearch) {
-            processTriggerExtended(itdc, istart, istop);
+            rval = processTriggerExtended(itdc, istart, istop);
           } else {
-            processTrigger(itdc, istart, istop);
+            rval = processTrigger(itdc, istart, istop);
+          }
+          if (rval) {
+            return rval;
           }
         }
         istart = -1;
@@ -683,10 +728,14 @@ void DigiReco::reconstructTDC(int ibeg, int iend)
     }
     // Check if there are consecutive bunch crossings at the end of group
     if (istart >= 0 && (istop - istart) > 0) {
+      int rval = 0;
       if (mRecoConfigZDC->extendedSearch) {
-        processTriggerExtended(itdc, istart, istop);
+        rval = processTriggerExtended(itdc, istart, istop);
       } else {
-        processTrigger(itdc, istart, istop);
+        rval = processTrigger(itdc, istart, istop);
+      }
+      if (rval) {
+        return rval;
       }
     }
   }
@@ -718,7 +767,10 @@ void DigiReco::reconstructTDC(int ibeg, int iend)
           // A gap is detected
           if (istart >= 0 && (istop - istart) > 0) {
             // Need data for at least two consecutive bunch crossings
-            fullInterpolation(isig, istart, istop);
+            int rval = fullInterpolation(isig, istart, istop);
+            if (rval) {
+              return rval;
+            }
           }
           istart = -1;
           istop = -1;
@@ -726,10 +778,14 @@ void DigiReco::reconstructTDC(int ibeg, int iend)
       }
       // Check if there are consecutive bunch crossings at the end of group
       if (istart >= 0 && (istop - istart) > 0) {
-        fullInterpolation(isig, istart, istop);
+        int rval = fullInterpolation(isig, istart, istop);
+        if (rval) {
+          return rval;
+        }
       }
     }
   }
+  return 0;
 } // reconstructTDC
 
 int DigiReco::reconstruct(int ibeg, int iend)
@@ -786,7 +842,8 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
       auto bcd = mBCData[ibeg].ir.differenceInBC(mBCData[ibun].ir);
       if (bcd < 1) {
-        LOG(fatal) << "Bunches are not in ascending order: " << mBCData[ibeg].ir.orbit << "." << mBCData[ibeg].ir.bc << " followed by " << mBCData[ibun].ir.orbit << "." << mBCData[ibun].ir.bc;
+        LOG(error) << "Bunches are not in ascending order: " << mBCData[ibeg].ir.orbit << "." << mBCData[ibeg].ir.bc << " followed by " << mBCData[ibun].ir.orbit << "." << mBCData[ibun].ir.bc;
+        return __LINE__;
       }
       if (bcd > 3) {
         break;
@@ -978,7 +1035,10 @@ void DigiReco::updateOffsets(int ibun)
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
-      LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      mMissingPed[ich]++;
+      if (mVerbosity > DbgMinimal) {
+        LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      }
     }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
     LOGF(info, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
@@ -986,7 +1046,7 @@ void DigiReco::updateOffsets(int ibun)
   }
 } // updateOffsets
 
-void DigiReco::processTrigger(int itdc, int ibeg, int iend)
+int DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
   LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "], " << ibeg << ", " << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
@@ -1022,14 +1082,19 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     auto ref_s = mReco[b2].ref[TDCSignal[itdc]]; // reference to subtrahend
     // Check data consistency before computing difference
     if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
-      return;
+      if (ref_m == ZDCRefInitVal) {
+        LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " tdc = " << itdc << " sig = " << TDCSignal[itdc];
+      }
+      if (ref_s == ZDCRefInitVal) {
+        LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << " tdc = " << itdc << " sig = " << TDCSignal[itdc];
+      }
+      return __LINE__;
     }
     // Check that bunch crossings are indeed the same or consecutive
     auto bcd = mReco[b2].ir.differenceInBC(mReco[b1].ir);
     if (bcd != 0 && bcd != 1) {
-      LOG(fatal) << __func__ << ": large bunch crossing difference " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " followed by " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc;
-      return;
+      LOG(error) << __func__ << " @ " << __LINE__ << " Large bunch crossing difference " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " followed by " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc;
+      return __LINE__;
     }
     int diff = mChData[ref_m].data[s1] - mChData[ref_s].data[s2];
     // Triple trigger condition
@@ -1073,10 +1138,10 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
       break;
     }
   }
-  interpolate(itdc, ibeg, iend);
+  return interpolate(itdc, ibeg, iend);
 } // processTrigger
 
-void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
+int DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
 {
   auto isig = TDCSignal[itdc];
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
@@ -1090,8 +1155,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     // Message will be produced when computing amplitude (if a hit is found in this bunch)
     // In this framework we have a potential undetected inefficiency, however pedestal
     // problem is a serious problem and will be noticed anyway
-    processTrigger(itdc, ibeg, iend);
-    return;
+    return processTrigger(itdc, ibeg, iend);
   }
 
   int nbun = iend - ibeg + 1;
@@ -1124,8 +1188,8 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     int s1 = is1 % NTimeBinsPerBC;
     if (is1 < 0) {
       if (ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
-        return;
+        LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << " sig = " << isig;
+        return __LINE__;
       }
       diff = mOffset[isig] - mChData[ref_s].data[s2];
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
@@ -1137,14 +1201,14 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       auto ref_m = mReco[b1].ref[TDCSignal[itdc]]; // reference to minuend
       // Check data consistency before computing difference
       if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
-        return;
+        LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " tdc = " << itdc << " sig = " << TDCSignal[itdc];
+        return __LINE__;
       }
       // Check that bunch crossings are indeed the same or consecutive
       auto bcd = mReco[b2].ir.differenceInBC(mReco[b1].ir);
       if (bcd != 0 && bcd != 1) {
-        LOG(fatal) << __func__ << ": large bunch crossing difference " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " followed by " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc;
-        return;
+        LOG(error) << __func__ << ": large bunch crossing difference " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " followed by " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc;
+        return __LINE__;
       }
       diff = mChData[ref_m].data[s1] - mChData[ref_s].data[s2];
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
@@ -1187,7 +1251,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       break;
     }
   }
-  interpolate(itdc, ibeg, iend);
+  return interpolate(itdc, ibeg, iend);
 } // processTrigger
 
 // Interpolation for single point
@@ -1195,7 +1259,8 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int isig, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
-    LOG(fatal) << "Error addressing isig=" << isig << " i=" << i << " mNtot=" << mNtot;
+    LOG(error) << "Error addressing isig=" << isig << " i=" << i << " mNtot=" << mNtot;
+    mInError = true;
     return std::numeric_limits<float>::infinity();
   }
   // Constant extrapolation at the beginning and at the end of the array
@@ -1216,7 +1281,8 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int isig, int ibeg, int iend, int i)
       int ip = (i / TSN) % NTimeBinsPerBC;
       int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
       if (ib != ibun) {
-        LOG(fatal) << "ib=" << ib << " ibun=" << ibun;
+        LOG(error) << "ib=" << ib << " ibun=" << ibun;
+        mInError = true;
         return std::numeric_limits<float>::infinity();
       }
       return mReco[ibun].data[isig][ip]; // Filtered point
@@ -1259,7 +1325,8 @@ void DigiReco::setPoint(int isig, int ibeg, int iend, int i)
   }
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
-    LOG(fatal) << "Error addressing signal isig=" << isig << " i=" << i << " mNtot=" << mNtot;
+    LOG(error) << "Error addressing signal isig=" << isig << " i=" << i << " mNtot=" << mNtot;
+    mInError = true;
     return;
   }
   // Constant extrapolation at the beginning and at the end of the array
@@ -1278,7 +1345,7 @@ void DigiReco::setPoint(int isig, int ibeg, int iend, int i)
   }
 } // setPoint
 
-void DigiReco::fullInterpolation(int isig, int ibeg, int iend)
+int DigiReco::fullInterpolation(int isig, int ibeg, int iend)
 {
   // Interpolation of signal isig, in consecutive bunches from ibeg to iend
   // This function works for all signals and does not evaluate trigger
@@ -1304,7 +1371,8 @@ void DigiReco::fullInterpolation(int isig, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " sig = " << isig;
+      return __LINE__;
     }
   }
 
@@ -1318,9 +1386,13 @@ void DigiReco::fullInterpolation(int isig, int ibeg, int iend)
   for (int i = 0; i < mNtot; i++) {
     setPoint(isig, ibeg, iend, i);
   }
+  if (mInError) {
+    return __LINE__;
+  }
+  return 0;
 }
 
-void DigiReco::interpolate(int itdc, int ibeg, int iend)
+int DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
   // Interpolation of TDC channel itdc, in consecutive bunches from ibeg to iend
   int isig = TDCSignal[itdc];
@@ -1349,7 +1421,8 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(error) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " sig = " << isig;
+      return __LINE__;
     }
   }
 
@@ -1371,7 +1444,9 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       setPoint(isig, ibeg, iend, i);
     }
   }
-
+  if (mInError) {
+    return __LINE__;
+  }
   // Looking for a local maximum in a search zone
   O2_ZDC_DIGIRECO_FLT amp = std::numeric_limits<float>::infinity(); // Amplitude to be stored
   int isam_amp = 0;                                                 // Sample at maximum amplitude (relative to beginning of group)
@@ -1382,7 +1457,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   int ip[nsp] = {-1, -1, -1, -1, -1};
   // N.B. Points at the extremes are constant therefore no local maximum
   // can occur in these two regions
-  for (int i = 0; i < mNint; i++) {
+  for (int i = 0; i < mNint; i += mInterpolationStep) {
     int isam = i + TSNH;
     // Check if trigger is fired for this point
     // For the moment we don't take into account possible extensions of the search zone
@@ -1489,6 +1564,31 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     // If we exit from searching zone
     if (was_searchable && !is_searchable) {
       if (amp <= ADCMax) {
+        if (mInterpolationStep > 1) {
+          // Refine peak search
+          int sbeg = (isam_amp - TSNH);
+          int send = (isam_amp + TSNH);
+          if (sbeg < 0) {
+            sbeg = 0;
+            send = sbeg + TSN;
+          }
+          if (send > (mNint + TSNH)) {
+            send = mNint + TSNH;
+            sbeg = send - TSN;
+          }
+          if (sbeg < 0) {
+            sbeg = 0;
+          }
+          for (int spos = sbeg; spos < send; spos++) {
+            // Perform interpolation for the searched point
+            O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
+            // Get local minimum of waveform
+            if (myval < amp) {
+              amp = myval;
+              isam_amp = spos;
+            }
+          }
+        }
         // Store identified peak
         int ibun = ibeg + isam_amp / nsbun;
         updateOffsets(ibun);
@@ -1525,11 +1625,40 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         isam_amp = isam;
       }
     }
+  } // Loop on interpolated points
+  if (mInError) {
+    return __LINE__;
   }
+
   // Trigger flag still present at the of the scan
   if (is_searchable) {
     // Add last identified peak
     if (amp <= ADCMax) {
+      if (mInterpolationStep > 1) {
+        // Refine peak search
+        int sbeg = (isam_amp - TSNH);
+        int send = (isam_amp + TSNH);
+        if (sbeg < 0) {
+          sbeg = 0;
+          send = sbeg + TSN;
+        }
+        if (send > (mNint + TSNH)) {
+          send = mNint + TSNH;
+          sbeg = send - TSN;
+        }
+        if (sbeg < 0) {
+          sbeg = 0;
+        }
+        for (int spos = sbeg; spos < send; spos++) {
+          // Perform interpolation for the searched point
+          O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
+          // Get local minimum of waveform
+          if (myval < amp) {
+            amp = myval;
+            isam_amp = spos;
+          }
+        }
+      }
       // Store identified peak
       int ibun = ibeg + isam_amp / nsbun;
       updateOffsets(ibun);
@@ -1543,7 +1672,11 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       assignTDC(ibun, ibeg, iend, itdc, tdc, amp);
     }
   }
+  if (mInError) {
+    return __LINE__;
+  }
   // TODO: add logic to assign TDC in presence of overflow
+  return 0;
 } // interpolate
 
 void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp)
@@ -1598,8 +1731,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     rec.tdcVal[itdc][ihit] = TDCVal;
     rec.tdcAmp[itdc][ihit] = myamp;
   } else {
-    LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * o2::zdc::FTDCVal << " TDCAmp=" << TDCAmp * o2::zdc::FTDCAmp << " OVERFLOW";
+    LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * o2::zdc::FTDCVal << " TDCAmp=" << TDCAmp * o2::zdc::FTDCAmp << " OVERFLOW";
   }
 #endif
   // Assign info about pedestal subtration

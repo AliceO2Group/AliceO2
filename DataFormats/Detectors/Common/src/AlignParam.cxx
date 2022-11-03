@@ -12,7 +12,7 @@
 /// \file AlignParam.cxx
 /// \brief Implementation of the base alignment parameters class
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>

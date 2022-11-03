@@ -3,7 +3,7 @@
 #include "Generators/Trigger.h"
 #include "Pythia8/Pythia.h"
 #include "Pythia8/HIUserHooks.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 o2::eventgen::DeepTrigger
   trigger_impactb_pythia8(double bmin = 5., double bmax = 10.)

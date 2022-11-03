@@ -27,7 +27,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
 #include "Riostream.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <vector>
 #include <iostream>

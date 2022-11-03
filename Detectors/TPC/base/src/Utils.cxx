@@ -174,8 +174,9 @@ std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const s
   if (std::string_view(firstKey->GetClassName()) == std::string_view(clMap->GetName())) {
     auto calPadMap = firstKey->ReadObject<CalPadMapType>();
     for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
-      calPads[iCalPad] = &calPadMap->at(calPadNames[iCalPad]);
+      calPads[iCalPad] = new CalPad(calPadMap->at(calPadNames[iCalPad]));
     }
+    delete calPadMap;
   } else {
     for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
       file->GetObject(calPadNames[iCalPad].data(), calPads[iCalPad]);

@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  BinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<TestA, TestA>>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos, nullptr);
@@ -293,8 +293,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
 
   auto combBlock = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 2, -1, testsA, testsA));
 
-  static_assert(std::is_same_v<decltype(combBlock.begin()), CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BinningPolicy<test::Y, test::FloatZ>, int32_t, TestA, TestA>>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(combBlock.begin())), CombinationsBlockStrictlyUpperSameIndexPolicy<BinningPolicy<test::Y, test::FloatZ>, int32_t, TestA, TestA>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(combBlock.begin()), CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<ColumnBinningPolicy<test::Y, test::FloatZ>, int32_t, TestA, TestA>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(combBlock.begin())), CombinationsBlockStrictlyUpperSameIndexPolicy<ColumnBinningPolicy<test::Y, test::FloatZ>, int32_t, TestA, TestA>::CombinationType&>, "Wrong combination type");
 
   auto beginBlockCombination = *(combBlock.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginBlockCombination)).getIterator().mCurrentPos, nullptr);
@@ -948,8 +948,8 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  BinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
-  BinningPolicy<test::Y, test::FloatZ> pairBinningNoOverflows{{yBins, zBins}, true};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinningNoOverflows{{yBins, zBins}, true};
 
   // 2, 3, 5, 8, 9 have overflows in testA
   std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsNoOverflows{
@@ -1168,8 +1168,8 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   // [3, 5] [0, 4], [7], [1, 6], [2], [8, 9]
   // Assuming bins intervals: [ , )
   std::vector<double> xBins{VARIABLE_WIDTH, 0, 7, 10};
-  BinningPolicy<test::X, test::Y, test::FloatZ> tripleBinning{{xBins, yBins, zBins}, false};
-  BinningPolicy<test::X, test::Y, test::FloatZ> tripleBinningNoOverflows{{xBins, yBins, zBins}, true};
+  ColumnBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinning{{xBins, yBins, zBins}, false};
+  ColumnBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinningNoOverflows{{xBins, yBins, zBins}, true};
 
   // 2, 3, 5, 8, 9 have overflows in testA
   std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinningNoOverflows{
@@ -1276,7 +1276,7 @@ BOOST_AUTO_TEST_CASE(CombinationsHelpers)
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  BinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
 
   std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
     {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
@@ -1328,4 +1328,79 @@ BOOST_AUTO_TEST_CASE(ConstructorsWithoutTables)
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
+}
+
+BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t, float>({"x", "y", "floatZ"});
+  rowWriterA(0, 0, 25, -1.3f);
+  rowWriterA(0, 1, 21, -1.8f);
+  rowWriterA(0, 2, 48, 2.0f);
+  rowWriterA(0, 3, 26, -2.0f);
+  rowWriterA(0, 4, 28, -1.5f);
+  rowWriterA(0, 5, 42, 2.0f);
+  rowWriterA(0, 6, 47, 2.5f);
+  rowWriterA(0, 7, 24, -1.8f);
+  rowWriterA(0, 8, 41, 1.3f);
+  rowWriterA(0, 9, 49, 1.8f);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 10);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  TestA testA{tableA};
+  BOOST_REQUIRE_EQUAL(10, testA.size());
+
+  // Grouped data:
+  // [0, 1, 3, 4, 7], [2, 5, 6, 8, 9]
+  // Assuming bins intervals: [ , )
+  std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
+  std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
+
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+
+  // Window size < category size
+  std::vector<int> expectedCollisionsInBinSmallWindow{3, 3, 2, 1, 3, 3, 2, 1};
+  int countFirst = 0;
+  int previousEvent = -1;
+  auto combGenSmallWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 3, -1, testA, testA));
+  for (auto it = combGenSmallWindow.begin(); it != combGenSmallWindow.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinSmallWindow[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
+
+  // Window size = category size
+  std::vector<int> expectedCollisionsInBinEqualWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  countFirst = 0;
+  previousEvent = -1;
+  auto combGenEqualWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
+  for (auto it = combGenEqualWindow.begin(); it != combGenEqualWindow.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinEqualWindow[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
+
+  // Window size = category size
+  std::vector<int> expectedCollisionsInBinBigWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  countFirst = 0;
+  previousEvent = -1;
+  auto combGenBigWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 5, -1, testA, testA));
+  for (auto it = combGenBigWindow.begin(); it != combGenBigWindow.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinBigWindow[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
 }

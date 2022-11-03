@@ -42,8 +42,8 @@ namespace o2::tpc
 class TPCDistributeIDCSpec : public o2::framework::Task
 {
  public:
-  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutput(outlanes)
+  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req)
+    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutput(outlanes)
   {
     // pre calculate data description for output
     mDataDescrOut.reserve(mOutLanes);
@@ -109,8 +109,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     if (mTFStart.front() <= -1) {
       const auto firstTF = tf;
       const long offsetTF = std::abs(mTFStart.front() + 1);
-      mTFStart = {firstTF + offsetTF, firstTF + offsetTF + mTimeFrames};
-      mTFEnd = {mTFStart[1] - 1, mTFStart[1] - 1 + mTimeFrames};
+      const auto nTotTFs = getNRealTFs();
+      mTFStart = {firstTF + offsetTF, firstTF + offsetTF + nTotTFs};
+      mTFEnd = {mTFStart[1] - 1, mTFStart[1] - 1 + nTotTFs};
       LOGP(info, "Setting {} as first TF", mTFStart[0]);
       LOGP(info, "Using offset of {} TFs for setting the first TF", offsetTF);
     }
@@ -123,8 +124,8 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
 
     const unsigned int currentOutLane = getOutLane(tf);
-    const unsigned int relTF = tf - mTFStart[currentBuffer];
-    LOGP(info, "current TF: {}   relative TF: {}    current buffer: {}    current output lane: {}     mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
+    const unsigned int relTF = (tf - mTFStart[currentBuffer]) / mNTFsBuffer;
+    LOGP(debug, "current TF: {}   relative TF: {}    current buffer: {}    current output lane: {}     mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
 
     if (relTF >= mProcessedCRU[currentBuffer].size()) {
       LOGP(warning, "Skipping tf {}: relative tf {} is larger than size of buffer: {}", tf, relTF, mProcessedCRU[currentBuffer].size());
@@ -207,6 +208,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
  private:
   std::vector<uint32_t> mCRUs{};                                                       ///< CRUs to process in this instance
   const unsigned int mTimeFrames{};                                                    ///< number of TFs per aggregation interval
+  const int mNTFsBuffer{1};                                                            ///< number of TFs for which the IDCs will be buffered
   const unsigned int mOutLanes{};                                                      ///< number of output lanes
   std::array<unsigned int, 2> mProcessedTFs{{0, 0}};                                   ///< number of processed time frames to keep track of when the writing to CCDB will be done
   std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                            ///< counter of received data from CRUs per TF to merge incoming data from FLPs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
@@ -234,6 +236,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   /// returns the output lane to which the data will be send
   unsigned int getOutLane(const uint32_t tf) const { return (tf > mTFEnd[mBuffer]) ? (mCurrentOutLane + 1) % mOutLanes : mCurrentOutLane; }
 
+  /// returns real number of TFs taking buffer size into account
+  unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
+
   void clearBuffer(const bool currentBuffer)
   {
     // resetting received CRUs
@@ -248,7 +253,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 
     // set integration range for next integration interval
     mTFStart[mBuffer] = mTFEnd[!mBuffer] + 1;
-    mTFEnd[mBuffer] = mTFStart[mBuffer] + mTimeFrames - 1;
+    mTFEnd[mBuffer] = mTFStart[mBuffer] + getNRealTFs() - 1;
 
     // switch buffer
     mBuffer = !mBuffer;
@@ -300,14 +305,16 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   void finishInterval(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const bool buffer, const uint32_t tf)
   {
     if (mNFactorTFs > 0) {
+      mNFactorTFs = 0;
       // ToDo: Find better fix
-      for (unsigned int ilane = currentOutLane; ilane < mOutLanes; ++ilane) {
+      for (unsigned int ilane = 0; ilane < mOutLanes; ++ilane) {
         auto& deviceProxy = pc.services().get<FairMQDeviceProxy>();
         auto& state = deviceProxy.getOutputChannelState({static_cast<int>(ilane)});
-        const unsigned int oldest = tf + mNFactorTFs * (mOutLanes - 1) * mTimeFrames;
+        size_t oldest = std::numeric_limits<size_t>::max() - 1; // just set to really large value
         state.oldestForChannel = {oldest};
       }
     }
+
     LOGP(info, "All TFs {} for current buffer received. Clearing buffer", tf);
     clearBuffer(buffer);
     mStartNTFsDataDrop[buffer] = 0;
@@ -315,13 +322,13 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false)
+DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false, const int nTFsBuffer = 1)
 {
   std::vector<InputSpec> inputSpecs;
   const auto sides = IDCFactorization::getSides(crus);
   for (auto side : sides) {
     const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
-    inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Timeframe});
+    inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
   }
 
   std::vector<OutputSpec> outputSpecs;
@@ -352,7 +359,7 @@ DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uin
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, outlanes, firstTF, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, nTFsBuffer, outlanes, firstTF, ccdbRequest)},
     Options{{"drop-data-after-nTFs", VariantType::Int, 0, {"Number of TFs after which to drop the data."}},
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)."}},
             {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF."}}}}; // end DataProcessorSpec

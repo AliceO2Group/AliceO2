@@ -16,7 +16,7 @@
 /// @brief  Device to write to tree the information for TOF time slewing calibration.
 
 #include "TOFCalibration/TOFCalibCollector.h"
-#include "DataFormatsTOF/CalibInfoTOFshort.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 #include <TTree.h>
 #include <gsl/span>
 
@@ -51,7 +51,7 @@ class TOFCalibCollectorWriter : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto collectedInfo = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOFshort>>("collectedInfo");
+    auto collectedInfo = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("collectedInfo");
     auto entriesPerChannel = pc.inputs().get<gsl::span<int>>("entriesCh");
     int offsetStart = 0;
     for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++) {
@@ -59,8 +59,8 @@ class TOFCalibCollectorWriter : public o2::framework::Task
       if (entriesPerChannel[ich] > 0) {
         mTOFCalibInfoOut.resize(entriesPerChannel[ich]);
         auto subSpanVect = collectedInfo.subspan(offsetStart, entriesPerChannel[ich]);
-        memcpy(&mTOFCalibInfoOut[0], subSpanVect.data(), sizeof(o2::dataformats::CalibInfoTOFshort) * subSpanVect.size());
-        const o2::dataformats::CalibInfoTOFshort* tmp = subSpanVect.data();
+        memcpy(&mTOFCalibInfoOut[0], subSpanVect.data(), sizeof(o2::dataformats::CalibInfoTOF) * subSpanVect.size());
+        const o2::dataformats::CalibInfoTOF* tmp = subSpanVect.data();
       }
       mOutputTree->Fill();
       offsetStart += entriesPerChannel[ich];
@@ -77,7 +77,7 @@ class TOFCalibCollectorWriter : public o2::framework::Task
  private:
   int mCount = 0; // how many times we filled the tree
   bool mIsEndOfStream = false;
-  std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCalibInfoOut, *mPTOFCalibInfoOut = &mTOFCalibInfoOut; ///< these are the object and pointer to the CalibInfo of a specific channel that we need to fill the output tree
+  std::vector<o2::dataformats::CalibInfoTOF> mTOFCalibInfoOut, *mPTOFCalibInfoOut = &mTOFCalibInfoOut;      ///< these are the object and pointer to the CalibInfo of a specific channel that we need to fill the output tree
   std::unique_ptr<TTree> mOutputTree;                                                                       ///< tree for the collected calib tof info
   std::string mTOFCalibInfoBranchName = "TOFCalibInfo";                                                     ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCollectedCalibInfo";                                                  ///< name of branch containing output

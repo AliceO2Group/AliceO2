@@ -50,13 +50,47 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<OrbitData>& pedVec);
+  std::vector<BCData> mTrgDataFilt;
+  std::vector<ChannelData> mChanDataFilt;
+  std::vector<OrbitData> mPedDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
+{
+  if (mIRFrameSelector.isSet()) { // preselect data
+    std::unordered_map<uint32_t, int> orbitSaved;
+    mTrgDataFilt.clear();
+    mChanDataFilt.clear();
+    mPedDataFilt.clear();
+    for (const auto& trig : trigData) {
+      if (mIRFrameSelector.check(trig.ir) >= 0) {
+        mTrgDataFilt.push_back(trig);
+        auto chanIt = chanData.begin() + trig.ref.getFirstEntry();
+        auto& trigC = mTrgDataFilt.back();
+        trigC.ref.set((int)mChanDataFilt.size(), trig.ref.getEntries());
+        std::copy(chanIt, chanIt + trig.ref.getEntries(), std::back_inserter(mChanDataFilt));
+        orbitSaved[trig.ir.orbit]++;
+      }
+    }
+    // collect saved orbits data
+    for (const auto& ped : pedData) {
+      if (orbitSaved.find(ped.ir.orbit) != orbitSaved.end()) {
+        mPedDataFilt.push_back(ped);
+      }
+    }
+    return encode_impl(buff, mTrgDataFilt, mChanDataFilt, mPedDataFilt);
+  }
+  return encode_impl(buff, trigData, chanData, pedData);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation

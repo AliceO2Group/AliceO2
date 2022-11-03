@@ -24,7 +24,7 @@
 using CALIBRATOR = o2::mft::NoiseCalibrator;
 
 //#include "MFTCalibration/NoiseSlotCalibrator.h" //For TimeSlot calibration
-//using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
+// using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
 
 #include "DataFormatsITSMFT/NoiseMap.h"
 
@@ -59,7 +59,7 @@ class NoiseCalibratorSpec : public Task
   std::string mPath;
   std::string mMeta;
 
-  std::vector<std::array<int, 4>> mNoiseMapForDcs;
+  std::vector<std::array<int, 3>> mNoiseMapForDcs;
   std::string mPathDcs;
   std::string mOutputType;
 

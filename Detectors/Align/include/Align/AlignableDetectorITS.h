@@ -39,14 +39,7 @@ class AlignableDetectorITS : public AlignableDetector
  public:
   //
   using ClusterD = o2::BaseCluster<double>;
-  enum ITSSel_t { kSPDNoSel,
-                  kSPDBoth,
-                  kSPDAny,
-                  kSPD0,
-                  kSPD1,
-                  kNSPDSelTypes };
-  //
-  AlignableDetectorITS() = default;
+  AlignableDetectorITS() = default; // RS FIXME do we need default c-tor?
   AlignableDetectorITS(Controller* ctr);
   ~AlignableDetectorITS() override = default;
   //
@@ -64,19 +57,10 @@ class AlignableDetectorITS : public AlignableDetector
   //
   void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const override;
   void setUseErrorParam(int v = 0) override;
-  void SetITSSelPattern(int trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
-  void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(utils::Coll, sel); }
-  void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(utils::Cosm, sel); }
-
-  int GetITSSelPattern(int tp) const { return fITSPatt[tp]; }
-  int GetITSSelPatternColl() const { return fITSPatt[utils::Coll]; }
-  int GetITSSelPatternCosm() const { return fITSPatt[utils::Cosm]; }
   //
   void setITSDictionary(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
   //
   void Print(const Option_t* opt = "") const override;
-  //
-  static const char* GetITSPattName(int sel) { return sel < kNSPDSelTypes ? fgkHitsSel[sel] : nullptr; }
   //
  protected:
   //
@@ -88,10 +72,6 @@ class AlignableDetectorITS : public AlignableDetector
   //
   std::vector<ClusterD> mITSClustersArray;
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
-
-  int fITSPatt[utils::NTrackTypes]; // ITS hits selection pattern for coll/cosm tracks
-  //
-  static const char* fgkHitsSel[kNSPDSelTypes]; // ITS selection names
   //
   ClassDefOverride(AlignableDetectorITS, 1);
 };

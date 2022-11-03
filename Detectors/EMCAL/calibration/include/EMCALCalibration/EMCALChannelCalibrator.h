@@ -49,8 +49,7 @@ namespace emcal
 {
 /// \brief class used for managment of bad channel and time calibration
 /// template DataInput can be ChannelData or TimeData   // o2::emcal::EMCALChannelData, o2::emcal::EMCALTimeCalibData
-/// template HistContainer can be ChannelCalibInitParams or TimeCalibInitParams
-template <typename DataInput, typename DataOutput, typename HistContainer>
+template <typename DataInput, typename DataOutput>
 class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>
 {
   using TFType = o2::calibration::TFType;
@@ -97,8 +96,8 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
 };
 
 //_____________________________________________
-template <typename DataInput, typename DataOutput, typename HistContainer>
-void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::initOutput()
+template <typename DataInput, typename DataOutput>
+void EMCALChannelCalibrator<DataInput, DataOutput>::initOutput()
 {
   mInfoVector.clear();
   mCalibObjectVector.clear();
@@ -107,16 +106,16 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::initOutput()
 }
 
 //_____________________________________________
-template <typename DataInput, typename DataOutput, typename HistContainer>
-bool EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::hasEnoughData(const o2::calibration::TimeSlot<DataInput>& slot) const
+template <typename DataInput, typename DataOutput>
+bool EMCALChannelCalibrator<DataInput, DataOutput>::hasEnoughData(const o2::calibration::TimeSlot<DataInput>& slot) const
 {
   const DataInput* c = slot.getContainer();
   return (mTest ? true : c->hasEnoughData());
 }
 
 //_____________________________________________
-template <typename DataInput, typename DataOutput, typename HistContainer>
-void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(o2::calibration::TimeSlot<DataInput>& slot)
+template <typename DataInput, typename DataOutput>
+void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration::TimeSlot<DataInput>& slot)
 {
 
   // Extract results for the single slot
@@ -125,14 +124,36 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
 
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
-    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
+    LOG(debug) << "Launching the calibration.";
+    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto(), c->getHistoTime());
+    LOG(debug) << "Done with the calibraiton";
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
+
+    if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos) {
+      std::ifstream ffile(EMCALCalibParams::Instance().localRootFilePath.c_str());
+
+      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
+      fLocalStorage.cd();
+      TH2F* histBCMap = (TH2F*)bcm.getHistogramRepresentation();
+      std::string nameBCHist = "BadChannels_" + std::to_string(slot.getStartTimeMS());
+      histBCMap->Write(nameBCHist.c_str(), TObject::kOverwrite);
+
+      TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
+      std::string nameBCInputHist = "EnergyVsCellID_" + std::to_string(slot.getStartTimeMS());
+      hCalibHist.Write(nameBCInputHist.c_str(), TObject::kOverwrite);
+
+      TH2F hCalibHistTime = o2::utils::TH2FFromBoost(c->getHistoTime());
+      std::string nameBCInputHistTime = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());
+      hCalibHistTime.Write(nameBCInputHistTime.c_str(), TObject::kOverwrite);
+
+      fLocalStorage.Close();
+    }
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
-    auto tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit, EMCALCalibParams::Instance().maxTimeForFit, EMCALCalibParams::Instance().restrictFitRangeToMax);
+    auto tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit_tc, EMCALCalibParams::Instance().maxTimeForFit_tc, EMCALCalibParams::Instance().restrictFitRangeToMax_tc);
 
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
@@ -147,9 +168,13 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
 
       TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
       fLocalStorage.cd();
-      TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
-      std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());
+      TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false); // high gain calibration
+      std::string nameTCHist = "TCParams_HG_" + std::to_string(slot.getStartTimeMS());
       histTCparams->Write(nameTCHist.c_str(), TObject::kOverwrite);
+
+      TH1F* histTCparams_LG = (TH1F*)tcd.getHistogramRepresentation(true); // low gain calibration
+      std::string nameTCHist_LG = "TCParams_LG_" + std::to_string(slot.getStartTimeMS());
+      histTCparams_LG->Write(nameTCHist_LG.c_str(), TObject::kOverwrite);
 
       TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
       std::string nameTCInputHist = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());
@@ -159,13 +184,12 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
   }
 }
 
-template <typename DataInput, typename DataOutput, typename HistContainer>
-o2::calibration::TimeSlot<DataInput>& EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
+template <typename DataInput, typename DataOutput>
+o2::calibration::TimeSlot<DataInput>& EMCALChannelCalibrator<DataInput, DataOutput>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  HistContainer histcont; // initialize struct with (default) ranges for time or channel calibration.
-  slot.setContainer(std::make_unique<DataInput>(histcont));
+  slot.setContainer(std::make_unique<DataInput>());
   return slot;
 }
 

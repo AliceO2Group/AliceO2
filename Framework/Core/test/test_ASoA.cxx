@@ -528,7 +528,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
 
 BOOST_AUTO_TEST_CASE(TestSchemaCreation)
 {
-  auto schema = createSchemaFromColumns(Points::persistent_columns_t{});
+  auto schema = std::make_shared<arrow::Schema>(createFieldsFromColumns(Points::persistent_columns_t{}));
   BOOST_CHECK_EQUAL(schema->num_fields(), 2);
   BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
   BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");

@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "EMCALCalib/CalibContainerErrors.h"
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 
 namespace o2
@@ -16,19 +17,19 @@ namespace o2
 namespace emcal
 {
 
-void EMCALChannelScaleFactors::insertVal(const int cellID, float E_min, float E_max, float scale)
+void EMCALChannelScaleFactors::insertVal(unsigned int cellID, float E_min, float E_max, float scale)
 {
   if (cellID >= NCells || cellID < 0) {
-    throw InvalidCellIDException(cellID);
+    throw CalibContainerIndexException(cellID);
   } else {
     ScaleFactors.at(cellID)[EnergyIntervals(E_min, E_max)] = scale;
   }
 }
 
-float EMCALChannelScaleFactors::getScaleVal(const int cellID, float E) const
+float EMCALChannelScaleFactors::getScaleVal(unsigned int cellID, float E) const
 {
   if (cellID >= NCells || cellID < 0) {
-    throw InvalidCellIDException(cellID);
+    throw CalibContainerIndexException(cellID);
   } else {
     for (const auto& [energy, scale] : ScaleFactors[cellID]) {
       if (energy.isInInterval(E)) {

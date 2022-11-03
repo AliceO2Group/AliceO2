@@ -19,8 +19,8 @@
 #include "DataFormatsTPC/Defs.h"
 #include "functional"
 #include "TPCCalibration/IDCContainer.h"
-#include "TH2Poly.h"
-#include "TCanvas.h"
+
+class TH2Poly;
 
 namespace o2::tpc
 {

@@ -26,6 +26,10 @@ o2_add_library(EMCALCalibration
                                      O2::Algorithm
                                      Microsoft.GSL::GSL
                                      )
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 o2_target_root_dictionary(EMCALCalibration
                           HEADERS include/EMCALCalibration/EMCALCalibExtractor.h
@@ -43,6 +47,10 @@ o2_add_executable(emcal-channel-calib-workflow
                                         O2::EMCALCalibration
                                         O2::DetectorsRaw
                                         O2::DetectorsCalibration)
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 o2_add_executable(run-calib-offline
                   COMPONENT_NAME emcal

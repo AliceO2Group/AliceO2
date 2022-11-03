@@ -14,7 +14,7 @@
 #include "PHOSReconstruction/RawReaderMemory.h"
 #include "PHOSReconstruction/RawDecodingError.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace o2::phos;
 
@@ -96,7 +96,14 @@ void RawReaderMemory::next()
     try {
       mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
     } catch (RCUTrailer::Error& e) {
-      LOG(error) << "Trailer decoding error: " << e.what();
+      if (e.getErrorType() == RCUTrailer::Error::ErrorType_t::DECODING_INVALID) {
+        // OS: According to expert old error of PHOS SRU firmware, not
+        //     expected to be fixed soon, hence denoted to warning to
+        //     not alarm the shifters
+        LOG(warn) << "Trailer decoding error: " << e.what();
+      } else {
+        LOG(error) << "Trailer decoding error: " << e.what();
+      }
       throw RawDecodingError::ErrorType_t::HEADER_DECODING;
     }
   }

@@ -15,6 +15,7 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "CommonUtils/MemFileHelper.h"
@@ -36,6 +37,14 @@ int InterCalib::init()
     LOG(fatal) << "o2::zdc::InterCalib: missing configuration object";
     return -1;
   }
+
+  // Inspect calibration parameters
+  const auto& opt = CalibParamZDC::Instance();
+  opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
+
   clear();
   auto* cfg = mInterCalibConfig;
   int ih;
@@ -117,6 +126,10 @@ int InterCalib::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "Computing intercalibration coefficients");
   }
+  if (mSaveDebugHistos) {
+    saveDebugHistos();
+  }
+
   for (int ih = 0; ih < NH; ih++) {
     LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
     if (!mInterCalibConfig->enabled[ih]) {
@@ -154,9 +167,6 @@ int InterCalib::endOfRun()
   mInfo.setEndValidityTimestamp(stopping);
   mInfo.setAdjustableEOV();
 
-  if (mSaveDebugHistos) {
-    write();
-  }
   return 0;
 }
 
@@ -464,7 +474,7 @@ int InterCalib::mini(int ih)
   return ierflg;
 }
 
-int InterCalib::write(const std::string fn)
+int InterCalib::saveDebugHistos(const std::string fn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

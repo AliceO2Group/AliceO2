@@ -25,7 +25,7 @@ o2_add_library(CommonUtils
                        src/IRFrameSelector.cxx
                        src/DebugStreamer.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
-                                     FairLogger::FairLogger)
+                                     FairLogger::FairLogger O2::MathUtils)
 
 o2_target_root_dictionary(CommonUtils
                           HEADERS include/CommonUtils/TreeStream.h

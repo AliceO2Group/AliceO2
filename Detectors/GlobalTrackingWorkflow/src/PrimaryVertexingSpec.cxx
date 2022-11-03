@@ -15,6 +15,7 @@
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -46,8 +47,8 @@ namespace o2d = o2::dataformats;
 class PrimaryVertexingSpec : public Task
 {
  public:
-  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool skip, bool validateWithIR, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
+  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool skip, bool validateWithIR, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTrackSrc(src), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
   ~PrimaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -59,6 +60,7 @@ class PrimaryVertexingSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::vertexing::PVertexer mVertexer;
+  GTrackID::mask_t mTrackSrc{};
   bool mSkip{false};           ///< skip vertexing
   bool mUseMC{false};          ///< MC flag
   bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
@@ -97,19 +99,20 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     std::vector<o2::MCCompLabel> tracksMCInfo;
     std::vector<o2d::GlobalTrackID> gids;
     auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
+    auto trackMaxX = PVertexerParams::Instance().trackMaxX;
     auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
     auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
-      if (!_origID.includesDet(DetID::ITS)) {
-        return true; // just in case this selection was not done on RecoContainer filling level
-      }
-      if constexpr (isITSTrack<decltype(_tr)>()) {
-        t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
-        terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
-      }
-      // for all other tracks the time is in \mus with gaussian error
-      if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, trackMaxX, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
+      if constexpr (isBarrelTrack<decltype(_tr)>()) {
+        if (!_origID.includesDet(DetID::ITS) || _tr.getX() > trackMaxX) {
+          return true; // just in case this selection was not done on RecoContainer filling level
+        }
+        if constexpr (isITSTrack<decltype(_tr)>()) {
+          t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
+          terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+        }
+        // for all other barrel tracks the time is in \mus with gaussian error
         if (terr < maxTrackTimeError) {
           tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
           gids.emplace_back(_origID);
@@ -118,7 +121,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
       return true;
     };
 
-    recoData.createTracksVariadic(creator); // create track sample considered for vertexing
+    recoData.createTracksVariadic(creator, mTrackSrc); // create track sample considered for vertexing
 
     if (mUseMC) {
       recoData.fillTrackMCLabels(gids, tracksMCInfo);
@@ -172,6 +175,10 @@ void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     par.printKeyValues();
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    mVertexer.setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
+    return;
+  }
 }
 
 void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -196,6 +203,7 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     PVertexerParams::Instance().printKeyValues();
   }
   // we may have other params which need to be queried regularly
+  pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool validateWithFT0, bool useMC)
@@ -224,12 +232,13 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
 
   return DataProcessorSpec{
     "primary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, skip, validateWithFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, src, skip, validateWithFT0, useMC)},
     Options{{"pool-dumps-directory", VariantType::String, "", {"Destination directory for the tracks pool dumps"}}}};
 }
 

@@ -19,7 +19,7 @@
 /* ------ HISTORY ---------
 */
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
 #include "HMPIDReconstruction/HmpidDecoder.h"

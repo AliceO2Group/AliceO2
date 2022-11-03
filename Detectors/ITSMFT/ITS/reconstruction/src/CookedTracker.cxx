@@ -24,7 +24,7 @@
 #include <TGeoGlobalMagField.h>
 #include <TMath.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "CommonConstants/MathConstants.h"
 #include "DetectorsBase/Propagator.h"

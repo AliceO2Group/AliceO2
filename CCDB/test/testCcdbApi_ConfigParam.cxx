@@ -61,8 +61,9 @@ struct Fixture {
     api.init(ccdbUrl);
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
-    cout << "Is host reachable ? --> " << hostReachable << endl;
-    basePath = string("Test/pid") + getpid() + "/";
+    char hostname[_POSIX_HOST_NAME_MAX];
+    gethostname(hostname, _POSIX_HOST_NAME_MAX);
+    basePath = string("Test/") + hostname + "/pid" + getpid() + "/";
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()

@@ -10,13 +10,13 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Logger.h"
 #include "DPLWebSocket.h"
+#include "Framework/GuiCallbackContext.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceController.h"
 #include "Framework/DevicesManager.h"
 #include "DriverServerContext.h"
 #include "DriverClientContext.h"
-#include "GuiCallbackContext.h"
 #include "ControlWebSocketHandler.h"
 #include "HTTPParser.h"
 #include <algorithm>
@@ -62,12 +62,12 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     return;
   }
   if (nread == UV_EOF) {
-    LOG(debug) << "websocket_server_callback: communication with driver closed";
+    LOG(detail) << "websocket_server_callback: communication with driver closed upon EOF";
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
   if (nread < 0) {
-    LOG(error) << "websocket_server_callback: Error while reading from websocket";
+    LOG(error) << "websocket_server_callback: Error while reading from websocket" << uv_strerror((int)nread);
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
@@ -236,10 +236,12 @@ void remoteGuiCallback(uv_timer_s* ctx)
   renderer->handler->write(outputs);
   free(frame);
 
+  renderer->guiConnected = true;
+
   if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
-    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000;
-    *(renderer->gui->frameLatency) = frameLatency / 1000000;
+    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+    *(renderer->gui->frameLatency) = frameLatency / 1000000.f;
     renderer->gui->frameLast = frameStart;
     renderer->gui->lastFrame = draw_data;
   }
@@ -290,7 +292,7 @@ void WSDPLHandler::endHeaders()
       }
     }
   } else {
-    if (getenv("DPL_DRIVER_REMOTE_GUI")) {
+    if ((mServerContext->isDriver && getenv("DPL_DRIVER_REMOTE_GUI")) || ((mServerContext->isDriver == false) && getenv("DPL_DEVICE_REMOTE_GUI"))) {
       LOG(info) << "Connection not bound to a PID";
       GuiRenderer* renderer = new GuiRenderer;
       renderer->gui = mServerContext->gui;
@@ -301,9 +303,11 @@ void WSDPLHandler::endHeaders()
       mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
       mHandler->headers(mHeaders);
       mServerContext->gui->renderers.insert(renderer);
+
       LOGP(info, "RemoteGUI connected, {} running", mServerContext->gui->renderers.size());
     } else {
-      LOG(warning) << "Connection not bound to a PID however DPL_DRIVER_REMOTE_GUI is not set. Skipping.";
+      LOGP(warning, "Connection not bound to a PID however {} is not set. Skipping.",
+           mServerContext->isDriver ? "DPL_DRIVER_REMOTE_GUI" : "DPL_DEVICE_REMOTE_GUI");
       throw WSError{418, "Remote GUI not enabled"};
     }
   }

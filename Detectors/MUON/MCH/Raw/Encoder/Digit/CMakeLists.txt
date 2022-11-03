@@ -17,7 +17,9 @@ o2_add_library(MCHRawEncoderDigit
         DigitTreeReader.cxx
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsParameters
-        O2::MCHRawEncoderPayload)
+        O2::MCHRawEncoderPayload
+        ROOT::TreePlayer
+        )
 
 o2_add_executable(digits-to-json
         SOURCES digits-to-json.cxx

@@ -312,7 +312,7 @@ struct MetricsPainter {
       auto idx = record * viewIndex.h + i;
       assert(viewIndex.indexes.size() > idx);
       MetricInfo const& metricInfo = metrics.metrics[viewIndex.indexes[idx]];
-      auto& data = DeviceMetricsInfoHelpers::get<T>(metrics, metricInfo.storeIdx);
+      auto& data = DeviceMetricsInfoHelpers::get<T, metricStorageSize<T>()>(metrics, metricInfo.storeIdx);
       return data[(metricInfo.pos - 1) % data.size()];
     };
   }

@@ -22,7 +22,7 @@
 #include <TTree.h>
 #include <TGraph.h>
 #include "Rtypes.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include "FT0Base/Geometry.h"
 namespace o2::ft0

@@ -42,53 +42,62 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   };
 
   struct InterfaceC {
-    virtual bool method() const = 0;
+    [[nodiscard]] virtual bool method() const = 0;
   };
 
   struct ConcreteC : InterfaceC {
-    bool method() const final { return false; }
+    [[nodiscard]] bool method() const final { return false; }
   };
 
   ServiceRegistry registry;
+  ServiceRegistryRef ref{registry};
   ConcreteA serviceA;
   ConcreteB serviceB;
   ConcreteC const serviceC;
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
-  BOOST_CHECK(registry.get<InterfaceA>().method() == true);
-  BOOST_CHECK(registry.get<InterfaceB>().method() == false);
-  BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
-  BOOST_CHECK(registry.active<InterfaceA>() == true);
-  BOOST_CHECK(registry.active<InterfaceB>() == true);
-  BOOST_CHECK(registry.active<InterfaceC>() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), RuntimeErrorRef);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(), RuntimeErrorRef);
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
+  ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
+  BOOST_CHECK(registry.get<InterfaceA>(ServiceRegistry::globalDeviceSalt()).method() == true);
+  BOOST_CHECK(registry.get<InterfaceB>(ServiceRegistry::globalDeviceSalt()).method() == false);
+  BOOST_CHECK(registry.get<InterfaceC const>(ServiceRegistry::globalDeviceSalt()).method() == false);
+  BOOST_CHECK(registry.active<InterfaceA>(ServiceRegistry::globalDeviceSalt()) == true);
+  BOOST_CHECK(registry.active<InterfaceB>(ServiceRegistry::globalDeviceSalt()) == true);
+  BOOST_CHECK(registry.active<InterfaceC>(ServiceRegistry::globalDeviceSalt()) == false);
+  BOOST_CHECK_THROW(registry.get<InterfaceA const>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
+  BOOST_CHECK_THROW(registry.get<InterfaceC>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)
 {
   using namespace o2::framework;
   ServiceRegistry registry;
+  ServiceRegistryRef ref{registry};
   auto service = std::make_unique<CallbackService>();
-  registry.registerService(ServiceRegistryHelpers::handleForService<CallbackService>(service.get()));
+  ref.registerService(ServiceRegistryHelpers::handleForService<CallbackService>(service.get()));
 
   // the callback simply sets the captured variable to indicated that it was called
   bool cbCalled = false;
   auto cb = [&]() { cbCalled = true; };
-  registry.get<CallbackService>().set(CallbackService::Id::Stop, cb);
+  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, cb);
 
   // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
+  BOOST_CHECK_THROW(registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
 
   // execute and check
-  registry.get<CallbackService>()(CallbackService::Id::Stop);
+  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt())(CallbackService::Id::Stop);
   BOOST_CHECK(cbCalled);
 }
 
 struct DummyService {
   int threadId;
 };
+
+namespace o2::framework
+{
+static ServiceRegistry::Salt salt_0 =  ServiceRegistry::Salt{ServiceRegistry::Context{0,0}}; 
+static ServiceRegistry::Salt salt_1 =  ServiceRegistry::Salt{ServiceRegistry::Context{1,0}};
+static ServiceRegistry::Salt salt_2 =  ServiceRegistry::Salt{ServiceRegistry::Context{2,0}};
+}
 
 BOOST_AUTO_TEST_CASE(TestSerialServices)
 {
@@ -97,11 +106,11 @@ BOOST_AUTO_TEST_CASE(TestSerialServices)
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Serial, 0);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Serial, salt_0);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 0);
   BOOST_CHECK_EQUAL(tt2->threadId, 0);
@@ -114,11 +123,11 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices)
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 0);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Global, salt_0);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 0);
   BOOST_CHECK_EQUAL(tt2->threadId, 0);
@@ -131,15 +140,16 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
 
   DummyService t0{1};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 1);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Global, salt_1);
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Global));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Global));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Global));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Global));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Global));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Global));
   BOOST_CHECK_EQUAL(tt0->threadId, 1);
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 1);
 }
+
 
 BOOST_AUTO_TEST_CASE(TestStreamServices)
 {
@@ -150,13 +160,13 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   DummyService t1{1};
   DummyService t2{2};
   /// We register it pretending to be on thread 0
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Stream, 0);
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t1, ServiceKind::Stream, 1);
-  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t2, ServiceKind::Stream, 2);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{0,0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1,0}});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2,0}});
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Stream));
-  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Stream));
-  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Stream));
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Stream));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Stream));
   BOOST_CHECK_EQUAL(tt0->threadId, 0);
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 2);
@@ -181,8 +191,8 @@ BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
   options.SetProperty("configuration", "command-line");
 
   registry.declareService(CommonServices::callbacksSpec(), state, options);
-  BOOST_CHECK(registry.active<CallbackService>() == true);
-  BOOST_CHECK(registry.active<DummyService>() == false);
+  BOOST_CHECK(registry.active<CallbackService>(ServiceRegistry::globalDeviceSalt()) == true);
+  BOOST_CHECK(registry.active<DummyService>(ServiceRegistry::globalDeviceSalt()) == false);
 }
 
 BOOST_AUTO_TEST_CASE(TestServiceOverride)

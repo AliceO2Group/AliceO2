@@ -14,7 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "CommonDataFormat/RangeReference.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 namespace o2
 {

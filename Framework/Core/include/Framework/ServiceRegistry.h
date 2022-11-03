@@ -75,13 +75,95 @@ struct ServiceKindExtractor<T, std::void_t<decltype(T::service_kind)>> : std::is
   constexpr static ServiceKind kind = T::service_kind;
 };
 
+template <typename T>
+inline constexpr ServiceKind service_kind_v = ServiceKindExtractor<T>::kind;
+
 struct ServiceRegistry {
+  struct Context {
+    short streamId = 0;
+    short dataProcessorId = 0;
+  };
+
+  union Salt {
+    Context context;
+    int32_t value = 0;
+  };
+
+  static constexpr Salt GLOBAL_CONTEXT_SALT{0, 0};
+
+  struct InstanceId {
+    uint32_t id = 0;
+  };
+
+  struct Index {
+    int32_t index = -1;
+  };
+
+  // Metadata about the service
+  struct Meta {
+    ServiceKind kind = ServiceKind::Serial;
+    Salt salt = {0, 0};
+  };
+
   /// The maximum distance a entry can be from the optimal slot.
-  constexpr static int MAX_DISTANCE = 8;
+  constexpr static int32_t MAX_DISTANCE = 8;
   /// The number of slots in the hashmap.
-  constexpr static int MAX_SERVICES = 256;
+  constexpr static uint32_t MAX_SERVICES = 256;
   /// The mask to use to calculate the initial slot id.
-  constexpr static int MAX_SERVICES_MASK = MAX_SERVICES - 1;
+  constexpr static uint32_t MAX_SERVICES_MASK = MAX_SERVICES - 1;
+
+  /// A salt which is global to the whole device.
+  /// This can be used to query services which are not
+  /// bound to a specific stream or data processor, e.g.
+  /// the services to send metrics to the driver or
+  /// to send messages to the control.
+  static Salt globalDeviceSalt()
+  {
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is global to a given stream
+  /// but which multiple dataprocessors can share.
+  static Salt globalStreamSalt(short streamId)
+  {
+    // FIXME: old behaviour for now
+    // return {streamId, 0};
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is global to a specific data processor.
+  /// This can be used to query properties which are
+  /// not bonded to a specific stream, e.g. the
+  /// name of the data processor, its inputs and outputs,
+  /// it's algorithm.
+  static Salt dataProcessorSalt(short dataProcessorId)
+  {
+    // FIXME: old behaviour for now
+    // return {0, dataProcessorId};
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  /// A salt which is specific to a given stream.
+  /// This can be used to query properties which are of the stream
+  /// itself, e.g. the currently processed time frame by a given stream.
+  static Salt streamSalt(short streamId, short dataProcessorId)
+  {
+    // FIXME: old behaviour for now
+    // return {streamId, dataProcessorId};
+    return GLOBAL_CONTEXT_SALT;
+  }
+
+  constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
+  {
+    return InstanceId{type.hash ^ salt.value};
+  }
+
+  constexpr Index indexFromInstance(InstanceId id) const
+  {
+    static_assert(MAX_SERVICES_MASK < 0x7FFFFFFF, "MAX_SERVICES_MASK must be smaller than 0x7FFFFFFF");
+    return Index{static_cast<int32_t>(id.id & MAX_SERVICES_MASK)};
+  }
+
   /// Callbacks for services to be executed before every process method invokation
   std::vector<ServiceProcessingHandle> mPreProcessingHandles;
   /// Callbacks for services to be executed after every process method invokation
@@ -106,6 +188,10 @@ struct ServiceRegistry {
   std::vector<ServiceExitHandle> mPreExitHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
+  /// Callbacks for services to be executed before sending messages
+  std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
+  /// Callbacks to be executed after the main GUI has been drawn
+  std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
   /// To hide exception throwing from QC
   void throwError(RuntimeErrorRef const& ref) const;
@@ -145,13 +231,22 @@ struct ServiceRegistry {
   /// Invoke whenever we get a new DomainInfo message
   void domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
 
+  /// Invoke before sending messages @a parts on a channel @a channelindex
+  void preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelindex);
+
+  /// Invoke after rendering the GUI. Can be used to
+  /// add custom GUI elements associated to a given service.
+  void postRenderGUICallbacks();
+
   /// Declare a service by its ServiceSpec. If of type Global
   /// / Serial it will be immediately registered for tid 0,
   /// so that subsequent gets will ultimately use it.
   /// If it is of kind "Stream" we will create the Service only
   /// when requested by a given thread. This function is not
   /// thread safe.
-  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options);
+  /// @a salt is used to create the service in the proper context
+  /// FIXME: for now we create everything in the global context
+  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt());
 
   /// Bind the callbacks of a service spec to a given service.
   void bindService(ServiceSpec const& spec, void* service);
@@ -160,7 +255,7 @@ struct ServiceRegistry {
   /// hash used to identify the service, @a service is
   /// a type erased pointer to the service itself.
   /// This method is supposed to be thread safe
-  void registerService(hash_type typeHash, void* service, ServiceKind kind, uint64_t threadId, char const* name = nullptr) const;
+  void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, char const* name = nullptr) const;
 
   // Lookup a given @a typeHash for a given @a threadId at
   // a unique (per typeHash) location. There might
@@ -170,16 +265,7 @@ struct ServiceRegistry {
   // as guaranteed by the atomic, mServicesKey[i + id] will
   // either be 0 or the final value.
   // This method should NEVER register a new service, event when requested.
-  int getPos(uint32_t typeHash, uint64_t threadId) const
-  {
-    auto threadHashId = (typeHash ^ threadId) & MAX_SERVICES_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesKey[i + threadHashId].load() == typeHash) {
-        return i + threadHashId;
-      }
-    }
-    return -1;
-  }
+  int getPos(ServiceTypeHash typeHash, Salt salt) const;
 
   // Basic, untemplated API. This will require explicitly
   // providing the @a typeHash for the Service type,
@@ -189,105 +275,55 @@ struct ServiceRegistry {
   // if the service is not a stream service and the global
   // zero service is available.
   // Use this API only if you know what you are doing.
-  void* get(uint32_t typeHash, uint64_t threadId, ServiceKind kind, char const* name = nullptr) const
-  {
-    // Look for the service. If found, return it.
-    // Notice how due to threading issues, we might
-    // find it with getPos, but the value can still
-    // be nullptr.
-    auto pos = getPos(typeHash, threadId);
-    if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].threadId != threadId) {
-      throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", threadId, mServicesMeta[pos].threadId));
-      O2_BUILTIN_UNREACHABLE();
-    }
-
-    if (pos != -1) {
-      mServicesKey[pos].load();
-      std::atomic_thread_fence(std::memory_order_acquire);
-      void* ptr = mServicesValue[pos];
-      if (ptr) {
-        return ptr;
-      }
-    }
-    // We are looking up a service which is not of
-    // stream kind and was not looked up by this thread
-    // before.
-    if (threadId != 0) {
-      int pos = getPos(typeHash, 0);
-      if (pos != -1 && kind != ServiceKind::Stream) {
-        mServicesKey[pos].load();
-        std::atomic_thread_fence(std::memory_order_acquire);
-        registerService(typeHash, mServicesValue[pos], kind, threadId, name);
-      }
-      if (pos != -1) {
-        mServicesKey[pos].load();
-        std::atomic_thread_fence(std::memory_order_acquire);
-        return mServicesValue[pos];
-      } else {
-        throwError(runtime_error_f("Unable to find requested service %s", name));
-      }
-    }
-    // If we are here it means we never registered a
-    // service for the 0 thread (i.e. the main thread).
-    return nullptr;
-  }
+  void* get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name = nullptr) const;
 
   /// Register a service given an handle
-  void registerService(ServiceHandle handle)
+  void registerService(ServiceHandle handle, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    ServiceRegistry::registerService(handle.hash, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
+    ServiceRegistry::registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
   mutable std::array<std::atomic<uint32_t>, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
-  mutable std::array<ServiceMeta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
+  mutable std::array<Meta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C* service)
+  void registerService(C* service, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr hash_type typeHash = TypeIdHelpers::uniqueId<I>();
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I>()};
+    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, salt, typeid(C).name());
   }
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
-  void registerService(C const* service)
+  void registerService(C const* service, Salt salt = ServiceRegistry::globalDeviceSalt())
   {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<I const>();
-    constexpr auto id = typeHash & MAX_SERVICES_MASK;
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, hasher(tid), typeid(C).name());
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<I const>()};
+    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, salt, typeid(C).name());
   }
 
   /// Check if service of type T is currently active.
   template <typename T>
-  std::enable_if_t<std::is_const_v<T> == false, bool> active() const
+  std::enable_if_t<std::is_const_v<T> == false, bool> active(Salt salt) const
   {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    if (this->getPos(typeHash, 0) != -1) {
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
+    if (this->getPos(typeHash, GLOBAL_CONTEXT_SALT) != -1) {
       return true;
     }
-    auto result = this->getPos(typeHash, hasher(tid)) != -1;
+    auto result = this->getPos(typeHash, salt) != -1;
     return result;
   }
 
@@ -295,12 +331,10 @@ struct ServiceRegistry {
   /// the user is actually of the last concrete type C registered, however this
   /// should not be a problem.
   template <typename T>
-  T& get() const
+  T& get(Salt salt) const
   {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    auto ptr = this->get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
+    constexpr ServiceTypeHash typeHash{TypeIdHelpers::uniqueId<T>()};
+    auto ptr = this->get(typeHash, salt, ServiceKind::Serial, typeid(T).name());
     if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
       if constexpr (std::is_const_v<T>) {
         return *reinterpret_cast<T const*>(ptr);

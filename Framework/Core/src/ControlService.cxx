@@ -24,7 +24,7 @@
 namespace o2::framework
 {
 
-ControlService::ControlService(ServiceRegistry& registry, DeviceState& deviceState)
+ControlService::ControlService(ServiceRegistryRef registry, DeviceState& deviceState)
   : mRegistry{registry},
     mDeviceState{deviceState},
     mDriverClient{registry.get<DriverClient>()}

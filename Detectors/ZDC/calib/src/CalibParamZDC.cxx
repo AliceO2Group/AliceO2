@@ -14,15 +14,42 @@
 
 O2ParamImpl(o2::zdc::CalibParamZDC);
 
-void o2::zdc::CalibParamZDC::print()
+void o2::zdc::CalibParamZDC::print() const
 {
   bool printed = false;
-  if (debug_output >= 0) {
-    LOG(info) << "CalibParamZDC::print()";
-    printed = true;
-    if (debug_output >= 0) {
-      printf(" debug_output=%d", debug_output);
+  if (rootOutput) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
     }
-    printf("\n");
+    printf("rootOutput=%s\n", rootOutput ? "true" : "false");
+  }
+  if (debugOutput) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("debugOutput=%s\n", debugOutput ? "true" : "false");
+  }
+  if (outputDir.compare("./")) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("outputDir=%s\n", outputDir.data());
+  }
+  if (metaFileDir.compare("/dev/null")) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("metaFileDir=%s\n", metaFileDir.data());
+  }
+  if (descr.size() > 0) {
+    if (!printed) {
+      LOG(info) << "CalibParamZDC::print()";
+      printed = true;
+    }
+    printf("descr=%s\n", descr.data());
   }
 }

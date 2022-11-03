@@ -50,7 +50,7 @@ template <typename T>
 class ConstMCTruthContainerView;
 template <typename T>
 class MCTruthContainer;
-}
+} // namespace dataformats
 
 namespace itsmft
 {
@@ -59,7 +59,7 @@ using CompClusCont = std::vector<CompClusterExt>;
 using PatternCont = std::vector<unsigned char>;
 using ROFRecCont = std::vector<ROFRecord>;
 
-//template <class CompClusCont, class PatternCont, class ROFRecCont> // container types (PMR or std::vectors)
+// template <class CompClusCont, class PatternCont, class ROFRecCont> // container types (PMR or std::vectors)
 
 class Clusterer
 {
@@ -122,7 +122,7 @@ class Clusterer
   };
 
   struct ClustererThread {
-
+    int id = -1;
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
@@ -135,10 +135,10 @@ class Clusterer
     std::vector<std::pair<int, uint32_t>> pixels;
     std::vector<int> preClusterHeads; // index of precluster head in the pixels
     std::vector<int> preClusterIndices;
-    uint16_t currCol = 0xffff;                                      ///< Column being processed
-    bool noLeftCol = true;                                          ///< flag that there is no column on the left to check
-    std::array<Label, MaxLabels> labelsBuff;                        //! temporary buffer for building cluster labels
-    std::vector<PixelData> pixArrBuff;                              //! temporary buffer for pattern calc.
+    uint16_t currCol = 0xffff;               ///< Column being processed
+    bool noLeftCol = true;                   ///< flag that there is no column on the left to check
+    std::array<Label, MaxLabels> labelsBuff; //! temporary buffer for building cluster labels
+    std::vector<PixelData> pixArrBuff;       //! temporary buffer for pattern calc.
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;
@@ -182,7 +182,7 @@ class Clusterer
     void process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                  const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
-    ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
+    ClustererThread(Clusterer* par = nullptr, int _id = -1) : parent(par), id(_id), curr(column2 + 1), prev(column1 + 1)
     {
       std::fill(std::begin(column1), std::end(column1), -1);
       std::fill(std::begin(column2), std::end(column2), -1);
@@ -211,6 +211,12 @@ class Clusterer
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
 
+  int getMaxROFDepthToSquash() const { return mSquashingDepth; }
+  void setMaxROFDepthToSquash(int v) { mSquashingDepth = v; }
+
+  int getMaxBCSeparationToSquash() const { return mMaxBCSeparationToSquash; }
+  void setMaxBCSeparationToSquash(int n) { mMaxBCSeparationToSquash = n; }
+
   void print() const;
   void clear();
 
@@ -224,20 +230,23 @@ class Clusterer
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
   void setDictionary(const TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
 
-  TStopwatch& getTimer() { return mTimer; } // cannot be const
+  TStopwatch& getTimer() { return mTimer; }           // cannot be const
   TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
 
  private:
-
   void flushClusters(CompClusCont* compClus, MCTruth* labels);
 
   // clusterization options
-  bool mContinuousReadout = true;    ///< flag continuous readout
+  bool mContinuousReadout = true; ///< flag continuous readout
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
   int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
   int mNHugeClus = 0;           ///< number of encountered huge clusters
+
+  ///< Squashing options
+  int mSquashingDepth = 0; ///< squashing is applied to next N rofs
+  int mMaxBCSeparationToSquash = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
@@ -273,7 +282,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
   uint16_t row = bbox.rowMin, col = bbox.colMin;
   if (pattID == CompCluster::InvalidPatternID || pattIdConverter.isGroup(pattID)) {
     if (pattID != CompCluster::InvalidPatternID) {
-      //For groupped topologies, the reference pixel is the COG pixel
+      // For groupped topologies, the reference pixel is the COG pixel
       float xCOG = 0., zCOG = 0.;
       ClusterPattern::getCOG(rowSpanW, colSpanW, patt.data(), xCOG, zCOG);
       row += round(xCOG);

@@ -695,6 +695,7 @@ void EncodedBlocks<H, N, W>::clear()
 template <typename H, int N, typename W>
 auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
 {
+  assert(newHead);
   auto image(*get(newHead)); // 1st make a shalow copy
   // now fix its pointers
   // we don't modify newHead, but still need to remove constness for relocation interface

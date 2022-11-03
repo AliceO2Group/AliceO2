@@ -6,7 +6,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "EMCALSimulation/Detector.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunSim.h"
 #include <FairRootFileSink.h>
 #endif

@@ -11,9 +11,11 @@
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/Logger.h"
 #include <cstdlib>
+#include <uv.h>
 
 // This is to allow C++20 aggregate initialisation
 #pragma GCC diagnostic push
@@ -31,20 +33,21 @@ CallbacksPolicy epnProcessReporting()
       return report;
     },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
-      callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
+      callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
           char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
           LOGP(info, "Processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
         }
+        info.lapse = uv_hrtime();
       });
-      callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistry& registry, int op) {
+      callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
           char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
-          LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
-               what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
+          LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}, wall:{}",
+               what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op, uv_hrtime() - info.lapse);
         }
       });
     }};

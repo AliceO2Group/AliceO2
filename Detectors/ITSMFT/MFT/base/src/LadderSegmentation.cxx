@@ -13,7 +13,7 @@
 /// \brief Description of the virtual segmentation of a ladder
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"

@@ -60,8 +60,6 @@ struct RateLimitConfig {
   int64_t maxTimeframes = 0;
 };
 
-static int64_t memLimit = 0;
-
 struct MetricIndices {
   size_t arrowBytesCreated = -1;
   size_t arrowBytesDestroyed = -1;
@@ -92,7 +90,7 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
   return results;
 }
 
-uint64_t calculateAvailableSharedMemory(ServiceRegistry& registry)
+uint64_t calculateAvailableSharedMemory(ServiceRegistryRef registry)
 {
   return registry.get<RateLimitConfig>().maxMemory;
 }
@@ -112,7 +110,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
     .postProcessing = CommonMessageBackendsHelpers<ArrowContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
-    .metricHandling = [](ServiceRegistry& registry,
+    .metricHandling = [](ServiceRegistryRef registry,
                          std::vector<DeviceMetricsInfo>& allDeviceMetrics,
                          std::vector<DeviceSpec>& specs,
                          std::vector<DeviceInfo>& infos,
@@ -126,7 +124,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalMessagesDestroyed = 0;
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
-                       static RateLimitingState currentState = RateLimitingState::UNKNOWN;
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
@@ -148,107 +145,92 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        auto& manager = registry.get<DevicesManager>();
 
                        bool changed = false;
-                       bool hasMetrics = false;
-                       // Find  the last timestamp when we signaled.
-                       static size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
-                       if (signalIndex < driverMetrics.metrics.size()) {
-                         MetricInfo& info = driverMetrics.metrics.at(signalIndex);
-                       }
 
                        size_t lastTimestamp = 0;
-                       size_t firstTimestamp = -1;
-                       size_t lastDecision = 0;
                        static std::vector<MetricIndices> allIndices = createDefaultIndices(allDeviceMetrics);
                        for (size_t mi = 0; mi < allDeviceMetrics.size(); ++mi) {
                          auto& deviceMetrics = allDeviceMetrics[mi];
+                         if (deviceMetrics.changed.size() != deviceMetrics.metrics.size()) {
+                           throw std::runtime_error("deviceMetrics.size() != allDeviceMetrics.size()");
+                         }
                          auto& indices = allIndices[mi];
                          {
                            size_t index = indices.arrowBytesCreated;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             auto value = (int64_t)data.at((info.pos - 1) % data.size());
-                             totalBytesCreated += value;
-                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+                           auto value = (int64_t)data[(info.pos - 1) % data.size()];
+                           totalBytesCreated += value;
+                           lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
                          {
                            size_t index = indices.shmOfferConsumed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             auto value = (int64_t)data.at((info.pos - 1) % data.size());
-                             shmOfferConsumed += value;
-                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+                           auto value = (int64_t)data[(info.pos - 1) % data.size()];
+                           shmOfferConsumed += value;
+                           lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
                          {
                            size_t index = indices.arrowBytesDestroyed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalBytesDestroyed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowBytesExpired;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalBytesExpired += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalBytesExpired += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowMessagesCreated;
-                           if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             changed |= deviceMetrics.changed.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           changed |= deviceMetrics.changed[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalMessagesCreated += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowMessagesDestroyed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             changed |= deviceMetrics.changed.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           changed |= deviceMetrics.changed[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalMessagesDestroyed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.timeframesRead;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalTimeframesRead += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalTimeframesRead += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.timeframesConsumed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalTimeframesConsumed += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalTimeframesConsumed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                        }
                        if (changed) {
@@ -268,14 +250,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          return;
                        }
 
-                       bool done = false;
-                       static int stateTransitions = 0;
-                       static int signalsCount = 0;
-                       static int skippedCount = 0;
                        static uint64_t now = 0;
                        now = uv_hrtime();
-                       static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
-                       static uint64_t lastReportTime = 0;
                        static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
                        constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 100;
                        constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;
@@ -292,21 +268,20 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        for (size_t di = 0; di < specs.size(); di++) {
                          if (availableSharedMemory < possibleOffer) {
                            if (lowSharedMemoryCount == 0) {
-                             LOGP(info, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
+                             LOGP(detail, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
                            }
                            lowSharedMemoryCount++;
                            enoughSharedMemoryCount = 0;
                            break;
                          } else {
                            if (enoughSharedMemoryCount == 0) {
-                             LOGP(info, "We are back in a state where we enough shared memory: {}MB", availableSharedMemory);
+                             LOGP(detail, "We are back in a state where we enough shared memory: {}MB", availableSharedMemory);
                            }
                            enoughSharedMemoryCount++;
                            lowSharedMemoryCount = 0;
                          }
                          size_t candidate = (lastDeviceOffered + di) % specs.size();
 
-                         auto& spec = specs[candidate];
                          auto& info = infos[candidate];
                          // Do not bother for inactive devices
                          // FIXME: there is probably a race condition if the device died and we did not
@@ -318,7 +293,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            continue;
                          }
                          possibleOffer = std::min(MAX_QUANTUM_SHARED_MEMORY, availableSharedMemory);
-                         LOGP(info, "Offering {}MB out of {} to {}", possibleOffer, availableSharedMemory, specs[candidate].id);
+                         LOGP(detail, "Offering {}MB out of {} to {}", possibleOffer, availableSharedMemory, specs[candidate].id);
                          manager.queueMessage(specs[candidate].id.c_str(), fmt::format("/shm-offer {}", possibleOffer).data());
                          availableSharedMemory -= possibleOffer;
                          offeredSharedMemory += possibleOffer;
@@ -336,12 +311,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static int64_t lastShmOfferConsumed = 0;
                        static int64_t lastUnusedOfferedMemory = 0;
                        if (shmOfferConsumed != lastShmOfferConsumed) {
-                         LOGP(info, "Offer consumed so far {}", shmOfferConsumed);
+                         LOGP(detail, "Offer consumed so far {}", shmOfferConsumed);
                          lastShmOfferConsumed = shmOfferConsumed;
                        }
                        int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
                        if (lastUnusedOfferedMemory != unusedOfferedMemory) {
-                         LOGP(info, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
+                         LOGP(detail, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
                        }
                        // availableSharedMemory is the amount of memory which we know is available to be offered.
@@ -367,7 +342,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            LOGP(debug, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         auto dph = o2::header::get<DataProcessingHeader*>(input.header);
                          bool forwarded = false;
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
                            if (DataSpecUtils::match(forward.matcher, *dh)) {
@@ -390,7 +364,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.flushBuffer(); },
-    .driverInit = [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
+    .driverInit = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vm) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(vm["readers"].as<std::string>());
                        if (vm.count("aod-memory-rate-limit") && vm["aod-memory-rate-limit"].defaulted() == false) {
@@ -499,7 +473,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
         // remove unmatched outputs
         auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
-          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
       }
@@ -527,8 +501,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
         // file sink for any AOD output
         if (!outputsInputsAOD.empty()) {
-          // add TFNumber as input to the writer
+          // add TFNumber and TFFilename as input to the writer
           outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
+          outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
           workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
         } },
     .kind = ServiceKind::Global};

@@ -17,6 +17,7 @@
 #include <vector>
 #include <string>
 #include <gsl/span>
+#include <filesystem>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
@@ -25,6 +26,8 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
@@ -33,6 +36,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCCalib/BaselineCalibSpec.h"
 #include "ZDCCalib/BaselineCalibData.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -85,6 +89,11 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
     mTimer.Reset();
     mTimer.Start(false);
   }
+  if (mRunStartTime == 0) {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunStartTime = tinfo.creation; // approximate time in ms
+    mRunNumber = tinfo.runNumber;
+  }
   auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
   mWorker.process(data.get());
 }
@@ -93,13 +102,16 @@ void BaselineCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  sendOutput(ec.outputs());
+  sendOutput(ec);
   LOGF(info, "ZDC Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 //________________________________________________________________
-void BaselineCalibSpec::sendOutput(o2::framework::DataAllocator& output)
+void BaselineCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
 {
+  std::string fn = "ZDC_BaselineCalib";
+  o2::framework::DataAllocator& output = ec.outputs();
+
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
@@ -115,6 +127,43 @@ void BaselineCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCBaselinecalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
+
+  const auto& opt = CalibParamZDC::Instance();
+  if (opt.rootOutput == true) {
+    mOutputDir = opt.outputDir;
+    if (mOutputDir.compare("/dev/null")) {
+      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
+      int rval = mWorker.saveDebugHistos(mHistoFileName);
+      if (rval) {
+        LOG(error) << "Cannot create output file " << mHistoFileName;
+        return;
+      }
+      std::string metaFileDir = opt.metaFileDir;
+      if (metaFileDir.compare("/dev/null")) {
+        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
+        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
+        histoFileMetaData->fillFileData(mHistoFileName);
+        histoFileMetaData->type = "calib";
+        histoFileMetaData->priority = "high";
+        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
+        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
+        try {
+          std::ofstream metaFileOut(metaFileNameTmp);
+          metaFileOut << *histoFileMetaData.get();
+          metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
+        } catch (std::exception const& e) {
+          LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
+        }
+        LOG(info) << "Stored metadata file " << metaFileName << ".done";
+      } else {
+        LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
+      }
+    } else {
+      LOG(warn) << "Do not create output file since output dir is " << mOutputDir;
+    }
+  }
 }
 
 framework::DataProcessorSpec getBaselineCalibSpec()

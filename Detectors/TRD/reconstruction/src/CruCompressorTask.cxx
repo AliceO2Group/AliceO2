@@ -40,12 +40,6 @@ namespace trd
 void CruCompressorTask::init(InitContext& ic)
 {
   LOG(info) << "FLP Compressore Task init";
-
-  auto finishFunction = [this]() {
-    mReader.checkSummary();
-  };
-
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
 uint64_t CruCompressorTask::buildEventOutput()
@@ -65,15 +59,16 @@ uint64_t CruCompressorTask::buildEventOutput()
   std::vector<o2::trd::TriggerRecord> ir;
   std::vector<o2::trd::Tracklet64> tracklets;
   std::vector<o2::trd::Digit> digits;
-  mReader.getParsedObjects(tracklets, digits, ir);
   trackletheader->bc = ir[0].getBCData().bc;
   trackletheader->orbit = ir[0].getBCData().orbit;
   trackletheader->padding = 0xeeee;
   trackletheader->size = mReader.sumTrackletsFound() * 8; // to get to bytes. TODO compare to getTrackletsFound
+  /*
   for (auto tracklet : mReader.getTracklets(ir[0].getBCData())) {
     //convert tracklet to 64 bit and add to blob
     mOutBuffer[currentpos++] = tracklet.getTrackletWord();
   }
+  */
   CompressedRawTrackletDigitSeperator* tracklettrailer = (CompressedRawTrackletDigitSeperator*)&mOutBuffer[currentpos];
   tracklettrailer->word = trailer;
   currentpos++;
@@ -82,6 +77,7 @@ uint64_t CruCompressorTask::buildEventOutput()
   digitheader->format = 2;
   digitheader->eventtime = 99;
 
+  /*
   for (auto digit : mReader.getDigits(ir[0].getBCData())) {
     uint64_t* word;
     word = &mOutBuffer[currentpos];
@@ -96,6 +92,7 @@ uint64_t CruCompressorTask::buildEventOutput()
     mcmheader.word = (*word) >> 32;
     currentpos++;
   }
+  */
   CompressedRawTrackletDigitSeperator* digittrailer = (CompressedRawTrackletDigitSeperator*)&mOutBuffer[currentpos];
   digittrailer->word = trailer;
   currentpos++;
@@ -141,9 +138,6 @@ void CruCompressorTask::run(ProcessingContext& pc)
       std::cout << "payload In size is : " << std::dec << payloadInSize << std::endl;
       mReader.setDataBuffer(payloadIn);
       mReader.setDataBufferSize(payloadInSize);
-      mReader.setVerbose(mVerbose);
-      mReader.setDataVerbose(mDataVerbose);
-      mReader.setHeaderVerbose(mHeaderVerbose);
       /* run */
       mReader.run();
 

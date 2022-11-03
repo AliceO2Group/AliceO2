@@ -33,7 +33,7 @@
 #include <TMath.h>
 #include <TRandom.h>
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "MCHBase/MathiesonOriginal.h"
 #include "MCHBase/ResponseParam.h"
@@ -41,9 +41,7 @@
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
 
-namespace o2
-{
-namespace mch
+namespace o2::mch
 {
 
 //_________________________________________________________________________________________________
@@ -2093,5 +2091,4 @@ void ClusterFinderOriginal::setClusterResolution(Cluster& cluster) const
   }
 }
 
-} // namespace mch
 } // namespace o2

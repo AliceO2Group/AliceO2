@@ -156,6 +156,7 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
       unsigned int timeFrame = 0;
       unsigned int interval = 0;
       getTF(0, integrationInterval, timeFrame, interval);
+      int iside = mSideIndex[side];
 
       pcstream << "tree"
                << "integrationInterval=" << integrationInterval
@@ -176,7 +177,7 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
                << "gx.=" << vGlobalXPos
                << "gy.=" << vGlobalYPos
                << "sector.=" << sectorv
-               << "side.=" << side
+               << "side=" << iside
                << "\n";
     }
   }
@@ -455,7 +456,7 @@ void o2::tpc::IDCFactorization::createStatusMap()
 
           if (iter == 0) {
             // exclude dead pads
-            if (idcZeroVal != -1) {
+            if ((idcZeroVal != -1) && (idcZeroVal > paramIDCGroup.minIDC0Val) && (idcZeroVal < paramIDCGroup.maxIDC0Val)) {
               average.addValue(idcZeroVal);
             }
           } else {
@@ -463,9 +464,9 @@ void o2::tpc::IDCFactorization::createStatusMap()
             o2::tpc::PadFlags flag = o2::tpc::PadFlags::flagGoodPad;
             if (idcZeroVal == -1) {
               flag = o2::tpc::PadFlags::flagDeadPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
-            } else if (idcZeroVal > median + stdDev * paramIDCGroup.maxIDC0Median) {
+            } else if ((idcZeroVal > paramIDCGroup.maxIDC0Val) || (idcZeroVal > median + stdDev * paramIDCGroup.maxIDC0Median)) {
               flag = o2::tpc::PadFlags::flagHighPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
-            } else if (idcZeroVal < median - stdDev * paramIDCGroup.minIDC0Median) {
+            } else if ((idcZeroVal < paramIDCGroup.minIDC0Val) || (idcZeroVal < median - stdDev * paramIDCGroup.minIDC0Median)) {
               flag = o2::tpc::PadFlags::flagLowPad | o2::tpc::PadFlags::flagSkip | mPadFlagsMap->getCalArray(cru).getValue(padInRegion);
             }
             mPadFlagsMap->getCalArray(cru).setValue(padInRegion, flag);
@@ -785,17 +786,38 @@ void o2::tpc::IDCFactorization::drawIDCZeroHelper(const bool type, const Sector 
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
-void o2::tpc::IDCFactorization::drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const
+void o2::tpc::IDCFactorization::drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ, const bool drawGIF, const int run) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
-    return this->getIDCValUngrouped(sector, region, irow, pad, integrationInterval);
-  };
-
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = idcFunc;
-
   const std::string zAxisTitleDraw = IDCDrawHelper::getZAxisTitle(IDCType::IDC);
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitleDraw, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitleDraw, filename, minZ, maxZ);
+  if (!drawGIF) {
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
+      return this->getIDCValUngrouped(sector, region, irow, pad, integrationInterval);
+    };
+
+    IDCDrawHelper::IDCDraw drawFun;
+    drawFun.mIDCFunc = idcFunc;
+
+    type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitleDraw, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitleDraw, filename, minZ, maxZ);
+  } else {
+    std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad, const unsigned int slice) {
+      return this->getIDCValUngrouped(sector, region, irow, pad, slice);
+    };
+
+    if (mIDCOne.front().mIDCOne.empty()) {
+      LOGP(warning, "Factorised IDCs are missing!");
+      return;
+    }
+
+    std::function<float(const o2::tpc::Side, const unsigned int)> idcOneFunc = [this](const o2::tpc::Side side, const unsigned int slice) {
+      return this->getIDCOneVec(side)[slice];
+    };
+
+    IDCDrawHelper::IDCDrawGIF drawFun;
+    drawFun.mIDCFunc = idcFunc;
+    drawFun.mIDCOneFunc = idcOneFunc;
+    const int nSlices = (integrationInterval == 0) ? getNIntegrationIntervals() : integrationInterval;
+    IDCDrawHelper::drawSideGIF(drawFun, nSlices, zAxisTitleDraw, filename, minZ, maxZ, run);
+  }
 }
 
 void o2::tpc::IDCFactorization::setGainMap(const char* inpFile, const char* mapName)
@@ -840,6 +862,7 @@ void o2::tpc::IDCFactorization::drawPadFlagMap(const bool type, const Sector sec
 {
   if (!mPadFlagsMap) {
     LOGP(info, "Status map not set returning");
+    return;
   }
 
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, flag](const unsigned int sector, const unsigned int region, const unsigned int row, const unsigned int pad) {

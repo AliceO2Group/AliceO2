@@ -23,7 +23,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;

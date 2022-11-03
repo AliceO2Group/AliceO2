@@ -15,6 +15,7 @@
 #include "Framework/Pack.h"
 #include "Framework/Kernels.h"
 
+#include <arrow/util/config.h>
 #include <arrow/util/key_value_metadata.h>
 #include <type_traits>
 #include <string>
@@ -55,7 +56,7 @@ struct GroupSlicer {
         return str;
       };
 
-      if constexpr (soa::is_soa_index_table_t<std::decay_t<Z>>::value) {
+      if constexpr (soa::is_soa_index_table_v<std::decay_t<Z>>) {
         using T = typename std::decay_t<Z>::first_t;
         if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
           using O = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
@@ -81,7 +82,7 @@ struct GroupSlicer {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<T>>()) {
         auto name = getLabelFromType<std::decay_t<T>>();
-        if constexpr (!framework::is_specialization_v<std::decay_t<T>, soa::SmallGroups>) {
+        if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<T>>) {
           if (table.size() == 0) {
             return;
           }
@@ -116,7 +117,7 @@ struct GroupSlicer {
     template <typename T>
     auto extractingFunction(T&& table)
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<T>>) {
         constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
         selections[index] = &table.getSelectedRows();
         starts[index] = selections[index]->begin();
@@ -131,7 +132,7 @@ struct GroupSlicer {
         mGroupingElement{gt.begin()},
         position{0}
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         groupSelection = mGt->getSelectedRows();
       }
 
@@ -230,22 +231,26 @@ struct GroupSlicer {
 
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<A1>>()) {
         uint64_t pos;
-        if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+        if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
           pos = groupSelection[position];
         } else {
           pos = position;
         }
 
-        if constexpr (!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>) {
+        if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<A1>>) {
           // optimized split
           if (originalTable.size() == 0) {
             return originalTable;
           }
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+          if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
             }
+#if ARROW_VERSION_MAJOR < 10
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
+#else
+            auto groupedElementsTable = ((groups[index])[pos]).table();
+#endif
 
             // for each grouping element we need to slice the selection vector
             auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
@@ -265,20 +270,32 @@ struct GroupSlicer {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}};
             }
+#if ARROW_VERSION_MAJOR < 10
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
+#else
+            auto groupedElementsTable = ((groups[index])[pos]).table();
+#endif
             std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
             typedTable.bindInternalIndicesTo(&originalTable);
             return typedTable;
           }
         } else {
-          //generic split
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+          // generic split
+          if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
             // intersect selections
             o2::soa::SelectionVector s;
             if (selections[index]->empty()) {
-              std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+              if (!filterGroups[index].empty()) {
+                std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+              }
             } else {
-              std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+              if (!filterGroups[index].empty()) {
+                if constexpr (std::decay_t<A1>::applyFilters) {
+                  std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+                } else {
+                  std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+                }
+              }
             }
             std::decay_t<A1> typedTable{{originalTable.asArrowTable()}, std::move(s)};
             typedTable.bindInternalIndicesTo(&originalTable);
@@ -288,6 +305,7 @@ struct GroupSlicer {
           }
         }
       } else {
+        static_assert(!o2::soa::is_smallgroups_v<std::decay_t<A1>>, "SmallGroups used with a table that is not related by index to the gouping table");
         return originalTable;
       }
     }

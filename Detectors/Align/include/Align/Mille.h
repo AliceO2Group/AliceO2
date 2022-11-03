@@ -42,30 +42,23 @@ namespace align
 class Mille
 {
  public:
-  Mille(const char* outFileName, bool asBinary = true, bool writeZero = false);
-  ~Mille();
-
-  void mille(int NLC, const float* derLc, int NGL, const float* derGl,
-             const int* label, float rMeas, float sigma);
+  Mille(const std::string& outFileName, bool asBinary = true, bool writeZero = false);
+  void mille(int NLC, const float* derLc, int NGL, const float* derGl, const int* label, float rMeas, float sigma);
   void special(int nSpecial, const float* floatings, const int* integers);
-  void kill();
-  int end();
+  void clear();
+  int finalise();
+  void kill() { clear(); };        // alias to old Mille method
+  int end() { return finalise(); } //  alias to old Mille method
 
  private:
-  void newSet();
-  bool checkBufferSize(int nLocal, int nGlobal);
-
-  std::ofstream myOutFile; ///< C-binary for output
-  bool myAsBinary;         ///< if false output as text
-  bool myWriteZero;        ///< if true also write out derivatives/labels ==0
-  /// buffer size for ints and floats
-  int myBufferSize;      ///< buffer size for ints and floats
-  TArrayI myBufferInt;   ///< to collect labels etc.
-  TArrayF myBufferFloat; ///< to collect derivatives etc.
-  int myBufferPos;       ///< position in buffer
-  bool myHasSpecial;     ///< if true, special(..) already called for this record
   /// largest label allowed: 2^31 - 1
-  enum { myMaxLabel = (0xFFFFFFFF - (1 << 31)) };
+  static constexpr int MaxLabel = 0x7fffffff;
+  std::ofstream mOutFile = {};     ///< C-binary for output
+  bool mAsBinary = true;           ///< if false output as text
+  bool mWriteZero = false;         ///< if true also write out derivatives/labels ==0
+  bool mHasSpecial = false;        ///< if true, special(..) already called for this record
+  std::vector<int> mBufferInt;     ///< to collect labels etc.
+  std::vector<float> mBufferFloat; ///< to collect derivatives etc.
 };
 
 } // namespace align

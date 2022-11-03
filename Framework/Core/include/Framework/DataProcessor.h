@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSOR_H_
 #define O2_FRAMEWORK_DATAPROCESSOR_H_
 
-#include <fairmq/FwdDecls.h>
+#include "Framework/ServiceRegistryRef.h"
 
 namespace o2::framework
 {
@@ -27,10 +27,10 @@ class DataSender;
 /// Helper class to send messages from a contex at the end
 /// of a computation.
 struct DataProcessor {
-  static void doSend(DataSender&, MessageContext&, ServiceRegistry&);
-  static void doSend(DataSender&, StringContext&, ServiceRegistry&);
-  static void doSend(DataSender&, ArrowContext&, ServiceRegistry&);
-  static void doSend(DataSender&, RawBufferContext&, ServiceRegistry&);
+  static void doSend(DataSender&, MessageContext&, ServiceRegistryRef);
+  static void doSend(DataSender&, StringContext&, ServiceRegistryRef);
+  static void doSend(DataSender&, ArrowContext&, ServiceRegistryRef);
+  static void doSend(DataSender&, RawBufferContext&, ServiceRegistryRef);
 };
 
 } // namespace o2::framework

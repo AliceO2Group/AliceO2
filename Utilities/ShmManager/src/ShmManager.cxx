@@ -25,6 +25,7 @@
 
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -161,8 +162,25 @@ struct ShmManager {
     }
   }
 
+  bool CheckPresence()
+  {
+    std::lock_guard<std::mutex> lock(localMtx);
+    for (const auto& sc : segmentCfgs) {
+      if (!(fair::mq::shmem::Monitor::SegmentIsPresent(fair::mq::shmem::ShmId{shmId}, sc.id))) {
+        return false;
+      }
+    }
+    for (const auto& rc : regionCfgs) {
+      if (!(fair::mq::shmem::Monitor::RegionIsPresent(fair::mq::shmem::ShmId{shmId}, rc.id.value()))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void ResetContent()
   {
+    std::lock_guard<std::mutex> lock(localMtx);
     fair::mq::shmem::Monitor::ResetContent(fair::mq::shmem::ShmId{shmId}, segmentCfgs, regionCfgs);
   }
 
@@ -180,6 +198,7 @@ struct ShmManager {
   }
 
   std::string shmId;
+  std::mutex localMtx;
   map<uint16_t, fair::mq::shmem::Segment> segments;
   map<uint16_t, unique_ptr<fair::mq::shmem::UnmanagedRegion>> regions;
   std::vector<fair::mq::shmem::SegmentConfig> segmentCfgs;
@@ -196,6 +215,7 @@ int main(int argc, char** argv)
 
   try {
     bool nozero = false;
+    bool checkPresence = true;
     uint64_t shmId = 0;
     vector<string> segments;
     vector<string> regions;
@@ -206,6 +226,7 @@ int main(int argc, char** argv)
       "segments", value<vector<string>>(&segments)->multitoken()->composing(), "Segments, as <id>,<size>,<numaid> <id>,<size>,<numaid> <id>,<size>,<numaid> ... (numaid: -2 disabled, -1 interleave, >=0 node)")(
       "regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size>,<numaid> <id>,<size>,<numaid> ...")(
       "nozero", value<bool>(&nozero)->default_value(false)->implicit_value(true), "Do not zero segments after initialization")(
+      "check-presence", value<bool>(&checkPresence)->default_value(true)->implicit_value(true), "Check periodically if configured segments/regions are still present, and cleanup and leave if they are not")(
       "help,h", "Print help");
 
     variables_map vm;
@@ -234,11 +255,19 @@ int main(int argc, char** argv)
       }
     });
 
-    while (!gStopping) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (checkPresence) {
+      while (!gStopping) {
+        if (shmManager.CheckPresence() == false) {
+          LOG(error) << "Failed to find segments, exiting.";
+          gStopping = true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      }
     }
 
-    resetContentThread.join();
+    if (resetContentThread.joinable()) {
+      resetContentThread.join();
+    }
 
     LOG(info) << "stopping.";
   } catch (exception& e) {

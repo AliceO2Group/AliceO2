@@ -32,11 +32,11 @@ class RngHelper
 {
  public:
   // sets the state of the currently active ROOT gRandom Instance
-  // if -1 (or negative) is given ... we will init with a random seed
+  // if 0 is given ... we will init with a random seed
   // returns seed set to TRandom
-  static unsigned int setGRandomSeed(int seed = -1)
+  static ULong_t setGRandomSeed(ULong_t seed = 0)
   {
-    unsigned int s = seed < 0 ? readURandom<unsigned int>() : seed;
+    const auto s = seed == 0 ? readURandom<ULong_t>() : seed;
     gRandom->SetSeed(s);
     return s;
   }

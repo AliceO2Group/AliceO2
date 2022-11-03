@@ -502,6 +502,46 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   return getYZAt(xk, b, y, z) ? y : -9999.f;
 }
 
+//______________________________________________________________
+template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getSnpAt(value_t xk, value_t b) const
+{
+  ///< this method is just an alias for obtaining snp @ X in the tree->Draw()
+  value_t dx = xk - getX();
+  if (math_utils::detail::abs<value_T>(dx) < constants::math::Almost0) {
+    return getSnp();
+  }
+  value_t crv = (math_utils::detail::abs<value_T>(b) < constants::math::Almost0) ? 0.f : getCurvature(b);
+  value_t x2r = crv * dx;
+  return mP[kSnp] + x2r;
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getSnpAt(value_t alpha, value_t xk, value_t b) const
+{
+  ///< this method is just an alias for obtaining snp @ alpha, X in the tree->Draw()
+  math_utils::detail::bringToPMPi<value_t>(alpha);
+  value_t ca = 0, sa = 0;
+  math_utils::detail::sincos(alpha - getAlpha(), sa, ca);
+  value_t snp = getSnp(), csp = math_utils::detail::sqrt<value_T>((1.f - snp) * (1.f + snp)); // Improve precision
+  // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle direction in local frame is along the X axis
+  if ((csp * ca + snp * sa) < 0.) {
+    // LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    return -999;
+  }
+  value_t tmp = snp * ca - csp * sa;
+  if (math_utils::detail::abs<value_T>(tmp) > constants::math::Almost1) {
+    LOGP(debug, "Rotation failed: new snp {:.2f}", tmp);
+    return -999;
+  }
+  value_t xrot = getX() * ca + getY() * sa;
+  value_t dx = xk - xrot;
+  value_t crv = (math_utils::detail::abs<value_T>(b) < constants::math::Almost0) ? 0.f : getCurvature(b);
+  value_t x2r = crv * dx;
+  return tmp + x2r;
+}
+
 #ifndef GPUCA_ALIGPUCODE
 //_____________________________________________________________
 template <typename value_T>

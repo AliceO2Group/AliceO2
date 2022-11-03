@@ -57,13 +57,16 @@ class InterCalib
   int mini(int ih);
   void add(int ih, o2::dataformats::FlatHisto1D<float>& h1);
   void add(int ih, o2::dataformats::FlatHisto2D<float>& h2);
-  int write(const std::string fn = "ZDCInterCalib.root");
+  int saveDebugHistos(const std::string fn = "ZDCInterCalib.root");
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
 
   const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
+
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
@@ -75,9 +78,6 @@ class InterCalib
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
-
-  void setSaveDebugHistos() { mSaveDebugHistos = true; }
-  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1"};
   static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1"};

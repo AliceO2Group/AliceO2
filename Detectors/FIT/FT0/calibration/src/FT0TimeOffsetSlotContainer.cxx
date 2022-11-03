@@ -112,6 +112,9 @@ int16_t FT0TimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelI
   double minFitRange{0};
   double maxFitRange{0};
   auto hist = mHistogram.createSliceYTH1F(channelID);
+  if (CalibParam::Instance().mRebinFactorPerChID[channelID] > 0) {
+    hist->Rebin(CalibParam::Instance().mRebinFactorPerChID[channelID]);
+  }
   const auto meanHist = hist->GetMean();
   const auto rmsHist = hist->GetRMS();
   if (CalibParam::Instance().mUseDynamicRange) {

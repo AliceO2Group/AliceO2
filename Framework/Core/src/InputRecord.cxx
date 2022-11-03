@@ -35,7 +35,7 @@ namespace o2::framework
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
                          InputSpan& span,
-                         ServiceRegistry& registry)
+                         ServiceRegistryRef registry)
   : mRegistry{registry},
     mInputsSchema{inputsSchema},
     mSpan{span}

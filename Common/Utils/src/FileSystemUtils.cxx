@@ -61,5 +61,36 @@ void createDirectoriesIfAbsent(std::string const& path)
     throw std::runtime_error(fmt::format("Failed to create {} directory", path));
   }
 }
+// A function to expand string containing shell variables
+// to a string in which these vars have been substituted.
+// Motivation:: filesystem::exists() does not do this by default
+// and I couldn't find information on this. Potentially there is an
+// existing solution.
+std::string expandShellVarsInFileName(std::string const& input)
+{
+  std::regex e(R"(\$\{?[a-zA-Z0-9_]*\}?)");
+  std::regex e3("[a-zA-Z0-9_]+");
+  std::string finalstr;
+  std::sregex_iterator iter;
+  auto words_end = std::sregex_iterator(); // the end iterator (default)
+  auto words_begin = std::sregex_iterator(input.begin(), input.end(), e);
+  std::string tail;
+  for (auto i = words_begin; i != words_end; ++i) {
+    std::smatch match = *i;
+    // remove ${ and }
+    std::smatch m;
+    std::string s(match.str());
+
+    if (std::regex_search(s, m, e3)) {
+      auto envlookup = getenv(m[0].str().c_str());
+      if (envlookup) {
+        finalstr += match.prefix().str() + std::string(envlookup);
+        tail = match.suffix().str();
+      }
+    }
+  }
+  finalstr += tail;
+  return finalstr;
+}
 
 } // namespace o2::utils

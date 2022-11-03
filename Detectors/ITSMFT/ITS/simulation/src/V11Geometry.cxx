@@ -14,7 +14,7 @@
 
 #include "ITSSimulation/V11Geometry.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 #include <TArc.h>         // for TArc
 #include <TArrow.h>       // for TArrow

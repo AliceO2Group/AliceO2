@@ -66,7 +66,7 @@ class VDriftHelper
   VDriftCorrFact mVD{};
   Source mSource{};       // update source
   bool mUpdated = false;  // signal update, must be reset once new value is fetched
-  bool mMayRenorm = true; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0
+  uint32_t mMayRenormSrc = 0xffffffff; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0, flag per source
 
   ClassDefNV(VDriftHelper, 1);
 };

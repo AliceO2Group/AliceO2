@@ -14,11 +14,11 @@
 #ifndef ALICEO2_CONF_CONFIGURATIONMACRO_H_
 #define ALICEO2_CONF_CONFIGURATIONMACRO_H_
 
-#include "FairLogger.h"
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TGlobal.h"
 #include "TFunction.h"
+#include <fairlogger/Logger.h>
 #include <string>
 
 namespace o2

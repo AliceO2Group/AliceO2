@@ -99,7 +99,7 @@ void on_connect(uv_connect_t* connection, int status)
       LOG(error) << "Malformed shared memory offer";
       return;
     }
-    LOGP(info, "Received {}MB shared memory offer", offerSize);
+    LOGP(detail, "Received {}MB shared memory offer", offerSize);
     ComputingQuotaOffer offer;
     offer.cpu = 0;
     offer.memory = 0;
@@ -164,7 +164,7 @@ void on_awake_main_thread(uv_async_t* handle)
   state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 
-WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port)
+WSDriverClient::WSDriverClient(ServiceRegistryRef registry, DeviceState& state, char const* ip, unsigned short port)
   : mSpec{registry.get<const DeviceSpec>()}
 {
   // Must connect the device to the server and send a websocket request.

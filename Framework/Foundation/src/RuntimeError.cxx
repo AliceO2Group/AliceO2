@@ -12,6 +12,7 @@
 #include "Framework/RuntimeError.h"
 
 #include <cstdio>
+#include <climits>
 #include <atomic>
 #include <cstdarg>
 #include <execinfo.h>
@@ -91,6 +92,21 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
 {
   char** stackStrings;
   stackStrings = backtrace_symbols(stackTrace, stackDepth);
+  char exe[PATH_MAX];
+  bool hasExe = false;
+  int exeSize = 0;
+
+#if __linux__
+  exeSize = readlink("/proc/self/exe", exe, PATH_MAX);
+  if (exeSize == -1) {
+    dprintf(fd, "Unable to detect exectuable name\n");
+    hasExe = false;
+  } else {
+    dprintf(fd, "Executable is %.*s\n", exeSize, exe);
+    hasExe = true;
+  }
+#endif
+
   for (size_t i = 1; i < stackDepth; i++) {
 
     size_t sz = 64000; // 64K ought to be enough for our templates...
@@ -106,8 +122,9 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
+    bool tryAddr2Line = false;
 #else
-    for (char* j = stackStrings[i]; *j; ++j) {
+    for (char* j = stackStrings[i]; j && *j; ++j) {
       if (*j == '(') {
         begin = j;
       } else if (*j == '+') {
@@ -115,6 +132,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
+    bool tryAddr2Line = true;
 #endif
     if (begin && end) {
       *begin++ = '\0';
@@ -126,16 +144,35 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       if (ret) {
         // return value may be a realloc() of the input
         function = ret;
-      } else {
-        // demangling failed, just pretend it's a C function with no args
-        std::strncpy(function, begin, sz);
-        std::strncat(function, "()", sz);
-        function[sz - 1] = '\0';
+        dprintf(fd, "    %s: %s\n", stackStrings[i], function);
+        tryAddr2Line = false;
       }
-      dprintf(fd, "    %s: %s\n", stackStrings[i], function);
-    } else {
+    }
+    if (tryAddr2Line) {
       // didn't find the mangled name, just print the whole line
-      dprintf(fd, "    %s\n", stackStrings[i]);
+      dprintf(fd, "    %s: ", stackStrings[i]);
+      if (stackTrace[i] && hasExe) {
+        char syscom[4096 + PATH_MAX];
+
+        snprintf(syscom, 4096, "addr2line %p -a -p -s -f -e %.*s 2>/dev/null | c++filt -r ", stackTrace[i], exeSize, exe); // last parameter is the name of this app
+
+        FILE* fp;
+        char path[1024];
+
+        fp = popen(syscom, "r");
+        if (fp == nullptr) {
+          dprintf(fd, "-- no source could be retrieved --\n");
+          continue;
+        }
+
+        while (fgets(path, sizeof(path) - 1, fp) != nullptr) {
+          dprintf(fd, "    %s", path);
+        }
+
+        pclose(fp);
+      } else {
+        dprintf(fd, "-- no source avaliable --\n");
+      }
     }
     free(function);
   }

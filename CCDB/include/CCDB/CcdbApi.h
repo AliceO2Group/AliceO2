@@ -61,6 +61,8 @@ class CcdbApi //: public DatabaseInterface
   /// \brief Default destructor
   virtual ~CcdbApi();
 
+  const std::string getUniqueAgentID() const { return mUniqueAgentID; }
+
   /**
    * Initialize connection to CCDB
    *
@@ -269,7 +271,7 @@ class CcdbApi //: public DatabaseInterface
    *  @return: True in case operation successful or false if there was a failure/problem.
    */
   bool retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp,
-                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root") const;
+                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root", std::string const& createdNotAfter = "", std::string const& createdNotBefore = "") const;
 
   /**
    * Retrieve the headers of a CCDB entry, if it exists.
@@ -515,7 +517,6 @@ class CcdbApi //: public DatabaseInterface
   {
     return getSnapshotDir(topdir, path) + '/' + sfile;
   }
-
   /// Base URL of the CCDB (with port)
   std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};

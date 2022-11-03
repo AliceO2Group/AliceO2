@@ -19,7 +19,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include <TRandom.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 // @brief test and demo for HBF sampling for simulated IRs
 // @author ruben.shahoyan@cern.ch

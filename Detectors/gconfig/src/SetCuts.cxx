@@ -12,7 +12,7 @@
 #include "SetCuts.h"
 #include "SimSetup/GlobalProcessCutSimParam.h"
 #include "DetectorsBase/MaterialManager.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::base;
 

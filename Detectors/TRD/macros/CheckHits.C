@@ -19,7 +19,7 @@
 #include <TH2F.h>
 #include <TCanvas.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Hit.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/Calibrations.h"

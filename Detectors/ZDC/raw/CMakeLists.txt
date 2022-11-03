@@ -13,6 +13,7 @@ o2_add_library(ZDCRaw
                SOURCES
                  src/DumpRaw.cxx
                  src/RawReaderZDC.cxx
+                 src/ZDCRawParserDPLSpec.cxx
                PUBLIC_LINK_LIBRARIES
                  O2::CCDB
                  O2::DPLUtils

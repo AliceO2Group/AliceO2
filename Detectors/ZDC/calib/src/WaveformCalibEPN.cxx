@@ -34,10 +34,10 @@ int WaveformCalibEPN::init()
   }
 
   // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
 
-  if (opt.debug_output > 0) {
+  if (opt.rootOutput == true) {
     setSaveDebugHistos();
   }
 

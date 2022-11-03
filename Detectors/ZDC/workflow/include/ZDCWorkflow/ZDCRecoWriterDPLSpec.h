@@ -14,6 +14,7 @@
 #ifndef O2_ZDCRECOTWRITERDPLSPEC_H
 #define O2_ZDCRECOTWRITERDPLSPEC_H
 
+#include <string>
 #include "Framework/DataProcessorSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsZDC/MCLabel.h"
@@ -26,7 +27,7 @@ namespace zdc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getZDCRecoWriterDPLSpec();
+framework::DataProcessorSpec getZDCRecoWriterDPLSpec(std::string fname = "zdcreco.root");
 
 } // namespace zdc
 } // namespace o2

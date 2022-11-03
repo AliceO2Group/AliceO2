@@ -21,6 +21,7 @@
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -38,7 +39,6 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
@@ -49,13 +49,19 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
+  if (mUpdateCCDB) {
+    auto caliboffsets = pc.inputs().get<o2::fv0::FV0ChannelTimeCalibrationObject*>("fv0offsets");
+    mReco.SetChannelOffset(caliboffsets.get());
+    LOG(info) << "RecoSpec  mReco.SetChannelOffset(&caliboffsets)";
+  }
+
   int nDig = digits.size();
   LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
   mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
-    LOG(debug) << " ndig " << id << " bc " << digit.getIntRecord().bc << " orbit " << digit.getIntRecord().orbit;
+    LOG(debug) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit();
     auto channels = digit.getBunchChannelData(digch);
     gsl::span<o2::fv0::ChannelDataFloat> out_ch(mRecChData);
     out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
@@ -68,6 +74,14 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 
   mTimer.Stop();
 }
+//_______________________________________
+void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("FT0", "TimeOffset", 0)) {
+    mUpdateCCDB = false;
+    return;
+  }
+}
 
 void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
 {
@@ -75,31 +89,20 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-void ReconstructionDPL::updateTimeDependentParams(ProcessingContext& pc)
-{
-  pc.inputs().get<o2::fv0::FV0ChannelTimeCalibrationObject*>("chtimeoffs");
-}
-
-void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-{
-  if (matcher == ConcreteDataMatcher("FV0", "CHANTIMEOFFS", 0)) {
-    LOG(info) << "ChannelTimeOffset updated";
-    mReco.setChannelOffset((o2::fv0::FV0ChannelTimeCalibrationObject*)obj);
-    return;
-  }
-}
-
-DataProcessorSpec getReconstructionSpec(bool useMC)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFV0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFV0, "DIGITSCH", 0, Lifetime::Timeframe);
-  inputSpec.emplace_back("chtimeoffs", o2::header::gDataOriginFV0, "CHANTIMEOFFS", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/ChannelTimeOffset"));
   if (useMC) {
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFV0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
+  inputSpec.emplace_back("fv0offsets", "FV0", "TimeOffset", 0,
+                         Lifetime::Condition,
+                         ccdbParamSpec("FV0/Calib/ChannelTimeOffset"));
+
   outputSpec.emplace_back(o2::header::gDataOriginFV0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFV0, "RECCHDATA", 0, Lifetime::Timeframe);
 
@@ -107,7 +110,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC)
     "fv0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
     Options{}};
 }
 

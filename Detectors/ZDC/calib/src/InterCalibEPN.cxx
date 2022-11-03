@@ -15,6 +15,7 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "ZDCCalib/InterCalibData.h"
@@ -32,6 +33,14 @@ int InterCalibEPN::init()
     LOG(fatal) << "o2::zdc::InterCalibEPN: missing configuration object";
     return -1;
   }
+
+  // Inspect calibration parameters
+  const auto& opt = CalibParamZDC::Instance();
+  opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
+
   clear();
   auto* cfg = mInterCalibConfig;
   int ih;
@@ -115,7 +124,7 @@ int InterCalibEPN::endOfRun()
     }
   }
   if (mSaveDebugHistos) {
-    write();
+    saveDebugHistos();
   }
   return 0;
 }
@@ -226,7 +235,8 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   mC[ih]->fill(val[0], sumquad, w);
 }
 
-int InterCalibEPN::write(const std::string fn)
+//______________________________________________________________________________
+int InterCalibEPN::saveDebugHistos(const std::string fn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

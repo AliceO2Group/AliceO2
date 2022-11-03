@@ -46,7 +46,7 @@ struct PublisherConf {
 };
 
 template <typename T = void>
-framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true)
+framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, uint32_t subspec = 0, bool propagateMC = true)
 {
   using Reader = o2::framework::RootTreeReader;
   using Output = o2::framework::Output;
@@ -56,28 +56,28 @@ framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool 
   auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
 
   // a creator callback for the actual reader instance
-  auto creator = [dto, tro, mco, propagateMC](const char* treename, const char* filename, int nofEvents, Reader::PublishingMode publishingMode, const char* branchname, const char* triggerbranchname, const char* mcbranchname) {
+  auto creator = [dto, tro, mco, subspec, propagateMC](const char* treename, const char* filename, int nofEvents, Reader::PublishingMode publishingMode, const char* branchname, const char* triggerbranchname, const char* mcbranchname) {
     constexpr auto persistency = o2::framework::Lifetime::Timeframe;
     if (propagateMC) {
       return std::make_shared<Reader>(treename,
                                       filename,
                                       nofEvents,
                                       publishingMode,
-                                      Output{mco.origin, mco.description, 0, persistency},
+                                      Output{mco.origin, mco.description, subspec, persistency},
                                       mcbranchname,
-                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, 0, persistency}, branchname},
-                                      Reader::BranchDefinition<TriggerInputType>{Output{tro.origin, tro.description, 0, persistency}, triggerbranchname});
+                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subspec, persistency}, branchname},
+                                      Reader::BranchDefinition<TriggerInputType>{Output{tro.origin, tro.description, subspec, persistency}, triggerbranchname});
     } else {
       return std::make_shared<Reader>(treename,
                                       filename,
                                       nofEvents,
                                       publishingMode,
-                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, 0, persistency}, branchname},
-                                      Reader::BranchDefinition<TriggerInputType>{Output{tro.origin, tro.description, 0, persistency}, triggerbranchname});
+                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subspec, persistency}, branchname},
+                                      Reader::BranchDefinition<TriggerInputType>{Output{tro.origin, tro.description, subspec, persistency}, triggerbranchname});
     }
   };
 
-  return createPublisherSpec(config, propagateMC, creator);
+  return createPublisherSpec(config, subspec, propagateMC, creator);
 }
 
 inline framework::DataProcessorSpec getCellReaderSpec(bool propagateMC)
@@ -92,6 +92,7 @@ inline framework::DataProcessorSpec getCellReaderSpec(bool propagateMC)
                                                        o2::framework::OutputSpec{"EMC", "CELLS"},
                                                        o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
                                                        o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                         0,
                                          propagateMC);
 }
 
@@ -101,7 +102,7 @@ using Reader = o2::framework::RootTreeReader;
 using Creator = std::function<std::shared_ptr<Reader>(const char*, const char*, int, Reader::PublishingMode, const char*, const char*, const char*)>;
 } // namespace workflow_reader
 
-framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagateMC, workflow_reader::Creator creator);
+framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, uint32_t subspec, bool propagateMC, workflow_reader::Creator creator);
 
 } // namespace emcal
 } // end namespace o2

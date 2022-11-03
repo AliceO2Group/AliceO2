@@ -11,11 +11,12 @@
 #ifndef o2_framework_DataOutputDirector_H_INCLUDED
 #define o2_framework_DataOutputDirector_H_INCLUDED
 
+#include "TFile.h"
+
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputSpec.h"
-#include "Framework/DataInputDirector.h"
 
 #include "rapidjson/fwd.h"
 
@@ -24,6 +25,11 @@ class TFile;
 namespace o2::framework
 {
 using namespace rapidjson;
+
+struct FileAndFolder {
+  TFile* file = nullptr;
+  std::string folderName = "";
+};
 
 struct DataOutputDescriptor {
   /// Holds information concerning the writing of aod tables.
@@ -82,7 +88,7 @@ struct DataOutputDirector {
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(InputSpec spec);
 
   // get the matching TFile
-  FileAndFolder getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber);
+  FileAndFolder getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber, std::string parentFileName);
 
   void closeDataFiles();
 
@@ -97,6 +103,7 @@ struct DataOutputDirector {
   std::vector<std::string> mtreeFilenames;
   std::vector<std::string> mfilenameBases;
   std::vector<TFile*> mfilePtrs;
+  std::vector<TMap*> mParentMaps;
   bool mdebugmode = false;
   int mnumberTimeFramesToMerge = 1;
   std::string mfileMode = "RECREATE";

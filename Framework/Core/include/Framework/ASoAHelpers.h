@@ -88,7 +88,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
     return groupedIndices;
   }
 
-  if constexpr (soa::is_soa_filtered_t<T>::value) {
+  if constexpr (soa::is_soa_filtered_v<T>) {
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
@@ -111,7 +111,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
     });
 
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
+    if constexpr (soa::is_soa_filtered_v<T>) {
       if (selectedRows[ind] >= selInd + chunkLength) {
         selInd += chunkLength;
         continue; // Go to the next chunk, no value selected in this chunk
@@ -120,7 +120,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
 
     uint64_t ai = 0;
     while (ai < chunkLength) {
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if constexpr (soa::is_soa_filtered_v<T>) {
         ai += selectedRows[ind] - selInd;
         selInd = selectedRows[ind];
       }
@@ -132,7 +132,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
       ind++;
 
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if constexpr (soa::is_soa_filtered_v<T>) {
         if (ind >= selectedRows.size()) {
           break;
         }
@@ -141,7 +141,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
     }
 
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
+    if constexpr (soa::is_soa_filtered_v<T>) {
       if (ind == selectedRows.size()) {
         break;
       }
@@ -418,14 +418,14 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
   using CombinationType = typename CombinationsIndexPolicyBase<Ts...>::CombinationType;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
-  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider) : CombinationsIndexPolicyBase<Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider) {}
-  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider)
+  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider) : CombinationsIndexPolicyBase<Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mIsNewWindow(true) {}
+  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mIsNewWindow(true)
   {
     if (!this->mIsEnd) {
       setRanges(tables...);
     }
   }
-  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider)
+  CombinationsBlockIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mIsNewWindow(true)
   {
     if (!this->mIsEnd) {
       setRanges();
@@ -500,6 +500,27 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     });
   }
 
+  int currentWindowNeighbours()
+  {
+    // NOTE: The same number of currentWindowNeighbours is returned for all kinds of block combinations.
+    // Strictly upper: the first element will is paired with exactly currentWindowNeighbours other elements.
+    // Upper: the first element is paired with (currentWindowNeighbours + 1) elements, including itself.
+    // Full: (currentWindowNeighbours + 1) pairs with the first element in the first position (c1)
+    //       + there are other combinations with the first element at other positions.
+    if (this->mIsEnd) {
+      return 0;
+    }
+    uint64_t maxForWindow = std::get<0>(this->mBeginIndices) + this->mSlidingWindowSize - 1;
+    uint64_t maxForTable = std::get<0>(this->mMaxOffset);
+    uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
+    return currentMax - std::get<0>(mCurrentIndices);
+  }
+
+  bool isNewWindow()
+  {
+    return mIsNewWindow;
+  }
+
   std::array<std::vector<BinningIndex>, sizeof...(Ts)> mGroupedIndices;
   IndicesType mCurrentIndices;
   IndicesType mBeginIndices;
@@ -507,6 +528,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
   const BP mBP;
   const int mCategoryNeighbours;
   const T mOutsider;
+  bool mIsNewWindow;
 };
 
 template <typename BP, typename T, typename... Ts>
@@ -579,6 +601,8 @@ struct CombinationsBlockUpperIndexPolicy : public CombinationsBlockIndexPolicyBa
         }
       }
     });
+
+    this->mIsNewWindow = modify;
 
     // First iterator processed separately
     if (modify) {
@@ -694,6 +718,8 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
       }
     });
 
+    this->mIsNewWindow = modify;
+
     // Currently fixed iterator processed separately
     if (modify) {
       // If we haven't finished with window starting element
@@ -758,14 +784,14 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
   using CombinationType = typename CombinationsIndexPolicyBase<T, Ts...>::CombinationType;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts) + 1>::type;
 
-  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize) : CombinationsIndexPolicyBase<T, Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize) {}
-  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, const T& table, const Ts&... tables) : CombinationsIndexPolicyBase<T, Ts...>(table, tables...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize)
+  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize) : CombinationsIndexPolicyBase<T, Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize), mIsNewWindow(true) {}
+  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, const T& table, const Ts&... tables) : CombinationsIndexPolicyBase<T, Ts...>(table, tables...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize), mIsNewWindow(true)
   {
     if (!this->mIsEnd) {
       setRanges(table);
     }
   }
-  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, T&& table, Ts&&... tables) : CombinationsIndexPolicyBase<T, Ts...>(std::forward<T>(table), std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize)
+  CombinationsBlockSameIndexPolicyBase(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, T&& table, Ts&&... tables) : CombinationsIndexPolicyBase<T, Ts...>(std::forward<T>(table), std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBP(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize), mIsNewWindow(true)
   {
     if (!this->mIsEnd) {
       setRanges();
@@ -824,6 +850,27 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     std::get<0>(this->mCurrentIndices) = 0;
   }
 
+  int currentWindowNeighbours()
+  {
+    // NOTE: The same number of currentWindowNeighbours is returned for all kinds of block combinations.
+    // Strictly upper: the first element will is paired with exactly currentWindowNeighbours other elements.
+    // Upper: the first element is paired with (currentWindowNeighbours + 1) elements, including itself.
+    // Full: (currentWindowNeighbours + 1) pairs with the first element in the first position (c1)
+    //       + there are other combinations with the first element at other positions.
+    if (this->mIsEnd) {
+      return 0;
+    }
+    uint64_t maxForWindow = std::get<0>(this->mCurrentIndices) + this->mSlidingWindowSize - 1;
+    uint64_t maxForTable = std::get<0>(this->mMaxOffset);
+    uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
+    return currentMax - std::get<0>(mCurrentIndices);
+  }
+
+  bool isNewWindow()
+  {
+    return mIsNewWindow;
+  }
+
   std::vector<BinningIndex> mGroupedIndices;
   IndicesType mCurrentIndices;
   const uint64_t mSlidingWindowSize;
@@ -831,6 +878,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
   const BP mBP;
   const int mCategoryNeighbours;
   const T1 mOutsider;
+  bool mIsNewWindow;
 };
 
 template <typename BP, typename T1, typename... Ts>
@@ -900,6 +948,8 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
         }
       }
     });
+
+    this->mIsNewWindow = modify;
 
     // First iterator processed separately
     if (modify) {
@@ -1001,6 +1051,8 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
         }
       }
     });
+
+    this->mIsNewWindow = modify;
 
     // First iterator processed separately
     if (modify) {

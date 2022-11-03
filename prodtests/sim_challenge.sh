@@ -126,7 +126,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}"
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber} --combine-devices"
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+

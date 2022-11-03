@@ -18,7 +18,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DataSender.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/DataRelayer.h"
@@ -34,6 +34,9 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "Framework/AsyncQueue.h"
+#include "Framework/Plugins.h"
+#include "Framework/DeviceContext.h"
+#include "Framework/DataProcessingContext.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -41,25 +44,22 @@
 #include "DecongestionService.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
-#include "TDatabasePDG.h"
 #include "Headers/STFHeader.h"
 #include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <InfoLogger/InfoLogger.hxx>
 
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <fairmq/ProgOptions.h>
+#include <uv.h>
 
 #include <cstdlib>
 #include <cstring>
 
-using AliceO2::InfoLogger::InfoLogger;
-using AliceO2::InfoLogger::InfoLoggerContext;
 using o2::configuration::ConfigurationFactory;
 using o2::configuration::ConfigurationInterface;
 using o2::monitoring::Monitoring;
@@ -75,18 +75,12 @@ using Value = o2::monitoring::tags::Value;
 namespace o2::framework
 {
 
-/// This is a global service because read only
-template <>
-struct ServiceKindExtractor<InfoLoggerContext> {
-  constexpr static ServiceKind kind = ServiceKind::Global;
-};
-
 #define MONITORING_QUEUE_SIZE 100
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{
     .name = "monitoring",
-    .init = [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       void* service = nullptr;
       bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
       bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
@@ -104,22 +98,22 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       service = monitoring;
       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
       assert(registry.get<DeviceSpec const>().name.empty() == false);
-      monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
+      monitoring->addGlobalTag("pipeline_id", std::to_string(registry.get<DeviceSpec const>().inputTimesliceId));
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
       monitoring->addGlobalTag("dpl_instance", options.GetPropertyAsString("shm-segment-id"));
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
-    .start = [](ServiceRegistry& services, void* service) {
-      o2::monitoring::Monitoring* monitoring = (o2::monitoring::Monitoring *) service;
+    .start = [](ServiceRegistryRef services, void* service) {
+      auto* monitoring = (o2::monitoring::Monitoring *) service;
       auto& context = services.get<DataTakingContext>();
 
       try {
         monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
       } catch (...) {
       } },
-    .exit = [](ServiceRegistry& registry, void* service) {
-                       Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
+    .exit = [](ServiceRegistryRef registry, void* service) {
+                       auto* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
     .kind = ServiceKind::Serial};
 }
@@ -163,7 +157,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
-    .start = [](ServiceRegistry& services, void* service) {
+    .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
@@ -199,159 +193,14 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .kind = ServiceKind::Serial};
 }
 
-o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
-{
-  return ServiceSpec{
-    .name = "infologger-contex",
-    .init = simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
-    .configure = noConfiguration(),
-    .start = [](ServiceRegistry& services, void* service) {
-      auto& infoLoggerContext = services.get<InfoLoggerContext>();
-      auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-      infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
-      auto partition = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
-      infoLoggerContext.setField(InfoLoggerContext::FieldName::Partition, partition);
-    },
-    .kind = ServiceKind::Serial};
-}
-
-// Creates the sink for FairLogger / InfoLogger integration
-auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
-{
-  return [logger,
-          ctx](const std::string& content, const fair::LogMetaData& metadata) {
-    // translate FMQ metadata
-    InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
-    int level = InfoLogger::undefinedMessageOption.level;
-
-    if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
-      // discard
-      return;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
-      severity = InfoLogger::Severity::Fatal;
-      level = 1;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
-      severity = InfoLogger::Severity::Error;
-      level = 3;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::alarm)) {
-      severity = InfoLogger::Severity::Warning;
-      level = 4;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::important)) {
-      severity = InfoLogger::Severity::Info;
-      level = 5;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
-      severity = InfoLogger::Severity::Warning;
-      level = 6;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
-      severity = InfoLogger::Severity::Info;
-      level = 8;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
-      severity = InfoLogger::Severity::Info;
-      level = 10;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 11;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 12;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 13;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 14;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 15;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 50;
-    }
-
-    InfoLogger::InfoLoggerMessageOption opt = {
-      severity,
-      level,
-      InfoLogger::undefinedMessageOption.errorCode,
-      metadata.file.c_str(),
-      atoi(metadata.line.c_str())};
-
-    if (logger) {
-      logger->log(opt, *ctx, "%s", content.c_str());
-    }
-  };
-};
-
 struct MissingService {
 };
-
-o2::framework::ServiceSpec CommonServices::infologgerSpec()
-{
-  return ServiceSpec{
-    .name = "infologger",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
-      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
-      if (infoLoggerSeverity.empty() == false && options.GetPropertyAsString("infologger-mode") == "") {
-        LOGP(info, "Using O2_INFOLOGGER_MODE=infoLoggerD since infologger-severity is set");
-        infoLoggerMode = "infoLoggerD";
-      }
-      if (infoLoggerMode != "") {
-        setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
-      }
-      char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
-      if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
-        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
-                             .instance = nullptr,
-                             .kind = ServiceKind::Serial,
-                             .name = "infologger"};
-      }
-      InfoLogger* infoLoggerService = nullptr;
-      try {
-        infoLoggerService = new InfoLogger;
-      } catch (...) {
-        LOGP(error, "Unable to initialise InfoLogger with O2_INFOLOGGER_MODE={}.", infoLoggerMode);
-        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
-                             .instance = nullptr,
-                             .kind = ServiceKind::Serial,
-                             .name = "infologger"};
-      }
-      auto infoLoggerContext = &services.get<InfoLoggerContext>();
-      // Only print the first 10 characters and the last 18 if the
-      // string length is greater than 32 bytes.
-      auto truncate = [](std::string in) -> std::string {
-        if (in.size() < 32) {
-          return in;
-        }
-        char name[32];
-        memcpy(name, in.data(), 10);
-        name[10] = '.';
-        name[11] = '.';
-        name[12] = '.';
-        memcpy(name + 13, in.data() + in.size() - 18, 18);
-        name[31] = 0;
-        return name;
-      };
-      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, truncate(services.get<DeviceSpec const>().name));
-      infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
-      infoLoggerService->setContext(*infoLoggerContext);
-
-      if (infoLoggerSeverity != "") {
-        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
-      }
-      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<InfoLogger>(),
-                           .instance = infoLoggerService,
-                           .kind = ServiceKind::Serial,
-                           .name = "infologger"};
-    },
-    .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
-}
 
 o2::framework::ServiceSpec CommonServices::configurationSpec()
 {
   return ServiceSpec{
     .name = "configuration",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("configuration");
       if (backend == "command-line") {
         return ServiceHandle{0, nullptr};
@@ -360,7 +209,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistry& registry, boost::program_options::variables_map const& vmap) {
+    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
       if (vmap.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;
@@ -375,7 +224,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
 {
   return ServiceSpec{
     .name = "driverClient",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("driver-client-backend");
       if (backend == "stdout://") {
         return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
@@ -393,7 +242,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
 {
   return ServiceSpec{
     .name = "control",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<ControlService>(),
                            new ControlService(services, state)};
     },
@@ -414,7 +263,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
 {
   return ServiceSpec{
     .name = "parallel",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<ParallelContext>(),
                            new ParallelContext(spec.rank, spec.nSlots)};
@@ -427,7 +276,7 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     .name = "timesliceindex",
-    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
                            new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), state.inputChannelInfos)};
@@ -449,7 +298,7 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
 {
   return ServiceSpec{
     .name = "datarelayer",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
@@ -465,7 +314,7 @@ o2::framework::ServiceSpec CommonServices::dataSender()
 {
   return ServiceSpec{
     .name = "datasender",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataSender>(),
                            new DataSender(services, spec.sendingPolicy)};
@@ -482,7 +331,7 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     .name = "tracing",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<TracingInfrastructure>(),
                            .instance = new TracingInfrastructure(),
                            .kind = ServiceKind::Serial};
@@ -505,7 +354,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
 {
   return ServiceSpec{
     .name = "ccdb-support",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       // iterate on all the outputs matchers
       auto& spec = services.get<DeviceSpec const>();
       for (auto& output : spec.outputs) {
@@ -560,7 +409,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
 {
   return ServiceSpec{
     .name = "decongestion",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DecongestionService* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
         if (input.matcher.lifetime == Lifetime::Timeframe) {
@@ -612,7 +461,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         }
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
-    .domainInfoUpdated = [](ServiceRegistry& services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
+    .domainInfoUpdated = [](ServiceRegistryRef services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
       DecongestionService& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
       auto& timesliceIndex = services.get<TimesliceIndex>();
@@ -673,18 +522,21 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
   return ServiceSpec{
     .name = "threadpool",
-    .init = [numWorkers](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       ThreadPool* pool = new ThreadPool();
-      pool->poolSize = numWorkers;
+      // FIXME: this will require some extra argument for the configuration context of a service
+      pool->poolSize = 1;
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
-    .configure = [numWorkers](InitContext&, void* service) -> void* {
+    .configure = [](InitContext&, void* service) -> void* {
       ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
-      t->poolSize = numWorkers;
+      // FIXME: this will require some extra argument for the configuration context of a service
+      t->poolSize = 1;
       return service;
     },
-    .postForkParent = [numWorkers](ServiceRegistry& service) -> void {
-      auto numWorkersS = std::to_string(numWorkers);
+    .postForkParent = [](ServiceRegistryRef services) -> void {
+      // FIXME: this will require some extra argument for the configuration context of a service
+      auto numWorkersS = std::to_string(1);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
     .kind = ServiceKind::Serial};
@@ -694,7 +546,7 @@ namespace
 {
 /// This will send metrics for the relayer at regular intervals of
 /// 15 seconds, in order to avoid overloading the system.
-auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
   auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
@@ -711,12 +563,12 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
     auto device = registry.get<RawDeviceService>().device();
     long freeMemory = -1;
     try {
-      freeMemory = Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
+      freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
     } catch (...) {
     }
     if (freeMemory == -1) {
       try {
-        freeMemory = Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+        freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
       } catch (...) {
       }
     }
@@ -799,7 +651,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 };
 
 /// This will flush metrics only once every second.
-auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
   static int counter = 0;
@@ -835,7 +687,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
     .name = "data-processing-stats",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DataProcessingStats* stats = new DataProcessingStats();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
@@ -865,7 +717,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
 {
   return ServiceSpec{
     .name = "gui-metrics",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       GUIMetrics* stats = new GUIMetrics();
       auto& monitoring = services.get<Monitoring>();
       auto& spec = services.get<DeviceSpec const>();
@@ -884,7 +736,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
       for (size_t ci; ci < spec.outputChannels.size(); ++ci) {
         monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug});
       } },
-    .domainInfoUpdated = [](ServiceRegistry& registry, size_t timeslice, ChannelIndex channel) {
+    .domainInfoUpdated = [](ServiceRegistryRef registry, size_t timeslice, ChannelIndex channel) {
       auto& monitoring = registry.get<Monitoring>();
       monitoring.send({(uint64_t)timeslice, fmt::format("oldest_possible_timeslice/{}", channel.value), o2::monitoring::Verbosity::Debug}); },
     .active = false,
@@ -895,7 +747,7 @@ o2::framework::ServiceSpec CommonServices::objectCache()
 {
   return ServiceSpec{
     .name = "object-cache",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       auto* cache = new ObjectCache();
       return ServiceHandle{TypeIdHelpers::uniqueId<ObjectCache>(), cache};
     },
@@ -903,17 +755,52 @@ o2::framework::ServiceSpec CommonServices::objectCache()
     .kind = ServiceKind::Serial};
 }
 
+o2::framework::ServiceSpec CommonServices::dataProcessorContextSpec()
+{
+  return ServiceSpec{
+    .name = "data-processing-context",
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessorContext>(), new DataProcessorContext()};
+    },
+    .configure = noConfiguration(),
+    .exit = [](ServiceRegistryRef, void* service) { auto* context = (DataProcessorContext*)service; delete context; },
+    .kind = ServiceKind::Serial};
+}
+
+o2::framework::ServiceSpec CommonServices::deviceContextSpec()
+{
+  return ServiceSpec{
+    .name = "device-context",
+    .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<DeviceContext>(), new DeviceContext()};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
+o2::framework::ServiceSpec CommonServices::dataAllocatorSpec()
+{
+  return ServiceSpec{
+    .name = "data-allocator",
+    .init = [](ServiceRegistryRef ref, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataAllocator>(), new DataAllocator(ref)};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
+/// Split a string into a vector of strings using : as a separator.
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    dataProcessorContextSpec(),
+    dataAllocatorSpec(),
     asyncQueue(),
     timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),
     datatakingContextSpec(),
     monitoringSpec(),
-    infologgerContextSpec(),
-    infologgerSpec(),
     configurationSpec(),
     controlSpec(),
     rootFileSpec(),
@@ -931,6 +818,19 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
 
+  std::string loadableServicesStr = "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
+  // Load plugins depending on the environment
+  std::vector<LoadableService> loadableServices = {};
+  char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
+  // String to define the services to load is:
+  //
+  // library1:name1,library2:name2,...
+  if (loadableServicesEnv) {
+    loadableServicesStr += ",";
+    loadableServicesStr += loadableServicesEnv;
+  }
+  loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesStr.c_str());
+  ServiceHelpers::loadFromPlugin(loadableServices, specs);
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {
@@ -939,18 +839,5 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   return specs;
 }
 
-o2::framework::ServiceSpec CommonAnalysisServices::databasePDGSpec()
-{
-  return ServiceSpec{
-    .name = "database-pdg",
-    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto* ptr = new TDatabasePDG();
-      ptr->ReadPDGTable();
-      return ServiceHandle{TypeIdHelpers::uniqueId<TDatabasePDG>(), ptr, ServiceKind::Serial, "database-pdg"};
-    },
-    .configure = CommonServices::noConfiguration(),
-    .exit = [](ServiceRegistry&, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
-    .kind = ServiceKind::Serial};
-}
 } // namespace o2::framework
 #pragma GCC diagnostic pop

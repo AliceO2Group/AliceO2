@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
@@ -23,6 +24,9 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -37,6 +41,7 @@
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/InterCalibSpec.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -108,30 +113,45 @@ void InterCalibSpec::run(ProcessingContext& pc)
     mTimer.Reset();
     mTimer.Start(false);
   }
-
+  if (mRunStartTime == 0) {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunStartTime = tinfo.creation; // approximate time in ms
+    mRunNumber = tinfo.runNumber;
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"inter_1dh", ConcreteDataTypeMatcher{"ZDC", "INTER_1DH"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(inputRef));
+      mWorker.add(dh->subSpecification, histoView);
+    }
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"inter_2dh", ConcreteDataTypeMatcher{"ZDC", "INTER_2DH"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(inputRef));
+      mWorker.add(dh->subSpecification, histoView);
+    }
+  }
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
   mWorker.process(data);
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
-    mWorker.add(ih, histoView);
-  }
-  for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
-    mWorker.add(ih, histoView);
-  }
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  sendOutput(ec.outputs());
+  sendOutput(ec);
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 //________________________________________________________________
-void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
+void InterCalibSpec::sendOutput(EndOfStreamContext& ec)
 {
+  std::string fn = "ZDC_interCalib";
+  o2::framework::DataAllocator& output = ec.outputs();
+
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
@@ -147,6 +167,43 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
+
+  const auto& opt = CalibParamZDC::Instance();
+  if (opt.rootOutput == true) {
+    mOutputDir = opt.outputDir;
+    if (mOutputDir.compare("/dev/null")) {
+      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
+      int rval = mWorker.saveDebugHistos(mHistoFileName);
+      if (rval) {
+        LOG(error) << "Cannot create output file " << mHistoFileName;
+        return;
+      }
+      std::string metaFileDir = opt.metaFileDir;
+      if (metaFileDir.compare("/dev/null")) {
+        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
+        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
+        histoFileMetaData->fillFileData(mHistoFileName);
+        histoFileMetaData->type = "calib";
+        histoFileMetaData->priority = "high";
+        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
+        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
+        try {
+          std::ofstream metaFileOut(metaFileNameTmp);
+          metaFileOut << *histoFileMetaData.get();
+          metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
+        } catch (std::exception const& e) {
+          LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
+        }
+        LOG(info) << "Stored metadata file " << metaFileName << ".done";
+      } else {
+        LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
+      }
+    } else {
+      LOG(warn) << "Do not create output file since output dir is " << mOutputDir;
+    }
+  }
 }
 
 framework::DataProcessorSpec getInterCalibSpec()
@@ -159,19 +216,8 @@ framework::DataProcessorSpec getInterCalibSpec()
   inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathEnergyCalib.data()));
   inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathTowerCalib.data()));
   inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
-
-  char outputa[o2::header::gSizeDataDescriptionString];
-  char outputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_1dh%d", ih);
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
-    inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
-  }
-  for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_2dh%d", ih);
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
-    inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("inter_1dh", ConcreteDataTypeMatcher{"ZDC", "INTER_1DH"}, Lifetime::Timeframe);
+  inputs.emplace_back("inter_2dh", ConcreteDataTypeMatcher{"ZDC", "INTER_2DH"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib"}, Lifetime::Sporadic);

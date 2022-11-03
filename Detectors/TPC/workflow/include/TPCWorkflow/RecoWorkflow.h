@@ -80,7 +80,10 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool disableRootInput = false,                //
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
-                                    bool askDISTSTF = true);
+                                    bool askDISTSTF = true,
+                                    bool selIR = false);
+
+void cleanupCallback();
 
 } // end namespace reco_workflow
 } // end namespace tpc

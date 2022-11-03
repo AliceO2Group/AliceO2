@@ -80,27 +80,25 @@ class FetToDeadDeviceDPL
     std::vector<ROFRecord> noisyChannelsRof;
     noisyChannelsRof.insert(noisyChannelsRof.end(), dataRof[1].begin(), dataRof[1].end());
 
-    auto deadChannels = getDeadChannels(data[2], dataRof[2], data[0], dataRof[0]);
-
-    std::vector<ROFRecord> deadChannelsRof;
-    deadChannelsRof.insert(deadChannelsRof.end(), dataRof[2].begin(), dataRof[2].end());
+    auto deadChannelsPair = getDeadChannels(data[2], dataRof[2], data[0], dataRof[0]);
 
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISE", 0}, noisyChannels);
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISEROF", 0}, noisyChannelsRof);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEAD", 0}, deadChannels);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEADROF", 0}, deadChannelsRof);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEAD", 0}, deadChannelsPair.first);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DEADROF", 0}, deadChannelsPair.second);
   }
 
  private:
   FetToDead mFetToDead{}; ///< FET to dead channels converter
 
-  std::vector<ColumnData> getDeadChannels(gsl::span<const ColumnData> fetData, gsl::span<const ROFRecord> fetDataRof, gsl::span<const ColumnData> selfTrigData, gsl::span<const ROFRecord> selfTrigDataRof)
+  std::pair<std::vector<ColumnData>, std::vector<ROFRecord>> getDeadChannels(gsl::span<const ColumnData> fetData, gsl::span<const ROFRecord> fetDataRof, gsl::span<const ColumnData> selfTrigData, gsl::span<const ROFRecord> selfTrigDataRof)
   {
     int64_t maxDiff = 1;
     int64_t minDiff = -maxDiff;
 
     ColumnDataHandler handler;
     std::vector<ColumnData> deadChannels;
+    std::vector<ROFRecord> deadChannelROFs;
     // The FET data can be split into different BCs.
     // Try to merge the expected FET data with the data in the close BCs
     // which are probably badly tagged FET data
@@ -126,9 +124,10 @@ class FetToDeadDeviceDPL
         // So we do nothing, i.e. we move to the next auxRofIt in the for loop
       }
       auto eventDeadChannels = mFetToDead.process(handler.getMerged());
+      deadChannelROFs.emplace_back(rof.interactionRecord, rof.eventType, deadChannels.size(), eventDeadChannels.size());
       deadChannels.insert(deadChannels.end(), eventDeadChannels.begin(), eventDeadChannels.end());
     }
-    return deadChannels;
+    return {deadChannels, deadChannelROFs};
   }
 };
 

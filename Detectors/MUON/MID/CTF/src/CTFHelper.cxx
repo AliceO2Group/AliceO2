@@ -14,10 +14,11 @@
 /// \brief  Helper for MID CTF creation
 
 #include "MIDCTF/CTFHelper.h"
+#include "CommonUtils/IRFrameSelector.h"
 
 using namespace o2::mid;
 
-void CTFHelper::TFData::buildReferences()
+void CTFHelper::TFData::buildReferences(o2::utils::IRFrameSelector& irSelector)
 {
   uint32_t nDone = 0, idx[NEvTypes] = {};
   uint32_t sizes[NEvTypes] = {
@@ -38,9 +39,11 @@ void CTFHelper::TFData::buildReferences()
   }
   while (nDone < NEvTypes) { // find next ROFRecord with smallest BC, untill all 3 spans are traversed
     int selT = rofBC[0] <= rofBC[1] ? (rofBC[0] <= rofBC[2] ? 0 : 2) : (rofBC[1] <= rofBC[2] ? 1 : 2);
-    rofDataRefs.emplace_back(idx[selT], selT);
-    for (uint32_t ic = rofData[selT][idx[selT]].firstEntry; ic < rofData[selT][idx[selT]].getEndIndex(); ic++) {
-      colDataRefs.emplace_back(ic, selT); // register indices of corresponding column data
+    if (!irSelector.isSet() || irSelector.check(rofData[selT][idx[selT]].interactionRecord) >= 0) {
+      rofDataRefs.emplace_back(idx[selT], selT);
+      for (uint32_t ic = rofData[selT][idx[selT]].firstEntry; ic < rofData[selT][idx[selT]].getEndIndex(); ic++) {
+        colDataRefs.emplace_back(ic, selT); // register indices of corresponding column data
+      }
     }
     ++idx[selT]; // increment used index
     fillNextROFBC(selT);

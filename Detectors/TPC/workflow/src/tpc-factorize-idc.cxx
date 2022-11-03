@@ -50,6 +50,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"groupLastPadsThreshold", VariantType::String, "1", {"set threshold in pad direction for merging the last group to the previous group per region"}},
     {"use-precise-timestamp", VariantType::Bool, false, {"Use precise timestamp from distribute when writing to CCDB"}},
     {"enable-CCDB-output", VariantType::Bool, false, {"send output for ccdb populator"}},
+    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPIDCSpec."}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}}};
 
   std::swap(workflowOptions, options);
@@ -74,8 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
   const auto nCRUs = tpcCRUs.size();
-  const auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
-  const auto timeframesDeltaIDC = static_cast<unsigned int>(config.options().get<int>("timeframesDeltaIDC"));
+  auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
+  auto timeframesDeltaIDC = static_cast<unsigned int>(config.options().get<int>("timeframesDeltaIDC"));
   const auto sendOutputFFT = config.options().get<bool>("sendOutputFFT");
   const auto nthreadsFactorization = static_cast<unsigned long>(config.options().get<int>("nthreads-IDC-factorization"));
   IDCFactorization::setNThreads(nthreadsFactorization);
@@ -84,6 +85,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("input-lanes"));
   const bool usePrecisetimeStamp = config.options().get<bool>("use-precise-timestamp");
   const bool sendCCDB = config.options().get<bool>("enable-CCDB-output");
+  int nTFsBuffer = config.options().get<int>("n-TFs-buffer");
+  if (nTFsBuffer <= 0) {
+    nTFsBuffer = 1;
+  }
+  assert(timeframes >= nTFsBuffer);
+  timeframes /= nTFsBuffer;
+  timeframesDeltaIDC = std::clamp(timeframesDeltaIDC / nTFsBuffer, static_cast<unsigned int>(1), timeframesDeltaIDC);
 
   const int compressionTmp = config.options().get<int>("compression");
   IDCDeltaCompression compression;
@@ -106,7 +114,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec workflow;
   workflow.reserve(nLanes);
   for (int ilane = 0; ilane < nLanes; ++ilane) {
-    workflow.emplace_back(getTPCFactorizeIDCSpec(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB));
+    workflow.emplace_back(getTPCFactorizeIDCSpec(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, nTFsBuffer));
   }
   return workflow;
 }

@@ -8,18 +8,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_SERIALIZATIONMETHODS_H
-#define FRAMEWORK_SERIALIZATIONMETHODS_H
+#ifndef O2_FRAMEWORK_SERIALIZATIONMETHODS_H_
+#define O2_FRAMEWORK_SERIALIZATIONMETHODS_H_
 
 /// @file SerializationMethods.h
 /// @brief Type wrappers for enfording a specific serialization method
 
 #include "Framework/TypeTraits.h"
-#include "CommonUtils/BoostSerializer.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// @class ROOTSerialized
@@ -69,38 +66,6 @@ class ROOTSerialized
   hint_type* mHint; // optional hint e.g. class info or class name
 };
 
-/// @class BoostSerialized
-/// Enforce Boost serialization for a type
-///
-/// Usage: (with 'output' being the DataAllocator of the ProcessingContext)
-///   SomeType object;
-///   BoostSerialized<decltype(object)> ref(object);
-///   output.snapshot(Output{}, ref);
-///     - or -
-///   output.snapshot(Output{}, BoostSerialized<decltype(object)>(object));
-///
-/// The existence of the serialized overload for the wrapped type can not be
-/// checked at compile time, a runtime check must be performed in the
-/// substitution for the BoostSerialized type.
-template <typename T>
-class BoostSerialized
-{
- public:
-  using non_messageable = o2::framework::MarkAsNonMessageable;
-  using wrapped_type = T;
-
-  static_assert(framework::is_boost_serializable<T>::value == true, "wrapped type provides no boost serialize override");
-
-  BoostSerialized() = delete;
-  BoostSerialized(wrapped_type& ref) : mRef(ref) {}
-
-  T& operator()() { return mRef; }
-  T const& operator()() const { return mRef; }
-
- private:
-  wrapped_type& mRef;
-};
-
 template <typename T, typename HintType = void>
 class CCDBSerialized
 {
@@ -125,6 +90,5 @@ class CCDBSerialized
   hint_type* mHint; // optional hint e.g. class info or class name
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_SERIALIZATIONMETHODS_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_SERIALIZATIONMETHODS_H_

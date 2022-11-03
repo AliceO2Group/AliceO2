@@ -25,6 +25,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
@@ -394,12 +395,15 @@ void DataRequest::requestSecondaryVertertices(bool)
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
   addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
+  addInput({"decay3body", "GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
+  addInput({"p2decay3body", "GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
 void DataRequest::requestCTPDigits(bool mc)
 {
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
+  addInput({"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(warning) << "MC truth not implemented for CTP";
     // addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
@@ -522,42 +526,41 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   //  }
 }
 
-void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
+void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC, DetID::mask_t skipDetClusters)
 {
   // request clusters for detectors of the sources probided by the mask
-
   // clusters needed for refits
-  if (GTrackID::includesDet(DetID::ITS, src)) {
+  if (GTrackID::includesDet(DetID::ITS, src) && !skipDetClusters[DetID::ITS]) {
     requestITSClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::MFT, src)) {
+  if (GTrackID::includesDet(DetID::MFT, src) && !skipDetClusters[DetID::MFT]) {
     requestMFTClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TPC, src)) {
+  if (GTrackID::includesDet(DetID::TPC, src) && !skipDetClusters[DetID::TPC]) {
     requestTPCClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TOF, src)) {
+  if (GTrackID::includesDet(DetID::TOF, src) && !skipDetClusters[DetID::TOF]) {
     requestTOFClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::TRD, src)) {
+  if (GTrackID::includesDet(DetID::TRD, src) && !skipDetClusters[DetID::TRD]) {
     requestTRDTracklets(useMC);
   }
-  if (GTrackID::includesDet(DetID::CTP, src)) {
+  if (GTrackID::includesDet(DetID::CTP, src) && !skipDetClusters[DetID::CTP]) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
-  if (GTrackID::includesDet(DetID::CPV, src)) {
+  if (GTrackID::includesDet(DetID::CPV, src) && !skipDetClusters[DetID::CPV]) {
     requestCPVClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::PHS, src)) {
+  if (GTrackID::includesDet(DetID::PHS, src) && !skipDetClusters[DetID::PHS]) {
     requestPHOSCells(useMC);
   }
-  if (GTrackID::includesDet(DetID::EMC, src)) {
+  if (GTrackID::includesDet(DetID::EMC, src) && !skipDetClusters[DetID::EMC]) {
     requestEMCALCells(useMC);
   }
-  if (GTrackID::includesDet(DetID::MCH, src)) {
+  if (GTrackID::includesDet(DetID::MCH, src) && !skipDetClusters[DetID::MCH]) {
     requestMCHClusters(useMC);
   }
-  if (GTrackID::includesDet(DetID::HMP, src)) {
+  if (GTrackID::includesDet(DetID::HMP, src) && !skipDetClusters[DetID::HMP]) {
     requestHMPClusters(useMC);
   }
 }
@@ -761,6 +764,8 @@ void RecoContainer::addSVertices(ProcessingContext& pc, bool)
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::DecayNbody>>("decay3body"), DECAY3BODY);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2decay3body"), PVTX_3BODYREFS);
   // no mc
 }
 
@@ -1082,6 +1087,7 @@ void RecoContainer::addMIDClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addCTPDigits(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::CTP].registerContainer(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>("CTPDigits"), CLUSTERS);
+  mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
   if (mc) {
     //  pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("CTPDigitsMC");
   }
@@ -1180,7 +1186,16 @@ gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTrac
 
 gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
 {
-  return inputsTRD->mTriggerRecords;
+  static int countWarnings = 0;
+  if (inputsTRD == nullptr) {
+    if (countWarnings < 1) {
+      LOG(warning) << "No TRD triggers";
+      countWarnings++;
+    }
+    return gsl::span<const o2::trd::TriggerRecord>();
+  } else {
+    return inputsTRD->mTriggerRecords;
+  }
 }
 
 const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* RecoContainer::getTRDTrackletsMCLabels() const

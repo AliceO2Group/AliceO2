@@ -21,6 +21,7 @@ void CalibratorPadGainTracks::initOutput()
   // Here we initialize the vector of our output objects
   mIntervals.clear();
   mCalibs.clear();
+  mTimeIntervals.clear();
 }
 
 void CalibratorPadGainTracks::setTruncationRange(const float low, const float high)
@@ -45,6 +46,7 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
   calibPadGainTracks.setNormalizationType(mNormType);
   calibPadGainTracks.finalize(mMinEntriesMean, mMinRelgain, mMaxRelgain, mLowTruncation, mUpTruncation);
   mIntervals.emplace_back(startTF, endTF);
+  mTimeIntervals.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
   auto& extractedGainMap = calibPadGainTracks.getPadGainMap();
 
   if (mUseLastExtractedMapAsReference) {
@@ -55,7 +57,7 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
     }
   }
 
-  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}, {"NTracks", calibPadGainTracks.getNTracksMap()}});
   mCalibs.emplace_back(cal);
 
   if (mUseLastExtractedMapAsReference) {

@@ -19,17 +19,113 @@
 // input TRD tracks, TRD tracklets, TRD calibrated tracklets, ITS-TPC tracks, TPC tracks
 // output QC histograms
 
+#include "Headers/DataHeader.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/Propagator.h"
+#include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "TRDQC/Tracking.h"
+
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
+using namespace o2::globaltracking;
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
 namespace trd
 {
-/// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mask_t src);
+
+class TRDGlobalTrackingQC : public Task
+{
+ public:
+  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mGGCCDBRequest(gr) {}
+  ~TRDGlobalTrackingQC() override = default;
+  void init(InitContext& ic) final { o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest); }
+  void run(ProcessingContext& pc) final
+  {
+    RecoContainer recoData;
+    recoData.collectData(pc, *mDataRequest.get());
+    updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
+    mQC.reset();
+    mQC.setInput(recoData);
+    mQC.run();
+    pc.outputs().snapshot(Output{"TRD", "TRACKINGQC", 0, Lifetime::Timeframe}, mQC.getTrackQC());
+  }
+  void endOfStream(framework::EndOfStreamContext& ec) final {}
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+  }
+
+ private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) { // this params need to be queried only once
+      initOnceDone = true;
+
+      mQC.init();
+    }
+  }
+  std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  Tracking mQC;
+};
+
+DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mask_t src)
+{
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("TRD", "TRACKINGQC", 0, Lifetime::Timeframe);
+  auto dataRequest = std::make_shared<DataRequest>();
+
+  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
+    LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
+    src |= GTrackID::getSourcesMask("ITS-TPC-TRD");
+  }
+  if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
+    LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
+    src |= GTrackID::getSourcesMask("TPC-TRD");
+  }
+  GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD"); // we don't need all clusters, only TRD tracklets
+
+  dataRequest->requestTracks(src, false);
+  dataRequest->requestClusters(srcClu, false);
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
+  return DataProcessorSpec{
+    "trd-tracking-qc",
+    dataRequest->inputs,
+    outputs,
+    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest)},
+    Options{}};
+}
+
+template <typename T>
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
+
+DataProcessorSpec getTRDTrackingQCWriterSpec()
+{
+  return framework::MakeRootTreeWriterSpec("trd-tracking-qc-writer",
+                                           "trdQC.root",
+                                           "qc",
+                                           BranchDefinition<std::vector<TrackQC>>{InputSpec{"trackingqc", "TRD", "TRACKINGQC"}, "trackQC"})();
+};
 
 } // namespace trd
 } // namespace o2

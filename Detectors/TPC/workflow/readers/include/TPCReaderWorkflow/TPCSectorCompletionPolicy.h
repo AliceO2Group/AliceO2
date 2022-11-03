@@ -120,7 +120,7 @@ class TPCSectorCompletionPolicy
               } else if (inputType != (int)idx) {
                 std::stringstream error;
                 error << fmt::format("routing error, input messages must all be of the same type previously bound to {} {}/{}/{}",
-                                     inputMatchers[inputType],
+                                     o2::framework::DataSpecUtils::describe(inputMatchers[inputType]),
                                      dh->dataOrigin,
                                      dh->dataDescription, dh->subSpecification);
                 throw std::runtime_error(error.str());

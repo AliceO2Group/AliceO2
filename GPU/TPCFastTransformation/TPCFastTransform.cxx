@@ -33,7 +33,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(0.f), mLumiError(0.f), mLumiScaleFactor(1.0f)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -54,7 +54,9 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mLdriftCorr = obj.mLdriftCorr;
   mTOFcorr = obj.mTOFcorr;
   mPrimVtxZ = obj.mPrimVtxZ;
-
+  mLumi = obj.mLumi;
+  mLumiError = obj.mLumiError;
+  mLumiScaleFactor = obj.mLumiScaleFactor;
   // variable-size data
 
   char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCorrection.getFlatBufferPtr());
@@ -102,6 +104,9 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mLdriftCorr = 0.f;
   mTOFcorr = 0.f;
   mPrimVtxZ = 0.f;
+  mLumi = 0.f;
+  mLumiError = 0.f;
+  mLumiScaleFactor = 1.f;
 
   // variable-size data
 
@@ -149,6 +154,9 @@ void TPCFastTransform::print() const
   LOG(info) << "mLdriftCorr = " << mLdriftCorr;
   LOG(info) << "mTOFcorr = " << mTOFcorr;
   LOG(info) << "mPrimVtxZ = " << mPrimVtxZ;
+  LOG(info) << "mLumi = " << mLumi;
+  LOG(info) << "mLumiError = " << mLumiError;
+  LOG(info) << "mLumiScaleFactor = " << mLumiScaleFactor;
   mCorrection.print();
 #endif
 }
@@ -184,6 +192,11 @@ int TPCFastTransform::writeToFile(std::string outFName, std::string name)
   return 0;
 }
 
+void TPCFastTransform::rectifyAfterReadingFromFile()
+{
+  setActualBufferAddress(mFlatBufferContainer);
+}
+
 TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::string name)
 {
   /// load from file
@@ -208,7 +221,7 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
     LOG(error) << "Failed to load " << name << " from " << inpFName << ": empty flat buffer container";
     return nullptr;
   }
-  transform->setActualBufferAddress(transform->mFlatBufferContainer);
+  transform->rectifyAfterReadingFromFile(); // ==   transform->setActualBufferAddress(transform->mFlatBufferContainer);
   return transform;
 }
 

@@ -12,28 +12,14 @@
 #ifndef O2_MCH_GLOBAL_MAPPING_MAPPER_H_
 #define O2_MCH_GLOBAL_MAPPING_MAPPER_H_
 
-#include <cstdint>
-#include <utility>
+#include "MCHGlobalMapping/DsIndex.h"
+#include <set>
+#include <string>
 
-#include "MCHRawElecMap/DsDetId.h"
-
-namespace o2::mch
+namespace o2::mch::dcs
 {
-/** DsIndex is an integer, from 0 to 16719, which uniquely identifies
- * one pair (deId,dsId), i.e. one DualSampa, within the whole detector
- */
-using DsIndex = uint16_t;
-
-constexpr uint16_t NumberOfDualSampas = 16820;
-
-/** getDsIndex returns the unique index of one dual sampa. */
-DsIndex getDsIndex(const o2::mch::raw::DsDetId& dsDetId);
-
-/** decodeDsIndex converts a unique dual sampa index into a pair (deId,dsId). */
-o2::mch::raw::DsDetId getDsDetId(DsIndex dsIndex);
-
-/** get the number of channels for a given dual sampa (will be 64 in most of the cases. */
-uint8_t numberOfDualSampaChannels(DsIndex dsIndex);
-} // namespace o2::mch
+/** get the list of dual sampa indices corresponding to a given DCS Alias */
+std::set<int> aliasToDsIndices(std::string_view alias);
+} // namespace o2::mch::dcs
 
 #endif

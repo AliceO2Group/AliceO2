@@ -113,6 +113,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   GPUd() void resetCovariance(value_t s2 = 0);
   GPUd() void checkCovariance();
+  GPUd() void checkCorrelations();
   GPUd() void setCov(value_t v, size_t i, size_t j);
   GPUd() void setCov(value_t v, int i);
   GPUd() void setCov(const covMat_t& mat);

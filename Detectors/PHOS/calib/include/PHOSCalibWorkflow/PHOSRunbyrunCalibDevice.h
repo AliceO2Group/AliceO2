@@ -18,6 +18,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h"
@@ -33,7 +34,7 @@ namespace phos
 class PHOSRunbyrunCalibDevice
 {
  public:
-  PHOSRunbyrunCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  PHOSRunbyrunCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const std::string& outputDir, const std::string& metaFileDir, bool writeRootOutput) : mWriteRootOutput(writeRootOutput), mOutputDir(outputDir), mMetaFileDir(metaFileDir), mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic);
 
@@ -51,13 +52,17 @@ class PHOSRunbyrunCalibDevice
 
  private:
   bool mUseCCDB = false;
-  long mRunStartTime = 0;                              /// start time of the run (sec)
+  bool mWriteRootOutput = true;                        /// Write local root files
+  std::string mOutputDir;                              /// where to write calibration digits
+  std::string mMetaFileDir;                            /// where to store meta files
+  long mRunStartTime = 0;                              /// start time of the run (ms)
   std::array<float, 8> mRunByRun;                      /// Final calibration object
   std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData; /// Metadata for collected histograms
 };
 
-o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB);
+o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB, const std::string& outputDir, const std::string& metaFileDir, bool writeRootOutput);
 } // namespace phos
 } // namespace o2
 

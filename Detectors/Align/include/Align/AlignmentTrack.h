@@ -49,12 +49,9 @@ class AlignmentTrack : public trackParam_t, public TObject
          kResidDoneBit = BIT(16),
          kDerivDoneBit = BIT(17),
          kKalmanDoneBit = BIT(18) };
-  enum { kNKinParBOFF = 4 // N params for ExternalTrackParam part w/o field
-         ,
-         kNKinParBON = 5 // N params for ExternalTrackParam part with field
-         ,
-         kParY = 0 // track parameters
-         ,
+  enum { kNKinParBOFF = 4, // N params for ExternalTrackParam part w/o field
+         kNKinParBON = 5,  // N params for ExternalTrackParam part with field
+         kParY = 0,        // track parameters
          kParZ,
          kParSnp,
          kParTgl,
@@ -70,6 +67,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   const AlignmentPoint* getPoint(int i) const { return mPoints[i]; }
   auto getPoints() { return mPoints; }
   auto& addDetectorPoint() { return mDetPoints.emplace_back(); }
+  void suppressLastPoints(int n);
   void setRefPoint(AlignmentPoint* p) { mPoints.emplace_back(p); }
   int getNLocPar() const { return mNLocPar; }
   int getNLocExtPar() const { return mNLocExtPar; }
@@ -80,14 +78,14 @@ class AlignmentTrack : public trackParam_t, public TObject
   //
   template <typename P>
   void copyFrom(const o2::track::TrackParametrizationWithError<P>& trc);
-
-  bool propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
-  bool propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
-  bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
+  bool propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr, int signCorr = 0);
+  bool propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0);             // param only
+  bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0); // params only
   //
   bool calcResiduals(const double* params = nullptr);
   bool calcResidDeriv(double* params = nullptr);
   bool calcResidDerivGlo(AlignmentPoint* pnt);
+  bool testLocalSolution();
   //
   bool isCosmic() const { return TestBit(kCosmicBit); }
   void setCosmic(bool v = true) { SetBit(kCosmicBit, v); }
@@ -136,7 +134,9 @@ class AlignmentTrack : public trackParam_t, public TObject
                        const AlignmentPoint* pnt, double& derY, double& derZ);
   //
   const double* getLocPars() const { return mLocPar.data(); }
+  std::vector<double>& getLocParsV() { return mLocPar; }
   void setLocPars(const double* pars);
+  void addLocPars(const double* pars);
   //
  protected:
   //
@@ -173,7 +173,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   std::vector<double> mLocPar;              // local parameters array
   std::vector<int> mGloParID;               // IDs of relevant global params
  private:
-  bool propagate(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
+  bool propagate(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr = 0);
   //
   ClassDefOverride(AlignmentTrack, 2)
 };
@@ -245,7 +245,7 @@ inline void AlignmentTrack::modParam(trackParam_t& tr, int par, double delta)
 inline void AlignmentTrack::modParam(trackParam_t* trSet, int ntr, int par, double delta)
 {
   // modify track parameter (VECTORIZE THOS)
-  for (size_t i = 0; i < ntr; ++i) {
+  for (int i = 0; i < ntr; ++i) {
     modParam(trSet[i], par, delta);
   }
 }

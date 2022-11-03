@@ -15,6 +15,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ZDCBase/Constants.h"
+#include <string>
 
 /// \file CalibParamZDC.h
 /// \brief ZDC calibration common parameters
@@ -25,8 +26,12 @@ namespace o2
 namespace zdc
 {
 struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
-  int debug_output = -1; // Debug output
-  void print();
+  bool debugOutput = true;               // Debug output
+  bool rootOutput = true;                // Output histograms to EOS
+  std::string outputDir = "./";          // ROOT files output directory
+  std::string metaFileDir = "/dev/null"; // Metafile output directory
+  std::string descr;                     // Calibration description
+  void print() const;
   O2ParamDef(CalibParamZDC, "CalibParamZDC");
 };
 } // namespace zdc

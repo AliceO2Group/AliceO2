@@ -29,7 +29,7 @@
 #include "TGeoManager.h"
 #include "TRandom.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRootManager.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"

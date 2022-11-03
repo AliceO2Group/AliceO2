@@ -18,6 +18,7 @@
 
 #include "DataFormatsCTP/CTF.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include <gsl/span>
 
 namespace o2
@@ -29,15 +30,15 @@ class CTFHelper
 {
 
  public:
-  CTFHelper(const gsl::span<const CTPDigit>& data)
-    : mData(data) {}
+  CTFHelper(const gsl::span<const CTPDigit>& data) : mData(data) {}
 
   static constexpr int CTPInpNBytes = CTP_NINPUTS / 8 + (CTP_NINPUTS % 8 > 0);
   static constexpr int CTPClsNBytes = CTP_NCLASSES / 8 + (CTP_NCLASSES % 8 > 0);
 
-  CTFHeader createHeader()
+  CTFHeader createHeader(const LumiInfo& lumi)
   {
     CTFHeader h{o2::detectors::DetID::CTP, 0, 1, 0, // dummy timestamp, version 1.0
+                lumi.counts, lumi.nHBFCounted, lumi.orbit,
                 uint32_t(mData.size()), 0, 0};
     if (mData.size()) {
       h.firstOrbit = mData[0].intRecord.orbit;
@@ -84,11 +85,50 @@ class CTFHelper
       mIndex -= idx;
       return (I&)(*this);
     }
+    const I operator++(int)
+    {
+      auto res = *this;
+      ++mIndex;
+      return res;
+    }
+
+    const I operator--(int)
+    {
+      auto res = *this;
+      --mIndex;
+      return res;
+    }
+
+    const I& operator+=(difference_type i)
+    {
+      mIndex += i;
+      return (I&)(*this);
+    }
+
+    const I operator+=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp += i;
+    }
+
+    const I& operator-=(difference_type i)
+    {
+      mIndex -= i;
+      return (I&)(*this);
+    }
+
+    const I operator-=(difference_type i) const
+    {
+      auto tmp = *const_cast<I*>(this);
+      return tmp -= i;
+    }
 
     bool operator!=(const I& other) const { return mIndex != other.mIndex; }
     bool operator==(const I& other) const { return mIndex == other.mIndex; }
     bool operator>(const I& other) const { return mIndex > other.mIndex; }
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
@@ -113,6 +153,18 @@ class CTFHelper
       }
       return 0;
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      if (id) {
+        if (mData[id].intRecord.orbit == mData[id - 1].intRecord.orbit) {
+          return mData[id].intRecord.bc - mData[id - 1].intRecord.bc;
+        } else {
+          return mData[id].intRecord.bc;
+        }
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -122,6 +174,11 @@ class CTFHelper
    public:
     using _Iter<Iter_orbitIncTrig, CTPDigit, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].intRecord.orbit - mData[mIndex - 1].intRecord.orbit : 0; }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return id ? mData[id].intRecord.orbit - mData[id - 1].intRecord.orbit : 0;
+    }
   };
 
   //_______________________________________________
@@ -133,6 +190,11 @@ class CTFHelper
     {
       return static_cast<uint8_t>(((mData[mIndex / CTPInpNBytes].CTPInputMask.to_ullong()) >> (8 * (mIndex % CTPInpNBytes))) & 0xff);
     }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return static_cast<uint8_t>(((mData[id / CTPInpNBytes].CTPInputMask.to_ullong()) >> (8 * (id % CTPInpNBytes))) & 0xff);
+    }
   };
 
   //_______________________________________________
@@ -143,6 +205,11 @@ class CTFHelper
     value_type operator*() const
     {
       return static_cast<uint8_t>(((mData[mIndex / CTPClsNBytes].CTPClassMask.to_ullong()) >> (8 * (mIndex % CTPClsNBytes))) & 0xff);
+    }
+    value_type operator[](difference_type i) const
+    {
+      size_t id = mIndex + i;
+      return static_cast<uint8_t>(((mData[id / CTPClsNBytes].CTPClassMask.to_ullong()) >> (8 * (id % CTPClsNBytes))) & 0xff);
     }
   };
 

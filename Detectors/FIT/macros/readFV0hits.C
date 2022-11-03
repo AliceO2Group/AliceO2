@@ -18,7 +18,7 @@
 #include <string>
 #include <sstream>
 #include "DataFormatsFV0/Hit.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 

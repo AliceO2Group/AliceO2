@@ -60,6 +60,8 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   template <class T, int I>
   krnlProperties getKernelPropertiesBackend();
   unsigned int mNestedLoopOmpFactor = 1;
+  static int getOMPThreadNum();
+  static int getOMPMaxThreads();
 };
 
 template <class T>
@@ -241,8 +243,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int getNextTimerId();
   timerMeta* getTimerById(unsigned int id);
   timerMeta* insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step);
-  int getOMPThreadNum();
-  int getOMPMaxThreads();
 };
 
 template <class S, int I, int J, typename... Args>

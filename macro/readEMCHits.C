@@ -9,7 +9,7 @@
 #include <TH2F.h>
 #include <memory>
 #include <iostream>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "EMCALBase/Hit.h"

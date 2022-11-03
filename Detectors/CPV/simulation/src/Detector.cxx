@@ -229,7 +229,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int nz3 = (cpvparam.mNgamz + 1) / 2;
   int nx3 = (cpvparam.mNgamx + 1) / 2;
 
-  TVirtualMCStack* stack = fMC->GetStack();
+  o2::data::Stack* stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+  stack->addHit(GetDetId());
   const int partID = stack->GetCurrentTrackNumber();
 
   for (int iter = 0; iter < nIter; iter++) {

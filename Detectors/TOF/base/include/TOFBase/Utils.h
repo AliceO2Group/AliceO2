@@ -17,7 +17,12 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/EventTimeMaker.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include <vector>
+
+#include <TF1.h>
+#include <TChain.h>
+#include <TH2F.h>
 
 namespace o2
 {
@@ -56,6 +61,14 @@ class Utils
   static float mEtaMax;
   static float mLHCPhase;
 
+  static int addMaskBC(int mask, int channel);
+  static int getMaxUsed();
+  static int getMaxUsedChannel(int channel);
+  static int extractNewTimeSlewing(const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
+  static void fitTimeSlewing(int sector, const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
+  static void fitChannelsTS(int chStart, const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
+  static int fitSingleChannel(int ch, TH2F* h, const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
+
  private:
   static std::vector<int> mFillScheme;
   static int mBCmult[o2::constants::lhc::LHCMaxBunches];
@@ -70,6 +83,17 @@ class Utils
   static int mNsample;
   static int mIsample;
   static float mPhases[100];
+  static uint64_t mMaskBC[16];
+  static uint64_t mMaskBCUsed[16];
+  static int mMaskBCchan[o2::tof::Geo::NCHANNELS][16];
+  static int mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16];
+
+  static TChain* mTreeFit;
+  static std::vector<dataformats::CalibInfoTOF> mVectC;
+  static std::vector<dataformats::CalibInfoTOF>* mPvectC;
+  static const int NCHPERBUNCH = Geo::NCHANNELS / Geo::NSECTORS / 16;
+  static const int NMINTOFIT = 300;
+  static int mNfits;
 
   ClassDefNV(Utils, 1);
 };

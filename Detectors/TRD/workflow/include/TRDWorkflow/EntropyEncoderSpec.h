@@ -24,7 +24,7 @@ namespace trd
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec();
+framework::DataProcessorSpec getEntropyEncoderSpec(bool selIR = false);
 
 } // namespace trd
 } // namespace o2

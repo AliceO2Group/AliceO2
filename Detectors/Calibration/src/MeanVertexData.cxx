@@ -14,6 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
+#include <cmath>
 
 using namespace o2::calibration;
 
@@ -25,12 +26,6 @@ namespace calibration
 using Slot = o2::calibration::TimeSlot<o2::calibration::MeanVertexData>;
 using PVertex = o2::dataformats::PrimaryVertex;
 using clbUtils = o2::calibration::Utils;
-
-//_____________________________________________
-MeanVertexData::MeanVertexData()
-{
-  LOG(info) << "Default c-tor, not to be used";
-}
 
 //_____________________________________________
 void MeanVertexData::print() const
@@ -46,40 +41,17 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
   LOG(info) << "input size = " << data.size();
   for (int i = data.size(); i--;) {
     // filling the histogram in binned mode
-    auto x = data[i].getX();
-    auto y = data[i].getY();
-    auto z = data[i].getZ();
+    std::array<float, 3> xyz{data[i].getX(), data[i].getY(), data[i].getZ()};
+    auto entries1 = entries + 1;
+    for (int j = 0; j < 3; j++) {
+      means[j] = (means[j] * entries + xyz[j]) / entries1;
+      meanSquares[j] = (meanSquares[j] * entries + xyz[j] * xyz[j]) / entries1;
+    }
     if (mVerbose) {
-      LOG(info) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
+      LOG(info) << "i = " << i << " --> x = " << xyz[0] << ", y = " << xyz[1] << ", z = " << xyz[2];
     }
-    auto dx = x + rangeX;
-    uint32_t binx = dx < 0 ? 0xffffffff : (x + rangeX) * v2BinX;
-    auto dy = y + rangeY;
-    uint32_t biny = dy < 0 ? 0xffffffff : (y + rangeY) * v2BinY;
-    auto dz = z + rangeZ;
-    uint32_t binz = dz < 0 ? 0xffffffff : (z + rangeZ) * v2BinZ;
-    if (mVerbose) {
-      LOG(info) << "dx = " << dx << ", dy = " << dy << ", dz = " << dz;
-      LOG(info) << "rangeX = " << rangeX << ", rangeY = " << rangeY << ", rangeZ = " << rangeZ;
-      LOG(info) << "v2BinX = " << v2BinX << ", v2BinY = " << v2BinY << ", v2BinZ = " << v2BinZ;
-      LOG(info) << "binx = " << binx << ", biny = " << biny << ", binz = " << binz;
-    }
-    if (binx < nbinsX && biny < nbinsY && binz < nbinsZ) { // do not account for vertices outside the histo ranges
-      histoX[binx]++;
-      histoY[biny]++;
-      histoZ[binz]++;
-      entries++;
-    }
-  }
-
-  for (int i = 0; i < histoX.size(); i++) {
-    LOG(debug) << "histoX, bin " << i << ": entries = " << histoX[i];
-  }
-  for (int i = 0; i < histoY.size(); i++) {
-    LOG(debug) << "histoY, bin " << i << ": entries = " << histoY[i];
-  }
-  for (int i = 0; i < histoZ.size(); i++) {
-    LOG(debug) << "histoZ, bin " << i << ": entries = " << histoZ[i];
+    entries = entries + 1;
+    histoVtx.push_back(xyz);
   }
 }
 
@@ -87,20 +59,18 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
 void MeanVertexData::subtract(const MeanVertexData* prev)
 {
   // remove entries from prev
-
-  assert(histoX.size() == prev->histoX.size());
-  assert(histoY.size() == prev->histoY.size());
-  assert(histoZ.size() == prev->histoZ.size());
-
-  for (int i = histoX.size(); i--;) {
-    histoX[i] -= prev->histoX[i];
+  int totEntries = entries - prev->entries;
+  if (totEntries > 0) {
+    for (int i = 0; i < 3; i++) {
+      means[i] = (means[i] * entries - prev->means[i] * prev->entries) / totEntries;
+      meanSquares[i] = (meanSquares[i] * entries - prev->meanSquares[i] * prev->entries) / totEntries;
+    }
+  } else {
+    for (int i = 0; i < 3; i++) {
+      means[i] = meanSquares[i] = 0.;
+    }
   }
-  for (int i = histoY.size(); i--;) {
-    histoY[i] -= prev->histoY[i];
-  }
-  for (int i = histoZ.size(); i--;) {
-    histoZ[i] -= prev->histoZ[i];
-  }
+  histoVtx.erase(histoVtx.begin(), histoVtx.begin() + prev->entries);
   entries -= prev->entries;
 }
 
@@ -108,16 +78,21 @@ void MeanVertexData::subtract(const MeanVertexData* prev)
 void MeanVertexData::merge(const MeanVertexData* prev)
 {
   // merge data of 2 slots
-  assert(histoX.size() == prev->histoX.size());
-  assert(histoY.size() == prev->histoY.size());
-  assert(histoZ.size() == prev->histoZ.size());
-
-  for (int i = histoX.size(); i--;) {
-    histoX[i] += prev->histoX[i];
-    histoY[i] += prev->histoY[i];
-    histoZ[i] += prev->histoZ[i];
+  histoVtx.insert(histoVtx.end(), prev->histoVtx.begin(), prev->histoVtx.end());
+  auto totEntries = entries + prev->entries;
+  if (totEntries) {
+    for (int i = 0; i < 3; i++) {
+      means[i] = (means[i] * entries + prev->means[i] * prev->entries) / totEntries;
+      meanSquares[i] = (meanSquares[i] * entries + prev->meanSquares[i] * prev->entries) / totEntries;
+    }
   }
-  entries += prev->entries;
+  entries = totEntries;
+}
+
+double MeanVertexData::getRMS(int i) const
+{
+  double rms2 = meanSquares[i] - means[i] * means[i];
+  return rms2 > 0. ? std::sqrt(rms2) : 0;
 }
 
 } // end namespace calibration

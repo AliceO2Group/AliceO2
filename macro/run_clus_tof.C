@@ -14,7 +14,7 @@
 
 #include <TStopwatch.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 #include "FairFileSource.h"
 #include "FairRuntimeDb.h"

@@ -62,6 +62,8 @@ namespace tpc
 namespace reco_workflow
 {
 
+static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
+
 using namespace framework;
 
 template <typename T>
@@ -93,7 +95,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF)
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR)
 {
   InputType inputType;
   try {
@@ -441,6 +443,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
 
     auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(policyData, cfg, tpcSectors, tpcSectorMask, ggRequest);
+    gTask = task;
     Inputs taskInputs = task->inputs();
     std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
@@ -457,7 +460,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker && inputType != InputType::CompClustersFlat));
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker && inputType != InputType::CompClustersFlat, selIR));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -522,6 +525,13 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }
 
   return std::move(specs);
+}
+
+void cleanupCallback()
+{
+  if (gTask) {
+    gTask->deinitialize();
+  }
 }
 
 } // end namespace reco_workflow

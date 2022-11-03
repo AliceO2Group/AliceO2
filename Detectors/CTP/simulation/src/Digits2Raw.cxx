@@ -13,7 +13,7 @@
 /// \author Roman Lietava
 
 #include "CTPSimulation/Digits2Raw.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CommonUtils/StringUtils.h"
 
 using namespace o2::ctp;

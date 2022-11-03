@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 #include "Framework/Logger.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <boost/program_options.hpp>
 
@@ -73,7 +73,7 @@ int main(int argc, const char** argv)
 
   auto debuglevel = vm["debug"].as<uint32_t>();
   if (debuglevel > 0) {
-    FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
+    fair::Logger::SetConsoleSeverity("DEBUG");
   }
 
   std::string confDig = vm["hbfutils-config"].as<std::string>();

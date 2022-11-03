@@ -33,38 +33,24 @@ namespace align
 {
 
 //_________________________________________________________
-AlignableSensorTOF::AlignableSensorTOF(const char* name, int vid, int iid, int isec)
-  : AlignableSensor(name, vid, iid), fSector(isec)
+AlignableSensorTOF::AlignableSensorTOF(const char* name, int vid, int iid, int isec, Controller* ctr) : AlignableSensor(name, vid, iid, ctr), mSector(isec)
 {
   // def c-tor
-}
-
-//_________________________________________________________
-AlignableSensorTOF::~AlignableSensorTOF()
-{
-  // d-tor
 }
 
 //____________________________________________
 void AlignableSensorTOF::prepareMatrixT2L()
 {
   // extract from geometry T2L matrix
-  double alp = sector2Alpha(fSector);
+  double alp = math_utils::detail::sector2Angle<float>(mSector);
+  mAlp = alp;
+  TGeoHMatrix t2l;
   double loc[3] = {0, 0, 0}, glo[3];
   getMatrixL2GIdeal().LocalToMaster(loc, glo);
-  double x = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
-  TGeoHMatrix t2l;
-  t2l.SetDx(x);
+  mX = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   t2l.RotateZ(alp * RadToDeg());
   const TGeoHMatrix& l2gi = getMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);
-  /*
-  const TGeoHMatrix* t2l = AliGeomManager::GetTracking2LocalMatrix(getVolID());
-  if (!t2l) {
-    Print("long");
-    AliFatalF("Failed to find T2L matrix for VID:%d %s",getVolID(),getSymName());
-  }
-  */
   setMatrixT2L(t2l);
   //
 }

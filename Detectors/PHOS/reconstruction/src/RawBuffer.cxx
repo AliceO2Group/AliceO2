@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "PHOSReconstruction/RawBuffer.h"
 
 using namespace o2::phos;

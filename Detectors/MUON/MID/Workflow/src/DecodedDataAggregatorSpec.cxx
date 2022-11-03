@@ -38,8 +38,7 @@ class DecodedDataAggregatorDeviceDPL
   void init(of::InitContext& ic)
   {
     auto stop = [this]() {
-      LOG(info) << "Capacities: ROFRecords: " << mAggregator.getROFRecords().capacity() << "  Data: " << mAggregator.getData().capacity();
-      double scaleFactor = 1.e6 / mNROFs;
+      double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << "  aggregating: " << mTimerAlgo.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);

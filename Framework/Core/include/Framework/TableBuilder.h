@@ -479,15 +479,19 @@ struct BuilderHolder : InsertionPolicy<T> {
 };
 
 struct TableBuilderHelpers {
-  template <typename... ARGS>
-  static auto makeFields(std::vector<std::string> const& names)
+
+  template <typename... ARGS, size_t NCOLUMNS>
+  static std::array<arrow::DataType, NCOLUMNS> makeArrowColumnTypes()
   {
-    std::vector<std::shared_ptr<arrow::DataType>> types{BuilderMaker<ARGS>::make_datatype()...};
-    std::vector<std::shared_ptr<arrow::Field>> result;
-    for (size_t i = 0; i < names.size(); ++i) {
-      result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
-    }
-    return std::move(result);
+    return {BuilderTraits<ARGS>::make_datatype()...};
+  }
+
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, NCOLUMNS> const& names)
+  {
+    char const* const* names_ptr = names.data();
+    return {
+      std::make_shared<arrow::Field>(*names_ptr++, BuilderMaker<ARGS>::make_datatype(), true, nullptr)...};
   }
 
   /// Invokes the append method for each entry in the tuple
@@ -523,14 +527,28 @@ struct TableBuilderHelpers {
   template <typename HOLDERS, std::size_t... Is>
   static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, HOLDERS& holders, std::index_sequence<Is...> seq)
   {
-    bool ok = (BuilderUtils::flush(std::get<Is>(holders)).ok() && ...);
-    return ok && (std::get<Is>(holders).builder->Finish(&arrays[Is]).ok() && ...);
+    return (finalize(arrays[Is], std::get<Is>(holders)) && ...);
+  }
+
+  template <typename HOLDER>
+  static bool finalize(std::shared_ptr<arrow::Array>& array, HOLDER& holder)
+  {
+    return BuilderUtils::flush(holder).ok() && holder.builder->Finish(&array).ok();
   }
 
   template <typename HOLDERS, std::size_t... Is>
   static bool reserveAll(HOLDERS& holders, size_t s, std::index_sequence<Is...>)
   {
     return (std::get<Is>(holders).builder->Reserve(s).ok() && ...);
+  }
+
+  template <typename HOLDER>
+  static HOLDER&& reserveAll(HOLDER&& holder, size_t s)
+  {
+    if (s != -1) {
+      holder.builder->Reserve(s).ok();
+    }
+    return std::move(holder);
   }
 };
 
@@ -651,30 +669,42 @@ class TableBuilder
     return (HoldersTuple<ARGS...>*)mHolders;
   }
 
-  void validate(const int nColumns, std::vector<std::string> const& columnNames) const;
+  void validate() const;
 
-  template <typename... ARGS>
-  auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t I = sizeof...(ARGS)>
+  auto makeBuilders(std::array<char const*, I> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
-
-    auto holders = new HoldersTuple<ARGS...>(typename HolderTrait<ARGS>::Holder(mMemoryPool)...);
-    if (nRows != -1) {
-      auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
-      TableBuilderHelpers::reserveAll(*holders, nRows, seq);
-    }
-    mHolders = holders; // We store the builders
-  }
-
-  template <typename... ARGS>
-  auto makeFinalizer()
-  {
+    mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
     mFinalizer = [](std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
-      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
+      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<I>{});
     };
   }
 
  public:
+  template <typename... ARGS>
+  static constexpr int countColumns()
+  {
+    using args_pack_t = framework::pack<ARGS...>;
+    if constexpr (sizeof...(ARGS) == 1 &&
+                  is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
+                  std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false &&
+                  framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == false) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
+      return framework::pack_size(argsPack_t{});
+    } else if constexpr (sizeof...(ARGS) == 1 &&
+                         (is_bounded_array<pack_element_t<0, args_pack_t>>::value == true ||
+                          framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == true)) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = framework::pack<objType_t>;
+      return framework::pack_size(argsPack_t{});
+    } else if constexpr (sizeof...(ARGS) >= 1) {
+      return sizeof...(ARGS);
+    } else {
+      static_assert(o2::framework::always_static_assert_v<ARGS...>, "Unmanaged case");
+    }
+  }
   void setLabel(const char* label);
 
   TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
@@ -685,14 +715,14 @@ class TableBuilder
 
   /// Creates a lambda which is suitable to persist things
   /// in an arrow::Table
-  template <typename... ARGS>
-  auto persist(std::vector<std::string> const& columnNames)
+  template <typename... ARGS, size_t NCOLUMNS = countColumns<ARGS...>()>
+  auto persist(std::array<char const*, NCOLUMNS> const& columnNames)
   {
     using args_pack_t = framework::pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
                   is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
                   std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false &&
-                  framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == false) {
+                  framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == false) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
       auto persister = persistTuple(argsPack_t{}, columnNames);
@@ -702,7 +732,7 @@ class TableBuilder
       };
     } else if constexpr (sizeof...(ARGS) == 1 &&
                          (is_bounded_array<pack_element_t<0, args_pack_t>>::value == true ||
-                          framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == true)) {
+                          framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == true)) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
       // Callback used to fill the builders
@@ -722,13 +752,12 @@ class TableBuilder
 
   /// Same a the above, but use a tuple to persist stuff.
   template <typename... ARGS>
-  auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
+  auto persistTuple(framework::pack<ARGS...>, std::array<char const*, sizeof...(ARGS)> const& columnNames)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, 1000);
-    makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
     using FillTuple = std::tuple<typename BuilderMaker<ARGS>::FillType...>;
@@ -745,27 +774,22 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
-    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table>(std::make_index_sequence<persistent_size>());
+    return cursorHelper(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename T, typename E>
   auto cursor()
   {
-    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
-    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table, E>(std::make_index_sequence<persistent_size>());
+    return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
   }
 
-  template <typename... ARGS>
-  auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto preallocatedPersist(std::array<char const*, NCOLUMNS> const& columnNames, int nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    constexpr size_t nColumns = NCOLUMNS;
+    validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
     return [holders = mHolders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
@@ -773,28 +797,25 @@ class TableBuilder
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersist(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
-    mArrays.resize(nColumns);
+    validate();
+    //  Should not be called more than once
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     return [holders = mHolders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*(HoldersTuple<ARGS...>*)holders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersistChunked(std::vector<std::string> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersistChunked(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
-    mArrays.resize(nColumns);
+    validate();
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     return [holders = mHolders](unsigned int slot, BulkInfo<typename BuilderMaker<ARGS>::STLValueType const*>... args) -> bool {
       return TableBuilderHelpers::bulkAppendChunked(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
@@ -825,18 +846,16 @@ class TableBuilder
   /// Helper which actually creates the insertion cursor. Notice that the
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
-  template <typename T, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...>)
+  template <typename... Cs>
+  auto cursorHelper(framework::pack<Cs...>)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
-    return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
+    return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
   }
 
-  template <typename T, typename E, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...>)
+  template <typename E, typename... Cs>
+  auto cursorHelper2(framework::pack<Cs...>)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
-    return this->template persist<E>(columnNames);
+    return this->template persist<E>({Cs::columnLabel()...});
   }
 
   bool (*mFinalizer)(std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
@@ -855,6 +874,9 @@ auto makeEmptyTable(const char* name)
   return b.finalize();
 }
 
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+                                            expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
+
 /// Expression-based column generator to materialize columns
 template <typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
@@ -863,43 +885,10 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>(name);
   }
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
-
-  arrow::TableBatchReader reader(*fullTable);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  arrow::ArrayVector v;
-  std::array<arrow::ArrayVector, sizeof...(C)> chunks;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
-
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    try {
-      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-      if (!s.ok()) {
-        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
-      }
-    } catch (std::exception& e) {
-      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
-    }
-
-    for (auto i = 0u; i < sizeof...(C); ++i) {
-      chunks[i].emplace_back(v.at(i));
-    }
-  }
-
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
-  }
-
-  addLabelToSchema(new_schema, name);
-  return arrow::Table::Make(new_schema, arrays);
+  static auto fields = o2::soa::createFieldsFromColumns(columns);
+  static auto new_schema = std::make_shared<arrow::Schema>(fields);
+  std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
+  return spawnerHelper(fullTable, new_schema, sizeof...(C), projectors.data(), fields, name);
 }
 
 /// Helper to get a tuple tail
@@ -920,7 +909,7 @@ constexpr auto pack_from_tuple(std::tuple<T...> const&)
 template <typename Key, typename T>
 void lowerBound(int32_t value, T& start)
 {
-  static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
+  static_assert(soa::is_soa_iterator_v<T>, "Argument needs to be a Table::iterator");
   int step;
   auto count = start.size() - start.globalIndex();
 

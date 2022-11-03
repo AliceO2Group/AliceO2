@@ -26,7 +26,7 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 #include "TPCSpaceCharge/SpaceCharge.h"
 #endif
 
@@ -38,7 +38,7 @@ namespace gpu
 /// simple struct to hold the space charge object which can be used for CPU reconstruction only
 struct TPCSlowSpaceChargeCorrection {
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
   /// getting the corrections for global coordinates
   void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
   {
@@ -46,7 +46,7 @@ struct TPCSlowSpaceChargeCorrection {
     mCorr.getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
   }
 
-  o2::tpc::SpaceCharge<float> mCorr; ///<! reference space charge corrections
+  o2::tpc::SpaceCharge<float> mCorr; ///< reference space charge corrections
 #else
   /// setting dummy corrections for GPU
   GPUd() void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
@@ -55,6 +55,10 @@ struct TPCSlowSpaceChargeCorrection {
     gdyC = 0;
     gdzC = 0;
   }
+#endif
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCSlowSpaceChargeCorrection, 1);
 #endif
 };
 
@@ -102,7 +106,7 @@ class TPCFastTransform : public FlatObject
   TPCFastTransform& operator=(const TPCFastTransform&) CON_DELETE;
 
 /// Destructor
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(GPUCA_O2_LIB)
   ~TPCFastTransform()
   {
     delete mCorrectionSlow;
@@ -146,6 +150,11 @@ class TPCFastTransform : public FlatObject
   /// but also may be called afterwards to reset these parameters.
   void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
 
+  /// Set Lumi info
+  void setLumi(float l) { mLumi = l; }
+  void setLumiError(float e) { mLumiError = e; }
+  void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
+
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
 
@@ -163,7 +172,7 @@ class TPCFastTransform : public FlatObject
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// taking calibration + alignment into account.
   ///
-  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
+  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -172,10 +181,10 @@ class TPCFastTransform : public FlatObject
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
 
   /// Inverse transformation: Transformed Y and Z -> transformed X
-  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const;
+  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
-  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const;
+  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
@@ -223,6 +232,15 @@ class TPCFastTransform : public FlatObject
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
+  /// Return map lumi
+  GPUd() float getLumi() const { return mLumi; }
+
+  /// Return map lumi error
+  GPUd() float getLumiError() const { return mLumiError; }
+
+  /// Return map user defined lumi scale factor
+  GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
+
   /// maximal possible drift timre of the active area
   GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
 
@@ -232,9 +250,11 @@ class TPCFastTransform : public FlatObject
   /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int slice) const;
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 
   int writeToFile(std::string outFName = "", std::string name = "");
+
+  void rectifyAfterReadingFromFile();
 
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
@@ -301,11 +321,15 @@ class TPCFastTransform : public FlatObject
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 
+  float mLumi;            ///< luminosity estimator
+  float mLumiError;       ///< error on luminosity
+  float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
+
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
-  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///<! reference space charge corrections
+  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 1);
+  ClassDefNV(TPCFastTransform, 2);
 #endif
 };
 
@@ -402,7 +426,7 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
   dz = sideC ? dv : -dv;
 }
 
-GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, float scale) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
@@ -424,6 +448,13 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
 
     if (!mCorrectionSlow) {
       mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+      if (ref && scale > 0.f) { // scaling was requested
+        float dxRef, duRef, dvRef;
+        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+        dx = (dx - dxRef) * scale + dxRef;
+        du = (du - duRef) * scale + duRef;
+        dv = (dv - dvRef) * scale + dvRef;
+      }
     } else {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
@@ -587,21 +618,32 @@ GPUdi() float TPCFastTransform::getMaxDriftTime(int slice) const
   return maxTime;
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x, const TPCFastTransform* ref, float scale) const
 {
   /// Transformation y,z -> x
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
   mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+  if (ref && scale > 0.f) { // scaling was requested
+    float xr;
+    ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+    x = (x - xr) * scale + xr;
+  }
 }
 
-GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
+GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
 {
   /// Transformation y,z -> x
-  float u = 0, v = 0;
+  float u = 0, v = 0, un = 0, vn = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  mCorrection.getCorrectionInvUV(slice, row, u, v, u, v);
-  getGeometry().convUVtoLocal(slice, u, v, ny, nz);
+  mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
+  if (ref && scale > 0.f) { // scaling was requested
+    float unr = 0, vnr = 0;
+    ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+    un = (un - unr) * scale + unr;
+    vn = (vn - vnr) * scale + vnr;
+  }
+  getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
 }
 
 } // namespace gpu

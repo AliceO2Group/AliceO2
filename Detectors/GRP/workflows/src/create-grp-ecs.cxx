@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <chrono>
+#include <regex>
 #include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -30,11 +31,12 @@ enum CCDBRefreshMode { NONE,
 
 void createGRPECSObject(const std::string& dataPeriod,
                         int run,
-                        int runType,
+                        int runTypeI,
                         int nHBPerTF,
-                        const std::string& detsReadout,
-                        const std::string& detsContinuousRO,
-                        const std::string& detsTrigger,
+                        const std::string& _detsReadout,
+                        const std::string& _detsContinuousRO,
+                        const std::string& _detsTrigger,
+                        const std::string& flpList,
                         long tstart,
                         long tend,
                         long marginAtSOR,
@@ -43,15 +45,22 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& metaDataStr = "",
                         CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
-  auto detMask = o2::detectors::DetID::getMask(detsReadout);
+  // substitute TRG by CTP
+  std::regex regCTP(R"((^\s*|,\s*)(TRG)(\s*,|\s*$))");
+  std::string detsReadout{std::regex_replace(_detsReadout, regCTP, "$1CTP$3")};
+  std::string detsContinuousRO{std::regex_replace(_detsContinuousRO, regCTP, "$1CTP$3")};
+  std::string detsTrigger{std::regex_replace(_detsTrigger, regCTP, "$1CTP$3")};
+
+  auto detMask = DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
     throw std::runtime_error("empty detectors list is provided");
   }
-  if (runType < 0 || runType >= int(GRPECSObject::RunType::NRUNTYPES)) {
-    LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runType);
+  if (runTypeI < 0 || runTypeI >= int(GRPECSObject::RunType::NRUNTYPES)) {
+    LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runTypeI);
   }
-  auto detMaskCont = detMask & o2::detectors::DetID::getMask(detsContinuousRO);
-  auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
+  auto runType = (GRPECSObject::RunType)runTypeI;
+  auto detMaskCont = detMask & DetID::getMask(detsContinuousRO);
+  auto detMaskTrig = detMask & DetID::getMask(detsTrigger);
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -65,7 +74,10 @@ void createGRPECSObject(const std::string& dataPeriod,
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
   grpecs.setTimeEnd(tend);
-
+  if (runType == GRPECSObject::RunType::LASER && detMask[DetID::TPC] && detMaskCont[DetID::TPC]) {
+    LOGP(important, "Overriding TPC readout mode to triggered for runType={}", o2::parameters::GRPECS::RunTypeNames[runTypeI]);
+    detMaskCont.reset(DetID::TPC);
+  }
   grpecs.setNHBFPerTF(nHBPerTF);
   grpecs.setDetsReadOut(detMask);
   grpecs.setDetsContinuousReadOut(detMaskCont);
@@ -73,7 +85,14 @@ void createGRPECSObject(const std::string& dataPeriod,
   grpecs.setRun(run);
   grpecs.setRunType((GRPECSObject::RunType)runType);
   grpecs.setDataPeriod(dataPeriod);
-
+  auto flpsVec = o2::utils::Str::tokenize(flpList, ',');
+  for (const auto& s : flpsVec) {
+    try {
+      grpecs.addFLP((unsigned short)std::stoi(s));
+    } catch (const std::exception& e) {
+      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what();
+    }
+  }
   grpecs.print();
   std::map<std::string, std::string> metadata;
 
@@ -163,9 +182,10 @@ int main(int argc, char** argv)
     add_option("detectors,d", bpo::value<string>()->default_value("all"), "comma separated list of detectors");
     add_option("continuous,c", bpo::value<string>()->default_value("ITS,TPC,TOF,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"), "comma separated list of detectors in continuous readout mode");
     add_option("triggering,g", bpo::value<string>()->default_value("FT0,FV0"), "comma separated list of detectors providing a trigger");
+    add_option("flps,f", bpo::value<string>()->default_value(""), "comma separated list of FLPs in the data taking");
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
-    add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("ccdb-server", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
     add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
     add_option("marginSOR", bpo::value<long>()->default_value(4 * o2::ccdb::CcdbObjectInfo::DAY), "validity at SOR");
@@ -220,6 +240,7 @@ int main(int argc, char** argv)
     vm["detectors"].as<std::string>(),
     vm["continuous"].as<std::string>(),
     vm["triggering"].as<std::string>(),
+    vm["flps"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
     vm["marginSOR"].as<long>(),

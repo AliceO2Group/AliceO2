@@ -13,6 +13,7 @@
 
 #include "Framework/DataProcessorMatchers.h"
 #include "Framework/RoutingIndices.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <fairmq/FwdDecls.h>
 #include <vector>
 #include <functional>
@@ -21,10 +22,12 @@
 namespace o2::framework
 {
 
+class ServiceRegistry;
+
 class FairMQDeviceProxy;
 
 struct SendingPolicy {
-  using SendingCallback = std::function<void(FairMQDeviceProxy&, fair::mq::Parts&, ChannelIndex channelIndex)>;
+  using SendingCallback = std::function<void(FairMQDeviceProxy&, fair::mq::Parts&, ChannelIndex channelIndex, ServiceRegistryRef registry)>;
   std::string name = "invalid";
   DeviceMatcher matcher = nullptr;
   SendingCallback send = nullptr;

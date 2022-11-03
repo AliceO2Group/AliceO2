@@ -46,10 +46,12 @@ o2_add_dpl_workflow(sync-reconstruction-dummy
 
 o2_add_dpl_workflow(d0-analysis
                   SOURCES src/o2D0Analysis.cxx
+                  PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(simple-tracks-analysis
                   SOURCES src/o2SimpleTracksAnalysis.cxx
+                  PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(analysis-task-example

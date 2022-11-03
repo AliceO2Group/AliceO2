@@ -40,7 +40,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"detect-tf0", VariantType::Bool, false, {"autodetect HBFUtils start Orbit/BC from 1st TF seen"}});
   options.push_back(ConfigParamSpec{"calculate-tf-start", VariantType::Bool, false, {"calculate TF start instead of using TType"}});
   options.push_back(ConfigParamSpec{"drop-tf", VariantType::String, "none", {"Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];..."}});
-  options.push_back(ConfigParamSpec{"verbosity-level", VariantType::Int, 0, {"verbosity level"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"hbfutils-config", VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils (used if exists)"}});
@@ -76,7 +75,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
   rinp.delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
   rinp.dropTF = configcontext.options().get<std::string>("drop-tf");
-  rinp.verbosity = configcontext.options().get<int>("verbosity-level");
   rinp.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
   rinp.errMap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {

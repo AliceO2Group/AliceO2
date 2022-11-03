@@ -11,7 +11,7 @@
 
 #include <sstream>
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "CPVReconstruction/RawReaderMemory.h"
 #include "DetectorsRaw/RDHUtils.h"
 

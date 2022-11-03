@@ -60,12 +60,14 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float mCFD_trsh = 3.;                                                          // [mV]
   float getCFDTrshInAdc() const { return mCFD_trsh * getChannelsPerMilivolt(); } // [ADC channels]
   /// Parameters for trigger simulation
-  bool useMaxChInAdc = true;         // default = true
-  int adcChargeCenThr = 3 * 498;     // threshold value of ADC charge for Central trigger
-  int adcChargeSCenThr = 1 * 498;    // threshold value of ADC charge for Semi-central trigger
-  int maxCountInAdc = 4095;          // to take care adc ADC overflow
-  short mTime_trg_gate = 153;        // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
-  uint8_t defaultChainQtc = 0x48;    // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
+  bool useMaxChInAdc = true;                           // default = true
+  int adcChargeCenThr = 3 * 498;                       // threshold value of ADC charge for Central trigger
+  int adcChargeSCenThr = 1 * 498;                      // threshold value of ADC charge for Semi-central trigger
+  int maxCountInAdc = 4095;                            // to take care adc ADC overflow
+  short mTime_trg_gate = 153;                          // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  uint8_t defaultChainQtc = 0x48;                      // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
+  static constexpr float mAmpThresholdForReco = 24;    // only channels with amplitude higher will participate in calibration and collision time
+  static constexpr short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };

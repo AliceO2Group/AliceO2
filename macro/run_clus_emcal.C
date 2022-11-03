@@ -1,4 +1,4 @@
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TStopwatch.h"
 #include "EMCALReconstruction/ClusterizerParameters.h"
 #include "EMCALReconstruction/ClusterizerTask.h"

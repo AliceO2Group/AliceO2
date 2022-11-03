@@ -16,7 +16,7 @@ o2_add_library(Field
                        src/MagFieldParam.cxx
                        src/MagneticField.cxx
                        src/MagneticWrapperChebyshev.cxx
-               PUBLIC_LINK_LIBRARIES O2::MathUtils)
+                       PUBLIC_LINK_LIBRARIES O2::MathUtils FairRoot::Base)
 
 o2_target_root_dictionary(Field
                           HEADERS include/Field/MagneticWrapperChebyshev.h

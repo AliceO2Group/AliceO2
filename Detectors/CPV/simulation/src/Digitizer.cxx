@@ -16,7 +16,7 @@
 #include "CCDB/BasicCCDBManager.h"
 
 #include <TRandom.h>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 ClassImp(o2::cpv::Digitizer);
 

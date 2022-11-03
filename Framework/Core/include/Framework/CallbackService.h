@@ -87,15 +87,15 @@ class CallbackService
   using ResetCallback = std::function<void()>;
   using IdleCallback = std::function<void()>;
   using ClockTickCallback = std::function<void()>;
-  using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
+  using DataConsumedCallback = std::function<void(ServiceRegistryRef)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(fair::mq::RegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
-  using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
-  using PostProcessingCallback = std::function<void(ServiceRegistry&, int)>;
+  using PreProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
+  using PostProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
-  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistry&, size_t timeslice, ChannelIndex index)>;
-  using DeviceStateChangedCallback = std::function<void(ServiceRegistry&, int newState)>;
+  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
+  using DeviceStateChangedCallback = std::function<void(ServiceRegistryRef, int newState)>;
 
   using Callbacks = CallbackRegistry<Id,                                                                  //
                                      RegistryPair<Id, Id::Start, StartCallback>,                          //

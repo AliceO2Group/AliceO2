@@ -177,7 +177,7 @@ std::ostream& operator<<(std::ostream& stream, const Track& track)
     stream << ((ival == 5) ? ")" : ", ");
   }
   stream << fmt::format(" chi2/ndf: {:g}/{:d}", track.getChi2(), track.getNDF());
-  stream << fmt::format(" hitMap: 0x{:x} locId: {:d} deId: {:d} effFlag {:d}", track.getHitMap(), track.getFiredLocalBoard(), track.getFiredDeId(), track.getEfficiencyFlag());
+  stream << fmt::format(" hitMap: 0x{:x} deId: {:d} columnId: {:d} lineId: {:d} effFlag {:d}", track.getHitMap(), track.getFiredDEId(), track.getFiredColumnId(), track.getFiredLineId(), track.getEfficiencyFlag());
   return stream;
 }
 

@@ -90,8 +90,7 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   }
 
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
-  BaselineCalibData& data = mWorker.getData();
-  data.setCreationTime(creationTime);
+  mWorker.getData().setCreationTime(creationTime);
 
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 

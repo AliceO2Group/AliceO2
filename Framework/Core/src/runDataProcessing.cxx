@@ -51,13 +51,14 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
 #include "Framework/WorkflowSpecNode.h"
+#include "Framework/GuiCallbackContext.h"
+#include "Framework/DeviceContext.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
-#include "GuiCallbackContext.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -73,7 +74,6 @@
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <InfoLogger/InfoLogger.hxx>
 #include "ResourcesMonitoringHelper.h"
 
 #include <fairmq/Device.h>
@@ -146,7 +146,6 @@
 
 using namespace o2::monitoring;
 using namespace o2::configuration;
-using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
@@ -255,7 +254,7 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
       LOGP(error, "SEVERE: Device {} ({}) had at least one message above severity {}: {}",
            spec.name,
            info.pid,
-           info.minFailureLevel,
+           (int)info.minFailureLevel,
            std::regex_replace(info.firstSevereError, regexp, ""));
       return 1;
     }
@@ -323,7 +322,7 @@ static void handle_sigint(int)
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
   using namespace fair::mq::shmem;
-  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
+  fair::mq::shmem::Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
@@ -527,13 +526,10 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     }
     size_t timestamp = uv_now(mContext.loop);
     for (auto& callback : *mContext.metricProcessingCallbacks) {
-      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+      callback(mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
     }
     for (auto& metricsInfo : *mContext.metrics) {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
-    }
-    if (didHaveNewMetric) {
-      DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
     }
   }
 
@@ -687,7 +683,7 @@ void handleChildrenStdio(uv_loop_t* loop,
   }
 }
 
-void handle_crash(int /* sig */)
+void handle_crash(int sig)
 {
   // dump demangled stack trace
   void* array[1024];
@@ -696,8 +692,20 @@ void handle_crash(int /* sig */)
 
   {
     char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL)\nBacktrace by DPL:\n";
-    int len = strlen(msg); /* the byte length of the string */
-    auto retVal = write(STDERR_FILENO, msg, len);
+    auto retVal = write(STDERR_FILENO, msg, strlen(msg));
+    msg = "UNKNOWN SIGNAL\n";
+    if (sig == SIGSEGV) {
+      msg = "SEGMENTATION FAULT\n";
+    } else if (sig == SIGABRT) {
+      msg = "ABRT\n";
+    } else if (sig == SIGBUS) {
+      msg = "BUS ERROR\n";
+    } else if (sig == SIGILL) {
+      msg = "ILLEGAL INSTRUCTION\n";
+    } else if (sig == SIGFPE) {
+      msg = "FLOATING POINT EXCEPTION\n";
+    }
+    retVal = write(STDERR_FILENO, msg, strlen(msg));
     (void)retVal;
   }
   demangled_backtrace_symbols(array, size, STDERR_FILENO);
@@ -720,7 +728,7 @@ void spawnDevice(DeviceRef ref,
                  std::vector<DeviceControl>&,
                  std::vector<DeviceExecution>& executions,
                  std::vector<DeviceInfo>& deviceInfos,
-                 ServiceRegistry& serviceRegistry,
+                 ServiceRegistryRef serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
                  unsigned parentCPU,
@@ -953,7 +961,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   result.hasNewMetric = hasNewMetric;
   if (hasNewMetric) {
     hasNewMetric = false;
-    DeviceMetricsHelper::updateMetricsNames(driverInfo, metricsInfos);
   }
   return result;
 }
@@ -1009,14 +1016,14 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
   if (err.maxBacktrace != 0) {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
-         "\n Reason: {}"
+         " Reason: {}"
          "\n Backtrace follow: \n",
          processName, err.what);
     demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
-         "\n Reason: {}"
+         " Reason: {}"
          "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.",
          processName, err.what);
   }
@@ -1092,6 +1099,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   std::unique_ptr<DeviceState> deviceState;
   std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
   std::unique_ptr<FairMQDeviceProxy> deviceProxy;
+  std::unique_ptr<DeviceContext> deviceContext;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1102,27 +1110,31 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceState,
                                      &deviceProxy,
                                      &processingPolicies,
+                                     &deviceContext,
                                      &loop](fair::mq::DeviceRunner& r) {
+    ServiceRegistryRef serviceRef = {serviceRegistry};
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
 
     deviceState = std::make_unique<DeviceState>();
     deviceState->loop = loop;
     deviceState->tracingFlags = DeviceStateHelpers::parseTracingFlags(r.fConfig.GetPropertyAsString("dpl-tracing-flags"));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
     quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
+    deviceContext = std::make_unique<DeviceContext>();
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
     decltype(r.fDevice) device;
     device = make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies);
 
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+    serviceRef.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
     fair::Logger::SetConsoleColor(false);
 
@@ -1132,11 +1144,12 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
     }
     if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
+      serviceRef.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
     }
   };
 
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
+
   auto result = runner.Run();
   serviceRegistry.preExitCallbacks();
   return result;
@@ -1246,36 +1259,52 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
-  if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
-    auto initDebugGUI = []() -> DebugGUI* {
-      uv_lib_t supportLib;
-      int result = 0;
+  auto initDebugGUI = []() -> DebugGUI* {
+    uv_lib_t supportLib;
+    int result = 0;
 #ifdef __APPLE__
-      result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
+    result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
 #else
-      result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
+    result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
 #endif
-      if (result == -1) {
-        LOG(error) << uv_dlerror(&supportLib);
-        return nullptr;
-      }
-      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+    if (result == -1) {
+      LOG(error) << uv_dlerror(&supportLib);
+      return nullptr;
+    }
+    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
-      result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-      if (result == -1) {
-        LOG(error) << uv_dlerror(&supportLib);
-        return nullptr;
-      }
-      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-      return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
-    };
+    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+    if (result == -1) {
+      LOG(error) << uv_dlerror(&supportLib);
+      return nullptr;
+    }
+    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+    return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
+  };
+
+  // We initialise this in the driver, because different drivers might have
+  // different versions of the service
+  ServiceRegistry serviceRegistry;
+
+  if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
     if (debugGUI) {
       if (driverInfo.batch == false) {
-        window = debugGUI->initGUI("O2 Framework debug GUI");
+        window = debugGUI->initGUI("O2 Framework debug GUI", serviceRegistry);
       } else {
-        window = debugGUI->initGUI(nullptr);
+        window = debugGUI->initGUI(nullptr, serviceRegistry);
       }
+    }
+  } else if (getenv("DPL_DEVICE_REMOTE_GUI") && !frameworkId.empty()) {
+    debugGUI = initDebugGUI();
+    // We never run the GUI on desktop for devices. All
+    // you can do is to connect to the remote version.
+    // this is done to avoid having a proliferation of
+    // GUIs popping up when the variable is set globally.
+    // FIXME: maybe this is not what we want, but it should
+    //        be ok for now.
+    if (debugGUI) {
+      window = debugGUI->initGUI(nullptr, serviceRegistry);
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
@@ -1299,9 +1328,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     uv_timer_init(loop, gui_timer);
   }
 
-  // We initialise this in the driver, because different drivers might have
-  // different versions of the service
-  ServiceRegistry serviceRegistry;
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
@@ -1313,7 +1339,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     service.driverStartup(serviceRegistry, varmap);
   }
 
-  serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
+  ServiceRegistryRef ref{serviceRegistry};
+  ref.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
@@ -1321,25 +1348,40 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
-  auto inputProcessingLast = guiContext.frameLast;
 
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
-  DriverServerContext serverContext;
-  serverContext.registry = &serviceRegistry;
-  serverContext.loop = loop;
-  serverContext.controls = &controls;
-  serverContext.infos = &infos;
-  serverContext.specs = &runningWorkflow.devices;
-  serverContext.metrics = &metricsInfos;
-  serverContext.driver = &driverInfo;
-  serverContext.metricProcessingCallbacks = &metricProcessingCallbacks;
-  serverContext.gui = &guiContext;
+  DriverServerContext serverContext{
+    .registry = {serviceRegistry},
+    .loop = loop,
+    .controls = &controls,
+    .infos = &infos,
+    .specs = &runningWorkflow.devices,
+    .metrics = &metricsInfos,
+    .metricProcessingCallbacks = &metricProcessingCallbacks,
+    .driver = &driverInfo,
+    .gui = &guiContext,
+    .isDriver = frameworkId.empty()};
 
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
   uv_tcp_init(loop, &serverHandle);
+
   driverInfo.port = 8080 + (getpid() % 30000);
+
+  if (getenv("DPL_REMOTE_GUI_PORT")) {
+    try {
+      driverInfo.port = stoi(std::string(getenv("DPL_REMOTE_GUI_PORT")));
+    } catch (std::invalid_argument) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT not a valid integer";
+    } catch (std::out_of_range) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (integer)";
+    }
+    if (driverInfo.port < 1024 || driverInfo.port > 65535) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (1024-65535)";
+    }
+  }
+
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
@@ -1350,9 +1392,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   //        the future to inspect them via some web based interface.
   if (frameworkId.empty()) {
     do {
-      if (serverAddr) {
-        free(serverAddr);
-      }
+      free(serverAddr);
       if (driverInfo.port > 64000) {
         throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
       }
@@ -1370,6 +1410,28 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         usleep(1000);
         continue;
       }
+    } while (result != 0);
+  } else if (getenv("DPL_DEVICE_REMOTE_GUI") && !frameworkId.empty()) {
+    do {
+      free(serverAddr);
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
+      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+      auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+      if (bindResult != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
+      if (result != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      LOG(info) << "Device GUI port: " << driverInfo.port << " " << frameworkId;
     } while (result != 0);
   }
 
@@ -1705,7 +1767,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             uv_timer_stop(gui_timer);
           }
 
-          guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
+            callback();
+            for (auto& service : driverServices) {
+              if (service.postRenderGUI) {
+                service.postRenderGUI(serviceRegistry);
+              }
+            }
+          };
           guiContext.window = window;
 
           if (gui_timer) {
@@ -1728,8 +1798,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
           deviceExecutions.resize(runningWorkflow.devices.size());
 
-          // Options  which should be uniform across all
-          // teh subworkflow invokations.
+          // Options which should be uniform across all
+          // the subworkflow invokations.
           const auto uniformOptions = {
             "--aod-file",
             "--aod-memory-rate-limit",
@@ -1738,6 +1808,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-writer-resfile",
             "--aod-writer-resmode",
             "--aod-writer-keep",
+            "--aod-parent-access-level",
+            "--aod-parent-base-path-replacement",
             "--driver-client-backend",
             "--fairmq-ipc-prefix",
             "--readers",
@@ -1867,8 +1939,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         {
-          uint64_t inputProcessingStart = uv_hrtime();
-          auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
           if (outputProcessing.didProcessMetric) {
             size_t timestamp = uv_now(loop);
@@ -1879,10 +1949,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
             }
           }
-          auto inputProcessingEnd = uv_hrtime();
-          driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000.f;
-          driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000.f;
-          inputProcessingLast = inputProcessingStart;
         }
         break;
       case DriverState::QUIT_REQUESTED:
@@ -2612,11 +2678,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
               str << physicalWorkflow[x].name << ":\n";
               str << "inputs:\n";
               for (auto& input : physicalWorkflow[x].inputs) {
-                str << fmt::format("- {}\n", input);
+                str << "- " << input << "\n";
               }
               str << "outputs:\n";
               for (auto& output : physicalWorkflow[x].outputs) {
-                str << fmt::format("- {}\n", output);
+                str << "- " << output << "\n";
               }
             }
             throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name + ":\n" + str.str());
@@ -2706,6 +2772,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       fair::Logger::SetConsoleSeverity(fair::Severity::warning);
     } else if (logLevel == "error") {
       fair::Logger::SetConsoleSeverity(fair::Severity::error);
+    } else if (logLevel == "important") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::important);
+    } else if (logLevel == "alarm") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::alarm);
     } else if (logLevel == "fatal") {
       fair::Logger::SetConsoleSeverity(fair::Severity::fatal);
     } else {
@@ -2728,7 +2798,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     // values are not filled into the vector, even if specifying `-b true`
     // need to find out why the boost program options example is not working
     // in our case. Might depend on the parser options
-    //auto value = varmap["batch"].as<std::vector<std::string>>();
+    // auto value = varmap["batch"].as<std::vector<std::string>>();
     return true;
   };
   DriverInfo driverInfo{

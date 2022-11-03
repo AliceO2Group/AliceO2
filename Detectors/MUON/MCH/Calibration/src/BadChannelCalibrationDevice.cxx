@@ -22,6 +22,7 @@
 #include "MCHCalibration/BadChannelCalibratorParam.h"
 #include "TObjString.h"
 #include <TBuffer3D.h>
+#include <cmath>
 #include <limits>
 #include <numeric>
 
@@ -142,10 +143,18 @@ void BadChannelCalibrationDevice::sendOutput(o2::framework::DataAllocator& outpu
 {
   auto& slot = mCalibrator->getFirstSlot();
   const auto pedData = slot.getContainer();
-  auto nentries = std::accumulate(pedData->cbegin(), pedData->cend(),
-                                  0,
-                                  [&](int n, const PedestalChannel& c) { return n + c.mEntries; });
-  auto reason_with_entries = fmt::format("{} ; nentries = {}", reason, nentries);
+  uint64_t nentries = std::accumulate(pedData->cbegin(), pedData->cend(),
+                                      0,
+                                      [&](uint64_t n, const PedestalChannel& c) { return n +
+                                                                                         static_cast<uint64_t>(c.mEntries); });
+  std::string reason_with_entries;
+
+  if (pedData->size() > 0) {
+    int mean = static_cast<int>(std::round(static_cast<float>(nentries) / pedData->size()));
+    reason_with_entries = fmt::format("{} ; <entries per channel>={}", reason, mean);
+  } else {
+    reason_with_entries = fmt::format("{} ; no entries", reason);
+  }
 
   LOGP(info, "sendOutput: {}", reason_with_entries);
   mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);

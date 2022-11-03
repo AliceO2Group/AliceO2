@@ -35,6 +35,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     nThreads = 1;
   }
   auto autoDecode = reader.getDecodeNextAuto();
+  int rofcount{0};
   do {
     if (autoDecode) {
       reader.setDecodeNextAuto(false); // internally do not autodecode
@@ -54,7 +55,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       nPix += curChipData->getData().size();
     }
 
-    auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), 0, compClus->size(), 0); // create new ROF
+    auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), vecROFRec->size(), compClus->size(), 0); // create new ROF
 
     uint16_t nFired = mFiredChipsPtr.size();
     if (!nFired) {
@@ -69,13 +70,13 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 #ifndef WITH_OPENMP
     nThreads = 1;
 #endif
-    uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : (nThreads < 5 ? 5 : 1)) : nFired;
+    uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : 10) : nFired;
     int dynGrp = std::min(4, std::max(1, nThreads / 2));
     if (nThreads > mThreads.size()) {
       int oldSz = mThreads.size();
       mThreads.resize(nThreads);
       for (int i = oldSz; i < nThreads; i++) {
-        mThreads[i] = std::make_unique<ClustererThread>(this);
+        mThreads[i] = std::make_unique<ClustererThread>(this, i);
       }
     }
 #ifdef WITH_OPENMP
@@ -105,6 +106,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       size_t nClTot = 0, nPattTot = 0;
       int chid = 0, thrStatIdx[nThreads];
       for (int ith = 0; ith < nThreads; ith++) {
+        std::sort(mThreads[ith]->stats.begin(), mThreads[ith]->stats.end(), [](const ThreadStat& a, const ThreadStat& b) { return a.firstChip < b.firstChip; });
         thrStatIdx[ith] = 0;
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();
@@ -159,7 +161,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                                          const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
-  if (stats.empty() || stats.back().firstChip + stats.back().nChips < chip) { // there is a jump, register new block
+  if (stats.empty() || stats.back().firstChip + stats.back().nChips != chip) { // there is a jump, register new block
     stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
   }
   for (int ic = 0; ic < nChips; ic++) {
@@ -202,7 +204,6 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
 void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                             PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
-  auto clustersCount = compClusPtr->size();
   const auto& pixData = curChipData->getData();
   for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
     auto ci = preClusterIndices[i1];
@@ -218,8 +219,12 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       const auto pix = pixData[pixEntry.second];
       pixArrBuff.push_back(pix); // needed for cluster topology
       bbox.adjust(pix.getRowDirect(), pix.getCol());
-      if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
-        fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+      if (labelsClusPtr) {
+        if (parent->mSquashingDepth) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+          fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
+        } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
+          fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+        }
       }
       next = pixEntry.first;
     }
@@ -234,8 +239,12 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         const auto pix = pixData[pixEntry.second]; // PixelData
         pixArrBuff.push_back(pix);                 // needed for cluster topology
         bbox.adjust(pix.getRowDirect(), pix.getCol());
-        if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
-          fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+        if (labelsClusPtr) {
+          if (parent->mSquashingDepth) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
+            fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
+          } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
+            fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
+          }
         }
         next = pixEntry.first;
       }
@@ -283,7 +292,6 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
 void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                                          PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
-  auto clustersCount = compClusPtr->size();
   auto pix = curChipData->getData()[hit];
   uint16_t row = pix.getRowDirect(), col = pix.getCol();
 
@@ -433,8 +441,10 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
+  LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col seeking down to {} neighbour ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
   LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
             << mMaxRowColDiffToMask << " in row/col";
+
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
   auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);

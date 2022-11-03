@@ -4,17 +4,18 @@
 
 # TRD Reconstruction
 
-Reconstruction is made up of different parts. There are things that run on the flp, run on the epn and in various forms as well.
+## Introduction
 
-- Parts to reconstruction :
-    - flp :
-        - o2-trd-compressor
-            This takes in the data from the CRU, optionally compresses it or sends it raw out to the epn via workflows.
-    - epn :
-        - o2-trd-rawreader
-            Take the piped in raw data and unpacks it to a vector tracklets/digits/triggerrecords.
+12 FLPs are receiving the data from the TRD detector. Each FLP is equipped with 3 CRUs. In total we thus have 36 CRUs. The CRUs pack the data into the O2 raw data format. This means that Raw Data Headers (RDH) are added to the data stream and the data from each link (one link receives the data from one TRD half-chamber) are aligned to 256 bits. If there is less data for one link then padding words (0xeeeeeeee) are added to keep the alignment.
+The RDH itself contains the FEE ID. This is something not specific to the TRD. For us the CRU ID can be obtained from it. The FEE ID comprises the sector number, the sector side (A/C-side, this is *not* the same as half-chamber side) and the endpoint. We have two CRUs connected to one sector. One serves the A-side and the other the C-side. Each CRU furthermore has two end points. In the data stream we receive the data in chunks of single heart beat frames per half-CRU. Currently one time frame is set to contain 128 hear beat frames. Since we have 72 half-CRUs we expect 128 * 72 chunks of data for a single time frame. And each chunk contains the data of 15 links for one HBF. There can be multiple triggers in a single HBF.
 
-- Generate raw data from montecarlo:
+
+
+## Processing
+
+- Currently there is no processing done on the FLPs for the TRD. The `o2-trd-datareader` workflow parses the data coming from the FLPs.
+- It is possible to generate simulated raw data with the following workflows:
+
 ```
 o2-sim -n 200 -g pythia8pp --skipModules ZDC
 o2-sim-digitizer-workflow -b --onlyDet TRD
@@ -31,7 +32,10 @@ mv trdtracklets.root trdtrackletsOrig.root
 o2-raw-file-reader-workflow --detect-tf0 --delay 100  --max-tf 0 --input-conf raw/TRD/TRDraw.cfg | o2-trd-datareader  -b | o2-trd-digittracklet-writer --run |& tee trdrec.log
 ```
 
-    You will need the datadistribution installed as well which has an O2 dependency.
+
+### Alternative approach
+
+You will need the datadistribution installed as well which has an O2 dependency.
 
 ```
 aliBuild build DataDistribution --defaults o2

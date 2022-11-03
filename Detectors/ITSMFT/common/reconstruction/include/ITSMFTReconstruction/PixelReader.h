@@ -65,6 +65,7 @@ class PixelReader
 
   bool getDecodeNextAuto() const { return mDecodeNextAuto; }
   void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
+
   //
  protected:
   //

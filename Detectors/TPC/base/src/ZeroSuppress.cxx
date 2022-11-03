@@ -69,7 +69,7 @@ void ZeroSuppress::DecodeZSPages(gsl::span<const ZeroSuppressedContainer8kb>* z0
     unsigned int ct = 0;
     startPtr += (sizeof(z0Container->rdh) + sizeof(z0Container->hdr)); // move to first time bin
     // iterate through all time bins indicated in the z0 header
-    for (int tb = 0; tb < z0Container->hdr.nTimeBins; tb++) {
+    for (int tb = 0; tb < z0Container->hdr.nTimeBinSpan; tb++) {
       startPtr += (startPtr - pageStart) % 2;
       TPCZSTBHDR* tbHdr = reinterpret_cast<TPCZSTBHDR*>(startPtr);
       unsigned int numberRows = __builtin_popcount((tbHdr->rowMask & 0x7FFF)); // number of ones, excluding upper/lower bit

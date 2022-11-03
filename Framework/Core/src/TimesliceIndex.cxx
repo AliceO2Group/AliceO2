@@ -102,6 +102,27 @@ std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLR
   O2_BUILTIN_UNREACHABLE();
 }
 
+bool TimesliceIndex::didReceiveData() const
+{
+  bool didGetData = false;
+  bool expectsData = false;
+  for (int ci = 0; ci < mChannels.size(); ci++) {
+    auto& channel = mChannels[ci];
+    // Ignore non data channels
+    if (channel.channelType != ChannelAccountingType::DPL) {
+      continue;
+    }
+    expectsData = true;
+    // A data channel provided the oldest possible timeframe information
+    // we therefore can safely assume that we got some
+    // data from it.
+    if (channel.oldestForChannel.value != 0) {
+      return true;
+    }
+  }
+  return didGetData || expectsData == false;
+}
+
 TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(TimesliceId timestamp, ChannelIndex channel)
 {
   // Each channel oldest possible input must be monotoically increasing.

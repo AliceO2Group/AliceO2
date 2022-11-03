@@ -36,7 +36,10 @@ using namespace o2::emcal;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"calibType", VariantType::String, "time", {"choose which calibration should be performed: time for tiem calibration, badchannel for bad channel calibration"}},
+    {"no-loadCalibParamsFromCCDB", VariantType::Bool, false, {"disabled by default such that calib params are taken from the ccdb. If enabled, calib params are taken from EMCALCalibParams.h directly"}},
+    {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -45,10 +48,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec specs;
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec());
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  std::string calibType = cfgc.options().get<std::string>("calibType");
+  bool loadCalibParamsFromCCDB = !cfgc.options().get<bool>("no-loadCalibParamsFromCCDB");
+  bool rejectCalibTrigger = !cfgc.options().get<bool>("no-rejectCalibTrigger");
+
+  WorkflowSpec specs;
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

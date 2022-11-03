@@ -93,13 +93,15 @@ class LHCClockCalibDevice : public o2::framework::Task
         LHCphase* lhcPhase = new LHCphase(std::move(*lhcPhaseIn));
         TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
         mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+        mUpdateCCDB = false;
       } else {
         // if the calib objects were updated, we need to update the mcalibTOFapi
         if (mUpdateCCDB) {
           delete mcalibTOFapi;
           LHCphase* lhcPhase = new LHCphase(*lhcPhaseIn);
-          TimeSlewing* channelCalib = new TimeSlewing(*channelCalibIn);
+          TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
           mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+          mUpdateCCDB = false;
         }
       }
     } else { // we use "fake" initial calibrations
@@ -216,7 +218,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec(bool useCCDB)
       {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
-      {"nbins", VariantType::Int, 1000, {"number of bins for "}}}};
+      {"nbins", VariantType::Int, 4000, {"number of bins for "}}}};
 }
 
 } // namespace framework

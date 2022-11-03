@@ -21,6 +21,7 @@ void addCustomOptions(bpo::options_description& options)
 {
   // append the same options here as used for SimConfig
   o2::conf::SimConfig::initOptions(options);
+  options.add_options()("isRun5", "flag whether a Run5 detector setup is expected");
 }
 
 std::unique_ptr<fair::mq::Device> getDevice(fair::mq::ProgOptions& config)

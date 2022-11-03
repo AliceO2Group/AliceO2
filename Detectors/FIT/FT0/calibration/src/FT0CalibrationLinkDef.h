@@ -26,8 +26,4 @@
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0ChannelTimeOffsetSlotContainer>;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::GlobalOffsetsInfoObject, o2::ft0::GlobalOffsetsContainer>;
 
-#pragma link C++ std::vector < std::pair < uint64_t, int>> + ;
-#pragma link C++ struct o2::fit::DCSDPValues + ;
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;
-
 #endif

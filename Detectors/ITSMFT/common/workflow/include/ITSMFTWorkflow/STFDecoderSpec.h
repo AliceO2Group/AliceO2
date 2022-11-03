@@ -43,6 +43,7 @@ struct STFDecoderInp {
   bool doPatterns = true;
   bool doDigits = false;
   bool doCalib = false;
+  bool doSquashing = false;
   bool askSTFDist = true;
   bool allowReporting = true;
   o2::header::DataOrigin origin{"NIL"};

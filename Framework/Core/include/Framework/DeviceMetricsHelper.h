@@ -56,6 +56,25 @@ struct DeviceMetricsHelper {
       return metrics.floatMetrics;
     } else if constexpr (std::is_same_v<T, uint64_t>) {
       return metrics.uint64Metrics;
+    } else if constexpr (std::is_same_v<T, int8_t>) {
+      return metrics.enumMetrics;
+    } else {
+      throw runtime_error("Unhandled metric type");
+    };
+  }
+
+  /// Typesafe way to get the actual store
+  template <typename T>
+  static auto& getTimestampsStore(DeviceMetricsInfo& metrics)
+  {
+    if constexpr (std::is_same_v<T, int>) {
+      return metrics.intTimestamps;
+    } else if constexpr (std::is_same_v<T, float>) {
+      return metrics.floatTimestamps;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return metrics.uint64Timestamps;
+    } else if constexpr (std::is_same_v<T, int8_t>) {
+      return metrics.enumTimestamps;
     } else {
       throw runtime_error("Unhandled metric type");
     };
@@ -70,6 +89,8 @@ struct DeviceMetricsHelper {
       return MetricType::Float;
     } else if constexpr (std::is_same_v<T, uint64_t>) {
       return MetricType::Uint64;
+    } else if constexpr (std::is_same_v<T, int8_t>) {
+      return MetricType::Enum;
     } else {
       throw runtime_error("Unhandled metric type");
     };
@@ -87,8 +108,9 @@ struct DeviceMetricsHelper {
       metrics.min[metricIndex] = std::min(metrics.min[metricIndex], (float)value);
       metrics.changed.at(metricIndex) = true;
       auto& store = getMetricsStore<T>(metrics);
+      auto& timestamps = getTimestampsStore<T>(metrics);
       size_t pos = metric.pos++ % store[metric.storeIdx].size();
-      metrics.timestamps[metricIndex][pos] = timestamp;
+      timestamps[metric.storeIdx][pos] = timestamp;
       store[metric.storeIdx][pos] = value;
       metric.filledMetrics++;
     };
@@ -123,8 +145,6 @@ struct DeviceMetricsHelper {
     size_t metricIndex = bookNumericMetric<T>(metrics, name, newMetricsCallback);
     return getNumericMetricCursor<T>(metricIndex);
   }
-
-  static void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos);
 };
 
 } // namespace o2::framework

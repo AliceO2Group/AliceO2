@@ -16,8 +16,7 @@
 #include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/ServiceRegistry.h"
-#include "FairMQResizableBuffer.h"
-#include "CommonUtils/BoostSerializer.h"
+#include "Framework/FairMQResizableBuffer.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -35,7 +34,7 @@ using DataHeader = o2::header::DataHeader;
 namespace o2::framework
 {
 
-void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry& services)
+void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistryRef services)
 {
   auto& proxy = services.get<FairMQDeviceProxy>();
   std::vector<fair::mq::Parts> outputsPerChannel;
@@ -59,9 +58,9 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
   }
 }
 
-void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistry& services)
+void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistryRef services)
 {
-  FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
+  auto& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
@@ -79,7 +78,7 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
   }
 }
 
-void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceRegistryRef registry)
 {
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
@@ -87,8 +86,8 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
 
-  std::regex invalid_metric(" ");
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
+  static const std::regex invalid_metric(" ");
+  auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -111,7 +110,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
                                        origin,
                                        description)}
                       .addTag(Key::Subsystem, Value::DPL));
-    LOGP(info, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
+    LOGP(detail, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
@@ -147,9 +146,9 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistryRef registry)
 {
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
+  auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));

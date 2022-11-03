@@ -22,6 +22,7 @@
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ChEffCounter.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"
 #include "MIDSimulation/ChamberResponse.h"
@@ -52,6 +53,9 @@ class Digitizer
 
   /// Sets the chamber response
   void setChamberResponse(const ChamberResponse& chamberResponse) { mResponse = chamberResponse; }
+
+  /// Sets the chamber efficiency
+  void setChamberEfficiency(const std::vector<ChEffCounter>& counters) { mEfficiencyResponse.setFromCounters(counters); }
 
   /// Sets the seed
   void setSeed(unsigned int seed) { mGenerator.seed(seed); }

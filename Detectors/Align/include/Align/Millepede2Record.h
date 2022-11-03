@@ -17,7 +17,8 @@
 #ifndef MILLEPEDE2RECORD_H
 #define MILLEPEDE2RECORD_H
 
-#include <TObject.h>
+#include <Rtypes.h>
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2
 {
@@ -26,22 +27,22 @@ namespace align
 
 class AlignmentTrack;
 
-class Millepede2Record : public TObject
+class Millepede2Record
 {
  public:
-  enum { kCosmicBit = BIT(14) };
+  enum { CosmicBit = 0x1 };
   //
-  Millepede2Record();
-  ~Millepede2Record() final;
+  Millepede2Record() = default;
+  ~Millepede2Record();
   //
-  int getRun() const { return GetUniqueID(); }
-  void setRun(int r) { SetUniqueID(r); }
-  uint32_t getTimeStamp() const { return mTimeStamp; }
-  void setTimeStamp(uint32_t t) { mTimeStamp = t; }
-  uint32_t getTrackID() const { return mTrackID; }
-  void setTrackID(uint32_t t) { mTrackID = t; }
-  bool isCosmic() const { return TestBit(kCosmicBit); }
-  void setCosmic(bool v = true) { SetBit(kCosmicBit, v); }
+  int getRun() const { return mRunNumber; }
+  void setRun(int r) { mRunNumber = r; }
+  uint32_t getFirstTFOrbit() const { return mFirstTFOrbit; }
+  void setFirstTFOrbit(uint32_t v) { mFirstTFOrbit = v; }
+  o2::dataformats::GlobalTrackID getTrackID() const { return mTrackID; }
+  void setTrackID(o2::dataformats::GlobalTrackID t) { mTrackID = t; }
+  bool isCosmic() const { return testBit(CosmicBit); }
+  void setCosmic(bool v = true) { setBit(CosmicBit, v); }
   //
   int getNVarGlo() const { return mNVarGlo; }
   void setNVarGlo(int n) { mNVarGlo = n; }
@@ -65,51 +66,60 @@ class Millepede2Record : public TObject
   const int16_t* getArrLabLoc() const { return mIDLoc; }
   const int* getArrLabGlo() const { return mIDGlo; }
   //
-  bool fillTrack(AlignmentTrack* trc, const int* id2Lab = nullptr);
+  bool fillTrack(AlignmentTrack& trc, const std::vector<int>& id2Lab);
   void dummyRecord(float res, float err, float dGlo, int labGlo);
   //
   void resize(int nresid, int nloc, int nglo);
   //
-  void Clear(const Option_t* opt = "") final;
-  void Print(const Option_t* opt = "") const final;
+  void clear();
+  void print() const;
   //
  protected:
   //
-  // ------- dummies --------
-  Millepede2Record(const Millepede2Record&);
-  Millepede2Record& operator=(const Millepede2Record&);
+  uint16_t mBits = 0;
+  int mRunNumber = 0;
+  uint32_t mFirstTFOrbit = 0;                // event time stamp
+  o2::dataformats::GlobalTrackID mTrackID{}; // track in the event
+  int mNResid = 0;                           // number of residuals for the track (=2 npoints)
+  int mNVarLoc = 0;                          // number of local variables for the track
+  int mNVarGlo = 0;                          // number of global variables defined
+  int mNDLocTot = 0;                         // total number of non-zero local derivatives
+  int mNDGloTot = 0;                         // total number of non-zero global derivatives
+  int mNMeas = 0;                            // number of measured points
+  float mChi2Ini = 0;                        // chi2 of initial kalman fit
+  float mQ2Pt = 0;                           // q/pt at ref point
+  float mTgl = 0;                            // dip angle at ref point
   //
- protected:
+  int16_t* mNDLoc = nullptr; //[mNResid] number of non-0 local derivatives per residual
+  int* mNDGlo = nullptr;     //[mNResid] number of non-0 global derivatives per residual
+  int* mVolID = nullptr;     //[mNResid] volume id + 1 (0 - not a volume)
+  float* mResid = nullptr;   //[mNResid] residuals
+  float* mResErr = nullptr;  //[mNResid] error associated to residual
   //
-  uint32_t mTrackID;   // track in the event
-  uint32_t mTimeStamp; // event time stamp
-  int mNResid;         // number of residuals for the track (=2 npoints)
-  int mNVarLoc;        // number of local variables for the track
-  int mNVarGlo;        // number of global variables defined
-  int mNDLocTot;       // total number of non-zero local derivatives
-  int mNDGloTot;       // total number of non-zero global derivatives
-  int mNMeas;          // number of measured points
-  float mChi2Ini;      // chi2 of initial kalman fit
-  float mQ2Pt;         // q/pt at ref point
-  float mTgl;          // dip angle at ref point
-  //
-  int16_t* mNDLoc; //[mNResid] number of non-0 local derivatives per residual
-  int* mNDGlo;     //[mNResid] number of non-0 global derivatives per residual
-  int* mVolID;     //[mNResid] volume id + 1 (0 - not a volume)
-  float* mResid;   //[mNResid] residuals
-  float* mResErr;  //[mNResid] error associated to residual
-  //
-  int16_t* mIDLoc; //[mNDLocTot] ID of local variables for non-0 local derivatives
-  int* mIDGlo;     //[mNDGloTot] ID of global variables for non-0 global derivatives
-  float* mDLoc;    //[mNDLocTot] non-0 local derivatives
-  float* mDGlo;    //[mNDGloTot] non-0 global derivatives
+  int16_t* mIDLoc = nullptr; //[mNDLocTot] ID of local variables for non-0 local derivatives
+  int* mIDGlo = nullptr;     //[mNDGloTot] ID of global variables for non-0 global derivatives
+  float* mDLoc = nullptr;    //[mNDLocTot] non-0 local derivatives
+  float* mDGlo = nullptr;    //[mNDGloTot] non-0 global derivatives
   //
   // aux info
-  int mNResidBook;   //! number of slots booked for residuals
-  int mNDLocTotBook; //! number of slots booked for local derivatives
-  int mNDGloTotBook; //! number of slots booked for global derivatives
+  int mNResidBook = 0;   //! number of slots booked for residuals
+  int mNDLocTotBook = 0; //! number of slots booked for local derivatives
+  int mNDGloTotBook = 0; //! number of slots booked for global derivatives
   //
-  ClassDef(Millepede2Record, 4);
+  void setBit(uint16_t b, bool v)
+  {
+    if (v) {
+      mBits |= b;
+    } else {
+      mBits &= ~(b & 0xffff);
+    }
+  }
+  bool testBit(uint16_t b) const
+  {
+    return mBits & b;
+  }
+
+  ClassDefNV(Millepede2Record, 1);
 };
 } // namespace align
 } // namespace o2

@@ -15,58 +15,39 @@
 /// @brief  TRD sensor
 
 #include "Align/AlignableSensorTRD.h"
-//#include "AliTRDgeometry.h"
 #include "Align/AlignableDetectorTRD.h"
 #include "Align/utils.h"
 #include "Framework/Logger.h"
 #include "Align/AlignmentPoint.h"
-//#include "AliTrackPointArray.h"
-//#include "AliESDtrack.h"
-//#include "AliTrackerBase.h"
-
-ClassImp(o2::align::AlignableSensorTRD)
-
-  using namespace o2::align::utils;
-using namespace TMath;
 
 namespace o2
 {
 namespace align
 {
+using namespace o2::align::utils;
+using namespace TMath;
 
 //_________________________________________________________
-AlignableSensorTRD::AlignableSensorTRD(const char* name, int vid, int iid, int isec)
-  : AlignableSensor(name, vid, iid), fSector(isec)
+AlignableSensorTRD::AlignableSensorTRD(const char* name, int vid, int iid, int isec, Controller* ctr) : AlignableSensor(name, vid, iid, ctr), mSector(isec)
 {
   // def c-tor
-}
-
-//_________________________________________________________
-AlignableSensorTRD::~AlignableSensorTRD()
-{
-  // d-tor
 }
 
 //____________________________________________
 void AlignableSensorTRD::prepareMatrixT2L()
 {
   // extract from geometry T2L matrix
-  double alp = sector2Alpha(fSector);
+  double alp = math_utils::detail::sector2Angle<float>(mSector);
+  mAlp = alp;
   double loc[3] = {0, 0, 0}, glo[3];
   getMatrixL2GIdeal().LocalToMaster(loc, glo);
-  double x = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
+  mX = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   TGeoHMatrix t2l;
-  t2l.SetDx(x);
+  t2l.SetDx(mX); // to remove when T2L will be clarified
   t2l.RotateZ(alp * RadToDeg());
-  const TGeoHMatrix& l2gi = getMatrixL2GIdeal().Inverse();
+  const TGeoHMatrix l2gi = getMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);
-  /*
-  const TGeoHMatrix* t2l = AliGeomManager::GetTracking2LocalMatrix(getVolID());
-  if (!t2l) {
-    Print("long");
-    AliFatalF("Failed to find T2L matrix for VID:%d %s",getVolID(),getSymName());
-  }
-  */
+
   setMatrixT2L(t2l);
   //
 }
@@ -82,29 +63,28 @@ void AlignableSensorTRD::dPosTraDParCalib(const AlignmentPoint* pnt, double* der
   if (!parent) { // TRD detector global calibration
     //
     switch (calibID) {
-      case AlignableDetectorTRD::kCalibNRCCorrDzDtgl: { // correction for Non-Crossing tracklets Z,Y shift: Z -> Z + calib*tgl, Y -> Y + calib*tgl*tilt*sign(tilt);
-        double sgYZ = pnt->getYZErrTracking()[1];       // makes sense only for nonRC tracklets
-        if (Abs(sgYZ) > 0.01) {
+      case AlignableDetectorTRD::CalibNRCCorrDzDtgl: // correction for Non-Crossing tracklets Z,Y shift: Z -> Z + calib*tgl, Y -> Y + calib*tgl*tilt*sign(tilt);
+      {
+        double sgYZ = pnt->getYZErrTracking()[1]; // makes sense only for nonRC tracklets
+        if (std::abs(sgYZ) > 0.01) {
           const double kTilt = 2. * TMath::DegToRad();
           deriv[2] = pnt->getTrParamWSA()[AlignmentPoint::kParTgl];
           deriv[1] = deriv[2] * Sign(kTilt, sgYZ);
         }
         break;
       }
-        //
-      case AlignableDetectorTRD::kCalibDVT: { // correction for bias in VdriftT
+      case AlignableDetectorTRD::CalibDVT: // correction for bias in VdriftT
+      {
         // error in VdriftT equivalent to shift in X at which Y measurement is evaluated
         // Y -> Y + dVdriftT * tg_phi, where tg_phi is the slope of the track in YX plane
-        double snp = pnt->getTrParamWSA(AlignmentPoint::kParSnp), slpY = snp / Sqrt((1 - snp) * (1 + snp));
+        double snp = pnt->getTrParamWSA(AlignmentPoint::kParSnp), slpY = snp / std::sqrt((1.f - snp) * (1.f + snp));
         deriv[1] = slpY;
         break;
       }
-
       default:
         break;
-    };
+    }
   }
-  //
 }
 
 } // namespace align

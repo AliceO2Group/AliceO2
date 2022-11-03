@@ -14,7 +14,7 @@
 o2_add_library(Mergers
                SOURCES src/MergerAlgorithm.cxx src/IntegratingMerger.cxx src/MergerInfrastructureBuilder.cxx
                        src/MergerBuilder.cxx src/FullHistoryMerger.cxx src/ObjectStore.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework)
+               PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::InfoLogger)
 
 o2_target_root_dictionary(
   Mergers
@@ -46,7 +46,7 @@ o2_add_executable(multinode-benchmark-mergers
 o2_add_executable(benchmark-empty-loop
                   SOURCES test/emptyLoopBenchmark.cxx
                   COMPONENT_NAME mergers
-                  PUBLIC_LINK_LIBRARIES O2::Mergers)
+                  PUBLIC_LINK_LIBRARIES O2::Mergers AliceO2::Common)
 
 if (TARGET benchmark::benchmark)
 o2_add_executable(benchmark-miscellaneous
@@ -67,7 +67,7 @@ o2_add_executable(benchmark-full-vs-diff
 o2_add_executable(benchmark-types
                   SOURCES test/benchmark_Types.cxx
                   COMPONENT_NAME mergers
-                  PUBLIC_LINK_LIBRARIES O2::Mergers benchmark::benchmark)
+                  PUBLIC_LINK_LIBRARIES O2::Mergers Boost::serialization benchmark::benchmark)
 endif()
 
 o2_add_test(InfrastructureBuilder

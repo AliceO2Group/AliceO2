@@ -17,32 +17,6 @@ namespace emcal
 {
 using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
-//_____________________________________________
-boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, boostHisto cellAmplitude)
-{
-  // create the output histo
-  auto eSumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
-  // The outline for this function goes as follows
-  // (1) loop over the total number of cells
-  // (2) slice the existing histogram for one cell ranging from emin to emax
-  // (3) calculate the mean of that sliced histogram using BoostHistoramUtils.h
-  // (4) fill the next histogram with this value
-  for (int cellID = 0; cellID < mNcells; cellID++) {
-    // create a slice for each cell with energies ranging from emin to emax
-    auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
-    // calculate the mean of the slice
-    std::vector<double> result = o2::utils::fitBoostHistoWithGaus<double>(tempSlice);
-    double meanVal = result.at(1);
-    double sumVal = result.at(3);
-    //..Set the values only for cells that are not yet marked as bad
-    if (sumVal > 0.) {
-      eSumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
-    }
-  }
-  return eSumHisto;
-}
-//____________________________________________
-
 //-------------------------------------------------------------------------------------------
 // This function builds the scaled hit distribution
 // It normalizes the hits/cell to the mean value of the row and the column of the cell

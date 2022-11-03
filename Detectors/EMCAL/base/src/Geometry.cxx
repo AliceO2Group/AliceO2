@@ -15,7 +15,7 @@
 #include <TGeoMatrix.h>
 #include <TList.h>
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/ShishKebabTrd1Module.h"

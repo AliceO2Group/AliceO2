@@ -84,7 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC, dataDesc, rofDesc, labelsDesc));
   if (!disableTracking) {
-    specs.emplace_back(o2::mid::getTrackerSpec(!disableMC));
+    specs.emplace_back(o2::mid::getTrackerSpec(!disableMC, !disableFiltering));
   }
   if (!disableFile) {
     if (disableTracking) {

@@ -19,7 +19,7 @@
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <cassert>
 #include <limits>

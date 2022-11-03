@@ -24,6 +24,8 @@
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian.h"
 #include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -32,6 +34,10 @@ namespace o2
 {
 namespace mft
 {
+
+using o2::dataformats::IRFrame;
+using o2::itsmft::ROFRecord;
+typedef std::function<bool(const ROFRecord&)> ROFFilter;
 
 class T;
 
@@ -49,24 +55,17 @@ class Tracker : public TrackerConfig
   void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
-  auto& getTracks() { return mTracks; }
-  auto& getTracksLTF() { return mTracksLTF; }
   auto& getTrackLabels() { return mTrackLabels; }
 
   void clearTracks()
   {
-    mTracks.clear();
     mTrackLabels.clear();
   }
 
   void findLTFTracks(ROframe<T>&);
   void findCATracks(ROframe<T>&);
   bool fitTracks(ROframe<T>&);
-
   void computeTracksMClabels(const std::vector<T>&);
-
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
-  std::uint32_t getROFrame() const { return mROFrame; }
 
   void initialize(bool fullClusterScan = false);
   void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
@@ -90,10 +89,6 @@ class Tracker : public TrackerConfig
   void addCellToCurrentRoad(ROframe<T>&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
   Float_t mBz = 5.f;
-  std::uint32_t mROFrame = 0;
-  std::vector<TrackMFTExt> mTracks;
-  std::vector<T> mTracksLTF;
-  std::vector<Cluster> mClusters;
   std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
 

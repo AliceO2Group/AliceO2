@@ -30,13 +30,6 @@ class BaselineCalib
  public:
   BaselineCalib() = default;
   int init();
-  void clear();
-  //int process(const o2::zdc::BaselineCalibSummaryData& data);
-  int process(const o2::zdc::BaselineCalibSummaryData* data);
-  int endOfRun();
-  int saveDebugHistos(const std::string fn = "ZDCBaselineCalib.root");
-
-  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setConfig(const BaselineCalibConfig* param) { mConfig = param; };
   const BaselineCalibConfig* getConfig() const { return mConfig; };
@@ -45,11 +38,18 @@ class BaselineCalib
   void setBaselineParam(const BaselineParam* param) { mParam = param; };
   const BaselineParam* getBaselineParam() const { return mParam; };
 
-  void setVerbosity(int v) { mVerbosity = v; }
-  int getVerbosity() const { return mVerbosity; }
-
+  void clear();
+  //int process(const o2::zdc::BaselineCalibSummaryData& data);
+  int process(const o2::zdc::BaselineCalibSummaryData* data);
+  int endOfRun();
+  int saveDebugHistos(const std::string fn = "ZDCBaselineCalib.root");
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
+
+  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
+
+  void setVerbosity(int v) { mVerbosity = v; }
+  int getVerbosity() const { return mVerbosity; }
 
   BaselineCalibData& getData() { return mData; }
   BaselineParam& getParamUpd() { return mParamUpd; }

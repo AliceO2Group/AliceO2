@@ -10,7 +10,7 @@
 #/tracking/verbose 1
 #//control/cout/ignoreThreadsExcept 0
 
-/mcPhysics/rangeCuts 0.01 mm
+/mcPhysics/rangeCuts 0.001 mm
 /mcTracking/skipNeutrino true
 /mcDet/setIsMaxStepInLowDensityMaterials true
 /mcDet/setMaxStepInLowDensityMaterials 10 m

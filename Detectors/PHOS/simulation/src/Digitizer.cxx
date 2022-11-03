@@ -17,7 +17,7 @@
 #include "CCDB/CcdbApi.h"
 
 #include <TRandom.h>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 ClassImp(o2::phos::Digitizer);
 

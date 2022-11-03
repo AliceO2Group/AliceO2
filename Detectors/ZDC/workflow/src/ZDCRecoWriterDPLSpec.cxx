@@ -30,15 +30,14 @@ namespace zdc
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 // Unused arguments: bool mctruth, bool simVersion
-DataProcessorSpec getZDCRecoWriterDPLSpec()
+DataProcessorSpec getZDCRecoWriterDPLSpec(std::string fname)
 {
   std::string writerName = "ZDCRecoWriter";
-  std::string fnameDef = "zdcreco.root";
 
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   return MakeRootTreeWriterSpec(writerName.data(),
-                                fnameDef.data(),
+                                fname.data(),
                                 "o2rec",
                                 BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"bcrec", "ZDC", "BCREC"}, "ZDCRecBC"},
                                 BranchDefinition<std::vector<o2::zdc::ZDCEnergy>>{InputSpec{"energy", "ZDC", "ENERGY"}, "ZDCRecE"},

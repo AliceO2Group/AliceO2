@@ -21,9 +21,18 @@ namespace o2::framework
 
 std::vector<ServiceSpec> o2::framework::CommonDriverServices::defaultServices()
 {
-  return {
+  std::vector<ServiceSpec> specs{
     CommonServices::configurationSpec()};
+  // Load plugins depending on the environment
+  std::vector<LoadableService> loadableServices = {};
+  char* loadableServicesEnv = getenv("DPL_LOAD_DRIVER_SERVICES");
+  // String to define the services to load is:
+  //
+  // library1:name1,library2:name2,...
+  if (loadableServicesEnv) {
+    loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesEnv);
+    ServiceHelpers::loadFromPlugin(loadableServices, specs);
+  }
+  return specs;
 }
 } // namespace o2::framework
-
-#pragma GCC diagnostic pop

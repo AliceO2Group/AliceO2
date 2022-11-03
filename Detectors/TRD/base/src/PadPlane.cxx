@@ -24,7 +24,7 @@
 
 #include "TRDBase/PadPlane.h"
 #include <TMath.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Constants.h"
 
 using namespace o2::trd;

@@ -45,7 +45,7 @@ class Diagnostic
   static ULong64_t getEmptyCrateKey(int crate);
   static ULong64_t getNoisyChannelKey(int channel);
   static ULong64_t getTRMKey(int crate, int trm);
-  void print() const;
+  void print(bool longFormat = false) const;
   void clear() { mVector.clear(); }
   void fill(const Diagnostic& diag);                       // for calibration
   void fill(const gsl::span<const o2::tof::Diagnostic>){}; // for calibration

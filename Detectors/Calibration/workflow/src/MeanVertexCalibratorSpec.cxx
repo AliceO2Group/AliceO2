@@ -14,9 +14,9 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 #include "DetectorsCalibrationWorkflow/MeanVertexCalibratorSpec.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DetectorsCalibration/MeanVertexParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -28,23 +28,11 @@ namespace calibration
 {
 void MeanVertexCalibDevice::init(InitContext& ic)
 {
-
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-  const o2::calibration::MeanVertexParams* params = &o2::calibration::MeanVertexParams::Instance();
-  int minEnt = params->minEntries;
-  int nbX = params->nbinsX;
-  float rangeX = params->rangeX;
-  int nbY = params->nbinsY;
-  float rangeY = params->rangeY;
-  int nbZ = params->nbinsZ;
-  float rangeZ = params->rangeZ;
-  int nSlots4SMA = params->nSlots4SMA;
-  bool useFit = params->useFit;
-  auto slotL = params->tfPerSlot;
-  auto delay = params->maxTFdelay;
-  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, useFit, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA);
-  mCalibrator->setSlotLength(slotL);
-  mCalibrator->setMaxSlotsDelay(delay);
+  const auto& params = MeanVertexParams::Instance();
+  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>();
+  mCalibrator->setSlotLength(params.tfPerSlot);
+  mCalibrator->setMaxSlotsDelay(float(params.maxTFdelay) / params.tfPerSlot);
   bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
   LOG(info) << " ************************* Verbose? " << useVerboseMode;
   if (useVerboseMode) {
@@ -89,7 +77,6 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
-
   using clbUtils = o2::calibration::Utils;
   const auto& payloadVec = mCalibrator->getMeanVertexObjectVector();
   auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector(); // use non-const version as we update it
@@ -98,11 +85,13 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
   for (uint32_t i = 0; i < payloadVec.size(); i++) {
     auto& w = infoVec[i];
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-    LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+    LOG(info) << (MeanVertexParams::Instance().skipObjectSending ? "Skip " : "") << "sending object "
+              << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
               << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-
-    output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX", i}, *image.get()); // vector<char>
-    output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX", i}, w);            // root-serialized
+    if (!MeanVertexParams::Instance().skipObjectSending) {
+      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX", i}, *image.get()); // vector<char>
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX", i}, w);            // root-serialized
+    }
   }
   if (payloadVec.size()) {
     mCalibrator->initOutput(); // reset the outputs once they are already sent

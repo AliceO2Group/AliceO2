@@ -15,7 +15,7 @@
 
 #include "TSystem.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryBuilder.h"

@@ -42,6 +42,7 @@
   #define GPUCA_LB_GPUTPCGlobalTracking 256
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 4
   #define GPUCA_LB_GPUTPCCFDecodeZSLink GPUCA_WARP_SIZE
+  #define GPUCA_LB_GPUTPCCFDecodeZSDenseLink GPUCA_WARP_SIZE
   #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 4, 200
@@ -105,6 +106,7 @@
   #define GPUCA_LB_GPUTPCGlobalTracking 128, 4
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 10
   #define GPUCA_LB_GPUTPCCFDecodeZSLink GPUCA_WARP_SIZE
+  #define GPUCA_LB_GPUTPCCFDecodeZSDenseLink GPUCA_WARP_SIZE
   #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 4
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 64, 12
@@ -168,6 +170,7 @@
   #define GPUCA_LB_GPUTPCGlobalTracking 192, 2
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 8
   #define GPUCA_LB_GPUTPCCFDecodeZSLink GPUCA_WARP_SIZE
+  #define GPUCA_LB_GPUTPCCFDecodeZSDenseLink GPUCA_WARP_SIZE
   #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 32, 8
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 128, 4
@@ -260,6 +263,9 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCCFDecodeZSLink
     #define GPUCA_LB_GPUTPCCFDecodeZSLink GPUCA_WARP_SIZE
+  #endif
+  #ifndef GPUCA_LB_GPUTPCCFDecodeZSDenseLink
+    #define GPUCA_LB_GPUTPCCFDecodeZSDenseLink GPUCA_WARP_SIZE
   #endif
   #ifndef GPUCA_LB_GPUTPCCFGather
     #define GPUCA_LB_GPUTPCCFGather 1024, 1

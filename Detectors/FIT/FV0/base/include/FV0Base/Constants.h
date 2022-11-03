@@ -30,6 +30,7 @@ struct Constants {
   static constexpr int nTcms = 1;           // Number of trigger and clock modules (TCMs)
   static constexpr int nGbtLinks = nPms + nTcms;
   static constexpr int nFv0Channels = Geometry::getNumberOfReadoutChannels();
+  static constexpr int nFv0ChannelsPlusRef = nFv0Channels + 1;
 };
 
 } // namespace fv0

@@ -38,7 +38,7 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool writeResiduals, bool sendTrackData) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mWriteResiduals(writeResiduals), mSendTrackData(sendTrackData) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool writeUnfiltered, bool sendTrackData) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mWriteUnfiltered(writeUnfiltered), mSendTrackData(sendTrackData) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -54,7 +54,7 @@ class TPCInterpolationDPL : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
-  bool mWriteResiduals{false};    ///< whether or not the unbinned unfiltered residuals should be sent out
+  bool mWriteUnfiltered{false};   ///< whether or not the unfiltered residuals should be sent out in addition to filtered ones
   bool mSendTrackData{false};     ///< if true, not only the clusters but also corresponding track data will be sent
   TStopwatch mTimer;
 };

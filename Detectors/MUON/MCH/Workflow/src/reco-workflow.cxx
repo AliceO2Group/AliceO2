@@ -49,6 +49,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-clustering", o2::framework::VariantType::Bool, false, {"disable clustering (and tracking) steps (for debug)"}},
+    {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step (for debug)"}},
     {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
     {"triggered", VariantType::Bool, false, {"use MID to trigger the MCH reconstruction"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
@@ -67,6 +69,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto digits = configcontext.options().get<bool>("digits");
   auto triggered = configcontext.options().get<bool>("triggered");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto disableClustering = configcontext.options().get<bool>("disable-clustering");
+  auto disableTracking = disableClustering || configcontext.options().get<bool>("disable-tracking");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
@@ -95,18 +99,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                       triggered ? "E-F-DIGITS" : "F-DIGITS",
                                                       triggered ? "E-F-DIGITROFS" : (useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS")));
 
-  specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
-  specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
-  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
-  if (useMC) {
-    specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
-                                                          triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
-                                                          triggered ? "E-F-DIGITLABELS" : "F-DIGITLABELS"));
-  }
+  if (!disableClustering) {
+    specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
+    specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, digits)); // RS cannot find who produces MCH/CLUSTERLABELS/0
+    }
+    if (!disableTracking) {
+      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
+      if (useMC) {
+        specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
+                                                              triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
+                                                              triggered ? "E-F-DIGITLABELS" : "F-DIGITLABELS"));
+      }
 
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
-    specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, digits)); // RS cannot find who produces MCH/CLUSTERLABELS/0
+      if (!disableRootOutput) {
+        specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
+      }
+    }
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

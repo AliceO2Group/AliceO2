@@ -30,10 +30,10 @@ class TrackletTransformer
 
   void init();
 
-  float getXCathode() { return mXCathode; }
-  float getXAnode() { return mXAnode; }
-  float getXDrift() { return mXDrift; }
-  float getXtb0() { return mXtb0; }
+  float getXCathode() const { return mXCathode; }
+  float getXAnode() const { return mXAnode; }
+  float getXDrift() const { return mXDrift; }
+  float getXtb0() const { return mXtb0; }
 
   void setXCathode(float x) { mXCathode = x; }
   void setXAnode(float x) { mXAnode = x; }
@@ -43,23 +43,22 @@ class TrackletTransformer
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
   void setApplyXOR() { mApplyXOR = true; }
 
-  float calculateY(int hcid, int column, int position);
+  float calculateY(int hcid, int column, int position, const PadPlane* padPlane) const;
 
-  float calculateZ(int padrow);
+  float calculateZ(int padrow, const PadPlane* padPlane) const;
 
-  float calculateDy(int hcid, int slope);
+  float calculateDy(int hcid, int slope, const PadPlane* padPlane) const;
 
-  float calibrateX(double x);
+  float calibrateX(double x) const;
 
-  std::array<float, 3> transformL2T(int hcid, std::array<double, 3> spacePoint);
+  std::array<float, 3> transformL2T(int hcid, std::array<double, 3> spacePoint) const;
 
-  CalibratedTracklet transformTracklet(Tracklet64 tracklet);
+  CalibratedTracklet transformTracklet(Tracklet64 tracklet, bool trackingFrame = true) const;
 
-  double getTimebin(int detector, double x);
+  double getTimebin(int detector, double x) const;
 
  private:
   Geometry* mGeo{nullptr};
-  const PadPlane* mPadPlane{nullptr};
   bool mApplyXOR{false};
 
   float mXCathode;

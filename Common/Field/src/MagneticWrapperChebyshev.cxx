@@ -19,7 +19,7 @@
 #include <TSystem.h>    // for TSystem, gSystem
 #include <cstdio>       // for printf, fprintf, fclose, fopen, FILE
 #include <cstring>      // for memcpy
-#include "FairLogger.h" // for FairLogger
+#include <fairlogger/Logger.h> // for FairLogger
 #include "TMath.h"      // for BinarySearch, Sort
 #include "TMathBase.h"  // for Abs
 #include "TNamed.h"     // for TNamed

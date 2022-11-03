@@ -175,7 +175,7 @@ int getSideEnd(const int sides);
 /// \nPhiBins number of phi bins the sc density histograms
 /// \nRBins number of phi bins the sc density histograms
 /// \nZBins number of phi bins the sc density histograms
-void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514 /*, const int nThreads = 1*/)
+void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514, const std::array<float, GEMSTACKSPERSECTOR> gainStackScaling = std::array<float, GEMSTACKSPERSECTOR>{1, 1, 1, 1} /*, const int nThreads = 1*/)
 {
   o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
 
@@ -372,7 +372,7 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             if (gain == 0) {
               continue;
             }
-            const int epsilon = static_cast<int>(gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
+            const int epsilon = static_cast<int>(gainStackScaling[cru.gemStack()] * gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
 
             const Side sideIBF = getSide(zIonsIBFTmp);
             const auto binPhi = hisSCRandom[sideIBF].GetXaxis()->FindBin(phiHitDiff);
@@ -551,24 +551,14 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
 
   // calculate 1D IDC
   for (unsigned long iSlice = 0; iSlice < idc3D.size(); ++iSlice) {
-    const auto vecCalArr = idc3D[iSlice].getData();
-    const int maxrocs = ROC::MaxROC;
-    for (int iROC = 0; iROC < maxrocs; ++iROC) {
-      ROC roc(iROC);
-      const Side side = roc.side();
-      if (side == Side::A) {
-        // 1D IDC for A side
-        idc1DASide[iSlice] += vecCalArr[iROC].getSum();
-      } else {
-        // 1D IDC for C side
-        idc1DCSide[iSlice] += vecCalArr[iROC].getSum();
-      }
-    }
+    const auto vecCalArr = idc3D[iSlice];
+    idc1DASide[iSlice] = get1DIDCs(vecCalArr, o2::tpc::Side::A);
+    idc1DCSide[iSlice] = get1DIDCs(vecCalArr, o2::tpc::Side::C);
   }
 
   // calculate 0D IDC
-  idc0DASide[0] = std::accumulate(idc1DASide.begin(), idc1DASide.end(), (float)0);
-  idc0DCSide[0] = std::accumulate(idc1DCSide.begin(), idc1DCSide.end(), (float)0);
+  idc0DASide[0] = get0DIDCs(idc1DASide);
+  idc0DCSide[0] = get0DIDCs(idc1DCSide);
 
   std::cout << "output path is: " << outFile << std::endl;
   TFile fMergedIDC(outFile, "RECREATE");

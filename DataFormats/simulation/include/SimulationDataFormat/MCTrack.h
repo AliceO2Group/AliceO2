@@ -19,7 +19,7 @@
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
-#include "TDatabasePDG.h"
+#include "SimulationDataFormat/O2DatabasePDG.h"
 #include "TLorentzVector.h"
 #include "TMCProcess.h"
 #include "TMath.h"
@@ -29,6 +29,12 @@
 
 namespace o2
 {
+
+namespace MCTrackHelper
+{
+void printMassError(int pdg);
+};
+
 /// Data class for storing Monte Carlo tracks processed by the Stack.
 /// An MCTrack can be a primary track put into the simulation or a
 /// secondary one produced by the transport through decay or interaction.
@@ -73,7 +79,12 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesY() const { return mStartVertexCoordinatesY; }
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
+
+  /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
+
+  /// return particle weight
+  _T getWeight() const { return mWeight; }
 
   Double_t GetEnergy() const;
 
@@ -218,6 +229,9 @@ class MCTrackT
   /// Coordinates of start vertex [cm, ns]
   _T mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
 
+  /// particle weight
+  _T mWeight;
+
   ///  PDG particle code
   Int_t mPdgCode;
 
@@ -296,7 +310,8 @@ inline MCTrackT<T>::MCTrackT()
     mStartVertexCoordinatesY(0.),
     mStartVertexCoordinatesZ(0.),
     mStartVertexCoordinatesT(0.),
-    mProp(0)
+    mProp(0),
+    mWeight(0)
 {
 }
 
@@ -316,7 +331,8 @@ inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t secondMotherId
     mStartVertexCoordinatesY(y),
     mStartVertexCoordinatesZ(z),
     mStartVertexCoordinatesT(t),
-    mProp(mask)
+    mProp(mask),
+    mWeight(0)
 {
 }
 
@@ -334,6 +350,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     mStartVertexCoordinatesY(part.Vy()),
     mStartVertexCoordinatesZ(part.Vz()),
     mStartVertexCoordinatesT(part.T() * 1e09),
+    mWeight(part.GetWeight()),
     mProp(0),
     mStatusCode(0)
 {
@@ -363,15 +380,13 @@ inline void MCTrackT<T>::Print(Int_t trackId) const
 template <typename T>
 inline Double_t MCTrackT<T>::GetMass() const
 {
-  if (TDatabasePDG::Instance()) {
-    TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(mPdgCode);
-    if (particle) {
-      return particle->Mass();
-    } else {
-      return 0.;
-    }
+  bool success{};
+  auto mass = O2DatabasePDG::Mass(mPdgCode, success);
+  if (!success) {
+    // coming here is a mistake which should not happen
+    MCTrackHelper::printMassError(mPdgCode);
   }
-  return 0.;
+  return mass;
 }
 
 template <typename T>

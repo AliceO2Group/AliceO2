@@ -18,6 +18,7 @@
 #define ALIGNABLEDETECTORTRD_H
 
 #include "Align/AlignableDetector.h"
+#include "TRDBase/RecoParam.h"
 
 namespace o2
 {
@@ -28,53 +29,46 @@ class AlignableDetectorTRD : public AlignableDetector
 {
  public:
   //
-  enum { kCalibNRCCorrDzDtgl, // correction parameter for NonRC tracklets
-         kCalibDVT,           // global correction to Vdrift*t
-         kNCalibParams };     // calibration parameters
+  enum { CalibNRCCorrDzDtgl, // correction parameter for NonRC tracklets
+         CalibDVT,           // global correction to Vdrift*t
+         NCalibParams };     // calibration parameters
   //
-  AlignableDetectorTRD(const char* title = "");
-  virtual ~AlignableDetectorTRD();
+  AlignableDetectorTRD() = default; // RS FIXME do we need default c-tor?
+  AlignableDetectorTRD(Controller* ctr);
+  ~AlignableDetectorTRD() final = default;
+  void defineVolumes() final;
+  void Print(const Option_t* opt = "") const final;
+  const char* getCalibDOFName(int i) const final;
   //
-  virtual void defineVolumes();
-  virtual void Print(const Option_t* opt = "") const;
+  void writePedeInfo(FILE* parOut, const Option_t* opt = "") const final;
   //
-  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
+  void setNonRCCorrDzDtgl(double v = 0.) { mNonRCCorrDzDtgl = v; }
+  double getNonRCCorrDzDtgl() const { return mNonRCCorrDzDtgl; }
+  double getNonRCCorrDzDtglWithCal() const { return getNonRCCorrDzDtgl() + getParVal(CalibNRCCorrDzDtgl); }
   //
-  virtual const char* getCalibDOFName(int i) const;
+  void setCorrDVT(double v = 0) { mCorrDVT = 0; }
+  double getCorrDVT() const { return mCorrDVT; }
+  double getCorrDVTWithCal() const { return getCorrDVT() + getParVal(CalibDVT); }
   //
-  virtual void writePedeInfo(FILE* parOut, const Option_t* opt = "") const;
+  double getCalibDOFVal(int id) const final;
+  double getCalibDOFValWithCal(int id) const final;
   //
-  void SetNonRCCorrDzDtgl(double v = 0) { fNonRCCorrDzDtgl = v; }
-  double GetNonRCCorrDzDtgl() const { return fNonRCCorrDzDtgl; }
-  double GetNonRCCorrDzDtglWithCal() const { return GetNonRCCorrDzDtgl() + getParVal(kCalibNRCCorrDzDtgl); }
-  //
-  void SetCorrDVT(double v = 0) { fCorrDVT = 0; }
-  double GetCorrDVT() const { return fCorrDVT; }
-  double GetCorrDVTWithCal() const { return GetCorrDVT() + getParVal(kCalibDVT); }
-  //
-  virtual double getCalibDOFVal(int id) const;
-  virtual double getCalibDOFValWithCal(int id) const;
-  //
-  const double* GetExtraErrRC() const { return fExtraErrRC; }
-  void SetExtraErrRC(double y = 0.2, double z = 1.0)
+  const double* getExtraErrRC() const { return mExtraErrRC; }
+  void setExtraErrRC(double y = 0.2, double z = 1.0)
   {
-    fExtraErrRC[0] = y;
-    fExtraErrRC[1] = z;
+    mExtraErrRC[0] = y;
+    mExtraErrRC[1] = z;
   }
-  //
+
+  int processPoints(GIndex gid, bool inv) final;
+
  protected:
+  o2::trd::RecoParam mRecoParam;    // parameters required for TRD reconstruction
+  double mNonRCCorrDzDtgl = 0.;     // correction in Z for non-crossing tracklets
+  double mCorrDVT = 0.;             // correction to Vdrift*t
+  double mExtraErrRC[2] = {0., 0.}; // extra errors for RC tracklets
   //
-  // -------- dummies --------
-  AlignableDetectorTRD(const AlignableDetectorTRD&);
-  AlignableDetectorTRD& operator=(const AlignableDetectorTRD&);
-  //
- protected:
-  //
-  double fNonRCCorrDzDtgl; // correction in Z for non-crossing tracklets
-  double fCorrDVT;         // correction to Vdrift*t
-  double fExtraErrRC[2];   // extra errors for RC tracklets
-  //
-  static const char* fgkCalibDOFName[kNCalibParams];
+  static const char* CalibDOFName[NCalibParams];
   //
   ClassDef(AlignableDetectorTRD, 1);
 };

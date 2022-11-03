@@ -17,12 +17,8 @@ using namespace o2::framework;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "disable-mc",
-      o2::framework::VariantType::Bool,
-      false,
-      {"disable MC propagation even if available"}});
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  workflowOptions.push_back(ConfigParamSpec{"output", o2::framework::VariantType::String, "zdcreco.root", {"output file"}});
 }
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
@@ -40,6 +36,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useMC) {
     LOG(warning) << "ZDC reconstruction does not support MC labels at the moment";
   }
-  WorkflowSpec specs{o2::zdc::getZDCRecoWriterDPLSpec()};
+  auto output = configcontext.options().get<std::string>("output");
+  WorkflowSpec specs{o2::zdc::getZDCRecoWriterDPLSpec(output)};
   return std::move(specs);
 }

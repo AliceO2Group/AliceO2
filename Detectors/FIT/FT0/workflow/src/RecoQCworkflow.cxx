@@ -13,7 +13,7 @@
 ///\ brief QC for  reconstructed data
 /// \author Alla.Maevskaya@cern.ch
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <Framework/ConfigContext.h>
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"

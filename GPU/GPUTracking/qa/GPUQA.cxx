@@ -47,7 +47,9 @@
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCClusterRejection.h"
+#include "GPUTPCConvertImpl.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -514,6 +516,7 @@ int GPUQA::InitQACreateHistograms()
     sprintf(name, "tracks");
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
+    createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250);
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -977,8 +980,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             } else if (mTracking->GetParam().par.earlyTpcTransform) {
               comp = fabsf(trks[i].GetParam().GetZ() + trks[i].GetParam().GetTZOffset()) < fabsf(trks[revLabel].GetParam().GetZ() + trks[revLabel].GetParam().GetTZOffset());
             } else {
-              float shift1 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSLICES / 2, trks[i].GetParam().GetTZOffset());
-              float shift2 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSLICES / 2, trks[revLabel].GetParam().GetTZOffset());
+              float shift1 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSLICES / 2, trks[i].GetParam().GetTZOffset());
+              float shift2 = mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSLICES / 2, trks[revLabel].GetParam().GetTZOffset());
               comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
             }
             if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
@@ -1307,7 +1310,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
 #ifdef GPUCA_TPC_GEOMETRY_O2
           if (!mParam->par.earlyTpcTransform) {
-            float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
+            float shift = side == 2 ? 0 : mTracking->GetTPCTransformHelper()->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
             return param.GetZ() + shift - mc1.z;
           }
 #endif
@@ -1607,6 +1610,19 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       }
       mTracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
       mNCl->Fill(track.NClustersFitted());
+    }
+    if (mClNative && mTracking && mTracking->GetTPCTransformHelper()) {
+      for (unsigned int i = 0; i < GPUChainTracking::NSLICES; i++) {
+        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+          for (unsigned int k = 0; k < mClNative->nClusters[i][j]; k++) {
+            const auto& cl = mClNative->clusters[i][j][k];
+            float x, y, z;
+            GPUTPCConvertImpl::convert(*mTracking->GetTPCTransformHelper()->getCorrMap(), mTracking->GetParam(), i, j, cl.getPad(), cl.getTime(), x, y, z);
+            mTracking->GetParam().Slice2Global(i, x, y, z, &x, &y, &z);
+            mClXY->Fill(x, y);
+          }
+        }
+      }
     }
 
     if (QA_TIMING) {
@@ -2031,6 +2047,11 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       mPNCl->Draw();
       mLNCl = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
       SetLegend(mLNCl);
+
+      mCClXY = createGarbageCollected<TCanvas>("clxy", "Number of clusters per X / Y", 0, 0, 700, 700. * 2. / 3.);
+      mCClXY->cd();
+      mPClXY = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPClXY->Draw();
     }
   }
 
@@ -2653,6 +2674,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     if (mConfig.writeRootFiles) {
       mCTracks->Print("plots/tracks.root");
     }
+
     tmpMax = 0.;
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mNCl;
@@ -2694,6 +2716,15 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     mCNCl->Print("plots/nClusters.pdf");
     if (mConfig.writeRootFiles) {
       mCNCl->Print("plots/nClusters.root");
+    }
+
+    mPClXY->cd();
+    mClXY->SetOption("colz");
+    mClXY->Draw();
+    mCClXY->cd();
+    mCClXY->Print("plots/clustersXY.pdf");
+    if (mConfig.writeRootFiles) {
+      mCClXY->Print("plots/clustersXY.root");
     }
   }
 
