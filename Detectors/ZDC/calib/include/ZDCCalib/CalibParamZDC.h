@@ -15,6 +15,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ZDCBase/Constants.h"
+#include "CCDB/CcdbObjectInfo.h"
 #include <string>
 
 /// \file CalibParamZDC.h
@@ -31,6 +32,9 @@ struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
   std::string outputDir = "./";          // ROOT files output directory
   std::string metaFileDir = "/dev/null"; // Metafile output directory
   std::string descr;                     // Calibration description
+  int64_t eovTune = 0;                   // Tune end of validity of calibration object (eovTune>0 -> absolute, eovTune<0 increase by -eovTune)
+
+  int updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info) const;
   void print() const;
   O2ParamDef(CalibParamZDC, "CalibParamZDC");
 };

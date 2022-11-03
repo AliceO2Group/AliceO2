@@ -14,6 +14,31 @@
 
 O2ParamImpl(o2::zdc::CalibParamZDC);
 
+int o2::zdc::CalibParamZDC::updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo &info) const{
+  auto eov = info.getEndValidityTimestamp();
+  if(eovTune>0){
+    info.setEndValidityTimestamp(eovTune);
+    if(eovTune<eov){
+      LOG(warning) << __func__ << " New EOV: " << eovTune << " < old EOV " << eov;
+      return 1;
+    }else{
+      LOG(info) << __func__ << " Updating EOV from " << eov << " to " << eovTune;
+      return 0;
+    }
+  }else if(eovTune<0){
+    auto neov=eov-eovTune;
+    info.setEndValidityTimestamp(neov);
+    if(neov<eov){
+      LOG(warning) << __func__ << " New EOV: " << neov << " < old EOV " << eov;
+      return 1;
+    }else{
+      LOG(info) << __func__ << " Updating EOV from " << eov << " to " << neov;
+      return 0;
+    }
+  }
+  return 0;
+}
+
 void o2::zdc::CalibParamZDC::print() const
 {
   bool printed = false;
