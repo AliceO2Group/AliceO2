@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/Logger.h"
 #include "Headers/STFHeader.h"
 #include "DeviceSpecHelpers.h"
 #include <fairmq/Device.h>
