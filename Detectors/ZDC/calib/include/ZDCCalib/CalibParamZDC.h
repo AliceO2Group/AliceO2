@@ -27,12 +27,12 @@ namespace o2
 namespace zdc
 {
 struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
-  bool debugOutput = true;               // Debug output
-  bool rootOutput = true;                // Output histograms to EOS
-  std::string outputDir = "./";          // ROOT files output directory
-  std::string metaFileDir = "/dev/null"; // Metafile output directory
-  std::string descr;                     // Calibration description
-  int64_t eovTune = 0;                   // Tune end of validity of calibration object (eovTune>0 -> absolute, eovTune<0 increase by -eovTune)
+  bool debugOutput = true;                           // Debug output
+  bool rootOutput = true;                            // Output histograms to EOS
+  std::string outputDir = "./";                      // ROOT files output directory
+  std::string metaFileDir = "/dev/null";             // Metafile output directory
+  std::string descr;                                 // Calibration description
+  int64_t eovTune = -o2::ccdb::CcdbObjectInfo::YEAR; // Tune end of validity of calibration object (eovTune>0 -> absolute, eovTune<0 increase by -eovTune)
 
   int updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info) const;
   void print() const;
