@@ -41,10 +41,10 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
   float total{0.f};
   TrackingParameters trkPars;
   total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars);
-  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", logger);
-  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", logger);
-
+  total += evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, "Vertexer adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVertices, "Vertexer vertex finding", logger);
+  printEpilog(logger, total);
   return total;
 }
 
@@ -67,6 +67,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;
+  verPar.nThreads = vc.nThreads;
 
   mTraits->updateVertexingParameters(verPar);
 }
@@ -76,5 +77,11 @@ void Vertexer::adoptTimeFrame(TimeFrame& tf)
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
 }
+
+void Vertexer::printEpilog(std::function<void(std::string s)> logger, const float total)
+{
+  logger(fmt::format(" - Timeframe {} vertexing completed in: {}ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
+}
+
 } // namespace its
 } // namespace o2
