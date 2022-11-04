@@ -25,6 +25,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "CorrectionMapsHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
@@ -63,8 +65,14 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mConfig->configGRP.solenoidBz = 0;
   mConfParam.reset(new GPUSettingsO2(mConfig->ReadConfigurableParam()));
 
+  mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
-  mConfig->configCalib.fastTransform = mFastTransform.get();
+  mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformHelper->setCorrMap(mFastTransform.get());
+  mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
+  mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
+  mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
 
   mTrdGeo.reset(new o2::trd::GeometryFlat());
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
