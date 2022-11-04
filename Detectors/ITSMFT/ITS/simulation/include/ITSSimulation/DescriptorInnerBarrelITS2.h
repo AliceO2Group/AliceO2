@@ -30,13 +30,13 @@ namespace its
 class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
 {
  public:
-  // default constructor
-  DescriptorInnerBarrelITS2() {}
   // standard constructor
   DescriptorInnerBarrelITS2(int nlayers);
+  // default constructor
+  DescriptorInnerBarrelITS2();
 
   /// Default destructor
-  ~DescriptorInnerBarrelITS2() {}
+  ~DescriptorInnerBarrelITS2() = default;
 
   DescriptorInnerBarrelITS2(const DescriptorInnerBarrelITS2& src) = delete;
   DescriptorInnerBarrelITS2& operator=(const DescriptorInnerBarrelITS2& geom) = delete;
@@ -64,7 +64,7 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   std::vector<double> fStaveWidth{};                             //! Vector of stave width (only used for turbo)
   std::vector<double> fStaveTilt{};                              //! Vector of stave tilt (only used for turbo)
   std::vector<o2::its::V3Layer::Model> fStaveModelInnerBarrel{}; //! Stave model
-  std::vector<V3Layer*> fLayer;                                  //! Vector of layers
+  std::vector<V3Layer*> fLayer{};                                //! Vector of layers
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS2, 1); /// ITS inner barrel geometry descriptor

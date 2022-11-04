@@ -36,6 +36,14 @@ ClassImp(DescriptorInnerBarrel);
 /// \endcond
 
 //________________________________________________________________
+DescriptorInnerBarrel::DescriptorInnerBarrel() : TObject()
+{
+  //
+  // Default constructor
+  //
+}
+
+//________________________________________________________________
 DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), fNumLayers(nlayers)
 {
   //

@@ -69,7 +69,7 @@ Detector::Detector()
     mModifyGeometry(kFALSE),
     mNumberInnerLayers(3),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
-    mStaveModelOuterBarrel(o2::its::V3Layer::kOBModel0)
+    mStaveModelOuterBarrel(V3Layer::kOBModel0)
 {
   mDescriptorIB = nullptr;
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
@@ -102,7 +102,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
   double rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  setStaveModelOB(o2::its::V3Layer::kOBModel2);
+  setStaveModelOB(V3Layer::kOBModel2);
 
   const int kNWrapVol = 2;
   const double wrpRMin[kNWrapVol] = {19.2, 33.32};
@@ -138,7 +138,7 @@ Detector::Detector(Bool_t active, TString name)
     mModifyGeometry(kFALSE),
     mNumberLayers(sNumberOuterLayers),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
-    mStaveModelOuterBarrel(o2::its::V3Layer::kOBModel0)
+    mStaveModelOuterBarrel(V3Layer::kOBModel0)
 {
   mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
   mNumberInnerLayers = mDescriptorIB.get()->GetNumberOfLayers();

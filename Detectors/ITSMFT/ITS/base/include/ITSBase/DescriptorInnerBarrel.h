@@ -28,12 +28,12 @@ class DescriptorInnerBarrel : public TObject
 {
  public:
   /// Default constructor
-  DescriptorInnerBarrel() {}
+  DescriptorInnerBarrel();
   /// Standard constructor
   DescriptorInnerBarrel(int nlayers);
 
   /// Default destructor
-  virtual ~DescriptorInnerBarrel() {}
+  ~DescriptorInnerBarrel() = default;
 
   DescriptorInnerBarrel(const DescriptorInnerBarrel& src) = delete;
   DescriptorInnerBarrel& operator=(const DescriptorInnerBarrel& geom) = delete;

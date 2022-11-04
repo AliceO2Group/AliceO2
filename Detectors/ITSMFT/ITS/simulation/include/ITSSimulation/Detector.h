@@ -215,8 +215,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberLayers; }
-  virtual void setStaveModelOB(o2::its::V3Layer::Model model) { mStaveModelOuterBarrel = model; }
-  virtual o2::its::V3Layer::Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
+  void setStaveModelOB(V3Layer::Model model) { mStaveModelOuterBarrel = model; }
+  V3Layer::Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
