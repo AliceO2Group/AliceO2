@@ -64,11 +64,11 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     if (mLocalTest) {
       mCheckRunStartStop = false;
     }
-    LOGP(info, "mCheckRunStartStop {} ", mCheckRunStartStop);
+    LOGP(info, "Local test option = {} ", mLocalTest);
     std::vector<DPID> vect;
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
-    LOGP(info, "useCCDBtoConfigure set {} ", useCCDBtoConfigure);
+    LOGP(info, "useCCDBtoConfigure option = {} ", useCCDBtoConfigure);
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
@@ -122,12 +122,11 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     }
 
     /* ef : only for local simulation to verify fits:
-    // set startValidity if not set already, and mCheckRunStartStop (--follow-hmpid-run) is not used
-    if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP && mCheckRunStartStop == false)
-    {
+    // set startValidity if not set already, and mCheckRunStartStop (--follow-hmpid-run) is not used */
+
+    if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP && mLocalTest == true) {
       mProcessor->setStartValidity(dataTime);
     }
-    */
 
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with HMP
@@ -245,9 +244,9 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
   std::vector<std::string> aliases = {
     "HMP_ENV_PENV",
-    "HMP_MP[0..6]_GAS_PMWPC",
-    "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
-    "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
+    "HMP_MP_[0..6]_GAS_PMWPC",
+    "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
+    "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
     "HMP_MP_[0..6]_SEC_[0..5]_HV_VMON",
     "HMP_TRANPLANT_MEASURE_[0..29]_WAVELENGHT",
     "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
