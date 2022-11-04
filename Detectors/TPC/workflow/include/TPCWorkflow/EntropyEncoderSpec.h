@@ -34,6 +34,7 @@ struct GPUParam;
 
 namespace tpc
 {
+class VDriftHelper;
 
 class EntropyEncoderSpec : public o2::framework::Task
 {
@@ -51,10 +52,12 @@ class EntropyEncoderSpec : public o2::framework::Task
   std::unique_ptr<o2::gpu::GPUSettingsO2> mConfParam;
   std::unique_ptr<o2::gpu::TPCFastTransform> mFastTransform;
   std::unique_ptr<o2::gpu::GPUParam> mParam;
+  std::unique_ptr<o2::tpc::VDriftHelper> mTPCVDriftHelper;
 
   bool mFromFile = false;
   bool mSelIR = false;
   unsigned int mNThreads = 1;
+  float mMaxZ = 25.f, mMaxEta = 1.5f;
   TStopwatch mTimer;
 };
 
