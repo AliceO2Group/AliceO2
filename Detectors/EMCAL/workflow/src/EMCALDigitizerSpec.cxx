@@ -136,6 +136,12 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(info) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
   ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  std::vector<o2::emcal::DetTrigInput> triggerinputs;
+  for (auto& trg : mDigitizer.getTriggerRecords()) {
+    // covert TriggerRecord into CTP trigger digit
+    triggerinputs.emplace_back(trg.getBCData(), true, false, false, false, false, false, false, false, false, false, false);
+  }
+  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe}, triggerinputs);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";
@@ -171,6 +177,7 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
     outputs.emplace_back("EMC", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("EMC", "ROMode", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);

@@ -21,6 +21,7 @@
 #include "CTPSimulation/Digitizer.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 
 #include <TStopwatch.h>
 #include <gsl/span>
@@ -44,12 +45,13 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void run(framework::ProcessingContext& pc)
   {
     // read collision context from input
-    //auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    //const bool withQED = context->isQEDProvided();
-    //auto& timesview = context->getEventRecords(withQED);
+    // auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    // const bool withQED = context->isQEDProvided();
+    // auto& timesview = context->getEventRecords(withQED);
     // read ctp inputs from input
     auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
     auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
+    auto emcinputs = pc.inputs().get<gsl::span<o2::emcal::DetTrigInput>>("emc");
 
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
@@ -61,6 +63,9 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     for (const auto& inp : fv0inputs) {
       finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+    }
+    for (const auto& inp : emcinputs) {
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::EMC});
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);
@@ -86,6 +91,9 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
   }
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
     inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+  }
+  if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::EMC) != detList.end()) {
+    inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
