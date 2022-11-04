@@ -106,13 +106,13 @@
           o2::aod::Tracks, o2::aod::TracksIU, o2::aod::TracksCov, o2::aod::TracksCovIU, o2::aod::TracksExtra, o2::aod::StoredTracks, o2::aod::StoredTracksIU, o2::aod::StoredTracksCov, o2::aod::StoredTracksCovIU, o2::aod::StoredTracksExtra, o2::aod::MFTTracks, o2::aod::StoredMFTTracks, o2::aod::FwdTracks, o2::aod::FwdTracksCov, o2::aod::StoredFwdTracks, o2::aod::StoredFwdTracksCov, o2::aod::AmbiguousTracks, o2::aod::AmbiguousMFTTracks, o2::aod::AmbiguousFwdTracks
         </category>
         <category name="Detectors">
-          o2::aod::FV0As, o2::aod::FT0s, o2::aod::FDDs, so2::aod::HMPIDs, o2::aod::Calos, o2::aod::CaloTriggers, o2::aod::Zdcs, o2::aod::FV0Cs, o2::aod::HMPIDs
+          o2::aod::FV0As, o2::aod::FT0s, o2::aod::FDDs, so2::aod::HMPIDs, o2::aod::Calos, o2::aod::CaloTriggers, o2::aod::Zdcs, o2::aod::FV0Cs, o2::aod::HMPIDs, o2::aod::CPVClusters
         </category>
         <category name="Strangeness">
-          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades
+          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades, o2::aod::Decays3Body
         </category>
         <category name="Indices">
-          o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse
+          o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse, o2::aod::MatchedBCCollisionsExclusiveMulti, o2::aod::MatchedBCCollisionsSparseMulti
         </category>
         <category name="MonteCarlo">
           o2::aod::McCollisions, o2::aod::McParticles, o2::aod::StoredMcParticles, o2::aod::McTrackLabels, o2::aod::McMFTTrackLabels, o2::aod::McFwdTrackLabels, o2::aod::McCaloLabels, o2::aod::McCollisionLabels, o2::aod::HepMCXSections, o2::aod::HepMCPdfInfos, o2::aod::HepMCHeavyIons
