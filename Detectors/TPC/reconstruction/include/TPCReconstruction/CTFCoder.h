@@ -107,7 +107,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
 
   template <typename VEC>
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff);
@@ -161,7 +161,7 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
 {
   using MD = o2::ctf::Metadata::OptStore;
   using namespace detail;
@@ -193,7 +193,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, st
   };
 
   // book output size with some margin
-  auto szIni = estimateCompressedSize(ccl);
+  auto szIni = estimateCompressedSize(cclFiltered);
   buff.resize(szIni);
 
   auto ec = CTF::create(buff);
@@ -202,7 +202,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, st
     flags |= CTFHeader::CombinedColumns;
   }
   ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
-                          ccl, flags});
+                          cclFiltered, flags});
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
@@ -213,9 +213,9 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, st
     const auto slotVal = static_cast<int>(slot);
     if (reject && begin != end) {
       std::vector<std::decay_t<decltype(*begin)>> tmp;
-      tmp.reserve(std::distance(end, begin));
+      tmp.reserve(std::distance(begin, end));
       for (auto i = begin; i != end; i++) {
-        if (!(*reject)[std::distance(i, begin)]) {
+        if (!(*reject)[std::distance(begin, i)]) {
           tmp.emplace_back(*i);
         }
       }

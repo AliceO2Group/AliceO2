@@ -102,8 +102,8 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
   std::vector<bool> rejectHits, rejectTracks, rejectTrackHits, rejectTrackHitsReduced;
+  CompressedClusters clustersFiltered = clusters;
   if (mSelIR) {
-    CompressedClusters clustersFiltered = clusters;
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
     rejectHits.resize(clusters.nUnattachedClusters);
     rejectTracks.resize(clusters.nTracks);
@@ -145,7 +145,13 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
           rejectTrackHitsReduced[k] = true;
         }
         rejectTracks[i] = true;
+        static std::atomic_flag lock = ATOMIC_FLAG_INIT;
+        while (lock.test_and_set(std::memory_order_acquire)) {
+        }
         clustersFiltered.nTracks--;
+        clustersFiltered.nAttachedClusters -= clusters.nTrackClusters[i];
+        clustersFiltered.nAttachedClustersReduced -= clusters.nTrackClusters[i] - 1;
+        lock.clear(std::memory_order_release);
       }
     }
     offset = 0;
@@ -170,16 +176,20 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
         auto checker = [i, j, &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
           if (false) {
             rejectHits[k] = true;
+            static std::atomic_flag lock = ATOMIC_FLAG_INIT;
+            while (lock.test_and_set(std::memory_order_acquire)) {
+            }
             clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
+            clustersFiltered.nUnattachedClusters--;
+            lock.clear(std::memory_order_release);
           }
         };
         unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
         o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offsets[i][j], end, checker);
       }
     }
-    clusters = clustersFiltered;
   }
-  auto iosize = mCTFCoder.encode(buffer, clusters, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
+  auto iosize = mCTFCoder.encode(buffer, clusters, clustersFiltered, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   if (mSelIR) {
@@ -209,7 +219,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
     inputs,
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "TPC", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
