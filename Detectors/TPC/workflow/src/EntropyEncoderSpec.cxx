@@ -24,6 +24,7 @@
 #include "GPUParam.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCClusterDecompressor.inc"
+#include "TPCCalibration/VDriftHelper.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -46,6 +47,9 @@ void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
   if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
     return;
   }
+  if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
+    return;
+  }
 }
 
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
@@ -62,12 +66,21 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
   mParam.reset(new o2::gpu::GPUParam);
   mParam->SetDefaults(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, nullptr);
 
+  mTPCVDriftHelper.reset(new VDriftHelper);
+
   mNThreads = ic.options().get<unsigned int>("nThreads");
+  mMaxZ = ic.options().get<float>("irframe-clusters-maxz");
+  mMaxEta = ic.options().get<float>("irframe-clusters-maxeta");
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   mCTFCoder.updateTimeDependentParams(pc);
+  mTPCVDriftHelper->extractCCDBInputs(pc);
+  if (mTPCVDriftHelper->isUpdated()) {
+    TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+  }
+
   CompressedClusters clusters;
 
   if (mFromFile) {
@@ -97,6 +110,10 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     rejectTrackHits.resize(clusters.nAttachedClusters);
     rejectTrackHitsReduced.resize(clusters.nAttachedClustersReduced);
 
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    const auto firstIR = o2::InteractionRecord(0, tinfo.firstTForbit);
+    const float totalT = mFastTransform->convDeltaZtoDeltaTimeInTimeFrameAbs(250);
+
     unsigned int offset = 0, lasti = 0;
     const unsigned int maxTime = (mParam->par.continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
 #ifdef WITH_OPENMP
@@ -120,7 +137,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
       lasti++;
       o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
-      if (false) {
+      if (mCTFCoder.getIRFramesSelector().check(firstIR + (tMin * constants::LHCBCPERTIMEBIN), (totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN, 0) < 0) {
         for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
           rejectTrackHits[k] = true;
         }
@@ -183,6 +200,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -196,6 +214,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
+            {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
+            {"irframe-clusters-maxz", VariantType::Float, 25.f, {"Max z for non assigned clusters (combined with maxeta)"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"nThreads", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
 }
