@@ -82,7 +82,7 @@ void DescriptorInnerBarrelITS2::Configure()
   IBdat.emplace_back(std::array<double, 6>{3.78, 3.93, 4.21, 9., 9.55, 20});
 
   for (auto idLayer{0u}; idLayer < fNumLayers; ++idLayer) {
-    fStaveModelInnerBarrel[idLayer] = o2::its::V3Layer::kIBModel4;
+    fStaveModelInnerBarrel[idLayer] = V3Layer::kIBModel4;
     fTurboLayer[idLayer] = true;
     fLayerPhi0[idLayer] = IBdat[idLayer][4];
     fLayerRadii[idLayer] = IBdat[idLayer][1];

@@ -63,7 +63,7 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   std::vector<double> fChipThickness{};                          //! Vector of chip thicknesses
   std::vector<double> fStaveWidth{};                             //! Vector of stave width (only used for turbo)
   std::vector<double> fStaveTilt{};                              //! Vector of stave tilt (only used for turbo)
-  std::vector<o2::its::V3Layer::Model> fStaveModelInnerBarrel{}; //! Stave model
+  std::vector<V3Layer::Model> fStaveModelInnerBarrel{}; //! Stave model
   std::vector<V3Layer*> fLayer{};                                //! Vector of layers
 
   /// \cond CLASSIMP
