@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.setCombineColumns(true);
-    coder.encode(vecIO, c); // compress
+    coder.encode(vecIO, c, c); // compress
   }
   sw.Stop();
   LOG(info) << "Compressed in " << sw.CpuTime() << " s";
