@@ -57,7 +57,16 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
     }
   }
 
-  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}, {"NTracks", calibPadGainTracks.getNTracksMap()}});
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}});
+
+  if (mStoreNClCCDB) {
+    cal["NClusters"] = calibPadGainTracks.getNTracksMap();
+  }
+
+  if (mStoreRMSCCDB) {
+    cal["SigmaMap"] = calibPadGainTracks.getSigmaMap();
+  }
+
   mCalibs.emplace_back(cal);
 
   if (mUseLastExtractedMapAsReference) {
