@@ -113,6 +113,9 @@ struct DataContainer3D {
   /// print the matrix
   void print() const;
 
+  /// operator overload
+  DataContainer3D<DataT>& operator*=(const DataT value);
+
  private:
   unsigned short mZVertices{};   ///< number of z vertices
   unsigned short mRVertices{};   ///< number of r vertices
@@ -121,6 +124,13 @@ struct DataContainer3D {
 
   ClassDefNV(DataContainer3D, 1)
 };
+
+template <typename DataT>
+DataContainer3D<DataT>& DataContainer3D<DataT>::operator*=(const DataT value)
+{
+  std::transform(mData.begin(), mData.end(), mData.begin(), [value = value](auto& val) { return val * value; });
+  return *this;
+}
 
 ///
 /// ========================================================================================================

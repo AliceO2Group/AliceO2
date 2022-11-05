@@ -213,6 +213,11 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the electric fields
   void setEFieldFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// scale the space charge density by a scaling factor: sc_new = sc * scalingFactor
+  /// \param scalingFactor factor to scale the space-charge density
+  /// \param side side for which the space-charge density will be scaled
+  void scaleChargeDensity(const DataT scalingFactor, const Side side) { mDensity[side] *= scalingFactor; }
+
   /// step 3: calculate the local distortions and corrections with an electric field
   /// \param type calculate local corrections or local distortions: type = o2::tpc::SpaceCharge<>::Type::Distortions or o2::tpc::SpaceCharge<>::Type::Corrections
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi (analytical formula or by TriCubic interpolator)
