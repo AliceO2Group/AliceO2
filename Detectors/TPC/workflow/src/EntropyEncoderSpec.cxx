@@ -120,13 +120,13 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 #pragma omp parallel for firstprivate(offset, lasti) num_threads(mNThreads)
 #endif
     for (unsigned int i = 0; i < clusters.nTracks; i++) {
-      unsigned int tMin = maxTime, tMax = 0;
-      auto checker = [&tMin, &tMax](const o2::tpc::ClusterNative& cl, unsigned int offset) {
-        if (cl.getTimePacked() > tMax) {
-          tMax = cl.getTimePacked();
+      unsigned int tMinP = maxTime, tMaxP = 0;
+      auto checker = [&tMinP, &tMaxP](const o2::tpc::ClusterNative& cl, unsigned int offset) {
+        if (cl.getTimePacked() > tMaxP) {
+          tMaxP = cl.getTimePacked();
         }
-        if (cl.getTimePacked() < tMin) {
-          tMin = cl.getTimePacked();
+        if (cl.getTimePacked() < tMinP) {
+          tMinP = cl.getTimePacked();
         }
       };
       if (i < lasti) {
@@ -137,7 +137,11 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
       lasti++;
       o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
-      if (mCTFCoder.getIRFramesSelector().check(firstIR + (tMin * constants::LHCBCPERTIMEBIN), (totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN, 0) < 0) {
+      const float tMin = o2::tpc::ClusterNative::unpackTime(tMinP), tMax = o2::tpc::ClusterNative::unpackTime(tMaxP);
+      const auto chkVal = firstIR + (tMin * constants::LHCBCPERTIMEBIN);
+      const auto chkExt = (totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN + 1;
+      const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
+      if (reject) {
         for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
           rejectTrackHits[k] = true;
         }
