@@ -47,7 +47,15 @@ DescriptorInnerBarrel::DescriptorInnerBarrel() : TObject()
 DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), fNumLayers(nlayers)
 {
   //
-  // Default constructor
+  // Standard constructor
+  //
+}
+
+//________________________________________________________________
+DescriptorInnerBarrel::~DescriptorInnerBarrel()
+{
+  //
+  // Default destructor
   //
 }
 

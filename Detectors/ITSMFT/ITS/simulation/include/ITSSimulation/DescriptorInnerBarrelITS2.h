@@ -27,6 +27,9 @@ namespace o2
 {
 namespace its
 {
+class V3Layer;
+class V3Services;
+
 class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
 {
  public:
@@ -36,7 +39,7 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   DescriptorInnerBarrelITS2();
 
   /// Default destructor
-  ~DescriptorInnerBarrelITS2() = default;
+  ~DescriptorInnerBarrelITS2() override;
 
   DescriptorInnerBarrelITS2(const DescriptorInnerBarrelITS2& src) = delete;
   DescriptorInnerBarrelITS2& operator=(const DescriptorInnerBarrelITS2& geom) = delete;

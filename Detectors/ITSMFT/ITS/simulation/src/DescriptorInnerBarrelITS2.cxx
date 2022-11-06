@@ -40,7 +40,7 @@ ClassImp(DescriptorInnerBarrelITS2);
 DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2() : DescriptorInnerBarrel()
 {
   //
-  // Standard constructor
+  // Default constructor
   //
 
   fSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
@@ -54,6 +54,14 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2(int nlayers) : DescriptorIn
   //
 
   fSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
+}
+
+//________________________________________________________________
+DescriptorInnerBarrelITS2::~DescriptorInnerBarrelITS2()
+{
+  //
+  // Default destructor
+  //
 }
 
 //________________________________________________________________
