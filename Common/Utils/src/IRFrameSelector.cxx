@@ -29,7 +29,7 @@ gsl::span<const o2::dataformats::IRFrame> IRFrameSelector::getMatchingFrames(con
     return {};
   }
   auto upper = std::upper_bound(lower, mFrames.end(), o2::dataformats::IRFrame{fr.getMax(), fr.getMax()});
-  return {&*lower, size_t(std::distance(lower, upper) + 1)};
+  return {&*lower, size_t(std::distance(lower, upper))};
 }
 
 long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
