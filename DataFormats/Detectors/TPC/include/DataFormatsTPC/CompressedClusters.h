@@ -74,7 +74,7 @@ struct CompressedClustersOffsets : public CompressedClustersPtrs_x<size_t, size_
 
 struct CompressedClustersFlat;
 
-struct CompressedClusters : public CompressedClustersCounters, public CompressedClustersPtrs {
+struct CompressedClusters : public CompressedClustersCounters, public CompressedClustersPtrs { // TODO: Need a const version of this, currently the constructor allows to create a non-const version from const CompressedClustersFlat, which should not be allowed
   CompressedClusters() CON_DEFAULT;
   ~CompressedClusters() CON_DEFAULT;
   CompressedClusters(const CompressedClustersFlat& c);
