@@ -40,7 +40,7 @@ long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
     fr.setMin(fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0});
   }
   if (fwd) {
-    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + bwd : o2::InteractionRecord::getIRMaxBC());
+    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC());
   }
   // find entry which overlaps or above fr
   auto fullcheck = [&fr, this]() -> long {
