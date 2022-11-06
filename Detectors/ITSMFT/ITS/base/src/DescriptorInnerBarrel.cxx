@@ -52,14 +52,6 @@ DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), fNumLayer
 }
 
 //________________________________________________________________
-DescriptorInnerBarrel::~DescriptorInnerBarrel()
-{
-  //
-  // Default destructor
-  //
-}
-
-//________________________________________________________________
 void DescriptorInnerBarrel::GetConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan)
 {
   minradius = fWrapperMinRadius;

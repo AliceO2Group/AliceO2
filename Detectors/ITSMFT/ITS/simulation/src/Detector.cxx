@@ -68,8 +68,7 @@ Detector::Detector()
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
     mNumberInnerLayers(3),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
-    mStaveModelOuterBarrel(V3Layer::kOBModel0)
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   mDescriptorIB = nullptr;
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
@@ -101,8 +100,6 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
 
   double rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
-
-  setStaveModelOB(V3Layer::kOBModel2);
 
   const int kNWrapVol = 2;
   const double wrpRMin[kNWrapVol] = {19.2, 33.32};
@@ -137,8 +134,7 @@ Detector::Detector(Bool_t active, TString name)
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
     mNumberLayers(sNumberOuterLayers),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
-    mStaveModelOuterBarrel(V3Layer::kOBModel0)
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
   mNumberInnerLayers = mDescriptorIB.get()->GetNumberOfLayers();
@@ -202,8 +198,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
-    mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   mDescriptorIB = rhs.mDescriptorIB;
   for (int j{0}; j < mNumberLayers; j++) {
@@ -243,8 +238,6 @@ Detector& Detector::operator=(const Detector& rhs)
 
   /// Container for data points
   mHits = nullptr;
-
-  mStaveModelOuterBarrel = rhs.mStaveModelOuterBarrel;
 
   mDescriptorIB = rhs.mDescriptorIB;
 
@@ -850,7 +843,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setChipType(mChipTypeID[j]);
       mGeometry[j]->setBuildLevel(mBuildLevel[j]);
 
-      mGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
+      mGeometry[j]->setStaveModel(V3Layer::kOBModel2);
 
       LOG(debug1) << "mBuildLevel: " << mBuildLevel[j];
 

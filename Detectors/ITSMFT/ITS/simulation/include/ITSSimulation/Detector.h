@@ -215,8 +215,6 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberLayers; }
-  void setStaveModelOB(V3Layer::Model model) { mStaveModelOuterBarrel = model; }
-  V3Layer::Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
@@ -288,9 +286,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  o2::its::V3Layer::Model mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
-  std::vector<V3Layer*> mGeometry;                //! Geometry
-  V3Services* mServicesGeometry;                  //! Services Geometry
+  std::vector<V3Layer*> mGeometry; //! Geometry
+  V3Services* mServicesGeometry;   //! Services Geometry
 
   std::shared_ptr<DescriptorInnerBarrel> mDescriptorIB; //! Descriptor of Inner Barrel geometry
 

@@ -32,9 +32,6 @@ class DescriptorInnerBarrel : public TObject
   /// Standard constructor
   DescriptorInnerBarrel(int nlayers);
 
-  /// Default destructor
-  ~DescriptorInnerBarrel() override;
-
   DescriptorInnerBarrel(const DescriptorInnerBarrel& src) = delete;
   DescriptorInnerBarrel& operator=(const DescriptorInnerBarrel& geom) = delete;
 

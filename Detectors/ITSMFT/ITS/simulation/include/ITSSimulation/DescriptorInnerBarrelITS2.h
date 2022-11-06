@@ -21,7 +21,6 @@
 #include <TGeoVolume.h>
 
 #include "ITSBase/DescriptorInnerBarrel.h"
-#include "ITSSimulation/V3Layer.h"
 
 namespace o2
 {
@@ -37,9 +36,6 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   DescriptorInnerBarrelITS2(int nlayers);
   // default constructor
   DescriptorInnerBarrelITS2();
-
-  /// Default destructor
-  ~DescriptorInnerBarrelITS2() override;
 
   DescriptorInnerBarrelITS2(const DescriptorInnerBarrelITS2& src) = delete;
   DescriptorInnerBarrelITS2& operator=(const DescriptorInnerBarrelITS2& geom) = delete;
@@ -59,15 +55,14 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   void AddAlignableVolumesChip(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, int iChip, TString& parentPath, int& lastUID) const;
 
   // layer properties
-  std::vector<bool> fTurboLayer{};                      //! True for "turbo" layers
-  std::vector<double> fLayerPhi0{};                     //! Vector of layer's 1st stave phi in lab
-  std::vector<int> fStavePerLayer{};                    //! Vector of number of staves per layer
-  std::vector<int> fUnitPerStave{};                     //! Vector of number of "units" per stave
-  std::vector<double> fChipThickness{};                 //! Vector of chip thicknesses
-  std::vector<double> fStaveWidth{};                    //! Vector of stave width (only used for turbo)
-  std::vector<double> fStaveTilt{};                     //! Vector of stave tilt (only used for turbo)
-  std::vector<V3Layer::Model> fStaveModelInnerBarrel{}; //! Stave model
-  std::vector<V3Layer*> fLayer{};                       //! Vector of layers
+  std::vector<bool> fTurboLayer{};      //! True for "turbo" layers
+  std::vector<double> fLayerPhi0{};     //! Vector of layer's 1st stave phi in lab
+  std::vector<int> fStavePerLayer{};    //! Vector of number of staves per layer
+  std::vector<int> fUnitPerStave{};     //! Vector of number of "units" per stave
+  std::vector<double> fChipThickness{}; //! Vector of chip thicknesses
+  std::vector<double> fStaveWidth{};    //! Vector of stave width (only used for turbo)
+  std::vector<double> fStaveTilt{};     //! Vector of stave tilt (only used for turbo)
+  std::vector<V3Layer*> fLayer{};       //! Vector of layers
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS2, 1); /// ITS inner barrel geometry descriptor

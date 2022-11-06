@@ -29,6 +29,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/DescriptorInnerBarrelITS2.h"
 #include "ITSSimulation/V3Services.h"
+#include "ITSSimulation/V3Layer.h"
 
 using namespace o2::its;
 
@@ -57,14 +58,6 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2(int nlayers) : DescriptorIn
 }
 
 //________________________________________________________________
-DescriptorInnerBarrelITS2::~DescriptorInnerBarrelITS2()
-{
-  //
-  // Default destructor
-  //
-}
-
-//________________________________________________________________
 void DescriptorInnerBarrelITS2::Configure()
 {
   // build ITS2 upgrade detector
@@ -80,7 +73,6 @@ void DescriptorInnerBarrelITS2::Configure()
   fStaveWidth.resize(fNumLayers);
   fChipTypeID.resize(fNumLayers);
   fBuildLevel.resize(fNumLayers);
-  fStaveModelInnerBarrel.resize(fNumLayers);
   fLayer.resize(fNumLayers);
 
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1)
@@ -90,7 +82,6 @@ void DescriptorInnerBarrelITS2::Configure()
   IBdat.emplace_back(std::array<double, 6>{3.78, 3.93, 4.21, 9., 9.55, 20});
 
   for (auto idLayer{0u}; idLayer < fNumLayers; ++idLayer) {
-    fStaveModelInnerBarrel[idLayer] = V3Layer::kIBModel4;
     fTurboLayer[idLayer] = true;
     fLayerPhi0[idLayer] = IBdat[idLayer][4];
     fLayerRadii[idLayer] = IBdat[idLayer][1];
@@ -136,7 +127,7 @@ V3Layer* DescriptorInnerBarrelITS2::CreateLayer(int idLayer, TGeoVolume* dest)
   fLayer[idLayer]->setChipType(fChipTypeID[idLayer]);
   fLayer[idLayer]->setBuildLevel(fBuildLevel[idLayer]);
 
-  fLayer[idLayer]->setStaveModel(fStaveModelInnerBarrel[idLayer]);
+  fLayer[idLayer]->setStaveModel(V3Layer::kIBModel4);
 
   if (fChipThickness[idLayer] != 0) {
     fLayer[idLayer]->setChipThick(fChipThickness[idLayer]);
