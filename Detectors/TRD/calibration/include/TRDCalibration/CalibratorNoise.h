@@ -27,7 +27,7 @@ namespace o2
 namespace trd
 {
 
-class CalibratorNoise final : public o2::calibration::TimeSlotCalibration<PadAdcInfo, PadAdcInfo>
+class CalibratorNoise final : public o2::calibration::TimeSlotCalibration<PadAdcInfo>
 {
   using Slot = o2::calibration::TimeSlot<PadAdcInfo>;
 

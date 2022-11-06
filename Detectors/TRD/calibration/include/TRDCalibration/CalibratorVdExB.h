@@ -45,7 +45,7 @@ struct FitFunctor {
   float upperBoundAngleFit;
 };
 
-class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::trd::AngularResidHistos, o2::trd::AngularResidHistos>
+class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::trd::AngularResidHistos>
 {
   using Slot = o2::calibration::TimeSlot<o2::trd::AngularResidHistos>;
 
