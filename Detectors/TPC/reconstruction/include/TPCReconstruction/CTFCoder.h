@@ -273,8 +273,8 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
   encodeTPC(ccl.qMaxU, ccl.qMaxU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCqMaxU, 0, rejectHits);
 
   encodeTPC(ccl.flagsU, ccl.flagsU + ccl.nUnattachedClusters, CTF::BLCflagsU, 0, rejectHits);
-  encodeTPC(ccl.padDiffU, ccl.padDiffU + ccl.nUnattachedClusters, CTF::BLCpadDiffU, 0, rejectHits);
-  encodeTPC(ccl.timeDiffU, ccl.timeDiffU + ccl.nUnattachedClusters, CTF::BLCtimeDiffU, 0, rejectHits);
+  encodeTPC(cclFiltered.padDiffU, cclFiltered.padDiffU + cclFiltered.nUnattachedClusters, CTF::BLCpadDiffU, 0);
+  encodeTPC(cclFiltered.timeDiffU, cclFiltered.timeDiffU + cclFiltered.nUnattachedClusters, CTF::BLCtimeDiffU, 0);
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.sigmaPadU, ccl.sigmaTimeU, ccl.nUnattachedClusters,

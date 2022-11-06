@@ -275,7 +275,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[j]];
 
         int preId = j != 0 ? (int)sortBuffer[j - 1] : (totalCount != 0 ? (int)smem.lastIndex : -1);
-        GPUTPCCompression_EncodeUnattached(param, orgCl, c, outidx, preId == -1 ? nullptr : &clusters->clusters[iSlice][iRow][preId]);
+        GPUTPCCompression_EncodeUnattached(param.rec.tpc.compressionTypeMask, orgCl, c.timeDiffU[outidx], c.padDiffU[outidx], preId == -1 ? nullptr : &clusters->clusters[iSlice][iRow][preId]);
 
         unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
         unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

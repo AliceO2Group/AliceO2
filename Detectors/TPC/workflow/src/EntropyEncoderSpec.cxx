@@ -24,6 +24,7 @@
 #include "GPUParam.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCClusterDecompressor.inc"
+#include "GPUTPCCompressionKernels.inc"
 #include "TPCCalibration/VDriftHelper.h"
 
 using namespace o2::framework;
@@ -103,6 +104,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
   std::vector<bool> rejectHits, rejectTracks, rejectTrackHits, rejectTrackHitsReduced;
   CompressedClusters clustersFiltered = clusters;
+  std::vector<std::pair<std::vector<unsigned int>, std::vector<unsigned short>>> tmpBuffer(std::max<int>(mNThreads, 1));
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
     rejectHits.resize(clusters.nUnattachedClusters);
@@ -169,29 +171,52 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
         offset += (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
       }
     }
+
 #ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(mNThreads)
+#pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUCA_NSLICES + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
 #endif
-    for (unsigned int i = 0; i < GPUCA_NSLICES; i++) {
-      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-        if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
-          break;
-        }
-        auto checker = [i, j, &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
-          if (false) {
-            rejectHits[k] = true;
-            static std::atomic_flag lock = ATOMIC_FLAG_INIT;
-            while (lock.test_and_set(std::memory_order_acquire)) {
-            }
-            clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
-            clustersFiltered.nUnattachedClusters--;
-            lock.clear(std::memory_order_release);
+    for (unsigned int ii = 0; ii < clusters.nSliceRows; ii++) {
+      unsigned int i = ii / GPUCA_ROW_COUNT;
+      unsigned int j = ii % GPUCA_ROW_COUNT;
+      o2::tpc::ClusterNative preCl;
+#ifdef WITH_OPENMP
+      int myThread = omp_get_thread_num();
+#else
+      int myThread = 0;
+#endif
+      unsigned int count = 0;
+      auto checker = [i, j, firstIR, totalT, this, &preCl, &count, &outBuffer = tmpBuffer[myThread], &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
+        const auto chkVal = firstIR + (cl.getTime() * constants::LHCBCPERTIMEBIN);
+        const auto chkExt = totalT * constants::LHCBCPERTIMEBIN;
+        const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
+        if (reject) {
+          rejectHits[k] = true;
+          clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
+          static std::atomic_flag lock = ATOMIC_FLAG_INIT;
+          while (lock.test_and_set(std::memory_order_acquire)) {
           }
-        };
-        unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
-        o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offsets[i][j], end, checker);
-      }
+          clustersFiltered.nUnattachedClusters--;
+          lock.clear(std::memory_order_release);
+        } else {
+          outBuffer.first.emplace_back(0);
+          outBuffer.second.emplace_back(0);
+          GPUTPCCompression_EncodeUnattached(clustersFiltered.nComppressionModes, cl, outBuffer.first.back(), outBuffer.second.back(), count++ ? &preCl : nullptr);
+          preCl = cl;
+        }
+      };
+      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      o2::gpu::TPCClusterDecompressor::decompressHits(&clusters, offsets[i][j], end, checker);
     }
+    tmpBuffer[0].first.reserve(clustersFiltered.nUnattachedClusters);
+    tmpBuffer[0].second.reserve(clustersFiltered.nUnattachedClusters);
+    for (int i = 1; i < mNThreads; i++) {
+      tmpBuffer[0].first.insert(tmpBuffer[0].first.end(), tmpBuffer[i].first.begin(), tmpBuffer[i].first.end());
+      tmpBuffer[i].first.clear();
+      tmpBuffer[0].second.insert(tmpBuffer[0].second.end(), tmpBuffer[i].second.begin(), tmpBuffer[i].second.end());
+      tmpBuffer[i].second.clear();
+    }
+    clustersFiltered.timeDiffU = tmpBuffer[0].first.data();
+    clustersFiltered.padDiffU = tmpBuffer[0].second.data();
   }
   auto iosize = mCTFCoder.encode(buffer, clusters, clustersFiltered, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
