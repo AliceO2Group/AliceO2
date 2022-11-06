@@ -438,6 +438,9 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
+      procSet.tpcInputWithClusterRejection = 1;
+    }
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
