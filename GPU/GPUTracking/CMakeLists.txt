@@ -159,6 +159,7 @@ set(HDRS_INSTALL
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     DataCompression/TPCClusterDecompressor.inc
+    DataCompression/GPUTPCCompressionKernels.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
     Global/GPUChainTrackingDefs.h
