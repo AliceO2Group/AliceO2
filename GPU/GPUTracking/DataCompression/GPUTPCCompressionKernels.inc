@@ -20,21 +20,20 @@
 namespace o2::gpu
 {
 
-template <class T>
-GPUdii() void GPUTPCCompression_EncodeUnattached(const GPUParam& param, const o2::tpc::ClusterNative& orgCl, T& c, int outidx, const o2::tpc::ClusterNative* orgClPre = nullptr)
+GPUdii() void GPUTPCCompression_EncodeUnattached(unsigned char nComppressionModes, const o2::tpc::ClusterNative& orgCl, unsigned int& outTime, unsigned short& outPad, const o2::tpc::ClusterNative* orgClPre = nullptr)
 {
-  if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionDifferences) {
+  if (nComppressionModes & GPUSettings::CompressionDifferences) {
     unsigned int lastTime = 0, lastPad = 0;
     if (orgClPre) {
       lastPad = orgClPre->padPacked;
       lastTime = orgClPre->getTimePacked();
     }
 
-    c.padDiffU[outidx] = orgCl.padPacked - lastPad;
-    c.timeDiffU[outidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
+    outPad = orgCl.padPacked - lastPad;
+    outTime = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
   } else {
-    c.padDiffU[outidx] = orgCl.padPacked;
-    c.timeDiffU[outidx] = orgCl.getTimePacked();
+    outPad = orgCl.padPacked;
+    outTime = orgCl.getTimePacked();
   }
 }
 
