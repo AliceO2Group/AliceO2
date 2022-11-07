@@ -1984,7 +1984,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
 
-    auto runNoCatch = [context, ref, &processContext](DataRelayer::RecordAction& action) {
+    auto runNoCatch = [&context, ref, &processContext](DataRelayer::RecordAction& action) {
       auto& state = ref.get<DeviceState>();
       auto& spec = ref.get<DeviceSpec const>();
       if (state.quitRequested == false) {
