@@ -15,16 +15,17 @@
 #ifndef ALICEO2_ITS_DETECTOR_H_
 #define ALICEO2_ITS_DETECTOR_H_
 
-#include <vector>                             // for vector
-#include "DetectorsBase/GeometryManager.h"    // for getSensID
-#include "DetectorsBase/Detector.h"           // for Detector
-#include "DetectorsCommonDataFormats/DetID.h" // for Detector
-#include "ITSMFTSimulation/Hit.h"             // for Hit
-#include "Rtypes.h"                           // for Int_t, Double_t, Float_t, Bool_t, etc
-#include "TArrayD.h"                          // for TArrayD
-#include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
-#include "TLorentzVector.h"                   // for TLorentzVector
-#include "TVector3.h"                         // for TVector3
+#include <vector>                                    // for vector
+#include "DetectorsBase/GeometryManager.h"           // for getSensID
+#include "DetectorsBase/Detector.h"                  // for Detector
+#include "DetectorsCommonDataFormats/DetID.h"        // for Detector
+#include "ITSMFTSimulation/Hit.h"                    // for Hit
+#include "ITSSimulation/DescriptorInnerBarrelITS2.h" // for Description of Inner Barrel
+#include "Rtypes.h"                                  // for Int_t, Double_t, Float_t, Bool_t, etc
+#include "TArrayD.h"                                 // for TArrayD
+#include "TGeoManager.h"                             // for gGeoManager, TGeoManager (ptr only)
+#include "TLorentzVector.h"                          // for TLorentzVector
+#include "TVector3.h"                                // for TVector3
 
 class FairVolume;
 class TGeoVolume;
@@ -66,28 +67,13 @@ class V3Services;
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
-  enum Model {
-    kIBModelDummy = 0,
-    kIBModel0 = 1,
-    kIBModel1 = 2,
-    kIBModel21 = 3,
-    kIBModel22 = 4,
-    kIBModel3 = 5,
-    kIBModel4 = 10,
-    kOBModelDummy = 6,
-    kOBModel0 = 7,
-    kOBModel1 = 8,
-    kOBModel2 = 9
-  };
-
-  static constexpr Int_t sNumberLayers = 7;           ///< Number of layers in ITSU
-  static constexpr Int_t sNumberInnerLayers = 3;      ///< Number of inner layers in ITSU
+  static constexpr Int_t sNumberOuterLayers = 4;      ///< Number of outer layers in ITSU (fixed)
   static constexpr Int_t sNumberOfWrapperVolumes = 3; ///< Number of wrapper volumes
 
   /// Name : Detector Name
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
   ///         kFALSE for inactive detectors
-  Detector(Bool_t active);
+  Detector(Bool_t active, TString name = "ITS");
 
   /// Default constructor
   Detector();
@@ -103,6 +89,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Registers the produced collections in FAIRRootManager
   void Register() override;
+
+  /// We need this as a method to access members
+  void configOuterBarrelITS(int nInnerBarrelLayers);
 
   /// Gets the produced collections
   std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const
@@ -133,23 +122,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
   void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t lthick = 0.,
                    Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
-
-  /// Sets the layer parameters for a "turbo" layer
-  /// (i.e. a layer whose staves overlap in phi)
-  /// \param nlay layer number
-  /// \param phi0 phi of 1st stave
-  /// \param r layer radius
-  /// \param nstav number of staves
-  /// \param nunit IB: number of chips per stave
-  /// \param OB: number of modules per half stave
-  /// \param width stave width
-  /// \param tilt layer tilt angle (degrees)
-  /// \param lthick stave thickness (if omitted, defaults to 0)
-  /// \param dthick detector thickness (if omitted, defaults to 0)
-  /// \param dettypeID ??
-  /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-  void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t width, Double_t tilt,
-                        Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
   /// Gets the layer parameters
   /// \param nlay layer number
@@ -242,19 +214,11 @@ class Detector : public o2::base::DetImpl<Detector>
   void PreTrack() override { ; }
 
   /// Returns the number of layers
-  Int_t getNumberOfLayers() const { return sNumberLayers; }
-  virtual void setStaveModelIB(Model model) { mStaveModelInnerBarrel = model; }
-  virtual void setStaveModelOB(Model model) { mStaveModelOuterBarrel = model; }
-  virtual Model getStaveModelIB() const { return mStaveModelInnerBarrel; }
-  virtual Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
+  Int_t getNumberOfLayers() const { return mNumberLayers; }
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:
-  Int_t mLayerID[sNumberLayers];     //! [sNumberLayers] layer identifier
-  TString mLayerName[sNumberLayers]; //! [sNumberLayers] layer identifier
-
- private:
   /// this is transient data about track passing the sensor
   struct TrackData {               // this is transient
     bool mHitStarted;              //! hit creation started
@@ -264,6 +228,12 @@ class Detector : public o2::base::DetImpl<Detector>
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
+  int mNumberInnerLayers; //! Number of inner layers (depends on ITS version)
+  int mNumberLayers;      //! Number of layers (depends on inner layer version)
+
+  std::vector<int> mLayerID;       //! layer identifiers
+  std::vector<TString> mLayerName; //! layer names
+
   Int_t mNumberOfDetectors;
 
   Bool_t mModifyGeometry;
@@ -271,19 +241,19 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mWrapperMinRadius[sNumberOfWrapperVolumes]; //! Min radius of wrapper volume
   Double_t mWrapperMaxRadius[sNumberOfWrapperVolumes]; //! Max radius of wrapper volume
   Double_t mWrapperZSpan[sNumberOfWrapperVolumes];     //! Z span of wrapper volume
-  Int_t mWrapperLayerId[sNumberLayers];                //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
+  std::vector<int> mWrapperLayerId;                    //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
-  Bool_t mTurboLayer[sNumberLayers];          //! True for "turbo" layers
-  Double_t mLayerPhi0[sNumberLayers];         //! Vector of layer's 1st stave phi in lab
-  Double_t mLayerRadii[sNumberLayers];        //! Vector of layer radii
-  Int_t mStavePerLayer[sNumberLayers];        //! Vector of number of staves per layer
-  Int_t mUnitPerStave[sNumberLayers];         //! Vector of number of "units" per stave
-  Double_t mChipThickness[sNumberLayers];     //! Vector of chip thicknesses
-  Double_t mStaveWidth[sNumberLayers];        //! Vector of stave width (only used for turbo)
-  Double_t mStaveTilt[sNumberLayers];         //! Vector of stave tilt (only used for turbo)
-  Double_t mDetectorThickness[sNumberLayers]; //! Vector of detector thicknesses
-  UInt_t mChipTypeID[sNumberLayers];          //! Vector of detector type id
-  Int_t mBuildLevel[sNumberLayers];           //! Vector of Material Budget Studies
+  std::vector<bool> mTurboLayer;          //! True for "turbo" layers
+  std::vector<double> mLayerPhi0;         //! Vector of layer's 1st stave phi in lab
+  std::vector<double> mLayerRadii;        //! Vector of layer radii
+  std::vector<int> mStavePerLayer;        //! Vector of number of staves per layer
+  std::vector<int> mUnitPerStave;         //! Vector of number of "units" per stave
+  std::vector<double> mChipThickness;     //! Vector of chip thicknesses
+  std::vector<double> mStaveWidth;        //! Vector of stave width (only used for turbo)
+  std::vector<double> mStaveTilt;         //! Vector of stave tilt (only used for turbo)
+  std::vector<double> mDetectorThickness; //! Vector of detector thicknesses
+  std::vector<uint> mChipTypeID;          //! Vector of detector type id
+  std::vector<int> mBuildLevel;           //! Vector of Material Budget Studies
 
   /// Container for hit data
   std::vector<o2::itsmft::Hit>* mHits;
@@ -299,10 +269,6 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
-
-  /// Creates the Inner Barrel Services
-  /// \param motherVolume the TGeoVolume owing the volume structure
-  void createInnerBarrelServices(TGeoVolume* motherVolume);
 
   /// Creates the Middle Barrel Services
   /// \param motherVolume the TGeoVolume owing the volume structure
@@ -320,10 +286,10 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  Model mStaveModelInnerBarrel;      //! The stave model for the Inner Barrel
-  Model mStaveModelOuterBarrel;      //! The stave model for the Outer Barrel
-  V3Layer* mGeometry[sNumberLayers]; //! Geometry
-  V3Services* mServicesGeometry;     //! Services Geometry
+  std::vector<V3Layer*> mGeometry; //! Geometry
+  V3Services* mServicesGeometry;   //! Services Geometry
+
+  std::shared_ptr<DescriptorInnerBarrel> mDescriptorIB; //! Descriptor of Inner Barrel geometry
 
   template <typename Det>
   friend class o2::base::DetImpl;
