@@ -64,6 +64,7 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
 
   // compatibility verification
   tree.AddMember("runNumber", rapidjson::Value().SetInt(event.mRunNumber), allocator);
+  tree.AddMember("runType", rapidjson::Value().SetInt(event.mRunType), allocator);
   tree.AddMember("clMask", rapidjson::Value().SetInt(event.mClMask), allocator);
   tree.AddMember("trkMask", rapidjson::Value().SetInt(event.mTrkMask), allocator);
   tree.AddMember("tfCounter", rapidjson::Value().SetInt(event.mTfCounter), allocator);
@@ -147,6 +148,7 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
   tree.Parse(json.c_str());
 
   event.setRunNumber(getIntOrDefault(tree, "runNumber", 0));
+  event.setRunType(static_cast<parameters::GRPECS::RunType>(getIntOrDefault(tree, "runType", 0)));
   event.setClMask(getIntOrDefault(tree, "clMask"));
   event.setTrkMask(getIntOrDefault(tree, "trkMask"));
   event.setTfCounter(getIntOrDefault(tree, "tfCounter"));

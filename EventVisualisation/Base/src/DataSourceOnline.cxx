@@ -22,6 +22,8 @@
 #include <TFile.h>
 #include <TPRegexp.h>
 #include <TObject.h>
+#include <filesystem>
+#include <chrono>
 
 namespace o2
 {
@@ -42,10 +44,20 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
     VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
 
     this->setRunNumber(vEvent.getRunNumber());
+    this->setRunType(vEvent.getRunType());
     this->setFirstTForbit(vEvent.getFirstTForbit());
     this->setCollisionTime(vEvent.getCollisionTime());
     this->setTrackMask(vEvent.getTrkMask());
     this->setClusterMask(vEvent.getClMask());
+
+    auto write_time = std::filesystem::last_write_time(mFileWatcher.currentFilePath());
+    auto duration = std::chrono::time_point_cast<std::chrono::system_clock::duration>(write_time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    auto duration_time = std::chrono::system_clock::to_time_t(duration);
+
+    char time_str[100];
+    std::strftime(time_str, sizeof(time_str), "%a %b %d %H:%M:%S %Y", std::localtime(&duration_time));
+
+    this->setFileTime(time_str);
 
     double period = vEvent.getMaxTimeOfTracks() - vEvent.getMinTimeOfTracks();
     if (period > 0) {
