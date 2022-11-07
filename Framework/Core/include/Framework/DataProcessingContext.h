@@ -24,6 +24,8 @@ struct DataAllocator;
 struct DataProcessorSpec;
 
 struct DataProcessorContext {
+  DataProcessorContext(DataProcessorContext const&) = delete;
+  DataProcessorContext() = default;
   // These are specific of a given context and therefore
   // not shared by threads.
   bool* wasActive = nullptr;
