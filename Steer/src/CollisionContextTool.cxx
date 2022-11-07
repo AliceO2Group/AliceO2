@@ -53,6 +53,7 @@ struct InteractionSpec {
   float interactionRate;
   std::pair<int, float> synconto; // if this interaction locks on another interaction; takes precedence over interactionRate
   InteractionLockMode syncmode = InteractionLockMode::NOLOCK;
+  char syncmodeop = 0;         // syncmode operation ("@" --> embedd; "r" --> replace)
   int mcnumberasked = -1;      // number of MC events asked (but can be left -1) in which case it will be determined from timeframelength
   int mcnumberavail = -1;      // number of MC events avail (but can be left -1); if avail < asked there will be reuse of events
   bool randomizeorder = false; // whether order of events will be randomized
@@ -73,7 +74,8 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
   //      -     or: a string such as @0:e5, saying that this interaction should match/sync
   //                with collisions of the 0-th interaction, but inject only every 5 collisions.
   //                Alternatively @0:d10000 means to inject but leaving a timedistance of at least 10000ns between signals
-  //
+  //      -     or: a string r0:e5, saying that this interaction should sync with collisions of the 0-th interaction but
+  //                **overwrite** every 5-th interaction with a collision from this interaction name
   // MCNUMBERSTRING: NUMBER1:r?NUMBER2 can specify how many collisions NUMBER1 to produce, taking from a sample of NUMBER2 available collisions
   //      - this option is only supported on the first interaction which is supposed to be the background interaction
   //      - if the 'r' character is present we randomize the order of the MC events
@@ -121,10 +123,10 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
 
   // extract interaction rate ... or locking
   auto& interactionToken = tokens[1];
-  if (interactionToken[0] == '@') {
+  if (interactionToken[0] == '@' || interactionToken[0] == 'r') {
     try {
       // locking onto some other interaction
-      std::regex re("@([0-9]*):([ed])([0-9]*[.]?[0-9]?)$", std::regex_constants::extended);
+      std::regex re("[@r]([0-9]*):([ed])([0-9]*[.]?[0-9]?)$", std::regex_constants::extended);
 
       std::cmatch m;
       if (std::regex_match(interactionToken.c_str(), m, re)) {
@@ -145,7 +147,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
         if (mode.compare("d") == 0) {
           lockMode = InteractionLockMode::MINTIMEDISTANCE;
         }
-        return InteractionSpec{name, rate, synconto, lockMode, collisionsasked, collisionsavail, randomizeorder};
+        return InteractionSpec{name, rate, synconto, lockMode, interactionToken[0], collisionsasked, collisionsavail, randomizeorder};
       } else {
         LOG(error) << "Could not parse " << interactionToken << " as INTERACTIONSTRING";
         exit(1);
@@ -156,7 +158,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
     }
   } else {
     rate = std::atof(interactionToken.c_str());
-    return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, collisionsasked, collisionsavail, randomizeorder};
+    return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, 0, collisionsasked, collisionsavail, randomizeorder};
   }
 }
 
@@ -325,6 +327,20 @@ int main(int argc, char* argv[])
         }
 
         if (inject) {
+          if (ispecs[id].syncmodeop == 'r') {
+            LOG(debug) << "Replacing/overwriting another event ";
+            // Syncing is replacing; which means we need to take out the original
+            // event that we locked onto.
+            // We take out this event part immediately (and complain if there is a problem).
+            int index = 0;
+            auto iter = std::find_if(col.second.begin(), col.second.end(), [lockonto](auto val) { return lockonto == val.sourceID; });
+            if (iter != col.second.end()) {
+              col.second.erase(iter);
+            } else {
+              LOG(error) << "Expected to replace another event part but did not find one for source " << lockonto << " and collision " << colid;
+            }
+          }
+
           if (ispecs[id].mcnumberavail >= 0) {
             col.second.emplace_back(id, eventcount % ispecs[id].mcnumberavail);
           } else {
