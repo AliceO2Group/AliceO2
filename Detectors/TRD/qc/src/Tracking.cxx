@@ -67,6 +67,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.dEdxTotTPC = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getdEdx().dEdxTotTPC : mTracksTPC[mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getRefTPC()].getdEdx().dEdxTotTPC;
   auto trk = trkSeed;
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
+    qcStruct.isPadrowCrossing[iLayer] = trkTrd.getIsPadrowCrossing(iLayer);
     qcStruct.findable[iLayer] = trkTrd.getIsFindable(iLayer);
     int trkltId = trkTrd.getTrackletIndex(iLayer);
     if (trkltId < 0) {

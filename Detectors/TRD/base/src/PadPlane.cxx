@@ -42,41 +42,6 @@ void PadPlane::setTiltingAngle(double t)
 }
 
 //_____________________________________________________________________________
-int PadPlane::getPadRowNumber(double z) const
-{
-  //
-  // Finds the pad row number for a given z-position in local supermodule system
-  //
-
-  int row = 0;
-  int nabove = 0;
-  int nbelow = 0;
-  int middle = 0;
-
-  if ((z > getRow0()) || (z < getRowEnd())) {
-    row = -1;
-
-  } else {
-    nabove = mNrows + 1;
-    nbelow = 0;
-    while (nabove - nbelow > 1) {
-      middle = (nabove + nbelow) / 2;
-      if (z == (mPadRow[middle - 1] + mPadRowSMOffset)) {
-        row = middle;
-      }
-      if (z > (mPadRow[middle - 1] + mPadRowSMOffset)) {
-        nabove = middle;
-      } else {
-        nbelow = middle;
-      }
-    }
-    row = nbelow - 1;
-  }
-
-  return row;
-}
-
-//_____________________________________________________________________________
 int PadPlane::getPadRowNumberROC(double z) const
 {
   //

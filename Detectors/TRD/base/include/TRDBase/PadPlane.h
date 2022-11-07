@@ -12,7 +12,7 @@
 #ifndef O2_TRD_PADPLANE_H
 #define O2_TRD_PADPLANE_H
 
-//Forwards to standard header with protection for GPU compilation
+// Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
 #include "GPUCommonDef.h"
 
@@ -85,7 +85,39 @@ class PadPlane
   void setAnodeWireOffset(float o) { mAnodeWireOffset = o; };
   void setTiltingAngle(double t);
 
-  GPUd() int getPadRowNumber(double z) const;
+  GPUd() int getPadRowNumber(double z) const
+  {
+    //
+    // Finds the pad row number for a given z-position in local supermodule system
+    //
+    int row = 0;
+    int nabove = 0;
+    int nbelow = 0;
+    int middle = 0;
+
+    if ((z > getRow0()) || (z < getRowEnd())) {
+      row = -1;
+
+    } else {
+      nabove = mNrows + 1;
+      nbelow = 0;
+      while (nabove - nbelow > 1) {
+        middle = (nabove + nbelow) / 2;
+        if (z == (mPadRow[middle - 1] + mPadRowSMOffset)) {
+          row = middle;
+        }
+        if (z > (mPadRow[middle - 1] + mPadRowSMOffset)) {
+          nabove = middle;
+        } else {
+          nbelow = middle;
+        }
+      }
+      row = nbelow - 1;
+    }
+
+    return row;
+  };
+
   GPUd() int getPadRowNumberROC(double z) const;
   GPUd() double getPadRow(double z) const;
   GPUd() int getPadColNumber(double rphi) const;
