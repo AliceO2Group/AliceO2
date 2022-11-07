@@ -186,9 +186,6 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot 26400 --max-delay 1" "" 0
   fi
   # TPC
-  if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
-    add_W o2-tpc-calibrator-dedx "--min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000"
-  fi
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
     # TODO: the residual aggregator should have --output-dir and --meta-output-dir defined
     # without that the residuals will be stored in the local working directory (and deleted after a week)
@@ -207,6 +204,9 @@ fi
 # calibrations for AGGREGATOR_TASKS == BARREL_SPORADIC
 if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # TPC
+  if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
+    add_W o2-tpc-calibrator-dedx "--min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000"
+  fi
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
     add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000"
   fi
