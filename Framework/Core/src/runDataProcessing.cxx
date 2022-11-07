@@ -156,8 +156,6 @@ using DeviceInfos = std::vector<DeviceInfo>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
 
-template class std::vector<DeviceSpec>;
-
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 
 // FIXME: probably find a better place
@@ -2033,8 +2031,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         boost::property_tree::ptree finalConfig;
         assert(infos.size() == runningWorkflow.devices.size());
         for (size_t di = 0; di < infos.size(); ++di) {
-          auto info = infos[di];
-          auto spec = runningWorkflow.devices[di];
+          auto& info = infos[di];
+          auto& spec = runningWorkflow.devices[di];
           finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(info) << "Dumping used configuration in dpl-config.json";
@@ -2387,7 +2385,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     };
   } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
     control.callbacks = {[filename = varmap["dump-workflow-file"].as<std::string>()](WorkflowSpec const& workflow,
-                                                                                     DeviceSpecs const,
+                                                                                     DeviceSpecs const&,
                                                                                      DeviceExecutions const&,
                                                                                      DataProcessorInfos& dataProcessorInfos,
                                                                                      CommandInfo const& commandInfo) {

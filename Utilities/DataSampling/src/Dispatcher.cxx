@@ -38,7 +38,7 @@ namespace o2::utilities
 {
 
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
-  : mName(name), mReconfigurationSource(reconfigurationSource)
+  : mName(std::move(name)), mReconfigurationSource(reconfigurationSource)
 {
 }
 
@@ -73,7 +73,7 @@ void Dispatcher::init(InitContext& ctx)
     }
   }
 
-  auto spec = ctx.services().get<const DeviceSpec>();
+  auto& spec = ctx.services().get<const DeviceSpec>();
   mDeviceID.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
 }
 

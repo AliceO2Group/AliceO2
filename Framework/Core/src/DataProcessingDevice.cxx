@@ -114,7 +114,8 @@ void on_communication_requested(uv_async_t* s)
 
 DeviceSpec const& getRunningDevice(RunningDeviceRef const& running, ServiceRegistryRef const& services)
 {
-  return services.get<o2::framework::RunningWorkflowInfo const>().devices[running.index];
+  auto& devices = services.get<o2::framework::RunningWorkflowInfo const>().devices;
+  return devices[running.index];
 }
 
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
