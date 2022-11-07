@@ -46,6 +46,8 @@ namespace o2::framework
 ///
 /// auto &deviceSpec = ctx.services().get<DeviceSpec const>();
 struct DeviceSpec {
+  DeviceSpec(const DeviceSpec&) = delete;
+  DeviceSpec(DeviceSpec&&) = default;
   /// The name of the associated DataProcessorSpec
   std::string name;
   /// The id of the device, including time-pipelining and suffix
