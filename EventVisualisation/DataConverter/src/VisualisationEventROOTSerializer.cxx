@@ -70,6 +70,7 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
   TFile f(fileName.c_str(), "recreate");
 
   save("runNumber", event.mRunNumber);
+  save("runType", event.mRunType);
   save("clMask", event.mClMask);
   save("trkMask", event.mTrkMask);
   save("tfCounter", event.mTfCounter);
@@ -195,6 +196,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   TFile f(fileName.c_str());
 
   event.setRunNumber(readInt(f, "runNumber"));
+  event.setRunType(static_cast<parameters::GRPECS::RunType>(readInt(f, "runType")));
   event.setClMask(readInt(f, "clMask"));
   event.setTrkMask(readInt(f, "trkMask"));
   event.setTfCounter(readInt(f, "tfCounter"));
