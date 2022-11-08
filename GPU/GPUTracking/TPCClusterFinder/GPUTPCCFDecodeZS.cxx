@@ -593,7 +593,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
   const auto* decHeader = Peek<TPCZSHDRV2>(page, raw::RDHUtils::getMemorySize(*rawDataHeader) - sizeof(TPCZSHDRV2));
   ConsumeHeader<header::RAWDataHeader>(page);
 
-  assert(decHeader->version == ZSVersionDenseLinkBased);
+  assert(decHeader->version >= ZSVersionDenseLinkBased);
   assert(decHeader->magicWord == tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader);
 
   unsigned short nSamplesWritten = 0;

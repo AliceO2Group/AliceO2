@@ -741,6 +741,7 @@ struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   std::vector<unsigned short> sequenceBufferADC;
 
   constexpr static int RAWLNK = rdh_utils::DLBZSLinkID;
+  constexpr static int v2nbits = 10;
 };
 
 bool zsEncoderDenseLinkBased::checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k)
@@ -756,6 +757,9 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
 {
   if (sequenceBuffer.size() == 0) {
     unsigned short bc = (long)tmpBuffer[k].getTimeStamp() * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
+    if (zsVersion == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      bc &= 0xFFC;
+    }
     sequenceBuffer.emplace_back(bc << 4);
     sequenceBuffer.emplace_back(bc >> 4);
     curTimeBin = tmpBuffer[k].getTimeStamp() - firstTimebinInPage;
@@ -799,10 +803,25 @@ bool zsEncoderDenseLinkBased::writeSubPage()
 {
   unsigned int offset = sequenceBuffer.size();
   if (sequenceBufferADC.size()) {
-    sequenceBuffer.resize(offset + (sequenceBufferADC.size() * 3 + 1) / 2);
+    bool need12bit = zsVersion != ZSVersion::ZSVersionDenseLinkBasedV2;
+    unsigned int needNow = 0;
+    if (zsVersion == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      for (unsigned int i = 0; i < sequenceBufferADC.size(); i++) {
+        if (sequenceBufferADC[i] >= (1 << v2nbits)) {
+          need12bit = true;
+          break;
+        }
+      }
+    }
+    unsigned int encodeBitsBlock = encodeBits;
+    if (!need12bit) {
+      encodeBitsBlock = v2nbits;
+      sequenceBuffer[0] |= 0x10;
+    }
+    sequenceBuffer.resize(offset + (sequenceBufferADC.size() * encodeBitsBlock + 7) / 8);
     unsigned int tmp = 0;
     unsigned int tmpIn = sequenceBufferADC.size();
-    ZSstreamOut(sequenceBufferADC.data(), tmpIn, sequenceBuffer.data() + offset, tmp, encodeBits);
+    ZSstreamOut(sequenceBufferADC.data(), tmpIn, sequenceBuffer.data() + offset, tmp, encodeBitsBlock);
     sequenceBufferADC.clear();
   }
 
@@ -845,7 +864,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   }
   const TPCZSHDRV2* decHDR = reinterpret_cast<const TPCZSHDRV2*>(decPagePtr + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2));
   decPagePtr += sizeof(o2::header::RAWDataHeader);
-  if (decHDR->version != ZSVersion::ZSVersionDenseLinkBased) {
+  if (decHDR->version < ZSVersion::ZSVersionDenseLinkBased || decHDR->version > ZSVersion::ZSVersionDenseLinkBasedV2) {
     throw std::runtime_error("invalid ZS version");
   }
   if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
@@ -853,7 +872,6 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   }
   const unsigned char* payloadEnd = ((const unsigned char*)decPage) + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2) - (decHDR->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0);
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));
-  unsigned int mask = (1 << encodeBits) - 1;
   int cruid = decHDR->cruID;
   unsigned int sector = cruid / 10;
   if (sector != iSector) {
@@ -889,6 +907,10 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
     unsigned char linkCount = *((const unsigned char*)decPagePtr) & 0x0F;
     unsigned short linkBC = (*((const unsigned short*)decPagePtr) & 0xFFF0) >> 4;
+    bool v2Flag = decHDR->version == ZSVersion::ZSVersionDenseLinkBasedV2 && *((const unsigned char*)decPagePtr) & 0x10;
+    if (decHDR->version == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      linkBC &= 0xFFC;
+    }
     decPagePtr += sizeof(unsigned short);
     std::vector<int> links;
     std::vector<std::bitset<80>> bitmasks;
@@ -918,7 +940,8 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
 
     const unsigned char* adcData = (const unsigned char*)decPagePtr;
-    decPagePtr += (nTotalSamples * encodeBits + 7) / 8;
+    int encodeBitsBlock = v2Flag ? v2nbits : encodeBits;
+    decPagePtr += (nTotalSamples * encodeBitsBlock + 7) / 8;
 
     if (linkBC < triggerBC) {
       continue;
@@ -926,14 +949,15 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
     std::vector<unsigned short> samples(nTotalSamples);
+    unsigned int mask = (1 << encodeBitsBlock) - 1;
     unsigned int byte = 0, bits = 0, posXbits = 0;
     while (posXbits < nTotalSamples) {
       byte |= *(adcData++) << bits;
       bits += 8;
-      while (bits >= encodeBits) {
+      while (bits >= encodeBitsBlock && posXbits < nTotalSamples) {
         samples[posXbits++] = byte & mask;
-        byte = byte >> encodeBits;
-        bits -= encodeBits;
+        byte = byte >> encodeBitsBlock;
+        bits -= encodeBitsBlock;
       }
     }
     unsigned int samplePos = 0;
@@ -1234,7 +1258,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   size_t totalSize = 0;
   size_t nErrors = 0;
   // clang-format off
-  GPUCA_OPENMP(parallel for reduction(+ : totalPages) reduction(+ : nErrors))
+  GPUCA_OPENMP(parallel for reduction(+ : totalPages, nErrors, totalSize))
   // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::vector<o2::tpc::Digit> tmpBuffer;
@@ -1273,7 +1297,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
       if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
         zsEncoderRun<zsEncoderImprovedLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
-      } else if (version == ZSVersion::ZSVersionDenseLinkBased) {
+      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersionDenseLinkBasedV2) {
         zsEncoderRun<zsEncoderDenseLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
       }
@@ -1298,7 +1322,10 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   }
   if (nErrors) {
     printf("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!\n", (long long int)nErrors);
+  } else if (verify) {
+    printf("ENCODING VERIFICATION PASSED\n");
   }
+  printf("TOTAL ENCODED SIZE: %lu\n", totalSize);
 #endif
 }
 
@@ -1380,7 +1407,7 @@ std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)> GPU
     return GetDecoder_internal<zsEncoderRow>(param, version);
   } else if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
     return GetDecoder_internal<zsEncoderImprovedLinkBased>(param, version);
-  } else if (version == ZSVersion::ZSVersionDenseLinkBased) {
+  } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
     return GetDecoder_internal<zsEncoderDenseLinkBased>(param, version);
   } else {
     throw std::runtime_error("Invalid ZS version");
