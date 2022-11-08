@@ -222,7 +222,7 @@ fi
 lanesFactorize=10
 nTFs=1000
 nTFs_SAC=1000
-nBuffer=50
+nBuffer=100
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # we switch on deltas if explicitly requested; in PbPb it is on by default, unless we switch it off;
 if [[ "0$ENABLE_IDC_DELTA" == "01" ]] || [[ $BEAMTYPE == "PbPb" && "0$ENABLE_IDC_DELTA" != "00" ]]; then IDC_DELTA=""; fi
