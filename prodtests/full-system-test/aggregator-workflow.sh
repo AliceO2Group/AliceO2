@@ -51,7 +51,6 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
   echo "CALIB_TPC_VDRIFTTGL = $CALIB_TPC_VDRIFTTGL" 1>&2
   echo "CALIB_TPC_IDC = $CALIB_TPC_IDC" 1>&2
-  echo "CALIB_TPC_IDC_BOTH = $CALIB_TPC_IDC_BOTH" 1>&2
   echo "CALIB_TPC_SAC = $CALIB_TPC_SAC" 1>&2
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
   echo "CALIB_ZDC_TDC = $CALIB_ZDC_TDC" 1>&2
@@ -105,22 +104,18 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
-      if [[ $FLP_TPC_IDC == 1 ]]; then # IDCs are coming from FLPs
-        if [[ $EPNSYNCMODE != 1 ]]; then
-          echo "ERROR: You cannot run the TPC IDCs in FLP mode if you are not in EPNSYNCMODE" 1>&2
-          exit 2
-        fi
-        # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
-        [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
-        # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
-        for flp in $(seq -f "%03g" 1 144); do
-          FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
-          CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
-        done
-        add_W o2-dpl-raw-proxy "--proxy-name tpcidc --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
-      else
-        add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both input)" "" 0
+      if [[ $EPNSYNCMODE != 1 ]]; then
+        echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
+        exit 2
       fi
+      # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
+      [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
+      # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
+      for flp in $(seq -f "%03g" 1 144); do
+        FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
+        CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+      done
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
     if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
       if [[ $FLP_TPC_SAC == 1 ]]; then # SAC are coming from FLP 145
@@ -132,14 +127,6 @@ if workflow_has_parameter CALIB_PROXIES; then
       else
         add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCSAC\" $(get_proxy_connection tpcsac input)" "" 0
       fi
-    fi
-  elif [[ $AGGREGATOR_TASKS == TPCIDC_A ]]; then
-    if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A\" $(get_proxy_connection tpcidc_A input)" "" 0
-    fi
-  elif [[ $AGGREGATOR_TASKS == TPCIDC_C ]]; then
-    if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_C input)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
@@ -214,11 +201,6 @@ fi
 
 # TPC IDCs and SAC
 crus="0-359"  # to be used with $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC or ALL
-if [[ $AGGREGATOR_TASKS == TPCIDC_A ]]; then
-  crus="0-179"
-elif [[ $AGGREGATOR_TASKS == TPCIDC_C ]]; then
-  crus="180-359"
-fi
 lanesFactorize=10
 nTFs=1000
 nTFs_SAC=1000
@@ -228,7 +210,7 @@ IDC_DELTA="--disable-IDCDelta true" # off by default
 if [[ "0$ENABLE_IDC_DELTA" == "01" ]] || [[ $BEAMTYPE == "PbPb" && "0$ENABLE_IDC_DELTA" != "00" ]]; then IDC_DELTA=""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
-  if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPCIDC_A || $AGGREGATOR_TASKS == TPCIDC_C || $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+  if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} --n-TFs-buffer ${nBuffer}"
     add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true --use-precise-timestamp true --add-offset-for-CCDB-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
