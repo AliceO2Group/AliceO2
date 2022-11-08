@@ -60,8 +60,11 @@ template <class InputType>
 void AnalysisClusterSpec<InputType>::init(framework::InitContext& ctx)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
-  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+
+  if (ctx.services().active<AliceO2::InfoLogger::InfoLoggerContext>()) {
+    auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+    ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+  }
 
   LOG(debug) << "[EMCALClusterizer - init] Initialize clusterizer ...";
 
