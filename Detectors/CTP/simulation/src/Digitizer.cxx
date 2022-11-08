@@ -39,6 +39,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
     data.intRecord = hits.first;
     std::bitset<CTP_NINPUTS> inpmaskcoll = 0;
     for (auto const inp : hits.second) {
+      std::cout << "EMC ID: " << o2::detectors::DetID::EMC << " Det ID: " << inp->detector << std::endl;
       switch (inp->detector) {
         case o2::detectors::DetID::FT0: {
           // see dummy database above
@@ -60,24 +61,28 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
           }
+          break;
         }
         case o2::detectors::DetID::EMC: {
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
           }
+          break;
         }
         case o2::detectors::DetID::PHS: {
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::PHS]) {
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
           }
+          break;
         }
         case o2::detectors::DetID::ZDC: {
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::ZDC]) {
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
           }
+          break;
         }
         default:
           // Error
