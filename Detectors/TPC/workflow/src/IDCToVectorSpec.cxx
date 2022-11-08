@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <fstream>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -30,6 +31,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "DPLUtils/RawParser.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -45,6 +47,7 @@
 #include "TPCBase/Utils.h"
 #include "TPCBase/RDHUtils.h"
 #include "TPCBase/Mapper.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
 using o2::constants::lhc::LHCMaxBunches;
@@ -65,9 +68,13 @@ class IDCToVectorDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     // set up ADC value filling
-    if (ic.options().get<bool>("write-debug")) {
-      mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("idc_vector_debug.root", "recreate");
-    }
+    mWriteDebug = ic.options().get<bool>("write-debug");
+    mWriteDebugOnError = ic.options().get<bool>("write-debug-on-error");
+    mWriteRawDataOnError = ic.options().get<bool>("write-raw-data-on-error");
+    mRawDataType = ic.options().get<int>("raw-data-type");
+
+    mDebugStreamFileName = ic.options().get<std::string>("debug-file-name").data();
+    mRawOutputFileName = ic.options().get<std::string>("raw-file-name").data();
 
     mSwapLinks = ic.options().get<bool>("swap-links");
 
@@ -111,13 +118,32 @@ class IDCToVectorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto runNumber = processing_helpers::getRunNumber(pc);
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}}; // TODO: Change to IDC when changed in DD
     const auto& mapper = Mapper::instance();
+
+    // open files if necessary
+    if ((mWriteDebug || mWriteDebugOnError) && !mDebugStream) {
+      const auto debugFileName = fmt::format(mDebugStreamFileName, fmt::arg("run", runNumber));
+      LOGP(info, "creating debug stream {}", debugFileName);
+      mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>(debugFileName.data(), "recreate");
+    }
+
+    if (mWriteRawDataOnError && !mRawOutputFile.is_open()) {
+      std::string_view rawType = (mRawDataType < 2) ? "tf" : "raw";
+      if (mRawDataType == 4) {
+        rawType = "idc.raw";
+      }
+      const auto rawFileName = fmt::format(mRawOutputFileName, fmt::arg("run", runNumber), fmt::arg("raw_type", rawType));
+      LOGP(info, "creating raw debug file {}", rawFileName);
+      mRawOutputFile.open(rawFileName, std::ios::binary);
+    }
 
     uint32_t heartbeatOrbit = 0;
     uint32_t heartbeatBC = 0;
     uint32_t tfCounter = 0;
     bool first = true;
+    bool hasErrors = false;
 
     CalPad* pedestals = mPedestal.get();
 
@@ -187,7 +213,8 @@ class IDCToVectorDevice : public o2::framework::Task
           } else if (infoIt == infoVec.end()) {
             auto& lastInfo = infoVec.back();
             if ((orbit - lastInfo.heartbeatOrbit) != mNOrbitsIDC) {
-              LOGP(error, "received packet with invalid jump in idc orbit ({} - {} == {} != {})", orbit, lastInfo.heartbeatOrbit, orbit - lastInfo.heartbeatOrbit, mNOrbitsIDC);
+              LOGP(error, "received packet with invalid jump in idc orbit ({} - {} == {} != {})", orbit, lastInfo.heartbeatOrbit, int(orbit) - int(lastInfo.heartbeatOrbit), mNOrbitsIDC);
+              hasErrors = true;
             }
             infoVec.emplace_back(orbit, bc);
             infoIt = infoVec.end() - 1;
@@ -265,24 +292,46 @@ class IDCToVectorDevice : public o2::framework::Task
       }
     }
 
-    if (mDebugStream) {
+    hasErrors |= snapshotIDCs(pc.outputs(), tfCounter);
+
+    if (mWriteDebug || (mWriteDebugOnError && hasErrors)) {
       writeDebugOutput(tfCounter);
     }
-    snapshotIDCs(pc.outputs());
+
+    if (mWriteRawDataOnError && hasErrors) {
+      writeRawData(pc.inputs());
+    }
+
+    // clear output
+    initIDC();
   }
 
-  void
-    endOfStream(o2::framework::EndOfStreamContext& ec) final
+  void closeFiles()
   {
-    LOGP(info, "endOfStream");
-    ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    LOGP(info, "closeFiles");
+
     if (mDebugStream) {
       // set some default aliases
       auto& stream = (*mDebugStream) << "idcs";
       auto& tree = stream.getTree();
       tree.SetAlias("sector", "int(cru/10)");
       mDebugStream->Close();
+      mDebugStream.reset(nullptr);
+      mRawOutputFile.close();
     }
+  }
+
+  void stop() final
+  {
+    LOGP(info, "stop");
+    closeFiles();
+  }
+
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOGP(info, "endOfStream");
+    // ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    closeFiles();
   }
 
  private:
@@ -307,58 +356,71 @@ class IDCToVectorDevice : public o2::framework::Task
   const int mNOrbitsIDC{12};                                                                    ///< number of orbits over which IDCs are integrated, TODO: take from IDC header
   const int mTimeStampsPerIntegrationInterval{(LHCMaxBunches * mNOrbitsIDC) / LHCBCPERTIMEBIN}; ///< number of time stamps for each integration interval (5346)
   const uint32_t mMaxIDCPerTF{uint32_t(std::ceil(256.f / mNOrbitsIDC))};                        ///< maximum number of IDCs expected per TF, TODO: better way to get max number of orbits
+  int mRawDataType{0};                                                                          ///< type of raw data to dump in case of errors
   bool mSwapLinks{false};                                                                       ///< swap links to circumvent bug in FW
+  bool mWriteDebug{false};                                                                      ///< write a debug output
+  bool mWriteDebugOnError{false};                                                               ///< write a debug output in case of errors
+  bool mWriteRawDataOnError{false};                                                             ///< write raw data in case of errors
   std::vector<uint32_t> mCRUs;                                                                  ///< CRUs expected for this device
   std::unordered_map<uint32_t, std::vector<float>> mIDCvectors;                                 ///< decoded IDCs per cru for each pad in the region over all IDC packets in the TF
   std::unordered_map<uint32_t, std::vector<IDCInfo>> mIDCInfos;                                 ///< IDC packet information within the TF
+  std::string mDebugStreamFileName;                                                             ///< name of the debug stream output file
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream;                                ///< debug output streamer
   std::unique_ptr<CalPad> mPedestal{};                                                          ///< noise and pedestal values
+  std::ofstream mRawOutputFile;                                                                 ///< raw output file
+  std::string mRawOutputFileName;                                                               ///< name of the raw output file
 
   //____________________________________________________________________________
-  void snapshotIDCs(DataAllocator& output)
+  bool snapshotIDCs(DataAllocator& output, uint32_t tfCounter)
   {
     LOGP(debug, "snapshotIDCs");
 
     // check integrety of data between CRUs
-    size_t orbitsInTF = 0;
+    size_t packetsInTF = 0;
     std::vector<IDCInfo> const* infVecComp = nullptr;
     std::vector<uint64_t> orbitBCInfo;
+    bool hasErrors = false;
+
+    for (const auto& [cru, infVec] : mIDCInfos) {
+      packetsInTF = std::max(infVec.size(), packetsInTF);
+    }
 
     for (const auto& [cru, infVec] : mIDCInfos) {
 
       for (const auto& inf : infVec) {
         if (!inf.hasBothEPs()) {
-          LOGP(fatal, "IDC CRU {:3}: data missing at ({:8}, {:4}) for one or both end points {:02b}", cru, inf.heartbeatOrbit, inf.heartbeatBC, inf.epSeen);
+          LOGP(error, "IDC CRU {:3}: data missing at ({:8}, {:4}) for one or both end points {:02b} in TF {}", cru, inf.heartbeatOrbit, inf.heartbeatBC, inf.epSeen, tfCounter);
+          hasErrors = true;
         }
       }
 
       if (!infVecComp) {
         infVecComp = &infVec;
-        orbitsInTF = infVec.size();
         std::for_each(infVec.begin(), infVec.end(), [&orbitBCInfo](const auto& inf) { orbitBCInfo.emplace_back((uint64_t(inf.heartbeatOrbit) << 32) + uint64_t(inf.heartbeatBC)); });
         continue;
       }
 
-      if (orbitsInTF != infVec.size()) {
-        LOGP(fatal, "IDC CRU {:3}: unequal number of IDC values {} != {}", cru, orbitsInTF, infVec.size());
+      if (packetsInTF != infVec.size()) {
+        LOGP(error, "IDC CRU {:3}: number of IDC packets {} does not match max over all CRUs {} in TF {}", cru, packetsInTF, infVec.size(), tfCounter);
+        hasErrors = true;
       }
 
       if (!std::equal(infVecComp->begin(), infVecComp->end(), infVec.begin())) {
-        LOGP(fatal, "IDC CRU {:3}: mismatch in orbits");
+        LOGP(error, "IDC CRU {:3}: mismatch in orbit numbers", cru);
+        hasErrors = true;
       }
     }
 
     // send data
     for (auto& [cru, idcVec] : mIDCvectors) {
-      idcVec.resize(Mapper::PADSPERREGION[CRU(cru).region()] * orbitsInTF);
+      idcVec.resize(Mapper::PADSPERREGION[CRU(cru).region()] * packetsInTF);
       const header::DataHeader::SubSpecificationType subSpec{cru << 7};
       LOGP(debug, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
       output.snapshot(Output{gDataOriginTPC, "IDCVECTOR", subSpec}, idcVec);
       output.snapshot(Output{gDataOriginTPC, "IDCORBITS", subSpec}, orbitBCInfo);
     }
 
-    // clear output
-    initIDC();
+    return hasErrors;
   }
 
   //____________________________________________________________________________
@@ -444,6 +506,64 @@ class IDCToVectorDevice : public o2::framework::Task
       }
     }
   }
+
+  void writeRawData(InputRecord& inputs)
+  {
+    if (!mRawOutputFile.is_open()) {
+      return;
+    }
+
+    using DataHeader = o2::header::DataHeader;
+
+    std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}}; // TODO: Change to IDC when changed in DD
+    for (auto const& ref : InputRecordWalker(inputs, filter)) {
+      auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
+      // LOGP(info, "write header: {}/{}/{}, payload size: {} / {}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dh->payloadSize, ref.payloadSize);
+      if (((mRawDataType == 1) || (mRawDataType == 3)) && (dh->payloadSize == 2 * sizeof(o2::header::RAWDataHeader))) {
+        continue;
+      }
+
+      if (mRawDataType < 2) {
+        mRawOutputFile.write(ref.header, sizeof(DataHeader));
+      }
+      if (mRawDataType < 4) {
+        mRawOutputFile.write(ref.payload, ref.payloadSize);
+      }
+
+      if (mRawDataType == 4) {
+        const gsl::span<const char> raw = inputs.get<gsl::span<char>>(ref);
+        try {
+          o2::framework::RawParser parser(raw.data(), raw.size());
+          for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+            const auto size = it.size();
+            // skip empty packages (HBF open)
+            if (size == 0) {
+              continue;
+            }
+
+            auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
+            if (!rdhPtr) {
+              throw std::runtime_error("could not get RDH from packet");
+            }
+
+            // ---| extract hardware information to do the processing |---
+            const auto feeId = (FEEIDType)RDHUtils::getFEEID(*rdhPtr);
+            const auto link = rdh_utils::getLink(feeId);
+            const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+
+            // only select IDCs
+            if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
+              continue;
+            }
+
+            // write out raw data
+            mRawOutputFile.write((const char*)it.raw(), rdhPtr->memorySize);
+          }
+        } catch (...) {
+        }
+      }
+    }
+  }
 };
 
 o2::framework::DataProcessorSpec getIDCToVectorSpec(const std::string inputSpec, std::vector<uint32_t> const& crus)
@@ -463,7 +583,12 @@ o2::framework::DataProcessorSpec getIDCToVectorSpec(const std::string inputSpec,
     outputs,
     AlgorithmSpec{adaptFromTask<device>(crus)},
     Options{
-      {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
+      {"write-debug", VariantType::Bool, false, {"write a debug output tree"}},
+      {"write-debug-on-error", VariantType::Bool, false, {"write a debug output tree in case errors occurred"}},
+      {"debug-file-name", VariantType::String, "/tmp/idc_vector_debug.{run}.root", {"name of the debug output file"}},
+      {"write-raw-data-on-error", VariantType::Bool, false, {"dump raw data in case errors occurred"}},
+      {"raw-file-name", VariantType::String, "/tmp/idc_debug.{run}.{raw_type}", {"name of the raw output file"}},
+      {"raw-data-type", VariantType::Int, 0, {"Which raw data to dump: 0-full TPC with DH, 1-full TPC with DH skip empty, 2-full TPC no DH, 3-full TPC no DH skip empty, 4-IDC raw only"}},
       {"pedestal-url", VariantType::String, "ccdb-default", {"ccdb-default: load from NameConf::getCCDBServer() OR ccdb url (must contain 'ccdb' OR pedestal file name"}},
       {"swap-links", VariantType::Bool, false, {"swap links to circumvent bug in FW"}},
     } // end Options
