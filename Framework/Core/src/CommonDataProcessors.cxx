@@ -326,6 +326,9 @@ DataProcessorSpec
         tfFilenames.insert(std::pair<uint64_t, std::string>(startTime, aodInputFile));
       }
 
+      // close all output files if one has reached size limit
+      dod->checkFileSizes();
+
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {

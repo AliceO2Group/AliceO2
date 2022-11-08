@@ -11,12 +11,16 @@
 #include "Framework/DataOutputDirector.h"
 #include "Framework/Logger.h"
 
+#include <filesystem>
+
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
 #include "TMap.h"
 #include "TObjString.h"
+
+namespace fs = std::filesystem;
 
 namespace o2
 {
@@ -150,6 +154,7 @@ void DataOutputDirector::reset()
   closeDataFiles();
   mfilePtrs.clear();
   mfilenameBase = std::string("");
+  mfileCounter = 1;
 };
 
 void DataOutputDirector::readString(std::string const& keepString)
@@ -260,8 +265,10 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   const char* itemName;
 
   // initialisations
+  std::string resdir(".");
   std::string dfn("");
   std::string fmode("");
+  float maxfs = -1.;
   int ntfm = -1;
 
   // is it a proper json document?
@@ -298,6 +305,17 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
     dodirItem.Accept(writer);
   }
 
+  itemName = "resdir";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsString()) {
+      resdir = dodirItem[itemName].GetString();
+      setResultDir(resdir);
+    } else {
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      return memptyanswer;
+    }
+  }
+
   itemName = "resfile";
   if (dodirItem.HasMember(itemName)) {
     if (dodirItem[itemName].IsString()) {
@@ -316,6 +334,17 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
       setFileMode(fmode);
     } else {
       LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      return memptyanswer;
+    }
+  }
+
+  itemName = "maxfilesize";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsNumber()) {
+      maxfs = dodirItem[itemName].GetFloat();
+      setMaximumFileSize(maxfs);
+    } else {
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a number!", itemName);
       return memptyanswer;
     }
   }
@@ -444,9 +473,30 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
   auto it = std::find(mfilenameBases.begin(), mfilenameBases.end(), dodesc->getFilenameBase());
   if (it != mfilenameBases.end()) {
     int ind = std::distance(mfilenameBases.begin(), it);
+
+    // open new output file
     if (!mfilePtrs[ind]->IsOpen()) {
-      auto fn = mfilenameBases[ind] + ".root";
+      // output directory
+      auto resdirname = mresultDirectory;
+      // is the maximum-file-size check enabled?
+      if (mmaxfilesize > 0.) {
+        // subdirectory ./xxx
+        char chcnt[4];
+        std::snprintf(chcnt, sizeof(chcnt), "%03d", mfileCounter);
+        resdirname += "/" + std::string(chcnt);
+      }
+      auto resdir = fs::path{resdirname.c_str()};
+
+      if (!fs::is_directory(resdir)) {
+        if (!fs::create_directories(resdir)) {
+          LOGF(fatal, "Could not create output directory %s", resdirname.c_str());
+        }
+      }
+
+      // complete file name
+      auto fn = resdirname + "/" + mfilenameBases[ind] + ".root";
       delete mfilePtrs[ind];
+      mParentMaps[ind]->Clear();
       mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 501);
     }
     fileAndFolder.file = mfilePtrs[ind];
@@ -465,6 +515,44 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
   }
 
   return fileAndFolder;
+}
+
+bool DataOutputDirector::checkFileSizes()
+{
+  // is the maximum-file-size check enabled?
+  if (mmaxfilesize <= 0.) {
+    return true;
+  }
+
+  // current result directory
+  char chcnt[4];
+  std::snprintf(chcnt, sizeof(chcnt), "%03d", mfileCounter);
+  std::string strcnt{chcnt};
+  auto resdirname = mresultDirectory + "/" + strcnt;
+
+  // loop over all files
+  // if one file is large, then all files need to be closed
+  for (int i = 0; i < mfilenameBases.size(); i++) {
+    if (!mfilePtrs[i]) {
+      continue;
+    }
+    // size of fn
+    auto fn = resdirname + "/" + mfilenameBases[i] + ".root";
+    auto resfile = fs::path{fn.c_str()};
+    if (!fs::exists(resfile)) {
+      continue;
+    }
+    auto fsize = (float)fs::file_size(resfile) / 1.E6; // MBytes
+    LOGF(debug, "File %s: %f MBytes", fn.c_str(), fsize);
+    if (fsize >= mmaxfilesize) {
+      closeDataFiles();
+      // increment the subdirectory counter
+      mfileCounter++;
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void DataOutputDirector::closeDataFiles()
@@ -496,6 +584,11 @@ void DataOutputDirector::printOut()
   for (auto const& fb : mfilenameBases) {
     LOGP(info, fb);
   }
+}
+
+void DataOutputDirector::setResultDir(std::string resDir)
+{
+  mresultDirectory = resDir;
 }
 
 void DataOutputDirector::setFilenameBase(std::string dfn)
@@ -532,6 +625,11 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
     mfilePtrs.emplace_back(new TFile());
     mParentMaps.emplace_back(new TMap());
   }
+}
+
+void DataOutputDirector::setMaximumFileSize(float maxfs)
+{
+  mmaxfilesize = maxfs;
 }
 
 } // namespace framework
