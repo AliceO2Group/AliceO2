@@ -41,28 +41,23 @@ class DescriptorInnerBarrel : public TObject
     return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
   }
 
-  int GetNumberOfLayers() const { return fNumLayers; }
-  double GetSensorThickness() const { return fSensorLayerThickness; }
+  int GetNumberOfLayers() const { return mNumLayers; }
+  double GetSensorThickness() const { return mSensorLayerThickness; }
   void GetConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
   TGeoTube* DefineWrapperVolume();
 
  protected:
-  int fNumLayers{3};
+  int mNumLayers{3};
 
   // wrapper volume properties
-  double fWrapperMinRadius{2.1};
-  double fWrapperMaxRadius{16.4};
-  double fWrapperZSpan{70.};
-
-  // sensor properties
-  double fSensorLayerThickness{};
+  double mWrapperMinRadius{2.1};
+  double mWrapperMaxRadius{16.4};
+  double mWrapperZSpan{70.};
 
   // layer properties
-  std::vector<double> fLayerRadii{};
-  std::vector<double> fLayerZLen{};
-  std::vector<double> fDetectorThickness{};
-  std::vector<int> fChipTypeID{};
-  std::vector<int> fBuildLevel{};
+  double mSensorLayerThickness{};           // sensor thickness
+  std::vector<double> mLayerRadii{};        // Vector of layer radius
+  std::vector<double> mDetectorThickness{}; // Vector of detector thickness
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrel, 1); /// ITS inner barrel geometry descriptor

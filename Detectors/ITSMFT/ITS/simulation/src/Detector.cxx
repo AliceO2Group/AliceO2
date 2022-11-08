@@ -180,7 +180,7 @@ Detector::Detector(Bool_t active, TString name)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->Configure();
+  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure();
   configOuterBarrelITS(mNumberInnerLayers);
 }
 
@@ -822,7 +822,7 @@ void Detector::constructDetectorGeometry()
   for (Int_t j = 0; j < mNumberLayers; j++) {
 
     if (j < mNumberInnerLayers) {
-      mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->CreateLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+      mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
       mWrapperLayerId[j] = 0;
     } else {
       TGeoVolume* dest = vITSV;
@@ -868,9 +868,8 @@ void Detector::constructDetectorGeometry()
   }
 
   // Now create the services
+  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createServices(wrapVols[0]);
   mServicesGeometry = new V3Services(GetName());
-
-  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->CreateServices(wrapVols[0]);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
@@ -982,7 +981,7 @@ void Detector::addAlignableVolumes() const
   Int_t lastUID = 0;
   for (Int_t lr = 0; lr < mNumberLayers; lr++) {
     if (lr < mNumberInnerLayers) {
-      dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->AddAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+      dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
     }
