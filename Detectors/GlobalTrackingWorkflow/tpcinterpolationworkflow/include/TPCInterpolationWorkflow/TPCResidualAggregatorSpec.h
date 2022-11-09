@@ -62,7 +62,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
       storeMetaFile = true;
     }
     if (!mWriteOutput && (outputDirConf != "none" || storeMetaFile)) {
-      LOGF(alarm, "File output is disabled, but output directory %s was specified and meta file storage is set to %i", outputDirConf, storeMetaFile);
+      LOGF(info, "File output is disabled, but output directory %s was specified and meta file storage is set to %i. No output file will be written", outputDirConf, storeMetaFile);
       storeMetaFile = false;
     }
     mAggregator = std::make_unique<o2::tpc::ResidualAggregator>(minEnt);
