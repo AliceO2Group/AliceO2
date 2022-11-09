@@ -73,9 +73,11 @@ enum RunTypes {
   VCASN150 = 61,
   VCASN100 = 81,
   VCASN100_100HZ = 103,
+  VCASN130 = 135,
   ITHR150 = 62,
   ITHR100 = 82,
   ITHR100_100HZ = 104,
+  ITHR130 = 136,
   DIGITAL_SCAN = 44,
   DIGITAL_SCAN_100HZ = 105,
   ANALOGUE_SCAN = 63,
@@ -121,16 +123,8 @@ class ITSThresholdCalibrator : public Task
 
   const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
 
-  // Number of charges in a threshold scan (from 0 to 50 inclusive)
-  static constexpr short int N_CHARGE = 51;
-  // Number of points in a VCASN tuning (from 30 to 80 inclusive)
-  static constexpr short int N_VCASN = 51;
-  // Number of points in a ITHR tuning (from 30 to 100 inclusive)
-  static constexpr short int N_ITHR = 71;
-  // Number of points in a digital scan and analog scan
-  static constexpr short int N_DIGANA = 1;
-  // Refernce to one of the above values; updated during runtime
-  const short int* N_RANGE = nullptr;
+  // Number of scan points in a calibration scan
+  short int N_RANGE = 51;
   // Min number of noisy pix in a dcol for bad dcol tagging
   static constexpr short int N_PIX_DCOL = 50;
 
@@ -141,7 +135,7 @@ class ITSThresholdCalibrator : public Task
   std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::map<short int, std::array<int, 5>> mThresholds;
+  std::map<short int, std::array<long int, 5>> mThresholds;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
   // Map including PixID for Inefficient pixels
@@ -172,17 +166,17 @@ class ITSThresholdCalibrator : public Task
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
   bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThreshold(const unsigned short int*, const short int*, short int&, float&, float&);
   bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
   bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
   bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
   bool isScanFinished(const short int&, const short int&, const short int&);
-  void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
+  void findAverage(const std::array<long int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
-  void addDatabaseEntry(const short int&, const char*, const short int&,
-                        const float&, const short int&, const float&, bool, bool);
+  void addDatabaseEntry(const short int&, const char*, const float&,
+                        const float&, const float&, const float&, bool, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
@@ -242,6 +236,19 @@ class ITSThresholdCalibrator : public Task
   // Chip mod selector and chip mod base for parallel chip access
   int mChipModSel = 0;
   int mChipModBase = 1;
+
+  // To set min and max ITHR and VCASN in the tuning scans
+  short int inMinVcasn = 30;
+  short int inMaxVcasn = 80;
+  short int inMinIthr = 30;
+  short int inMaxIthr = 100;
+
+  // parameters for manual mode: if run type is not among the listed one
+  bool isManualMode = false;
+  bool saveTree;
+  short int manualMin;
+  short int manualMax;
+  std::string manualScanType;
 
   // map to get confDB id
   std::vector<int>* mConfDBmap;
