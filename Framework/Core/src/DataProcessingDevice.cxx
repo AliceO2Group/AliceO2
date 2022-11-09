@@ -119,6 +119,12 @@ DeviceSpec const& getRunningDevice(RunningDeviceRef const& running, ServiceRegis
   return devices[running.index];
 }
 
+struct locked_execution {
+  ServiceRegistryRef& ref;
+  locked_execution(ServiceRegistryRef& ref_) : ref(ref_) { ref.lock(); }
+  ~locked_execution() { ref.unlock(); }
+};
+
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mRunningDevice{running},
     mConfigRegistry{nullptr},
@@ -147,7 +153,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   });
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
-    auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+    auto ref = ServiceRegistryRef{registry, ServiceRegistry::Salt{.streamId = 254, .dataProcessorId = 0}};
+    locked_execution lock{ref};
     auto& deviceState = ref.get<DeviceState>();
     auto& control = ref.get<ControlService>();
     auto& callbacks = ref.get<CallbackService>();
@@ -194,7 +201,11 @@ void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
   auto* task = (TaskStreamInfo*)handle->data;
+  assert(task);
+  assert(task->registry);
   auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  // Unless explicitly allowed, we do not allow to run more than one
+  locked_execution lock{ref};
   DataProcessingDevice::doPrepare(ref);
   DataProcessingDevice::doRun(ref);
   //  FrameMark;
@@ -207,6 +218,7 @@ void run_completion(uv_work_t* handle, int status)
   // Notice that the completion, while running on the main thread, still
   // has a salt which is associated to the actual stream which was doing the computation
   auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  locked_execution lock{ref};
   auto& state = ref.get<DeviceState>();
   auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
 
@@ -840,9 +852,11 @@ void DataProcessingDevice::InitTask()
   for (auto& channel : fChannels) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
                                                                &registry = mServiceRegistry,
-                                                               &pendingRegionInfos = mPendingRegionInfos,
-                                                               &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
-      std::lock_guard<std::mutex> lock(regionInfoMutex);
+                                                               &pendingRegionInfos = mPendingRegionInfos](fair::mq::RegionInfo info) {
+      // Callbacks are executed by the fairmq callback thread, so we need a special ref.
+      ServiceRegistryRef ref{registry, ServiceRegistry::Salt{.streamId = 255,
+                                                             .dataProcessorId = 0}};
+      locked_execution lock{ref};
       LOG(detail) << ">>> Region info event" << info.event;
       LOG(detail) << "id: " << info.id;
       LOG(detail) << "ptr: " << info.ptr;
@@ -851,7 +865,6 @@ void DataProcessingDevice::InitTask()
       context.expectedRegionCallbacks -= 1;
       pendingRegionInfos.push_back(info);
       // We always want to handle these on the main loop
-      ServiceRegistryRef ref{registry};
       uv_async_send(ref.get<DeviceState>().awakeMainThread);
     });
   }
@@ -889,7 +902,6 @@ void DataProcessingDevice::InitTask()
   while (deviceContext.expectedRegionCallbacks > 0 && uv_run(state.loop, UV_RUN_ONCE)) {
     // Handle callbacks if any
     {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
       handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
   }
@@ -1041,6 +1053,10 @@ void DataProcessingDevice::Reset()
 void DataProcessingDevice::Run()
 {
   ServiceRegistryRef ref{mServiceRegistry};
+  // We lock the mutex as a first thing, effectively making the
+  // main thread single threaded, unless we specify otherwise using
+  // the thread_safe_zone.
+  locked_execution locked{ref};
   auto& state = ref.get<DeviceState>();
   state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
   while (state.transitionHandling != TransitionHandlingState::Expired) {
@@ -1051,7 +1067,6 @@ void DataProcessingDevice::Run()
     // Notify on the main thread the new region callbacks, making sure
     // no callback is issued if there is something still processing.
     {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
       handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
     // This will block for the correct delay (or until we get data
@@ -1138,7 +1153,15 @@ void DataProcessingDevice::Run()
       auto& queue = ref.get<AsyncQueue>();
       auto oldestPossibleTimeslice = relayer.getOldestPossibleOutput();
       AsyncQueueHelpers::run(queue, {oldestPossibleTimeslice.timeslice.value});
-      uv_run(state.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      {
+        // Everything which gets executed on the main thread by uv_run
+        // must be reentrant so we can consider this as thread safe.
+        // Notice that the first thing which a task does it to lock
+        // the mutex, so effectively we are serializing the execution
+        // unless a task gives up the lock.
+        ServiceRegistryRef::thread_safe_zone zone(ref);
+        uv_run(state.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      }
       if ((state.loopReason & state.tracingFlags) != 0) {
         state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
@@ -1168,7 +1191,6 @@ void DataProcessingDevice::Run()
     // the callback after the first data arrives is the system is too
     // fast to transition from Init to Run.
     {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
       handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
 
@@ -1192,8 +1214,8 @@ void DataProcessingDevice::Run()
     if (streamRef.index != -1) {
       // Synchronous execution of the callbacks. This will be moved in the
       // moved in the on_socket_polled once we have threading in place.
-      auto& handle = mHandles[streamRef.index];
-      auto& stream = mStreams[streamRef.index];
+      uv_work_t& handle = mHandles[streamRef.index];
+      TaskStreamInfo& stream = mStreams[streamRef.index];
       handle.data = &mStreams[streamRef.index];
 
       static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
@@ -1203,21 +1225,25 @@ void DataProcessingDevice::Run()
         monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
         monitoring.flushBuffer();
       };
-      auto ref = ServiceRegistryRef{mServiceRegistry};
+      bool enough = false;
 
-      // Deciding wether to run or not can be done by passing a request to
-      // the evaluator. In this case, the request is always satisfied and
-      // we run on whatever resource is available.
-      auto& spec = ref.get<DeviceSpec const>();
-      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
+      {
+        auto ref = ServiceRegistryRef{mServiceRegistry};
+
+        // Deciding wether to run or not can be done by passing a request to
+        // the evaluator. In this case, the request is always satisfied and
+        // we run on whatever resource is available.
+        auto& spec = ref.get<DeviceSpec const>();
+        enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
+      }
 
       if (enough) {
         stream.id = streamRef;
         stream.running = true;
         stream.registry = &mServiceRegistry;
-#ifdef DPL_ENABLE_THREADING
-        stream.task.data = &handle;
-        uv_queue_work(state.loop, &stream.task, run_callback, run_completion);
+#if true
+        stream.task = &handle;
+        uv_queue_work(state.loop, stream.task, run_callback, run_completion);
 #else
         run_callback(&handle);
         run_completion(&handle, 0);
