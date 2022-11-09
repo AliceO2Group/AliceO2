@@ -127,7 +127,7 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* itParams[2])
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3])
 {
   const auto& mapper = Mapper::instance();
   const auto& eleParam = ParameterElectronics::Instance();
@@ -139,12 +139,13 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     if (prevTime) {
       auto& prevDigit = (*prevTime)[iPad];
       if (prevDigit.hasSignal()) {
-        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream, itParams);
+        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream, padParams);
       }
       prevDigit.signal = digit.getChargePad(); // to make hasSignal() check work in next time bin
     }
     const CRU cru = mapper.getCRU(sector, iPad);
-    mCommonMode[cru.gemStack()] += digit.getChargePad() * eleParam.commonModeCoupling; // TODO: Add pad-by-pad variaion
+    const float cmKValue = (padParams[2]) ? padParams[2]->getValue(sector.getSector(), iPad) : 1.f;
+    mCommonMode[cru.gemStack()] += digit.getChargePad() * eleParam.commonModeCoupling * cmKValue; // TODO: Add stack-by-stack variation?
   }
 
   // fill common mode output container

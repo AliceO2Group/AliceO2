@@ -39,13 +39,18 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
 
   // ion tail per pad parameters
-  const CalPad* itParams[2] = {nullptr, nullptr};
+  const CalPad* padParams[3] = {nullptr, nullptr, nullptr};
+  auto& cdb = CDBInterface::instance();
   if (eleParam.doIonTailPerPad) {
     const auto& itSettings = IonTailSettings::Instance();
-    auto& cdb = CDBInterface::instance();
-    cdb.setIonTailParamsFromFile(itSettings.padITCorrFile);
-    itParams[0] = &cdb.getITFraction();
-    itParams[1] = &cdb.getITExpLambda();
+    if (itSettings.padITCorrFile.size()) {
+      cdb.setFEEParamsFromFile(itSettings.padITCorrFile);
+    }
+    padParams[0] = &cdb.getITFraction();
+    padParams[1] = &cdb.getITExpLambda();
+  }
+  if (eleParam.doCommonModePerPad) {
+    padParams[2] = &cdb.getCMkValues();
   }
 
   const bool needsPrevDigArray = eleParam.doIonTail || eleParam.doIonTailPerPad || eleParam.doSaturationTail;
@@ -77,23 +82,27 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
     if (time) {
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {
-          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::ZeroSuppression: {
-          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
+          break;
+        }
+        case DigitzationMode::ZeroSuppressionCMCorr: {
+          time->fillOutputContainer<DigitzationMode::ZeroSuppressionCMCorr>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::SubtractPedestal: {
-          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::NoSaturation: {
-          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::PropagateADC: {
-          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
       }

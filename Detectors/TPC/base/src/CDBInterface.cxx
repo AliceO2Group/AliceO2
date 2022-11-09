@@ -18,6 +18,7 @@
 #include <ctime>
 #include <memory>
 #include <filesystem>
+#include <string_view>
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
@@ -73,6 +74,30 @@ const CalPad& CDBInterface::getPedestals()
 }
 
 //______________________________________________________________________________
+const CalPad& CDBInterface::getPedestalsCRU()
+{
+  // ===| load noise and pedestals from file if requested |=====================
+  if (mFEEParamFileName.size()) {
+    if (!mPedestalsCRU) {
+      loadFEEParamsFromFile();
+    }
+  } else if (mUseDefaults) {
+    if (!mPedestalsCRU) {
+      createDefaultPedestals();
+    }
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("Pedestals");
+  }
+
+  if (!mPedestalsCRU) {
+    LOG(fatal) << "No valid pedestal CRU object was loaded";
+  }
+
+  return *mPedestalsCRU;
+}
+
+//______________________________________________________________________________
 const CalPad& CDBInterface::getNoise()
 {
   // ===| load noise and pedestals from file if requested |=====================
@@ -100,9 +125,9 @@ const CalPad& CDBInterface::getNoise()
 const CalPad& CDBInterface::getZeroSuppressionThreshold()
 {
   // ===| load gain map from file if requested |=====================
-  if (mThresholdMapFileName.size()) {
+  if (mFEEParamFileName.size()) {
     if (!mZeroSuppression) {
-      loadThresholdMapFromFile();
+      loadFEEParamsFromFile();
     }
   } else if (mUseDefaults) {
     if (!mZeroSuppression) {
@@ -143,9 +168,9 @@ const CalPad& CDBInterface::getGainMap()
 const CalPad& CDBInterface::getITFraction()
 {
   // ===| load gain map from file if requested |=====================
-  if (mIonTailParamFileName.size()) {
+  if (mFEEParamFileName.size()) {
     if (!mITFraction) {
-      loadIonTailParamsFromFile();
+      loadFEEParamsFromFile();
     }
   } else if (mUseDefaults) {
     if (!mITFraction) {
@@ -153,7 +178,7 @@ const CalPad& CDBInterface::getITFraction()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalITParams)).at("fraction");
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ITfraction");
   }
 
   if (!mITFraction) {
@@ -167,9 +192,9 @@ const CalPad& CDBInterface::getITFraction()
 const CalPad& CDBInterface::getITExpLambda()
 {
   // ===| load gain map from file if requested |=====================
-  if (mIonTailParamFileName.size()) {
+  if (mFEEParamFileName.size()) {
     if (!mITExpLambda) {
-      loadIonTailParamsFromFile();
+      loadFEEParamsFromFile();
     }
   } else if (mUseDefaults) {
     if (!mITExpLambda) {
@@ -177,7 +202,31 @@ const CalPad& CDBInterface::getITExpLambda()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalITParams)).at("expLamda");
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ITexpLambda");
+  }
+
+  if (!mITExpLambda) {
+    LOG(fatal) << "No valid ion tail slope (expLamda) parameters were loaded";
+  }
+
+  return *mITExpLambda;
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getCMkValues()
+{
+  // ===| load gain map from file if requested |=====================
+  if (mFEEParamFileName.size()) {
+    if (!mCMkValues) {
+      loadFEEParamsFromFile();
+    }
+  } else if (mUseDefaults) {
+    if (!mCMkValues) {
+      createDefaultCMParams();
+    }
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("CMkValues");
   }
 
   if (!mITExpLambda) {
@@ -277,40 +326,28 @@ void CDBInterface::loadGainMapFromFile()
 }
 
 //______________________________________________________________________________
-void CDBInterface::loadThresholdMapFromFile()
+void CDBInterface::loadFEEParamsFromFile()
 {
-  if (mThresholdMapFileName.empty()) {
-    return;
+  if (mFEEParamFileName.empty() || !std::filesystem::exists(mFEEParamFileName)) {
+    LOGP(fatal, "Could not find IF param file {}", mFEEParamFileName);
   }
 
-  auto calPads = o2::tpc::utils::readCalPads(mThresholdMapFileName, "ThresholdMap");
-
-  if (calPads.size() != 1) {
-    LOGP(fatal, "Missing 'ThresholdMap' object in file {}", mThresholdMapFileName);
-  }
-
-  mZeroSuppression.reset(calPads[0]);
-}
-
-//______________________________________________________________________________
-void CDBInterface::loadIonTailParamsFromFile()
-{
-  if (mIonTailParamFileName.empty() || !std::filesystem::exists(mIonTailParamFileName)) {
-    LOGP(fatal, "Could not find IF param file {}", mIonTailParamFileName);
-  }
-
-  auto calDets = utils::readCalPads(mIonTailParamFileName, "fraction,expLambda");
-  if (!calDets[0]) {
-    LOGP(fatal, "Could not read IT fraction object from file {}", mIonTailParamFileName);
-  }
-  if (!calDets[1]) {
-    LOGP(fatal, "Could not read IT expLambda object from file {}", mIonTailParamFileName);
+  const std::string_view calDetNames = "ITfraction,ITexpLambda,ThresholdMap,Pedestals,CMkValues";
+  const auto calDetNamesVec = utils::tokenize(calDetNames, ",");
+  auto calDets = utils::readCalPads(mFEEParamFileName, calDetNamesVec);
+  for (size_t iCalDet = 0; iCalDet < calDetNamesVec.size(); ++iCalDet) {
+    if (!calDets[iCalDet]) {
+      LOGP(fatal, "Could not read '{}' object from file {}", calDetNamesVec[iCalDet], mFEEParamFileName);
+    }
   }
 
   mITFraction.reset(calDets[0]);
   mITExpLambda.reset(calDets[1]);
+  mZeroSuppression.reset(calDets[2]);
+  mPedestalsCRU.reset(calDets[3]);
+  mCMkValues.reset(calDets[4]);
 
-  LOGP(info, "Loaded ion tail parameters from file {}", mIonTailParamFileName);
+  LOGP(info, "Loaded FEE parameters {} from file {}", calDetNames, mFEEParamFileName);
 }
 
 //______________________________________________________________________________
@@ -339,6 +376,9 @@ void CDBInterface::createDefaultPedestals()
       val = random;
     }
   }
+
+  // TODO: Convert to 12bit?
+  mPedestalsCRU = std::make_unique<CalPad>(*mPedestals);
 }
 
 //______________________________________________________________________________
@@ -419,11 +459,21 @@ void CDBInterface::createDefaultGainMap()
 //______________________________________________________________________________
 void CDBInterface::createDefaultIonTailParams()
 {
-  mITFraction = std::make_unique<CalPad>("fraction");
-  mITExpLambda = std::make_unique<CalPad>("expLambda");
+  mITFraction = std::make_unique<CalPad>("ITfraction");
+  mITExpLambda = std::make_unique<CalPad>("ITexpLambda");
 
   *mITFraction += 0.1276;
   *mITExpLambda += std::exp(-0.0515);
+
+  LOGP(info, "created default ion tail per-pad parameters");
+}
+
+//______________________________________________________________________________
+void CDBInterface::createDefaultCMParams()
+{
+  mCMkValues = std::make_unique<CalPad>("CMkValues");
+
+  *mCMkValues += 1.f;
 
   LOGP(info, "created default ion tail per-pad parameters");
 }

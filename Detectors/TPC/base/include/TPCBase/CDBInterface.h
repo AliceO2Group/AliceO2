@@ -79,8 +79,6 @@ enum class CDBType {
                        ///
   CalCorrMap,          ///< Cluster correction map
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
-                       ///
-  CalITParams,         ///< Ion tail parameters
 };
 
 /// Upload intervention type
@@ -133,8 +131,6 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
-  // ion tail parameters
-  {CDBType::CalITParams, "TPC/Calib/IonTailParameters"},
 };
 
 /// Poor enum reflection ...
@@ -176,6 +172,11 @@ class CDBInterface
   /// \return pedestal object
   const CalPad& getPedestals();
 
+  /// Return the pedestal object with 10+2bit precision as used in the CRU
+  ///
+  /// \return pedestal object as used in the CRU
+  const CalPad& getPedestalsCRU();
+
   /// Return the noise object
   ///
   /// The function checks if the object is already loaded and returns it
@@ -202,6 +203,11 @@ class CDBInterface
   ///
   /// \return ion tail exponential decay parameter
   const CalPad& getITExpLambda();
+
+  /// Return the common mode per pad values
+  ///
+  /// \return common mode per pad values
+  const CalPad& getCMkValues();
 
   /// Return the Detector parameters
   ///
@@ -261,19 +267,19 @@ class CDBInterface
   /// \param fileName name of the file containing gain map
   void setGainMapFromFile(const std::string_view fileName) { mGainMapFileName = fileName; }
 
-  /// Set zero suppression thresholds from file
+  /// Set zero suppression thresholds from file (will load all FEE params)
   ///
   /// This assumes that the objects is stored under the name 'ThresholdMap'
   ///
   /// \param fileName name of the file containing the threshold map
-  void setThresholdMapFromFile(const std::string_view fileName) { mThresholdMapFileName = fileName; }
+  void setThresholdMapFromFile(const std::string_view fileName) { mFEEParamFileName = fileName; }
 
-  /// Set ion tail parameters from file
+  /// Set FEE parameters from file
   ///
   /// This assumes that the objects are stored under the name 'fraction,expLambda'
   ///
   /// \param fileName name of the file containing the ion tail parameters
-  void setIonTailParamsFromFile(const std::string_view fileName) { mIonTailParamFileName = fileName; }
+  void setFEEParamsFromFile(const std::string_view fileName) { mFEEParamFileName = fileName; }
 
   /// Force using default values instead of reading the CCDB
   ///
@@ -316,13 +322,15 @@ class CDBInterface
  private:
   CDBInterface() = default;
 
-  // ===| Pedestal and noise |==================================================
+  // ===| Pad calibrations |====================================================
   std::unique_ptr<CalPad> mPedestals;       ///< Pedestal object
+  std::unique_ptr<CalPad> mPedestalsCRU;    ///< Pedestal object with 10+2bit precision as used in CRU
   std::unique_ptr<CalPad> mNoise;           ///< Noise object
   std::unique_ptr<CalPad> mZeroSuppression; ///< Zero suppression object
   std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
   std::unique_ptr<CalPad> mITFraction;      ///< Ion Tail fraction
   std::unique_ptr<CalPad> mITExpLambda;     ///< Ion Tail exp(-lambda)
+  std::unique_ptr<CalPad> mCMkValues;       ///< Ion Tail exp(-lambda)
 
   // ===| switches and parameters |=============================================
   bool mUseDefaults = false;   ///< use defaults instead of CCDB
@@ -330,21 +338,21 @@ class CDBInterface
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map
-  std::string mThresholdMapFileName;  ///< optional file name for the threshold map
-  std::string mIonTailParamFileName;  ///< optional file name for the ion tail parameters
+  std::string mFEEParamFileName;      ///< optional file name for the FEE parameters (ion tail, common mode, threshold, pedestals)
 
   // ===========================================================================
   // ===| functions |===========================================================
   //
   void loadNoiseAndPedestalFromFile(); ///< load noise and pedestal values from mPedestalNoiseFileName
   void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
-  void loadThresholdMapFromFile();     ///< load zero suppression threshold map from mThresholdMapFileName
-  void loadIonTailParamsFromFile();    ///< load ion tail paramters
+  void loadFEEParamsFromFile();        ///< load ion tail paramters
+
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
   void createDefaultZeroSuppression(); ///< creation of default noise if requested
   void createDefaultGainMap();         ///< creation of default gain map if requested
-  void createDefaultIonTailParams();   ///< creation of default gain map if requested
+  void createDefaultIonTailParams();   ///< creation of default ion tail parameters
+  void createDefaultCMParams();        ///< creation of default common mode parameters
 };
 
 /// Get an object from the CCDB.
