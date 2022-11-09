@@ -130,6 +130,8 @@ void ServiceRegistry::lateBindStreamServices(DeviceState& state, fair::mq::ProgO
   if (salt.streamId == 0) {
     throw runtime_error_f("Late binding of stream services needs a stream context");
   }
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+
   for (auto& spec : mSpecs) {
     if (spec.kind != ServiceKind::Stream) {
       continue;
@@ -138,13 +140,6 @@ void ServiceRegistry::lateBindStreamServices(DeviceState& state, fair::mq::ProgO
     // Do we need to register it again? Maybe not.
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(salt, spec, handle.instance);
-  }
-}
-
-void ServiceRegistry::postRenderGUICallbacks()
-{
-  for (auto& handle : mPostRenderGUIHandles) {
-    handle.callback(*this);
   }
 }
 
@@ -171,6 +166,7 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
   if (salt.streamId == GLOBAL_CONTEXT_SALT.streamId && kind == ServiceKind::Stream) {
     throw runtime_error_f("Cannot find %s service using a global salt.", name ? name : "a stream");
   }
+
   // Look for the service. If found, return it.
   // Notice how due to threading issues, we might
   // find it with getPos, but the value can still
@@ -262,10 +258,10 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
   return nullptr;
 }
 
-void ServiceRegistry::postRenderGUICallbacks(ServiceRegistryRef ref)
+void ServiceRegistry::postRenderGUICallbacks()
 {
   for (auto& handle : mPostRenderGUIHandles) {
-    handle.callback(ref);
+    handle.callback(*this);
   }
 }
 
@@ -294,6 +290,33 @@ void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const&
       mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
     }
   }
+}
+
+static std::map<std::thread::id, int> locks;
+
+#define LOCKING_DEBUG debug
+void ServiceRegistry::lock(Salt salt) const ACQUIRE(mMutex)
+{
+  // Should probably use compare and exchange here.
+  if (mMutex.try_lock()) {
+    locks[std::this_thread::get_id()]++;
+    LOG(LOCKING_DEBUG) << "ServiceRegistry locked for salt stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId
+                       << " (" << lockCounter.load() << ", " << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+  } else {
+    LOG(LOCKING_DEBUG) << "Stream " << salt.streamId << " dataprocessor "
+                       << salt.dataProcessorId << " (" << std::this_thread::get_id() << ") is attempting to lock mutex";
+    mMutex.lock();
+    locks[std::this_thread::get_id()]++;
+    LOG(LOCKING_DEBUG) << "ServiceRegistry locked for stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId << " (" << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+  }
+}
+
+void ServiceRegistry::unlock(Salt salt) const RELEASE(mMutex)
+{
+  LOG(LOCKING_DEBUG) << "ServiceRegistry unlocked by salt stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId << " (" << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+
+  locks[std::this_thread::get_id()]--;
+  mMutex.unlock();
 }
 
 } // namespace o2::framework
