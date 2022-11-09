@@ -235,8 +235,8 @@ void ITSThresholdAggregator::endOfStream(EndOfStreamContext& ec)
 // Search current month  or LHCperiod, and read run number
 void ITSThresholdAggregator::updateLHCPeriodAndRunNumber(ProcessingContext& pc)
 {
-  mDataTakingContext = pc.services().get<DataTakingContext>();
-  const std::string LHCPeriodStr = mDataTakingContext.lhcPeriod;
+  auto& dataTakingContext = pc.services().get<o2::framework::DataTakingContext>();
+  const std::string LHCPeriodStr = dataTakingContext.lhcPeriod;
   if (!(LHCPeriodStr.empty())) {
     this->mLHCPeriod = LHCPeriodStr;
   } else {
@@ -250,8 +250,8 @@ void ITSThresholdAggregator::updateLHCPeriodAndRunNumber(ProcessingContext& pc)
   this->mLHCPeriod += "_ITS";
 
   // Run number
-  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
-  this->mRunNumber = mTimingInfo.runNumber;
+  auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
+  this->mRunNumber = timingInfo.runNumber;
 
   return;
 }
