@@ -28,6 +28,8 @@ namespace o2::framework
 class RawBufferContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   RawBufferContext(FairMQDeviceProxy& proxy)
     : mProxy{proxy}
   {

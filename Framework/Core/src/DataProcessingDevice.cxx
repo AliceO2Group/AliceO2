@@ -183,7 +183,9 @@ void run_callback(uv_work_t* handle)
 void run_completion(uv_work_t* handle, int status)
 {
   auto* task = (TaskStreamInfo*)handle->data;
-  auto ref = ServiceRegistryRef{*task->registry};
+  // Notice that the completion, while running on the main thread, still
+  // has a salt which is associated to the actual stream which was doing the computation
+  auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
   auto& state = ref.get<DeviceState>();
   auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
 

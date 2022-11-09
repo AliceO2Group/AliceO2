@@ -70,6 +70,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
   return ServiceSpec{
     .name = "fairmq-backend",
+    .uniqueId = CommonServices::simpleServiceId<MessageContext>(),
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       auto& proxy = services.get<FairMQDeviceProxy>();
       auto context = new MessageContext(proxy);
@@ -90,42 +91,42 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
         context->init(DispatchControl{dispatcher, matcher});
       }
-      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MessageContext>(), .instance = context, .kind = ServiceKind::Serial};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MessageContext>(), .instance = context, .kind = ServiceKind::Stream};
     },
     .configure = CommonServices::noConfiguration(),
     .preProcessing = CommonMessageBackendsHelpers<MessageContext>::clearContext(),
     .postProcessing = CommonMessageBackendsHelpers<MessageContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<MessageContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<MessageContext>::sendCallbackEOS(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
 {
   return ServiceSpec{
     .name = "string-backend",
+    .uniqueId = CommonServices::simpleServiceId<StringContext>(),
     .init = CommonMessageBackendsHelpers<StringContext>::createCallback(),
     .configure = CommonServices::noConfiguration(),
     .preProcessing = CommonMessageBackendsHelpers<StringContext>::clearContext(),
     .postProcessing = CommonMessageBackendsHelpers<StringContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<StringContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<StringContext>::sendCallbackEOS(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
 {
   return ServiceSpec{
     .name = "raw-backend",
+    .uniqueId = CommonServices::simpleServiceId<RawBufferContext>(),
     .init = CommonMessageBackendsHelpers<RawBufferContext>::createCallback(),
     .configure = CommonServices::noConfiguration(),
     .preProcessing = CommonMessageBackendsHelpers<RawBufferContext>::clearContext(),
     .postProcessing = CommonMessageBackendsHelpers<RawBufferContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 } // namespace o2::framework
-
-#pragma GCC diagnostic pop
