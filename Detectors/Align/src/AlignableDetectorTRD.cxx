@@ -59,7 +59,7 @@ void AlignableDetectorTRD::defineVolumes()
       int istack = ich % o2::trd::constants::NSTACK;
       uint16_t sid = o2::trd::Geometry::getDetector(ilr, istack, isector);
       const char* symname = Form("TRD/sm%02d/st%d/pl%d", isector, istack, ilr);
-      addVolume(chamb = new AlignableSensorTRD(symname, sid, getSensLabel(sid), isector, mController));
+      addVolume(chamb = new AlignableSensorTRD(symname, o2::base::GeometryManager::getSensID(mDetID, sid), getSensLabel(sid), isector, mController));
       if (!gGeoManager->GetAlignableEntry(symname)) {
         chamb->setDummy(true);
         //        continue;

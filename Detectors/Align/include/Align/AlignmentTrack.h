@@ -67,6 +67,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   const AlignmentPoint* getPoint(int i) const { return mPoints[i]; }
   auto getPoints() { return mPoints; }
   auto& addDetectorPoint() { return mDetPoints.emplace_back(); }
+  std::vector<AlignmentPoint>& getDetPoints() { return mDetPoints; }
   void suppressLastPoints(int n);
   void setRefPoint(AlignmentPoint* p) { mPoints.emplace_back(p); }
   int getNLocPar() const { return mNLocPar; }

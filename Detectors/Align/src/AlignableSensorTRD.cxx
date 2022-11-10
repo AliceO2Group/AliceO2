@@ -43,7 +43,7 @@ void AlignableSensorTRD::prepareMatrixT2L()
   getMatrixL2GIdeal().LocalToMaster(loc, glo);
   mX = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   TGeoHMatrix t2l;
-  t2l.SetDx(mX); // to remove when T2L will be clarified
+  //  t2l.SetDx(mX); // to remove when T2L will be clarified
   t2l.RotateZ(alp * RadToDeg());
   const TGeoHMatrix l2gi = getMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);

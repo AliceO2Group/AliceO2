@@ -51,9 +51,8 @@ void AlignableDetectorTOF::defineVolumes()
   int cnt = 0;
   for (int isc = 0; isc < NSect; isc++) {
     for (int istr = 1; istr <= o2::tof::Geo::NSTRIPXSECTOR; istr++) { // strip
-      int modUID = o2::base::GeometryManager::getSensID(DetID::TOF, cnt);
       const char* symname = Form("TOF/sm%02d/strip%02d", isc, istr);
-      addVolume(strip = new AlignableSensorTOF(symname, cnt, getSensLabel(cnt), isc, mController));
+      addVolume(strip = new AlignableSensorTOF(symname, o2::base::GeometryManager::getSensID(DetID::TOF, cnt), getSensLabel(cnt), isc, mController));
       if (!gGeoManager->GetAlignableEntry(symname)) {
         strip->setDummy(true);
         //        continue;
@@ -64,7 +63,12 @@ void AlignableDetectorTOF::defineVolumes()
       strip->setParent(sect[isc]);
     } // strip
   }   // layer
-  //
+
+  for (int isc = 0; isc < NSect; isc++) {
+    if (sect[isc]) {
+      addVolume(sect[isc]);
+    }
+  }
 }
 
 //____________________________________________
