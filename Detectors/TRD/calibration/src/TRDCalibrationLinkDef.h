@@ -26,5 +26,7 @@
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo> + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, float> + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, int> + ;
+#pragma link C++ class o2::trd::TRDCalibParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDCalibParams> + ;
 
 #endif
