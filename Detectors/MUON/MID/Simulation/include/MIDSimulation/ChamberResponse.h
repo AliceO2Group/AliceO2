@@ -17,6 +17,10 @@
 #ifndef O2_MID_CHAMBERRESPONSE_H
 #define O2_MID_CHAMBERRESPONSE_H
 
+#include <unordered_map>
+
+#include "DetectorsDCS/DataPointIdentifier.h"
+#include "DetectorsDCS/DataPointValue.h"
 #include "MIDSimulation/ChamberResponseParams.h"
 #include "MIDSimulation/ChamberHV.h"
 
@@ -27,21 +31,46 @@ namespace mid
 class ChamberResponse
 {
  public:
+  /// @brief Constructor
+  /// @param params Chamber response parameters
+  /// @param hv Chamber high-voltage values
   ChamberResponse(const ChamberResponseParams& params, const ChamberHV& hv);
+  /// Default destructor
   virtual ~ChamberResponse() = default;
 
+  /// @brief Checks if the strip at a certain distance from the impact point is fired given a probability prob
+  /// @param prob Probability to be fired
+  /// @param distance Distance between the hit and the current strip
+  /// @param cathode Anode or cathode
+  /// @param deId Detection element ID
+  /// @param theta Particle impact angle
+  /// @return true if the strip is fired
   inline bool isFired(double prob, double distance, int cathode, int deId, double theta = 0.) const
   {
-    /// Check if the strip at a certain distance from the impact point is fired
-    /// given a probability prob.
     return (prob < getFiredProbability(distance, cathode, deId, theta));
   }
+
+  /// @brief Returns the fired probability
+  /// @param distance Distance between the hit and the current strip
+  /// @param cathode Anode or cathode
+  /// @param deId Detection element ID
+  /// @param theta Particle impact angle
+  /// @return The probability that the strip is fired
   double getFiredProbability(double distance, int cathode, int deId, double theta = 0.) const;
 
+  /// @brief Fired probability distribution
+  /// @param var Pointer with function variables
+  /// @param par Pointer with function parameters
+  /// @return Fired probability
   double firedProbabilityFunction(double* var, double* par);
 
-  /// Gets the response parameters
+  /// @brief Gets the response parameters
+  /// @return Response function parameters
   ChamberResponseParams getResponseParams() const { return mParams; }
+
+  /// @brief Sets the HV from the DCS data points
+  /// @param dpMap Map with DCS data points
+  inline void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap) { mHV.setHV(dpMap); }
 
  private:
   ChamberResponseParams mParams; ///< Chamber response parameters
