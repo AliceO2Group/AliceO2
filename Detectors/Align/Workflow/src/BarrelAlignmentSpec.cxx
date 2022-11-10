@@ -40,6 +40,8 @@
 #include "Framework/Task.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
+
 /*
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
@@ -217,15 +219,16 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
 void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
 {
   if (!mPostProcessing) {
+    auto inst = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+    LOGP(info, "Barrel alignment data pereparation total timing: Cpu: {:.3e} Real: {:.3e}  s in {} slots, instance {}", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, inst);
     mController->closeMPRecOutput();
     mController->closeMilleOutput();
     mController->closeResidOutput();
-
-    mController->addAutoConstraints();
-    mController->genPedeSteerFile();
-
-    LOGF(info, "Barrel alignment data pereparation total timing: Cpu: %.3e Real: %.3e s in %d slots",
-         mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+    if (inst == 0) {
+      LOG(info) << "Writing millepede control files";
+      mController->addAutoConstraints();
+      mController->genPedeSteerFile();
+    }
   }
 }
 
