@@ -115,7 +115,6 @@ static const std::unordered_map<int, std::string> ParsingErrorsString = {
 
 //enumerations for the options, saves on having a long parameter list.
 enum OptionBits {
-  TRDByteSwapBit,
   TRDVerboseBit,
   TRDVerboseErrorsBit,
   TRDIgnore2StageTrigger,
