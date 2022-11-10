@@ -62,9 +62,14 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
 {
   return [logger,
           ctx](const std::string& content, const fair::LogMetaData& metadata) {
+    if (!logger) {
+      return;
+    }
+
     // translate FMQ metadata
     InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
     int level = InfoLogger::undefinedMessageOption.level;
+    static int lastReportedToOps = 10;
 
     if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
       // discard
@@ -74,51 +79,55 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       level = 1;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
       severity = InfoLogger::Severity::Error;
-      level = 3;
+      level = 7;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::alarm)) {
       severity = InfoLogger::Severity::Warning;
-      level = 4;
+      level = 8;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::important)) {
       severity = InfoLogger::Severity::Info;
-      level = 5;
+      level = 9;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
       severity = InfoLogger::Severity::Warning;
-      level = 6;
+      level = 10;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
       severity = InfoLogger::Severity::Info;
-      level = 8;
+      level = 11;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
       severity = InfoLogger::Severity::Info;
-      level = 10;
+      level = 12;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
       severity = InfoLogger::Severity::Debug;
-      level = 11;
+      level = 13;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
       severity = InfoLogger::Severity::Debug;
-      level = 12;
+      level = 14;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
       severity = InfoLogger::Severity::Debug;
-      level = 13;
+      level = 15;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
       severity = InfoLogger::Severity::Debug;
-      level = 14;
+      level = 16;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
       severity = InfoLogger::Severity::Debug;
-      level = 15;
+      level = 17;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
       severity = InfoLogger::Severity::Debug;
       level = 50;
     }
 
+    // In case we already never reported to ops a message with level between 6 and 10, do it once.
     InfoLogger::InfoLoggerMessageOption opt = {
       severity,
-      level,
+      lastReportedToOps <= level ? level : 1,
       InfoLogger::undefinedMessageOption.errorCode,
       metadata.file.c_str(),
       atoi(metadata.line.c_str())};
 
-    if (logger) {
-      logger->log(opt, *ctx, "%s", content.c_str());
+    logger->log(opt, *ctx, "%s", content.c_str());
+
+    if (lastReportedToOps > level) {
+      logger->log(opt, *ctx, "First message for severity %s encountered. The rest will be reported to support level only.", metadata.severity_name.c_str());
+      lastReportedToOps = level - 1;
     }
   };
 };
