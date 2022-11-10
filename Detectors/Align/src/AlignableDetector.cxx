@@ -42,6 +42,8 @@ namespace align
 //____________________________________________
 AlignableDetector::AlignableDetector(DetID id, Controller* ctr) : DOFSet(id.getName(), ctr), mDetID(id)
 {
+  mVolumes.SetOwner(true);
+  mSensors.SetOwner(false); // sensors are just pointers on particular volumes
 }
 
 //____________________________________________

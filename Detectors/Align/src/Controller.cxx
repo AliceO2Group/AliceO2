@@ -93,10 +93,6 @@ const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC"
 //                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; TODO(milettri, shahoian): needs detector IDs previously stored in AliGeomManager
 const int Controller::sSkipLayers[Controller::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
-
-const Char_t* Controller::sHStatName[Controller::kNHVars] = {
-  "Runs", "Ev.Inp", "Ev.VtxOK", "Tr.Inp", "Tr.2Fit", "Tr.2FitVC", "Tr.2PrMat", "Tr.2ResDer", "Tr.Stored", "Tr.Acc", "Tr.ContRes"};
-
 //________________________________________________________________
 Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC)
   : mDetMask(detmask), mMPsrc(trcmask), mUseMC(useMC)
@@ -111,11 +107,6 @@ Controller::~Controller()
   closeMPRecOutput();
   closeMilleOutput();
   closeResidOutput();
-  //
-  for (int i = 0; i < DetID::nDetectors; i++) {
-    delete mDetectors[i];
-  }
-  delete mHistoStat;
   //
 }
 
@@ -505,7 +496,7 @@ void Controller::assignDOFs()
 void Controller::addDetector(AlignableDetector* det)
 {
   // add detector constructed externally to alignment framework
-  mDetectors[det->getDetID()] = det;
+  mDetectors[det->getDetID()].reset(det);
   mNDet++;
 }
 
@@ -686,7 +677,6 @@ bool Controller::fillControlData(o2::dataformats::GlobalTrackID tid)
   //   mCResid.setInvTrackID(tid);
   // }
   mResidTree->Fill();
-  // fillStatHisto(kTrackControl);
   return true;
 }
 
@@ -710,44 +700,43 @@ void Controller::acknowledgeNewRun()
   // o2::base::PropagatorImpl<double>::initFieldFromGRP();
   // std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 
-  //FIXME(milettri): needs AliESDEvent
-  //  // load needed info for new run
-  //  if (run == mRunNumber){
-  //    return;} // nothing to do
-  //  if (run > 0) {
-  //    mStat[kAccStat][kRun]++;
-  //  }
-  //  if (mRunNumber > 0){
-  //    fillStatHisto(kRunDone);}
-  //  mRunNumber = run;
-  //  LOG(info) << "Processing new run " << mRunNumber;
-  //  //
-  //  // setup magnetic field
-  //  if (fESDEvent &&
-  //      (!TGeoGlobalMagField::Instance()->GetField() ||
-  //       !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
-  //    fESDEvent->InitMagneticField();
-  //  }
-  //  //
-  //  if (!mUseRecoOCDB) {
-  //    LOG(warning) << "Reco-time OCDB will NOT be preloaded";
-  //    return;
-  //  }
-  //  LoadRecoTimeOCDB();
-  //  //
-  //  for (auto id=DetID::First; id<=DetID::Last; id++) {
-  //    AlignableDetector* det = getDetector(id);
-  //    if (!det->isDisabled()){
-  //      det->acknowledgeNewRun(run);}
-  //  }
-  //  //
-  //  // bring to virgin state
-  //  // CleanOCDB();
-  //  //
-  //  // LoadRefOCDB(); //??? we need to get back reference OCDB ???
-  //  //
-  //  mStat[kInpStat][kRun]++;
-  //  //
+  // FIXME(milettri): needs AliESDEvent
+  //   // load needed info for new run
+  //   if (run == mRunNumber){
+  //     return;} // nothing to do
+  //   if (run > 0) {
+  //     mStat[kAccStat][kRun]++;
+  //   }
+  //   if (mRunNumber > 0){
+  //   mRunNumber = run;
+  //   LOG(info) << "Processing new run " << mRunNumber;
+  //   //
+  //   // setup magnetic field
+  //   if (fESDEvent &&
+  //       (!TGeoGlobalMagField::Instance()->GetField() ||
+  //        !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
+  //     fESDEvent->InitMagneticField();
+  //   }
+  //   //
+  //   if (!mUseRecoOCDB) {
+  //     LOG(warning) << "Reco-time OCDB will NOT be preloaded";
+  //     return;
+  //   }
+  //   LoadRecoTimeOCDB();
+  //   //
+  //   for (auto id=DetID::First; id<=DetID::Last; id++) {
+  //     AlignableDetector* det = getDetector(id);
+  //     if (!det->isDisabled()){
+  //       det->acknowledgeNewRun(run);}
+  //   }
+  //   //
+  //   // bring to virgin state
+  //   // CleanOCDB();
+  //   //
+  //   // LoadRefOCDB(); //??? we need to get back reference OCDB ???
+  //   //
+  //   mStat[kInpStat][kRun]++;
+  //   //
 }
 
 // FIXME(milettri): needs OCDB
@@ -1048,9 +1037,6 @@ AlignableVolume* Controller::getVolOfDOFID(int id) const
 void Controller::terminate(bool doStat)
 {
   // finalize processing
-  if (mRunNumber > 0) {
-    fillStatHisto(kRunDone);
-  }
   if (doStat) {
     if (mVtxSens) {
       mVtxSens->fillDOFStat(mDOFStat);
@@ -1306,28 +1292,6 @@ void Controller::MPRec2Mille(TTree* mprTree, const std::string& millefile, bool 
 }
 
 //____________________________________________________________
-void Controller::fillStatHisto(int type, float w)
-{
-  if (!mHistoStat) {
-    createStatHisto();
-  }
-  mHistoStat->Fill((isCosmic() ? kNHVars : 0) + type, w);
-}
-
-//____________________________________________________________
-void Controller::createStatHisto()
-{
-  mHistoStat = new TH1F("stat", "stat", 2 * kNHVars, -0.5, 2 * kNHVars - 0.5);
-  mHistoStat->SetDirectory(nullptr);
-  TAxis* xax = mHistoStat->GetXaxis();
-  for (int j = 0; j < 2; j++) {
-    for (int i = 0; i < kNHVars; i++) {
-      xax->SetBinLabel(j * kNHVars + i + 1, Form("%s.%s", j ? "CSM" : "COL", sHStatName[i]));
-    }
-  }
-}
-
-//____________________________________________________________
 void Controller::printLabels() const
 {
   // print global IDs and Labels
@@ -1393,47 +1357,6 @@ void Controller::fixLowStatFromDOFStat(int thresh)
   //
 }
 
-//____________________________________________________________
-void Controller::loadStat(const char* flname)
-{
-  // load statistics histos from external file produced by alignment task
-  TFile* fl = TFile::Open(flname);
-  //
-  TObject *hdfO = nullptr, *hstO = nullptr;
-  TList* lst = (TList*)fl->Get("clist");
-  if (lst) {
-    hdfO = lst->FindObject("DOFstat");
-    if (hdfO) {
-      lst->Remove(hdfO);
-    }
-    hstO = lst->FindObject("stat");
-    if (hstO) {
-      lst->Remove(hstO);
-    }
-    delete lst;
-  } else {
-    hdfO = fl->Get("DOFstat");
-    hstO = fl->Get("stat");
-  }
-  TH1F* hst = nullptr;
-  if (hstO && (hst = dynamic_cast<TH1F*>(hstO))) {
-    hst->SetDirectory(nullptr);
-  } else {
-    LOG(warning) << "did not find stat histo";
-  }
-  //
-  DOFStatistics* dofSt = nullptr;
-  if (!hdfO || !(dofSt = dynamic_cast<DOFStatistics*>(hdfO))) {
-    LOG(warning) << "did not find DOFstat object";
-  }
-  //
-  setHistoStat(hst);
-  setDOFStat(*dofSt); // FIXME RS TODO
-  //
-  fl->Close();
-  delete fl;
-}
-
 //______________________________________________
 void Controller::checkSol(TTree* mpRecTree, bool store,
                           bool verbose, bool loc, const char* outName)
@@ -1488,6 +1411,8 @@ void Controller::checkSol(TTree* mpRecTree, bool store,
     outFile->Close();
     delete outFile;
   }
+  delete rLG;
+  delete rL;
   //
 }
 
