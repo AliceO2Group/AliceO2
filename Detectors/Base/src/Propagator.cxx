@@ -427,7 +427,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   value_type xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -476,7 +476,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   value_type xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -525,7 +525,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   value_type xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -573,7 +573,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   value_type xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -611,7 +611,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
-  value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
+  value_T xdca = 0., ydca = 0., length = 0.; // , zdca = 0. // zdca might be used in future
   o2::math_utils::CircleXY<value_T> c;
   constexpr float TinyF = 1e-9;
   auto straigh_line_approx = [&]() {
@@ -691,7 +691,7 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
 #endif
     float bxyzF[3];
     f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyzF);
-    //copy and convert
+    // copy and convert
     constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;
     for (uint i = 0; i < 3; ++i) {
       bxyz[i] = static_cast<value_type>(bxyzF[i]) * kCLight1;

@@ -9,22 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackparametrizationWithError.cxx
-/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
-/// @since  Oct 1, 2020
-/// @brief
-
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
-//
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
-//
-// In applying this license CERN does not waive the privileges and immunities
-// granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.
-
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
@@ -182,7 +166,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    // LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -230,7 +214,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   value_t xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_t d = gpu::CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -455,7 +439,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   // Do not propagate tracks outside the ALICE detector
   if (gpu::CAMath::Abs(dx) > 1e5 || gpu::CAMath::Abs(this->getY()) > 1e5 || gpu::CAMath::Abs(this->getZ()) > 1e5) {
-    LOGP(warning, "Anomalous track, target X:{:f}", xk);
+    LOG(warning) << "Anomalous track, target X:" << xk;
     //    print();
     return false;
   }
