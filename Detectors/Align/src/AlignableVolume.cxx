@@ -417,7 +417,7 @@ void AlignableVolume::calcFree(bool condFix)
   mNDOFsFree = mNDOFGeomFree = 0;
   for (int i = 0; i < mNDOFs; i++) {
     if (!isFreeDOF(i)) {
-      if (condFix) {
+      if (condFix && varsSet()) {
         setParErr(i, -999);
       }
       continue;

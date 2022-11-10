@@ -136,7 +136,7 @@ class Controller : public TObject
   };
 
   Controller() = default;
-  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask);
+  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC = false);
   ~Controller() final;
 
   void expandGlobalsBy(int n);
@@ -191,7 +191,7 @@ class Controller : public TObject
   //  const AliESDVertex* GetVertex() const { return fVertex; } FIXME(milettri): needs AliESDVertex
   //
   //----------------------------------------
-  bool readParameters(const char* parfile = "millepede.res", bool useErrors = true);
+  bool readParameters(const std::string& parfile = "millepede.res", bool useErrors = true);
   auto& getGloParVal() { return mGloParVal; }
   auto& getGloParErr() { return mGloParErr; }
   auto& getGloParLab() { return mGloParLab; }
@@ -226,13 +226,9 @@ class Controller : public TObject
   void resetForNextTrack();
   int getNDOFs() const { return mGloParVal.size(); }
   //----------------------------------------
-  //  void SetOutCDBRunRange(int rmin = 0, int rmax = 999999999); FIXME(milettri): needs OCDB
-  int* getOutCDBRunRange() const { return (int*)mOutCDBRunRange; }
-  int getOutCDBRunMin() const { return mOutCDBRunRange[0]; }
-  int getOutCDBRunMax() const { return mOutCDBRunRange[1]; }
   float getControlFrac() const { return mControlFrac; }
   void setControlFrac(float v = 1.) { mControlFrac = v; }
-  //  void writeCalibrationResults() const; FIXME(milettri): needs OCDB
+  void writeCalibrationResults() const;
   void applyAlignmentFromMPSol();
   //
   bool fillMPRecData(o2::dataformats::GlobalTrackID tid);
@@ -314,6 +310,7 @@ class Controller : public TObject
   int mRunNumber = 0;
   int mNDet = 0;                             // number of deectors participating in the alignment
   int mNDOFs = 0;                            // number of degrees of freedom
+  bool mUseMC = false;
   bool mFieldOn = false;                     // field on flag
   int mTracksType = utils::Coll;             // collision/cosmic event type
   std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
@@ -352,7 +349,7 @@ class Controller : public TObject
   std::unique_ptr<TTree> mResidTree; //! tree to store control residuals
   std::unique_ptr<TFile> mMPRecFile; //! file to store MP record tree
   std::unique_ptr<TFile> mResidFile; //! file to store control residuals tree
-  int mOutCDBRunRange[2] = {};      // run range for output storage
+  std::string mMilleFileName{};      //!
   //
   DOFStatistics mDOFStat;     // stat of entries per dof
   TH1F* mHistoStat = nullptr; // histo with general statistics

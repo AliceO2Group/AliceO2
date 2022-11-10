@@ -37,6 +37,7 @@ Millepede2Record::~Millepede2Record()
   delete[] mNDGlo;
   delete[] mVolID;
   delete[] mResid;
+  delete[] mMeasType;
   delete[] mResErr;
   delete[] mIDLoc;
   delete[] mIDGlo;
@@ -61,6 +62,7 @@ void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
   mNDGlo[0] = 1;
   mVolID[0] = -1;
   mResid[0] = res;
+  mMeasType[0] = -1;
   mResErr[0] = err;
   //
   mIDLoc[0] = 0;
@@ -128,6 +130,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack& trc, const std::vector<int>& id
         mVolID[mNResid] = pnt->getSensor()->getVolID() + 1;
         //
         // measured residual/error
+        mMeasType[mNResid] = idim;
         mResid[mNResid] = trc.getResidual(idim, ip);
         mResErr[mNResid] = Sqrt(pnt->getErrDiag(idim));
         //
@@ -182,6 +185,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack& trc, const std::vector<int>& id
       int offs = pnt->getMaxLocVarID() - nmatpar;    // start of material variables
       // here all derivatives are 1 = dx/dx
       for (int j = 0; j < nmatpar; j++) {
+        mMeasType[mNResid] = 10 + j;
         mNDGlo[mNResid] = 0; // mat corrections don't depend on global params
         mVolID[mNResid] = 0; // not associated to global parameter
         mResid[mNResid] = 0; // expectation for MS effects is 0
@@ -207,17 +211,20 @@ void Millepede2Record::resize(int nresid, int nloc, int nglo)
 {
   // resize container
   if (nresid > mNResidBook) {
+    delete[] mMeasType;
     delete[] mNDLoc;
     delete[] mNDGlo;
     delete[] mVolID;
     delete[] mResid;
     delete[] mResErr;
+    mMeasType = new int16_t[nresid];
     mNDLoc = new int16_t[nresid];
     mNDGlo = new int[nresid];
     mVolID = new int[nresid];
     mResid = new float[nresid];
     mResErr = new float[nresid];
     mNResidBook = nresid;
+    memset(mMeasType, 0, nresid * sizeof(int16_t));
     memset(mNDLoc, 0, nresid * sizeof(int16_t));
     memset(mNDGlo, 0, nresid * sizeof(int));
     memset(mVolID, 0, nresid * sizeof(int));
@@ -271,8 +278,8 @@ void Millepede2Record::print() const
   const int kNColLoc = 5;
   for (int ir = 0; ir < mNResid; ir++) {
     int ndloc = mNDLoc[ir], ndglo = mNDGlo[ir];
-    printf("Res:%3d %+e (%+e) | NDLoc:%3d NDGlo:%4d [VID:%5d]\n",
-           ir, mResid[ir], mResErr[ir], ndloc, ndglo, getVolID(ir));
+    printf("Res:%3d Type:%d %+e (%+e) | NDLoc:%3d NDGlo:%4d [VID:%5d]\n",
+           ir, mMeasType[ir], mResid[ir], mResErr[ir], ndloc, ndglo, getVolID(ir));
     //
     printf("Local Derivatives:\n");
     bool eolOK = true;

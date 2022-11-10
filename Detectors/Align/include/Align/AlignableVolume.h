@@ -206,7 +206,7 @@ class AlignableVolume : public DOFSet
   static uint8_t getDefGeomFree() { return sDefGeomFree; }
   //
  protected:
-  void calcFree(bool condFree = false);
+  void calcFree(bool condFree = true);
   //
   // ------- dummies -------
   AlignableVolume(const AlignableVolume&);
