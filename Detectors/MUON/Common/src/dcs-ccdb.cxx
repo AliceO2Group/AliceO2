@@ -12,6 +12,8 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
+#include "DetectorsDCS/DataPointCreator.h"
+#include "DetectorsDCS/DataPointCompositeObject.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSAliases.h"
 #elif defined(MUON_SUBSYSTEM_MID)
@@ -170,11 +172,40 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
-  std::cout << "storing config of " << dpid2DataDesc.size()
+  std::cout << "storing config of " << dpid2DataDesc.size() << " "
             << o2::muon::subsysname() << " data points to "
             << CcdbDpConfName() << "\n";
 
   api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+}
+
+void makeDefaultCCDBEntry(const std::string ccdbUrl)
+{
+  DPMAP dpMap;
+  std::string ccdb = fmt::format("{}/Calib/HV", o2::muon::subsysname());
+#if defined(MUON_SUBSYSTEM_MCH)
+  auto aliases = o2::mch::dcs::aliases();
+#elif defined(MUON_SUBSYSTEM_MID)
+  std::array<o2::mid::dcs::MeasurementType, 2> types{o2::mid::dcs::MeasurementType::HV_V, o2::mid::dcs::MeasurementType::HV_I};
+  std::array<double, 2> defaultValues{9600., 5};
+  for (size_t itype = 0; itype < 2; ++itype) {
+    std::vector<o2::mid::dcs::MeasurementType> typeVec{types[itype]};
+    auto aliases = o2::mid::dcs::aliases(typeVec);
+    for (auto& alias : aliases) {
+      auto obj = o2::dcs::createDataPointCompositeObject(alias, defaultValues[itype], 1, 0);
+      dpMap[obj.id].emplace_back(obj.data);
+      obj = o2::dcs::createDataPointCompositeObject(alias, defaultValues[itype], o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, 0);
+      dpMap[obj.id].emplace_back(obj.data);
+    }
+  }
+#endif
+
+  o2::ccdb::CcdbApi api;
+  api.init(ccdbUrl);
+  std::map<std::string, std::string> md;
+  std::cout << "storing default values of " << o2::muon::subsysname() << " data points to " << ccdb << "\n";
+
+  api.storeAsTFileAny(&dpMap, ccdb, md, 1, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)
@@ -194,6 +225,7 @@ int main(int argc, char** argv)
   bool hv;
   bool dpconf;
   bool put;
+  bool upload_default;
   std::string fileName;
 
   uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -208,6 +240,7 @@ int main(int argc, char** argv)
       ("verbose,v",po::value<int>(&verboseLevel)->default_value(0),"verbose level")
       ("datapoint-conf-name",po::value<std::string>(&dpConfName)->default_value(CcdbDpConfName()),"dp conf name (only if not from mch or mid)")
       ("file,f",po::value<std::string>(&fileName)->default_value(""),"read from file instead of from ccdb")
+      ("upload-default-values,u",po::bool_switch(&upload_default),"upload default values")
       ;
   // clang-format on
 
@@ -267,6 +300,9 @@ int main(int argc, char** argv)
 
   if (put) {
     makeCCDBEntryForDCS(ccdbUrl, timestamp);
+  }
+  if (upload_default) {
+    makeDefaultCCDBEntry(ccdbUrl);
   }
   return 0;
 }

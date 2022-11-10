@@ -17,6 +17,11 @@
 #define O2_MID_CHAMBERHV_H
 
 #include <array>
+#include <vector>
+#include <unordered_map>
+
+#include "DetectorsDCS/DataPointIdentifier.h"
+#include "DetectorsDCS/DataPointValue.h"
 #include "MIDBase/DetectorParameters.h"
 
 namespace o2
@@ -26,16 +31,26 @@ namespace mid
 class ChamberHV
 {
  public:
-  /// Get HV for detection element
+  /// \brief Gets HV for detection element
+  /// \param deId Detection element ID
+  /// \return Detection element HV
   double getHV(int deId) const { return mHV[deId]; }
 
-  /// sets the HV for detection element
+  /// \brief Sets the HV for detection element
+  /// \param deId Detection element ID
+  /// \param hv High-Voltage value (V)
   void setHV(int deId, double hv) { mHV[deId] = hv; }
+
+  /// \brief Sets the HV from the DCS data points
+  /// \param dpMap Map with DCS data points
+  void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap);
 
  private:
   std::array<double, detparams::NDetectionElements> mHV; ///< High voltage values
 };
 
+/// \brief Creates the default chamber voltages
+/// \return Default chamber HV values
 ChamberHV createDefaultChamberHV();
 
 } // namespace mid
