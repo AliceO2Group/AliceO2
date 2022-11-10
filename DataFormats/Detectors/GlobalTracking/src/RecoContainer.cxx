@@ -1219,6 +1219,16 @@ const o2::track::TrackParCov& RecoContainer::getTrackParamOut(GTrackID gidx) con
     return getTrack<o2d::TrackTPCITS>(getTOFMatch(gidx).getTrackRef()).getParamOut();
   } else if (trSrc == GTrackID::TPCTOF) {
     return getTrack<o2d::TrackTPCTOF>(gidx).getParamOut();
+  } else if (trSrc == GTrackID::ITSTPCTRDTOF) { // the physical tracks are in ITS-TPC-TRD, need to get reference from match info
+    return getTrack<o2::trd::TrackTRD>(getTOFMatch(gidx).getTrackRef()).getOuterParam();
+  }
+  if (trSrc == GTrackID::TPCTRDTOF) { // the physical tracks are in TPC-TRD, need to get reference from match info
+    return getTrack<o2::trd::TrackTRD>(getTOFMatch(gidx).getTrackRef()).getOuterParam();
+  } else if (trSrc == GTrackID::ITSTPCTRD) {
+    return getTrack<o2::trd::TrackTRD>(gidx).getOuterParam();
+  }
+  if (trSrc == GTrackID::TPCTRD) {
+    return getTrack<o2::trd::TrackTRD>(gidx).getOuterParam();
   } else if (trSrc == GTrackID::ITS) {
     return getTrack<o2::its::TrackITS>(gidx).getParamOut();
   } else if (trSrc == GTrackID::TPC) {
