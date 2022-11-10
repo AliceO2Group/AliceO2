@@ -226,30 +226,14 @@ int CruRawReader::processHBFs()
   return totalDataInputSize;
 }
 
-void CruRawReader::checkDigitHCHeader(int halfChamberIdRef)
-{
-  // compare the half chamber ID from the digit HC header with the reference one obtained from the link ID
-  int halfChamberIdHeader = mDigitHCHeader.supermodule * NHCPERSEC + mDigitHCHeader.stack * NLAYER * 2 + mDigitHCHeader.layer * 2 + mDigitHCHeader.side;
-  if (halfChamberIdRef != halfChamberIdHeader) {
-    incrementErrors(DigitHCHeaderMismatch, halfChamberIdRef, fmt::format("HCID mismatch detected. HCID from DigitHCHeader: {}, HCID from RDH: {}", halfChamberIdHeader, halfChamberIdRef));
-    if (mMaxWarnPrinted > 0) {
-      LOGF(warning, "HCID mismatch in DigitHCHeader detected for ref HCID %i. DigitHCHeader says HCID is %i", halfChamberIdRef, halfChamberIdHeader);
-      checkNoWarn();
-    }
-  }
-}
-
 bool CruRawReader::parseDigitHCHeaders(int hcid)
 {
   // mHBFoffset32 is the current offset into the current buffer,
   //
   mDigitHCHeader.word = mHBFPayload[mHBFoffset32++];
-  mPreTriggerPhase = INVALIDPRETRIGGERPHASE;
 
-  if (mOptions[TRDByteSwapBit]) {
-    // byte swap if needed.
-    o2::trd::HelperMethods::swapByteOrder(mDigitHCHeader.word);
-  }
+  // in case DigitHCHeader1 is not available for providing the phase, flag with invalid one
+  mPreTriggerPhase = INVALIDPRETRIGGERPHASE;
 
   // a hack used to make old data readable (e.g. Kr from 2021)
   if (mDigitHCHeader.major == 0 && mDigitHCHeader.minor == 0 && mDigitHCHeader.numberHCW == 0) {
@@ -263,6 +247,17 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
       }
       return false;
     }
+  }
+
+  // compare the half chamber ID from the digit HC header with the reference one obtained from the link ID
+  int halfChamberIdHeader = mDigitHCHeader.supermodule * NHCPERSEC + mDigitHCHeader.stack * NLAYER * 2 + mDigitHCHeader.layer * 2 + mDigitHCHeader.side;
+  if (hcid != halfChamberIdHeader) {
+    incrementErrors(DigitHCHeaderMismatch, hcid, fmt::format("HCID mismatch detected. HCID from DigitHCHeader: {}, HCID from RDH: {}", halfChamberIdHeader, hcid));
+    if (mMaxWarnPrinted > 0) {
+      LOGF(warning, "HCID mismatch in DigitHCHeader detected for ref HCID %i. DigitHCHeader says HCID is %i", hcid, halfChamberIdHeader);
+      checkNoWarn();
+    }
+    return false;
   }
 
   int additionalHeaderWords = mDigitHCHeader.numberHCW;
@@ -279,10 +274,6 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
 
   for (int headerwordcount = 0; headerwordcount < additionalHeaderWords; ++headerwordcount) {
     headers[headerwordcount] = mHBFPayload[mHBFoffset32++];
-    if (mOptions[TRDByteSwapBit]) {
-      // byte swap if needed.
-      o2::trd::HelperMethods::swapByteOrder(headers[headerwordcount]);
-    }
     switch (getDigitHCHeaderWordType(headers[headerwordcount])) {
 
       case 1: // header header1;
@@ -293,6 +284,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
             printDigitHCHeader(mDigitHCHeader, headers.data());
           }
           incrementErrors(DigitHCHeader1Problem, hcid);
+          return false;
         }
         DigitHCHeader1 header1;
         header1.word = headers[headerwordcount];
@@ -317,6 +309,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
             printDigitHCHeader(mDigitHCHeader, headers.data());
           }
           incrementErrors(DigitHCHeader2Problem, hcid);
+          return false;
         }
         /* Currently we don't do anything with the information stored in DigitHCHeader2
         DigitHCHeader2 header2;
@@ -333,6 +326,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
             printDigitHCHeader(mDigitHCHeader, headers.data());
           }
           incrementErrors(DigitHCHeader3Problem, hcid);
+          return false;
         }
         DigitHCHeader3 header3;
         header3.word = headers[headerwordcount];
@@ -531,8 +525,8 @@ bool CruRawReader::processHalfCRU(int iteration)
           LOGF(warn, "After successfully parsing the tracklet data for link %i there are %u words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
           checkNoWarn();
         }
-        incrementErrors(UnparsedTrackletDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
         */
+        incrementErrors(UnparsedTrackletDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
       }
       mEventRecords.getCurrentEventRecord().incTrackletTime((double)std::chrono::duration_cast<std::chrono::microseconds>(trackletparsingtime).count());
       if (mOptions[TRDVerboseBit]) {
@@ -560,7 +554,6 @@ bool CruRawReader::processHalfCRU(int iteration)
           mHBFoffset32 = hbfOffsetTmp + linksizeAccum32;
           continue; // move to next link of this half-CRU
         }
-        checkDigitHCHeader(halfChamberId);
         if (mHBFoffset32 - offsetBeforeDigitParsing != 1U + mDigitHCHeader.numberHCW) {
           if (mMaxErrsPrinted > 0) {
             LOGF(error, "Did not read as many digit headers (%i) as expected (%i)",

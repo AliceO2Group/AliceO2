@@ -51,9 +51,6 @@ class DataReaderTask : public Task
   bool mDataVerbose{false};      // verbose output of data unpacking
   bool mHeaderVerbose{false};    // verbose output of headers
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
-  bool mByteSwap{true};          // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
-  bool mIgnoreDigitHCHeader{false};    // ignore this header for the purposes of data cross checking use the rdh/cru as authoritative
-  bool mIgnoreTrackletHCHeader{false}; // ignore this header for data validity checks, this and the above are use to parse corrupted data.
   std::bitset<16> mOptions;            // stores the incoming of the above bools, useful to be able to send this on instead of the individual ones above
                                        // the above bools make the code more readable hence still here.
 
