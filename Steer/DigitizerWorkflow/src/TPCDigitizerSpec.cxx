@@ -245,12 +245,20 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
-    //    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-    if (mTPCVDriftHelper.isUpdated()) {
-      const auto& vd = mTPCVDriftHelper.getVDriftObject();
-      LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
-      mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
-      mTPCVDriftHelper.acknowledgeUpdate();
+
+    // RS due to the Consume custom policy with the priority to condition inputs, the extraction of CCDB inputs must be done only at the 1st call of every TF
+    static size_t ccdbQueryLastTSliceChecked = size_t(-1);
+    size_t tslice = pc.services().get<o2::framework::TimingInfo>().timeslice;
+    if (ccdbQueryLastTSliceChecked != tslice) {
+      ccdbQueryLastTSliceChecked = tslice;
+      o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+      if (mTPCVDriftHelper.isUpdated()) {
+        const auto& vd = mTPCVDriftHelper.getVDriftObject();
+        LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
+        mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
+        mTPCVDriftHelper.acknowledgeUpdate();
+      }
+      // RS Other CCDB queries must be added to this block
     }
 
     if (std::filesystem::exists("ThresholdMap.root")) {
