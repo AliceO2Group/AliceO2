@@ -102,9 +102,6 @@ class CruRawReader
   // parse the digit HC headers, possibly update settings as the number of time bins from the header word
   bool parseDigitHCHeaders(int hcid);
 
-  // compare the link ID information from the digit HC header with what we know from RDH header
-  void checkDigitHCHeader(int hcidRef);
-
   // helper function to compare two consecutive RDHs
   bool compareRDH(const o2::header::RDHAny* rdhPrev, const o2::header::RDHAny* rdhCurr);
 
