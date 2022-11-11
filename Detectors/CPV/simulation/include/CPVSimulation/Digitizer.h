@@ -35,6 +35,9 @@ class Digitizer : public TObject
 
   void init();
   void finish();
+  void setPedestals(const Pedestals* peds) { mPedestals = peds; }
+  void setBadChannelMap(const BadChannelMap* bcm) { mBadMap = bcm; }
+  void setGains(const CalibParams* gains) { mGains = gains; }
 
   /// Steer conversion of hits to digits
   void processHits(const std::vector<Hit>* mHits, const std::vector<Digit>& digitsBg,
@@ -45,10 +48,10 @@ class Digitizer : public TObject
   float simulatePedestalNoise(int absId);
 
  private:
-  static constexpr short NCHANNELS = 23040;      //128*60*3:  toatl number of CPV channels
-  CalibParams* mCalibParams;                     /// Calibration coefficients
-  Pedestals* mPedestals;                         /// Pedestals
-  BadChannelMap* mBadMap;                        /// Bad channel map
+  static constexpr short NCHANNELS = 23040;      // 128*60*3:  toatl number of CPV channels
+  const CalibParams* mGains = nullptr;           /// Calibration coefficients
+  const Pedestals* mPedestals = nullptr;         /// Pedestals
+  const BadChannelMap* mBadMap = nullptr;        /// Bad channel map
   std::array<Digit, NCHANNELS> mArrayD;          /// array of digits (for inner use)
   std::array<float, NCHANNELS> mDigitThresholds; /// array of readout thresholds (for inner use)
   ClassDefOverride(Digitizer, 3);
