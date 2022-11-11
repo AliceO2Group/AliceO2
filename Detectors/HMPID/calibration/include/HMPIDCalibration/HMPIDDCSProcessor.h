@@ -131,41 +131,12 @@ class HMPIDDCSProcessor
 
   CcdbObjectInfo& getHmpidChargeInfo() { return mccdbChargeInfo; }
   std::vector<TF1>& getChargeCutObj() { return arQthre; }
-
   void clearCCDBObjects()
   {
     arQthre.clear();
     arNmean.clear();
   }
-
-  void checkEntries(const std::vector<TF1>& arQthresh,
-                    const std::vector<TF1>& arrayNmean)
-  {
-    if (mVerbose) {
-      LOG(info) << " checking if CCDB objects are filled : ";
-    }
-
-    bool arQthreFull = true;
-    int cntQ = 0;
-    for (const auto& tf : arQthresh) {
-      cntQ++;
-      if (isDefault(&tf)) {
-        arQthreFull = false;
-        LOGP(warn, "arQthre at {} empty ", cntQ);
-      }
-    }
-
-    bool arNmeanFull = true;
-    int cntN = 0;
-    for (const auto& tf : arrayNmean) {
-      if (isDefault(&tf)) {
-        arNmeanFull = false;
-        LOGP(warn, "arrayNmean at {} empty ", cntN);
-      }
-      cntN++;
-    }
-  }
-
+  // ==========================================================================================================
   void clearDPsInfo()
   {
     mPids.clear();

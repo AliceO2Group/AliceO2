@@ -483,7 +483,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(const double& dRefArgon, const double& dC
   // evaluate 15 mm of thickness C6F14 Trans
 
   // ef: check if all are not nullpointers
-  if (&dRefArgon == nullptr || &dCellArgon == nullptr || &dRefFreon == nullptr || &dRefFreon == nullptr) {
+  if (dRefArgon == -999 || dCellArgon == -999 || dRefFreon == -999 || dRefFreon == -999) {
     LOGP(warn, "One of the Phototube-currents was not assigned --> Default E mean used!");
     return false;
   }
@@ -849,7 +849,7 @@ void HMPIDDCSProcessor::finalize()
   }
 
   // Check entries of CCDB-objects
-  checkEntries(arQthre, arNmean);
+  //checkEntries(arQthre, arNmean);
 
   // prepare CCDB: =============================================================
 
