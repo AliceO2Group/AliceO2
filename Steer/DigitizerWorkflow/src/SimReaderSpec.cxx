@@ -54,8 +54,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
   auto doit = [range, tpcsectors, activeSectors](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
-    auto eventrecords = mgr.getDigitizationContext().getEventRecords();
     const auto& context = mgr.getDigitizationContext();
+    auto eventrecords = context.getEventRecords();
 
     for (auto const& sector : tpcsectors) {
       // Note: the TPC sector header was serving the sector to lane mapping before
