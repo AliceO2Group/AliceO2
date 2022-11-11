@@ -62,6 +62,8 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
                     int sourceID,
                     int entryID);
 
+  void updateTimeDependentParams(framework::ProcessingContext& ctx);
+
   float mReadoutTime = 0.;                                ///< PHOS readout time
   float mDeadTime = 0.;                                   ///< PHOS dead time
   Digitizer mDigitizer;                                   ///< Digitizer object

@@ -28,6 +28,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -39,9 +40,6 @@ namespace cpv
 
 void DigitizerSpec::initDigitizerTask(framework::InitContext& ic)
 {
-  // init digitizer
-  mDigitizer.init();
-
   if (mHits) {
     delete mHits;
   }
@@ -71,9 +69,34 @@ void DigitizerSpec::retrieveHits(const char* brname,
   br->GetEntry(entryID);
 }
 
+void DigitizerSpec::updateTimeDependentParams(framework::ProcessingContext& ctx)
+{
+  static bool updateOnlyOnce = false;
+  if (!updateOnlyOnce) {
+    LOG(info) << "DigitizerSpec::run() : fetching o2::cpv::CPVSimParams from CCDB";
+    ctx.inputs().get<o2::cpv::CPVSimParams*>("simparams");
+    LOG(info) << "DigitizerSpec::run() : o2::cpv::CPVSimParams::Instance() now is following:";
+    o2::cpv::CPVSimParams::Instance().printKeyValues();
+
+    auto pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
+    mDigitizer.setPedestals(pedPtr.get());
+
+    auto badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
+    mDigitizer.setBadChannelMap(badMapPtr.get());
+
+    auto gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
+    mDigitizer.setGains(gainsPtr.get());
+
+    // init digitizer
+    mDigitizer.init();
+
+    updateOnlyOnce = true;
+  }
+}
+
 void DigitizerSpec::run(framework::ProcessingContext& pc)
 {
-
+  updateTimeDependentParams(pc);
   // read collision context from input
   auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::CPV, mSimChains);
@@ -168,12 +191,15 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
 
 DataProcessorSpec getCPVDigitizerSpec(int channel, bool mctruth)
 {
+  // inputs
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputs.emplace_back("peds", "CPV", "CPV_Pedestals", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/Pedestals"));
+  inputs.emplace_back("badmap", "CPV", "CPV_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/BadChannelMap"));
+  inputs.emplace_back("gains", "CPV", "CPV_Gains", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/Gains"));
+  inputs.emplace_back("simparams", "CPV", "CPV_SimPars", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Config/CPVSimParams"));
 
-  // create the full data processor spec using
-  //  a name identifier
-  //  input description
-  //  algorithmic description (here a lambda getting called once to setup the actual processing function)
-  //  options that can be used for this processor (here: input file names where to take the hits)
+  // outputs
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("CPV", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe);
@@ -183,7 +209,8 @@ DataProcessorSpec getCPVDigitizerSpec(int channel, bool mctruth)
   outputs.emplace_back("CPV", "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "CPVDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    "CPVDigitizer",
+    inputs,
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
