@@ -224,7 +224,7 @@ void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
   }
 }
 
-std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::string const& fnjson)
+std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJson(std::string const& fnjson)
 {
   // open the file
   FILE* fjson = fopen(fnjson.c_str(), "r");
@@ -240,25 +240,25 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
   // parse the json file
   Document jsonDocument;
   jsonDocument.ParseStream(jsonStream);
-  auto [dfn, fmode, ntfm] = readJsonDocument(&jsonDocument);
+  auto [rdn, dfn, fmode, mfs, ntfm] = readJsonDocument(&jsonDocument);
 
   // clean up
   fclose(fjson);
 
-  return std::make_tuple(dfn, fmode, ntfm);
+  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm);
 }
 
-std::tuple<std::string, std::string, int> DataOutputDirector::readJsonString(std::string const& jsonString)
+std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJsonString(std::string const& jsonString)
 {
   // parse the json string
   Document jsonDocument;
   jsonDocument.Parse(jsonString.c_str());
-  auto [dfn, fmode, ntfm] = readJsonDocument(&jsonDocument);
+  auto [rdn, dfn, fmode, mfs, ntfm] = readJsonDocument(&jsonDocument);
 
-  return std::make_tuple(dfn, fmode, ntfm);
+  return std::make_tuple(rdn, dfn, fmode, mfs, ntfm);
 }
 
-std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(Document* jsonDocument)
+std::tuple<std::string, std::string, std::string, float, int> DataOutputDirector::readJsonDocument(Document* jsonDocument)
 {
   std::string smc(":");
   std::string slh("/");
@@ -428,7 +428,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
     printOut();
   }
 
-  return std::make_tuple(dfn, fmode, ntfm);
+  return std::make_tuple(resdir, dfn, fmode, maxfs, ntfm);
 }
 
 std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(header::DataHeader dh)
@@ -572,7 +572,9 @@ void DataOutputDirector::closeDataFiles()
 void DataOutputDirector::printOut()
 {
   LOGP(info, "DataOutputDirector");
+  LOGP(info, "  Output directory     : {}", mresultDirectory);
   LOGP(info, "  Default file name    : {}", mfilenameBase);
+  LOGP(info, "  Maximum file size    : {} megabytes", mmaxfilesize);
   LOGP(info, "  Number of files      : {}", mfilenameBases.size());
 
   LOGP(info, "  DataOutputDescriptors: {}", mDataOutputDescriptors.size());
