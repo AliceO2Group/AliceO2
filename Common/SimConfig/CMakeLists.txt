@@ -16,7 +16,7 @@ o2_add_library(SimConfig
                        src/DigiParams.cxx src/G4Params.cxx
                        src/MatMapParams.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
-                                     O2::DetectorsCommonDataFormats
+                                     O2::DetectorsCommonDataFormats O2::SimulationDataFormat
                                      FairRoot::Base Boost::program_options)
 
 
