@@ -74,8 +74,8 @@ struct DataOutputDirector {
   void readSpecs(std::vector<InputSpec> inputs);
 
   // fill the DataOutputDirector with information from a json file
-  std::tuple<std::string, std::string, int> readJson(std::string const& fnjson);
-  std::tuple<std::string, std::string, int> readJsonString(std::string const& stjson);
+  std::tuple<std::string, std::string, std::string, float, int> readJson(std::string const& fnjson);
+  std::tuple<std::string, std::string, std::string, float, int> readJsonString(std::string const& stjson);
 
   // read/write private members
   int getNumberTimeFramesToMerge() { return mnumberTimeFramesToMerge; }
@@ -117,8 +117,8 @@ struct DataOutputDirector {
   int mnumberTimeFramesToMerge = 1;
   std::string mfileMode = "RECREATE";
 
-  std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
-  const std::tuple<std::string, std::string, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), -1);
+  std::tuple<std::string, std::string, std::string, float, int> readJsonDocument(Document* doc);
+  const std::tuple<std::string, std::string, std::string, float, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), std::string(""), -1., -1);
 };
 
 } // namespace o2::framework
