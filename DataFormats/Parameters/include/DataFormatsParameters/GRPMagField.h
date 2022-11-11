@@ -37,6 +37,7 @@ class GRPMagField
   o2::units::Current_t getL3Current() const { return mL3Current; }
   o2::units::Current_t getDipoleCurrent() const { return mDipoleCurrent; }
   bool getFieldUniformity() const { return mUniformField; }
+  int8_t getNominalL3Field();
   void setL3Current(o2::units::Current_t v) { mL3Current = v; }
   void setDipoleCurrent(o2::units::Current_t v) { mDipoleCurrent = v; }
   void setFieldUniformity(bool v) { mUniformField = v; }
@@ -50,9 +51,22 @@ class GRPMagField
   o2::units::Current_t mL3Current = 0.f;     ///< signed current in L3
   o2::units::Current_t mDipoleCurrent = 0.f; ///< signed current in Dipole
   bool mUniformField = false;                ///< uniformity of magnetic field
+  int8_t mNominalL3Field = 0;                //!< Nominal L3 field deduced from mL3Current
+  bool mNominalL3FieldValid = false;         //!< Has the field been computed (for caching)
 
-  ClassDefNV(GRPMagField, 1);
+  ClassDefNV(GRPMagField, 2);
 };
+
+inline int8_t GRPMagField::getNominalL3Field()
+{
+  // compute nominal L3 field in kG
+
+  if (mNominalL3FieldValid == false) {
+    mNominalL3Field = std::lround(5.f * mL3Current / 30000.f);
+    mNominalL3FieldValid = true;
+  }
+  return mNominalL3Field;
+}
 
 } // namespace parameters
 } // namespace o2
