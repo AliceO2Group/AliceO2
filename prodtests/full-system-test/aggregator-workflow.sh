@@ -115,7 +115,7 @@ if workflow_has_parameter CALIB_PROXIES; then
         FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
     if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
       if [[ $FLP_TPC_SAC == 1 ]]; then # SAC are coming from FLP 145
