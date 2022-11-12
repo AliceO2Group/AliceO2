@@ -1,6 +1,6 @@
 #include "Framework/DataInspectorService.h"
 #include "Framework/ServiceSpec.h"
-#include "Framework/ServiceRegistry.h"
+#include "Framework/ServiceRegistryRef.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DIMessages.h"
 #include "Framework/ControlService.h"
@@ -91,7 +91,7 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
   return msg;
 }
 
-DataInspectorProxyService::DataInspectorProxyService(ServiceRegistry& serviceRegistry,
+DataInspectorProxyService::DataInspectorProxyService(ServiceRegistryRef serviceRegistry,
                                                      DeviceSpec const& spec,
                                                      const std::string& address,
                                                      int port,
@@ -117,15 +117,6 @@ DataInspectorProxyService::~DataInspectorProxyService()
     LOG(error) << error.what();
     terminate();
   }
-}
-
-std::unique_ptr<DataInspectorProxyService> DataInspectorProxyService::create(ServiceRegistry& serviceRegistry,
-                                                                             DeviceSpec const& spec,
-                                                                             const std::string& address,
-                                                                             int port,
-                                                                             const std::string& runId)
-{
-  return std::make_unique<DataInspectorProxyService>(serviceRegistry, spec, address, port, runId);
 }
 
 void DataInspectorProxyService::receive()
