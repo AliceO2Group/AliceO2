@@ -42,6 +42,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 
+#include <boost/interprocess/sync/named_semaphore.hpp>
+
 /*
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
@@ -115,9 +117,34 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     std::string tmpmacro = mConfMacro + "+";
     TString cmd = gSystem->GetMakeSharedLib();
     cmd.ReplaceAll("$Opt", "-O0 -g -ggdb");
-    gSystem->SetMakeSharedLib(cmd.Data());
-    if (gROOT->LoadMacro(tmpmacro.c_str())) {
-      LOG(fatal) << "Failed to load user macro " << tmpmacro;
+
+    // protect macro compilation by semaphore (to avoid problems in the pipelined code)
+    {
+      boost::interprocess::named_semaphore* sem = nullptr;
+      std::string semhashedstring{};
+      std::hash<std::string> hasher;
+      semhashedstring = "align_macro_" + std::to_string(hasher(mConfMacro)).substr(0, 16);
+      try {
+        sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+      } catch (std::exception e) {
+        LOGP(error, "Exception occurred during {} compilation semaphore setup", tmpmacro);
+        sem = nullptr;
+      }
+      if (sem) {
+        sem->wait(); // wait until we can enter (no one else there)
+      }
+      gSystem->SetMakeSharedLib(cmd.Data());
+      auto res = gROOT->LoadMacro(tmpmacro.c_str());
+      if (sem) {
+        sem->post();
+        if (sem->try_wait()) { // if nobody else is waiting remove the semaphore resource
+          sem->post();
+          boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+        }
+      }
+      if (res) {
+        LOG(fatal) << "Failed to load user macro " << tmpmacro;
+      }
     }
     std::filesystem::path mpth(mConfMacro);
     mConfMacro = mpth.stem();
