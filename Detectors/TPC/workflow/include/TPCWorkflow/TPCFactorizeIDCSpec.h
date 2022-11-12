@@ -59,6 +59,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     mDumpIDC0 = ic.options().get<bool>("dump-IDC0");
     mDumpIDC1 = ic.options().get<bool>("dump-IDC1");
     mDumpIDCDelta = ic.options().get<bool>("dump-IDCDelta");
+    mDumpIDCDeltaCalibData = ic.options().get<bool>("dump-IDCDelta-calib-data");
     mDumpIDCs = ic.options().get<bool>("dump-IDCs");
     mOffsetCCDB = ic.options().get<bool>("add-offset-for-CCDB-timestamp");
     mDisableIDCDelta = ic.options().get<bool>("disable-IDCDelta");
@@ -182,6 +183,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   bool mDumpIDC0{false};                                                                                                                                                  ///< Dump IDC0 to file
   bool mDumpIDC1{false};                                                                                                                                                  ///< Dump IDC1 to file
   bool mDumpIDCDelta{false};                                                                                                                                              ///< Dump IDCDelta to file
+  bool mDumpIDCDeltaCalibData{false};                                                                                                                                     ///< dump the IDC Delta as a calibration file
   bool mDumpIDCs{false};                                                                                                                                                  ///< dump IDCs to file
   bool mOffsetCCDB{false};                                                                                                                                                ///< flag for setting and offset for CCDB timestamp
   bool mDisableIDCDelta{false};                                                                                                                                           ///< disable the processing and storage of IDCDelta
@@ -286,7 +288,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           totalTime += time.count();
         }
 
-        if (!mDisableIDCDelta) {
+        if (!mDisableIDCDelta || mDumpIDCDeltaCalibData) {
           start = timer::now();
           for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(side); ++iChunk) {
             auto startGrouping = timer::now();
@@ -325,9 +327,24 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
                 imageIDCDelta = o2::ccdb::CcdbApi::createObjectImage(&idcDelta, &ccdbInfoIDCDelta);
                 break;
             }
-            LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoIDCDelta.getPath(), ccdbInfoIDCDelta.getFileName(), imageIDCDelta->size(), ccdbInfoIDCDelta.getStartValidityTimestamp(), ccdbInfoIDCDelta.getEndValidityTimestamp());
-            output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDCDelta(), iChunk}, *imageIDCDelta.get());
-            output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDCDelta(), iChunk}, ccdbInfoIDCDelta);
+
+            if (!mDisableIDCDelta) {
+              LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoIDCDelta.getPath(), ccdbInfoIDCDelta.getFileName(), imageIDCDelta->size(), ccdbInfoIDCDelta.getStartValidityTimestamp(), ccdbInfoIDCDelta.getEndValidityTimestamp());
+              output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDCDelta(), iChunk}, *imageIDCDelta.get());
+              output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDCDelta(), iChunk}, ccdbInfoIDCDelta);
+            }
+
+            if (mDumpIDCDeltaCalibData) {
+              const std::string sideStr = sideA ? "A" : "C";
+              TFile fCalibData(fmt::format("IDCDelta_side{}_cal_data_{}.root", sideStr, ccdbInfoIDCDelta.getStartValidityTimestamp()).data(), "RECREATE");
+              fCalibData.WriteObject(imageIDCDelta.get(), "ccdb_object");
+              fCalibData.Close();
+
+              TFile fCalibMetaData(fmt::format("IDCDelta_side{}_cal_metadata_{}.root", sideStr, ccdbInfoIDCDelta.getStartValidityTimestamp()).data(), "RECREATE");
+              fCalibMetaData.WriteObject(&ccdbInfoIDCDelta, "ccdb_object");
+              fCalibMetaData.Close();
+            }
+
             auto stopCCDBIDCDelta = timer::now();
             time = stopCCDBIDCDelta - startCCDBIDCDelta;
             LOGP(info, "Compression and CCDB object creation time: {}", time.count());
@@ -408,6 +425,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
             {"dump-IDC1", VariantType::Bool, false, {"Dump IDC1 to file"}},
             {"disable-IDCDelta", VariantType::Bool, false, {"Disable processing of IDCDelta and storage in the CCDB"}},
             {"dump-IDCDelta", VariantType::Bool, false, {"Dump IDCDelta to file"}},
+            {"dump-IDCDelta-calib-data", VariantType::Bool, false, {"Dump IDCDelta as calibration data to file"}},
             {"add-offset-for-CCDB-timestamp", VariantType::Bool, false, {"Add an offset of 1 hour for the validity range of the CCDB objects"}},
             {"update-not-grouping-parameter", VariantType::Bool, false, {"Do NOT Update/Writing grouping parameters to CCDB."}}}}; // end DataProcessorSpec
   spec.rank = lane;
