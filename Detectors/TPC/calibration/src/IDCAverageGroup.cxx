@@ -130,7 +130,7 @@ void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::processIDCs(const Ca
   const int cruEnd = (mSide == Side::A) ? CRU::MaxCRU / 2 : CRU::MaxCRU;
 
 #pragma omp parallel for num_threads(sNThreads)
-  for (unsigned int i = 0; i < cruEnd; ++i) {
+  for (unsigned int i = cruStart; i < cruEnd; ++i) {
     const unsigned int threadNum = omp_get_thread_num();
     const CRU cru(i);
     idcStruct[threadNum].setCRU(cru);
