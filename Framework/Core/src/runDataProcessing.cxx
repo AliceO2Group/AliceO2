@@ -1155,8 +1155,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
     // We want to register this service only when '--inspector' option was specified
     if(r.fConfig.GetVarMap()["inspector"].as<bool>() && DataInspector::isNonInternalDevice(spec)) {
-      diProxyService = DataInspectorProxyService::create(
-        serviceRegistry,
+      diProxyService = std::make_unique<DataInspectorProxyService>(
+        ServiceRegistryRef{serviceRegistry},
         spec,
         r.fConfig.GetVarMap()["inspector-address"].as<std::string>(),
         std::stoi(r.fConfig.GetVarMap()["inspector-port"].as<std::string>()),
