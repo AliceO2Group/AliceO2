@@ -242,20 +242,9 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             inconsistent_event = true;
             inconsistent_alice_trig = true;
             mt.f.AliceErr = true;
-            if (mVerbosity > DbgMinimal) {
-              if (alice_0 != ch.f.Alice_0) {
-                printf("im=%d ic=%d Alice_0 mt=%u ch=%u\n", im, ic, mt.f.Alice_0, ch.f.Alice_0);
-              }
-              if (alice_1 != ch.f.Alice_1) {
-                printf("im=%d ic=%d Alice_1 mt=%u ch=%u\n", im, ic, mt.f.Alice_1, ch.f.Alice_1);
-              }
-              if (alice_2 != ch.f.Alice_2) {
-                printf("im=%d ic=%d Alice_2 mt=%u ch=%u\n", im, ic, mt.f.Alice_2, ch.f.Alice_2);
-              }
-              if (alice_3 != ch.f.Alice_3) {
-                printf("im=%d ic=%d Alice_3 mt=%u ch=%u\n", im, ic, mt.f.Alice_3, ch.f.Alice_3);
-              }
-            }
+            LOGF(error, "im=%d ic=%d Alice 0123 mt=%u%u%u%u ch=%u%u%u%u", im, ic,
+                 mt.f.Alice_0, mt.f.Alice_1, mt.f.Alice_2, mt.f.Alice_3,
+                 ch.f.Alice_0, ch.f.Alice_1, ch.f.Alice_2, ch.f.Alice_3);
           }
           if (filled_module == false) {
             mt.f.Auto_m = ch.f.Auto_m;
@@ -271,6 +260,9 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           } else if (mt.f.Auto_m != ch.f.Auto_m || mt.f.Auto_0 != ch.f.Auto_0 || mt.f.Auto_1 != ch.f.Auto_1 || mt.f.Auto_2 != ch.f.Auto_2 || mt.f.Auto_3 != ch.f.Auto_3) {
             mt.f.AutoErr = true;
             inconsistent_auto_trig = true;
+            LOGF(error, "im=%d ic=%d Auto m0123 mt=%u%u%u%u%u ch=%u%u%u%u%u", im, ic,
+                 mt.f.Auto_m, mt.f.Auto_0, mt.f.Auto_1, mt.f.Auto_2, mt.f.Auto_3,
+                 ch.f.Auto_m, ch.f.Auto_0, ch.f.Auto_1, ch.f.Auto_2, ch.f.Auto_3);
           }
           ncd++;
         } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
@@ -298,7 +290,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       }
     }
     if (inconsistent_event) {
-      LOG(error) << "Inconsistent event:" << (inconsistent_auto_trig ? " AUTOT" : "") << (inconsistent_alice_trig ? " ALICET" : "");
+      LOG(error) << bcdata.ir.orbit << "." << bcdata.ir.bc << " Inconsistent event:" << (inconsistent_auto_trig ? " AUTOT" : "") << (inconsistent_alice_trig ? " ALICET" : "");
     }
     if ((inconsistent_event && mVerbosity > DbgMinimal) || (mVerbosity >= DbgFull)) {
       bcdata.print(mTriggerMask);

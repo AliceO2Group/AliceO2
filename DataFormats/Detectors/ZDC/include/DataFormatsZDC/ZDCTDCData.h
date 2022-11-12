@@ -27,6 +27,26 @@ namespace o2
 namespace zdc
 {
 
+struct ZDCTDCDataErr {
+
+  static uint32_t mErrVal[NTDCChannels]; // Errors in encoding TDC values
+  static uint32_t mErrAmp[NTDCChannels]; // Errors in encoding TDC amplitudes
+
+  static void print()
+  {
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      if (mErrVal[itdc] > 0) {
+        LOG(error) << " TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrVal[itdc];
+      }
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      if (mErrAmp[itdc] > 0) {
+        LOG(warning) << " TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrAmp[itdc];
+      }
+    }
+  }
+};
+
 struct ZDCTDCData {
 
   uint8_t id = 0xff; // channel ID
@@ -55,19 +75,38 @@ struct ZDCTDCData {
     auto TDCAmp = std::nearbyint(ampa);
 
     if (TDCVal < kMinShort) {
-      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << " TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCVal << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrVal[itdc]++;
       TDCVal = kMinShort;
     }
+
     if (TDCVal > kMaxShort) {
-      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << " TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCVal << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrVal[itdc]++;
       TDCVal = kMaxShort;
     }
+
     if (TDCAmp < kMinShort) {
-      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(warning) << __func__ << " TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCAmp << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrAmp[itdc]++;
       TDCAmp = kMinShort;
     }
+
     if (TDCAmp > kMaxShort) {
-      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(warning) << __func__ << " TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCAmp << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrAmp[itdc]++;
       TDCAmp = kMaxShort;
     }
 

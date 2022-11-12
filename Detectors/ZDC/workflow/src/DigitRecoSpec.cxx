@@ -255,6 +255,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
                 << "-> Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
                 << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
                 << ntw << " waveform chunks";
+      ZDCTDCDataErr::print();
     }
   } else {
     LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
