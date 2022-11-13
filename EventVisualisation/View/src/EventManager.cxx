@@ -330,7 +330,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
         return std::hash<float>()(pair.first + 1000.0 * pair.second);
       }
     };
-    std::unordered_map<std::pair<float, float>, int, pair_hash> map; // sum up entries for the same tower
+    std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
       auto key = std::make_pair(calo.getEta(), calo.getPhi());
       map.try_emplace(key, 0);
