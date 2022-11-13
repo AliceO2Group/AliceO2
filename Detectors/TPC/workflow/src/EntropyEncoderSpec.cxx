@@ -69,7 +69,7 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 
   mTPCVDriftHelper.reset(new VDriftHelper);
 
-  mNThreads = ic.options().get<unsigned int>("nThreads");
+  mNThreads = ic.options().get<unsigned int>("nThreads-tpc-encoder");
   mMaxZ = ic.options().get<float>("irframe-clusters-maxz");
   mMaxEta = ic.options().get<float>("irframe-clusters-maxeta");
 }
@@ -256,7 +256,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
             {"irframe-clusters-maxz", VariantType::Float, 25.f, {"Max z for non assigned clusters (combined with maxeta)"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
-            {"nThreads", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
+            {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
 }
 
 } // namespace tpc
