@@ -24,6 +24,7 @@
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBDownloader.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <type_traits>
 #include <vector>
@@ -60,6 +61,8 @@ class CcdbApi //: public DatabaseInterface
   CcdbApi();
   /// \brief Default destructor
   virtual ~CcdbApi();
+
+  std::unique_ptr<CCDBDownloader> downloader;
 
   const std::string getUniqueAgentID() const { return mUniqueAgentID; }
 

@@ -18,6 +18,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "CCDB/CCDBDownloader.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/IdPath.h"    // just as test object
 #include "CommonUtils/RootChain.h" // just as test object
