@@ -262,7 +262,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   }
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
-  ZDCTDCDataErr::print();
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
