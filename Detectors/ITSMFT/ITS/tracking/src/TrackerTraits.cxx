@@ -912,7 +912,8 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
 /// a TrackParCov
 track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution)
 {
-  const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
+  float ca, sa;
+  o2::math_utils::sincos(tf3.alphaTrackingFrame, sa, ca);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
   const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
   const float z1 = cluster1.zCoordinate;
@@ -922,28 +923,35 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
   const float x3 = tf3.xTrackingFrame;
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
+  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+  const float s2 = resolution;
+  const float fy = 1. / (cluster2.radius - cluster3.radius);
+  const float& tz = fy;
+
+  bool withField = std::abs(getBz()) > o2::constants::math::Almost0;
+  if (!withField) {
+    return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
+                              {y3, z3, std::sin(o2::math_utils::atan2(y3 - y1, x3 - x1)), 0.5f * (tgl12 + tgl23), 1.f / o2::track::kMostProbablePt},
+                              {s2,
+                               0.f, s2,
+                               0.f, 0.f, s2 * fy,
+                               0.f, 0.f, 0.f, s2 * tz * tz,
+                               0.f, 0.f, 0.f, 0.f, o2::track::kMostProbablePt * o2::track::kMostProbablePt});
+  }
 
   const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
   const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
-  const float fy = 1. / (cluster2.radius - cluster3.radius);
-  const float& tz = fy;
-  float cy = 1.e15f;
-  if (std::abs(getBz()) > o2::constants::math::Almost0) {
-    cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) /
-         (resolution * getBz() * o2::constants::math::B2C) *
-         20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  }
-  const float s2 = resolution;
-
+  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) / (resolution * getBz() * o2::constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
                             {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? 1.f / o2::track::kMostProbablePt
-                                                                              : crv / (getBz() * o2::constants::math::B2C)},
-                            {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
-                             s2 * fy * cy, 0.f, s2 * cy * cy});
+                             withField ? 1.f / o2::track::kMostProbablePt : crv / (getBz() * o2::constants::math::B2C)},
+                            {s2,
+                             0.f, s2,
+                             s2 * fy, 0.f, s2 * fy * fy,
+                             0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy,
+                             0.f, s2 * fy * cy, 0.f, s2 * cy * cy});
 }
 
 void TrackerTraits::traverseCellsTree(const int currentCellId, const int currentLayerId)
