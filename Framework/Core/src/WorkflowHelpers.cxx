@@ -245,6 +245,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
                 {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-time-tolerance", VariantType::Int64, 5000ll, {"prefer creation time if its difference to orbit-derived time exceeds threshold (ms), impose if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
