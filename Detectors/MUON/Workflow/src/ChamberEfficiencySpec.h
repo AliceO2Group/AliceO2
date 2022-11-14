@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/EfficiencySpec.h
+/// \file   MUONWorkflow/ChamberEfficiencySpec.h
 /// \brief  Device that computes the MID chamber efficiency
 /// \author Livia Terlizzi <Livia.Terlizzi at cern.ch>
 /// \date   20 September 2022
 
-#ifndef O2_MID_EFFICIENCYSPEC_H
-#define O2_MID_EFFICIENCYSPEC_H
+#ifndef O2_MID_CHAMBEREFFICIENCYSPEC_H
+#define O2_MID_CHAMBEREFFICIENCYSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -24,9 +24,9 @@ namespace o2
 namespace mid
 {
 
-framework::DataProcessorSpec getEfficiencySpec();
+framework::DataProcessorSpec getChamberEfficiencySpec(bool selectMatched);
 
 } // namespace mid
 } // namespace o2
 
-#endif // O2_MID_EfficiencySpec_H
+#endif // O2_MID_CHAMBEREFFICIENCYSPEC_H

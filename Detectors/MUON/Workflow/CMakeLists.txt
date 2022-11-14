@@ -20,3 +20,9 @@ o2_add_executable(
         SOURCES src/TrackWriterSpec.cxx src/tracks-writer-workflow.cxx
         COMPONENT_NAME muon
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat)
+
+o2_add_executable(
+        chamber-efficiency-workflow
+        SOURCES src/ChamberEfficiencySpec.cxx src/chamber-efficiency-workflow.cxx
+        COMPONENT_NAME mid
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::ReconstructionDataFormats O2::DataFormatsMID O2::MIDEfficiency)
