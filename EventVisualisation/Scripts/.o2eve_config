@@ -40,8 +40,8 @@ phos.barrel.radius:                     550
 phos.tower.color:                       65
 phos.tower.noise                        1
 phos.tower.scale:                       1
-phos.tower.size.eta:                    0.0143
-phos.tower.size.phi:                    0.0143
+phos.tower.size.eta:                    0.0046
+phos.tower.size.phi:                    0.00478
 phos.tower.max.height:                  80
 phos.tower.max.val.abs:                 50
 
