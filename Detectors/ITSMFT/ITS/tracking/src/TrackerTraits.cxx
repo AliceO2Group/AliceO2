@@ -925,8 +925,8 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+  const float crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+  const float x0 = math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1);
   const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
   const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
