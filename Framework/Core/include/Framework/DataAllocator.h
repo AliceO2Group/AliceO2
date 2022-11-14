@@ -74,6 +74,7 @@ struct ServiceRegistry;
 class DataAllocator
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
   using AllowedOutputRoutes = std::vector<OutputRoute>;
   using DataHeader = o2::header::DataHeader;
   using DataOrigin = o2::header::DataOrigin;

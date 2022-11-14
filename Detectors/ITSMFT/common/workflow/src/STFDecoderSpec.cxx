@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
+#include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
@@ -67,7 +68,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     dataDesc.runtimeInit(v1[1].c_str());
     mDecoder->setUserDataOrigin(dataOrig);
     mDecoder->setUserDataDescription(dataDesc);
-    mDecoder->init();
+    mDecoder->init(); // is this no-op?
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder creation: " << e.what();
     throw;
@@ -148,15 +149,29 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
+    if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+      mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
       if (mDoCalibData) {
         mDecoder->fillCalibData(calVec);
       }
     }
-    if (mDoClusters) { // !!! THREADS !!!
+    if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
+  }
+
+  if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
+    // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
+    //  - Setup decoder for running on a batch of digits
+    o2::itsmft::DigitPixelReader reader;
+    reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+    reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+    reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
+    reader.setDigits(digVec);
+    reader.setROFRecords(digROFVec);
+    reader.init();
+
+    mClusterer->process(mNThreads, reader, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
   }
 
   if (mDoDigits) {
@@ -170,7 +185,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
   }
 
-  if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+  if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
@@ -238,12 +253,23 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
       // settings for the fired pixel overflow masking
       const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
       const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      if (clParams.maxBCDiffToMaskBias > 0 && clParams.maxBCDiffToSquashBias > 0) {
+        LOGP(fatal, "maxBCDiffToMaskBias = {} and maxBCDiffToMaskBias = {} cannot be set at the same time. Either set masking or squashing with a BCDiff > 0", clParams.maxBCDiffToMaskBias, clParams.maxBCDiffToSquashBias);
+      }
       alpParams.printKeyValues();
       clParams.printKeyValues();
       auto nbc = clParams.maxBCDiffToMaskBias;
       nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
       mClusterer->setMaxBCSeparationToMask(nbc);
       mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      // Squasher
+      int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
+      mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
+      int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
+      if (clParams.maxSOTMUS > 0 && rofBC > 0) {
+        nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
+      }
+      mClusterer->setMaxROFDepthToSquash(clParams.maxBCDiffToSquashBias > 0 ? nROFsToSquash : 0);
       mClusterer->print();
     }
   }

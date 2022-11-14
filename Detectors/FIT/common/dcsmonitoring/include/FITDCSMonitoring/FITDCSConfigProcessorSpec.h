@@ -40,19 +40,19 @@ namespace fit
 class FITDCSConfigProcessor : public o2::framework::Task
 {
  public:
-  FITDCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionBChM)
+  FITDCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionDChM)
     : mDetectorName(detectorName),
-      mDataDescriptionBChM(dataDescriptionBChM) {} // TODO AM: how to pass dd
+      mDataDescriptionDChM(dataDescriptionDChM) {} // TODO AM: how to pass dd
 
   void init(o2::framework::InitContext& ic) final
   {
     initDCSConfigReader();
-    mDCSConfigReader->setFileNameBChM(ic.options().get<string>("filename-bchm"));
-    mDCSConfigReader->setCcdbPathBChM(mDetectorName + "/Calib/BadChannelMap");
+    mDCSConfigReader->setFileNameDChM(ic.options().get<string>("filename-dchm"));
+    mDCSConfigReader->setCcdbPathDChM(mDetectorName + "/Calib/DeadChannelMap");
     mVerbose = ic.options().get<bool>("use-verbose-mode");
     mDCSConfigReader->setVerboseMode(mVerbose);
     LOG(info) << "Verbose mode: " << mVerbose;
-    LOG(info) << "Expected bad channel map file name: " << mDCSConfigReader->getFileNameBChM();
+    LOG(info) << "Expected dead channel map file name: " << mDCSConfigReader->getFileNameDChM();
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -69,12 +69,12 @@ class FITDCSConfigProcessor : public o2::framework::Task
     std::string configFileName = pc.inputs().get<std::string>("inputConfigFileName");
     LOG(info) << "Got input file " << configFileName << " of size " << configBuf.size();
 
-    if (!configFileName.compare(mDCSConfigReader->getFileNameBChM())) {
-      // Got bad channel map
-      processBChM(dataTime, configBuf);
-      sendBChMOutput(pc.outputs());
-      mDCSConfigReader->resetStartValidityBChM();
-      mDCSConfigReader->resetBChM();
+    if (!configFileName.compare(mDCSConfigReader->getFileNameDChM())) {
+      // Got dead channel map
+      processDChM(dataTime, configBuf);
+      sendDChMOutput(pc.outputs());
+      mDCSConfigReader->resetStartValidityDChM();
+      mDCSConfigReader->resetDChM();
     } else {
       LOG(error) << "Unknown input file: " << configFileName;
     }
@@ -95,33 +95,33 @@ class FITDCSConfigProcessor : public o2::framework::Task
   std::unique_ptr<FITDCSConfigReader> mDCSConfigReader; ///< Reader for the DCS configurations
 
  private:
-  /// Processing the bad channel map
-  void processBChM(const long& dataTime, gsl::span<const char> configBuf)
+  /// Processing the dead channel map
+  void processDChM(const long& dataTime, gsl::span<const char> configBuf)
   {
-    if (!mDCSConfigReader->isStartValidityBChMSet()) {
+    if (!mDCSConfigReader->isStartValidityDChMSet()) {
       if (mVerbose) {
         LOG(info) << "Start validity for DCS data set to = " << dataTime;
       }
-      mDCSConfigReader->setStartValidityBChM(dataTime);
+      mDCSConfigReader->setStartValidityDChM(dataTime);
     }
-    mDCSConfigReader->processBChM(configBuf);
-    mDCSConfigReader->updateBChMCcdbObjectInfo();
+    mDCSConfigReader->processDChM(configBuf);
+    mDCSConfigReader->updateDChMCcdbObjectInfo();
   }
 
-  /// Sending the bad channeel map output to CCDB
-  void sendBChMOutput(o2::framework::DataAllocator& output)
+  /// Sending the dead channeel map output to CCDB
+  void sendDChMOutput(o2::framework::DataAllocator& output)
   {
-    const auto& payload = mDCSConfigReader->getBChM();
-    auto& info = mDCSConfigReader->getObjectInfoBChM();
+    const auto& payload = mDCSConfigReader->getDChM();
+    auto& info = mDCSConfigReader->getObjectInfoDChM();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, mDataDescriptionBChM, 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, mDataDescriptionBChM, 0}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, mDataDescriptionDChM, 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, mDataDescriptionDChM, 0}, info);
   }
 
   std::string mDetectorName;                        ///< Detector name
-  o2::header::DataDescription mDataDescriptionBChM; ///< DataDescription for the bad channel map
+  o2::header::DataDescription mDataDescriptionDChM; ///< DataDescription for the dead channel map
   bool mVerbose = false;                            ///< Verbose mode
 };
 

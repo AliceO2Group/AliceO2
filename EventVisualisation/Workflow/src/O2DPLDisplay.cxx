@@ -176,6 +176,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setRunNumber(tinfo.runNumber);
         helper.mEvent.setTfCounter(tinfo.tfCounter);
         helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
+        helper.mEvent.setRunType(this->mRunType);
         helper.mEvent.setPrimaryVertex(pv);
         helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
         filesSaved++;
@@ -233,6 +234,7 @@ void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     auto grpECS = o2::base::GRPGeomHelper::instance().getGRPECS(); // RS
+    mRunType = grpECS->getRunType();
     mData.init();
   }
   // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // called by the RecoContainer

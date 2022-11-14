@@ -87,10 +87,10 @@ class DataProcessingDevice : public fair::mq::Device
   void Run() final;
 
   // Processing functions are now renetrant
-  static void doRun(DataProcessorContext& context);
-  static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, InputChannelInfo&);
-  static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
+  static void doRun(ServiceRegistryRef);
+  static void doPrepare(ServiceRegistryRef);
+  static void handleData(ServiceRegistryRef, InputChannelInfo&);
+  static bool tryDispatchComputation(ServiceRegistryRef ref, std::vector<DataRelayer::RecordAction>& completed);
 
  protected:
   void error(const char* msg);
@@ -102,19 +102,10 @@ class DataProcessingDevice : public fair::mq::Device
   void startPollers();
   void stopPollers();
   /// The specification used to create the initial state of this device
-  DeviceSpec const& mSpec;
+  RunningDeviceRef mRunningDevice;
 
-  AlgorithmSpec::InitCallback mInit;
-  AlgorithmSpec::ProcessCallback mStatefulProcess;
-  AlgorithmSpec::ProcessCallback mStatelessProcess;
-  AlgorithmSpec::ErrorCallback mError;
-  std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  /// Expiration handler
-  std::vector<ExpirationHandler> mExpirationHandlers;
-  /// Completed actions
-  std::vector<DataRelayer::RecordAction> mCompleted;
 
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics

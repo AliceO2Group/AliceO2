@@ -31,7 +31,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
 
   float maxStep = 3.;  // max step for propagation
   float maxSnp = 0.95; // max snp for propagation
-  o2::base::PropagatorD::MatCorrType matCorType = o2::base::PropagatorD::MatCorrType::USEMatCorrTGeo;
+  int matCorType = (int)o2::base::PropagatorD::MatCorrType::USEMatCorrLUT;
   float q2PtMin[NTrackTypes] = {0.01, 0.01};
   float q2PtMax[NTrackTypes] = {10., 10.};
   float tglMax[NTrackTypes] = {3., 10.};
@@ -39,6 +39,8 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minDetAcc[NTrackTypes] = {1, 1};
 
   float minX2X0Pt2Account = 0.5e-3;
+
+  int verbose = 0;
 
   int vtxMinCont = 2;     // require min number of contributors in Vtx
   int vtxMaxCont = 99999; // require max number of contributors in Vtx
@@ -60,7 +62,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   std::string mpParFileName{"mpParams.txt"};      //  file name for MP params
   std::string mpConFileName{"mpConstraints.txt"}; //  file name for MP constraints
   std::string mpSteerFileName{"mpSteer.txt"};     //  file name for MP steering
-  std::string residFileName{"mpContolRes.root"};  //  file name for optional control residuals
+  std::string residFileName{"mpContolRes"};       //  file name for optional control residuals
   //
   std::string outCDBPath{};        // output OCDB path
   std::string outCDBComment{};     // optional comment to add to output cdb objects

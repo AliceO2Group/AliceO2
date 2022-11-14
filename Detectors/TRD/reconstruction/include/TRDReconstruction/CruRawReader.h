@@ -69,7 +69,7 @@ class CruRawReader
     mMaxErrsPrinted = nerr < 0 ? std::numeric_limits<int>::max() : nerr;
     mMaxWarnPrinted = nwar < 0 ? std::numeric_limits<int>::max() : nwar;
   }
-  void checkNoWarn();
+  void checkNoWarn(bool silently = true);
   void checkNoErr();
 
   // set the input data buffer

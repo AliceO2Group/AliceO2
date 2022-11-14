@@ -107,7 +107,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
 
   template <typename VEC>
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff);
@@ -161,7 +161,7 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
 {
   using MD = o2::ctf::Metadata::OptStore;
   using namespace detail;
@@ -193,7 +193,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   };
 
   // book output size with some margin
-  auto szIni = estimateCompressedSize(ccl);
+  auto szIni = estimateCompressedSize(cclFiltered);
   buff.resize(szIni);
 
   auto ec = CTF::create(buff);
@@ -202,79 +202,90 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
     flags |= CTFHeader::CombinedColumns;
   }
   ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
-                          ccl, flags});
+                          cclFiltered, flags});
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
 
   o2::ctf::CTFIOSize iosize;
-  auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor(), &iosize](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
+  auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor(), &iosize](auto begin, auto end, CTF::Slots slot, size_t probabilityBits, std::vector<bool>* reject = nullptr) {
     // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
     const auto slotVal = static_cast<int>(slot);
-    iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+    if (reject && begin != end) {
+      std::vector<std::decay_t<decltype(*begin)>> tmp;
+      tmp.reserve(std::distance(begin, end));
+      for (auto i = begin; i != end; i++) {
+        if (!(*reject)[std::distance(begin, i)]) {
+          tmp.emplace_back(*i);
+        }
+      }
+      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+    } else {
+      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+    }
   };
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.qTotA, ccl.qMaxA, ccl.nAttachedClusters,
                                                  ShiftFunctor<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>, CTF::NBitsQMax>{});
-    encodeTPC(begin, end, CTF::BLCqTotA, 0);
+    encodeTPC(begin, end, CTF::BLCqTotA, 0, rejectTrackHits);
   } else {
-    encodeTPC(ccl.qTotA, ccl.qTotA + ccl.nAttachedClusters, CTF::BLCqTotA, 0);
+    encodeTPC(ccl.qTotA, ccl.qTotA + ccl.nAttachedClusters, CTF::BLCqTotA, 0, rejectTrackHits);
   }
-  encodeTPC(ccl.qMaxA, ccl.qMaxA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCqMaxA, 0);
+  encodeTPC(ccl.qMaxA, ccl.qMaxA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCqMaxA, 0, rejectTrackHits);
 
-  encodeTPC(ccl.flagsA, ccl.flagsA + ccl.nAttachedClusters, CTF::BLCflagsA, 0);
+  encodeTPC(ccl.flagsA, ccl.flagsA + ccl.nAttachedClusters, CTF::BLCflagsA, 0, rejectTrackHits);
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.rowDiffA, ccl.sliceLegDiffA, ccl.nAttachedClustersReduced,
                                                  ShiftFunctor<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>, CTF::NBitsSliceLegDiff>{});
-    encodeTPC(begin, end, CTF::BLCrowDiffA, 0);
+    encodeTPC(begin, end, CTF::BLCrowDiffA, 0, rejectTrackHitsReduced);
   } else {
-    encodeTPC(ccl.rowDiffA, ccl.rowDiffA + ccl.nAttachedClustersReduced, CTF::BLCrowDiffA, 0);
+    encodeTPC(ccl.rowDiffA, ccl.rowDiffA + ccl.nAttachedClustersReduced, CTF::BLCrowDiffA, 0, rejectTrackHitsReduced);
   }
-  encodeTPC(ccl.sliceLegDiffA, ccl.sliceLegDiffA + (mCombineColumns ? 0 : ccl.nAttachedClustersReduced), CTF::BLCsliceLegDiffA, 0);
+  encodeTPC(ccl.sliceLegDiffA, ccl.sliceLegDiffA + (mCombineColumns ? 0 : ccl.nAttachedClustersReduced), CTF::BLCsliceLegDiffA, 0, rejectTrackHitsReduced);
 
-  encodeTPC(ccl.padResA, ccl.padResA + ccl.nAttachedClustersReduced, CTF::BLCpadResA, 0);
-  encodeTPC(ccl.timeResA, ccl.timeResA + ccl.nAttachedClustersReduced, CTF::BLCtimeResA, 0);
+  encodeTPC(ccl.padResA, ccl.padResA + ccl.nAttachedClustersReduced, CTF::BLCpadResA, 0, rejectTrackHitsReduced);
+  encodeTPC(ccl.timeResA, ccl.timeResA + ccl.nAttachedClustersReduced, CTF::BLCtimeResA, 0, rejectTrackHitsReduced);
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.sigmaPadA, ccl.sigmaTimeA, ccl.nAttachedClusters,
                                                  ShiftFunctor<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>, CTF::NBitsSigmaTime>{});
-    encodeTPC(begin, end, CTF::BLCsigmaPadA, 0);
+    encodeTPC(begin, end, CTF::BLCsigmaPadA, 0, rejectTrackHits);
   } else {
-    encodeTPC(ccl.sigmaPadA, ccl.sigmaPadA + ccl.nAttachedClusters, CTF::BLCsigmaPadA, 0);
+    encodeTPC(ccl.sigmaPadA, ccl.sigmaPadA + ccl.nAttachedClusters, CTF::BLCsigmaPadA, 0, rejectTrackHits);
   }
-  encodeTPC(ccl.sigmaTimeA, ccl.sigmaTimeA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCsigmaTimeA, 0);
+  encodeTPC(ccl.sigmaTimeA, ccl.sigmaTimeA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCsigmaTimeA, 0, rejectTrackHits);
 
-  encodeTPC(ccl.qPtA, ccl.qPtA + ccl.nTracks, CTF::BLCqPtA, 0);
-  encodeTPC(ccl.rowA, ccl.rowA + ccl.nTracks, CTF::BLCrowA, 0);
-  encodeTPC(ccl.sliceA, ccl.sliceA + ccl.nTracks, CTF::BLCsliceA, 0);
-  encodeTPC(ccl.timeA, ccl.timeA + ccl.nTracks, CTF::BLCtimeA, 0);
-  encodeTPC(ccl.padA, ccl.padA + ccl.nTracks, CTF::BLCpadA, 0);
+  encodeTPC(ccl.qPtA, ccl.qPtA + ccl.nTracks, CTF::BLCqPtA, 0, rejectTracks);
+  encodeTPC(ccl.rowA, ccl.rowA + ccl.nTracks, CTF::BLCrowA, 0, rejectTracks);
+  encodeTPC(ccl.sliceA, ccl.sliceA + ccl.nTracks, CTF::BLCsliceA, 0, rejectTracks);
+  encodeTPC(ccl.timeA, ccl.timeA + ccl.nTracks, CTF::BLCtimeA, 0, rejectTracks);
+  encodeTPC(ccl.padA, ccl.padA + ccl.nTracks, CTF::BLCpadA, 0, rejectTracks);
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.qTotU, ccl.qMaxU, ccl.nUnattachedClusters,
                                                  ShiftFunctor<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>, CTF::NBitsQMax>{});
-    encodeTPC(begin, end, CTF::BLCqTotU, 0);
+    encodeTPC(begin, end, CTF::BLCqTotU, 0, rejectHits);
   } else {
-    encodeTPC(ccl.qTotU, ccl.qTotU + ccl.nUnattachedClusters, CTF::BLCqTotU, 0);
+    encodeTPC(ccl.qTotU, ccl.qTotU + ccl.nUnattachedClusters, CTF::BLCqTotU, 0, rejectHits);
   }
-  encodeTPC(ccl.qMaxU, ccl.qMaxU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCqMaxU, 0);
+  encodeTPC(ccl.qMaxU, ccl.qMaxU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCqMaxU, 0, rejectHits);
 
-  encodeTPC(ccl.flagsU, ccl.flagsU + ccl.nUnattachedClusters, CTF::BLCflagsU, 0);
-  encodeTPC(ccl.padDiffU, ccl.padDiffU + ccl.nUnattachedClusters, CTF::BLCpadDiffU, 0);
-  encodeTPC(ccl.timeDiffU, ccl.timeDiffU + ccl.nUnattachedClusters, CTF::BLCtimeDiffU, 0);
+  encodeTPC(ccl.flagsU, ccl.flagsU + ccl.nUnattachedClusters, CTF::BLCflagsU, 0, rejectHits);
+  encodeTPC(cclFiltered.padDiffU, cclFiltered.padDiffU + cclFiltered.nUnattachedClusters, CTF::BLCpadDiffU, 0);
+  encodeTPC(cclFiltered.timeDiffU, cclFiltered.timeDiffU + cclFiltered.nUnattachedClusters, CTF::BLCtimeDiffU, 0);
 
   if (mCombineColumns) {
     const auto [begin, end] = makeInputIterators(ccl.sigmaPadU, ccl.sigmaTimeU, ccl.nUnattachedClusters,
                                                  ShiftFunctor<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>, CTF::NBitsSigmaTime>{});
-    encodeTPC(begin, end, CTF::BLCsigmaPadU, 0);
+    encodeTPC(begin, end, CTF::BLCsigmaPadU, 0, rejectHits);
   } else {
-    encodeTPC(ccl.sigmaPadU, ccl.sigmaPadU + ccl.nUnattachedClusters, CTF::BLCsigmaPadU, 0);
+    encodeTPC(ccl.sigmaPadU, ccl.sigmaPadU + ccl.nUnattachedClusters, CTF::BLCsigmaPadU, 0, rejectHits);
   }
-  encodeTPC(ccl.sigmaTimeU, ccl.sigmaTimeU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCsigmaTimeU, 0);
+  encodeTPC(ccl.sigmaTimeU, ccl.sigmaTimeU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCsigmaTimeU, 0, rejectHits);
 
-  encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0);
+  encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0, rejectTracks);
   encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
   finaliseCTFOutput<CTF>(buff);

@@ -24,6 +24,7 @@
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include "EventVisualisationBase/ConfigurationManager.h"
+#include "DataFormatsParameters/ECSDataAdapters.h"
 #include <TEveManager.h>
 #include <TEveTrack.h>
 #include <TEveTrackPropagator.h>
@@ -117,7 +118,7 @@ void EventManager::displayCurrentEvent()
 
     if (this->mShowDate) {
       multiView->getAnnotationTop()->SetText(
-        TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+        TString::Format("Run %d %s\n%s", dataSource->getRunNumber(), std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(), dataSource->getFileTime().c_str()));
     } else {
       multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
     }
@@ -329,7 +330,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
         return std::hash<float>()(pair.first + 1000.0 * pair.second);
       }
     };
-    std::unordered_map<std::pair<float, float>, int, pair_hash> map; // sum up entries for the same tower
+    std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
       auto key = std::make_pair(calo.getEta(), calo.getPhi());
       map.try_emplace(key, 0);

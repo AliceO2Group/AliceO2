@@ -25,6 +25,7 @@
 #include "TVirtualMCApplication.h"
 #include "TGeant4.h"
 #include "TG4RunConfiguration.h"
+#include "TG4G3Units.h"
 
 #include "SimConfig/G4Params.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
@@ -106,35 +107,39 @@ int main(int argc, char** argv)
 
   std::string line;
   while (std::getline(is, line)) {
+    if (line.empty()) {
+      continue;
+    }
 
     // Save the PDG...
     auto pdg = std::stoi(line);
     checkedIons.push_back(pdg);
     // ...and since we cannot look for isomeres, set the last digit to 0.
     // In that case we will get at least the approximate PDG properties if found in the G4 ion table.
-    line.back() = '0';
-    auto pdgToLookFor = std::stoi(line);
+    auto pdgToLookFor = pdg / 10 * 10;
     auto particle = g4IonTable->GetIon(pdgToLookFor);
     if (!particle) {
       stillUnknown.push_back(pdg);
       continue;
     }
-    auto name = particle->GetParticleName();
-    // but in the end we must add the actual - potentially isomeric - PDG
-    auto ret = pdgDB->AddParticle(name.c_str(), name.c_str(), particle->GetPDGMass(), particle->GetPDGStable(), particle->GetPDGWidth(), particle->GetPDGCharge(), "Ion", pdg);
-    if (ret) {
-      addedIons.push_back(pdg);
+    if (pdgDB->GetParticle(pdg) || pdgDB->GetParticle(pdgToLookFor)) {
+      // here we can look if we have it already
+      continue;
     }
+    auto name = particle->GetParticleName();
+    // add only the ground state for now. If needed, we can take care of isomers later on
+    pdgDB->AddParticle(name.c_str(), name.c_str(), particle->GetPDGMass() / TG4G3Units::Energy(), particle->GetPDGStable(), particle->GetPDGWidth() / TG4G3Units::Energy(), particle->GetPDGCharge() * 3, "Ion", pdgToLookFor);
+    addedIons.push_back(pdgToLookFor);
   }
   is.close();
 
   // remove potential duplicates that came from the input
   removeDuplicates(stillUnknown);
   removeDuplicates(checkedIons);
+  removeDuplicates(addedIons);
 
   std::cout << "Ran over " << checkedIons.size() << " different PDGs"
-            << "\nout of which " << checkedIons.size() - addedIons.size() << " were already defined"
-            << "\nwhile PDG properties of " << addedIons.size() << " were newly extracted."
+            << "\nout of which " << addedIons.size() << " ground states were added."
             << "\nStill unkown (probably originating from event generator) " << stillUnknown.size() << "\n";
   for (auto& it : stillUnknown) {
     std::cout << "  " << it << "\n";

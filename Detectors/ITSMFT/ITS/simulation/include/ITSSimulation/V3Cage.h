@@ -19,7 +19,6 @@
 #include <TGeoManager.h>               // for gGeoManager
 #include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h" // for V11Geometry
-#include "ITSSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoXtru;
 
@@ -41,6 +40,9 @@ class V3Cage : public V11Geometry
  public:
   // Default constructor
   V3Cage();
+
+  // Standard constructor
+  V3Cage(const char* name);
 
   /// Copy constructor
   V3Cage(const V3Cage&) = default;

@@ -15,6 +15,7 @@
 /// @brief  Descriptor of geometrical constraint
 
 #include "Align/GeometricalConstraint.h"
+#include "Align/AlignConfig.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "Align/utils.h"
 #include "Framework/Logger.h"
@@ -54,6 +55,7 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
   // matRel = mPar^-1*mChild
   TGeoHMatrix mPar;
   //
+  const auto& algConf = AlignConfig::Instance();
   // in case of parent assigned use its matrix,
   // otherwise Alice global frame is assumed to be the parent -> Unit matrix
   if (mParent && doJac) {
@@ -105,7 +107,9 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     }
     int cmtStatus = nContCh[ics] > 0 ? kOff : kOn; // do we comment this constraint?
     if (cmtStatus) {
-      LOG(info) << "No contributors to constraint of " << getDOFName(ics) << " of " << getName();
+      if (algConf.verbose > 0) {
+        LOG(info) << "No contributors to constraint of " << getDOFName(ics) << " of " << getName();
+      }
     }
     if (mSigma[ics] > 0) {
       fprintf(conOut, "\n%s%s\t%e\t%e\t%s %s of %s Auto\n", comment[cmtStatus], kKeyConstr[kMeas], 0.0, mSigma[ics],

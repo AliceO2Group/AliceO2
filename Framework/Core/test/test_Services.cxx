@@ -8,6 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <boost/test/tools/old/interface.hpp>
 #define BOOST_TEST_MODULE Test Framework Services
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -94,9 +95,11 @@ struct DummyService {
 
 namespace o2::framework
 {
-static ServiceRegistry::Salt salt_0 =  ServiceRegistry::Salt{ServiceRegistry::Context{0,0}}; 
-static ServiceRegistry::Salt salt_1 =  ServiceRegistry::Salt{ServiceRegistry::Context{1,0}};
-static ServiceRegistry::Salt salt_2 =  ServiceRegistry::Salt{ServiceRegistry::Context{2,0}};
+static ServiceRegistry::Salt salt_0 = ServiceRegistry::Salt{0, 0};
+static ServiceRegistry::Salt salt_1 = ServiceRegistry::Salt{1, 0};
+static ServiceRegistry::Salt salt_2 = ServiceRegistry::Salt{2, 0};
+static ServiceRegistry::Salt salt_3 = ServiceRegistry::Salt{3, 0};
+static ServiceRegistry::Salt salt_1_1 = ServiceRegistry::Salt{1, 1};
 }
 
 BOOST_AUTO_TEST_CASE(TestSerialServices)
@@ -138,9 +141,30 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
   using namespace o2::framework;
   ServiceRegistry registry;
 
-  DummyService t0{1};
+  DeviceState state;
+  fair::mq::ProgOptions options;
+  ServiceSpec spec{.name = "dummy-service",
+                   .uniqueId = CommonServices::simpleServiceId<DummyService>(),
+                   .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+                     // this is needed to check we register it only once
+                     static int i = 1;
+                     return ServiceHandle{TypeIdHelpers::uniqueId<DummyService>(), new DummyService{i++}};
+                   },
+                   .configure = CommonServices::noConfiguration(),
+                   .kind = ServiceKind::Global};
+
+  // If the service was not declared, we should not be able to register it from a stream context.
+  BOOST_CHECK_THROW(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1), RuntimeErrorRef);
+  // Declare the service
+  registry.declareService(spec, state, options, ServiceRegistry::globalDeviceSalt());
+
   /// We register it pretending to be on thread 0
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Global, salt_1);
+  try {
+    registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1);
+  } catch (RuntimeErrorRef e) {
+    std::cout << error_from_ref(e).what << std::endl;
+    BOOST_CHECK(false);
+  }
 
   auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Global));
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Global));
@@ -156,20 +180,45 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   using namespace o2::framework;
   ServiceRegistry registry;
 
-  DummyService t0{0};
   DummyService t1{1};
   DummyService t2{2};
-  /// We register it pretending to be on thread 0
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t0, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{0,0}});
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{1,0}});
-  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{ServiceRegistry::Context{2,0}});
+  DummyService t3{3};
+  DummyService t2_d1{2};
 
-  auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream));
+  ServiceSpec spec{.name = "dummy-service",
+                   .uniqueId = CommonServices::simpleServiceId<DummyService>(),
+                   .init = CommonServices::simpleServiceInit<DummyService, DummyService>(),
+                   .configure = CommonServices::noConfiguration(),
+                   .kind = ServiceKind::Stream};
+
+  DeviceState state;
+  fair::mq::ProgOptions options;
+  // This will raise an exception because we have not declared the service yet.
+  BOOST_CHECK_THROW(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Stream, ServiceRegistry::Salt{1, 0}), RuntimeErrorRef);
+  registry.declareService(spec, state, options, ServiceRegistry::globalDeviceSalt());
+
+  /// We register it pretending to be on thread 0
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t1, ServiceKind::Stream, ServiceRegistry::Salt{1, 0}, "dummy-service1", ServiceRegistry::SpecIndex{0});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2, ServiceKind::Stream, ServiceRegistry::Salt{2, 0}, "dummy-service2", ServiceRegistry::SpecIndex{0});
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t3, ServiceKind::Stream, ServiceRegistry::Salt{3, 0}, "dummy-service3", ServiceRegistry::SpecIndex{0});
+
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Stream));
   auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Stream));
-  BOOST_CHECK_EQUAL(tt0->threadId, 0);
+  auto tt3 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_3, ServiceKind::Stream));
   BOOST_CHECK_EQUAL(tt1->threadId, 1);
   BOOST_CHECK_EQUAL(tt2->threadId, 2);
+  BOOST_CHECK_EQUAL(tt3->threadId, 3);
+  // Check that Context{1,1} throws, because we registerd it for a different data processor.
+  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
+
+  // Check that Context{0,0} throws.
+  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream), RuntimeErrorRef);
+  registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2_d1, ServiceKind::Stream, ServiceRegistry::Salt{3, 1}, "dummy-service", ServiceRegistry::SpecIndex{0});
+
+  auto tt2_dp1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, ServiceRegistry::Salt{3, 1}, ServiceKind::Stream));
+  BOOST_CHECK_EQUAL(tt2_dp1->threadId, 2);
+
+  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(TestServiceRegistryCtor)

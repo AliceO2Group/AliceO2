@@ -11,7 +11,7 @@
 
 set(MODULE GPUTracking)
 
-# set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -Og") # to uncomment if needed, tired of typing this...
+# set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
 
 function(create_binary_resource RESOURCE OUTPUTFILE)
   get_filename_component(input-file-abs ${RESOURCE} ABSOLUTE)
@@ -158,6 +158,8 @@ set(HDRS_INSTALL
     DataTypes/GPUNewCalibValues.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
+    DataCompression/TPCClusterDecompressor.inc
+    DataCompression/GPUTPCCompressionKernels.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
     Global/GPUChainTrackingDefs.h

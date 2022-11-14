@@ -130,19 +130,20 @@ bool AlignmentTrack::calcResidDeriv(double* params)
   //
   int np = getNPoints();
   //
+  const auto& algConf = AlignConfig::Instance();
   // collision track or cosmic lower leg
   if (!calcResidDeriv(params, mNeedInv[0], getInnerPointID(), 0)) {
-#if DEBUG > 3
-    LOG(warn) << "Failed on derivatives calculation 0";
-#endif
+    if (algConf.verbose > 2) {
+      LOG(warn) << "Failed on derivatives calculation 0";
+    }
     return false;
   }
   //
   if (isCosmic()) { // cosmic upper leg
     if (!calcResidDeriv(params, mNeedInv[1], getInnerPointID() + 1, np - 1)) {
-#if DEBUG > 3
-      LOG(warn) << "Failed on derivatives calculation 0";
-#endif
+      if (algConf.verbose > 2) {
+        LOG(warn) << "Failed on derivatives calculation 0";
+      }
     }
   }
   //
@@ -166,7 +167,7 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
   // The derivatives are calculated using Richardson extrapolation
   // (like http://root.cern.ch/root/html/ROOT__Math__RichardsonDerivator.html)
   //
-  const auto& cnf = AlignConfig::Instance();
+  const auto& algConf = AlignConfig::Instance();
   trackParam_t probD[kNRDClones]; // use this to vary supplied param for derivative calculation
   double varDelta[kRichardsonN];
   const int kInvElem[kNKinParBON] = {-1, 1, 1, -1, -1};
@@ -181,13 +182,16 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
     delta[kParQ2Pt] = kDelta[kParQ2Pt] * Abs(getQ2Pt());
   }
   //
-  int pinc;
+  int pinc, signELoss = 0; // RS Validate for cosmic. Propagation is done from inner point to outer one:
+  // energy loss is applied for collision tracks and cosmic lower leg, compensated for cosmic upper leg
   if (pTo > pFrom) { // fit in points decreasing order: cosmics upper leg
     pTo++;
     pinc = 1;
+    signELoss = 1; // eloss is corrected
   } else { // fit in points increasing order: collision track or cosmics lower leg
     pTo--;
     pinc = -1;
+    signELoss = -1; // eloss is applied
   }
 
   // 1) derivative wrt trackParam_t parameters
@@ -207,12 +211,12 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
       del *= 0.5;
     }
     // propagate varied tracks to each point
-    for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction, energy loss is compensated (signCorr = -1)
+    for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction
       AlignmentPoint* pnt = getPoint(ip);
-      if (!propagateParamToPoint(probD, kNRDClones, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, invert ? 1 : -1)) {
+      // we propagate w/o mat. corrections, they will be accounted in applyMatCorr
+      if (!propagateParamToPoint(probD, kNRDClones, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, signELoss)) {
         return false;
       }
-      //      if (pnt->containsMaterial()) { // apply material corrections
       if (!applyMatCorr(probD, kNRDClones, extendedParams, pnt)) {
         return false;
       }
@@ -231,10 +235,10 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
     AlignmentPoint* pnt = getPoint(ip);
     // global derivatives at this point
     if (pnt->containsMeasurement() && !calcResidDerivGlo(pnt)) {
-#if DEBUG > 3
-      LOGF(warn, "Failed on global derivatives calculation at point %d", ip);
-      pnt->print(AlignmentPoint::kMeasurementBit);
-#endif
+      if (algConf.verbose > 2) {
+        LOGF(warn, "Failed on global derivatives calculation at point %d", ip);
+        pnt->print(AlignmentPoint::kMeasurementBit);
+      }
       return false;
     }
     //
@@ -297,7 +301,7 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
 
         // printf("  DerFor:%d ",jp); pntJ->print();
 
-        if (!propagateParamToPoint(probD, kNRDClones, pntJ, cnf.maxStep, cnf.maxSnp, cnf.matCorType, invert ? 1 : -1)) {
+        if (!propagateParamToPoint(probD, kNRDClones, pntJ, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, signELoss)) {
           return false;
         }
         //
@@ -330,7 +334,7 @@ bool AlignmentTrack::calcResidDerivGlo(AlignmentPoint* pnt)
   const AlignableVolume* vol = sens;
   // precalculated track parameters
   double snp = pnt->getTrParamWSA(kParSnp), tgl = pnt->getTrParamWSA(kParTgl);
-  // precalculate track slopes to account tracking X veriation
+  // precalculate track slopes to account tracking X variation
   // these are coeffs to translate deltaX of the point to deltaY and deltaZ of track
   double cspi = 1. / Sqrt((1 - snp) * (1 + snp)), slpY = snp * cspi, slpZ = tgl * cspi;
   //
@@ -413,19 +417,20 @@ bool AlignmentTrack::calcResiduals(const double* extendedParams)
   mChi2 = 0;
   mNDF = 0;
   //
+  const auto& algConf = AlignConfig::Instance();
   // collision track or cosmic lower leg
   if (!calcResiduals(extendedParams, mNeedInv[0], getInnerPointID(), 0)) {
-#if DEBUG > 3
-    LOG(warn) << "Failed on residuals calculation 0";
-#endif
+    if (algConf.verbose > 2) {
+      LOG(warn) << "Failed on residuals calculation 0";
+    }
     return false;
   }
   //
   if (isCosmic()) { // cosmic upper leg
     if (!calcResiduals(extendedParams, mNeedInv[1], getInnerPointID() + 1, np - 1)) {
-#if DEBUG > 3
-      LOG(warn) << "Failed on residuals calculation 1";
-#endif
+      if (algConf.verbose > 2) {
+        LOG(warn) << "Failed on residuals calculation 1";
+      }
       return false;
     }
   }
@@ -453,32 +458,32 @@ bool AlignmentTrack::calcResiduals(const double* extendedParams, bool invert, in
   if (invert) {
     probe.invert();
   }
-  int pinc;
+  int pinc, signELoss = 0; // RS Validate for cosmic. Propagation is done from inner point to outer one:
+  // energy loss is applied for collision tracks and cosmic lower leg, compensated for cosmic upper leg
   if (pTo > pFrom) { // fit in points decreasing order: cosmics upper leg
     pTo++;
     pinc = 1;
+    signELoss = 1; // eloss is corrected
   } else { // fit in points increasing order: collision track or cosmics lower leg
     pTo--;
     pinc = -1;
+    signELoss = -1; // eloss is applied
   }
   //
-  const auto& cnf = AlignConfig::Instance();
-  for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction
+  const auto& algConf = AlignConfig::Instance();
+  for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction:
     AlignmentPoint* pnt = getPoint(ip);
-    if (!propagateParamToPoint(probe, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, invert ? 1 : -1)) {
+    if (!propagateParamToPoint(probe, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, signELoss)) {
       return false;
     }
     //
     // store the current track kinematics at the point BEFORE applying eventual material
     // corrections. This kinematics will be later varied around supplied parameters (in the calcResidDeriv)
     pnt->setTrParamWSB(probe.getParams());
-    //
     // account for materials
-    //    if (pnt->ContainsMaterial()) { // apply material corrections
     if (!applyMatCorr(probe, extendedParams, pnt)) {
       return false;
     }
-    //    }
     pnt->setTrParamWSA(probe.getParams());
     //
     if (pnt->containsMeasurement()) { // need to calculate residuals in the frame where errors are orthogonal
@@ -507,13 +512,14 @@ bool AlignmentTrack::propagateParamToPoint(trackParam_t* tr, int nTr, const Alig
   // Propagate set of tracks to the point  (only parameters, no error matrix)
   // VECTORIZE this
   //
+  const auto& algConf = AlignConfig::Instance();
   for (int itr = nTr; itr--;) {
     if (!propagateParamToPoint(tr[itr], pnt, maxStep, maxSnp, mt, signCorr)) {
-#if DEBUG > 3
-      LOG(error) << "Failed on clone " << itr << " propagation ";
-      tr[itr].print();
-      pnt->print(AlignmentPoint::kMeasurementBit | AlignmentPoint::kMaterialBit);
-#endif
+      if (algConf.verbose > 2) {
+        LOG(error) << "Failed on clone " << itr << " propagation ";
+        tr[itr].print();
+        pnt->print(AlignmentPoint::kMeasurementBit | AlignmentPoint::kMaterialBit);
+      }
       return false;
     }
   }
@@ -537,14 +543,14 @@ bool AlignmentTrack::propagateToPoint(trackParam_t& tr, const AlignmentPoint* pn
 
 bool AlignmentTrack::propagate(trackParam_t& track, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr)
 {
-  double dx = pnt->getXTracking() - track.getX();
   if (signCorr == 0) { // auto
     // calculate the sign of the energy loss correction and ensure the upper leg of cosmics is calculated correctly.
+    double dx = pnt->getXTracking() - track.getX();
     int dir = dx > 0.f ? 1 : -1;
-    signCorr = pnt->isInvDir() ? dir : -dir; // upper leg of a cosmic -> inward facing track or normal tracl
+    signCorr = pnt->isInvDir() ? dir : -dir; // propagation along the track direction should have signCorr=-1
   }
   // do propagation in at least 2 step to reveal eventual effect of MS on the position
-  return PropagatorD::Instance()->propagateToAlphaX(track, pnt->getAlphaSens(), pnt->getXTracking(), pnt->getUseBzOnly(), maxSnp, std::min(maxStep, std::abs(dx * 0.5)), mt, tLT, signCorr);
+  return PropagatorD::Instance()->propagateToAlphaX(track, pnt->getAlphaSens(), pnt->getXTracking(), pnt->getUseBzOnly(), maxSnp, maxStep, 2, mt, tLT, signCorr);
 }
 
 /*
@@ -625,19 +631,18 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corr)
   // Modify track param (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
   // Note: corr contains delta to track frame, NOT in diagonalized one
-  const double kMaxSnp = 0.95;
-
   const double snp = trPar.getSnp() + corr[kParSnp];
-  if (Abs(snp) > kMaxSnp) {
-#if DEBUG > 3
-    LOG(error) << "Snp is too large: " << snp;
-    printf("DeltaPar: ");
-    for (int i = 0; i < kNKinParBON; i++) {
-      printf("%+.3e ", corr[i]);
+  const auto& algConf = AlignConfig::Instance();
+  if (Abs(snp) > algConf.maxSnp) {
+    if (algConf.verbose > 2) {
+      LOG(error) << "Snp is too large: " << snp;
+      printf("DeltaPar: ");
+      for (int i = 0; i < kNKinParBON; i++) {
+        printf("%+.3e ", corr[i]);
+      }
+      printf("\n");
+      trPar.print();
     }
-    printf("\n");
-    trPar.print();
-#endif
     return false;
   }
 
@@ -654,8 +659,9 @@ bool AlignmentTrack::applyMatCorr(trackParam_t* trSet, int ntr, const double* co
   // Note: corrDiag contain delta to track parameters rotated by the matrix DIAGONALIZING ITS
   // COVARIANCE MATRIX
   // transform parameters from the frame diagonalizing the errors to track frame
+  const auto& algConf = AlignConfig::Instance();
   double corr[kNKinParBON] = {0};
-  if (pnt->containsMaterial()) { // are there free params from meterials?
+  if (pnt->containsMaterial()) { // are there free params from materials?
     int nCorrPar = pnt->getNMatPar();
     const double* corrDiagP = &corrDiag[pnt->getMaxLocVarID() - nCorrPar]; // material corrections for this point start here
     pnt->unDiagMatCorr(corrDiagP, corr);
@@ -671,10 +677,10 @@ bool AlignmentTrack::applyMatCorr(trackParam_t* trSet, int ntr, const double* co
   //
   for (int itr = ntr; itr--;) {
     if (!applyMatCorr(trSet[itr], corr)) {
-#if DEBUG > 3
-      LOG(error) << "Failed on clone %d materials" << itr;
-      trSet[itr].print();
-#endif
+      if (algConf.verbose > 2) {
+        LOGP(error, "Failed on clone {} materials", itr);
+        trSet[itr].print();
+      }
       return false;
     }
   }
@@ -845,31 +851,31 @@ bool AlignmentTrack::iniFit()
   // and from outer point of lower leg to outer point of upper leg for the cosmic track
   //
   // the fit will always start from the outgoing track in inward direction
+  const auto& algConf = AlignConfig::Instance();
   if (!fitLeg(trc, 0, getInnerPointID(), mNeedInv[0])) {
-#if DEBUG > 3
-    LOG(warn) << "Failed fitLeg 0";
-    trc.print();
-#endif
+    if (algConf.verbose > 2) {
+      LOG(warn) << "Failed fitLeg 0";
+      trc.print();
+    }
     return false; // collision track or cosmic lower leg
   }
   //
   //  printf("Lower leg: %d %d\n",0,getInnerPointID()); trc.print();
   //
-  const auto& cnf = AlignConfig::Instance();
   if (isCosmic()) {
     mChi2CosmDn = mChi2;
     trackParam_t trcU = trc;
     if (!fitLeg(trcU, getNPoints() - 1, getInnerPointID() + 1, mNeedInv[1])) { //fit upper leg of cosmic track
-#if DEBUG > 3
-      LOG(warn) << "Failed fitLeg 0";
-      trc.print();
-#endif
+      if (algConf.verbose > 2) {
+        LOG(warn) << "Failed fitLeg 0";
+        trc.print();
+      }
       return false; // collision track or cosmic lower leg
     }
     //
     // propagate to reference point, which is the inner point of lower leg
     const AlignmentPoint* refP = getPoint(getInnerPointID());
-    if (!propagateToPoint(trcU, refP, cnf.maxStep, cnf.maxSnp, cnf.matCorType, nullptr, 1)) {
+    if (!propagateToPoint(trcU, refP, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, -1)) { // moving along the track: energy is lost
       return false;
     }
     //
@@ -899,10 +905,13 @@ bool AlignmentTrack::combineTracks(trackParam_t& trcL, const trackParam_t& trcU)
   // CL' = CL - K*CL
   // vL' = vL + K(vU-vL)
   //
+  const auto& algConf = AlignConfig::Instance();
   if (Abs(trcL.getX() - trcU.getX()) > TinyDist || Abs(trcL.getAlpha() - trcU.getAlpha()) > TinyDist) {
-    LOG(error) << "Tracks must be defined at same reference X and Alpha";
-    trcL.print();
-    trcU.print();
+    if (algConf.verbose > 2) {
+      LOG(error) << "Tracks must be defined at same reference X and Alpha";
+      trcL.print();
+      trcU.print();
+    }
     return false;
   }
   //
@@ -927,10 +936,10 @@ bool AlignmentTrack::combineTracks(trackParam_t& trcL, const trackParam_t& trcU)
   }
   matCLplCU.Invert(); // S^-1 = (Cl + Cu)^-1
   if (!matCLplCU.IsValid()) {
-#if DEBUG > 3
-    LOG(error) << "Failed to invert summed cov.matrix of cosmic track";
-    matCLplCU.Print();
-#endif
+    if (algConf.verbose > 2) {
+      LOG(error) << "Failed to invert summed cov.matrix of cosmic track";
+      matCLplCU.Print();
+    }
     return false; // inversion failed
   }
   TMatrixD matK(matCL, TMatrixD::kMult, matCLplCU); // gain K = Cl*(Cl+Cu)^-1
@@ -964,7 +973,7 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
   // the fit will always start from the outgoing track in inward direction (i.e. if cosmics - bottom leg)
   const int kMinNStep = 3;
   const double kErrSpace = 50.;
-  const double kErrAng = 0.7;
+  const double kErrAng = 0.8;
   const double kErrRelPtI = 1.;
   const covMat_t kIniErr{// initial error
                          kErrSpace * kErrSpace,
@@ -974,9 +983,11 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
                          0, 0, 0, 0, kErrRelPtI * kErrRelPtI};
   //
   static int count = 0;
-  LOGP(info, "FIT COUNT {}", count++);
+  const auto& algConf = AlignConfig::Instance();
+  if (algConf.verbose > 2) {
+    LOGP(info, "FIT COUNT {}", count++);
+  }
   // prepare seed at outer point
-  const auto& cnf = AlignConfig::Instance();
   AlignmentPoint* p0 = getPoint(pFrom);
   double phi = trc.getPhi(), alp = p0->getAlphaSens();
   math_utils::detail::bringTo02Pi(phi);
@@ -986,33 +997,37 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
     inv = true;
     trc.invert();
   }
-  if (!propagateParamToPoint(trc, p0, cnf.maxStep, cnf.maxSnp, MatCorrType::USEMatCorrNONE, inv ? 1 : -1)) {
-#if DEBUG > 3
-    LOGF(warn, "Failed on PropagateParamOnlyTo to %f", p0->getXTracking());
-    trc.print();
-#endif
+  // Fit is done from outward to inward: normally against the track direction (hence e.loss is compensated) inless inversion is requested (cosmic upper leg)
+  if (!propagateParamToPoint(trc, p0, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), -1)) {
+    if (algConf.verbose > 2) {
+      LOGF(warn, "Failed on PropagateParamOnlyTo to %f", p0->getXTracking());
+      trc.print();
+    }
     return false;
   }
   trc.setCov(kIniErr);
-  trc.setCov(trc.getQ2Pt() * trc.getQ2Pt(), 4, 4); // lowest diagonal element (Q2Pt2)
+  trc.setCov(16 * trc.getQ2Pt() * trc.getQ2Pt(), 4, 4); // lowest diagonal element (Q2Pt2)
   //
-  int pinc;
+  int pinc, signELoss = 0; // RS Validate for cosmic. Propagation is done from inner point to outer one:
+  // energy loss is applied for collision tracks and cosmic lower leg, compensated for cosmic upper leg
   if (pTo > pFrom) { // fit in points increasing order: collision track or cosmics lower leg
     pTo++;
     pinc = 1;
+    signELoss = 1; // e.loss is compensated
   } else { // fit in points decreasing order: cosmics upper leg
     pTo--;
     pinc = -1;
+    signELoss = -1; // e.loass is applied
   }
   //
   int pntCnt = 0;
   for (int ip = pFrom; ip != pTo; ip += pinc) { // inward fit from outer point
     AlignmentPoint* pnt = getPoint(ip);
-    if (!propagateToPoint(trc, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, nullptr, inv ? 1 : -1)) { // against track direction : e.loss is compensated
-#if DEBUG > 3
-      LOGF(warn, "Failed on propagateToPoint %d (%d : %d) %f", ip, pFrom, pTo, pnt->getXTracking());
-      trc.print();
-#endif
+    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // against track direction : e.loss is compensated
+      if (algConf.verbose > 2) {
+        LOGF(warn, "Failed on propagateToPoint %d (%d : %d) %f", ip, pFrom, pTo, pnt->getXTracking());
+        trc.print();
+      }
       return false;
     }
     if (pnt->containsMeasurement()) {
@@ -1022,29 +1037,24 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
       const double* yz = pnt->getYZTracking();
       const double* errYZ = pnt->getYZErrTracking();
       double chi = trc.getPredictedChi2(yz, errYZ);
-      //printf("***>> fitleg-> Y: %+e %+e / Z: %+e %+e -> Chi2: %e | %+e %+e\n",yz[0],trc.GetY(),yz[1],trc.GetZ(),chi,
-      //  trc.Phi(),trc.GetAlpha());
-      //      printf("Before update at %e %e\n",yz[0],yz[1]); trc.print();
       if (!trc.update(yz, errYZ)) {
-#if DEBUG > 3
-        LOGF(warn, "Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
-        trc.print();
-#endif
+        if (algConf.verbose > 2) {
+          LOGF(warn, "Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
+          trc.print();
+        }
         return false;
       }
       mChi2 += chi;
       pntCnt++;
-      //      printf("After update: (%f) -> %f\n",chi,mChi2); trc.print();
     }
   }
   //
   if (inv) {
-    //    printf("Before inverting back "); trc.print();
     trc.invert();
   }
-#if DEBUG > 3
-  LOGP(info, "Fitted leg with {} points, chi2: {}", pntCnt, mChi2);
-#endif
+  if (algConf.verbose > 2) {
+    LOGP(info, "Fitted leg with {} points, chi2: {}", pntCnt, mChi2);
+  }
   //
   return true;
 }
@@ -1069,11 +1079,11 @@ bool AlignmentTrack::residKalman()
   //  const double kOverShootX = 5;
   //
   trackParam_t trc = *this;
-  const auto& cnf = AlignConfig::Instance();
+  const auto& algConf = AlignConfig::Instance();
   int pID = 0, nPnt = getNPoints();
   AlignmentPoint* pnt = nullptr;
   // get 1st measured point
-  while (pID < nPnt && !(pnt = getPoint(pID))->containsMeasurement()) {
+  while (pID < nPnt && !(pnt = getPoint(pID))->containsMeasurement()) { // points are ordered from outward to inward
     pID++;
   }
   if (!pnt) {
@@ -1087,13 +1097,13 @@ bool AlignmentTrack::residKalman()
     inv = true;
     trc.invert();
   }
-  // prepare track seed at 1st valid point
-  if (!propagateParamToPoint(trc, pnt, cnf.maxStep, cnf.maxSnp, MatCorrType::USEMatCorrNONE, 1)) {
-#if DEBUG > 3
-    LOG(warn) << "Failed on propagateParamToPoint";
-    trc.print();
-    pnt->print(AlignmentPoint::kMeasurementBit);
-#endif
+  // prepare track seed at 1st outermost valid point
+  if (!propagateParamToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, 1)) {
+    if (algConf.verbose > 2) {
+      LOG(warn) << "Failed on propagateParamToPoint";
+      trc.print();
+      pnt->print(AlignmentPoint::kMeasurementBit);
+    }
     return false;
   }
   //
@@ -1103,15 +1113,14 @@ bool AlignmentTrack::residKalman()
   //
   double chifwd = 0, chibwd = 0;
   // inward fit
-  for (int ip = 0; ip < nPnt; ip++) {
+  int signELoss = 1; // normally inward fit goes against track direction: eloss is compensated. // RS Check for cosmic
+  for (int ip = pID; ip < nPnt; ip++) {
     pnt = getPoint(ip);
     if (pnt->isInvDir() != inv) { // crossing point where the track should be inverted?
       trc.invert();
       inv = !inv;
     }
-    //    printf("*** ResidKalm %d (%d %d)\n",ip,0,nPnt);
-    //    printf("Before propagate: "); trc.print();
-    if (!propagateToPoint(trc, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, nullptr, inv ? 1 : -1)) {
+    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) {
       return false;
     }
     if (!pnt->containsMeasurement()) {
@@ -1128,29 +1137,29 @@ bool AlignmentTrack::residKalman()
     ws[4] = trc.getSigmaZ2();
     double chi = trc.getPredictedChi2(yz, errYZ);
     if (!trc.update(yz, errYZ)) {
-#if DEBUG > 3
-      LOGF(warn, "Failed on Inward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
-      trc.print();
-#endif
+      if (algConf.verbose > 2) {
+        LOGF(warn, "Failed on Inward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
+        trc.print();
+      }
       return false;
     }
     //    printf(">>Aft ");trc.print();
     chifwd += chi;
-    //printf("KLM After update: (%f) -> %f\n",chi,chifwd);   trc.print();
+    //    printf("KLM After update: (%f) -> %f\n",chi,chifwd);   trc.print();
   }
   //
   // outward fit
   trc.setCov(kIniErr);
   const double outwardQ2Pt2 = trc.getCovarElem(4, 4) * trc.getQ2Pt() * trc.getQ2Pt();
   trc.setCov(outwardQ2Pt2, 4, 4); // lowest diagonal element (Q2Pt2)
-
+  signELoss = -1;                 // normally outward fit goes along track direction: eloss is applied. // RS Check for cosmic
   for (int ip = nPnt; ip--;) {
     pnt = getPoint(ip);
     if (pnt->isInvDir() != inv) { // crossing point where the track should be inverted?
       trc.invert();
       inv = !inv;
     }
-    if (!propagateToPoint(trc, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, nullptr, inv ? -1 : 1)) { // we are going along track direction, e.loss is applied
+    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), nullptr, signELoss)) { // we are going along track direction, e.loss is applied
       return false;
     }
     if (!pnt->containsMeasurement()) {
@@ -1169,10 +1178,10 @@ bool AlignmentTrack::residKalman()
     //    printf("<< OUT%d (%9d): %+.2e %+.2e | %+.2e %+.2e %+.2e %+.2e %+.2e | %.2e %d \n",ip,pnt->getSensor()->getInternalID(),yz[0],yz[1], ws[0],ws[1],ws[2],ws[3],ws[4],chi,inv);
     //    printf("<<Bef ");    trc.print();
     if (!trc.update(yz, errYZ)) {
-#if DEBUG > 3
-      LOGF(warn, "Failed on Outward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
-      trc.print();
-#endif
+      if (algConf.verbose > 2) {
+        LOGF(warn, "Failed on Outward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
+        trc.print();
+      }
       return false;
     }
     chibwd += chi;
@@ -1223,16 +1232,15 @@ bool AlignmentTrack::processMaterials()
 {
   // attach material effect info to alignment points
   trackParam_t trc = *this;
-
-  // collision track or cosmic lower leg: move along track direction from last (middle for cosmic lower leg)
-  // point (inner) to 1st one (outer)
+  const auto& algConf = AlignConfig::Instance();
+  // collision track or cosmic lower leg: move along track direction from last (middle for cosmic lower leg) point (inner) to 1st one (outer)
   if (mNeedInv[0]) {
     trc.invert();
   } // track needs to be inverted ? (should be for upper leg)
   if (!processMaterials(trc, getInnerPointID(), 0)) {
-#if DEBUG > 3
-    LOG(error) << "Failed to process materials for leg along the track";
-#endif
+    if (algConf.verbose > 2) {
+      LOG(error) << "Failed to process materials for leg along the track";
+    }
     return false;
   }
   if (isCosmic()) {
@@ -1284,16 +1292,18 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
   double dpar[5] = {0};
   covMat_t dcov{0};
   matTL.setTimeNotNeeded();
-  const auto& cnf = AlignConfig::Instance();
+  const auto& algConf = AlignConfig::Instance();
   ;
   //
-  int pinc;
-  if (pTo > pFrom) { // fit in points decreasing order: cosmics upper leg
+  int pinc, signELoss = 0;
+  if (pTo > pFrom) { // fit inward: cosmics upper leg
     pTo++;
     pinc = 1;
-  } else { // fit in points increasing order: collision track or cosmics lower leg
+    signELoss = 1; // against the track direction, eloss is applied (RS Check for cosmic)
+  } else {         // fit outward collision track or cosmics lower leg: along the track direction:
     pTo--;
     pinc = -1;
+    signELoss = -1; // eloss is applied
   }
   //
   for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction
@@ -1303,23 +1313,23 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
     //
     matTL.clearFast();
     //    printf("-> ProcMat %d (%d->%d)\n",ip,pFrom,pTo);
-    if (!propagateToPoint(trc, pnt, cnf.maxStep, cnf.maxSnp, cnf.matCorType, &matTL, -1)) { // with material corrections
-#if DEBUG > 3
-      LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
-      trc.print();
-      pnt->print(AlignmentPoint::kMeasurementBit);
-#endif
+    if (!propagateToPoint(trc, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), &matTL, signELoss)) { // with material corrections
+      if (algConf.verbose > 2) {
+        LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
+        trc.print();
+        pnt->print(AlignmentPoint::kMeasurementBit);
+      }
       return false;
     }
     //
     // is there enough material to consider the point as a scatterer?
-    bool hasMaterial = matTL.getX2X0() * Abs(trc.getQ2Pt()) > cnf.minX2X0Pt2Account;
-    if (!propagateToPoint(tr0, pnt, cnf.maxStep, cnf.maxSnp, MatCorrType::USEMatCorrNONE, nullptr, -1)) { // no material corrections
-#if DEBUG > 3
-      LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
-      tr0.print();
-      pnt->print(AlignmentPoint::kMeasurementBit);
-#endif
+    bool hasMaterial = matTL.getX2X0() * Abs(trc.getQ2Pt()) > algConf.minX2X0Pt2Account;
+    if (!propagateToPoint(tr0, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, nullptr, signELoss)) { // no material corrections
+      if (algConf.verbose > 2) {
+        LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
+        tr0.print();
+        pnt->print(AlignmentPoint::kMeasurementBit);
+      }
       return false;
     }
     // the difference between the params, covariance of tracks with and  w/o material accounting gives
@@ -1356,11 +1366,11 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
         TMatrixDSymEigen matDiag(matCov); // find eigenvectors
         const TMatrixD& matEVec = matDiag.GetEigenVectors();
         if (!matEVec.IsValid()) {
-#if DEBUG > 3
-          LOG(error) << "Failed to diagonalize covariance of material correction";
-          matCov.Print();
-          return false;
-#endif
+          if (algConf.verbose > 2) {
+            LOG(error) << "Failed to diagonalize covariance of material correction";
+            matCov.Print();
+            return false;
+          }
         }
         pnt->setMatCovDiagonalizationMatrix(matEVec); // store diagonalization matrix
         pnt->setMatCovDiag(matDiag.GetEigenValues()); // store E.Values: diagonalized cov.matrix
@@ -1375,10 +1385,10 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
       const double* yz = pnt->getYZTracking();
       const double* errYZ = pnt->getYZErrTracking();
       if (!trc.update(yz, errYZ)) {
-#if DEBUG > 3
-        LOGF(warn, "Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
-        trc.print();
-#endif
+        if (algConf.verbose > 2) {
+          LOGF(warn, "Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
+          trc.print();
+        }
         return false;
       }
       //

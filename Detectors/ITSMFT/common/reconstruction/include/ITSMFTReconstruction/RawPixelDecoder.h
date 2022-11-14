@@ -36,7 +36,7 @@ namespace framework
 {
 class InputRecord;
 class TimingInfo;
-}
+} // namespace framework
 
 namespace itsmft
 {
@@ -119,6 +119,8 @@ class RawPixelDecoder final : public PixelReader
     int entry = -1;
   };
 
+  uint16_t getSquashingDepth() { return 0; }
+
  private:
   void setupLinks(o2::framework::InputRecord& inputs);
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }
@@ -128,22 +130,22 @@ class RawPixelDecoder final : public PixelReader
 
   static constexpr uint16_t NORUDECODED = 0xffff; // this must be > than max N RUs
 
-  std::vector<GBTLink> mGBTLinks;                           // active links pool
-  std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID; // link subspec to link entry in the pool mapping
-  std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
-  std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
-  std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
-  std::vector<PhysTrigger> mExtTriggers;                    // external triggers
-  std::string mSelfName{};                                  // self name
-  std::string mRawDumpDirectory;                            // destination directory for dumps
-  header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
+  std::vector<GBTLink> mGBTLinks;                                                     // active links pool
+  std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID;                           // link subspec to link entry in the pool mapping
+  std::vector<RUDecodeData> mRUDecodeVec;                                             // set of active RUs
+  std::array<short, Mapping::getNRUs()> mRUEntry;                                     // entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<ChipPixelData*> mOrderedChipsPtr;                                       // special ordering helper used for the MFT (its chipID is not contiguous in RU)
+  std::vector<PhysTrigger> mExtTriggers;                                              // external triggers
+  std::string mSelfName{};                                                            // self name
+  std::string mRawDumpDirectory;                                                      // destination directory for dumps
+  header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid;                // alternative user-provided data origin to pick
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
-  uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
-  int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
-  Mapping mMAP;                                 // chip mapping
-  bool mFillCalibData = false;                  // request to fill calib data from GBT
+  uint16_t mCurRUDecodeID = NORUDECODED;                                              // index of currently processed RUDecode container
+  int mLastReadChipID = -1;                                                           // chip ID returned by previous getNextChipData call, used for ordering checks
+  Mapping mMAP;                                                                       // chip mapping
+  bool mFillCalibData = false;                                                        // request to fill calib data from GBT
   int mVerbosity = 0;
-  int mNThreads = 1; // number of decoding threads
+  int mNThreads = 1;                            // number of decoding threads
   GBTLink::Format mFormat = GBTLink::NewFormat; // ITS Data Format (old: 1 ROF per CRU page)
   // statistics
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?

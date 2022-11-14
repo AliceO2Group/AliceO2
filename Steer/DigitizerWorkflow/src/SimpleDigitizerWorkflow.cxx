@@ -19,6 +19,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/InputSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -79,7 +80,7 @@
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 
-//for MUON MCH
+// for MUON MCH
 #include "MCHDigitizerSpec.h"
 #include "MCHDigitWriterSpec.h"
 
@@ -112,6 +113,7 @@
 #include <unistd.h> // for getppid
 #include <type_traits>
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -191,6 +193,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for FT0
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+
+  // option to use/not use CCDB for EMCAL
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-emc", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -645,9 +650,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-emc");
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the EMCal digit writer
     writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
@@ -690,12 +696,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  //add MUON MCH
+  // add MUON MCH
   if (isEnabled(o2::detectors::DetID::MCH)) {
     detList.emplace_back(o2::detectors::DetID::MCH);
-    //connect the MUON MCH digitization
+    // connect the MUON MCH digitization
     digitizerSpecs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
-    //connect the MUON MCH digit writer
+    // connect the MUON MCH digit writer
     writerSpecs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
   }
 
@@ -762,6 +768,26 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     for (auto& s : remaining) {
       specs.push_back(s);
     }
+  }
+
+  // For reasons of offering homegenous behaviour (consistent options to outside scripts),
+  // we require that at least one of the devices above listens to the DPL CCDB fetcher.
+  // Verify this or insert a dummy channel in one of the devices. (This cannot be done in the SimReader
+  // as the SimReader is the source device injecting the timing information).
+  // In future this code can serve as a check that all digitizers access CCDB via the DPL fetcher.
+  bool haveCCDBInputSpec = false;
+  for (auto spec : specs) {
+    for (auto in : spec.inputs) {
+      if (in.lifetime == Lifetime::Condition) {
+        haveCCDBInputSpec = true;
+        break;
+      }
+    }
+  }
+  if (!haveCCDBInputSpec && specs.size() > 0) {
+    LOG(info) << "No one uses DPL CCDB .. injecting a dummy CCDB query into " << specs.back().name;
+    specs.back().inputs.emplace_back("_dummyOrbitReset", "CTP", "ORBITRESET", 0, Lifetime::Condition,
+                                     ccdbParamSpec("CTP/Calib/OrbitReset"));
   }
 
   // The SIM Reader. NEEDS TO BE LAST

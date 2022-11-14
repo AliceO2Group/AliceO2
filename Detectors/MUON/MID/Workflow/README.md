@@ -159,10 +159,13 @@ In this case, the workflow will produce one output per link, which is called: `r
 
 ## MID calibration
 
-This workflow checks the fired strips in calibration events (when only noisy strips are fired) and during FET events (where all strips alive should fired).
-Scalers are filled for the noisy and dead channels, respectively.
-The workflow then compares the number of times a noisy channel was fired (or the number of times a channel was dead) to the total number of calibration triggers analysed.
-If the fraction is larger than a configurable threshold, a mask is produced to accounts for noisy and dead channels.
+This workflow is meant to be used in dedicated calibration runs where HV is on but there is no circulating beam (typically at end of fill).
+In these runs, calibration triggers are sent.
+When the electronics receives the trigger, it immediately reads out all strips and propagates a signal that will result, few BCs later, in a Front-End Test (FET) event where all strips alive must send data.
+These workflows fills two scalers: one counting the number of times a strip did not answer to FET, and another counting the number of times a strip was fired in all other cases.
+Since there is no beam during the run, the latter correspond to noisy channels.
+If the noise rate for one channel is above a custom threshold (in Hz), the channel is masked.
+Also, if the fraction of times a given channel did not reply to FET over the total number of FET receives is larger threshold, the channel is declared as dead and masked.
 
 The common usage is:
 
@@ -170,8 +173,26 @@ The common usage is:
 o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-calibration-workflow
 ```
 
-The fraction of time a strip must be noisy or dead in order to be masked can be adjusted with: `--mid-mask-threshold XX` (with 0<`XX`<= 1).
-The scalers are reset from time to time in order to better check the evolution of the noisy/dead channels.
+The noise threshold (in Hz) can be changed with:
+
+```bash
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxNoise=1000
+```
+
+The dead channel threshold (fraction) can be changed with:
+
+```bash
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxDead=1000
+```
+
+Notice that the answer to the FET does not arrive at the same BC for all strips.
+Some channels are slightly delayed, with a dispersion that seems to be of +- 1 BC maximum.
+To avoid declaring as dead some channels whose response is simply delayed, the workflow merges into a FET event the response of strips occurring in a window around the FET.
+This window can be changed with:
+
+```bash
+o2-mid-calibration-workflow --mid-merge-fet-bc-min=-1 --mid-merge-fet-bc-max=1
+```
 
 ## MID digits writer
 

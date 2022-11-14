@@ -35,8 +35,8 @@ class FT0DCSConfigProcessor : public o2::fit::FITDCSConfigProcessor
 {
   // Example of how to use another DCS config reader (subclass of o2::fit::FITDCSConfigReader)
  public:
-  FT0DCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionBChM)
-    : o2::fit::FITDCSConfigProcessor(detectorName, dataDescriptionBChM) {}
+  FT0DCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionDChM)
+    : o2::fit::FITDCSConfigProcessor(detectorName, dataDescriptionDChM) {}
 
  protected:
   void initDCSConfigReader() override
@@ -52,19 +52,19 @@ namespace framework
 
 DataProcessorSpec getFT0DCSConfigProcessorSpec()
 {
-  o2::header::DataDescription ddBChM = "FT0_BCHM";
+  o2::header::DataDescription ddDChM = "FT0_DCHM";
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddBChM}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddBChM}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddDChM}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddDChM}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "ft0-dcs-config-processor",
     Inputs{{"inputConfig", o2::header::gDataOriginFT0, "DCS_CONFIG_FILE", Lifetime::Timeframe},
            {"inputConfigFileName", o2::header::gDataOriginFT0, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddBChM)},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
-            {"filename-bchm", VariantType::String, "FT0-badchannels.txt", {"Bad channel map file name"}}}};
+            {"filename-dchm", VariantType::String, "FT0-deadchannels.txt", {"Dead channel map file name"}}}};
 }
 
 } // namespace framework

@@ -20,7 +20,6 @@
 #include <TGeoManager.h>               // for gGeoManager
 #include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h" // for V11Geometry
-#include "ITSSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoArb8;
 
@@ -47,18 +46,32 @@ class V1Layer : public V11Geometry
     kNHLevels
   };
 
+  enum Model {
+    kIBModelDummy = 0,
+    kIBModel0 = 1,
+    kIBModel1 = 2,
+    kIBModel21 = 3,
+    kIBModel22 = 4,
+    kIBModel3 = 5,
+    kIBModel4 = 10,
+    kOBModelDummy = 6,
+    kOBModel0 = 7,
+    kOBModel1 = 8,
+    kOBModel2 = 9
+  };
+
   // Default constructor
   V1Layer();
 
   // Constructor setting debugging level
-  V1Layer(Int_t debug);
+  V1Layer(Int_t debug, const char* name = "ITS");
 
   // Constructor setting layer number and debugging level
-  V1Layer(Int_t lay, Int_t debug);
+  V1Layer(Int_t lay, Int_t debug, const char* name = "ITS");
 
   /// Constructor setting layer number and debugging level
   /// for a "turbo" layer (i.e. where staves overlap in phi)
-  V1Layer(Int_t lay, Bool_t turbo, Int_t debug);
+  V1Layer(Int_t lay, Bool_t turbo, Int_t debug, const char* name = "ITS");
 
   /// Copy constructor
   V1Layer(const V1Layer& source);
@@ -144,7 +157,7 @@ class V1Layer : public V11Geometry
     return mHierarchy[kChip];
   }
 
-  Detector::Model getStaveModel() const
+  Model getStaveModel() const
   {
     return mStaveModel;
   }
@@ -203,7 +216,7 @@ class V1Layer : public V11Geometry
     mBuildLevel = buildLevel;
   }
 
-  void setStaveModel(o2::its::Detector::Model model)
+  void setStaveModel(Model model)
   {
     mStaveModel = model;
   }
@@ -364,7 +377,7 @@ class V1Layer : public V11Geometry
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
   Int_t mBuildLevel;  ///< Used for material studies
 
-  Detector::Model mStaveModel; ///< The stave model
+  Model mStaveModel; ///< The stave model
 
   // Parameters for the  geometry
 

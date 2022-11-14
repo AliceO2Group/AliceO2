@@ -58,7 +58,7 @@ struct GroupStruct {
   float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
   int mNpixels;            ///< Number of fired pixels
   ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
-                           ///the bits set to 1.
+                           /// the bits set to 1.
   double mFrequency;       ///< Frequency of the topology
   bool mIsGroup;           ///< false: common topology; true: group of rare topologies
   ClassDefNV(GroupStruct, 3);
@@ -159,7 +159,7 @@ class TopologyDictionary
   static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
   /// Returns the number of elements in the dicionary;
   int getSize() const { return (int)mVectorOfIDs.size(); }
-  ///Returns the local position of a compact cluster
+  /// Returns the local position of a compact cluster
 
   // array version of getClusterCoordinates
   template <typename T = float>
@@ -170,7 +170,7 @@ class TopologyDictionary
 
   template <typename T = float>
   math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl) const;
-  ///Returns the local position of a compact cluster
+  /// Returns the local position of a compact cluster
   template <typename T = float>
   static math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
 

@@ -29,7 +29,8 @@ enum ZSVersion : unsigned char {
   ZSVersionRowBased10BitADC = 1,
   ZSVersionRowBased12BitADC = 2,
   ZSVersionLinkBasedWithMeta = 3,
-  ZSVersionDenseLinkBased = 4
+  ZSVersionDenseLinkBased = 4,
+  ZSVersionDenseLinkBasedV2 = 5
 };
 
 struct TPCZSHDR {

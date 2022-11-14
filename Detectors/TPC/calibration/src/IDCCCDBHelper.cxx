@@ -19,6 +19,7 @@
 #include "TPCBase/Painter.h"
 #include "TCanvas.h"
 #include "TH2Poly.h"
+#include "TPCCalibration/IDCFactorization.h"
 #include <map>
 
 #include "TProfile.h"
@@ -107,6 +108,7 @@ void o2::tpc::IDCCCDBHelper<DataT>::drawPadFlagMap(const bool type, const Sector
 {
   if (!mPadFlagsMap) {
     LOGP(info, "Status map not set returning");
+    return;
   }
 
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, flag](const unsigned int sector, const unsigned int region, const unsigned int row, const unsigned int pad) {
@@ -175,6 +177,10 @@ TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroCanvas(TCanvas* outputCanvas,
   auto hCside2D = IDCDrawHelper::drawSide(drawFun, Side::C, zAxisTitle);
   hAside2D->SetTitle(fmt::format("{} (A-Side)", type.data()).data());
   hCside2D->SetTitle(fmt::format("{} (C-Side)", type.data()).data());
+  hAside2D->SetMinimum(xMin1D);
+  hAside2D->SetMaximum(xMax1D);
+  hCside2D->SetMinimum(xMin1D);
+  hCside2D->SetMaximum(xMax1D);
 
   auto hAside1D = IDCDrawHelper::drawSide(drawFun, fmt::format("{}", type.data()).data(), Side::A, nbins1D, xMin1D, xMax1D);
   auto hCside1D = IDCDrawHelper::drawSide(drawFun, fmt::format("{}", type.data()).data(), Side::C, nbins1D, xMin1D, xMax1D);
@@ -452,6 +458,40 @@ void o2::tpc::IDCCCDBHelper<DataT>::dumpToTree(const char* outFileName) const
 }
 
 template <typename DataT>
+void o2::tpc::IDCCCDBHelper<DataT>::dumpToTreeIDCDelta(const char* outFileName) const
+{
+  const Mapper& mapper = Mapper::instance();
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
+  pcstream.GetFile()->cd();
+  const unsigned int nIDCsSector = Mapper::getPadsInSector() * Mapper::NSECTORS;
+  std::vector<float> idcsDelta(nIDCsSector);
+  for (int integrationInterval = 0; integrationInterval < std::min(getNIntegrationIntervalsIDCDelta(Side::A), getNIntegrationIntervalsIDCDelta(Side::C)); ++integrationInterval) {
+    unsigned int index = 0;
+    for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+      for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
+        for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
+          for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
+            const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
+            const auto padTmp = (sector < SECTORSPERSIDE) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad - 1); // C-Side is mirrored
+            const auto& padPosLocal = mapper.padPos(padNum);
+            idcsDelta[index++] = getIDCDeltaVal(sector, region, irow, padTmp, integrationInterval);
+          }
+        }
+      }
+    }
+    float idcOneA = getIDCOneVal(o2::tpc::Side::A, integrationInterval);
+    float idcOneC = getIDCOneVal(o2::tpc::Side::C, integrationInterval);
+
+    pcstream << "tree"
+             << "IDC1A=" << idcOneA
+             << "IDC1C=" << idcOneC
+             << "IDCDelta.=" << idcsDelta
+             << "\n";
+  }
+  pcstream.Close();
+}
+
+template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::dumpToFourierCoeffToTree(const char* outFileName) const
 {
   o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
@@ -485,6 +525,129 @@ void o2::tpc::IDCCCDBHelper<DataT>::dumpToFourierCoeffToTree(const char* outFile
     }
   }
   pcstream.Close();
+}
+
+template <typename DataT>
+o2::tpc::CalDet<float> o2::tpc::IDCCCDBHelper<DataT>::getIDCZeroCalDet() const
+{
+  CalDet<float> calIDC0("IDC0");
+  for (unsigned int cru = 0; cru < CRU::MaxCRU; ++cru) {
+    const o2::tpc::CRU cruTmp(cru);
+    const Side side = cruTmp.side();
+    const int region = cruTmp.region();
+    const int sector = cruTmp.sector();
+    for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+      const unsigned int integrationInterval = 0;
+      for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+        const auto idcZero = getIDCZeroVal(sector, region, lrow, pad);
+        calIDC0.setValue(sector, Mapper::ROWOFFSET[region] + lrow, pad, idcZero);
+      }
+    }
+  }
+  return calIDC0;
+}
+
+template <typename DataT>
+std::vector<o2::tpc::CalDet<float>> o2::tpc::IDCCCDBHelper<DataT>::getIDCDeltaCalDet() const
+{
+  const unsigned int nIntervalsA = getNIntegrationIntervalsIDCDelta(Side::A);
+  const unsigned int nIntervalsC = getNIntegrationIntervalsIDCDelta(Side::C);
+  if (nIntervalsA != nIntervalsC) {
+    LOGP(info, "Number of integration interval for A Side {} unequal for C side {}", nIntervalsA, nIntervalsC);
+  }
+
+  std::vector<CalPad> calIDCDelta(std::max(nIntervalsA, nIntervalsC));
+  for (auto& calpadIDC : calIDCDelta) {
+    calpadIDC = CalPad("IDCDelta", PadSubset::ROC);
+  }
+
+  for (unsigned int cru = 0; cru < CRU::MaxCRU; ++cru) {
+    const o2::tpc::CRU cruTmp(cru);
+    const Side side = cruTmp.side();
+    const int region = cruTmp.region();
+    const int sector = cruTmp.sector();
+
+    const unsigned int nIntervals = getNIntegrationIntervalsIDCDelta(side);
+    for (unsigned int integrationInterval = 0; integrationInterval < nIntervals; ++integrationInterval) {
+      for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+        for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+          const auto idcdelta = getIDCDeltaVal(sector, region, lrow, pad, integrationInterval);
+          calIDCDelta[integrationInterval].setValue(sector, Mapper::ROWOFFSET[region] + lrow, pad, idcdelta);
+        }
+      }
+    }
+  }
+  return calIDCDelta;
+}
+
+template <typename DataT>
+void o2::tpc::IDCCCDBHelper<DataT>::createOutlierMap()
+{
+  if (!mIDCZero[Side::A] && !mIDCZero[Side::C]) {
+    LOGP(info, "IDC0 not set. returning");
+  }
+
+  int nCRUS = 0;
+  if (mIDCZero[Side::A]) {
+    nCRUS += CRU::MaxCRU / 2;
+  }
+
+  if (mIDCZero[Side::C]) {
+    nCRUS += CRU::MaxCRU / 2;
+  }
+
+  std::vector<uint32_t> crus(nCRUS);
+  std::iota(crus.begin(), crus.end(), mIDCZero[Side::A] ? 0 : (CRU::MaxCRU / 2));
+
+  IDCFactorization idc(1, 1, crus);
+  if (mIDCZero[Side::A]) {
+    idc.setIDCZero(Side::A, *mIDCZero[Side::A]);
+  }
+  if (mIDCZero[Side::C]) {
+    idc.setIDCZero(Side::C, *mIDCZero[Side::C]);
+  }
+  idc.createStatusMap();
+  mPadFlagsMap = idc.getPadStatusMap();
+}
+
+template <typename DataT>
+float o2::tpc::IDCCCDBHelper<DataT>::scaleIDC0(const Side side, const bool rejectOutlier)
+{
+  if (!mIDCZero[side]) {
+    LOGP(info, "IDC0 not set. returning");
+    return -1;
+  }
+
+  // calculate sum of IDCs over working channels
+  double idc0Sum = 0;
+  unsigned int idcChannelsCount = 0;
+  const unsigned int firstCRU = (side == Side::A) ? 0 : CRU::MaxCRU / 2;
+  for (unsigned int cru = firstCRU; cru < firstCRU + CRU::MaxCRU / 2; ++cru) {
+    const o2::tpc::CRU cruTmp(cru);
+    const int region = cruTmp.region();
+    const int sector = cruTmp.sector();
+    for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+      const unsigned int integrationInterval = 0;
+      for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+        const unsigned int padInRegion = Mapper::OFFSETCRULOCAL[region][lrow] + pad;
+        const o2::tpc::PadFlags flag = (mPadFlagsMap && rejectOutlier) ? mPadFlagsMap->getCalArray(cru).getValue(padInRegion) : o2::tpc::PadFlags::flagGoodPad;
+        const auto index = getUngroupedIndexGlobal(sector, region, lrow, pad, 0);
+        if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
+          continue;
+        }
+        ++idcChannelsCount;
+        idc0Sum += getIDCZeroVal(sector, region, lrow, pad);
+      }
+    }
+  }
+
+  if (idcChannelsCount == 0) {
+    return idc0Sum;
+  }
+
+  idc0Sum /= idcChannelsCount;
+  *mIDCZero[side] /= idc0Sum;
+  return idc0Sum;
 }
 
 template class o2::tpc::IDCCCDBHelper<float>;

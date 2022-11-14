@@ -53,6 +53,7 @@ class RawDecoderSpec : public framework::Task
   /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
+  int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
 
  protected:
  private:
@@ -61,6 +62,7 @@ class RawDecoderSpec : public framework::Task
   std::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
+  //
   gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
   LumiInfo mOutputLumiInfo;
   bool mVerbose = false;

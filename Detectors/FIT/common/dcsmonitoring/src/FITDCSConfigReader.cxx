@@ -23,9 +23,9 @@
 
 using namespace o2::fit;
 
-void FITDCSConfigReader::processBChM(gsl::span<const char> configBuf)
+void FITDCSConfigReader::processDChM(gsl::span<const char> configBuf)
 {
-  LOG(info) << "Processing bad channel map";
+  LOG(info) << "Processing dead channel map";
 
   // AM: need to specify the size,
   // otherwise the configBuf.data() pointer might point to an array that is too long,
@@ -34,7 +34,7 @@ void FITDCSConfigReader::processBChM(gsl::span<const char> configBuf)
   uint8_t iLine = 0; // line 0 corresponds to cahnnel id 0 and so on
 
   for (std::string line; std::getline(iss, line);) {
-    mBChM.setChannelGood(iLine, std::stoi(line) == 1);
+    mDChM.setChannelAlive(iLine, std::stoi(line) == 1);
     iLine++;
   }
 
@@ -43,26 +43,26 @@ void FITDCSConfigReader::processBChM(gsl::span<const char> configBuf)
   }
 }
 
-void FITDCSConfigReader::updateBChMCcdbObjectInfo()
+void FITDCSConfigReader::updateDChMCcdbObjectInfo()
 {
   std::map<std::string, std::string> metadata;
-  o2::calibration::Utils::prepareCCDBobjectInfo(mBChM, mCcdbObjectInfoBChM, mCcdbPathBChM, metadata, getStartValidityBChM(), getEndValidityBChM());
+  o2::calibration::Utils::prepareCCDBobjectInfo(mDChM, mCcdbObjectInfoDChM, mCcdbPathDChM, metadata, getStartValidityDChM(), getEndValidityDChM());
 }
 
-const o2::fit::BadChannelMap& FITDCSConfigReader::getBChM() const { return mBChM; }
-void FITDCSConfigReader::resetBChM() { mBChM.clear(); }
-const std::string& FITDCSConfigReader::getCcdbPathBChm() const { return mCcdbPathBChM; }
-void FITDCSConfigReader::setCcdbPathBChM(const std::string& ccdbPath) { mCcdbPathBChM = ccdbPath; }
-const long FITDCSConfigReader::getStartValidityBChM() const { return mStartValidityBChM; }
-const long FITDCSConfigReader::getEndValidityBChM() const { return mStartValidityBChM + o2::ccdb::CcdbObjectInfo::MONTH; }
-void FITDCSConfigReader::setStartValidityBChM(const long startValidity) { mStartValidityBChM = startValidity; }
-const bool FITDCSConfigReader::isStartValidityBChMSet() const { return mStartValidityBChM != o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
-void FITDCSConfigReader::resetStartValidityBChM() { mStartValidityBChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
-const o2::ccdb::CcdbObjectInfo& FITDCSConfigReader::getObjectInfoBChM() const { return mCcdbObjectInfoBChM; }
-o2::ccdb::CcdbObjectInfo& FITDCSConfigReader::getObjectInfoBChM() { return mCcdbObjectInfoBChM; }
+const o2::fit::DeadChannelMap& FITDCSConfigReader::getDChM() const { return mDChM; }
+void FITDCSConfigReader::resetDChM() { mDChM.clear(); }
+const std::string& FITDCSConfigReader::getCcdbPathDChm() const { return mCcdbPathDChM; }
+void FITDCSConfigReader::setCcdbPathDChM(const std::string& ccdbPath) { mCcdbPathDChM = ccdbPath; }
+const long FITDCSConfigReader::getStartValidityDChM() const { return mStartValidityDChM; }
+const long FITDCSConfigReader::getEndValidityDChM() const { return mStartValidityDChM + o2::ccdb::CcdbObjectInfo::MONTH; }
+void FITDCSConfigReader::setStartValidityDChM(const long startValidity) { mStartValidityDChM = startValidity; }
+const bool FITDCSConfigReader::isStartValidityDChMSet() const { return mStartValidityDChM != o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+void FITDCSConfigReader::resetStartValidityDChM() { mStartValidityDChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+const o2::ccdb::CcdbObjectInfo& FITDCSConfigReader::getObjectInfoDChM() const { return mCcdbObjectInfoDChM; }
+o2::ccdb::CcdbObjectInfo& FITDCSConfigReader::getObjectInfoDChM() { return mCcdbObjectInfoDChM; }
 
-const std::string& FITDCSConfigReader::getFileNameBChM() const { return mFileNameBChM; }
-void FITDCSConfigReader::setFileNameBChM(const std::string& fileName) { mFileNameBChM = fileName; }
+const std::string& FITDCSConfigReader::getFileNameDChM() const { return mFileNameDChM; }
+void FITDCSConfigReader::setFileNameDChM(const std::string& fileName) { mFileNameDChM = fileName; }
 
 const bool FITDCSConfigReader::getVerboseMode() const { return mVerbose; }
 void FITDCSConfigReader::setVerboseMode(const bool verboseMode) { mVerbose = verboseMode; }

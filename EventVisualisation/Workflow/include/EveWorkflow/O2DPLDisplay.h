@@ -47,7 +47,7 @@ class TPCFastTransform;
 class O2DPLDisplaySpec : public o2::framework::Task
 {
  public:
-  static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,MID,ITS-TPC,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,ITS-TPC-TRD-TOF,MCH-MID,MFT-MCH,PHS,EMC";
+  static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,MID,ITS-TPC,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,ITS-TPC-TRD-TOF,MCH-MID,MFT-MCH,MFT-MCH-MID,PHS,EMC";
   static constexpr auto allowedClusters = "ITS,TPC,TRD,TOF,MFT,MCH,MID,PHS,EMC";
 
   O2DPLDisplaySpec(bool disableWrite, bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
@@ -59,7 +59,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
                    const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY)
-    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY)
+    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY), mRunType(o2::parameters::GRPECS::NONE)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -105,6 +105,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   DetectorData mData;
+  o2::parameters::GRPECS::RunType mRunType;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };

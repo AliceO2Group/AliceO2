@@ -107,7 +107,7 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip)) {
+    if (!parent->isFreeDOF(ip)) { // RSCHANGE: was isFreeDOF(ip)
       continue;
     }
     //
@@ -188,7 +188,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
 //_________________________________________________________
 void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deriv, const AlignableVolume* parent) const
 {
-  // Jacobian of position in sensor tracking frame (tra) vs sensor TRACKING
+  // Jacobian of position in sensor tracking frame (tra) vs parent TRACKING
   // frame parameters in TGeoHMatrix convention, i.e. the modified parameter is
   // tra' = tau*tra
   //
@@ -218,7 +218,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip)) {
+    if (!parent->isFreeDOF(ip)) { // RSCHANGE: was isFreeDOF(ip)
       continue;
     }
     //

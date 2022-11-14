@@ -102,6 +102,7 @@ class DigitsWriteoutBuffer
   unsigned long mTriggerTime = 0;                         ///< Time of the collision that fired the trigger (ns)
   unsigned long mLastEventTime = 0;                       ///< The event time of last collisions in the readout window
   unsigned int mPhase = 0;                                ///< The event L1 phase
+  unsigned int mSwapPhase = 0;                            ///< BC phase swap
   bool mFirstEvent = true;                                ///< Flag to the first event in the run
   std::deque<o2::emcal::DigitTimebin> mTimedDigitsFuture; ///< Container for time sampled digits per tower ID for future digits
   std::deque<o2::emcal::DigitTimebin> mTimedDigitsPast;   ///< Container for time sampled digits per tower ID for past digits

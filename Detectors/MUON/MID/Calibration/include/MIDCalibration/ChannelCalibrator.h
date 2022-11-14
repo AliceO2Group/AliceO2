@@ -17,6 +17,7 @@
 #ifndef O2_MID_CHANNELCALIBRATOR_H
 #define O2_MID_CHANNELCALIBRATOR_H
 
+#include <array>
 #include <string>
 #include <vector>
 #include <gsl/span>
@@ -30,9 +31,9 @@ namespace o2
 namespace mid
 {
 
-class NoiseData
+class CalibData
 {
-  using Slot = o2::calibration::TimeSlot<NoiseData>;
+  using Slot = o2::calibration::TimeSlot<CalibData>;
 
  public:
   /// Fills the data
@@ -41,7 +42,7 @@ class NoiseData
 
   /// Merges data
   /// \param prev Previous container
-  void merge(const NoiseData* prev);
+  void merge(const CalibData* prev);
 
   /// Prints scalers
   void print();
@@ -52,13 +53,13 @@ class NoiseData
  private:
   ChannelScalers mChannelScalers;
 
-  ClassDefNV(NoiseData, 1);
+  ClassDefNV(CalibData, 1);
 };
 
-class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<ColumnData, NoiseData>
+class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<ColumnData, CalibData>
 {
   using TFType = o2::calibration::TFType;
-  using Slot = o2::calibration::TimeSlot<NoiseData>;
+  using Slot = o2::calibration::TimeSlot<CalibData>;
 
  public:
   /// Initialize the output
@@ -79,25 +80,21 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Colu
   /// \param tend End time
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
-  /// Add number of calibration triggers processed
-  /// \param nEvents Number of calibration triggers in this TF
-  void addEvents(unsigned long int nEvents) { mEventsCounter += nEvents; }
+  /// Add elapsed time or number of calibration triggers processed
+  /// \param timeOrTriggers Elapsed time or number of calibration triggers processed in this TF
+  void addTimeOrTriggers(double timeOrTriggers) { mTimeOrTriggers += timeOrTriggers; }
 
   /// Returns the bad channels
   const std::vector<ColumnData>& getBadChannels() const { return mBadChannels; }
 
-  /// Returns mask as string
-  std::string getMasksAsString() { return mMasksString; }
-
-  /// Sets reference masks
-  void setReferenceMasks(const std::vector<ColumnData>& refMasks) { mRefMasks = refMasks; }
+  /// Sets the threshold
+  /// \param threshold Threshold
+  void setThreshold(double threshold) { mThreshold = threshold; }
 
  private:
   std::vector<ColumnData> mBadChannels; /// List of bad channels
-  std::vector<ColumnData> mRefMasks;    /// Reference masks
-  std::string mMasksString;             /// Masks as string
-  double mThreshold = 0.9;              /// Noise threshold
-  unsigned long int mEventsCounter = 0; /// Events counter
+  double mThreshold = 0.9;              /// dead channels threshold
+  double mTimeOrTriggers = 0;           /// Events counter
 
   ClassDefOverride(ChannelCalibrator, 1);
 };

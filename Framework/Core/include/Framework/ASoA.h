@@ -24,7 +24,10 @@
 #include "Framework/Kernels.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
+#include <arrow/util/config.h>
+#if ARROW_VERSION_MAJOR < 10
 #include <arrow/util/variant.h>
+#endif
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>

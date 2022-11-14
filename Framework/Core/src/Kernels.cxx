@@ -18,7 +18,10 @@
 #include <arrow/array/array_primitive.h>
 #include <arrow/status.h>
 #include <arrow/util/visibility.h>
+#include <arrow/util/config.h>
+#if ARROW_VERSION_MAJOR < 10
 #include <arrow/util/variant.h>
+#endif
 #include <arrow/util/config.h>
 
 #include <string>

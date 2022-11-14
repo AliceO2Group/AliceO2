@@ -137,7 +137,7 @@ After launching you can select "interactive" mode on the right and click on "fit
 
 
 Notice that in this setup, you might have to adjust your browser sensibility
-to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing). Mac users should try to use Safari if Chrome does not work. In addition, it may be necessary to setup a SOCKS proxy to the remote machine running the DPL workflow.
 
 ### Integrating with non-DPL devices
 
@@ -514,7 +514,8 @@ Sometimes (e.g. when running a child inside valgrind) it might be useful to disa
 some-workflow --monitoring-backend=no-op://
 ```
 
-notice that the GUI will not function properly if you do so.
+notice that the 
+will not function properly if you do so.
 
 ## Profiling
 

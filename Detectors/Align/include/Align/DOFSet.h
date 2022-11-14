@@ -68,13 +68,14 @@ class DOFSet : public TNamed
   float* getParVals();
   float* getParErrs();
   int* getParLabs();
+  bool varsSet() const { return mFirstParGloID != -1; }
 
   Controller* mController = nullptr;
   int mNDOFs = 0;          // number of DOFs
   int mNDOFsFree = 0;      // numer of DOFs free
   int mNCalibDOFs = 0;     // number of calibDOFs
   int mNCalibDOFsFree = 0; // number of calibDOFs free
-  int mFirstParGloID = 0;  // ID of the 1st parameter in the global results array
+  int mFirstParGloID = -1; // ID of the 1st parameter in the global results array
 
   ClassDefOverride(DOFSet, 1);
 };

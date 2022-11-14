@@ -38,6 +38,7 @@ o2_add_library(Align
                         src/AlignConfig.cxx
                         src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
+                                     O2::Steer
                                      O2::ReconstructionDataFormats
                                      O2::DetectorsCommonDataFormats
                                      O2::DetectorsBase

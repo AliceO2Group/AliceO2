@@ -43,4 +43,6 @@
 #pragma link C++ class o2::align::AlignConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::align::AlignConfig> + ;
 
+#pragma link C++ class std::vector < o2::track::TrackParametrization < double>> + ;
+
 #endif

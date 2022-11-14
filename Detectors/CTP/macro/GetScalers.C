@@ -44,10 +44,11 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
     //  scl.printRates();
     scl.printIntegrals();
     ctpcfg = mng.getConfigFromCCDB(time, srun);
-    // std::vector<int> clsses;
-    // clsses = ctpcfg.getTriggerClassList();
-    // std::cout << clsses.size() << std::endl;
-    // for(auto const& i : clsses) std::cout << i << std::endl;
+    // scl.printRates();
+    //  std::vector<int> clsses;
+    //  clsses = ctpcfg.getTriggerClassList();
+    //  std::cout << clsses.size() << std::endl;
+    //  for(auto const& i : clsses) std::cout << i << std::endl;
   } else {
     std::cout << "Can not find run, please, check parameters" << std::endl;
   }

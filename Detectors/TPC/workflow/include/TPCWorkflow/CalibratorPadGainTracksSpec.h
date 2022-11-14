@@ -45,6 +45,8 @@ class CalibratorPadGainTracksDevice : public Task
     const int minEntries = ic.options().get<int>("min-entries");
     const int gainNorm = ic.options().get<int>("gainNorm");
     const bool debug = ic.options().get<bool>("file-dump");
+    const bool storeNClCCDB = ic.options().get<bool>("store-NCl-CCDB");
+    const bool storeRMSCCDB = ic.options().get<bool>("store-RMS-CCDB");
     const auto lowTrunc = ic.options().get<float>("lowTrunc");
     const auto upTrunc = ic.options().get<float>("upTrunc");
     const auto minAcceptedRelgain = ic.options().get<float>("minAcceptedRelgain");
@@ -61,6 +63,8 @@ class CalibratorPadGainTracksDevice : public Task
     mCalibrator->setNormalizationType(static_cast<CalibPadGainTracksBase::NormType>(gainNorm));
     mCalibrator->setUseLastExtractedMapAsReference(mUseLastExtractedMapAsReference);
     mCalibrator->setMinEntriesMean(minEntriesMean);
+    mCalibrator->setStoreNClCCDB(storeNClCCDB);
+    mCalibrator->setStoreRMSCCDB(storeRMSCCDB);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -148,6 +152,8 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
       {"maxAcceptedRelgain", VariantType::Float, 2.f, {"maximum accpeted relative gain (if the gain is above this value it will be set to 1)"}},
       {"gainNorm", VariantType::Int, 1, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
       {"minEntriesMean", VariantType::Int, 40, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
+      {"store-NCl-CCDB", VariantType::Bool, false, {"store the CalDet containing the number of clusters per pad in the CCDB"}},
+      {"store-RMS-CCDB", VariantType::Bool, false, {"store the RMS of each pad-by-pad histogram containing the number of clusters per pad in the CCDB"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 

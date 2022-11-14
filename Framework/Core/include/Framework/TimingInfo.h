@@ -12,6 +12,7 @@
 #ifndef O2_FRAMEWORK_TIMINGINFO_H_
 #define O2_FRAMEWORK_TIMINGINFO_H_
 
+#include "Framework/ServiceHandle.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -21,6 +22,7 @@ namespace o2::framework
 {
 
 struct TimingInfo {
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
   size_t timeslice; /// the timeslice associated to current processing
   uint32_t firstTForbit = -1; /// the orbit the TF begins
   uint32_t tfCounter = -1;    // the counter associated to a TF

@@ -24,6 +24,10 @@
 
 #include <iostream>
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 namespace
 {
 struct ClusterHelper {
@@ -476,10 +480,13 @@ void TimeFrame::printROFoffsets()
   }
 }
 
-void TimeFrame::computeTrackletsScans()
+void TimeFrame::computeTrackletsScans(const int nThreads)
 {
-  std::exclusive_scan(mNTrackletsPerROf[0].begin(), mNTrackletsPerROf[0].end(), mNTrackletsPerROf[0].begin(), 0);
-  std::exclusive_scan(mNTrackletsPerROf[1].begin(), mNTrackletsPerROf[1].end(), mNTrackletsPerROf[1].begin(), 0);
+  // #pragma omp parallel for num_threads(nThreads > 1 ? 2 : nThreads)
+  for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
+    mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), 0);
+    std::exclusive_scan(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), mNTrackletsPerROf[iLayer].begin(), 0);
+  }
 }
 
 } // namespace its

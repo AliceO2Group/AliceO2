@@ -83,10 +83,10 @@ class MCTruthContainer
 {
  private:
   // for the moment we require the truth element to be messageable in order to simply flatten the object
-  // if it turnes out that other types are required this needs to be extended and method flatten nees to
+  // if it turnes out that other types are required this needs to be extended and method flatten needs to
   // be conditionally added
   // TODO: activate this check
-  //static_assert(o2::framework::is_messageable<TruthElement>::value, "truth element type must be messageable");
+  // static_assert(o2::framework::is_messageable<TruthElement>::value, "truth element type must be messageable");
 
   std::vector<MCTruthHeaderElement> mHeaderArray; // the header structure array serves as an index into the actual storage
   std::vector<TruthElement> mTruthArray;          // the buffer containing the actual truth information
@@ -140,7 +140,7 @@ class MCTruthContainer
   TruthElement const& getElement(uint32_t elementindex) const { return mTruthArray[elementindex]; }
   // return the number of original data indexed here
   size_t getIndexedSize() const { return mHeaderArray.size(); }
-  // return the number of elements managed in this container
+  // return the number of elements (labels) pointed to in this container
   size_t getNElements() const { return mTruthArray.size(); }
   // return unterlaying vector of elements
   const std::vector<TruthElement>& getTruthArray() const
@@ -186,7 +186,8 @@ class MCTruthContainer
 
   // add element for a particular dataindex
   // at the moment only strictly consecutive modes are supported
-  void addElement(uint32_t dataindex, TruthElement const& element)
+  // noElement indicates that actually no label/element will be added for this dataindex
+  void addElement(uint32_t dataindex, TruthElement const& element, bool noElement = false)
   {
     if (dataindex < mHeaderArray.size()) {
       // look if we have something for this dataindex already
@@ -206,7 +207,15 @@ class MCTruthContainer
       // add a new one
       mHeaderArray.emplace_back(mTruthArray.size());
     }
-    mTruthArray.emplace_back(element);
+    if (!noElement) {
+      mTruthArray.emplace_back(element);
+    }
+  }
+
+  /// adds a data index that has no label
+  void addNoLabelIndex(uint32_t dataindex)
+  {
+    addElement(dataindex, TruthElement(), true);
   }
 
   // convenience interface to add multiple labels at once
@@ -218,6 +227,7 @@ class MCTruthContainer
                     std::is_assignable<TruthElement, CompatibleLabel>::value ||
                     std::is_base_of<TruthElement, CompatibleLabel>::value,
                   "Need to add compatible labels");
+    addNoLabelIndex(dataindex);
     for (auto& e : elements) {
       addElement(dataindex, e);
     }

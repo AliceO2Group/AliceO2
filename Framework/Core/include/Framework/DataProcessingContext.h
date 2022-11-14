@@ -24,6 +24,8 @@ struct DataAllocator;
 struct DataProcessorSpec;
 
 struct DataProcessorContext {
+  DataProcessorContext(DataProcessorContext const&) = delete;
+  DataProcessorContext() = default;
   // These are specific of a given context and therefore
   // not shared by threads.
   bool* wasActive = nullptr;
@@ -35,11 +37,13 @@ struct DataProcessorContext {
 
   // FIXME: move stuff here from the list below... ;-)
   ServiceRegistry* registry = nullptr;
-  std::vector<DataRelayer::RecordAction>* completed = nullptr;
-  std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
-  AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
-  AlgorithmSpec::ErrorCallback* error = nullptr;
+  std::vector<DataRelayer::RecordAction> completed;
+  std::vector<ExpirationHandler> expirationHandlers;
+  AlgorithmSpec::InitCallback init;
+  AlgorithmSpec::ProcessCallback statefulProcess;
+  AlgorithmSpec::ProcessCallback statelessProcess;
+  AlgorithmSpec::ErrorCallback error = nullptr;
+
   DataProcessorSpec* spec = nullptr;
 
   /// Wether or not the associated DataProcessor can forward things early
@@ -47,7 +51,7 @@ struct DataProcessorContext {
   bool isSink = false;
   bool balancingInputs = true;
 
-  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
+  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)> errorHandling;
 };
 
 } // namespace o2::framework

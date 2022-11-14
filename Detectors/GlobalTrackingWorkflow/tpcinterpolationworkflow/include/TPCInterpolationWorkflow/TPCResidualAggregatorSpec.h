@@ -30,6 +30,7 @@
 #include <chrono>
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -39,7 +40,7 @@ namespace calibration
 class ResidualAggregatorDevice : public o2::framework::Task
 {
  public:
-  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData) : mCCDBRequest(req), mTrackInput(trackInput), mWriteOutput(writeOutput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData) {}
+  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool ctpInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mCCDBRequest(req), mTrackInput(trackInput), mCTPInput(ctpInput), mWriteOutput(writeOutput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData), mDataRequest(dataRequest) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -61,7 +62,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
       storeMetaFile = true;
     }
     if (!mWriteOutput && (outputDirConf != "none" || storeMetaFile)) {
-      LOGF(alarm, "File output is disabled, but output directory %s was specified and meta file storage is set to %i", outputDirConf, storeMetaFile);
+      LOGF(info, "File output is disabled, but output directory %s was specified and meta file storage is set to %i. No output file will be written", outputDirConf, storeMetaFile);
       storeMetaFile = false;
     }
     mAggregator = std::make_unique<o2::tpc::ResidualAggregator>(minEnt);
@@ -92,11 +93,12 @@ class ResidualAggregatorDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto runStartTime = std::chrono::high_resolution_clock::now();
+    o2::globaltracking::RecoContainer recoCont;
+    recoCont.collectData(pc, *mDataRequest);
     updateTimeDependentParams(pc);
     std::chrono::duration<double, std::milli> ccdbUpdateTime = std::chrono::high_resolution_clock::now() - runStartTime;
 
     auto residualsData = pc.inputs().get<gsl::span<o2::tpc::UnbinnedResid>>("unbinnedRes");
-
     // track data input is optional
     const gsl::span<const o2::tpc::TrackData>* trkDataPtr = nullptr;
     using trkDataType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::tpc::TrackData>>(""))>;
@@ -105,11 +107,20 @@ class ResidualAggregatorDevice : public o2::framework::Task
       trkData.emplace(pc.inputs().get<gsl::span<o2::tpc::TrackData>>("trkData"));
       trkDataPtr = &trkData.value();
     }
+    // CTP lumi input (optional)
+    const o2::ctp::LumiInfo* lumi = nullptr;
+    using lumiDataType = std::decay_t<decltype(pc.inputs().get<o2::ctp::LumiInfo>(""))>;
+    std::optional<lumiDataType> lumiInput;
+    if (mCTPInput) {
+      recoCont.getCTPLumi();
+      lumiInput = recoCont.getCTPLumi();
+      lumi = &lumiInput.value();
+    }
 
     auto data = std::make_pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const o2::tpc::UnbinnedResid>>(std::move(*trkData), std::move(residualsData));
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
-    mAggregator->process(data);
+    mAggregator->process(data, lumi);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
     LOGP(info, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
@@ -135,7 +146,9 @@ class ResidualAggregatorDevice : public o2::framework::Task
   }
   std::unique_ptr<o2::tpc::ResidualAggregator> mAggregator; ///< the TimeSlotCalibration device
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< optional CTP input
   bool mTrackInput{false};             ///< flag whether to expect track data as input
+  bool mCTPInput{false};               ///< flag whether to expect luminosity input from CTP
   bool mWriteOutput{true};             ///< if false, no output file will be written
   bool mWriteBinnedResiduals{false};   ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
@@ -147,9 +160,13 @@ class ResidualAggregatorDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
+DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
 {
-  std::vector<InputSpec> inputs;
+  std::shared_ptr<o2::globaltracking::DataRequest> dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
+  if (ctpInput) {
+    dataRequest->requestClusters(GID::getSourcesMask("CTP"), false);
+  }
+  auto& inputs = dataRequest->inputs;
   inputs.emplace_back("unbinnedRes", "GLO", "UNBINNEDRES");
   if (trackInput) {
     inputs.emplace_back("trkData", "GLO", "TRKDATA");
@@ -165,7 +182,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeOutput
     "residual-aggregator",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, writeOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData)},
+    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, ctpInput, writeOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, dataRequest)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 6'000u, {"number of TFs per calibration time slot (put 0 for infinite slot length)"}},
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},

@@ -64,7 +64,7 @@ using namespace o2::tpc;
 Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); // new std::vector<o2::tpc::HitGroup>;
   }
 }
 
@@ -79,7 +79,7 @@ Detector::Detector(const Detector& rhs)
     mGeoFileName(rhs.mGeoFileName)
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;new std::vector<o2::tpc::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); // new std::vector<o2::tpc::HitGroup>;new std::vector<o2::tpc::HitGroup>;
   }
 }
 
@@ -421,7 +421,7 @@ void Detector::CreateMaterials()
   //
   // densities (NTP)
   //
-  Float_t dens[6] = {0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3};
+  Float_t dens[6] = {0.839e-3, 1.661e-3, 1.842e-3, 1.165e-3, 3.466e-3, 0.668e-3};
   //
   density = 0.;
   for (Int_t i = 0; i < 6; i++) {
@@ -1144,7 +1144,7 @@ void Detector::ConstructTPCGeometry()
   //  Outer field cage guard rings. Inner placed in the drift gas, outer placed in the outer insulator (CO2)
   //
   auto* ogri = new TGeoTube(257.985, 258., 0.6);      // placed in the drift volume
-  auto* ogro = new TGeoTube(260.0676, 260.0826, 0.6); //placed in the outer insulator
+  auto* ogro = new TGeoTube(260.0676, 260.0826, 0.6); // placed in the outer insulator
   //
   auto* ogriv = new TGeoVolume("TPC_OGRI", ogri, m3);
   auto* ogrov = new TGeoVolume("TPC_OGRO", ogro, m3);
@@ -1400,8 +1400,8 @@ void Detector::ConstructTPCGeometry()
   // guard rings for IFC - outer placed in inner insulator, inner placed in the drift gas (3 different radii)
   // AL, 1.2 cm wide, 0.015 cm thick, volumes TPC_IGR1 - outer, TPC_IGR2-4 - inner
   //
-  auto* igro = new TGeoTube(76.6624, 76.6774, 0.6); //inner part, ends at inner radius of the IFC
-  auto* igrio = new TGeoTube(78.845, 78.86, 0.6);   //outer part
+  auto* igro = new TGeoTube(76.6624, 76.6774, 0.6); // inner part, ends at inner radius of the IFC
+  auto* igrio = new TGeoTube(78.845, 78.86, 0.6);   // outer part
   auto* igrim = new TGeoTube(78.795, 78.81, 0.6);
   auto* igric = new TGeoTube(78.785, 78.8, 0.6);
   //
@@ -1453,7 +1453,7 @@ void Detector::ConstructTPCGeometry()
   auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.05, 119.95);
   auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.05, 119.95);
   auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.05, 119.95);
-  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.95, 0.05); //epoxy glue 0.01 deg
+  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.95, 0.05); // epoxy glue 0.01 deg
   //
   TGeoMedium* sm6 = gGeoManager->GetMedium("TPC_Prepreg1");
   TGeoMedium* sm8 = gGeoManager->GetMedium("TPC_Epoxyfm");
@@ -1465,8 +1465,8 @@ void Detector::ConstructTPCGeometry()
   //
   // joints between sections 1 deg prepreg1 placed in nomex at lower and upper radius + 0.1 deg of glue (epoxy)
   //
-  auto* cdjl = new TGeoTubeSeg(60.6562, 60.6762, 69.8, 0., 1.0); //lower, to be rotated when positioned
-  auto* cdju = new TGeoTubeSeg(61.1362, 61.1562, 69.8, 0., 1.0); //upper, to be rotated when positioned
+  auto* cdjl = new TGeoTubeSeg(60.6562, 60.6762, 69.8, 0., 1.0); // lower, to be rotated when positioned
+  auto* cdju = new TGeoTubeSeg(61.1362, 61.1562, 69.8, 0., 1.0); // upper, to be rotated when positioned
   //
   auto* cdjlv = new TGeoVolume("TPC_CDJL", cdjl, sm6);
   auto* cdjuv = new TGeoVolume("TPC_CDJU", cdju, sm6);
@@ -1644,10 +1644,10 @@ void Detector::ConstructTPCGeometry()
   //
   // connectors alu body & strong back
   //
-  auto* conn = new TGeoBBox(0.4, 0.24, 1.937);         //connectors alu body
-  auto* connv = new TGeoVolume("TPC_RCCON", conn, m6); //makrolon
+  auto* conn = new TGeoBBox(0.4, 0.24, 1.937);         // connectors alu body
+  auto* connv = new TGeoVolume("TPC_RCCON", conn, m6); // makrolon
   //
-  auto* connb = new TGeoBBox(0.5, 0.25, 2.375); //connectors strong back
+  auto* connb = new TGeoBBox(0.5, 0.25, 2.375); // connectors strong back
   auto* connbv = new TGeoVolume("TPC_RCCONB", connb, m6);
   //
   // strong back
@@ -1676,8 +1676,8 @@ void Detector::ConstructTPCGeometry()
     auto* rrr = new TGeoRotation();
     rrr->RotateY(ang);
     //
-    ibdv->AddNode(connv, i + 1, new TGeoCombiTrans(x, 4.05, z, rrr));         //connectors alu body
-    icsbv->AddNode(connbv, i + 1, new TGeoCombiTrans(x, 0., z + 1.725, rrr)); //connectors strong back
+    ibdv->AddNode(connv, i + 1, new TGeoCombiTrans(x, 4.05, z, rrr));         // connectors alu body
+    icsbv->AddNode(connbv, i + 1, new TGeoCombiTrans(x, 0., z + 1.725, rrr)); // connectors strong back
   }
   in.close();
   //
@@ -1693,7 +1693,7 @@ void Detector::ConstructTPCGeometry()
   // pad plane G10 3.2 mm thick
   //
   auto* icpp = new TGeoTrd1(14.5974, 23.3521, 0.16, 24.825);
-  auto* icppv = new TGeoVolume("TPC_IPP", icpp, m4); //pad plane
+  auto* icppv = new TGeoVolume("TPC_IPP", icpp, m4); // pad plane
   //
   // gem
   //
@@ -1706,11 +1706,11 @@ void Detector::ConstructTPCGeometry()
   //
   auto* iroc = new TGeoVolumeAssembly("TPC_IROC");
   //
-  iroc->AddNode(ibdv, 1);                                          //main body
-  iroc->AddNode(icv, 1, new TGeoTranslation(0., 3.1, -1.725));     //cap
-  iroc->AddNode(icsbv, 1, new TGeoTranslation(0., 4.54, -1.725));  //strong back
-  iroc->AddNode(icppv, 1, new TGeoTranslation(0., 4.95, -1.725));  //pad plane
-  iroc->AddNode(icgemv, 1, new TGeoTranslation(0., 5.21, -1.725)); //gem
+  iroc->AddNode(ibdv, 1);                                          // main body
+  iroc->AddNode(icv, 1, new TGeoTranslation(0., 3.1, -1.725));     // cap
+  iroc->AddNode(icsbv, 1, new TGeoTranslation(0., 4.54, -1.725));  // strong back
+  iroc->AddNode(icppv, 1, new TGeoTranslation(0., 4.95, -1.725));  // pad plane
+  iroc->AddNode(icgemv, 1, new TGeoTranslation(0., 5.21, -1.725)); // gem
   //
   // OROC
   //
@@ -1756,11 +1756,11 @@ void Detector::ConstructTPCGeometry()
   //
   // connectors, identical as for iroc, but I prefer to have separate volumes for better control
   //
-  auto* conno = new TGeoBBox(0.4, 0.4, 1.937);            //alu body
-  auto* connov = new TGeoVolume("TPC_RCCONO", conno, m6); //makrolon
+  auto* conno = new TGeoBBox(0.4, 0.4, 1.937);            // alu body
+  auto* connov = new TGeoVolume("TPC_RCCONO", conno, m6); // makrolon
   //
   auto* connob = new TGeoBBox(0.5, 0.25, 2.375);
-  auto* connobv = new TGeoVolume("TPC_RCCONOB", connob, m6); //strong back
+  auto* connobv = new TGeoVolume("TPC_RCCONOB", connob, m6); // strong back
   //
   // cap
   //
@@ -1787,9 +1787,9 @@ void Detector::ConstructTPCGeometry()
   //
   // ogemh1 - first "hole" ends at z = 36.25, ogemh2 - second "hole" starts at z = 74.15
   //
-  new TGeoTrd1("ogemh1", 22.548, 28.579, 0.1, 17.625); //ogemh1 - lower hole
-  new TGeoTrd1("ogemh2", 28.949, 35.297, 0.1, 18.45);  //ogemh2 - middle hole
-  new TGeoTrd1("ogemh3", 35.667, 42.332, 0.1, 19.425); //ogemh3 - upper hole
+  new TGeoTrd1("ogemh1", 22.548, 28.579, 0.1, 17.625); // ogemh1 - lower hole
+  new TGeoTrd1("ogemh2", 28.949, 35.297, 0.1, 18.45);  // ogemh2 - middle hole
+  new TGeoTrd1("ogemh3", 35.667, 42.332, 0.1, 19.425); // ogemh3 - upper hole
   //
   auto* tr2 = new TGeoTranslation("tr2", 0., 0., 18.125 - 57.1);
   auto* tr3 = new TGeoTranslation("tr3", 0., 0., 55.2 - 57.1);

@@ -100,7 +100,7 @@ void o2::tpc::SACCCDBHelper<DataT>::dumpToTree(const char* outFileName) const
   for (unsigned int integrationInterval = 0; integrationInterval < intervals; ++integrationInterval) {
     std::vector<int32_t> vSACs(GEMSTACKS);
     std::vector<float> vSACsZero(GEMSTACKS);
-    std::vector<DataT> vSACsDelta(GEMSTACKS);
+    std::vector<float> vSACsDelta(GEMSTACKS);
     std::vector<unsigned int> vStack(GEMSTACKS);
 
     unsigned int index = 0;

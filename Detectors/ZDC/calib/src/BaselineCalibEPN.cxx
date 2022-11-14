@@ -24,15 +24,14 @@ using namespace o2::zdc;
 int BaselineCalibEPN::init()
 {
   // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   if (mVerbosity > DbgZero) {
     mModuleConfig->print();
-  }
-
-  if (opt.rootOutput == true) {
-    setSaveDebugHistos();
   }
 
   mInitDone = true;

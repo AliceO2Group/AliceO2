@@ -46,7 +46,7 @@ void sendOnChannel(fair::mq::Device& device, fair::mq::Parts& messages, std::str
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header
 /// and sends them to the downstream components.
-InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step);
+InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::SerializationMethod method, uint64_t startTime, uint64_t step);
 
 /// This is to be used for sources which already have an O2 Data Model /
 /// (header, payload) structure for their output. At the moment what this /
@@ -81,7 +81,7 @@ inline InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs, bo
 }
 
 /// The default connection method for the custom source
-static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
+static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, header::gSerializationMethodROOT, 0, 1);
 
 /// Default way to select an output channel for multi-output proxy.
 std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels);

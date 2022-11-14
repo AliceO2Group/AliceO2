@@ -69,6 +69,9 @@ void ClustererDPL::run(ProcessingContext& pc)
              << rofs.size() << " RO frames";
 
   o2::itsmft::DigitPixelReader reader;
+  reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+  reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+  reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
   reader.setDigits(digits);
   reader.setROFRecords(rofs);
   if (mUseMC) {
@@ -118,10 +121,21 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
     // settings for the fired pixel overflow masking
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
+    if (clParams.maxBCDiffToMaskBias > 0 && clParams.maxBCDiffToSquashBias > 0) {
+      LOGP(fatal, "maxBCDiffToMaskBias = {} and maxBCDiffToMaskBias = {} cannot be set at the same time. Either set masking or squashing with a BCDiff > 0", clParams.maxBCDiffToMaskBias, clParams.maxBCDiffToSquashBias);
+    }
     auto nbc = clParams.maxBCDiffToMaskBias;
     nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
     mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+    // Squasher
+    int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
+    mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
+    int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
+    if (clParams.maxSOTMUS > 0 && rofBC > 0) {
+      nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
+    }
+    mClusterer->setMaxROFDepthToSquash(nROFsToSquash);
     mClusterer->print();
   }
   // we may have other params which need to be queried regularly

@@ -998,6 +998,7 @@ void TrackerTraits::setNThreads(int n)
   mNThreads = 1;
 #endif
 }
+
 int TrackerTraits::getTFNumberOfClusters() const
 {
   return mTimeFrame->getNumberOfClusters();

@@ -26,8 +26,8 @@ namespace o2
 namespace mid
 {
 
-std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, unsigned long nEvents, double threshold = 0.9);
-std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, unsigned long nEvents, double threshold = 0.9, const std::vector<ColumnData>& refMasks = {});
+std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, double timeOrTriggers, double threshold);
+std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, double timeOrTriggers, double threshold, const std::vector<ColumnData>& refMasks = {});
 std::vector<ColumnData> makeDefaultMasks();
 std::vector<ColumnData> makeDefaultMasksFromCrateConfig(const FEEIdConfig& feeIdConfig = FEEIdConfig(), const CrateMasks& crateMasks = CrateMasks());
 

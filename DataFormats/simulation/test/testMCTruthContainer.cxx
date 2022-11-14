@@ -32,6 +32,8 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   container.addElement(0, TruthElement(2));
   container.addElement(1, TruthElement(1));
   container.addElement(2, TruthElement(10));
+  container.addNoLabelIndex(3);
+  container.addElement(4, TruthElement(4));
 
   // not supported, must throw
   BOOST_CHECK_THROW(container.addElement(0, TruthElement(0)), std::runtime_error);
@@ -76,15 +78,25 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view.size() == 1);
   BOOST_CHECK(view[0] == 10);
 
-  // add multiple labels
+  // add multiple labels (to last index which already had a label)
   std::vector<TruthElement> newlabels = {101, 102, 103};
-  container.addElements(2, newlabels);
-  view = container.getLabels(2);
+  container.addElements(4, newlabels);
+  view = container.getLabels(4);
   BOOST_CHECK(view.size() == 4);
-  BOOST_CHECK(view[0] == 10);
+  BOOST_CHECK(view[0] == 4);
   BOOST_CHECK(view[1] == 101);
   BOOST_CHECK(view[2] == 102);
   BOOST_CHECK(view[3] == 103);
+
+  // check empty labels case
+  view = container.getLabels(3);
+  BOOST_CHECK(view.size() == 0);
+
+  // add empty label vector
+  std::vector<TruthElement> newlabels2 = {};
+  container.addElements(5, newlabels2);
+  view = container.getLabels(5);
+  BOOST_CHECK(view.size() == 0);
 
   // test merging
   {
@@ -329,7 +341,8 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
   using Container = dataformats::MCTruthContainer<TruthElement>;
   Container container;
   const size_t BIGSIZE{1000000};
-  for (int i = 0; i < BIGSIZE; ++i) {
+  container.addNoLabelIndex(0); // the first index does not have a label
+  for (int i = 1; i < BIGSIZE; ++i) {
     container.addElement(i, TruthElement(i, i, i));
     container.addElement(i, TruthElement(i + 1, i, i));
   }
@@ -361,11 +374,12 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
   ConstMCTruthContainer cc;
   io2->copyandflatten(cc);
 
-  BOOST_CHECK(cc.getNElements() == BIGSIZE * 2);
+  BOOST_CHECK(cc.getNElements() == (BIGSIZE - 1) * 2);
   BOOST_CHECK(cc.getIndexedSize() == BIGSIZE);
-  BOOST_CHECK(cc.getLabels(0).size() == 2);
-  BOOST_CHECK(cc.getLabels(0)[0] == TruthElement(0, 0, 0));
-  BOOST_CHECK(cc.getLabels(0)[1] == TruthElement(1, 0, 0));
+  BOOST_CHECK(cc.getLabels(0).size() == 0);
+  BOOST_CHECK(cc.getLabels(1).size() == 2);
+  BOOST_CHECK(cc.getLabels(1)[0] == TruthElement(1, 1, 1));
+  BOOST_CHECK(cc.getLabels(1)[1] == TruthElement(2, 1, 1));
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1).size() == 2);
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));

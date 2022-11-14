@@ -66,6 +66,13 @@ o2_add_test_root_macro(CheckTracksCA.C
                                              O2::DataFormatsITSMFT
                        LABELS its)
 
+o2_add_test_root_macro(CheckSquasher.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::ITSBase
+                                             O2::DataFormatsITS
+                                             O2::DataFormatsITSMFT
+                       LABELS its)
+
 o2_add_test_root_macro(DisplayTrack.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::DataFormatsITSMFT

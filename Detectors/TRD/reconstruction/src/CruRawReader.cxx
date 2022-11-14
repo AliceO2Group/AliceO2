@@ -202,7 +202,7 @@ int CruRawReader::processHBFs()
       // we can still copy into this buffer.
       if (mMaxWarnPrinted > 0) {
         LOGP(alarm, "RDH offsetToNext = {} is larger than it can possibly be. Remaining data in the buffer = {}", offsetToNext, mCurrRdhPtr - mDataBufferPtr);
-        checkNoWarn();
+        checkNoWarn(false);
       }
       return -1;
     }
@@ -257,7 +257,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
     if (mHalfChamberWords == 0 || mHalfChamberMajor == 0) {
       if (mMaxWarnPrinted > 0) {
         LOG(alarm) << "DigitHCHeader is corrupted and using a hack as workaround is not configured";
-        checkNoWarn();
+        checkNoWarn(false);
       }
       return false;
     }
@@ -297,8 +297,8 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
         headersfound.set(0);
         if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3)) {
           if (mMaxWarnPrinted > 0) {
-            LOGF(warn, "According to Digit HC Header 1 there are %i time bins configured", (int)header1.numtimebins);
-            checkNoWarn();
+            LOGF(alarm, "According to Digit HC Header 1 there are %i time bins configured", (int)header1.numtimebins);
+            checkNoWarn(false);
           }
           return false;
         }
@@ -1129,11 +1129,17 @@ void CruRawReader::reset()
   mWordsRejected = 0;
 }
 
-void CruRawReader::checkNoWarn()
+void CruRawReader::checkNoWarn(bool silently)
 {
   if (!mOptions[TRDVerboseErrorsBit]) {
     if (--mMaxWarnPrinted == 0) {
-      LOG(alarm) << "Warnings limit reached, the following ones will be suppressed";
+      if (silently) {
+        // put the warning message into the log file without polluting the InfoLogger
+        LOG(warn) << "Warnings limit reached, the following ones will be suppressed";
+      } else {
+        // makes sense only for warnings with "alarm" severity
+        LOG(alarm) << "Warnings limit reached, the following ones will be suppressed";
+      }
     }
   }
 }
