@@ -27,6 +27,30 @@ namespace o2
 namespace zdc
 {
 
+struct ZDCTDCDataErr {
+
+  static uint32_t mErrVal[NTDCChannels]; // Errors in encoding TDC values
+  static uint32_t mErrAmp[NTDCChannels]; // Errors in encoding TDC amplitudes
+  static uint32_t mErrId;                // Errors with TDC Id
+
+  static void print()
+  {
+    if (mErrId > 0) {
+      LOG(error) << "TDCId was out of range #times = " << mErrId;
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      if (mErrVal[itdc] > 0) {
+        LOG(error) << "TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrVal[itdc];
+      }
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      if (mErrAmp[itdc] > 0) {
+        LOG(warning) << "TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrAmp[itdc];
+      }
+    }
+  }
+};
+
 struct ZDCTDCData {
 
   uint8_t id = 0xff; // channel ID
@@ -37,42 +61,81 @@ struct ZDCTDCData {
   ZDCTDCData(uint8_t ida, int16_t vala, int16_t ampa, bool isbeg = false, bool isend = false)
   {
     // TDC value and amplitude are encoded externally
-    id = ida & 0x0f;
+    id = ida < NTDCChannels ? ida : 0xf;
     id = id | (isbeg ? 0x80 : 0x00);
     id = id | (isend ? 0x40 : 0x00);
-    val = vala;
-    amp = ampa;
+
+    if (ida < NTDCChannels) {
+      val = vala;
+      amp = ampa;
+    } else {
+      val = kMaxShort;
+      amp = kMaxShort;
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << "TDC Id = " << int(ida) << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrId++;
+    }
   }
 
   ZDCTDCData(uint8_t ida, float vala, float ampa, bool isbeg = false, bool isend = false)
   {
-    // TDC value and amplitude are encoded externally
-    id = ida & 0x0f;
+    // TDC value and amplitude are encoded externally but argument is float
+    id = ida < NTDCChannels ? ida : 0xf;
     id = id | (isbeg ? 0x80 : 0x00);
     id = id | (isend ? 0x40 : 0x00);
+
+    if (ida >= NTDCChannels) {
+      val = kMaxShort;
+      amp = kMaxShort;
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << "TDC Id = " << int(ida) << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrId++;
+      return;
+    }
 
     auto TDCVal = std::nearbyint(vala);
     auto TDCAmp = std::nearbyint(ampa);
 
     if (TDCVal < kMinShort) {
-      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
+      int itdc = int(id);
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << "TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCVal << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrVal[itdc]++;
       TDCVal = kMinShort;
     }
+
     if (TDCVal > kMaxShort) {
-      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(error) << __func__ << "TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCVal << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrVal[itdc]++;
       TDCVal = kMaxShort;
     }
+
     if (TDCAmp < kMinShort) {
-      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(warning) << __func__ << "TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCAmp << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrAmp[itdc]++;
       TDCAmp = kMinShort;
     }
+
     if (TDCAmp > kMaxShort) {
-      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
+      int itdc = int(ida);
+#ifdef O2_ZDC_DEBUG
+      LOG(warning) << __func__ << "TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " = " << TDCAmp << " is out of range";
+#endif
+      ZDCTDCDataErr::mErrAmp[itdc]++;
       TDCAmp = kMaxShort;
     }
 
     val = TDCVal;
-    amp = ampa;
+    amp = TDCAmp;
   }
 
   inline float amplitude() const

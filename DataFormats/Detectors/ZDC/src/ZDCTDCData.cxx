@@ -13,6 +13,10 @@
 
 using namespace o2::zdc;
 
+uint32_t ZDCTDCDataErr::mErrVal[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint32_t ZDCTDCDataErr::mErrAmp[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint32_t ZDCTDCDataErr::mErrId = 0;
+
 void o2::zdc::ZDCTDCData::print() const
 {
   int itdc = id & 0x0f;
