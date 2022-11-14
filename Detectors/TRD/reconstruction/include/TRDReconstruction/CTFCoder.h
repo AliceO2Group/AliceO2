@@ -50,7 +50,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
-  void setBCShift(int n) { mBCShift = 0; }
+  void setBCShift(int n) { mBCShift = n; }
   void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
   void setCheckBogusTrig(int v) { mCheckBogusTrig = v; }
 
