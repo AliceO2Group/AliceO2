@@ -215,8 +215,8 @@ nTFs=1000
 nTFs_SAC=1000
 nBuffer=100
 IDC_DELTA="--disable-IDCDelta true" # off by default
-# we switch on deltas if explicitly requested; in PbPb it is on by default, unless we switch it off;
-if [[ "0$ENABLE_IDC_DELTA" == "01" ]] || [[ $BEAMTYPE == "PbPb" && "0$ENABLE_IDC_DELTA" != "00" ]]; then IDC_DELTA=""; fi
+# deltas are on by default; you need to request explicitly to switch them off;
+if [[ "0$DISABLE_IDC_DELTA" == "01" ]]; then IDC_DELTA=""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
