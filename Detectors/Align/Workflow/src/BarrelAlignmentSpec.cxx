@@ -90,6 +90,7 @@ class BarrelAlignmentSpec : public Task
   std::string mIniParFile{};
   bool mUseIniParErrors = true;
   bool mUseMC = false;
+  bool mIgnoreCCDBAlignment = false;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -151,6 +152,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     mUsrConfMethod = std::make_unique<TMethodCall>();
     mUsrConfMethod->InitWithPrototype(mConfMacro.c_str(), "o2::align::Controller*, int");
   }
+  mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
@@ -174,6 +176,17 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) {
     initOnceDone = true;
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    if (!mIgnoreCCDBAlignment) {
+      for (auto id = DetID::First; id <= DetID::Last; id++) {
+        const auto* alg = o2::base::GRPGeomHelper::instance().getAlignment(id);
+        if (alg && !alg->empty()) {
+          o2::base::GeometryManager::applyAlignment(*alg);
+        }
+        gGeoManager->RefreshPhysicalNodes(false);
+      }
+    } else {
+      LOG(warn) << "CCDB alignment is NOT applied to ideal geometry";
+    }
     if (!mController->getInitGeomDone()) {
       mController->initDetectors();
     }
@@ -288,6 +301,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     Options{
       ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
       ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
+      ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
       ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
       ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
       ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}}}};
