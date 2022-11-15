@@ -244,6 +244,8 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
   // mHBFoffset32 is the current offset into the current buffer,
   //
   mDigitHCHeader.word = mHBFPayload[mHBFoffset32++];
+  mPreTriggerPhase = INVALIDPRETRIGGERPHASE;
+
   if (mOptions[TRDByteSwapBit]) {
     // byte swap if needed.
     o2::trd::HelperMethods::swapByteOrder(mDigitHCHeader.word);
@@ -294,6 +296,8 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
         }
         DigitHCHeader1 header1;
         header1.word = headers[headerwordcount];
+        mPreTriggerPhase = header1.ptrigphase;
+
         headersfound.set(0);
         if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3)) {
           if (mMaxWarnPrinted > 0) {
@@ -785,7 +789,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
           if (exitChannelLoop) {
             break;
           }
-          mEventRecords.getCurrentEventRecord().addDigit(Digit(hcid / 2, (int)mcmHeader.rob, (int)mcmHeader.mcm, iChannel, adcValues));
+          mEventRecords.getCurrentEventRecord().addDigit(Digit(hcid / 2, (int)mcmHeader.rob, (int)mcmHeader.mcm, iChannel, adcValues, mPreTriggerPhase));
           mEventRecords.getCurrentEventRecord().incDigitsFound(1);
           ++mDigitsFound;
         } // end active channel

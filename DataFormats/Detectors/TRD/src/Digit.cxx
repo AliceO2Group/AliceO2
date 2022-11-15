@@ -18,13 +18,14 @@ namespace o2::trd
 
 using namespace constants;
 
-Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc)
+Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc, const uint8_t pretrigphase)
 {
   setDetector(det);
   setROB(row, pad);
   setMCM(row, pad);
   setADC(adc);
   setChannel(NADCMCM - 2 - (pad % NCOLMCM));
+  setPreTrigPhase(pretrigphase);
 }
 
 Digit::Digit(const int det, const int row, const int pad) // add adc data in a seperate step
@@ -35,13 +36,14 @@ Digit::Digit(const int det, const int row, const int pad) // add adc data in a s
   setChannel(NADCMCM - 2 - (pad % NCOLMCM));
 }
 
-Digit::Digit(const int det, const int rob, const int mcm, const int channel, const ArrayADC adc)
+Digit::Digit(const int det, const int rob, const int mcm, const int channel, const ArrayADC adc, const uint8_t pretrigphase)
 {
   setDetector(det);
   setROB(rob);
   setMCM(mcm);
   setChannel(channel);
   setADC(adc);
+  setPreTrigPhase(pretrigphase);
 }
 
 Digit::Digit(const int det, const int rob, const int mcm, const int channel) // add adc data in a seperate step
