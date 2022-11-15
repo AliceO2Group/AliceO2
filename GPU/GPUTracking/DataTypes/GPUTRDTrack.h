@@ -88,6 +88,7 @@ class GPUTRDTrack_t : public T
   GPUd() float getChi2() const { return mChi2; }
   GPUd() unsigned char getIsPadrowCrossing() const { return mIsPadrowCrossing; }
   GPUd() bool getIsPadrowCrossing(int iLayer) const { return mIsPadrowCrossing & (1 << iLayer); }
+  GPUd() bool getHasNeighbor() const { return mIsPadrowCrossing & (1 << 6); }
   GPUd() float getReducedChi2() const { return getNlayersFindable() == 0 ? mChi2 : mChi2 / getNlayersFindable(); }
   GPUd() bool getIsStopped() const { return (mFlags >> kStopFlag) & 0x1; }
   GPUd() bool getIsAmbiguous() const { return (mFlags >> kAmbiguousFlag) & 0x1; }
@@ -109,6 +110,7 @@ class GPUTRDTrack_t : public T
   GPUd() void setIsAmbiguous() { mFlags |= (1U << kAmbiguousFlag); }
   GPUd() void setChi2(float chi2) { mChi2 = chi2; }
   GPUd() void setIsPadrowCrossing(int iLayer) { mIsPadrowCrossing |= (1U << iLayer); }
+  GPUd() void setHasNeighbor() { mIsPadrowCrossing |= (1U << 6); }
 
   // conversion to / from HLT track structure (only for AliRoot)
   GPUd() void ConvertTo(GPUTRDTrackDataRecord& t) const;
@@ -120,7 +122,7 @@ class GPUTRDTrack_t : public T
   int mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
   short mCollisionId;               // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
   unsigned char mFlags;             // bits 0 to 5 indicate whether track is findable in layer 0 to 5, bit 6 indicates an ambiguous track and bit 7 flags if the track is stopped in the TRD
-  unsigned char mIsPadrowCrossing;  // bits 0 to 5 indicate wheter track was in between two padrows
+  unsigned char mIsPadrowCrossing;  // bits 0 to 5 indicate whether track was in between two padrows and bit 6 indicates that a neighbor in any layer has been found
 
  private:
   GPUd() void initialize();

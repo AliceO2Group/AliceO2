@@ -53,6 +53,7 @@ struct TrackQC {
   float ptSigma2;                  ///< Sigma2 of pt
   float dEdxTotTPC;                ///< raw total dEdx information for seeding track in TPC
   std::bitset<6> isPadrowCrossing; ///< indicate if track crossed a padrow in that layer
+  bool hasNeighbor;                ///< indicate if track crossed a padrow in that layer
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<bool, constants::NLAYER> findable{};  ///< flag if track was in geometrical acceptance
