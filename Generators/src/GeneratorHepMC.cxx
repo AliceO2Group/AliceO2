@@ -11,6 +11,8 @@
 
 /// \author R+Preghenella - August 2017
 
+#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Generators/GeneratorHepMC.h"
 #include "Generators/GeneratorHepMCParam.h"
 #include "HepMC3/ReaderAscii.h"
@@ -106,7 +108,7 @@ Bool_t GeneratorHepMC::importParticles()
     /** get particle information **/
     auto particle = particles.at(i);
     auto pdg = particle->pid();
-    auto st = particle->status();
+    auto st = o2::mcgenstatus::MCGenStatusEncoding(particle->status(), -1).fullEncoding;
     auto momentum = particle->momentum();
     auto vertex = particle->production_vertex()->position();
     auto parents = particle->parents();   // less efficient than via vertex
@@ -134,6 +136,7 @@ Bool_t GeneratorHepMC::importParticles()
 
     /** add to particle vector **/
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, particle->status() == 1);
 
   } /** end of loop over particles **/
 

@@ -17,6 +17,8 @@
 #include <fairlogger/Logger.h>
 #include "TParticle.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Pythia8/HIUserHooks.h"
 #include "TSystem.h"
 
@@ -171,7 +173,7 @@ Bool_t
   for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
     auto particle = event[iparticle];
     auto pdg = particle.id();
-    auto st = particle.statusHepMC();
+    auto st = o2::mcgenstatus::MCGenStatusEncoding(particle.statusHepMC(), particle.status()).fullEncoding;
     auto px = particle.px();
     auto py = particle.py();
     auto pz = particle.pz();
@@ -185,6 +187,7 @@ Bool_t
     auto d1 = particle.daughter1() - 1;
     auto d2 = particle.daughter2() - 1;
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, particle.statusHepMC() == 1);
   }
 
   /** success **/

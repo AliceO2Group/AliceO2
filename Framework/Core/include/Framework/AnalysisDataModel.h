@@ -17,6 +17,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
+#include "SimulationDataFormat/MCGenStatus.h"
 
 using namespace o2::constants::math;
 
@@ -924,8 +925,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(FromBackgroundEvent, fromBackgroundEvent, //! Particl
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::FromBackgroundEvent) == o2::aod::mcparticle::enums::FromBackgroundEvent; });
 DECLARE_SOA_DYNAMIC_COLUMN(GetProcess, getProcess, //! The VMC physics code (as int) that generated this particle (see header TMCProcess.h in ROOT)
                            [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return 0 /*TMCProcess::kPrimary*/; } else { return statusCode; } });
-DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The status code put by the generator, or -1 if a particle produced during transport
-                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return statusCode; } else { return -1; } });
+DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The native status code put by the generator, or -1 if a particle produced during transport
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getGenStatusCode(statusCode); } else { return -1; } });
+DECLARE_SOA_DYNAMIC_COLUMN(GetHepMCStatusCode, getHepMCStatusCode, //! The HepMC status code put by the generator, or -1 if a particle produced during transport
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getHepMCStatusCode(statusCode); } else { return -1; } });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
@@ -969,6 +972,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::ProducedByGenerator<mcparticle::Flags>,
                        mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                        mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
@@ -981,6 +985,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "M
                                  mcparticle::ProducedByGenerator<mcparticle::Flags>,
                                  mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                                  mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
                                  mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                                  mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
