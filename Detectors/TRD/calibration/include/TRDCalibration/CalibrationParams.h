@@ -24,8 +24,10 @@ namespace trd
 
 /// VDrift and ExB calibration parameters.
 struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams> {
-  unsigned int nTrackletsMin = 5; // minimum amount of tracklets
-  unsigned int chi2RedMax = 6;    // maximum reduced chi2 acceptable for track quality
+  unsigned int nTrackletsMin = 5;  ///< minimum amount of tracklets
+  unsigned int chi2RedMax = 6;     ///< maximum reduced chi2 acceptable for track quality
+  size_t minEntriesChamber = 75;   ///< minimum number of entries per chamber to fit single time slot
+  size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
 
   // boilerplate
   O2ParamDef(TRDCalibParams, "TRDCalibParams");

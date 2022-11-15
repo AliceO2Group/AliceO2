@@ -14,6 +14,7 @@
 /// \author Ole Schmidt
 
 #include "TRDCalibration/CalibratorVdExB.h"
+#include "TRDCalibration/CalibrationParams.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/InputRecord.h"
@@ -154,6 +155,10 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
       mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
       mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
     }
+
+    auto& params = TRDCalibParams::Instance();
+    mMinEntriesChamber = params.minEntriesChamber;
+    mMinEntriesTotal = params.minEntriesTotal;
   }
 }
 

@@ -56,7 +56,7 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
     LA,
     VD
   };
-  CalibratorVdExB(size_t nMinTotal = 40'500, size_t nMinChamber = 75, bool enableOut = false) : mMinEntriesTotal(nMinTotal), mMinEntriesChamber(nMinChamber), mEnableOutput(enableOut) {}
+  CalibratorVdExB(bool enableOut = false) : mEnableOutput(enableOut) {}
   ~CalibratorVdExB() final = default;
 
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntriesTotal; }
