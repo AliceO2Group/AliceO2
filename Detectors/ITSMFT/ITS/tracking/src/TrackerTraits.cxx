@@ -908,10 +908,8 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
   return swapped;
 }
 
-/// Clusters are given from outside inward (cluster1 is the outermost). The innermost cluster is given in the tracking
-/// frame coordinates
-/// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
-/// a TrackParCov
+/// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
+/// frame coordinates whereas the others are referred to the global frame.
 track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float misalignment)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
@@ -925,15 +923,17 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
-  const float x0 = math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1);
+  const bool zeroField{std::abs(getBz()) < o2::constants::math::Almost0};
+  const float tgp = zeroField ? std::atan2(y3 - y1, x3 - x1) : 1.f;
+  const float crv = zeroField ? 1.f : math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+  const float snp = zeroField ? tgp / std::sqrt(1.f + tgp * tgp) : crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
   const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
   const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
-                            {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? 1.f / o2::track::kMostProbablePt
-                                                                              : crv / (getBz() * o2::constants::math::B2C)},
+                            {y3, z3, snp, 0.5f * (tgl12 + tgl23),
+                             zeroField ? 1.f / o2::track::kMostProbablePt
+                                       : crv / (getBz() * o2::constants::math::B2C)},
                             {math_utils::hypot(tf3.covarianceTrackingFrame[0], misalignment),
                              tf3.covarianceTrackingFrame[1], math_utils::hypot(tf3.covarianceTrackingFrame[2], misalignment),
                              0.f, 0.f, track::kCSnp2max,
