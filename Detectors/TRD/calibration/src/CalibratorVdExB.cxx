@@ -161,7 +161,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
       }
     }
     // Check if we have the minimum amount of entries
-    if(sumEntries < mMinEntriesChamber){
+    if (sumEntries < mMinEntriesChamber) {
       LOGF(debug, "Chamber %d did not reach minimum amount of entries for refit", iDet);
       continue;
     }

@@ -38,8 +38,8 @@ struct FitFunctor {
   double operator()(const double* par) const;
   double calculateDeltaAlphaSim(double vdFit, double laFit, double impactAng) const;
   std::array<std::unique_ptr<TProfile>, constants::MAXCHAMBER> profiles; ///< profile histograms for each TRD chamber
-  std::array<double,constants::MAXCHAMBER> vdPreCorr;                                                      ///< vDrift from previous Run
-  std::array<double,constants::MAXCHAMBER> laPreCorr;                                                      ///< LorentzAngle from previous Run
+  std::array<double, constants::MAXCHAMBER> vdPreCorr;                   ///< vDrift from previous Run
+  std::array<double, constants::MAXCHAMBER> laPreCorr;                   ///< LorentzAngle from previous Run
   int currDet;                                                           ///< the current TRD chamber number
   float lowerBoundAngleFit;
   float upperBoundAngleFit;
@@ -72,11 +72,11 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   void retrievePrev(o2::framework::ProcessingContext& pc);
 
  private:
-  bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
-  size_t mMinEntriesTotal; ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
-  size_t mMinEntriesChamber; ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
-  bool mEnableOutput; //< enable output of calibration fits and tprofiles in a root file instead of the ccdb
-  FitFunctor mFitFunctor; ///< used for minimization procedure
+  bool mInitDone{false};                             ///< flag to avoid creating the TProfiles multiple times
+  size_t mMinEntriesTotal;                           ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesChamber;                         ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
+  bool mEnableOutput;                                //< enable output of calibration fits and tprofiles in a root file instead of the ccdb
+  FitFunctor mFitFunctor;                            ///< used for minimization procedure
   std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
   std::vector<o2::trd::CalVdriftExB> mObjectVector;  ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
   ClassDefOverride(CalibratorVdExB, 3);

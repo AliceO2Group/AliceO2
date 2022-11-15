@@ -143,7 +143,6 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
       {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
       {"min-entries-chamber", VariantType::Int, 75, {"minimum number of entries per chamber to fit single time slot"}},
       {"min-entries-total", VariantType::Int, 40'500, {"total minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
-
 }
 
 } // namespace framework
