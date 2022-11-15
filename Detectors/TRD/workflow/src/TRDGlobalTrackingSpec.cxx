@@ -209,23 +209,30 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lbl
 void TRDGlobalTracking::fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const
 {
   // after the tracking is done we assemble here a TrackTriggerRecord similar to the TriggerRecord
-  // which for each TRD trigger stored the found tracks
-  int currTrigRec = 0;
+  // which for each TRD trigger stores the index of the first found track and the total number of tracks
+
   int nTracksCurr = 0;
   int iTrackFirst = 0;
-  for (const auto& trk : tracks) {
-    if (trk.getCollisionId() != currTrigRec) {
-      // new collision ID, create new track trigger record
-      trigRec.emplace_back(trackletTrigRec[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
-      currTrigRec = trk.getCollisionId();
+  int prevCollisionID = -1;
+
+  for (size_t iTrk = 0; iTrk < tracks.size(); ++iTrk) {
+    const auto& trk = tracks[iTrk];
+    auto collisionID = trk.getCollisionId();
+    if (iTrk == 0) {
+      prevCollisionID = collisionID;
+    }
+    if (collisionID != prevCollisionID) {
+      // we have a track from a new trigger within the same TF
+      trigRec.emplace_back(trackletTrigRec[prevCollisionID].getBCData(), iTrackFirst, nTracksCurr);
       iTrackFirst += nTracksCurr;
+      prevCollisionID = collisionID;
       nTracksCurr = 0;
     }
     ++nTracksCurr;
   }
   if (nTracksCurr > 0) {
-    // create track trigger record for remaining track range
-    trigRec.emplace_back(trackletTrigRec[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
+    // this is the last trigger record for this TF, we can take the collision ID from the last track
+    trigRec.emplace_back(trackletTrigRec[tracks.back().getCollisionId()].getBCData(), iTrackFirst, nTracksCurr);
   }
 }
 
