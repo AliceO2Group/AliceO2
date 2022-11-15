@@ -19,7 +19,6 @@
 #include "Framework/Logger.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableDetector.h"
-#include "ITSBase/GeometryTGeo.h"
 
 ClassImp(o2::align::AlignableSensorITS);
 
@@ -43,15 +42,27 @@ void AlignableSensorITS::prepareMatrixT2L()
 {
   // extract geometry T2L matrix
   TGeoHMatrix t2l;
-  float x, alp;
-  auto geom = o2::its::GeometryTGeo::Instance();
-  geom->getSensorXAlphaRefPlane(getVolID(), x, alp);
+  const auto& l2g = getMatrixL2GIdeal();
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  l2g.LocalToMaster(locA, gloA);
+  l2g.LocalToMaster(locB, gloB);
+  double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
+  double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
+  double xp = gloB[0] - dx * t, yp = gloB[1] - dy * t;
+  mX = std::sqrt(xp * xp + yp * yp);
+  float alp = std::atan2(yp, xp);
+  o2::math_utils::bringTo02Pi(alp);
   mAlp = alp;
-  mX = x;
+  /* // this would proved x, alpha accounting for the corrections, we need ideal ones ?
+     float x, alp;
+     auto geom = o2::its::GeometryTGeo::Instance();
+     geom->getSensorXAlphaRefPlane(getVolID(), x, alp);
+     mAlp = alp;
+     mX = x;
+  */
   t2l.RotateZ(mAlp * RadToDeg()); // rotate in direction of normal to the sensor plane
-  const TGeoHMatrix* matL2G = base::GeometryManager::getMatrix(mDet->getDetID(), getSID());
-  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
-  t2l.MultiplyLeft(&matL2Gi);
+  const TGeoHMatrix l2gi = l2g.Inverse();
+  t2l.MultiplyLeft(&l2gi);
   setMatrixT2L(t2l);
 }
 
