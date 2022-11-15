@@ -18,7 +18,7 @@ namespace o2::trd
 
 using namespace constants;
 
-Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc, const uint8_t pretrigphase)
+Digit::Digit(int det, int row, int pad, ArrayADC adc, int pretrigphase)
 {
   setDetector(det);
   setROB(row, pad);
@@ -28,7 +28,7 @@ Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc, co
   setPreTrigPhase(pretrigphase);
 }
 
-Digit::Digit(const int det, const int row, const int pad) // add adc data in a seperate step
+Digit::Digit(int det, int row, int pad) // add adc data in a seperate step
 {
   setDetector(det);
   setROB(row, pad);
@@ -36,7 +36,7 @@ Digit::Digit(const int det, const int row, const int pad) // add adc data in a s
   setChannel(NADCMCM - 2 - (pad % NCOLMCM));
 }
 
-Digit::Digit(const int det, const int rob, const int mcm, const int channel, const ArrayADC adc, const uint8_t pretrigphase)
+Digit::Digit(int det, int rob, int mcm, int channel, ArrayADC adc, int pretrigphase)
 {
   setDetector(det);
   setROB(rob);
@@ -46,7 +46,7 @@ Digit::Digit(const int det, const int rob, const int mcm, const int channel, con
   setPreTrigPhase(pretrigphase);
 }
 
-Digit::Digit(const int det, const int rob, const int mcm, const int channel) // add adc data in a seperate step
+Digit::Digit(int det, int rob, int mcm, int channel) // add adc data in a seperate step
 {
   setDetector(det);
   setROB(rob);
