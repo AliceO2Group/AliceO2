@@ -30,25 +30,25 @@ if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_BARREL_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf output timeframe)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output sporadic)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output timeframe)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_CALO_SPORADIC ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp output sporadic)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_MUON_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf output timeframe)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output sporadic)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output)" "" 0
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output timeframe)" "" 0
   fi
 
 fi
