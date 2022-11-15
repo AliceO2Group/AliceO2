@@ -160,7 +160,9 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     }
   } else {
     // magnetic field 0 T or another value which is not covered by the error parameterizations
-    GPUError("No error parameterization available for Bz = %.2f kG", Bz);
+    // using default values instead
+    GPUWarning("No error parameterization available for Bz = %.2f kG. Keeping default value (sigma_y = const. = 1cm)", Bz);
+    mRPhiA2 = 1.f;
   }
 
 #ifdef GPUCA_ALIROOT_LIB
