@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Generators/GeneratorTGenerator.h"
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
@@ -84,6 +86,7 @@ Bool_t
   for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {
     auto particle = (TParticle*)mCloneParticles->At(iparticle);
     mParticles.push_back(*particle);
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, ((o2::mcgenstatus::MCGenStatusEncoding)particle->GetStatusCode()).hepmc == 1);
   }
 
   /** success **/

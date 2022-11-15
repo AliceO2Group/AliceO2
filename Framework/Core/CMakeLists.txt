@@ -137,6 +137,7 @@ o2_add_library(Framework
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
+               TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Configuration
                                      AliceO2::Monitoring
@@ -158,6 +159,9 @@ o2_add_library(Framework
                                      Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
+
+# To get the necessary include for the MC status codes. Needs to be public, for instance O2Physics heavily depends on Framework
+target_include_directories(${targetName} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/DataFormats/simulation/include>)
 
 o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h
