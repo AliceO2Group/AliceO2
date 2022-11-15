@@ -13,6 +13,7 @@ o2_add_library(HMPIDBase
                SOURCES src/Param.cxx src/Geo.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::SimulationDataFormat
+                                     O2::DetectorsBase
                                      ROOT::Physics)
 
 o2_target_root_dictionary(HMPIDBase

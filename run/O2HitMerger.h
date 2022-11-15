@@ -21,7 +21,7 @@
 #include <fairmq/Device.h>
 #include <fairlogger/Logger.h>
 #include <SimulationDataFormat/MCEventHeader.h>
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <DetectorsCommonDataFormats/DetectorNameConf.h>

@@ -13,7 +13,6 @@
 #define ALICEO2_TRD_HIT_H_
 
 #include <vector>
-#include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 

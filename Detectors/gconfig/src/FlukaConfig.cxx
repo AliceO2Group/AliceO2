@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FairRunSim.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <iostream>
 #include <fairlogger/Logger.h>

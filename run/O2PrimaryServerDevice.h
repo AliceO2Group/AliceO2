@@ -19,7 +19,7 @@
 #include <FairPrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
 #include <fairmq/Message.h>
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <TMessage.h>
 #include <TClass.h>

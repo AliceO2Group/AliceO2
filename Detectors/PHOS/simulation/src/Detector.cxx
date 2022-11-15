@@ -29,7 +29,7 @@
 #include "PHOSBase/PHOSSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>

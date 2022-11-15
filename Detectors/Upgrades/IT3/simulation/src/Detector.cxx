@@ -19,7 +19,7 @@
 #include "ITS3Simulation/V3Layer.h"
 #include "ITS3Simulation/V3Services.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes

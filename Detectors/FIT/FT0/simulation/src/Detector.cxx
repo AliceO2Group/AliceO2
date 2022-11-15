@@ -36,7 +36,7 @@
 #include <string>
 #include "FT0Base/Geometry.h"
 #include "FT0Simulation/Detector.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 using namespace o2::ft0;
 using o2::ft0::Geometry;

@@ -15,7 +15,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TFile.h"

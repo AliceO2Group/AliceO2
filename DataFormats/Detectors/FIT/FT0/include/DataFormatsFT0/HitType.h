@@ -16,7 +16,6 @@
 #define ALICEO2_FIT_HITTYPE_H_
 
 #include "SimulationDataFormat/BaseHits.h"
-#include "SimulationDataFormat/Stack.h"
 #include "CommonUtils/ShmAllocator.h"
 
 namespace o2

@@ -12,14 +12,9 @@
 #define BOOST_TEST_MODULE Test MCTrack class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-#include "SimulationDataFormat/MCTrack.h"
 #include <boost/test/unit_test.hpp>
-#include <iomanip>
-#include <ios>
-#include <iostream>
+#include "SimulationDataFormat/MCTrack.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimulationDataFormat/Stack.h"
-#include "SimulationDataFormat/PrimaryChunk.h"
 #include "TFile.h"
 #include "TParticle.h"
 #include "TMCProcess.h"
@@ -71,31 +66,5 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
     f.GetObject("MCTrack", intrack);
     BOOST_CHECK(intrack->getStore() == true);
     BOOST_CHECK(intrack->hasHits() == true);
-  }
-}
-
-// unit tests on stack
-BOOST_AUTO_TEST_CASE(Stack_test)
-{
-  o2::data::Stack st;
-  int a;
-  TMCProcess proc{kPPrimary};
-  // add a 2 primary particles
-  st.PushTrack(1, -1, 0, 0, 0., 0., 10., 5., 5., 5., 0.1, 0., 0., 0., proc, a, 1., 1);
-  st.PushTrack(1, -1, 0, 0, 0., 0., 10., 5., 5., 5., 0.1, 0., 0., 0., proc, a, 1., 1);
-  BOOST_CHECK(st.getPrimaries().size() == 2);
-
-  {
-    // serialize it
-    TFile f("StackOut.root", "RECREATE");
-    f.WriteObject(&st, "Stack");
-    f.Close();
-  }
-
-  {
-    o2::data::Stack* inst = nullptr;
-    TFile f("StackOut.root", "OPEN");
-    f.GetObject("Stack", inst);
-    BOOST_CHECK(inst->getPrimaries().size() == 2);
   }
 }

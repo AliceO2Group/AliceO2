@@ -13,13 +13,12 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany, S. Wenzel - June 2014
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "DetectorsBase/Detector.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimConfig/SimParams.h"
 
-#include "FairDetector.h" // for FairDetector
+#include "FairDetector.h"      // for FairDetector
 #include <fairlogger/Logger.h> // for FairLogger
 #include "FairRootManager.h"
 #include "SimulationDataFormat/BaseHits.h"
@@ -216,7 +215,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   TParticle p(pdgCode, iStatus, parentId, secondparentId, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
-  p.SetUniqueID(proc); // using the unique ID to transfer process ID
+  p.SetUniqueID(proc);                                           // using the unique ID to transfer process ID
   p.SetBit(ParticleStatus::kPrimary, proc == kPPrimary ? 1 : 0); // set primary bit
   p.SetBit(ParticleStatus::kToBeDone, toBeDone == 1 ? 1 : 0);    // set to be done bit
   mNumberOfEntriesInParticles++;
@@ -358,7 +357,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
         mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
       }
       iTrack = mIndexOfCurrentTrack;
-      if (o2::conf::SimCutParams::Instance().trackSeed) {
+      if (mDoTrackSeeding) {
         auto hash = getHash(mCurrentParticle);
         // LOG(info) << "SEEDING NEW TRACK USING HASH" << hash;
         // init seed per track
@@ -760,7 +759,7 @@ bool Stack::isPrimary(const MCTrack& part)
 
 bool Stack::isFromPrimaryDecayChain(const MCTrack& part)
 {
-  /** check if the particle is from the 
+  /** check if the particle is from the
       decay chain of a primary particle **/
 
   /** check if from decay **/
@@ -779,7 +778,7 @@ bool Stack::isFromPrimaryDecayChain(const MCTrack& part)
 
 bool Stack::isFromPrimaryPairProduction(const MCTrack& part)
 {
-  /** check if the particle is from 
+  /** check if the particle is from
       pair production from a particle
       belonging to the primary decay chain **/
 

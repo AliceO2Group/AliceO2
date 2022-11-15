@@ -14,7 +14,7 @@
 #include "FairRootManager.h" // for FairRootManager
 #include "FairVolume.h"      // for FairVolume
 #include "DetectorsBase/MaterialManager.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "ZDCSimulation/Detector.h"
 #include "DataFormatsZDC/Hit.h"
 
