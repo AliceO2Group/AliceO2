@@ -583,8 +583,18 @@ void EveWorkflowHelper::drawPHS(GID gid)
     // convert local position in module to global position in ALICE including actual mis-aslignment read with GetInstance("Run3")
     this->mPHOSGeom->local2Global(relativeLocalPositionInModule[0], x, z, gPos);
 
+    float energy = 0;
+
+    if (cell.getHighGain()) {
+      energy = 0.005f * cell.getEnergy(); // ~0.005 GeV / ADC
+    } else if (cell.getLowGain()) {
+      energy = 0.080f * cell.getEnergy(); // ~0.080 GeV / ADC
+    } else {                              // a trigger cell
+      return;
+    }
+
     auto vCalo = mEvent.addCalo({.time = static_cast<float>(time),
-                                 .energy = cell.getEnergy(),
+                                 .energy = energy,
                                  .phi = (float)gPos.Phi(),
                                  .eta = (float)gPos.Eta(),
                                  .PID = 0,
