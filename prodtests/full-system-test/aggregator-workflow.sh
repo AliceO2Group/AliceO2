@@ -111,11 +111,11 @@ fi
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ $AGGREGATOR_TASKS == BARREL_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_BARREL_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]]; then
     if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
@@ -141,23 +141,23 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_SPORADIC ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_SPORADIC ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_MUON_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_SPORADIC ]]; then
     if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
-      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input)" "" 0
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input timeframe)" "" 0
     fi
   fi
 fi
