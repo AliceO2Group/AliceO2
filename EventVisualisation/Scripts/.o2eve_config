@@ -66,6 +66,8 @@ tracks.byType.kaon:                     400
 tracks.byType.proton:                   797
 tracks.byType.unknown:                  920
 
+clusters.byType.unknown:                600
+
 ITS.draw:                               1
 TPC.draw:                               1
 TRD.draw:                               1
