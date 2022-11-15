@@ -23,7 +23,7 @@
 #include <FairVolume.h>
 #include "FV0Simulation/Detector.h"
 #include "Framework/Logger.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "FV0Base/Geometry.h"
 
 using namespace o2::fv0;

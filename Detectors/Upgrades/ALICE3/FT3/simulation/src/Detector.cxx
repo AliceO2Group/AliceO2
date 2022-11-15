@@ -18,7 +18,7 @@
 #include "FT3Simulation/FT3Layer.h"
 #include "FT3Base/FT3BaseParam.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes

@@ -23,7 +23,7 @@
 #include "MFTSimulation/Detector.h"
 
 #include "Field/MagneticField.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 #include <fairlogger/Logger.h>
 #include "FairRootManager.h"

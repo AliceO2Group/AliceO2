@@ -28,7 +28,7 @@
 #include <TLorentzVector.h>   //IsLostByFresnel()
 #include <TString.h>          //StepManager()
 #include <TTree.h>
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "DetectorsBase/MaterialManager.h"
 

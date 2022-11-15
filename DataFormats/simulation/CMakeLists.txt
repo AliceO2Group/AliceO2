@@ -10,8 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(SimulationDataFormat
-               SOURCES src/Stack.cxx
-                       src/MCTrack.cxx
+               SOURCES src/MCTrack.cxx
                        src/MCCompLabel.cxx
                        src/MCEventLabel.cxx
                        src/DigitizationContext.cxx
@@ -23,13 +22,13 @@ o2_add_library(SimulationDataFormat
                PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      FairRoot::Base
                                      O2::DetectorsCommonDataFormats
-                                     O2::GPUCommon O2::DetectorsBase
-                                     O2::SimConfig ROOT::TreePlayer)
+                                     O2::DataFormatsParameters
+                                     O2::GPUCommon
+                                     ROOT::TreePlayer)
 
 o2_target_root_dictionary(
   SimulationDataFormat
-  HEADERS include/SimulationDataFormat/Stack.h
-          include/SimulationDataFormat/StackParam.h
+  HEADERS include/SimulationDataFormat/StackParam.h
           include/SimulationDataFormat/MCTrack.h
           include/SimulationDataFormat/BaseHits.h
           include/SimulationDataFormat/MCTruthContainer.h

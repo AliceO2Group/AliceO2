@@ -12,11 +12,12 @@
 #include "FairRunSim.h"
 #include "TGeant3.h"
 #include "TGeant3TGeo.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <fairlogger/Logger.h>
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
+#include "SimConfig/SimParams.h"
 
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;

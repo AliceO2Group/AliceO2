@@ -12,7 +12,7 @@
 #include "FairRunSim.h"
 #include "MCReplay/MCReplayEngine.h"
 #include "SimSetup/MCReplayParam.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <fairlogger/Logger.h>
 #include "FairModule.h"

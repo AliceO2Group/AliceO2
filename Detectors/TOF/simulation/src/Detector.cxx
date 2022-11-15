@@ -21,7 +21,7 @@
 
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/GeometryManager.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 using namespace o2::tof;
 
