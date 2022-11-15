@@ -450,6 +450,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     nCl = trkITSABref.getNClusters();
     clEntry = trkITSABref.getFirstEntry();
     outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
+    outerParam.resetCovariance(100);                                  // reset covariance to something big
     // refit
     for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
       const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
@@ -596,6 +597,10 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
   int lyEnd = inwards ? -1 : NLAYER;
   o2::track::TrackParCov* trkParam = inwards ? &trk : &trk.getOuterParam();
   o2::track::TrackLTIntegral* tofL = inwards ? &trk.getLTIntegralOut() : nullptr;
+  if (inwards) {
+    // reset covariance to something big for inwards refit
+    trkParam->resetCovariance(100);
+  }
   for (int iLy = lyStart; iLy != lyEnd; iLy += direction) {
     int trkltId = trk.getTrackletIndex(iLy);
     if (trkltId < 0) {
