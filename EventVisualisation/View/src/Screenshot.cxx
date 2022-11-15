@@ -155,21 +155,25 @@ std::string Screenshot::perform(std::string fileName, o2::detectors::DetID::mask
 
   image->FillRectangle(backgroundColorHex.c_str(), 0, 0, width, height);
 
+  auto pixel_object_scale_3d = settings.GetValue("screenshot.pixel_object_scale.3d", 0);
+  auto pixel_object_scale_rphi = settings.GetValue("screenshot.pixel_object_scale.rphi", 0);
+  auto pixel_object_scale_zy = settings.GetValue("screenshot.pixel_object_scale.zy", 0);
+
   const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
   const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
   MultiView::getInstance()->getAnnotationTop()->SetState(TGLOverlayElement::kInvisible);
   MultiView::getInstance()->getAnnotationBottom()->SetState(TGLOverlayElement::kInvisible);
-  TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingFBO(width * 0.65, height * 0.95);
+  TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingFBO(width * 0.65, height * 0.95, pixel_object_scale_3d);
   MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
   MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
   CopyImage(image, (TASImage*)view3dImage, width * 0.015, height * 0.025, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight());
   delete view3dImage;
 
-  TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45);
+  TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45, pixel_object_scale_rphi);
   CopyImage(image, (TASImage*)viewRphiImage, width * 0.68, height * 0.025, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight());
   delete viewRphiImage;
 
-  TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45);
+  TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingFBO(width * 0.3, height * 0.45, pixel_object_scale_zy);
   CopyImage(image, (TASImage*)viewZYImage, width * 0.68, height * 0.525, 0, 0, viewZYImage->GetWidth(), viewZYImage->GetHeight());
   delete viewZYImage;
 
