@@ -18,6 +18,9 @@ screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scr
 #screenshot.logo.alice:                 /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
 screenshot.width:                       7680
 screenshot.height:                      4320
+screenshot.pixel_object_scale.3d:       15
+screenshot.pixel_object_scale.rphi:     10
+screenshot.pixel_object_scale.zy:       10
 #screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
 #screenshot.message.line.1:             First TF orbit: 1301515 <- change/comment it in .o2eve_config
 #screenshot.message.line.2:             Date: Tue Jul 5 17:48:51 2022 <- change/comment it in .o2eve_config
