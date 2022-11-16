@@ -68,8 +68,8 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
       processTRANS(dp);
     } else if (detectorId == HMPID_ID) {
       processHMPID(dp);
-    } else {
-      LOG(debug) << "Unknown data point: " << alias;
+    } else { // ef: changed to warn and "unkown DP" ==> "missing DP"
+      LOG(warn) << "Missing data point: " << alias;
     }
   } // end for
 }
@@ -78,7 +78,6 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 // but not the Transparency-specifier
 void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
 {
-
   const std::string alias(dp.id.get_alias());
   const auto hmpidString = alias.substr(alias.length() - 8);
 
@@ -107,8 +106,8 @@ void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
       LOG(info) << "Chamber Pressure DP: " << alias;
     }
     fillChPressure(dp);
-  } else {
-    LOG(info) << "Unknown data point: " << alias;
+  } else { // ef: changed to warn and unkown DP ==> missing data DP
+    LOG(warn) << "Missing data point: " << alias;
   }
 }
 
@@ -119,10 +118,6 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
   const auto& dpid = dp.id;
   const std::string alias(dpid.get_alias());
   const auto transparencyString = alias.substr(alias.length() - 9);
-
-  // exeptions have to be caught:
-  // const auto stringNum = alias.substr(22,2);
-  // const int num = stoi(stringNum);
 
   // Get index [0..29] of Transparency-measurement
   const int dig1 = aliasStringToInt(dpid, 22);
@@ -140,12 +135,12 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
   }
 
   if (alias.substr(alias.length() - 10) == WAVE_LEN_ID) {
-    waveLenVec[num].push_back(dp);
+    waveLenVec[num].emplace_back(dp);
     if (mVerbose) {
       LOG(info) << "WAVE_LEN_ID DP: " << alias;
     }
   } else if (transparencyString == FREON_CELL_ID) {
-    freonCellVec[num].push_back(dp);
+    freonCellVec[num].emplace_back(dp);
     if (mVerbose) {
       LOG(info) << "FREON_CELL_ID DP: " << alias;
     }
@@ -153,25 +148,23 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
     if (mVerbose) {
       LOG(info) << "ARGON_CELL_ID DP: " << alias;
     }
-    argonCellVec[num].push_back(dp);
+    argonCellVec[num].emplace_back(dp);
   } else if (transparencyString == REF_ID) {
     if (alias.substr(alias.length() - 14) == ARGON_REF_ID) {
       if (mVerbose) {
         LOG(info) << "ARGON_REF_ID DP: " << alias;
       }
-      argonRefVec[num].push_back(dp);
+      argonRefVec[num].emplace_back(dp);
     } else if (alias.substr(alias.length() - 14) == FREON_REF_ID) {
-      freonRefVec[num].push_back(dp);
+      freonRefVec[num].emplace_back(dp);
       if (mVerbose) {
         LOG(info) << "FREON_REF_ID DP: " << alias;
       }
-    } else {
-      if (mVerbose) {
-        LOG(info) << "Unknown data point: " << alias;
-      }
+    } else { // ef: remove mVerbose, change to warn, and "DP not found" ==> "Missing DP"
+      LOG(warn) << "Missing Data point: " << alias;
     }
-  } else {
-    LOG(info) << "Datapoint not found: " << alias;
+  } else { // ef:change to warn and "DP not found" ==> "Missing DP"
+    LOG(warn) << "Missing Data point: " << alias;
   }
 }
 
@@ -186,7 +179,7 @@ void HMPIDDCSProcessor::fillEnvPressure(const DPCOM& dpcom)
 
   // check if datatype is as expected
   if (type == DeliveryType::DPVAL_DOUBLE) {
-    dpVecEnv.push_back(dpcom);
+    dpVecEnv.emplace_back(dpcom);
   } else {
     LOG(warn) << "Invalid Datatype for Env Pressure";
   }
@@ -195,7 +188,6 @@ void HMPIDDCSProcessor::fillEnvPressure(const DPCOM& dpcom)
 // fill entries in chamber-pressure DPCOM-vector
 void HMPIDDCSProcessor::fillChPressure(const DPCOM& dpcom)
 {
-
   auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
 
@@ -204,12 +196,14 @@ void HMPIDDCSProcessor::fillChPressure(const DPCOM& dpcom)
     // find chamber number:
     auto chNum = aliasStringToInt(dpid, indexChPr);
     if (chNum < 7 && chNum >= 0) {
-      dpVecCh[chNum].push_back(dpcom);
+      dpVecCh[chNum].emplace_back(dpcom);
     } else {
-      LOG(warn) << "Chamber Number out of range for Pressure : " << chNum;
+      LOGP(warn, "Chamber Number out of range for Pressure P{}: ", chNum);
+      const std::string inputString(dpid.get_alias());
+      char stringPos = inputString[indexChPr];
     }
   } else {
-    LOG(warn) << "Not correct datatype for Pressure : ";
+    LOGP(warn, "Not correct datatype for Pressure");
   }
 }
 
@@ -222,20 +216,18 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   if (type == DeliveryType::DPVAL_DOUBLE) {
     const auto chNum = aliasStringToInt(dpid, indexChHv);
     const auto secNum = aliasStringToInt(dpid, indexSecHv);
-    if (mVerbose) {
-      LOGP(info, "HV ch:{} sec:{} val: {}", chNum, secNum, o2::dcs::getValue<double>(dpcom));
-    }
+
     if (chNum < 7 && chNum >= 0) {
       if (secNum < 6 && secNum >= 0) {
-        dpVecHV[6 * chNum + secNum].push_back(dpcom);
+        dpVecHV[6 * chNum + secNum].emplace_back(dpcom);
       } else {
-        LOG(warn) << "Sector Number out of range for HV : " << secNum;
+        LOGP(warn, "Sector Number out of range for High Voltage HV{}{}", chNum, secNum);
       }
     } else {
-      LOG(warn) << "Chamber Number out of range for HV : " << chNum;
+      LOGP(warn, "Chamber Number out of range for High Voltage HV{}{}", chNum, secNum);
     }
   } else {
-    LOG(warn) << "Not correct datatype for HV DP";
+    LOGP(warn, "Not correct datatype for High Voltage");
   }
 }
 
@@ -252,15 +244,15 @@ void HMPIDDCSProcessor::fillTempIn(const DPCOM& dpcom)
     // verify chamber- and raiator-numbers
     if (chNum < 7 && chNum >= 0) {
       if (radNum < 3 && radNum >= 0) {
-        dpVecTempIn[3 * chNum + radNum].push_back(dpcom);
+        dpVecTempIn[3 * chNum + radNum].emplace_back(dpcom);
       } else {
-        LOG(warn) << "Radiator Number out of range for TempIn :" << radNum;
+        LOGP(warn, "Radiator Number out of range for TempIn Tin{}{}", chNum, radNum);
       }
     } else {
-      LOG(warn) << "Chamber Number out of range for TempIn DP :" << chNum;
+      LOGP(warn, "Chamber Number out of range for TempIn Tin{}{}", chNum, radNum);
     }
   } else {
-    LOG(warn) << "Not correct datatype for TempIn DP ";
+    LOGP(warn, "Not correct datatype for TempIn");
   }
 }
 
@@ -277,79 +269,83 @@ void HMPIDDCSProcessor::fillTempOut(const DPCOM& dpcom)
     // verify chamber- and raiator-numbers
     if (chNum < 7 && chNum >= 0) {
       if (radNum < 3 && radNum >= 0) {
-        dpVecTempOut[3 * chNum + radNum].push_back(dpcom);
+        dpVecTempOut[3 * chNum + radNum].emplace_back(dpcom);
 
       } else {
-        LOG(warn) << "Radiator Number out of range for TempOut DP : " << radNum;
+        LOGP(warn, "Radiator Number out of range for TempOut Tout{}{}", chNum, radNum);
       }
     } else {
-      LOG(warn) << "Chamber Number out of range for TempOut DP : " << chNum;
+      LOGP(warn, "Chamber Number out of range for TempOut Tout{}{}", chNum, radNum);
     }
   } else {
-    LOG(warn) << "Not correct datatype for TempOut DP ";
+    LOGP(warn, "Not correct datatype for TempOut");
   }
 }
 
 //==== Calculate mean photon energy=============================================
-
+// ef: if eMeanDefault is returned, this means eMeanDefault will be sent to the CCDB
+//     in the last entry in the vector arNmean[42] (pPhotMean;)
 double HMPIDDCSProcessor::procTrans()
 {
   for (int i = 0; i < 30; i++) {
 
-    photEn = calculateWaveLength(i);
+    // ef: calculatePhotonEnergy(i):
+    // if there is something wrong in calculating the photon-energy for the given
+    // wavelength (i.e., the current entry i in the waveLenVec holding the DPs
+    //  of wavelenghts)
+    // then the default wavelength for the given iteration will be sent
+
+    photEn = calculatePhotonEnergy(i);
 
     if (photEn < o2::hmpid::Param::ePhotMin() ||
         photEn > o2::hmpid::Param::ePhotMax()) {
       LOG(warn) << "photon energy out of range" << photEn;
-      continue; // if photon energy is out of range
+      lambda = arrWaveLenDefault[i];
+      photEn = nm2eV / lambda;
+      // continue; // ef: if photon energy is out of range; skip to next iteration
     }
 
-    // ===== evaluate phototube current for argon reference
-    // ==============================================================
-    refArgon = dpVector2Double(argonRefVec[i], "ARGONREF", i);
-    if (refArgon == eMeanDefault) {
-      if (mVerbose) {
-        LOG(info) << "refArgon == defaultEMean()";
-      }
-      return defaultEMean();
+    // ef: if any of the vectors fof DP-currents (argonRef, cellArgon..) are invalid,
+    // the function returns eMeanDefault, which subsequently will be directly sent to the CCDB
+
+    // ===== evaluate phototube current for argon reference ============================
+    TransparencyDpInfo refArgonDP = dpVector2Double(argonRefVec[i], "ARGONREF", i);
+    if (refArgonDP.isDpValid == false) {
+      return eMeanDefault;
+    } else {
+      refArgon = refArgonDP.dpVal;
     }
 
-    //===== evaluate phototube current for argon cell
-    //==================================================================
-    cellArgon = dpVector2Double(argonCellVec[i], "ARGONCELL", i);
-    if (cellArgon == eMeanDefault) {
-      if (mVerbose) {
-        LOG(info) << "cellArgon == defaultEMean()";
-      }
-      return defaultEMean();
+    //===== evaluate phototube current for argon cell===================================
+    TransparencyDpInfo cellArgonDP = dpVector2Double(argonCellVec[i], "ARGONCELL", i);
+    if (cellArgonDP.isDpValid == false) {
+      return eMeanDefault;
+    } else {
+      cellArgon = cellArgonDP.dpVal;
     }
 
-    //====evaluate phototube current for freon reference
-    //================================================================
-    refFreon = dpVector2Double(freonRefVec[i], "C6F14REFERENCE", i);
-    if (refFreon == eMeanDefault) {
-      if (mVerbose) {
-        LOG(info) << "refFreon == defaultEMean()";
-      }
-      return defaultEMean();
+    //==== evaluate phototube current for freon reference ==============================
+    TransparencyDpInfo refFreonDP = dpVector2Double(freonRefVec[i], "C6F14REFERENCE", i);
+    if (refFreonDP.isDpValid == false) {
+      return eMeanDefault;
+    } else {
+      refFreon = refFreonDP.dpVal;
     }
 
-    // ==== evaluate phototube current for freon cell
-    // ===================================================================
-    cellFreon = dpVector2Double(freonCellVec[i], "C6F14CELL", i);
-    if (cellFreon == eMeanDefault) {
-      if (mVerbose) {
-        LOG(info) << "cellFreon == defaultEMean()";
-      }
-      return defaultEMean();
+    // ==== evaluate phototube current for freon cell ==================================
+    TransparencyDpInfo cellFreonDP = dpVector2Double(freonCellVec[i], "C6F14CELL", i);
+    if (cellFreonDP.isDpValid == false) {
+      return eMeanDefault;
+    } else {
+      cellFreon = cellFreonDP.dpVal;
     }
 
     // evaluate correction factor to calculate trasparency
     bool isEvalCorrOk = evalCorrFactor(refArgon, cellArgon, refFreon, cellFreon, photEn, i);
 
-    // Returns false if dRefFreon * dRefArgon < 0
+    // ef: Returns false if dRefFreon * dRefArgon < 0
     if (!isEvalCorrOk) {
-      return defaultEMean();
+      return eMeanDefault;
     }
 
     // Evaluate timestamps :
@@ -378,19 +374,20 @@ double HMPIDDCSProcessor::procTrans()
 
   } // end for
 
+  // evaluate total energy --> mean photon energy
   if (sProb > 0) {
     eMean = sEnergProb / sProb;
   } else {
-    if (mVerbose) {
-      LOG(info) << " sProb < 0 ";
-    }
-    return defaultEMean();
+    // ef: removed mVerbose and changed to warn
+    LOGP(warn, " sProb < 0 --> Default E mean used! ");
+    return eMeanDefault;
   }
 
+  // ef: changed to warn
   if (eMean < o2::hmpid::Param::ePhotMin() ||
       eMean > o2::hmpid::Param::ePhotMax()) {
-    LOG(info) << " eMean out of range " << eMean;
-    return defaultEMean();
+    LOGP(warn, "eMean out of range  ({}) --> Default E mean used! ", eMean);
+    return eMeanDefault;
   }
 
   return eMean;
@@ -399,22 +396,23 @@ double HMPIDDCSProcessor::procTrans()
 
 // ==== procTrans help-functions =============================
 
-double HMPIDDCSProcessor::defaultEMean()
-{
-  if (mVerbose) {
-    LOG(info) << Form(" Mean energy photon calculated ---> %f eV ", eMeanDefault);
-  }
-  return eMeanDefault;
-}
-
-//==== evaluate wavelenght
+//==== evaluate photon energy
 //=======================================================
-double HMPIDDCSProcessor::calculateWaveLength(int i)
+
+// ef: if calculatePhotonEnergy returns eMeanDefault, it simply means that
+// there were something wrong in calculating the photon-energy for the given
+// wavelength (i.e., the current entry i in the waveLenVec holding the DPs
+//  of wavelenghts)]
+// the value will not directly be sent to the CCDB
+
+double HMPIDDCSProcessor::calculatePhotonEnergy(int i)
 {
   // if there is no entries
   if (waveLenVec[i].size() == 0) {
-    LOG(warn) << Form("No Data Point values for %i.waveLenght", i);
-    return defaultEMean(); // will break this entry in foor loop
+    LOGP(warn, "No Data Point values for HMP_TRANPLANT_MEASURE_{}_WAVELENGTH --> Default wavelength used for iteration procTrans{}", i, i);
+    // return lambda/
+    lambda = arrWaveLenDefault[i];
+    return nm2eV / lambda;
   }
 
   DPCOM dp = (waveLenVec[i])[0];
@@ -423,51 +421,52 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     lambda = o2::dcs::getValue<double>(dp);
   } else {
-    LOG(warn) << Form("Not correct datatype for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> Default E mean used!", i);
-    return defaultEMean();
+    LOGP(warn, "DP type is {}", dp.id.get_type());
+    LOGP(warn, "Not correct datatype for HMP_TRANPLANT_MEASURE_{}_WAVELENGTH --> Default wavelength used for iteration procTrans{}", i, i);
+    lambda = arrWaveLenDefault[i];
   }
 
+  // ef: can remove this?
   if (lambda < 150. || lambda > 230.) {
-    LOG(warn) << Form("Wrong value for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH --> Default E mean used!", i);
-    return defaultEMean();
+    LOGP(warn, "Wrong value for (lambda out of range) HMP_TRANPLANT_MEASURE_{}_WAVELENGTH --> Default wavelength used for iteration procTrans{}", i, i);
+    lambda = arrWaveLenDefault[i];
   }
 
   // find photon energy E in eV from radiation wavelength λ in nm
-  nm2eV = 1239.842609;     // 1239.842609 from nm to eV
+  // nm2eV = 1239.842609;     // 1239.842609 from nm to eV
   photEn = nm2eV / lambda; // photon energy
   return photEn;
 }
 
-double HMPIDDCSProcessor::dpVector2Double(const std::vector<DPCOM>& dpVec,
-                                          const char* dpString, int i)
+// TransparencyDpInfo default value is
+// bool isDpValid = False
+// double dpVal = -999
+TransparencyDpInfo HMPIDDCSProcessor::dpVector2Double(const std::vector<DPCOM>& dpVec,
+                                                      const char* dpString, int i)
 {
 
-  double dpVal;
+  TransparencyDpInfo transDpInfo;
   if (dpVec.size() == 0) {
-    LOG(info) << Form(
-      "No Data Point values for HMP_TRANPLANT_MEASURE_%s,%i  "
-      "---> Default E mean used!",
-      dpString, i);
-    return defaultEMean();
+    LOGP(warn, "No Data Point values for HMP_TRANPLANT_MEASURE_{}_{}---> Default E mean used!",
+         dpString, i);
+    return transDpInfo; // returns transDpInfo with default values
   }
 
   DPCOM dp = dpVec[0];
 
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
-    dpVal = o2::dcs::getValue<double>(dp);
+    transDpInfo.dpVal = o2::dcs::getValue<double>(dp);
+    transDpInfo.isDpValid = true;
   } else {
-    LOG(info) << Form(
-      "Not correct datatype for HMP_TRANPLANT_MEASURE_%s,%i  "
-      "-----> Default E mean used!",
-      dpString, i);
-    return defaultEMean();
+    LOGP(warn, "Not correct datatype for HMP_TRANPLANT_MEASURE_{}_{} -----> Default E mean used!",
+         dpString, i);
+    return transDpInfo; // returns transDpInfo with default values
   }
-  return dpVal;
+  return transDpInfo;
 }
 
-bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon,
-                                       double dRefFreon, double dCellFreon,
-                                       double dPhotEn, int i)
+bool HMPIDDCSProcessor::evalCorrFactor(const double& dRefArgon, const double& dCellArgon, const double& dRefFreon,
+                                       const double& dCellFreon, const double& dPhotEn, const int& i)
 {
   // evaluate correction factor to calculate trasparency (Ref. NIMA 486 (2002)
   // 590-609)
@@ -483,16 +482,18 @@ bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon,
 
   // evaluate 15 mm of thickness C6F14 Trans
 
-  aConvFactor = 1.0 - 0.3 / 1.8;
+  // ef: check if all are not nullpointers
+  if (dRefArgon == -999 || dCellArgon == -999 || dRefFreon == -999 || dRefFreon == -999) {
+    LOGP(warn, "One of the Phototube-currents was not assigned --> Default E mean used!");
+    return false;
+  }
 
   if (dRefFreon * dRefArgon > 0) {
     aTransRad = TMath::Power((dCellFreon / dRefFreon) /
                                (dCellArgon / dRefArgon) * aCorrFactor[i],
                              aConvFactor);
-  } else {
-    if (mVerbose) {
-      LOG(info) << "dRefFreon*dRefArgon<0" << dRefFreon * dRefArgon;
-    }
+  } else { // ef: removed if mVerbose
+    LOGP(warn, "dRefFreon*dRefArgon<0 --> Default E mean used! dRefFreon = {} | dRefArgon = {}", dRefFreon, dRefArgon);
     return false;
   }
 
@@ -542,26 +543,28 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
     }
     // envPrLastTime -= envPrFirstTime;
     // envPrFirstTime = 0;
-    if (cntEnvPressure == 1) {
+
+    if (cntEnvPressure <= 0) {
+      LOGP(warn, "No entries in Environment Pressure");
+    } else if (pGrPenv == nullptr) {
+      LOGP(warn, "NullPtr in Environment Pressure");
+    } else if (cntEnvPressure == 1) {
       pGrPenv->GetPoint(0, xP, yP);
       pEnv.reset(
         new TF1("Penv", Form("%f", yP), envPrFirstTime, envPrLastTime));
     } else {
-      // envPrLastTime -= envPrFirstTime;
-      // envPrFirstTime = 0;
       pEnv.reset(new TF1("Penv", "1000+x*[0]", envPrFirstTime, envPrLastTime));
       pGrPenv->Fit("Penv", "Q");
     }
-    return pEnv;
+  } else {
+    LOG(warn) << Form("No entries in environment pressure Penv");
   }
-  LOG(info) << Form("No entries in environment pressure");
   return pEnv;
 }
 
 // returns nullptr if the element in array of DPCOM-vector has no entries
 std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
 {
-
   std::unique_ptr<TF1> pCh;
   if (dpVecCh[iCh].size() != 0) {
     cntChPressure = 0;
@@ -574,31 +577,31 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
 
     for (DPCOM dp : dpVecCh[iCh]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
-      auto time = dp.data.get_epoch_time(); //- chPrFirstTime
+      auto time = dp.data.get_epoch_time();
       pGrP->SetPoint(cntChPressure++, time, dpVal);
     }
     // chPrLastTime -= chPrFirstTime;
     // chPrFirstTime = 0;
-    if (cntChPressure == 1) {
+
+    if (pGrP == nullptr || cntChPressure <= 0) {
+      LOGP(warn, "nullptr in chamber-pressure for P{}", iCh);
+    } else if (cntChPressure == 1) {
       pGrP->GetPoint(0, xP, yP);
       (pCh).reset(new TF1(Form("P%i", iCh), Form("%f", yP), chPrFirstTime,
                           chPrLastTime));
-      pArrCh[iCh] = *(pCh.get());
     } else {
       (pCh).reset(new TF1(Form("P%i", iCh), "[0] + x*[1]", chPrFirstTime,
                           chPrLastTime));
       pGrP->Fit(Form("P%i", iCh), "Q");
-      pArrCh[iCh] = *(pCh.get());
     }
-    return pCh;
+  } else {
+    LOGP(warn, "No entries in chamber-pressure for P{}", iCh);
   }
-  LOG(info) << Form("no entries in chPres for Pch%i", iCh);
-
   return pCh;
 }
 
 // process Tempout
-void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
+bool HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
 {
   if (dpVecTempOut[3 * iCh + iRad].size() != 0) {
     cntTOut = 0;
@@ -611,35 +614,45 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
 
     for (DPCOM dp : dpVecTempOut[3 * iCh + iRad]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
-      auto time = dp.data.get_epoch_time(); // -minTime
+      auto time = dp.data.get_epoch_time();
       pGrTOut->SetPoint(cntTOut++, time, dpVal);
     }
-    // maxTime -= minTime;
-    // minTime = 0;
+
     std::unique_ptr<TF1> pTout;
     pTout.reset(
       new TF1(Form("Tout%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
 
-    if (cntTOut == 1) {
+    if (pTout == nullptr || pGrTOut == nullptr || cntTOut <= 0) {
+      LOGP(warn, "NullPtr in Temperature out Tout{}{}", iCh, iRad);
+      return false;
+    } else if (cntTOut == 1) {
       pGrTOut->GetPoint(0, xP, yP);
       pTout->SetParameter(0, yP);
       pTout->SetParameter(1, 0);
-
     } else {
       pGrTOut->Fit(Form("Tout%i%i", iCh, iRad), "R");
     }
-    pTout->SetTitle(Form(
-      "Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
-    arNmean[6 * iCh + 2 * iRad + 1] = *(pTout.get());
+
+    // ef: in this case everything is ok, and we can set title and put entry in CCDB:
+    //     have to check all for nullptr, because pTout is defined before if/else block,
+    //     and thus will not be nullptr no matter the outcome of the if/else block
+    if (pTout != nullptr && pGrTOut != nullptr && cntTOut > 0) {
+      pTout->SetTitle(Form("Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
+      arNmean[6 * iCh + 2 * iRad + 1] = *(pTout.get());
+      return true;
+    } else {
+      LOGP(warn, "NullPtr in Temperature out Tout{}{}", iCh, iRad);
+      return false;
+    }
   } else {
-    LOG(info) << Form("No entries in temp-out for ch%irad%i", iCh, iRad);
+    LOGP(warn, "No entries in Temperature out Tout{}{}", iCh, iRad);
+    return false;
   }
 }
 
 // process Tempin
-void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
+bool HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 {
-
   if (dpVecTempIn[3 * iCh + iRad].size() != 0) {
     cntTin = 0;
 
@@ -651,29 +664,39 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 
     for (DPCOM dp : dpVecTempIn[3 * iCh + iRad]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
-      auto time = dp.data.get_epoch_time(); //-minTime
+      auto time = dp.data.get_epoch_time();
       pGrTIn->SetPoint(cntTin++, time, dpVal);
     }
-    // maxTime -= minTime;
-    // minTime = 0;
+
     std::unique_ptr<TF1> pTin;
     pTin.reset(
       new TF1(Form("Tin%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
 
-    if (cntTin == 1) {
+    if (pTin == nullptr || pGrTIn == nullptr || cntTin <= 0) {
+      LOGP(warn, "NullPtr in Temperature in Tin{}{}", iCh, iRad);
+      return false;
+    } else if (cntTOut == 1) {
       pGrTIn->GetPoint(0, xP, yP);
       pTin->SetParameter(0, yP);
       pTin->SetParameter(1, 0);
     } else {
-      pGrTIn->Fit(Form("Tin%i%i", iCh, iRad), "Q");
+      pGrTIn->Fit(Form("Tin%i%i", iCh, iRad), "R");
     }
 
-    pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms]; Temp [C]",
-                        iCh, iRad));
-    arNmean[6 * iCh + 2 * iRad] = *(pTin.get());
-
+    // ef: in this case everything is ok, and we can set title and put entry in CCDB:
+    //     have to check all for nullptr, because pTin is defined before if/else block,
+    //     and thus will not be nullptr no matter the outcome of the if/else block
+    if (pTin != nullptr && pGrTIn != nullptr && cntTin > 0) {
+      pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
+      arNmean[6 * iCh + 2 * iRad] = *(pTin.get());
+      return true;
+    } else {
+      LOGP(warn, "NullPtr in Temperature in Tin{}{}", iCh, iRad);
+      return false;
+    }
   } else {
-    LOG(info) << Form("No entries in temp-in for ch%irad%i", iCh, iRad);
+    LOGP(warn, "No entries in Temperature in Tin{}{}", iCh, iRad);
+    return false;
   }
 }
 
@@ -692,26 +715,25 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
 
     for (DPCOM dp : dpVecHV[3 * iCh + iSec]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
-      auto time = dp.data.get_epoch_time(); //- hvFirstTime
+      auto time = dp.data.get_epoch_time();
       pGrHV->SetPoint(cntHV++, time, dpVal);
     }
     // hvLastTime -= hvFirstTime;
     // hvFirstTime = 0;
-    if (cntHV == 1) {
-      pGrHV->GetPoint(0, xP, yP);
-      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), Form("%f", yP),
-                            hvFirstTime, hvLastTime));
-      pArrHv[3 * iCh + iSec] = *(pHvTF.get());
-    } else {
-      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), "[0]+x*[1]",
-                            hvFirstTime, hvLastTime));
-      pGrHV->Fit(Form("HV%i_%i", iCh, iSec), "Q");
-      pArrHv[3 * iCh + iSec] = *(pHvTF.get());
-    }
 
-    return pHvTF;
+    if (pGrHV == nullptr || cntHV <= 0) {
+      LOGP(warn, "nullptr in High Voltage for HV{}{}", iCh, iSec);
+    } else if (cntHV == 1) {
+      pGrHV->GetPoint(0, xP, yP);
+      (pHvTF).reset(new TF1(Form("HV%i%i", iCh, iSec), Form("%f", yP),
+                            hvFirstTime, hvLastTime));
+    } else {
+      (pHvTF).reset(new TF1(Form("HV%i%i", iCh, iSec), "[0]+x*[1]",
+                            hvFirstTime, hvLastTime));
+    }
+  } else {
+    LOGP(warn, "No entries in High Voltage for HV{}{}", iCh, iSec);
   }
-  LOG(info) << Form("No entries in HV for ch%isec%i", iCh, iSec);
   return pHvTF;
 }
 
@@ -720,7 +742,6 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
 // HMPIDDCSDataProcessorSpec::endOfStream() function
 void HMPIDDCSProcessor::finalize()
 {
-
   std::unique_ptr<TF1> pEnv = finalizeEnvPressure();
   for (int iCh = 0; iCh < 7; iCh++) {
 
@@ -729,8 +750,35 @@ void HMPIDDCSProcessor::finalize()
     // fills up entries 0..41 of arNmean
     for (int iRad = 0; iRad < 3; iRad++) {
 
-      finalizeTempIn(iCh, iRad);  // 6*iCh + 2*iRad
-      finalizeTempOut(iCh, iRad); // 6*iCh + 2*iRad + 1
+      // 6*iCh + 2*iRad
+      bool isTempInValid = finalizeTempIn(iCh, iRad);
+
+      if (isTempInValid == false) {
+        LOGP(warn, "Tin{}{} not valid! Setting default TF1!", iCh, iRad);
+        // this means that the entry was not valid, and thus the vector is not filled
+        std::unique_ptr<TF1> pTinDefault;
+        pTinDefault.reset(new TF1());
+        setDefault(pTinDefault.get(), true);
+
+        // ef: set flag in invalid object, such that it can be read in receiving
+        // side (Ckov reconstruction) as invalid and thus use default value
+        arNmean[6 * iCh + 2 * iRad] = *(pTinDefault.get());
+      }
+
+      // 6*iCh + 2*iRad + 1
+      bool isTempOutValid = finalizeTempOut(iCh, iRad);
+
+      if (isTempOutValid == false) {
+        LOGP(warn, "Tout{}{} not valid! Setting default TF1!", iCh, iRad);
+        // this means that the entry was not valid, and thus the vector is not filled
+        std::unique_ptr<TF1> pToutDefault;
+        pToutDefault.reset(new TF1());
+        setDefault(pToutDefault.get(), true);
+
+        // ef: set flag in invalid object, such that it can be read on receiving
+        // side (Ckov reconstruction) as invalid and thus use default value
+        arNmean[6 * iCh + 2 * iRad + 1] = *(pToutDefault.get());
+      }
     }
 
     // Fill entries in arQthre
@@ -739,11 +787,9 @@ void HMPIDDCSProcessor::finalize()
       std::unique_ptr<TF1> pHV = finalizeHv(iCh, iSec);
 
       // only fill if envP, chamP and HV datapoints are all fetched
-      LOGP(info, "Finalize ch={} sec={}, pEnv={} pChPres={} pHV={}", iCh, iSec, (void*)pEnv.get(), (void*)pChPres.get(), (void*)pHV.get());
       if (pEnv != nullptr && pChPres != nullptr && pHV != nullptr) {
-
-        const char* hvChar = (pArrHv[3 * iCh + iSec]).GetName();
-        const char* chChar = (pArrCh[iCh]).GetName();
+        const char* hvChar = (pHV.get())->GetName();     // pArrHv[3 * iCh + iSec]
+        const char* chChar = (pChPres.get())->GetName(); // pArrCh[iCh]
         const char* envChar = (pEnv.get())->GetName();
         const char* fFormula =
           "3*10^(3.01e-3*%s - 4.72)+170745848*exp(-(%s+%s)*0.0162012)";
@@ -758,10 +804,27 @@ void HMPIDDCSProcessor::finalize()
         pQthre->SetTitle(Form(
           "Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
 
-        arQthre[6 * iCh + iSec] = *(pQthre.get());
+        // ef: in theory this should not be necessary,; so no need for protection here?
+        if (pQthre != nullptr) {
+          arQthre[6 * iCh + iSec] = *(pQthre.get());
+        } else {
+          std::unique_ptr<TF1> pQthreDefault;
+          pQthreDefault.reset(new TF1());
+          setDefault(pQthreDefault.get(), true);
+          // setDefault(TF1* f, bool v)// const {f->SetBit(kDefault, v);}
 
+          arQthre[6 * iCh + iSec] = *(pQthreDefault.get());
+          LOGP(warn, "Nullptr in Charge-Threshold arQthre{} in chamber{} sector{} ", 6 * iCh + iSec, iCh, iSec);
+        }
       } else {
-        LOG(info) << "Missing entries for HV, envPressure or chPressure";
+        std::unique_ptr<TF1> pQthreDefault;
+        pQthreDefault.reset(new TF1());
+        setDefault(pQthreDefault.get(), true);
+        // setDefault(TF1* f, bool v)// const {f->SetBit(kDefault, v);}
+
+        arQthre[6 * iCh + iSec] = *(pQthreDefault.get());
+        LOGP(warn, "Missing entry in Charge-Threshold arQthre{} in chamber{} sector{} ", 6 * iCh + iSec, iCh, iSec);
+        // ef: not printing which one is missing as it is done already in the given function
       }
     }
   }
@@ -776,20 +839,27 @@ void HMPIDDCSProcessor::finalize()
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
 
-  arNmean[42] = *(pPhotMean.get());
+  if (pPhotMean != nullptr) {
+    arNmean[42] = *(pPhotMean.get());
+  } else {
+    std::unique_ptr<TF1> pPhotMeanDefault;
+    pPhotMeanDefault.reset(new TF1());
+    setDefault(pPhotMeanDefault.get(), true);
+    arNmean[42] = *(pPhotMeanDefault.get());
+  }
 
   // Check entries of CCDB-objects
-  checkEntries(arQthre, arNmean);
+  //checkEntries(arQthre, arNmean);
 
   // prepare CCDB: =============================================================
 
   std::map<std::string, std::string> md;
-  md["responsible"] = "CHANGE RESPONSIBLE";
-  //    o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP
+  md["responsible"] = "Erlend Flatland";
+
   // Refractive index (T_out, T_in, mean photon energy);
   o2::calibration::Utils::prepareCCDBobjectInfo(
     arNmean, mccdbRefInfo, "HMP/Calib/RefIndex", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);
-  LOG(info) << "mStartValidity = " << mStartValidity;
+
   // charge threshold;
   o2::calibration::Utils::prepareCCDBobjectInfo(
     arQthre, mccdbChargeInfo, "HMP/Calib/ChargeCut", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);

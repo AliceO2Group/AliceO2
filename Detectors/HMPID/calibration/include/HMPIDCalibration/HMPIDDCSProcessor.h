@@ -51,69 +51,30 @@ namespace o2::hmpid
 using namespace std::literals;
 using TimeStampType = uint64_t;
 
+struct TransparencyDpInfo {
+  bool isDpValid = false;
+  double dpVal = -999;
+};
+
 class HMPIDDCSProcessor
 {
 
  public:
-  struct TimeRange {
-    uint64_t first = std::numeric_limits<uint64_t>::max();
-    uint64_t last = std::numeric_limits<uint64_t>::min();
-  };
-
   HMPIDDCSProcessor() = default;
   ~HMPIDDCSProcessor() = default;
 
   // Process Datapoints:
-  // ========================================================================================================
-
+  // ====================================================================
   // process span of DPs:
   // process DPs, fetch IDs and call processIR or processHMPID
   void init(const std::vector<DPID>& pids);
 
   void process(const gsl::span<const DPCOM> dps);
 
-  void processTRANS(const DPCOM& dp);
-  void processHMPID(const DPCOM& dp);
-
-  // Fill entries of DPs==================================================
-  void fillChPressure(
-    const DPCOM& dpcom); // fill element[0-6] in chamber-pressure vector
-
-  void fillEnvPressure(const DPCOM& dpcom); // fill environment-pressure vector
-
-  // HV in each chamber_section = 7*3 --> will result in Q_thre
-  void fillHV(const DPCOM& dpcom); // fill element[0-20] in HV vector
-
-  // Temp in (T1) and out (T2), in each chamber_radiator = 7*3 :
-  void fillTempIn(const DPCOM& dpcom);  // fill element[0-20] in tempIn vector
-  void fillTempOut(const DPCOM& dpcom); // fill element[0-20] in tempOut vector
-
-  // =====finalize DPs, after run is finished
-  // ==================================================================================
-  // functions return nullptr if there is no entry in the array of DPCOM-vectors at
-  // the given element
-  std::unique_ptr<TF1> finalizeEnvPressure();
-  std::unique_ptr<TF1> finalizeChPressure(int iCh);
-  std::unique_ptr<TF1> finalizeHv(int iCh, int iSec);
-  void finalizeTempOut(int iCh, int iRad);
-  void finalizeTempIn(int iCh, int iRad);
-
   // called from HMPIDDCSDataProcessorSpec,
   // loops over all the arrays of DPCOM-vectors, and calls the relevant
   // fill()-methods above
   void finalize();
-
-  //===== procTrans
-  //===================================================================================================
-  double defaultEMean(); // just set a refractive index for C6F14 at ephot=6.675
-                         // eV @ T=25 C
-
-  double procTrans();
-
-  bool evalCorrFactor(double dRefArgon, double dCellArgon, double dRefFreon,
-                      double dCellFreon, double photEn, int i);
-  double dpVector2Double(const std::vector<DPCOM>& dpVec, const char* dpString, int i);
-  double calculateWaveLength(int i);
 
   //===== help-functions
   //================================================================================
@@ -170,12 +131,71 @@ class HMPIDDCSProcessor
 
   CcdbObjectInfo& getHmpidChargeInfo() { return mccdbChargeInfo; }
   std::vector<TF1>& getChargeCutObj() { return arQthre; }
-
   void clearCCDBObjects()
   {
     arQthre.clear();
     arNmean.clear();
   }
+  // ==========================================================================================================
+  void clearDPsInfo()
+  {
+    mPids.clear();
+  }
+
+  int getRunNumberFromGRP()
+  {
+    return mRunNumberFromGRP;
+  } // ef : just using the same as for emcal
+
+  void setRunNumberFromGRP(int rn)
+  {
+    mRunNumberFromGRP = rn;
+  } // ef : just using the same as for emcal
+
+ private:
+  void processTRANS(const DPCOM& dp);
+  void processHMPID(const DPCOM& dp);
+
+  // Fill entries of DPs==================================================
+  void fillChPressure(
+    const DPCOM& dpcom); // fill element[0-6] in chamber-pressure vector
+
+  void fillEnvPressure(const DPCOM& dpcom); // fill environment-pressure vector
+
+  // HV in each chamber_section = 7*3 --> will result in Q_thre
+  void fillHV(const DPCOM& dpcom); // fill element[0-20] in HV vector
+
+  // Temp in (T1) and out (T2), in each chamber_radiator = 7*3 :
+  void fillTempIn(const DPCOM& dpcom);  // fill element[0-20] in tempIn vector
+  void fillTempOut(const DPCOM& dpcom); // fill element[0-20] in tempOut vector
+
+  // =====finalize DPs, after run is finished
+  // ==================================================================================
+  // functions return nullptr if there is no entry in the array of DPCOM-vectors at
+  // the given element
+  std::unique_ptr<TF1> finalizeEnvPressure();
+  std::unique_ptr<TF1> finalizeChPressure(int iCh);
+  std::unique_ptr<TF1> finalizeHv(int iCh, int iSec);
+  bool finalizeTempOut(int iCh, int iRad);
+  bool finalizeTempIn(int iCh, int iRad);
+
+  //===== procTrans
+  //===================================================================================================
+  // ef: just return the value insted of using the function call
+  //     logging of problems is instead done where they occur
+  /*
+  double defaultEMean(); // just set a refractive index for C6F14 at ephot=6.675
+                         // eV @ T=25 C
+  */
+
+  double procTrans();
+
+  // ef: could pass everything here as const-ref, but everything is done at EOR,
+  // so maybe not so
+  bool evalCorrFactor(const double& dRefArgon, const double& dCellArgon, const double& dRefFreon,
+                      const double& dCellFreon, const double& dPhotEn, const int& i);
+  TransparencyDpInfo dpVector2Double(const std::vector<DPCOM>& dpVec, const char* dpString, int i);
+  double calculatePhotonEnergy(int i);
 
   // get methods for time-ranges
   // ===============================================================================
@@ -193,6 +213,7 @@ class HMPIDDCSProcessor
     }
     return firstTime;
   }
+
   // return timestamp of last fetched datapoint for a given ID (Tin/Tout,
   // Environment pressure, HV, chamber pressure)
   TimeStampType getMaxTime(const std::vector<DPCOM>& dps)
@@ -208,82 +229,17 @@ class HMPIDDCSProcessor
     return lastTime;
   }
 
-  void checkEntries(const std::vector<TF1>& arQthresh,
-                    const std::vector<TF1>& arrayNmean)
-  {
-    int cnt = 0;
-    bool arQthreFull = true;
-    if (mVerbose) {
-      LOG(info) << " checking if CCDB objects are filled : ";
-    }
+  struct TimeRange {
+    uint64_t first = std::numeric_limits<uint64_t>::max();
+    uint64_t last = std::numeric_limits<uint64_t>::min();
+  };
 
-    for (int iCh = 0; iCh < 7; ++iCh) {
-      for (int iSec = 0; iSec < 6; ++iSec) {
-        auto tf = arQthresh[6 * iCh + iSec];
-        const char* strCCDB = tf.GetName();
-        const char* strExpected = Form("HMP_QthreC%iS%i", iCh, iSec);
+  const UInt_t kDefault = BIT(14);
+  bool isDefault(const TF1* f) const { return f->TestBit(kDefault); }
+  void setDefault(TF1* f, bool v) { f->SetBit(kDefault, v); }
+  // ef: set flag in invalid object, such that it can be read on receiving
+  // side (Ckov reconstruction) as invalid and thus use default value
 
-        if (strcmp(strCCDB, strExpected) != 0) {
-          arQthreFull = false;
-          LOG(info) << "arQthre at " << 6 * iCh + iSec << "empty";
-        }
-        // if(tf.Getr)
-      }
-    }
-
-    cnt = 0;
-    bool arNmeanFull = true;
-    for (int iCh = 0; iCh < 7; ++iCh) {
-      for (int iRad = 0; iRad < 3; iRad += 2) {
-
-        const char* strCcdbin = (arrayNmean[6 * iCh + 2 * iRad]).GetName();
-        const char* strCcdbinOut =
-          (arrayNmean[6 * iCh + 2 * iRad + 1]).GetName();
-
-        const char* strExpectedIn = Form("Tin%i%i", iCh, iRad);
-        const char* strExpectedOut = Form("Tout%i%i", iCh, iRad);
-
-        if (strcmp(strCcdbin, strExpectedIn) != 0) {
-          arNmeanFull = false;
-          LOG(info) << "arNmean at " << 6 * iCh + 2 * iRad << " empty";
-        }
-        if (strcmp(strCcdbinOut, strExpectedOut) != 0) {
-          arNmeanFull = false;
-          LOG(info) << "arNmean at " << 6 * iCh + 2 * iRad + 1 << " empty";
-        }
-      }
-    }
-
-    if (strcmp((arrayNmean[42]).GetName(), "HMP_PhotEmean") != 0) {
-      arNmeanFull = false;
-    }
-
-    if (arQthreFull && mVerbose) {
-      LOG(info) << "arQthre Full Sized";
-    }
-    if (arNmeanFull && mVerbose) {
-      LOG(info) << "arNmean Full Sized";
-    }
-    if (arNmeanFull && arQthreFull && mVerbose) {
-      LOG(info) << "All entries of CCDB objects are filled";
-    }
-  }
-
-  void clearDPsInfo()
-  {
-    mPids.clear();
-  }
-
-  int getRunNumberFromGRP()
-  {
-    return mRunNumberFromGRP;
-  } // ef : just using the same as for emcal
-
-  void setRunNumberFromGRP(int rn)
-  {
-    mRunNumberFromGRP = rn;
-  } // ef : just using the same as for emcal
- private:
   std::unordered_map<DPID, bool> mPids;
 
   int mRunNumberFromGRP = -2; // ef : just using the same as for emcal
@@ -312,7 +268,7 @@ class HMPIDDCSProcessor
 
   //======= finalize() and fill() private variables
   //============================================================
-  Double_t xP, yP;
+  double xP, yP;
 
   // env pressure
   int cntEnvPressure = 0;      // cnt Environment-pressure entries
@@ -337,13 +293,13 @@ class HMPIDDCSProcessor
 
   // procTrans variables
   // ======================================================================
-  const double eMeanDefault = 6.675; // Default mean photon energy if
+  static constexpr double eMeanDefault = 6.675; // Default mean photon energy if
   // DP is invalid or not fetched
 
   double sEnergProb = 0, sProb = 0; // energy probaility, probability
   double eMean = 0;                 // initialize eMean (Photon energy mean) to 0
 
-  double aCorrFactor[30] = {
+  static constexpr double aCorrFactor[30] = {
     0.937575212, 0.93805688, 0.938527113, 0.938986068, 0.939433897,
     0.939870746, 0.940296755, 0.94071206, 0.941116795, 0.941511085,
     0.941895054, 0.942268821, 0.942632502, 0.942986208, 0.943330047,
@@ -351,8 +307,14 @@ class HMPIDDCSProcessor
     0.945191552, 0.945469097, 0.945737533, 0.945996945, 0.946247412,
     0.946489015, 0.94672183, 0.946945933, 0.947161396, 0.947368291};
 
-  double nm2eV;  // conversion factor, nanometer to eV
-  double photEn; // photon energy
+  // ef: hardcoded default wavelengths
+  static constexpr double arrWaveLenDefault[30] = {
+    162, 164, 166, 168, 170, 172, 174, 176, 178, 180,
+    182, 184, 186, 188, 190, 192, 194, 196, 198, 200,
+    202, 204, 206, 208, 210, 212, 214, 216, 218, 220};
+
+  static constexpr double nm2eV = 1239.842609; // 1239.842609 from nm to eV
+  double photEn;                               // photon energy
 
   // wavelength
   double lambda;
@@ -374,27 +336,28 @@ class HMPIDDCSProcessor
   double cellFreon;
   std::vector<DPCOM> freonCellVec[30];
 
-  double aTransRad, aConvFactor; // evaluate 15 mm of thickness C6F14 Trans
-  double aTransSiO2;             // evaluate 0.5 mm of thickness SiO2 Trans
-  double aTransGap;              // evaluate 80 cm of thickness Gap (low density CH4)
-                                 // transparency
-  double aCsIQE;                 // evaluate CsI quantum efficiency
-  double aTotConvolution;        // evaluate total convolution of all material optical
-                                 // properties
+  static constexpr double aConvFactor = 1.0 - 0.3 / 1.8;
+  double aTransRad;       // evaluate 15 mm of thickness C6F14 Trans
+  double aTransSiO2;      // evaluate 0.5 mm of thickness SiO2 Trans
+  double aTransGap;       // evaluate 80 cm of thickness Gap (low density CH4)
+                          // transparency
+  double aCsIQE;          // evaluate CsI quantum efficiency
+  double aTotConvolution; // evaluate total convolution of all material optical
+                          // properties
 
   // indexes for getting chamber-numbers etc
   // =======================================================================================
 
   // Chamber Pressures
-  std::size_t indexChPr = 7;
+  static constexpr std::size_t indexChPr = 7;
 
   // High Voltage
-  std::size_t indexChHv = 7;
-  std::size_t indexSecHv = 13;
+  static constexpr std::size_t indexChHv = 7;
+  static constexpr std::size_t indexSecHv = 13;
 
   // Temperatures
-  std::size_t indexChTemp = 7;
-  std::size_t indexRadTemp = 22;
+  static constexpr std::size_t indexChTemp = 7;
+  static constexpr std::size_t indexRadTemp = 22;
 
   // Timestamps and TimeRanges
   // ======================================================================================

@@ -58,12 +58,12 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_ENV_PENV", 1003., 1023.});
 
   // ==|(CH4) Chamber Pressures  (mBar) |=================================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP[0..6]_GAS_PMWPC", 3., 5.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP_[0..6]_GAS_PMWPC", 3., 5.});
 
   //==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
 
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP", 21.5, 22.5});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP", 24.5, 25.5});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP", 21.5, 22.5});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP", 24.5, 25.5});
 
   // ===| HV / SECTORS (V) |=========================================================
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_MP_[0..6]_SEC_[0..5]_HV_VMON", 2049.5, 2050.5});
@@ -73,7 +73,7 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // measured values for IR-parameters
   // 30 entries of 8 values:
   // Argon Ref mean    Argon Ref std       Argon Cell mean    Argon Cell std      C6F14 Ref mean     C6F14 Ref std       C6F14 Cell mean     C6F14 Cell std
-  double irVals[30][8] =
+  const double irVals[30][8] =
     {{-0.86698055267334, 0.015992261469364, -2.9767239093781, 0.055669896304607, -0.86270183324814, 0.015952149406075, -0.059273429214954, 0.0011367546394467}, // FIRST
      {-0.34526389837265, 0.0061066164635122, -1.599116563797, 0.029814273118973, -0.34129247069359, 0.0062515325844288, -0.11364602297544, 0.0020333647262305},
      {-0.19329330325127, 0.0031397438142449, -0.85721117258072, 0.015860633924603, -0.1903311163187, 0.0034912948030978, -0.20784763991833, 0.0037625974509865},
