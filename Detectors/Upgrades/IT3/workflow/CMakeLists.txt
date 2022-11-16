@@ -48,7 +48,7 @@ o2_add_library(ITS3Workflow
 #                   SOURCES src/its3-reco-workflow.cxx
 #                   COMPONENT_NAME its3
 #                   PUBLIC_LINK_LIBRARIES O2::ITS3Workflow)
-       
+
 # o2_add_executable(cluster-writer-workflow
 #                   SOURCES src/its-cluster-writer-workflow.cxx
 #                   COMPONENT_NAME its
