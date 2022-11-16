@@ -50,8 +50,12 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 
   mTrackFitter->setMFTRadLength(trkParam.MFTRadLength);
   mTrackFitter->setVerbosity(trkParam.verbose);
-  mTrackFitter->setTrackModel(trkParam.trackmodel);
   mTrackFitter->setAlignResiduals(trkParam.alignResidual);
+  if (trkParam.forceZeroField || (std::abs(mBz) < o2::constants::math::Almost0)) {
+    mTrackFitter->setTrackModel(o2::mft::MFTTrackModel::Linear);
+  } else {
+    mTrackFitter->setTrackModel(trkParam.trackmodel);
+  }
 
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
@@ -81,7 +85,7 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 
   if (printConfig) {
     LOG(info) << "Configurable tracker parameters:";
-    switch (trkParam.trackmodel) {
+    switch (mTrackFitter->getTrackModel()) {
       case o2::mft::MFTTrackModel::Helix:
         LOG(info) << "Fwd track model     = Helix";
         break;
