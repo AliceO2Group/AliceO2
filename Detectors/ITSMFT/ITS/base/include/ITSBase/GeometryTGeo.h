@@ -272,25 +272,33 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static void setITSModulePattern(const char* nm) { sModuleName = nm; }
   static void setITSChipPattern(const char* nm) { sChipName = nm; }
   static void setITSSensorPattern(const char* nm) { sSensorName = nm; }
+
+  static const char* getITS3LayerPattern() { return sLayerNameITS3.c_str(); }
+  static const char* getITS3HalfBarrelPattern() { return sHalfBarrelNameITS3.c_str(); }
+  static const char* getITS3StavePattern() { return sStaveNameITS3.c_str(); }
+  static const char* getITS3HalfStavePattern() { return sHalfStaveNameITS3.c_str(); }
+  static const char* getITS3ModulePattern() { return sModuleNameITS3.c_str(); }
+  static const char* getITS3ChipPattern() { return sChipNameITS3.c_str(); }
+  static const char* getITS3SensorPattern() { return sSensorNameITS3.c_str(); }
   /// sym name of the layer
-  static const char* composeSymNameITS() { return o2::detectors::DetID(o2::detectors::DetID::ITS).getName(); }
+  static const char* composeSymNameITS(bool isITS3 = false);
   /// sym name of the layer
-  static const char* composeSymNameLayer(int lr);
+  static const char* composeSymNameLayer(int lr, bool isITS3 = false);
 
   /// Sym name of the half barrel at given layer
-  static const char* composeSymNameHalfBarrel(int lr, int hba);
+  static const char* composeSymNameHalfBarrel(int lr, int hba, bool isITS3 = false);
 
   /// Sym name of the stave at given layer
-  static const char* composeSymNameStave(int lr, int hba, int sta);
+  static const char* composeSymNameStave(int lr, int hba, int sta, bool isITS3 = false);
 
   /// Sym name of the stave at given layer/halfbarrel
-  static const char* composeSymNameHalfStave(int lr, int hba, int sta, int ssta);
+  static const char* composeSymNameHalfStave(int lr, int hba, int sta, int ssta, bool isITS3 = false);
 
   /// Sym name of the substave at given layer/halfbarrel/stave
-  static const char* composeSymNameModule(int lr, int hba, int sta, int ssta, int mod);
+  static const char* composeSymNameModule(int lr, int hba, int sta, int ssta, int mod, bool isITS3 = false);
 
   /// Sym name of the chip in the given layer/halfbarrel/stave/substave/module
-  static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip);
+  static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip, bool isITS3 = false);
 
  protected:
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
@@ -365,6 +373,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   std::vector<int> mNumberOfChipsPerHalfBarrel; ///< number of chips per halfbarrel
   std::vector<int> mNumberOfChipsPerLayer;      ///< number of chips per stave
   std::vector<int> mLastChipIndex;              ///< max ID of the detctor in the layer
+  std::array<bool, MAXLAYERS> mIsLayerITS3;     ///< flag with the information of the ITS version (ITS2 or ITS3)
   std::array<char, MAXLAYERS> mLayerToWrapper;  ///< Layer to wrapper correspondence
 
   std::vector<float> mCacheRefX;     ///< sensors tracking plane reference X
@@ -379,6 +388,14 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sChipName;          ///< Chip name
   static std::string sSensorName;        ///< Sensor name
   static std::string sWrapperVolumeName; ///< Wrapper volume name
+
+  static std::string sLayerNameITS3;      ///< Layer name for ITS3
+  static std::string sHalfBarrelNameITS3; ///< HalfBarrel name for ITS3
+  static std::string sStaveNameITS3;      ///< Stave name for ITS3
+  static std::string sHalfStaveNameITS3;  ///< HalfStave name for ITS3
+  static std::string sModuleNameITS3;     ///< Module name for ITS3
+  static std::string sChipNameITS3;       ///< Chip name for ITS3
+  static std::string sSensorNameITS3;     ///< Sensor name for ITS3
 
  private:
 #ifndef GPUCA_STANDALONE

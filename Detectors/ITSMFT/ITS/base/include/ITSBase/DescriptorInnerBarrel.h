@@ -19,6 +19,7 @@
 #include <vector>
 #include <TObject.h>
 #include <TGeoTube.h>
+#include <TMath.h>
 
 namespace o2
 {
@@ -41,10 +42,10 @@ class DescriptorInnerBarrel : public TObject
     return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
   }
 
-  int GetNumberOfLayers() const { return mNumLayers; }
-  double GetSensorThickness() const { return mSensorLayerThickness; }
-  void GetConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
-  TGeoTube* DefineWrapperVolume();
+  int getNumberOfLayers() const { return mNumLayers; }
+  double getSensorThickness() const { return mSensorLayerThickness; }
+  void getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
+  TGeoTube* defineWrapperVolume();
 
  protected:
   int mNumLayers{3};
@@ -58,6 +59,7 @@ class DescriptorInnerBarrel : public TObject
   double mSensorLayerThickness{};           // sensor thickness
   std::vector<double> mLayerRadii{};        // Vector of layer radius
   std::vector<double> mDetectorThickness{}; // Vector of detector thickness
+  std::vector<int> mChipTypeID{};           //! Vector of unique chip ID
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrel, 1); /// ITS inner barrel geometry descriptor

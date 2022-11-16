@@ -11,6 +11,6 @@
 
 add_subdirectory(simulation)
 add_subdirectory(base)
-add_subdirectory(macros)
-add_subdirectory(workflow)
-add_subdirectory(reconstruction)
+#add_subdirectory(macros)
+#add_subdirectory(workflow)
+#add_subdirectory(reconstruction)

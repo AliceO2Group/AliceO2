@@ -159,7 +159,7 @@ void DescriptorInnerBarrelITS2::createServices(TGeoVolume* dest)
   // Updated:      21 Oct 2019  Mario Sitta  CYSS added
   //
 
-  std::unique_ptr<V3Services> mServicesGeometry(new V3Services());
+  std::unique_ptr<V3Services> mServicesGeometry(new V3Services("ITS"));
 
   // Create the End Wheels on Side A
   TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();

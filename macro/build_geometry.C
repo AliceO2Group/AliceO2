@@ -50,7 +50,6 @@
 #endif
 
 #ifdef ENABLE_UPGRADES
-#include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
@@ -100,7 +99,7 @@ void build_geometry(FairRunSim* run = nullptr)
   if (run == nullptr) {
     run = new FairRunSim();
     run->SetSink(new FairRootFileSink("foo.root")); // Output file
-    run->SetName("TGeant3");        // Transport engine
+    run->SetName("TGeant3");                        // Transport engine
   }
   // Create media
   run->SetMaterials("media.geo"); // Materials
@@ -193,8 +192,8 @@ void build_geometry(FairRunSim* run = nullptr)
   }
 #ifdef ENABLE_UPGRADES
   if (isActivated("IT3")) {
-    // ITS3
-    run->AddModule(new o2::its3::Detector(isReadout("IT3")));
+    // IT3
+    run->AddModule(new o2::its::Detector(isReadout("IT3"), "IT3"));
   }
 
   if (isActivated("TRK")) {

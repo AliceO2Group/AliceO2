@@ -62,7 +62,6 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   std::vector<double> mChipThickness{}; //! Vector of chip thicknesses
   std::vector<double> mStaveWidth{};    //! Vector of stave width (only used for turbo)
   std::vector<double> mStaveTilt{};     //! Vector of stave tilt (only used for turbo)
-  std::vector<int> mChipTypeID{};       //! Vector of unique chip ID
   std::vector<int> mBuildLevel{};       //! Vector of build level
   std::vector<V3Layer*> mLayer{};       //! Vector of layers
 

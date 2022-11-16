@@ -13,7 +13,7 @@ o2_add_library(ITSSimulation
                SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx src/V3Cage.cxx
                        src/DescriptorInnerBarrelITS2.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTSimulation
+               PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITS3Base O2::ITSMFTSimulation O2::ITS3Simulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(ITSSimulation

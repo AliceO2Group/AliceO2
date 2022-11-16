@@ -15,17 +15,18 @@
 #ifndef ALICEO2_ITS_DETECTOR_H_
 #define ALICEO2_ITS_DETECTOR_H_
 
-#include <vector>                                    // for vector
-#include "DetectorsBase/GeometryManager.h"           // for getSensID
-#include "DetectorsBase/Detector.h"                  // for Detector
-#include "DetectorsCommonDataFormats/DetID.h"        // for Detector
-#include "ITSMFTSimulation/Hit.h"                    // for Hit
-#include "ITSSimulation/DescriptorInnerBarrelITS2.h" // for Description of Inner Barrel
-#include "Rtypes.h"                                  // for Int_t, Double_t, Float_t, Bool_t, etc
-#include "TArrayD.h"                                 // for TArrayD
-#include "TGeoManager.h"                             // for gGeoManager, TGeoManager (ptr only)
-#include "TLorentzVector.h"                          // for TLorentzVector
-#include "TVector3.h"                                // for TVector3
+#include <vector>                                     // for vector
+#include "DetectorsBase/GeometryManager.h"            // for getSensID
+#include "DetectorsBase/Detector.h"                   // for Detector
+#include "DetectorsCommonDataFormats/DetID.h"         // for Detector
+#include "ITSMFTSimulation/Hit.h"                     // for Hit
+#include "ITSSimulation/DescriptorInnerBarrelITS2.h"  // for Description of Inner Barrel (ITS2)
+#include "ITS3Simulation/DescriptorInnerBarrelITS3.h" // for Description of Inner Barrel (ITS3)
+#include "Rtypes.h"                                   // for Int_t, Double_t, Float_t, Bool_t, etc
+#include "TArrayD.h"                                  // for TArrayD
+#include "TGeoManager.h"                              // for gGeoManager, TGeoManager (ptr only)
+#include "TLorentzVector.h"                           // for TLorentzVector
+#include "TVector3.h"                                 // for TVector3
 
 class FairVolume;
 class TGeoVolume;
