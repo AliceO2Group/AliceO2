@@ -797,13 +797,6 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
 
-  // //FIXME: please, fix this shit
-  // if (isn < 6) {
-  //   x = 3.f; // we need to retrieve the radius
-  //   alp = 0.f;
-  //   return;
-  // }
-
   double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
 
