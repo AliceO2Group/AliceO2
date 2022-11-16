@@ -22,6 +22,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/CommonMessageBackends.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
@@ -298,6 +299,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
   };
 
+  // AOD reader can be rate limited
+  int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
+  std::string rateLimitingChannelConfigInput;
+  std::string rateLimitingChannelConfigOutput;
+  bool internalRateLimiting = false;
+
+  // In case we have rate-limiting requested, any device without an input will get one on the special
+  // "DPL/RATE" message.
+  if (rateLimitingIPCID >= 0) {
+    rateLimitingChannelConfigInput = fmt::format("name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0",
+                                                 ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    rateLimitingChannelConfigOutput = fmt::format("name=metric-feedback,type=push,method=bind,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0",
+                                                  ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    internalRateLimiting = true;
+    aodReader.options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, rateLimitingChannelConfigInput, {"how many timeframes can be in flight at the same time"}});
+  }
+
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
@@ -479,7 +497,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-    aodReader.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
+
+    auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
+    if (internalRateLimiting) {
+      aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+    } else {
+      aodReader.algorithm = algo;
+    }
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -652,7 +676,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
-    int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
     for (auto& ignoredInput : ignored) {
       if (ignoredInput.lifetime == Lifetime::OutOfBand) {
         // FIXME: Use Lifetime::Dangling when fully working?
@@ -660,7 +683,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
 
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingIPCID));
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());

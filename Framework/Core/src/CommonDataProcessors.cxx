@@ -38,6 +38,8 @@
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/RateLimiter.h"
+#include "Framework/Plugins.h"
 #include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
@@ -541,7 +543,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, std::string rateLimitingChannelConfig)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
@@ -569,12 +571,26 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
       return adaptStateless([]() {
       });
     })},
-    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
-                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://" + ChannelSpecHelpers::defaultIPCFolder() + "metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
-                                                                       {"Out-of-band channel config"}}}
-                                       : std::vector<ConfigParamSpec>()
+    .options = !rateLimitingChannelConfig.empty() ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                                  rateLimitingChannelConfig,
+                                                                                  {"Out-of-band channel config"}}}
+                                                  : std::vector<ConfigParamSpec>()
 
   };
+}
+
+AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
+{
+  return PluginManager::wrapAlgorithm(spec, [](AlgorithmSpec::ProcessCallback& original, ProcessingContext& pcx) -> void {
+    auto& raw = pcx.services().get<RawDeviceService>();
+    static RateLimiter limiter;
+    auto limit = std::stoi(raw.device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+    LOG(detail) << "Rate limiting to " << limit << " timeframes in flight";
+    limiter.check(pcx, limit, 2000);
+    LOG(detail) << "Rate limiting passed. Invoking old callback";
+    original(pcx);
+    LOG(detail) << "Rate limited callback done";
+  });
 }
 
 #pragma GCC diagnostic pop
