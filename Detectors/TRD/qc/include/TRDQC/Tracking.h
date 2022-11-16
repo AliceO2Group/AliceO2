@@ -29,6 +29,7 @@
 #include "Rtypes.h"
 
 #include <gsl/span>
+#include <bitset>
 
 namespace o2
 {
@@ -42,15 +43,18 @@ namespace trd
 {
 
 struct TrackQC {
-  int type;          ///< 0 TPC-TRD track; 1 ITS-TPC-TRD track
-  int nTracklets;    ///< number of attached TRD tracklets
-  int nLayers;       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
-  float chi2;        ///< total chi2 value for the track
-  float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
-  float p;           ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
-  float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
-  float ptSigma2;    //< Sigma2 of pt
-  float dEdxTotTPC;  //< raw total dEdx information for seeding track in TPC
+  int type;                          ///< 0 TPC-TRD track; 1 ITS-TPC-TRD track
+  int nTracklets;                    ///< number of attached TRD tracklets
+  int nLayers;                       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
+  float chi2;                        ///< total chi2 value for the track
+  float reducedChi2;                 ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
+  float p;                           ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
+  float pt;                          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
+  float ptSigma2;                    ///< Sigma2 of pt
+  float dEdxTotTPC;                  ///< raw total dEdx information for seeding track in TPC
+  std::bitset<6> isCrossingNeighbor; ///< indicate if track crossed a padrow and/or had a neighboring tracklet in that layer
+  bool hasNeighbor;                  ///< indicate if a track had a tracklet with a neighboring one e.g. potentailly split tracklet
+  bool hasPadrowCrossing;            ///< indicate if track crossed a padrow
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<bool, constants::NLAYER> findable{};  ///< flag if track was in geometrical acceptance
@@ -80,7 +84,7 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 2);
+  ClassDefNV(TrackQC, 3);
 };
 
 class Tracking

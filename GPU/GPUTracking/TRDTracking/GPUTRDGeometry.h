@@ -72,6 +72,7 @@ class GPUTRDpadPlane : private o2::trd::PadPlane
   GPUd() float GetColPos(int col) const { return getColPos(col); }
   GPUd() float GetNrows() const { return getNrows(); }
   GPUd() float GetNcols() const { return getNcols(); }
+  GPUd() int GetPadRowNumber(double z) const { return getPadRowNumber(z); }
 };
 
 class GPUTRDGeometry : private o2::trd::GeometryFlat
@@ -88,6 +89,7 @@ class GPUTRDGeometry : private o2::trd::GeometryFlat
   // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return getTime0(layer); }
   GPUd() float GetCol0(int layer) const { return getCol0(layer); }
+  GPUd() float GetCdrHght() const { return cdrHght(); }
   GPUd() int GetLayer(int det) const { return getLayer(det); }
   GPUd() bool CreateClusterMatrixArray() const { return false; }
   GPUd() float AnodePos() const { return anodePos(); }
@@ -138,6 +140,7 @@ class GPUTRDpadPlane
   GPUd() float GetColEnd() const { return 0; }
   GPUd() float GetColPos(int col) const { return 0; }
   GPUd() float GetNrows() const { return 0; }
+  GPUd() int GetPadRowNumber(double z) const { return 0; }
 };
 
 class GPUTRDGeometry
@@ -155,6 +158,7 @@ class GPUTRDGeometry
   // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return 0; }
   GPUd() float GetCol0(int layer) const { return 0; }
+  GPUd() float GetCdrHght() const { return 0; }
   GPUd() int GetLayer(int det) const { return 0; }
   GPUd() bool CreateClusterMatrixArray() const { return false; }
   GPUd() float AnodePos() const { return 0; }
