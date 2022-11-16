@@ -279,17 +279,17 @@ fi
 if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   # calibrations for AGGREGATOR_TASKS == CALO_SPORADIC
   if [[ $AGGREGATOR_TASKS == CALO_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
-    echo "AGGREGATOR_TASKS == CALO_SPORADIC not defined for the time being"
+    echo "AGGREGATOR_TASKS == CALO_SPORADIC not defined for the time being" 1>&2
   fi
 
   # calibrations for AGGREGATOR_TASKS == MUON_TF
   if [[ $AGGREGATOR_TASKS == MUON_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
-    echo "AGGREGATOR_TASKS == MUON_TF not defined for the time being"
+    echo "AGGREGATOR_TASKS == MUON_TF not defined for the time being" 1>&2
   fi
 
   # calibrations for AGGREGATOR_TASKS == MUON_SPORADIC
   if [[ $AGGREGATOR_TASKS == MUON_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
-    echo "AGGREGATOR_TASKS == MUON_SPORADIC not defined for the time being"
+    echo "AGGREGATOR_TASKS == MUON_SPORADIC not defined for the time being" 1>&2
   fi
 fi
 
