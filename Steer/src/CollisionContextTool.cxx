@@ -244,13 +244,14 @@ int main(int argc, char* argv[])
       if (!options.bcpatternfile.empty()) {
         sampler.setBunchFilling(options.bcpatternfile);
       }
-      sampler.setFirstIR(o2::InteractionRecord(0, options.tfid * options.orbitsPerTF));
+      auto orbitstart = options.tfid * options.orbitsPerTF;
+      sampler.setFirstIR(o2::InteractionRecord(0, orbitstart));
       sampler.init();
       o2::InteractionTimeRecord record;
       int count = 0;
       do {
         record = sampler.generateCollisionTime();
-        if (usetimeframelength && record.orbit >= options.orbits) {
+        if (usetimeframelength && record.orbit >= orbitstart + options.orbits) {
           break;
         }
         std::vector<o2::steer::EventPart> parts;
