@@ -50,6 +50,7 @@ class TrackFitter
   void setMFTRadLength(float MFT_x2X0) { mMFTDiskThicknessInX0 = MFT_x2X0 / 5.0; }
   void setVerbosity(bool v) { mVerbose = v; }
   void setTrackModel(Int_t m) { mTrackModel = m; }
+  auto& getTrackModel() const { return mTrackModel; }
   void setAlignResiduals(Float_t res) { mAlignResidual = res; }
 
   bool initTrack(T& track, bool outward = false);
