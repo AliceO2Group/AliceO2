@@ -52,8 +52,10 @@ void Tracking::run()
 void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
 {
   auto propagator = o2::base::Propagator::Instance();
+  auto id = trkTrd.getRefGlobalTrackId();
   TrackQC qcStruct;
   qcStruct.type = isTPCTRD ? 0 : 1;
+  qcStruct.refGlobalTrackId = id;
   qcStruct.nTracklets = trkTrd.getNtracklets();
   qcStruct.nLayers = trkTrd.getNlayersFindable();
   qcStruct.chi2 = trkTrd.getChi2();
@@ -64,9 +66,9 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.hasNeighbor = trkTrd.getHasNeighbor();
   qcStruct.hasPadrowCrossing = trkTrd.getHasPadrowCrossing();
 
-  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), trkTrd.getRefGlobalTrackId());
-  const auto& trkSeed = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getParamOut() : mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getParamOut();
-  qcStruct.dEdxTotTPC = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getdEdx().dEdxTotTPC : mTracksTPC[mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getRefTPC()].getdEdx().dEdxTotTPC;
+  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), id);
+  const auto& trkSeed = isTPCTRD ? mTracksTPC[id].getParamOut() : mTracksITSTPC[id].getParamOut();
+  qcStruct.dEdxTotTPC = isTPCTRD ? mTracksTPC[id].getdEdx().dEdxTotTPC : mTracksTPC[mTracksITSTPC[id].getRefTPC()].getdEdx().dEdxTotTPC;
   auto trk = trkSeed;
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
     qcStruct.isCrossingNeighbor[iLayer] = trkTrd.getIsCrossingNeighbor(iLayer);
