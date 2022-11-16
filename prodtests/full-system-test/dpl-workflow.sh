@@ -91,7 +91,7 @@ if [[ $SYNCMODE == 1 ]]; then
     [[ ! -z $CUT_RANDOM_FRACTION_ITS ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   fi
   if has_detector_reco ITS; then
-    MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
+    [[ $RUNTYPE == "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   else
     MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=2000;"
   fi
