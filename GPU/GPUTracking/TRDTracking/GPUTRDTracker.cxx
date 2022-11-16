@@ -833,8 +833,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       const auto padrowEntry = pad->GetPadRowNumber(projZEntry);
       const auto padrowExit = pad->GetPadRowNumber(trkWork->getZ());
       if (padrowEntry != padrowExit) {
-        trkWork->setIsPadrowCrossing(iLayer);
-        continue; // we can only mark padrow crossings once, hence the next loop is pointless
+        trkWork->setIsCrossingNeighbor(iLayer);
+        trkWork->setHasPadrowCrossing();
       }
       const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();
       // Mark tracklets as Padrow crossing if they have a neighboring tracklet.
@@ -845,7 +845,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         }
         if (GPUCommonMath::Abs(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin() - tracklets[trkltIdx].GetZbin()) == 1 &&
             GPUCommonMath::Abs(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetY() - tracklets[trkltIdx].GetY()) < 1) {
-          trkWork->setIsPadrowCrossing(iLayer);
+          trkWork->setIsCrossingNeighbor(iLayer);
           trkWork->setHasNeighbor();
           break;
         }

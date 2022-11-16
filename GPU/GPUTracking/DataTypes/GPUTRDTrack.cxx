@@ -34,7 +34,7 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
   mRefGlobalTrackId = 0;
   mCollisionId = -1;
   mFlags = 0;
-  mIsPadrowCrossing = 0;
+  mIsCrossingNeighbor = 0;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
   }
@@ -70,7 +70,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
   for (int i = 0; i < kNLayers; i++) {
     t.fAttachedTracklets[i] = getTrackletIndex(i);
   }
-  t.mIsPadrowCrossing = getIsPadrowCrossing();
+  t.mIsCrossingNeighbor = getIsCrossingNeighbor();
 }
 
 template <typename T>
@@ -83,7 +83,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   setRefGlobalTrackIdRaw(t.fTPCTrackID);
   mChi2 = 0.f;
   mFlags = 0;
-  mIsPadrowCrossing = 0;
+  mIsCrossingNeighbor = 0;
   mCollisionId = -1;
   for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
     mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
@@ -112,7 +112,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(t)
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsPadrowCrossing(t.mIsPadrowCrossing)
+  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
 {
   // copy constructor
   for (int i = 0; i < kNLayers; ++i) {
@@ -139,7 +139,7 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   mRefGlobalTrackId = t.mRefGlobalTrackId;
   mCollisionId = t.mCollisionId;
   mFlags = t.mFlags;
-  mIsPadrowCrossing = t.mIsPadrowCrossing;
+  mIsCrossingNeighbor = t.mIsCrossingNeighbor;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
   }
