@@ -39,6 +39,12 @@ int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCom
 
 int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
 {
+  if (clustersCompressed->nTracks && clustersCompressed->solenoidBz != -1e6f && clustersCompressed->solenoidBz != param.bzkG) {
+    throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
+  }
+  if (clustersCompressed->nTracks && clustersCompressed->maxTimeBin != -1e6 && clustersCompressed->maxTimeBin != param.par.continuousMaxTimeBin) {
+    throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
+  }
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   std::atomic_flag locks[NSLICES][GPUCA_ROW_COUNT];
   for (unsigned int i = 0; i < NSLICES * GPUCA_ROW_COUNT; i++) {
