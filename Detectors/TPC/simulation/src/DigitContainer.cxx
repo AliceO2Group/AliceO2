@@ -20,6 +20,7 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/IonTailSettings.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::tpc;
 
@@ -37,6 +38,10 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   const auto digitizationMode = eleParam.DigiMode;
   int nProcessedTimeBins = 0;
   TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
+
+  // Set the TPC timebin limit, after which digits should be truncated.
+  // Without this we might get crashes in the clusterization step.
+  static const int maxTimeBinForTimeFrame = o2::conf::DigiParams::Instance().maxOrbitsToDigitize != -1 ? ((o2::conf::DigiParams::Instance().maxOrbitsToDigitize * 3564 + 2 * 8 - 2) / 8) : -1;
 
   // ion tail per pad parameters
   const CalPad* itParams[2] = {nullptr, nullptr};
@@ -70,6 +75,11 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
     // fill also time bins without signal to get noise, ion tail and saturated signals
     if (needsEmptyTimeBins && !time) {
       time = new DigitTime;
+    }
+
+    if (maxTimeBinForTimeFrame != -1 && timeBin > maxTimeBinForTimeFrame) {
+      LOG(warn) << "Timebin going beyond timeframe limit .. truncating flush " << timeBin;
+      break;
     }
 
     // fmt::print("Processing secotor: {}, time bin: {}, mFirstTimeBin: {}, dgitTime: {}\n", sector.getSector(), timeBin, mFirstTimeBin, (void*)time);
