@@ -95,7 +95,7 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
   GRPGeomHelper::instance().checkUpdates(pc);
   const auto grp = o2::parameters::GRPObject::loadFrom();
-  if (mConfParam->tpcTriggeredMode ^ !grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
     LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
   }
   if (mDisplayShutDown) {
