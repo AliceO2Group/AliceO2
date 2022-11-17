@@ -453,7 +453,7 @@ struct SetDefaultProcesses {
 
 /// Struct to differentiate task names from possible task string arguments
 struct TaskName {
-  TaskName(std::string const& name) : value{name} {}
+  TaskName(std::string name) : value{std::move(name)} {}
   std::string value;
 };
 
