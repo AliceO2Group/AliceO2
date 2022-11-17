@@ -56,6 +56,17 @@ namespace its
 namespace gpu
 {
 
+GPUh() void gpuThrowOnError()
+{
+  cudaError_t error = cudaGetLastError();
+
+  if (error != cudaSuccess) {
+    std::ostringstream errorString{};
+    errorString << GPU_ARCH << " API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
+    throw std::runtime_error{errorString.str()};
+  }
+}
+
 void utils::host::checkGPUError(const cudaError_t error, const char* file, const int line)
 {
   if (error != cudaSuccess) {

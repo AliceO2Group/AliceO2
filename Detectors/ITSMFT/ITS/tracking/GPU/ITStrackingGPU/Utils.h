@@ -25,16 +25,30 @@ namespace its
 {
 namespace gpu
 {
+template <class T>
+GPUhd() T* getPtrFromRuler(int index, T* src, const int* ruler, const int stride = 1)
+{
+  return src + ruler[index] * stride;
+}
+
+template <class T>
+GPUhd() const T* getPtrFromRuler(int index, const T* src, const int* ruler, const int stride = 1)
+{
+  return src + ruler[index] * stride;
+}
+
+GPUh() void gpuThrowOnError();
+
 namespace utils
 {
 namespace host
 {
 
 #ifdef __CUDACC__
-void checkGPUError(const cudaError_t error, const char* file, const int line);
+void checkGPUError(const cudaError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
 #ifdef __HIPCC__
-void checkGPUError(const hipError_t error, const char* file, const int line);
+void checkGPUError(const hipError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
 
 dim3 getBlockSize(const int);
