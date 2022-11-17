@@ -135,6 +135,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   CompressedClusters clustersFiltered = clusters;
   std::vector<std::pair<std::vector<unsigned int>, std::vector<unsigned short>>> tmpBuffer(std::max<int>(mNThreads, 1));
   if (mSelIR) {
+    if (clusters.nTracks && clusters.solenoidBz != -1e6f && clusters.solenoidBz != mParam->bzkG) {
+      throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
+    }
+    if (clusters.nTracks && clusters.maxTimeBin != -1e6 && clusters.maxTimeBin != mParam->par.continuousMaxTimeBin) {
+      throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
+    }
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
     rejectHits.resize(clusters.nUnattachedClusters);
     rejectTracks.resize(clusters.nTracks);
@@ -272,7 +278,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
 
   std::shared_ptr<o2::base::GRPGeomRequest> ggreq;
   if (selIR) {
