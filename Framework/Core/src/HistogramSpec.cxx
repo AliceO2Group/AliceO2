@@ -121,13 +121,55 @@ HistPtr HistFactory::createHistVariant(const HistogramSpec& histSpec)
   }
 }
 
+// define histogram callbacks for runtime histogram creation
+#define CREATE_HIST_CASE(HType) \
+  case k##HType:                \
+    return HistFactory::createHistVariant<HType>(histSpec);
+
 // runtime version of the above
 HistPtr HistFactory::createHistVariant(const HistogramSpec& histSpec)
 {
-  if (histSpec.config.type == HistType::kUndefinedHist) {
-    throw runtime_error("Histogram type was not specified.");
-  } else {
-    return HistogramCreationCallbacks.at(histSpec.config.type)(histSpec);
+  switch (histSpec.config.type) {
+    CREATE_HIST_CASE(TH1D)
+    CREATE_HIST_CASE(TH1F)
+    CREATE_HIST_CASE(TH1I)
+    CREATE_HIST_CASE(TH1C)
+    CREATE_HIST_CASE(TH1S)
+
+    CREATE_HIST_CASE(TH2D)
+    CREATE_HIST_CASE(TH2F)
+    CREATE_HIST_CASE(TH2I)
+    CREATE_HIST_CASE(TH2C)
+    CREATE_HIST_CASE(TH2S)
+
+    CREATE_HIST_CASE(TH3D)
+    CREATE_HIST_CASE(TH3F)
+    CREATE_HIST_CASE(TH3I)
+    CREATE_HIST_CASE(TH3C)
+    CREATE_HIST_CASE(TH3S)
+
+    CREATE_HIST_CASE(THnD)
+    CREATE_HIST_CASE(THnF)
+    CREATE_HIST_CASE(THnI)
+    CREATE_HIST_CASE(THnC)
+    CREATE_HIST_CASE(THnS)
+    CREATE_HIST_CASE(THnL)
+
+    CREATE_HIST_CASE(THnSparseD)
+    CREATE_HIST_CASE(THnSparseF)
+    CREATE_HIST_CASE(THnSparseI)
+    CREATE_HIST_CASE(THnSparseC)
+    CREATE_HIST_CASE(THnSparseS)
+    CREATE_HIST_CASE(THnSparseL)
+
+    CREATE_HIST_CASE(TProfile)
+    CREATE_HIST_CASE(TProfile2D)
+    CREATE_HIST_CASE(TProfile3D)
+
+    CREATE_HIST_CASE(StepTHnF)
+    CREATE_HIST_CASE(StepTHnD)
+    default:
+      throw runtime_error("Histogram type was not specified.");
   }
 }
 
@@ -240,23 +282,5 @@ EXPIMPL(TProfile3D);
 EXPIMPL(StepTHnF);
 EXPIMPL(StepTHnD)
 #undef EXPIMPL
-
-// define histogram callbacks for runtime histogram creation
-#define CALLB(HType)                                            \
-  {                                                             \
-    k##HType,                                                   \
-      [](HistogramSpec const& histSpec) {                       \
-        return HistFactory::createHistVariant<HType>(histSpec); \
-      }                                                         \
-  }
-const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFactory::HistogramCreationCallbacks{
-  CALLB(TH1D), CALLB(TH1F), CALLB(TH1I), CALLB(TH1C), CALLB(TH1S),
-  CALLB(TH2D), CALLB(TH2F), CALLB(TH2I), CALLB(TH2C), CALLB(TH2S),
-  CALLB(TH3D), CALLB(TH3F), CALLB(TH3I), CALLB(TH3C), CALLB(TH3S),
-  CALLB(THnD), CALLB(THnF), CALLB(THnI), CALLB(THnC), CALLB(THnS), CALLB(THnL),
-  CALLB(THnSparseD), CALLB(THnSparseF), CALLB(THnSparseI), CALLB(THnSparseC), CALLB(THnSparseS), CALLB(THnSparseL),
-  CALLB(TProfile), CALLB(TProfile2D), CALLB(TProfile3D),
-  CALLB(StepTHnF), CALLB(StepTHnD)};
-#undef CALLB
 
 } // namespace o2::framework
