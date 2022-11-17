@@ -21,6 +21,7 @@
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/Constants.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsBase/Propagator.h"
 #include "TRDBase/RecoParam.h"
@@ -30,6 +31,8 @@
 
 #include <gsl/span>
 #include <bitset>
+
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -44,6 +47,7 @@ namespace trd
 
 struct TrackQC {
   int type;                          ///< 0 TPC-TRD track; 1 ITS-TPC-TRD track
+  GTrackID refGlobalTrackId;         ///< GlobalTrackID of the seeding track (either ITS-TPC or TPC)
   int nTracklets;                    ///< number of attached TRD tracklets
   int nLayers;                       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
   float chi2;                        ///< total chi2 value for the track
@@ -84,7 +88,7 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 3);
+  ClassDefNV(TrackQC, 4);
 };
 
 class Tracking
