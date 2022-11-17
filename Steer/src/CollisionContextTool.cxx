@@ -41,6 +41,7 @@ struct Options {
   int tfid = 0;          // tfid -> used to calculate start orbit for collisions
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
+  bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
 };
 
 enum class InteractionLockMode {
@@ -182,7 +183,8 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
     "use-existing-kine", "Read existing kinematics to adjust event counts")(
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
-    "maxColsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe.");
+    "maxColsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe.")(
+    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -245,12 +247,15 @@ int main(int argc, char* argv[])
         sampler.setBunchFilling(options.bcpatternfile);
       }
       auto orbitstart = options.tfid * options.orbitsPerTF;
-      sampler.setFirstIR(o2::InteractionRecord(0, orbitstart));
-      sampler.init();
       o2::InteractionTimeRecord record;
+      // this loop makes sure that the first collision is within the range of orbits asked (if noEmptyTF is enabled)
+      do {
+        sampler.setFirstIR(o2::InteractionRecord(0, orbitstart));
+        sampler.init();
+        record = sampler.generateCollisionTime();
+      } while (options.noEmptyTF && usetimeframelength && record.orbit >= orbitstart + options.orbits);
       int count = 0;
       do {
-        record = sampler.generateCollisionTime();
         if (usetimeframelength && record.orbit >= orbitstart + options.orbits) {
           break;
         }
@@ -260,6 +265,7 @@ int main(int argc, char* argv[])
         std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> insertvalue(record, parts);
         auto iter = std::lower_bound(collisions.begin(), collisions.end(), insertvalue, [](std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& a, std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& b) { return a.first < b.first; });
         collisions.insert(iter, insertvalue);
+        record = sampler.generateCollisionTime();
         count++;
       } while ((ispecs[id].mcnumberasked > 0 && count < ispecs[id].mcnumberasked));
 
