@@ -81,6 +81,9 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   /// \param storeNClCCDB store RMS of pad-by-pad histograms in the CCDB
   void setStoreRMSCCDB(const bool storeRMSCCDB) { mStoreRMSCCDB = storeRMSCCDB; }
 
+  /// set if the cluster charge is transformed using log(1+Q)
+  bool setLogTransformQ(const bool logTransformQ) { return mLogTransformQ = logTransformQ; }
+
   /// \param useLastMap buffer last extracted gain map
   void setUseLastExtractedMapAsReference(const bool useLastMap) { mUseLastExtractedMapAsReference = useLastMap; }
 
@@ -121,6 +124,7 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   std::unique_ptr<CalPad> mGainMapLastIteration;                              ///< gain map extracted from particle tracks from the last iteration
   bool mStoreNClCCDB{false};                                                  ///< whether to store the number of TPC clusters in the CCDB
   bool mStoreRMSCCDB{false};                                                  ///< whether to store the RMS of each pad-by-pad histogram in the CCDB
+  bool mLogTransformQ{true};                                                  ///< transformation of q/dedx -> log(1 + q/dedx)
 
   ClassDefOverride(CalibratorPadGainTracks, 1);
 };
