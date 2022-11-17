@@ -58,15 +58,28 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     // setting up the histogram ranges
     const auto nBins = ic.options().get<int>("nBins");
-    const auto reldEdxMin = ic.options().get<float>("reldEdxMin");
-    const auto reldEdxMax = ic.options().get<float>("reldEdxMax");
+    auto reldEdxMin = ic.options().get<float>("reldEdxMin");
+    auto reldEdxMax = ic.options().get<float>("reldEdxMax");
     const auto underflowBin = ic.options().get<bool>("underflowBin");
     const auto overflowBin = ic.options().get<bool>("overflowBin");
-    mPadGainTracks.init(nBins, reldEdxMin, reldEdxMax, underflowBin, overflowBin);
-
     const auto donotnormalize = ic.options().get<bool>("do-not-normalize");
+    const auto disableLogTransform = ic.options().get<bool>("disable-log-transform");
+    mPadGainTracks.setLogTransformQ(!disableLogTransform);
     float mindEdx = ic.options().get<float>("mindEdx");
     float maxdEdx = ic.options().get<float>("maxdEdx");
+    if (!disableLogTransform) {
+      if (reldEdxMin > -1) {
+        reldEdxMin = std::log(1 + reldEdxMin);
+      } else {
+        LOGP(warn, "reldEdxMin (={}) is smaller than -1!", reldEdxMin);
+      }
+      if (reldEdxMax > 0) {
+        reldEdxMax = std::log(1 + reldEdxMax);
+      } else {
+        LOGP(warn, "reldEdxMax (={}) is smaller than 0!", reldEdxMax);
+      }
+    }
+    mPadGainTracks.init(nBins, reldEdxMin, reldEdxMax, underflowBin, overflowBin);
     mPadGainTracks.setdEdxMin(mindEdx);
     mPadGainTracks.setdEdxMax(maxdEdx);
     mPadGainTracks.doNotNomalize(donotnormalize);
@@ -271,6 +284,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
       {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
+      {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
       {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
       {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
       {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},

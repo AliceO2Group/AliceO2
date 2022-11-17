@@ -52,8 +52,10 @@ class CalibratorPadGainTracksDevice : public Task
     const auto minAcceptedRelgain = ic.options().get<float>("minAcceptedRelgain");
     const auto maxAcceptedRelgain = ic.options().get<float>("maxAcceptedRelgain");
     const int minEntriesMean = ic.options().get<int>("minEntriesMean");
+    const auto disableLogTransform = ic.options().get<bool>("disable-log-transform");
 
     mCalibrator = std::make_unique<CalibratorPadGainTracks>();
+    mCalibrator->setLogTransformQ(!disableLogTransform);
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
@@ -154,6 +156,7 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
       {"minEntriesMean", VariantType::Int, 40, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
       {"store-NCl-CCDB", VariantType::Bool, false, {"store the CalDet containing the number of clusters per pad in the CCDB"}},
       {"store-RMS-CCDB", VariantType::Bool, false, {"store the RMS of each pad-by-pad histogram containing the number of clusters per pad in the CCDB"}},
+      {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 
