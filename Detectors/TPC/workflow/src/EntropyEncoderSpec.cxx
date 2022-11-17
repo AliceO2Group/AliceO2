@@ -168,7 +168,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
       const float tMin = o2::tpc::ClusterNative::unpackTime(tMinP), tMax = o2::tpc::ClusterNative::unpackTime(tMaxP);
       const auto chkVal = firstIR + (tMin * constants::LHCBCPERTIMEBIN);
-      const auto chkExt = (totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN + 1;
+      const auto chkExt = totalT > tMax - tMin ? ((totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN + 1) : 0;
       const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
       if (reject) {
         for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
