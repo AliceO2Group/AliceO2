@@ -66,6 +66,7 @@ class EntropyEncoderSpec : public o2::framework::Task
   bool mSelIR = false;
   unsigned int mNThreads = 1;
   float mMaxZ = 25.f, mMaxEta = 1.5f;
+  float mEtaFactor = 0.f;
   TStopwatch mTimer;
 };
 
