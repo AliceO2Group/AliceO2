@@ -217,7 +217,7 @@ void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, con
   }
 
   dumpOut << indLevel << "properties:\n";
-  std::string qcConfigFullCommand = configPath.empty() ? "\"\"" : "\"{{ ToPtree(GetConfig  ('" + configPath + "'), 'json') }}\"";
+  std::string qcConfigFullCommand = configPath.empty() ? "\"\"" : "\"{{ ToPtree(config.Get('" + configPath + "'), 'json') }}\"";
   dumpOut << indLevel << indScheme << "qcConfiguration: " << qcConfigFullCommand << "\n";
 }
 
