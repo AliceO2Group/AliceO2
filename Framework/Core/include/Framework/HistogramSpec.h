@@ -230,8 +230,6 @@ struct HistFactory {
   static TAxis* getAxis(const int i, T* hist);
 
  private:
-  static const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistogramCreationCallbacks;
-
   // helper function to generate the actual histograms
   template <typename T>
   static T* generateHist(const std::string& name, const std::string& title, const std::size_t nDim,
