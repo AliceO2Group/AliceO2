@@ -79,6 +79,8 @@ struct CompressedClusters : public CompressedClustersCounters, public Compressed
   ~CompressedClusters() CON_DEFAULT;
   CompressedClusters(const CompressedClustersFlat& c);
 
+  void dump();
+
   ClassDefNV(CompressedClusters, 2);
 };
 
