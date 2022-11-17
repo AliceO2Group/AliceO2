@@ -16,13 +16,15 @@
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 
+#include <fairlogger/Logger.h> // for LOG
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "MathUtils/Cartesian.h"
 
-#include <fairlogger/Logger.h> // for LOG
+#ifdef ENABLE_UPGRADES
+#include "ITS3Base/SegmentationSuperAlpide.h"
+#endif
 
 #include <TGeoBBox.h>         // for TGeoBBox
 #include <TGeoManager.h>      // for gGeoManager, TGeoManager
@@ -47,7 +49,10 @@ using namespace o2::its;
 using namespace o2::detectors;
 
 using Segmentation = o2::itsmft::SegmentationAlpide;
+
+#ifdef ENABLE_UPGRADES
 using SegmentationITS3 = o2::its3::SegmentationSuperAlpide;
+#endif
 
 ClassImp(o2::its::GeometryTGeo);
 
@@ -285,8 +290,9 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& hba, int& sta, int& hsta,
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameITS(bool isITS3)
 {
-  if (isITS3)
+  if (isITS3) {
     return o2::detectors::DetID(o2::detectors::DetID::IT3).getName();
+  }
 
   return o2::detectors::DetID(o2::detectors::DetID::ITS).getName();
 }
@@ -388,7 +394,9 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor ticknesses
   double delta = 0.;
   if (mIsLayerITS3[lay]) {
+#ifdef ENABLE_UPGRADES
     delta = SegmentationITS3::SensorLayerThickness - SegmentationITS3::SensorLayerThicknessEff;
+#endif
   } else {
     delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
   }

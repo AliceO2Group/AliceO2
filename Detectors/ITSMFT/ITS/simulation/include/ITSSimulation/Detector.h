@@ -21,12 +21,15 @@
 #include "DetectorsCommonDataFormats/DetID.h"         // for Detector
 #include "ITSMFTSimulation/Hit.h"                     // for Hit
 #include "ITSSimulation/DescriptorInnerBarrelITS2.h"  // for Description of Inner Barrel (ITS2)
-#include "ITS3Simulation/DescriptorInnerBarrelITS3.h" // for Description of Inner Barrel (ITS3)
 #include "Rtypes.h"                                   // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TArrayD.h"                                  // for TArrayD
 #include "TGeoManager.h"                              // for gGeoManager, TGeoManager (ptr only)
 #include "TLorentzVector.h"                           // for TLorentzVector
 #include "TVector3.h"                                 // for TVector3
+
+#ifdef ENABLE_UPGRADES
+#include "ITS3Simulation/DescriptorInnerBarrelITS3.h" // for Description of Inner Barrel (ITS3)
+#endif
 
 class FairVolume;
 class TGeoVolume;

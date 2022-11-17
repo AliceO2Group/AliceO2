@@ -55,7 +55,10 @@ using std::endl;
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::its;
+
+#ifdef ENABLE_UPGRADES
 using namespace o2::its3;
+#endif
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("ITS", kTRUE),
@@ -141,7 +144,9 @@ Detector::Detector(Bool_t active, TString name)
   if (name == "ITS") {
     mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
   } else if (name == "IT3") {
+#ifdef ENABLE_UPGRADES
     mDescriptorIB.reset(new DescriptorInnerBarrelITS3(DescriptorInnerBarrelITS3::ThreeLayersNoDeadZones));
+#endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
   }
@@ -197,7 +202,9 @@ Detector::Detector(Bool_t active, TString name)
   if (detName == "ITS") {
     dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure();
   } else if (detName == "IT3") {
+#ifdef ENABLE_UPGRADES
     dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->configure();
+#endif
   }
   configOuterBarrelITS(mNumberInnerLayers);
 }
@@ -858,7 +865,9 @@ void Detector::constructDetectorGeometry()
       if (detName == "ITS") {
         mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
       } else if (detName == "IT3") {
+#ifdef ENABLE_UPGRADES
         dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+#endif
       }
       mWrapperLayerId[j] = 0;
     } else {
