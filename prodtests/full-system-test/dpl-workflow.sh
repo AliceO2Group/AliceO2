@@ -308,7 +308,7 @@ elif [[ $EXTINPUT == 1 ]]; then
   [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://${UDS_PREFIX}metric-feedback-$NUMAID,transport=shmem,rateLogging=0"
   add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
 elif [[ $DIGITINPUT == 1 ]]; then
-  [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1"; exit 1; }
+  [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1" 1>&2; exit 1; }
   DISABLE_DIGIT_ROOT_INPUT=
   DISABLE_DIGIT_CLUSTER_INPUT=
   TOF_INPUT=digits
@@ -317,6 +317,7 @@ elif [[ $DIGITINPUT == 1 ]]; then
   has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
 else
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
+  [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
   add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
 fi
 
