@@ -93,14 +93,14 @@ inline void TPCClusterDecompressor::decompressTrack(const CompressedClusters* cl
       time = time & 0xFFFFFF;
       pad = (unsigned short)pad;
       if (pad >= param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked) {
-        if ((signed short)pad >= (signed short)(-2 * ClusterNative::scalePadPacked)) {
+        if (pad >= 0xFFFF - 11968) { // Constant 11968 = (2^15 - MAX_PADS(138) * scalePadPacked(64)) / 2
           pad = 0;
         } else {
           pad = param.tpcGeometry.NPads(row) * ClusterNative::scalePadPacked - 1;
         }
       }
       if (param.par.continuousMaxTimeBin > 0 && time >= maxTime) {
-        if (time >= 0xFFFFFF - 2 * ClusterNative::scaleTimePacked) {
+        if (time >= 0xFFFFFF - 544768) { // Constant 544768 = (2^23 - LHCMAXBUNCHES(3564) * MAXORBITS(256) * scaleTimePacked(64) / BCPERTIMEBIN(8)) / 2)
           time = 0;
         } else {
           time = maxTime;
