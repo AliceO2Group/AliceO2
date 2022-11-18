@@ -283,7 +283,7 @@ int CTPRunScalers::convertRawToO2()
     //update overflows
     int ret = updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
     //
-    if(ret == 0) {
+    if (ret == 0) {
       CTPScalerRecordO2 o2rec;
       copyRawToO2ScalerRecord(mScalerRecordRaw[i], o2rec, overflows);
       mScalerRecordO2.push_back(o2rec);
@@ -410,7 +410,7 @@ int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScal
     LOG(error) << "Inconsistent scaler record size:" << rec1.scalers.size() << " Expected:" << mClassMask.count();
     return 1;
   }
-  if(rec0.intRecord.orbit > rec1.intRecord.orbit) {
+  if (rec0.intRecord.orbit > rec1.intRecord.orbit) {
     LOG(warning) << "rec0 orbit:" << rec0.intRecord.orbit << "> rec1 orbit:" << rec1.intRecord.orbit << " skipping this record";
     return 1;
   }
@@ -496,7 +496,6 @@ int CTPRunScalers::printIntegrals()
   double_t time0 = mScalerRecordO2[0].epochTime;
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
   LOG(info) << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
-
 
   for (int i = 0; i < mScalerRecordO2[0].scalers.size(); i++) {
     std::cout << i << " LMB " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore << std::endl;
