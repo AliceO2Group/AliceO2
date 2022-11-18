@@ -369,6 +369,7 @@ AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat ea
 AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (repeat full processing)", min(1))
 AddOption(runsInit, int, 1, "", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(eventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
+AddOption(noEvents, bool, false, "", 0, "Run without data (e.g. for field visualization)")
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display (1 = Windows/X11, 2 = GLUT, 3 = GLFW, 4 = Wayland)", def(1))
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data")
