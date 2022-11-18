@@ -126,6 +126,20 @@ void CalibratorVdExB::initProcessing()
   opt.SetTolerance(.001);
   mFitter.Config().SetMinimizerOptions(opt);
 
+  // set tree addresses
+  if (mEnableOutput && mOutTree) {
+    mOutTree->Branch("lorentzAngle", &mFitFunctor.laPreCorr);
+    mOutTree->Branch("vDrift", &mFitFunctor.vdPreCorr);
+    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+      mOutTree->Branch(fmt::format("residuals_{:d}", iDet).c_str(), mFitFunctor.profiles[iDet].get());
+    }
+  }
+
+  // get parameters
+  auto& params = TRDCalibParams::Instance();
+  mMinEntriesChamber = params.minEntriesChamber;
+  mMinEntriesTotal = params.minEntriesTotal;
+
   mInitDone = true;
 }
 
@@ -155,10 +169,6 @@ void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
       mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
       mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
     }
-
-    auto& params = TRDCalibParams::Instance();
-    mMinEntriesChamber = params.minEntriesChamber;
-    mMinEntriesTotal = params.minEntriesTotal;
   }
 }
 
@@ -204,31 +214,12 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   timer.Stop();
   LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
-  // Write results to file
-  if (mEnableOutput) {
-    std::unique_ptr<TFile> outFilePtr(TFile::Open("calibVDriftExB.root", "RECREATE"));
-
-    // Write residuals
-    outFilePtr->mkdir("residuals");
-    outFilePtr->cd("residuals");
+  // Fill Tree and log to debug
+  if (mEnableOutput && mOutTree) {
+    mOutTree->Fill();
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-      mFitFunctor.profiles[iDet]->Write();
+      LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
     }
-    outFilePtr->cd("..");
-
-    // Fit Results
-    auto fitTreePtr = std::make_unique<TTree>("fitResults", "Fit Parameters");
-    float laFitResult;
-    float vdFitResult;
-    fitTreePtr->Branch("lorentzAngle", &laFitResult);
-    fitTreePtr->Branch("vDrift", &vdFitResult);
-    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-      laFitResult = laFitResults[iDet];
-      vdFitResult = vdFitResults[iDet];
-      LOGF(info, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResult, laFitResult * TMath::RadToDeg());
-      fitTreePtr->Fill();
-    }
-    fitTreePtr->Write();
   }
 
   // assemble CCDB object
@@ -253,6 +244,41 @@ Slot& CalibratorVdExB::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<AngularResidHistos>());
   return slot;
+}
+
+void CalibratorVdExB::createOutputFile()
+{
+  if (!mEnableOutput) {
+    return;
+  }
+
+  mOutFile = std::make_unique<TFile>("trd_calibVdriftExB.root", "RECREATE");
+  if (mOutFile->IsZombie()) {
+    LOG(error) << "Failed to create output file!";
+    mEnableOutput = false;
+    return;
+  }
+
+  mOutTree = std::make_unique<TTree>("calib", "VDrift&ExB calibration");
+
+  LOG(info) << "Created output file";
+}
+
+void CalibratorVdExB::closeOutputFile()
+{
+  if (!mEnableOutput || !mOutTree) {
+    return;
+  }
+
+  try {
+    mOutFile->cd();
+    mOutTree->Write();
+    mOutTree.reset();
+    mOutFile->Close();
+    mOutFile.reset();
+  } catch (std::exception const& e) {
+    LOG(error) << "Failed to write calibration data file, reason: " << e.what();
+  }
 }
 
 } // namespace o2::trd
