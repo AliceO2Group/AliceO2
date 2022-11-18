@@ -501,29 +501,29 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
     return END;
   }
 
-  int64_t index() const
+  [[nodiscard]] int64_t index() const
   {
     return index<0>();
   }
 
-  int64_t filteredIndex() const
+  [[nodiscard]] int64_t filteredIndex() const
   {
     return index<1>();
   }
 
-  int64_t globalIndex() const
+  [[nodiscard]] int64_t globalIndex() const
   {
     return index<0>() + offsets<0>();
   }
 
   template <int N = 0>
-  int64_t index() const
+  [[nodiscard]] int64_t index() const
   {
     return *std::get<N>(rowIndices);
   }
 
   template <int N = 0>
-  int64_t offsets() const
+  [[nodiscard]] int64_t offsets() const
   {
     return *std::get<N>(rowOffsets);
   }
@@ -623,13 +623,13 @@ struct DefaultIndexPolicy : IndexPolicyBase {
     }
   }
 
-  std::tuple<int64_t const*, int64_t const*>
+  [[nodiscard]] std::tuple<int64_t const*, int64_t const*>
     getIndices() const
   {
     return std::make_tuple(&mRowIndex, &mRowIndex);
   }
 
-  std::tuple<uint64_t const*>
+  [[nodiscard]] std::tuple<uint64_t const*>
     getOffsets() const
   {
     return std::make_tuple(&mOffset);
@@ -669,7 +669,7 @@ struct DefaultIndexPolicy : IndexPolicyBase {
     return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
   }
 
-  auto size() const
+  [[nodiscard]] auto size() const
   {
     return mMaxRow;
   }
@@ -697,13 +697,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   FilteredIndexPolicy& operator=(FilteredIndexPolicy const&) = default;
   FilteredIndexPolicy& operator=(FilteredIndexPolicy&&) = default;
 
-  std::tuple<int64_t const*, int64_t const*>
+  [[nodiscard]] std::tuple<int64_t const*, int64_t const*>
     getIndices() const
   {
     return std::make_tuple(&mRowIndex, &mSelectionRow);
   }
 
-  std::tuple<uint64_t const*>
+  [[nodiscard]] std::tuple<uint64_t const*>
     getOffsets() const
   {
     return std::make_tuple(&mOffset);
@@ -758,12 +758,12 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     this->mRowIndex = -1;
   }
 
-  auto getSelectionRow() const
+  [[nodiscard]] auto getSelectionRow() const
   {
     return mSelectionRow;
   }
 
-  auto size() const
+  [[nodiscard]] auto size() const
   {
     return mMaxSelection;
   }
@@ -1256,13 +1256,13 @@ class Table
     return unfiltered_const_iterator(mBegin);
   }
 
-  RowViewSentinel end() const
+  [[nodiscard]] RowViewSentinel end() const
   {
     return RowViewSentinel{mEnd};
   }
 
   /// Return a type erased arrow table backing store for / the type safe table.
-  std::shared_ptr<arrow::Table> asArrowTable() const
+  [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTable() const
   {
     return mTable;
   }
@@ -1272,12 +1272,12 @@ class Table
     return mOffset;
   }
   /// Size of the table, in rows.
-  int64_t size() const
+  [[nodiscard]] int64_t size() const
   {
     return mTable->num_rows();
   }
 
-  int64_t tableSize() const
+  [[nodiscard]] int64_t tableSize() const
   {
     return size();
   }
@@ -2480,7 +2480,7 @@ class FilteredBase : public T
     return const_iterator(mFilteredBegin);
   }
 
-  RowViewSentinel end() const
+  [[nodiscard]] RowViewSentinel end() const
   {
     return RowViewSentinel{*mFilteredEnd};
   }
@@ -2490,12 +2490,12 @@ class FilteredBase : public T
     return mFilteredBegin + i;
   }
 
-  int64_t size() const
+  [[nodiscard]] int64_t size() const
   {
     return mSelectedRows.size();
   }
 
-  int64_t tableSize() const
+  [[nodiscard]] int64_t tableSize() const
   {
     return table_t::asArrowTable()->num_rows();
   }
@@ -2798,7 +2798,6 @@ class Filtered : public FilteredBase<T>
                    [&start](int64_t idx) {
                      return idx - static_cast<int64_t>(start);
                    });
-    auto slicedSize = slicedSelection.size();
     self_t fresult{{result}, std::move(slicedSelection), start};
     this->copyIndexBindings(fresult);
     return fresult;
