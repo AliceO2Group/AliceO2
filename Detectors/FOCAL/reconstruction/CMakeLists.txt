@@ -13,6 +13,7 @@ o2_add_library(FOCALReconstruction
         SOURCES src/PadWord.cxx
         src/PadData.cxx
         src/PadDecoder.cxx
+        src/PadMapper.cxx
         PUBLIC_LINK_LIBRARIES O2::Headers
         AliceO2::InfoLogger
         Microsoft.GSL::GSL)
@@ -21,6 +22,7 @@ o2_target_root_dictionary(
         FOCALReconstruction
         HEADERS include/FOCALReconstruction/PadData.h
         include/FOCALReconstruction/PadDecoder.h
+        include/FOCALReconstruction/PadMapper.h
 )
 
 o2_add_executable(rawreader-pad-rootify

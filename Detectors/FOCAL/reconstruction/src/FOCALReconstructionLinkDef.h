@@ -19,4 +19,5 @@
 #pragma link C++ class o2::focal::ASICContainer + ;
 #pragma link C++ class o2::focal::PadData + ;
 #pragma link C++ class o2::focal::PadDecoder + ;
+#pragma link C++ class o2::focal::PadMapper + ;
 #endif
