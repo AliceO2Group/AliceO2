@@ -24,10 +24,13 @@ struct LumiInfo {
   LumiInfo() = default;
   uint32_t orbit = 0;       // orbit of TF when was updated
   uint32_t nHBFCounted = 0; // length of interval in HB
-  uint64_t counts = 0;      // counts in the interval
+  uint64_t counts = 0;      // counts in the interval for the nominal lumi detector (FT0)
+  uint64_t countsFV0 = 0;   // connts for FV0 (less reliable)
   float getLumi() const { return nHBFCounted > 0 ? float(counts / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  float getLumiFV0() const { return nHBFCounted > 0 ? float(countsFV0 / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
-  ClassDefNV(LumiInfo, 1);
+  float getLumiFV0Error() const { return nHBFCounted > 0 ? float(std::sqrt(countsFV0) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
+  ClassDefNV(LumiInfo, 2);
 };
 } // namespace ctp
 
