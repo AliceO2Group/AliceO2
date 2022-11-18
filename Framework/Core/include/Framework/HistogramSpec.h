@@ -214,31 +214,12 @@ struct HistFactory {
   template <typename T>
   static std::unique_ptr<T> createHist(const HistogramSpec& histSpec);
 
-  // create histogram and return it casted to the correct alternative held in HistPtr variant
-  template <typename T>
-  static HistPtr createHistVariant(const HistogramSpec& histSpec);
-
   // runtime version of the above
   static HistPtr createHistVariant(const HistogramSpec& histSpec);
 
   // helper function to get the axis via index for any type of root histogram
   template <typename T>
   static TAxis* getAxis(const int i, T* hist);
-
- private:
-  // helper function to generate the actual histograms
-  template <typename T>
-  static T* generateHist(const std::string& name, const std::string& title, const std::size_t nDim,
-                         const int nBins[], const double lowerBounds[], const double upperBounds[], const int nSteps = 1);
-
-  // helper function to cast the actual histogram type (e.g. TH2F) to the correct interface type (e.g. TH2) that is stored in the HistPtr variant
-  template <typename T>
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
-
-  template <typename T, typename Next, typename... Rest>
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
-
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
 };
 
 #define DECLAREEXT(HType) \
