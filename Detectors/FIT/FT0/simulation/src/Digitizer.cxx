@@ -310,10 +310,12 @@ void Digitizer::storeBC(BCCache& bc,
   isVertex = is_A && is_C && (vertex_time > -params.mTime_trg_gate && vertex_time < params.mTime_trg_gate);
   LOG(debug) << " A " << is_A << " timeA " << timeA << " mean_time_A " << mean_time_A << "  n_hit_A " << n_hit_A << " C " << is_C << " timeC " << timeC << " mean_time_C " << mean_time_C << "  n_hit_C " << n_hit_C << " vertex_time " << vertex_time;
   Triggers triggers;
-  const bool unusedBitsInSim = false; // bits related to laser and data validity
+  bool isLaser = false;
+  bool isOutputsAreBlocked = false;
+  bool isDataValid = true;
   if (nStored > 0) {
     triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
-                         amplA, amplC, timeA, timeC, unusedBitsInSim, unusedBitsInSim, unusedBitsInSim);
+                         amplA, amplC, timeA, timeC, isLaser, isOutputsAreBlocked, isDataValid);
     digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
     digitsTrig.emplace_back(firstBCinDeque, is_A, is_C, isVertex, is_Central, is_SemiCentral);
     size_t const nBC = digitsBC.size();
