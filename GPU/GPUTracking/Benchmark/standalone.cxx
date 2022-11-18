@@ -278,7 +278,10 @@ int SetupReconstruction()
   if (!configStandalone.eventGenerator) {
     char filename[256];
     snprintf(filename, 256, "events/%s/", configStandalone.eventsDir);
-    if (rec->ReadSettings(filename)) {
+    if (configStandalone.noEvents) {
+      configStandalone.eventsDir = "NON_EXISTING";
+      configStandalone.rundEdx = false;
+    } else if (rec->ReadSettings(filename)) {
       printf("Error reading event config file\n");
       return 1;
     }
@@ -822,11 +825,17 @@ int main(int argc, char** argv)
     long long int nClustersTotal = 0;
     int nEventsProcessed = 0;
 
+    if (configStandalone.noEvents) {
+      nEvents = 1;
+      configStandalone.StartEvent = 0;
+      chainTracking->ClearIOPointers();
+    }
+
     for (int iEvent = configStandalone.StartEvent; iEvent < nEvents; iEvent++) {
       if (iEvent != configStandalone.StartEvent) {
         printf("\n");
       }
-      if (!configStandalone.preloadEvents) {
+      if (configStandalone.noEvents == false && !configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
         if (LoadEvent(iEvent, 0)) {
