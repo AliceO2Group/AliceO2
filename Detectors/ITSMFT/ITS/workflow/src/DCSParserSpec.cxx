@@ -419,7 +419,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 
   // Create metadata for database object
   metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
-  
+
   std::string path("ITS/Calib/DCS_CONFIG/");
   const char* filename = "dcs_config.root";
   o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
