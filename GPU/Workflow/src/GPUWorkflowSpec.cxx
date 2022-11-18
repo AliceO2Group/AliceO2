@@ -136,6 +136,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       }
     }
 
+    mAutoSolenoidBz = mConfParam->solenoidBz == -1e6f;
     mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
@@ -770,8 +771,10 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
     mGRPGeomUpdated = false;
     needCalibUpdate = true;
 
-    newCalibValues.newSolenoidField = true;
-    newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    if (mAutoSolenoidBz) {
+      newCalibValues.newSolenoidField = true;
+      newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    }
     LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
