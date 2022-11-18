@@ -516,19 +516,17 @@ void TrackerTraits::findTracks()
       }
     }
 
-    /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
-    const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 2].at(clusters[lastCellLevel + 2]);
+    /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
+    const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel].at(clusters[lastCellLevel]);
     const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 1].at(clusters[lastCellLevel + 1]);
-    const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel].at(clusters[lastCellLevel]);
+    const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 2].at(clusters[lastCellLevel + 2]);
+    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
 
-    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
-
-    /// FIXME!
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(lastCellLevel))};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTrkParams[0].LayerMisalignment[lastCellLevel + 2])};
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1);
+    bool fitSuccess = fitTrack(temporaryTrack, lastCellLevel + 1, -1, -1);
     if (!fitSuccess) {
       continue;
     }
@@ -656,19 +654,19 @@ void TrackerTraits::findShortPrimaries()
   mTimeFrame->fillPrimaryVerticesXandAlpha();
 
   for (auto& cell : mTimeFrame->getCells()[0]) {
-    auto& cluster1_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
+    auto& cluster3_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
     auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
-    auto& cluster3_glo = mTimeFrame->getClusters()[0][cell.getFirstClusterIndex()];
-    if (mTimeFrame->isClusterUsed(0, cluster1_glo.clusterId) ||
+    auto& cluster1_glo = mTimeFrame->getClusters()[0][cell.getFirstClusterIndex()];
+    if (mTimeFrame->isClusterUsed(2, cluster1_glo.clusterId) ||
         mTimeFrame->isClusterUsed(1, cluster2_glo.clusterId) ||
-        mTimeFrame->isClusterUsed(2, cluster3_glo.clusterId)) {
+        mTimeFrame->isClusterUsed(0, cluster3_glo.clusterId)) {
       continue;
     }
 
     std::array<int, 3> rofs{
-      mTimeFrame->getClusterROF(0, cluster3_glo.clusterId),
+      mTimeFrame->getClusterROF(2, cluster3_glo.clusterId),
       mTimeFrame->getClusterROF(1, cluster2_glo.clusterId),
-      mTimeFrame->getClusterROF(2, cluster1_glo.clusterId)};
+      mTimeFrame->getClusterROF(0, cluster1_glo.clusterId)};
     if (rofs[0] != rofs[1] && rofs[1] != rofs[2] && rofs[0] != rofs[2]) {
       continue;
     }
@@ -681,14 +679,18 @@ void TrackerTraits::findShortPrimaries()
     auto pvs{mTimeFrame->getPrimaryVertices(rof)};
     auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
 
-    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(0).at(cluster3_glo.clusterId);
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(0))};
-    temporaryTrack.setExternalClusterIndex(0, cluster3_glo.clusterId, true);
+    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(2).at(cluster3_glo.clusterId);
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTrkParams[0].LayerMisalignment[2])};
+    temporaryTrack.setExternalClusterIndex(0, cluster1_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
-    temporaryTrack.setExternalClusterIndex(2, cluster1_glo.clusterId, true);
+    temporaryTrack.setExternalClusterIndex(2, cluster3_glo.clusterId, true);
 
     /// add propagation to the primary vertices compatible with the ROF(s) of the cell
-    bool fitSuccess{false};
+    bool fitSuccess = fitTrack(temporaryTrack, 1, -1, -1);
+    if (!fitSuccess) {
+      continue;
+    }
+    fitSuccess = false;
 
     TrackITSExt bestTrack{temporaryTrack}, backup{temporaryTrack};
     float bestChi2{std::numeric_limits<float>::max()};
@@ -906,11 +908,9 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
   return swapped;
 }
 
-/// Clusters are given from outside inward (cluster1 is the outermost). The innermost cluster is given in the tracking
-/// frame coordinates
-/// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
-/// a TrackParCov
-track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution)
+/// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
+/// frame coordinates whereas the others are referred to the global frame.
+track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float misalignment)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
@@ -923,27 +923,22 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+  const bool zeroField{std::abs(getBz()) < o2::constants::math::Almost0};
+  const float tgp = zeroField ? std::atan2(y3 - y1, x3 - x1) : 1.f;
+  const float crv = zeroField ? 1.f : math_utils::computeCurvature(x3, y3, x2, y2, x1, y1);
+  const float snp = zeroField ? tgp / std::sqrt(1.f + tgp * tgp) : crv * (x3 - math_utils::computeCurvatureCentreX(x3, y3, x2, y2, x1, y1));
   const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
   const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
-  const float fy = 1. / (cluster2.radius - cluster3.radius);
-  const float& tz = fy;
-  float cy = 1.e15f;
-  if (std::abs(getBz()) > o2::constants::math::Almost0) {
-    cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) /
-         (resolution * getBz() * o2::constants::math::B2C) *
-         20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  }
-  const float s2 = resolution;
-
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
-                            {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? 1.f / o2::track::kMostProbablePt
-                                                                              : crv / (getBz() * o2::constants::math::B2C)},
-                            {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
-                             s2 * fy * cy, 0.f, s2 * cy * cy});
+                            {y3, z3, snp, 0.5f * (tgl12 + tgl23),
+                             zeroField ? 1.f / o2::track::kMostProbablePt
+                                       : crv / (getBz() * o2::constants::math::B2C)},
+                            {math_utils::hypot(tf3.covarianceTrackingFrame[0], misalignment),
+                             tf3.covarianceTrackingFrame[1], math_utils::hypot(tf3.covarianceTrackingFrame[2], misalignment),
+                             0.f, 0.f, track::kCSnp2max,
+                             0.f, 0.f, 0.f, track::kCTgl2max,
+                             0.f, 0.f, 0.f, 0.f, track::kC1Pt2max});
 }
 
 void TrackerTraits::traverseCellsTree(const int currentCellId, const int currentLayerId)
