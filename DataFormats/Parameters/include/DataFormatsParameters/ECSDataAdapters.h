@@ -65,8 +65,8 @@ static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
   "CALIBRATION_ALPIDE_SCAN",
   "CALIBRATION",
   "COSMICS",
-  "NOISE",
-  "SYNTHETIC"};
+  "SYNTHETIC",
+  "NOISE"};
 
 //_______________________________________________
 static RunType string2RunType(const std::string& rts)
