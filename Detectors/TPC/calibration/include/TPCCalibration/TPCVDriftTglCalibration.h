@@ -45,7 +45,7 @@ struct TPCVDTglContainer {
 
   void fill(const gsl::span<const o2::dataformats::Pair<float, float>> data)
   {
-    if (data.size() < 2) { // last entry always contains the full and reference VDrift used for the TF
+    if (data.size() < 2) { // first entry always contains the full and reference VDrift used for the TF
       return;
     }
     for (size_t i = 1; i < data.size(); i++) {
