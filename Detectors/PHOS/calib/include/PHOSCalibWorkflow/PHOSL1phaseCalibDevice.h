@@ -45,7 +45,7 @@ class PHOSL1phaseCalibDevice
   }
 
  private:
-  long mRunStartTime = 0;                                       /// start time of the run (ms)
+  unsigned long mRunStartTime = 0;                              /// start time of the run (ms)
   std::unique_ptr<o2::phos::PHOSL1phaseCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };

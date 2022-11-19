@@ -40,12 +40,19 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 
   LOG(info) << "Energy calibration options";
   LOG(info) << " output-dif=" << mOutputDir;
+  bool toFillDigits = mOutputDir.compare("/dev/null");
+  if (toFillDigits) {
+    LOG(info) << " Digits tree will be created";
+  } else {
+    LOG(info) << " Digits tree will NOT be created";
+  }
   LOG(info) << " meta-output-dir=" << mMetaFileDir;
   LOG(info) << " mgg histo ptMin=" << mPtMin;
   LOG(info) << " Emin for HG time=" << mEminHGTime;
   LOG(info) << " Emin for LG time=" << mEminLGTime;
   LOG(info) << " Emin for out digits=" << mEDigMin;
   LOG(info) << " Cluster Emin for out digits=" << mECluMin;
+
   LOG(info) << " Root output dir=" << mOutputDir;
 
   mCalibrator = std::make_unique<PHOSEnergyCalibrator>();
@@ -60,6 +67,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
     mHasCalib = true;
   }
   mCalibrator->setCuts(mPtMin, mEminHGTime, mEminLGTime, mEminHGTime, mEminLGTime);
+  mCalibrator->setFillDigitsTree(toFillDigits);
   mCalibrator->setUpdateAtTheEndOfRunOnly();
 
   // Create geometry instance (inclusing reading mis-alignement)
@@ -165,7 +173,7 @@ void PHOSEnergyCalibDevice::fillOutputTree()
   if (!br) {
     br = mTreeOut->Branch("PHOSCalib", &mOutputDigits);
   }
-  int abits = mTreeOut->Fill();
+  mTreeOut->Fill();
 }
 
 void PHOSEnergyCalibDevice::writeOutFile()
