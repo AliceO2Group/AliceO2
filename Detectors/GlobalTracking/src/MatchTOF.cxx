@@ -210,13 +210,13 @@ bool MatchTOF::prepareTPCData()
       if (std::abs(trk.getQ2Pt()) > mMaxInvPt) {
         return true;
       }
-      this->addTPCSeed(trk, gid);
+      this->addTPCSeed(trk, gid, time0, terr);
     }
     if constexpr (isTPCITSTrack<decltype(trk)>()) {
       if (trk.getParamOut().getX() < o2::constants::geom::XTPCOuterRef - 1.) {
         return true;
       }
-      this->addITSTPCSeed(trk, gid);
+      this->addITSTPCSeed(trk, gid, time0, terr);
     }
     if constexpr (isTRDTrack<decltype(trk)>()) {
       this->addTRDSeed(trk, gid, time0, terr);
@@ -268,14 +268,16 @@ bool MatchTOF::prepareTPCData()
   return true;
 }
 //______________________________________________
-void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID)
+void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
 {
   mIsITSTPCused = true;
 
   auto trc = _tr.getParamOut();
   o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
 
-  addConstrainedSeed(trc, srcGID, intLT0, _tr.getTimeMUS());
+  timeEst ts(time0, terr);
+
+  addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
 //______________________________________________
 void MatchTOF::addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::GlobalTrackID srcGID, o2::track::TrackLTIntegral intLT0, timeEst timeMUS)
@@ -342,7 +344,7 @@ void MatchTOF::addTRDSeed(const o2::trd::TrackTRD& _tr, o2::dataformats::GlobalT
   addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
 //______________________________________________
-void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID)
+void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
 {
   mIsTPCused = true;
 
@@ -383,10 +385,19 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
     return;
   }
 
-  timeInfo.setTimeStamp(_tr.getTime0() * mTPCTBinMUS);
+  float trackTime0 = _tr.getTime0() * mTPCTBinMUS;
+
   timeInfo.setTimeStampError((_tr.getDeltaTBwd() + 5) * mTPCTBinMUS + extraErr);
-  mSideTPC.push_back(_tr.hasASideClustersOnly() ? 1 : (_tr.hasCSideClustersOnly() ? -1 : 0));
   mExtraTPCFwdTime.push_back((_tr.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
+
+  //  timeInfo.setTimeStampError(trackTime0 - time0 + terr + extraErr);
+  //  mExtraTPCFwdTime.push_back(time0 + terr - trackTime0 + extraErr);
+
+  timeInfo.setTimeStamp(trackTime0);
+  mSideTPC.push_back(_tr.hasASideClustersOnly() ? 1 : (_tr.hasCSideClustersOnly() ? -1 : 0));
+
+  //  printf("time0 %f -> %f (diff = %f, err = %f)\n",trackTime0, time0, trackTime0 - time0, terr);
+  //  printf("time errors %f,%f -> %f,%f\n",(_tr.getDeltaTBwd() + 5) * mTPCTBinMUS,(_tr.getDeltaTFwd() + 5) * mTPCTBinMUS,trackTime0 - time0 + terr, time0 + terr - trackTime0);
 
   trc.getXYZGlo(globalPos);
   int sector = o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
@@ -496,12 +507,14 @@ void MatchTOF::doMatching(int sec)
     auto& trackWork = mTracksWork[type][cacheTrk[itrk]];
     auto& trefTrk = trackWork.first;
     auto& intLT = mLTinfos[type][cacheTrk[itrk]];
+    float timeShift = intLT.getL() * 33.35641; // integrated time for 0.75 beta particles in ps, to take into account the t.o.f. delay with respect the interaction BC
+                                               // using beta=0.75 to cover beta range [0.59 , 1.04] also for a 8 m track lenght with a 10 ns track resolution (TRD)
 
     //    Printf("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion));
-    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
-    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // maximum time in ps
-    int istep = 1;                                                                                                      // number of steps
-    float step = 1.0;                                                                                                   // step size in cm
+    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6 + timeShift;         // minimum time in ps
+    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6 + timeShift + 100E3; // maximum time in ps + 100 ns for slow tracks (beta->0.2)
+    int istep = 1;                                                                                                                          // number of steps
+    float step = 1.0;                                                                                                                       // step size in cm
 
     //uncomment for local debug
     /*
@@ -694,7 +707,7 @@ void MatchTOF::doMatching(int sec)
           foundCluster = true;
           // set event indexes (to be checked)
           int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime) * 0.5) * 1E-6, 0., resX, resZ); // TODO: check if this is correct!
+          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime - 100E3) * 0.5) * 1E-6, 0., resX, resZ); // subracting 100 ns to max track which was artificially added
         }
       }
     }
@@ -742,14 +755,17 @@ void MatchTOF::doMatchingForTPC(int sec)
     auto& trefTrk = trackWork.first;
     auto& intLT = mLTinfos[trkType::UNCONS][cacheTrk[itrk]];
 
+    float timeShift = intLT.getL() * 33.35641; // integrated time for 0.75 beta particles in ps, to take into account the t.o.f. delay with respect the interaction BC
+                                               // using beta=0.75 to cover beta range [0.59 , 1.04] also for a 8 m track lenght with a 10 ns track resolution (TRD)
+
     BCcand.clear();
     nStripsCrossedInPropagation.clear();
 
     int side = mSideTPC[cacheTrk[itrk]];
     // look at BC candidates for the track
-    double minTrkTime = (trackWork.second.getTimeStamp() - trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
-    minTrkTime = int(minTrkTime / BCgranularity) * BCgranularity;                                        // align min to a BC
-    double maxTrkTime = (trackWork.second.getTimeStamp() + mExtraTPCFwdTime[cacheTrk[itrk]]) * 1.E6;     // maximum time in ps
+    double minTrkTime = (trackWork.second.getTimeStamp() - trackWork.second.getTimeStampError()) * 1.E6 + timeShift; // minimum time in ps
+    minTrkTime = int(minTrkTime / BCgranularity) * BCgranularity;                                                    // align min to a BC
+    double maxTrkTime = (trackWork.second.getTimeStamp() + mExtraTPCFwdTime[cacheTrk[itrk]]) * 1.E6 + timeShift;     // maximum time in ps
 
     if (mIsCosmics) {
       for (double tBC = minTrkTime; tBC < maxTrkTime; tBC += BCgranularity) {
