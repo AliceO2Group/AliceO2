@@ -65,6 +65,7 @@ struct MyTrack : o2::tof::eventTimeTrackTest {
   float tofExpSignalDe() const { return mExpDe; }
   double mSignalDouble = 0.0;
   float mEta = 0.0;
+  float mPTPC = 0.0;
   float mPhi = 0.0;
   float mExpDe = 0;
   int mIsProb = 0;
@@ -156,6 +157,7 @@ class TOFEventTimeChecker : public Task
   int mCh;
   float mP = 0;
   float mPt = 0;
+  float mPTPC = 0;
   float mEta = 0;
   float mPhi = 0;
   float mChi2 = 0;
@@ -230,6 +232,7 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mCh = track.mCh;
     mP = track.mP;
     mPt = track.mPt;
+    mPTPC = track.mPTPC;
     mEta = track.mEta;
     mSource = track.mSource;
     mPhi = track.mPhi;
@@ -319,7 +322,8 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const auto& array = mRecoData.getTPCTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
@@ -331,7 +335,8 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const auto& array = mRecoData.getTPCTracks();
     GID gTrackId = gid;
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
@@ -341,7 +346,8 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const auto& array = mRecoData.getTPCITSTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
@@ -354,7 +360,8 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const auto& array = mRecoData.getTPCITSTracks();
     GID gTrackId = gid; //match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
@@ -366,25 +373,47 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
     trksource = 2;
     trk.mDx = match.getDXatTOF();
     trk.mDz = match.getDZatTOF();
+  } else if (gid.getSource() == GID::TPCTRD && 0) {
+    const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
+    GID gTrackId = gid; // match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 2;
   } else if (gid.getSource() == GID::ITSTPCTRDTOF) {
     const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
-    trk.mPt = srctrk.getPt();
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
     trksource = 3;
     trk.mDx = match.getDXatTOF();
     trk.mDz = match.getDZatTOF();
+  } else if (gid.getSource() == GID::ITSTPCTRD && 0) {
+    const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
+    GID gTrackId = gid; // match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 3;
   }
 
   trk.mSource = trksource;
@@ -502,6 +531,7 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mTree->Branch("isProb", &mIsProb, "isProb/I");
   mTree->Branch("p", &mP, "p/F");
   mTree->Branch("pt", &mPt, "pt/F");
+  mTree->Branch("pTPC", &mPTPC, "pTPC/F");
   mTree->Branch("source", &mSource, "source/I");
   mTree->Branch("eta", &mEta, "eta/F");
   mTree->Branch("phi", &mPhi, "phi/F");
