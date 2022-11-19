@@ -109,10 +109,11 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
     }
     mod = clu.module();
     clu.getLocalPosition(x, z);
-    short truId2x2 = Geometry::relPosToTruId(mod, x, z, 0);
-    short truId4x4 = Geometry::relPosToTruId(mod, x, z, 1);
+    // TODO: do we need separate 2x2 and 4x4 spectra? Switch?
+    //  short truId2x2 = Geometry::relPosToTruId(mod, x, z, 0);
+    //  short truId4x4 = Geometry::relPosToTruId(mod, x, z, 1);
     mTurnOnHistos->fillTotSp(ddl, clu.getEnergy());
-    //     if (clu.firedTrigger() & 1) { //Bit 1: 2x2, bit 2 4x4  //TODO: do we need separate 2x2 and 4x4 spectra? Switch?
+    //     if (clu.firedTrigger() & 1) { //Bit 1: 2x2, bit 2 4x4
     //       mTurnOnHistos->fillFiredSp(ddl, clu.getEnergy());
     //       //Fill trigger map
     //       mFiredTiles.set(truId);

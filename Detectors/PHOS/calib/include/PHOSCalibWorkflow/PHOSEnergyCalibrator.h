@@ -77,6 +77,7 @@ class PHOSEnergySlot
   const std::vector<uint32_t>& getCollectedDigits() const { return mDigits; }
 
   void setRunStartTime(long tf) { mRunStartTime = tf; }
+  void setFillDigitsTree(bool toFill) { mFillDigitsTree = toFill; }
   void setCalibration(const CalibParams* c) { mCalibParams = c; }
   void setBadMap(const BadChannelsMap* map) { mBadMap = map; }
   void setCuts(float ptMin, float eminHGTime, float eminLGTime, float eDigMin, float eCluMin)
@@ -91,6 +92,7 @@ class PHOSEnergySlot
  private:
   void fillTimeMassHisto(const Cluster& clu, const gsl::span<const CluElement>& cluelements);
   bool checkCluster(const Cluster& clu);
+  float Nonlinearity(float en);
 
   long mRunStartTime = 0;                 /// start time of the run (sec)
   std::unique_ptr<RingBuffer> mBuffer;    /// Buffer for current and previous events
@@ -101,11 +103,12 @@ class PHOSEnergySlot
   uint32_t mEvBC = 0;
   uint32_t mEvOrbit = 0;
   uint32_t mEvent = 0;
-  float mPtMin = 2.;             /// minimal pi0 pt to fill inv. mass histo
-  float mEminHGTime = 2.;        /// minimal cell energy to fill HG time histo
-  float mEminLGTime = 6.;        /// minimal cell energy to fill LG time histo
-  float mDigitEmin = 0.005;      /// minimal energy of stored digits
-  float mClusterEmin = 0.4;      /// minimal energy of cluster which digits will be stored
+  float mPtMin = 2.;        /// minimal pi0 pt to fill inv. mass histo
+  float mEminHGTime = 2.;   /// minimal cell energy to fill HG time histo
+  float mEminLGTime = 6.;   /// minimal cell energy to fill LG time histo
+  float mDigitEmin = 0.005; /// minimal energy of stored digits
+  float mClusterEmin = 0.4; /// minimal energy of cluster which digits will be stored
+  bool mFillDigitsTree = false;
   std::vector<uint32_t> mDigits; /// list of calibration digits
 };
 
@@ -125,6 +128,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   void endOfStream();
 
   const ETCalibHistos* getCollectedHistos() const { return mHistos.get(); }
+  void setFillDigitsTree(bool toFill) { mFillDigitsTree = toFill; }
   void setCalibration(const CalibParams* c) { mCalibParams = c; }
   void setBadMap(const BadChannelsMap* map) { mBadMap = map; }
   void setCuts(float ptMin, float eminHGTime, float eminLGTime, float eDigMin, float eCluMin)
@@ -148,7 +152,8 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   float mClusterEmin = 0.4;                  /// minimal energy of cluster which digits will be stored
   const CalibParams* mCalibParams = nullptr; /// Current calibration object
   const BadChannelsMap* mBadMap = nullptr;   /// Current BadMap
-  std::unique_ptr<ETCalibHistos> mHistos;    /// final histograms
+  bool mFillDigitsTree = false;
+  std::unique_ptr<ETCalibHistos> mHistos; /// final histograms
 };
 
 } // namespace phos
