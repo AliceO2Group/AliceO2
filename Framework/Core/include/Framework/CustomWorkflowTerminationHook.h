@@ -22,7 +22,7 @@ namespace o2::framework
 /// child processes, the id string is passed. This allows to customize the
 /// hook depending on the process.
 /// Note that the callback hook is invoked for every process, i.e. main driver
-/// and all childs.
+/// and all children.
 ///
 /// \par Usage:
 /// The customize the hook, add a function with the following signature before
