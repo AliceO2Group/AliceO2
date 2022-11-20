@@ -248,11 +248,13 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   updateTimeDependentParams(pc);
   if (mPostProcessing) { // special mode, no data processing
-    if (mPostProcessing & 0x2) {
-      mController->checkConstraints();
-    }
-    if (mPostProcessing & 0x1) {
-      mController->writeCalibrationResults();
+    if (mController->getInstanceID() == 0) {
+      if (mPostProcessing & 0x2) {
+        mController->checkConstraints();
+      }
+      if (mPostProcessing & 0x1) {
+        mController->writeCalibrationResults();
+      }
     }
     pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);

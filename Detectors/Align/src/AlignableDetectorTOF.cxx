@@ -53,6 +53,7 @@ void AlignableDetectorTOF::defineVolumes()
     for (int istr = 1; istr <= o2::tof::Geo::NSTRIPXSECTOR; istr++) { // strip
       const char* symname = Form("TOF/sm%02d/strip%02d", isc, istr);
       addVolume(strip = new AlignableSensorTOF(symname, o2::base::GeometryManager::getSensID(DetID::TOF, cnt), getSensLabel(cnt), isc, mController));
+      cnt++;
       if (!gGeoManager->GetAlignableEntry(symname)) {
         strip->setDummy(true);
         //        continue;

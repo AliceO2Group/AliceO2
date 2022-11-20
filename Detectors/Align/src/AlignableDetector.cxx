@@ -22,6 +22,7 @@
 #include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
 #include <TString.h>
 #include <TH1.h>
@@ -431,9 +432,9 @@ void AlignableDetector::writeAlignmentResults() const
     }
   }
   TFile outalg(fmt::format("alignment{}.root", getName()).c_str(), "recreate");
-  outalg.WriteObjectAny(&arr, "std::vector<o2::detectors::AlignParam>", "ccdb_object");
+  outalg.WriteObjectAny(&arr, "std::vector<o2::detectors::AlignParam>", o2::base::NameConf::CCDBOBJECT.data());
   outalg.Close();
-  LOGP(info, "storing {} alignment in {}", outalg.GetName());
+  LOGP(info, "storing {} alignment in {}", getName(), outalg.GetName());
 }
 
 //______________________________________________________

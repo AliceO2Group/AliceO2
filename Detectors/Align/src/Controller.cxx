@@ -1164,8 +1164,8 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
 bool Controller::readParameters(const std::string& parfile, bool useErrors)
 {
   // read parameters file (millepede output)
-  if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
-    LOG(error) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
+  if (mNDOFs < 1) {
+    LOG(error) << "Something is wrong in init, no DOFs found: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
   std::ifstream inpf(parfile);
   if (!inpf.good()) {
