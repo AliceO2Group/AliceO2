@@ -550,7 +550,7 @@ void AlignableVolume::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
   //
   createLocDeltaMatrix(deltaM);
   const TGeoHMatrix& l2g = getMatrixL2G();
-  const TGeoHMatrix& l2gi = l2g.Inverse();
+  const TGeoHMatrix l2gi = l2g.Inverse();
   deltaM.Multiply(&l2gi);
   deltaM.MultiplyLeft(&l2g);
   //
@@ -671,7 +671,7 @@ void AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
     // l' = T2L * delta_t * t = T2L * delta_t * T2L^-1 * l = delta_l * l
     // -> delta_l = T2L * delta_t * T2L^-1
     const TGeoHMatrix& t2l = getMatrixT2L();
-    const TGeoHMatrix& t2li = t2l.Inverse();
+    const TGeoHMatrix t2li = t2l.Inverse();
     deltaM.Multiply(&t2li);
     deltaM.MultiplyLeft(&t2l);
   }

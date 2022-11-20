@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(AlignmentWorkflow
-               SOURCES  src/BarrelAlignmentSpec.cxx
+               SOURCES src/BarrelAlignmentSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Align
                                      O2::FrameworkLogger
                                      O2::DataFormatsGlobalTracking
