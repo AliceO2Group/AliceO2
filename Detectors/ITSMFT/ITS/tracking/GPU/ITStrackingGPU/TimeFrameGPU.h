@@ -38,14 +38,26 @@ namespace gpu
 {
 template <int>
 class StaticTrackingParameters;
-template <int nLayers>
 
+enum class Task {
+  Tracker = 0,
+  Vertexer = 1
+};
+
+template <int nLayers>
 class GpuTimeFramePartition
 {
  public:
   GpuTimeFramePartition() = default;
   ~GpuTimeFramePartition();
-  void initDevice(const size_t, const TimeFrameGPUConfig&);
+  void init(const size_t, const TimeFrameGPUConfig&);
+
+  template <Task task>
+  void reset(const size_t, const TimeFrameGPUConfig&);
+
+  static size_t computeScalingSizeBytes(const int nrof, const TimeFrameGPUConfig&);
+  static size_t computeFixedSizeBytes(const TimeFrameGPUConfig&);
+  static size_t computeRofPerPartition(const TimeFrameGPUConfig&);
 
  private:
   std::array<int*, nLayers> mROframesClustersDevice; // layers x roframes
@@ -71,7 +83,7 @@ class GpuTimeFramePartition
   unsigned char* mUsedTracklets;
   ///
 
-  size_t mNRof;
+  size_t mNRof = 2304;
 };
 
 template <int nLayers = 7>
@@ -79,16 +91,13 @@ class TimeFrameGPU : public TimeFrame
 {
  public:
   TimeFrameGPU();
-  void initDevice();
-  void initDevicePartitions(const int nRof)
-  {
-    for (auto* partition : mMemPartitions) {
-      partition->initDevice(nRof, mGpuConfig);
-    }
-  }
+  ~TimeFrameGPU();
+  void initialise(const int, const TrackingParameters&, const int);
+  void initDevice(const int);
+  void initDevicePartitions(const int);
 
  private:
-  std::vector<GpuTimeFramePartition<nLayers>*> mMemPartitions; // Vector of pointers to GPU objects
+  std::vector<GpuTimeFramePartition<nLayers>> mMemPartitions;
   TimeFrameGPUConfig mGpuConfig;
 
   // Device pointers

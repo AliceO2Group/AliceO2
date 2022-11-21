@@ -96,7 +96,6 @@ void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
   }
   gpu::utils::host::gpuMemcpyHostToDevice(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(mIndexTableUtils));
   mTimeFrameGPU->initialise(0, trackingParams, 3);
-  setIsGPU(true);
 }
 
 namespace gpu

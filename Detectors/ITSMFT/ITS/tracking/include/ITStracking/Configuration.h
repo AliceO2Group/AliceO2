@@ -161,7 +161,7 @@ struct TimeFrameGPUConfig {
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
-  size_t clustersPerROfCapacity = 1e4;
+  size_t clustersPerROfCapacity = 5e2;
   size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   size_t validatedTrackletsCapacity = 1e5;
   size_t cellsLUTsize = validatedTrackletsCapacity;
@@ -169,6 +169,9 @@ struct TimeFrameGPUConfig {
   size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
   size_t maxVerticesCapacity = 10;
   size_t nMaxROFs = 1e3;
+  size_t partitionStreamRatio = 1;
+  size_t nStreams = 3;
+  size_t maxTotalMemoryGB = 8;
 
   VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
