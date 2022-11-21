@@ -168,7 +168,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
 
   uint32_t firstEntry = 0, cellCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
-
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
   Cell cell;
   TriggerRecord trg;
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
@@ -179,14 +179,20 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
     } else {
       ir.bc += bcInc[itrig];
     }
-
+    if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
+      checkIROK = true;
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      cellCount += entries[itrig];
+      continue;
+    }
     firstEntry = cellVec.size();
+
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
       cell.setPacked(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount]);
       cellVec.emplace_back(cell);
       cellCount++;
     }
-    trg.setBCData(ir);
+    trg.setBCData(ir - mBCShift);
     trg.setDataRange(firstEntry, entries[itrig]);
     trg.setTriggerBitsCompressed(trigger[itrig]);
     trigVec.emplace_back(trg);

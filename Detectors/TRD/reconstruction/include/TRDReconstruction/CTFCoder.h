@@ -50,8 +50,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
-  void setBCShift(int n) { mBCShift = n; }
-  void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
   void setCheckBogusTrig(int v) { mCheckBogusTrig = v; }
 
  private:
@@ -60,8 +58,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Tracklet64>& trkVec, std::vector<Digit>& digVec);
-  int mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
-  uint32_t mFirstTFOrbit = 0;
   int mCheckBogusTrig = 1;
   // containers for locally filtered data
   std::vector<TriggerRecord> mTrgRecFilt;
@@ -252,7 +248,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
     }
     orbitPrev = orbit;
     o2::InteractionRecord ir{bc, orbit};
-    if (triggerOK && (checkIROK || ir.differenceInBC({0, mFirstTFOrbit}) >= mBCShift)) { // correction will be ok
+    if (triggerOK && (checkIROK || canApplyBCShift(ir))) {                // correction will be ok
       checkIROK = true;                                                   // don't check anymore since the following checks will yield same
       orbitPrevGood = orbit;
       uint32_t firstEntryTrk = trkVec.size();

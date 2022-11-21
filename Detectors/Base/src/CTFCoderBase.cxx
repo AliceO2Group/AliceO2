@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
+#include "Framework/TimingInfo.h"
 
 using namespace o2::ctf;
 using namespace o2::framework;
@@ -47,6 +48,10 @@ void CTFCoderBase::assignDictVersion(CTFDictHeader& h) const
 
 void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc, bool askTree)
 {
+  setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
+  if (mOpType == OpType::Decoder) {
+    pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset"); // this is a configurable param
+  }
   if (mLoadDictFromCCDB) {
     if (askTree) {
       pc.inputs().get<TTree*>("ctfdict"); // just to trigger the finaliseCCDB
