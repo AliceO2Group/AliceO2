@@ -115,7 +115,7 @@ void writeValues(const std::string_view fileName, const DataMap& map, bool onlyF
 
 /// fill cal pad object from HW value stream
 template <uint32_t SignificantBitsT = 2>
-void fillCalPad(CalDet<float>& calPad, std::istream& infile)
+int fillCalPad(CalDet<float>& calPad, std::istream& infile)
 {
   using namespace o2::tpc;
   const auto& mapper = Mapper::instance();
@@ -125,9 +125,11 @@ void fillCalPad(CalDet<float>& calPad, std::istream& infile)
   int sampaOnFEC{0};
   int channelOnSAMPA{0};
   std::string values;
+  int nLines{0};
 
   std::string line;
   while (std::getline(infile, line)) {
+    ++nLines;
     std::stringstream streamLine(line);
     streamLine >> cruID >> globalLinkID >> values;
 
@@ -151,11 +153,13 @@ void fillCalPad(CalDet<float>& calPad, std::istream& infile)
       ++hwChannel;
     }
   }
+
+  return nLines;
 }
 
 /// fill cal pad object from HW value buffer
 template <uint32_t SignificantBitsT = 2>
-void fillCalPad(CalDet<float>& calPad, gsl::span<const char> data)
+int fillCalPad(CalDet<float>& calPad, gsl::span<const char> data)
 {
   struct membuf : std::streambuf {
     membuf(char* base, std::ptrdiff_t n)
@@ -166,7 +170,7 @@ void fillCalPad(CalDet<float>& calPad, gsl::span<const char> data)
   membuf sbuf((char*)data.data(), data.size());
   std::istream in(&sbuf);
 
-  fillCalPad(calPad, in);
+  return fillCalPad(calPad, in);
 }
 
 /// create cal pad object from HW value file

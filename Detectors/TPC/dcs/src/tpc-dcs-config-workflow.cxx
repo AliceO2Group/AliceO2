@@ -11,6 +11,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "TPCdcs/DCSConfigSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 using namespace o2::tpc;
@@ -20,9 +21,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    //{"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
-    //{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
-    //{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
   };
 
   std::swap(workflowOptions, options);
@@ -32,8 +32,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
+WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
+  // set up configuration
+  o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
+
   WorkflowSpec specs;
   specs.emplace_back(getDCSConfigSpec());
   return specs;
