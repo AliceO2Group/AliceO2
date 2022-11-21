@@ -93,25 +93,18 @@ class EventRecordContainer
   void incDigitTime(double timeadd) { mTFStats.mTimeTakenForDigits += timeadd; }
   void incTrackletsFound(int count) { mTFStats.mTrackletsFound += count; }
   void incDigitsFound(int count) { mTFStats.mDigitsFound += count; }
-  void incLinkErrorFlags(int sm, int side, int stacklayer, unsigned int flag) { mTFStats.mLinkErrorFlag[(sm * 2 + side) * 30 + stacklayer] |= flag; }
-  void incLinkNoData(int sm, int side, int stacklayer) { mTFStats.mLinkNoData[(sm * 2 + side) * 30 + stacklayer]++; }
-  void incLinkWords(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWords[(sm * 2 + side) * 30 + stacklayer] += count; }
-  void incLinkWordsRead(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWordsRead[(sm * 2 + side) * 30 + stacklayer] += count; }
-  void incLinkWordsRejected(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWordsRejected[(sm * 2 + side) * 30 + stacklayer] += count; }
+  void incLinkErrorFlags(int hcid, unsigned int flag) { mTFStats.mLinkErrorFlag[hcid] |= flag; }
+  void incLinkNoData(int hcid) { mTFStats.mLinkNoData[hcid]++; }
+  void incLinkWords(int hcid, int count) { mTFStats.mLinkWords[hcid] += count; }
+  void incLinkWordsRead(int hcid, int count) { mTFStats.mLinkWordsRead[hcid] += count; }
+  void incLinkWordsRejected(int hcid, int count) { mTFStats.mLinkWordsRejected[hcid] += count; }
   void incMajorVersion(int version) { mTFStats.mDataFormatRead[version]++; }
 
   void incParsingError(int error, int hcid)
   {
-    if (error >= TRDLastParsingError) {
-      LOG(info) << "wrong error number to inc ParsingError in TrackletParsing : error" << error << " for hcid:" << hcid;
-    } else {
-      mTFStats.mParsingErrors[error]++;
-      if (hcid >= 0) { // hcid==-1 is reserved for those errors where we don't have the corresponding link ID
-        if (hcid * TRDLastParsingError + error < o2::trd::constants::NCHAMBER * 2 * TRDLastParsingError) {
-          //prevent bounding errors
-          mTFStats.mParsingErrorsByLink[hcid * TRDLastParsingError + error]++;
-        }
-      }
+    mTFStats.mParsingErrors[error]++;
+    if (hcid >= 0) { // hcid==-1 is reserved for those errors where we don't have the corresponding link ID
+      mTFStats.mParsingErrorsByLink[hcid * TRDLastParsingError + error]++;
     }
   }
   void reset();

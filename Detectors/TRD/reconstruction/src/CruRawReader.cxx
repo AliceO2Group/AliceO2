@@ -54,7 +54,7 @@ void CruRawReader::configure(int tracklethcheader, int halfchamberwords, int hal
 void CruRawReader::incrementErrors(int error, int hcid, std::string message)
 {
   mEventRecords.incParsingError(error, hcid);
-  if (mOptions[TRDVerboseErrorsBit]) {
+  if (mOptions[TRDVerboseErrorsBit] && error != NoError) {
     std::string logMessage = "Detected PE " + ParsingErrorsString.at(error);
     if (hcid >= 0) {
       logMessage += " HCID " + std::to_string(hcid);
@@ -473,24 +473,19 @@ bool CruRawReader::processHalfCRU(int iteration)
   uint32_t linksizeAccum32 = 0;     // accumulated size of all links in 32-bit words
   auto hbfOffsetTmp = mHBFoffset32; // store current position at the beginning of the half-CRU payload data
   for (int currentlinkindex = 0; currentlinkindex < NLINKSPERHALFCRU; currentlinkindex++) {
+    bool linkOK = true;                                                   // flag links which could be processed successfully, without any rejected word
     int cruIdx = mFEEID.supermodule * 2 + mFEEID.side;                    // 2 CRUs per SM, side defining A/C-side CRU
     int halfCruIdx = cruIdx * 2 + mFEEID.endpoint;                        // endpoint (0 or 1) defines half-CRU
     int linkIdxGlobal = halfCruIdx * NLINKSPERHALFCRU + currentlinkindex; // global link ID [0..1079]
     int halfChamberId = mLinkMap->getHCID(linkIdxGlobal);
-    // TODO we keep detector, stack, layer, side for now to be compatible to the current code state,
-    // but halfChamberId contains everything we need to know... More cleanup to be done in second step
-    int detectorId = halfChamberId / 2;
-    int stack = HelperMethods::getStack(detectorId);
-    int layer = HelperMethods::getLayer(detectorId);
-    int side = halfChamberId % 2;
-    int stack_layer = stack * NLAYER + layer; // similarly this is also only for graphing so just use the rdh ones for now.
-    mEventRecords.incLinkErrorFlags(mFEEID.supermodule, side, stack_layer, mCurrentHalfCRULinkErrorFlags[currentlinkindex]);
+    mEventRecords.incLinkErrorFlags(halfChamberId, mCurrentHalfCRULinkErrorFlags[currentlinkindex]); // TODO maybe has more meaning on a per event basis?
+    mEventRecords.incLinkWords(halfChamberId, mCurrentHalfCRULinkLengths[currentlinkindex]);
     uint32_t currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
     uint32_t endOfCurrentLink = mHBFoffset32 + currentlinksize32;
 
     linksizeAccum32 += currentlinksize32;
     if (currentlinksize32 == 0) {
-      mEventRecords.incLinkNoData(detectorId, side, stack_layer);
+      mEventRecords.incLinkNoData(halfChamberId);
     }
     if (mOptions[TRDVerboseBit]) {
       if (currentlinksize32 > 0) {
@@ -516,6 +511,9 @@ bool CruRawReader::processHalfCRU(int iteration)
         incrementErrors(TrackletsReturnedMinusOne, halfChamberId);
         continue; // move to next link of this half-CRU
       }
+      if (trackletWordsRejected > 0) {
+        linkOK = false;
+      }
       mHBFoffset32 += trackletWordsRead;
       if (mCurrentHalfCRUHeader.EventType == ETYPEPHYSICSTRIGGER &&
           endOfCurrentLink - mHBFoffset32 >= 8) {
@@ -527,6 +525,7 @@ bool CruRawReader::processHalfCRU(int iteration)
         }
         */
         incrementErrors(UnparsedTrackletDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
+        linkOK = false;
       }
       mEventRecords.getCurrentEventRecord().incTrackletTime((double)std::chrono::duration_cast<std::chrono::microseconds>(trackletparsingtime).count());
       if (mOptions[TRDVerboseBit]) {
@@ -536,8 +535,8 @@ bool CruRawReader::processHalfCRU(int iteration)
       mTrackletWordsRead += trackletWordsRead;
       mEventRecords.getCurrentEventRecord().incWordsRead(trackletWordsRead);
       mEventRecords.getCurrentEventRecord().incWordsRejected(trackletWordsRejected);
-      mEventRecords.incLinkWordsRead(mFEEID.supermodule, side, stack_layer, trackletWordsRead);
-      mEventRecords.incLinkWordsRejected(mFEEID.supermodule, side, stack_layer, trackletWordsRejected);
+      mEventRecords.incLinkWordsRead(halfChamberId, trackletWordsRead);
+      mEventRecords.incLinkWordsRejected(halfChamberId, trackletWordsRejected);
 
       /****************
       ** DIGITS NOW ***
@@ -595,12 +594,16 @@ bool CruRawReader::processHalfCRU(int iteration)
             }
             */
             incrementErrors(UnparsedDigitDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
+            linkOK = false;
+          }
+          if (digitWordsRejected > 0) {
+            linkOK = false;
           }
           mEventRecords.getCurrentEventRecord().incDigitTime((double)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());
           mEventRecords.getCurrentEventRecord().incWordsRead(digitWordsRead);
           mEventRecords.getCurrentEventRecord().incWordsRejected(digitWordsRejected);
-          mEventRecords.incLinkWordsRead(mFEEID.supermodule, side, stack_layer, digitWordsRead);
-          mEventRecords.incLinkWordsRejected(mFEEID.supermodule, side, stack_layer, digitWordsRejected);
+          mEventRecords.incLinkWordsRead(halfChamberId, digitWordsRead);
+          mEventRecords.incLinkWordsRejected(halfChamberId, digitWordsRejected);
 
           if (mOptions[TRDVerboseBit]) {
             LOGF(info, "Read %i digit words and rejected %i words", digitWordsRead, digitWordsRejected);
@@ -608,6 +611,9 @@ bool CruRawReader::processHalfCRU(int iteration)
           mDigitWordsRead += digitWordsRead;
           mDigitWordsRejected += digitWordsRejected;
         }
+      }
+      if (linkOK) {
+        incrementErrors(NoError, halfChamberId);
       }
     } else {
       // OS: link is empty, what does this block mean???
