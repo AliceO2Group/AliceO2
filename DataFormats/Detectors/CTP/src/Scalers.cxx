@@ -51,6 +51,13 @@ void CTPScalerO2::printStream(std::ostream& stream) const
   stream << " LOB:" << std::setw(10) << l0Before << " L0A:" << std::setw(10) << l0After;
   stream << " L1B:" << std::setw(10) << l1Before << " L1A:" << std::setw(10) << l1After << std::endl;
 }
+void CTPScalerO2::printFromZero(std::ostream& stream, CTPScalerO2& scaler0) const
+{
+  stream << "Class:" << std::setw(2) << classIndex << " O2";
+  stream << " LMB:" << std::setw(10) << lmBefore - scaler0.lmBefore << " LMA:" << std::setw(10) << lmAfter - scaler0.lmAfter;
+  stream << " LOB:" << std::setw(10) << l0Before - scaler0.l0Before << " L0A:" << std::setw(10) << l0After - scaler0.l0After;
+  stream << " L1B:" << std::setw(10) << l1Before - scaler0.l1Before << " L1A:" << std::setw(10) << l1After - scaler0.l1After << std::endl;
+}
 void CTPScalerRecordRaw::printStream(std::ostream& stream) const
 {
   stream << "Orbit:" << intRecord.orbit << " BC:" << intRecord.bc;
@@ -75,6 +82,16 @@ void CTPScalerRecordO2::printStream(std::ostream& stream) const
   }
   stream << std::endl;
 }
+void CTPScalerRecordO2::printFromZero(std::ostream& stream, CTPScalerRecordO2& record0) const
+{
+  stream << "printFromZero Orbit:" << intRecord.orbit - record0.intRecord.orbit << " BC:" << intRecord.bc;
+  stream << " miliSeconds:" << std::setprecision(20) << epochTime - record0.epochTime << std::endl;
+  // this-record0
+  for (int i = 0; i < scalers.size(); i++) {
+    scalers[i].printFromZero(stream, record0.scalers[i]);
+  }
+  stream << std::endl;
+}
 //
 // CTPRunScalers
 //
@@ -89,6 +106,23 @@ void CTPRunScalers::printStream(std::ostream& stream) const
   stream << "O2 Counters:" << std::endl;
   for (auto const& rec : mScalerRecordO2) {
     rec.printStream(stream);
+  }
+}
+void CTPRunScalers::printO2(std::ostream& stream) const
+{
+  stream << "CTP Scalers (version:" << mVersion << ") Run:" << mRunNumber << std::endl;
+  stream << "O2 Counters:" << std::endl;
+  for (auto const& rec : mScalerRecordO2) {
+    rec.printStream(stream);
+  }
+}
+void CTPRunScalers::printFromZero(std::ostream& stream) const
+{
+  stream << "CTP Scalers (version:" << mVersion << ") Run:" << mRunNumber << std::endl;
+  stream << "O2 Counters:" << std::endl;
+  CTPScalerRecordO2 record0 = mScalerRecordO2[0];
+  for (auto const& rec : mScalerRecordO2) {
+    rec.printFromZero(stream, record0);
   }
 }
 void CTPRunScalers::printClasses(std::ostream& stream) const
@@ -244,15 +278,19 @@ int CTPRunScalers::convertRawToO2()
   CTPScalerRecordO2 o2rec;
   copyRawToO2ScalerRecord(mScalerRecordRaw[0], o2rec, overflows);
   mScalerRecordO2.push_back(o2rec);
+  int j = 1;
   for (uint32_t i = 1; i < mScalerRecordRaw.size(); i++) {
     //update overflows
-    updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
+    int ret = updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
     //
-    CTPScalerRecordO2 o2rec;
-    copyRawToO2ScalerRecord(mScalerRecordRaw[i], o2rec, overflows);
-    mScalerRecordO2.push_back(o2rec);
-    // Check consistency
-    checkConsistency(mScalerRecordO2[i - 1], mScalerRecordO2[i], eCnts);
+    if (ret == 0) {
+      CTPScalerRecordO2 o2rec;
+      copyRawToO2ScalerRecord(mScalerRecordRaw[i], o2rec, overflows);
+      mScalerRecordO2.push_back(o2rec);
+      // Check consistency
+      checkConsistency(mScalerRecordO2[j - 1], mScalerRecordO2[j], eCnts);
+      j++;
+    }
   }
   eCnts.printStream(std::cout);
   return 0;
@@ -372,6 +410,10 @@ int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScal
     LOG(error) << "Inconsistent scaler record size:" << rec1.scalers.size() << " Expected:" << mClassMask.count();
     return 1;
   }
+  if (rec0.intRecord.orbit > rec1.intRecord.orbit) {
+    LOG(warning) << "rec0 orbit:" << rec0.intRecord.orbit << "> rec1 orbit:" << rec1.intRecord.orbit << " skipping this record";
+    return 1;
+  }
   for (int i = 0; i < rec0.scalers.size(); i++) {
     int k = (getClassIndexes())[i];
     updateOverflows(rec0.scalers[i], rec1.scalers[i], classesoverflows[k]);
@@ -454,7 +496,6 @@ int CTPRunScalers::printIntegrals()
   double_t time0 = mScalerRecordO2[0].epochTime;
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
   LOG(info) << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
-  ;
 
   for (int i = 0; i < mScalerRecordO2[0].scalers.size(); i++) {
     std::cout << i << " LMB " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore << std::endl;

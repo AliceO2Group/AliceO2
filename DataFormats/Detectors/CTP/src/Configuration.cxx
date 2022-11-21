@@ -608,11 +608,26 @@ void CTPRunManager::init()
 int CTPRunManager::loadRun(const std::string& cfg)
 {
   LOG(info) << "Loading run: " << cfg;
-  const auto now = std::chrono::system_clock::now();
-  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  auto now = std::chrono::system_clock::now();
+  long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  LOG(info) << "Timestamp real time:" << timeStamp;
+  size_t pos = cfg.find(" ");
+  std::string cfgmod = cfg;
+  if (pos == std::string::npos) {
+    LOG(warning) << "Space not found in CTP config";
+  } else {
+    std::string f = cfg.substr(0, pos);
+    if (f.find("run") == std::string::npos) {
+      double_t tt = std::stold(f);
+      timeStamp = (tt * 1000.);
+      LOG(info) << "Timestamp file:" << timeStamp;
+      cfgmod = cfg.substr(pos, cfg.size());
+      LOG(info) << "ctpcfg: using ctp time";
+    }
+  }
   CTPActiveRun* activerun = new CTPActiveRun;
   activerun->timeStart = timeStamp;
-  activerun->cfg.loadConfigurationRun3(cfg);
+  activerun->cfg.loadConfigurationRun3(cfgmod);
   activerun->cfg.printStream(std::cout);
   //
   uint32_t runnumber = activerun->cfg.getRunNumber();
@@ -629,16 +644,16 @@ int CTPRunManager::startRun(const std::string& cfg)
 {
   return 0;
 }
-int CTPRunManager::stopRun(uint32_t irun)
+int CTPRunManager::stopRun(uint32_t irun, long timeStamp)
 {
   LOG(info) << "Stopping run index: " << irun;
   if (mActiveRuns[irun] == nullptr) {
     LOG(error) << "No config for run index:" << irun;
     return 1;
   }
-  const auto now = std::chrono::system_clock::now();
-  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-  mActiveRuns[irun]->timeStop = timeStamp;
+  // const auto now = std::chrono::system_clock::now();
+  // const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  mActiveRuns[irun]->timeStop = timeStamp * 1000.;
   saveRunScalersToCCDB(irun);
   delete mActiveRuns[irun];
   mActiveRuns[irun] = nullptr;
@@ -707,7 +722,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
   if (topic.find("ctpconfig") != std::string::npos) {
-    LOG(info) << "ctpcfg received";
+    LOG(info) << "ctpconfig received";
     loadRun(message);
     return 0;
   }
@@ -715,9 +730,8 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     // get config
     size_t irun = message.find("run");
     if (irun == std::string::npos) {
-      LOG(error) << "run keyword not found in SOX:\n"
-                 << message;
-      return 1;
+      LOG(warning) << "run keyword not found in SOX";
+      irun = message.size();
     }
     LOG(info) << "SOX received, Run keyword position:" << irun;
     std::string cfg = message.substr(irun, message.size() - irun);
@@ -782,7 +796,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       addScalers(i, tt);
       mActiveRunNumbers[i] = 0;
       mEOX = 0;
-      stopRun(i);
+      stopRun(i, tt);
     }
   }
   mEOX = 0;
