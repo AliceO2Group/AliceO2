@@ -181,14 +181,14 @@ if [[ ! -z $EVE_NTH_EVENT ]]; then
   EVE_CONFIG+=" --only-nth-event=$EVE_NTH_EVENT"
 fi
 
-if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
   if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
     GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
-    if [[ $NUMAID == 0 || $NUMAGPUIDS == 0 || "0$ROCR_VISIBLE_DEVICES" == "00,1,2,3" || "0$ROCR_VISIBLE_DEVICES" == "04,5,6,7" ]]; then
+    if [[ "0$ROCR_VISIBLE_DEVICES" != "04,5,6,7" || $NUMAGPUIDS == 0 ]] && [[ $NUMAID == 0 || $NUMAGPUIDS == 0 || "0$ROCR_VISIBLE_DEVICES" == "00,1,2,3" ]]; then
       export TIMESLICEOFFSET=0
     else
       export TIMESLICEOFFSET=$NGPUS
