@@ -41,7 +41,7 @@ using ArrayADC = std::array<ADC_t, constants::TIMEBINS>;
 //    Pre Trigger phase:
 //        LHC clock runs at 40.08MHz, ADC run at 1/4 or 10MHz and the trap runs at 120MHz or LHC*3.
 //        The trap clock can therefore be in 1 of 12 positions relative to the ADC clock.
-//        Only 4 of those positions are valid, hence there are 4 values for pre-trigger phase: 0,3,6,9.
+//        Only 4 of those positions are valid, dependent on the TRAP assembly program timing offset, as of 11/2022 pre-trigger phase: 0,3,6,9.
 //        vaguely graphically below:
 //        LHC  ___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___---___
 //        TRAP _-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
@@ -100,7 +100,7 @@ class Digit
   /// starting from ClassDef version 4, mDetector keeps both the chamber number and the trigger phase
   ///
   /// bits 0-11 contain the chamber number (valid range from 0-539)
-  /// bits 12-15 contain the trigger phase obtained from digit HC header (valid values 0, 3, 7 and 11)
+  /// bits 12-15 contain the trigger phase obtained from digit HC header.
   /// |15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
   /// |  phase    |         chamber ID                |
   std::uint16_t mDetector{0};
