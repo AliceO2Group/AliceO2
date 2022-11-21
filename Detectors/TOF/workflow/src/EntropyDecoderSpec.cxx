@@ -105,6 +105,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "TOF", "CTFDATA", sspec, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "TOF", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/CTFDictionary"));
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "tof-entropy-decoder",

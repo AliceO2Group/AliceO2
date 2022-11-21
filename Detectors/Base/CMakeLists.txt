@@ -28,6 +28,7 @@ o2_add_library(DetectorsBase
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
+                                     O2::DataFormatsCTP
                                      O2::GPUCommon
                                      O2::GPUUtils
                                      O2::ReconstructionDataFormats

@@ -161,7 +161,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& di
 
   uint32_t digCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
-
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
@@ -171,15 +171,21 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& di
       ir.bc += bcInc[itrig];
     }
 
-    uint32_t firstEntryDig = digVec.size();
     int8_t chid = 0;
+    if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
+      checkIROK = true;
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      digCount += entriesDig[itrig];
+      continue;
+    }
+    uint32_t firstEntryDig = digVec.size();
     for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
       chid += chID[digCount]; // 1st digit of trigger was encoded with abs ChID, then increments
       auto& dig = digVec.emplace_back(chid, ph[digCount], x[digCount], y[digCount], q[digCount]);
       digCount++;
     }
 
-    trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig]);
+    trigVec.emplace_back(ir - mBCShift, firstEntryDig, entriesDig[itrig]);
   }
   assert(digCount == header.nDigits);
   iosize.rawIn = trigVec.size() * sizeof(Trigger) + digVec.size() * sizeof(Digit);
