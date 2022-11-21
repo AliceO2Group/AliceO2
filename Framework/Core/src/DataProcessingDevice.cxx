@@ -1817,15 +1817,26 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   // create messages) because the messages need to have the timeslice id into
   // it.
   auto prepareAllocatorForCurrentTimeSlice = [ref](TimesliceSlot i) -> void {
+    auto& dataProcessorContext = ref.get<DataProcessorContext>();
     auto& relayer = ref.get<DataRelayer>();
     auto& timingInfo = ref.get<TimingInfo>();
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer.getTimesliceForSlot(i);
+
     timingInfo.timeslice = timeslice.value;
     timingInfo.tfCounter = relayer.getFirstTFCounterForSlot(i);
     timingInfo.firstTForbit = relayer.getFirstTFOrbitForSlot(i);
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
+    timingInfo.globalRunNumberChanged = dataProcessorContext.lastRunNumberProcessed <= timingInfo.runNumber;
+    // We report wether or not this timing info refers to a new Run.
+    if (timingInfo.globalRunNumberChanged) {
+      dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
+    }
+    // FIXME: for now there is only one stream, however we
+    //        should calculate this correctly once we finally get the
+    //        the StreamContext in.
+    timingInfo.streamRunNumberChanged = timingInfo.globalRunNumberChanged;
   };
 
   // When processing them, timers will have to be cleaned up
