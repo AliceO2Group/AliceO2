@@ -20,34 +20,39 @@
 #include <TObject.h>
 
 #include "ITSBase/DescriptorInnerBarrel.h"
+#include "ITS3Simulation/ITS3Layer.h"
 
 namespace o2
 {
-namespace its3 // to be decided
+namespace its3
 {
-class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel // could inherit from DescriptorInnerBarrel in the future
+
+class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 {
  public:
-  // default constructor
-  DescriptorInnerBarrelITS3() {}
-  // standard constructor
-  DescriptorInnerBarrelITS3(int nlayers);
+  enum Version {
+    ThreeLayersNoDeadZones,
+    ThreeLayers,
+    FourLayers,
+    FiveLayers
+  };
 
-  /// Default destructor
-  ~DescriptorInnerBarrelITS3() {}
+  // standard constructor
+  DescriptorInnerBarrelITS3(Version version);
+  // default constructor
+  DescriptorInnerBarrelITS3() = default;
 
   DescriptorInnerBarrelITS3(const DescriptorInnerBarrelITS3& src) = delete;
   DescriptorInnerBarrelITS3& operator=(const DescriptorInnerBarrelITS3& geom) = delete;
 
-  void ConfigureITS3();
-  void GetConfigurationLayers(std::vector<double>& radii,
-                              std::vector<double>& zlen,
-                              std::vector<double>& thickness,
-                              std::vector<int>& chipID,
-                              std::vector<int>& buildlev);
+  void configure();
+  ITS3Layer* createLayer(int idLayer, TGeoVolume* dest);
 
-  //  private:
-  //   // sensor properties
+ private:
+  Version mVersion{ThreeLayersNoDeadZones}; //! version of ITS3
+  std::vector<double> mLayerZLen{};         //! Vector of layer length in Z coordinate
+  std::vector<double> mGap{};               //! Vector of gap between empispheres
+  std::vector<ITS3Layer*> mLayer{};         //! Vector of layers
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS inner barrel geometry descriptor

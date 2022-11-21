@@ -39,6 +39,7 @@
 #include "TString.h"         // for TString, operator+
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
 #include "TVirtualMCStack.h" // for TVirtualMCStack
+#include "TFile.h"           // for TVirtualMCStack
 
 #include <cstdio> // for NULL, snprintf
 
@@ -54,6 +55,10 @@ using std::endl;
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::its;
+
+#ifdef ENABLE_UPGRADES
+using namespace o2::its3;
+#endif
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("ITS", kTRUE),
@@ -136,8 +141,17 @@ Detector::Detector(Bool_t active, TString name)
     mNumberLayers(sNumberOuterLayers),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-  mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
-  mNumberInnerLayers = mDescriptorIB.get()->GetNumberOfLayers();
+  if (name == "ITS") {
+    mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
+  } else if (name == "IT3") {
+#ifdef ENABLE_UPGRADES
+    mDescriptorIB.reset(new DescriptorInnerBarrelITS3(DescriptorInnerBarrelITS3::ThreeLayersNoDeadZones));
+#endif
+  } else {
+    LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
+  }
+
+  mNumberInnerLayers = mDescriptorIB.get()->getNumberOfLayers();
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
 
   mLayerName.resize(mNumberLayers);
@@ -155,8 +169,13 @@ Detector::Detector(Bool_t active, TString name)
   mGeometry.resize(mNumberLayers);
   mWrapperLayerId.resize(mNumberLayers);
 
+  TString detName = GetName();
   for (int j{0}; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    if (detName == "IT3" && j < mNumberInnerLayers) {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j); // See V3Layer
+    } else {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    }
   }
 
   if (mNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
@@ -180,7 +199,13 @@ Detector::Detector(Bool_t active, TString name)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->Configure();
+  if (detName == "ITS") {
+    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure();
+  } else if (detName == "IT3") {
+#ifdef ENABLE_UPGRADES
+    dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->configure();
+#endif
+  }
   configOuterBarrelITS(mNumberInnerLayers);
 }
 
@@ -201,8 +226,17 @@ Detector::Detector(const Detector& rhs)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   mDescriptorIB = rhs.mDescriptorIB;
+  mNumberInnerLayers = rhs.mNumberInnerLayers;
+  mNumberLayers = rhs.mNumberLayers;
+  mLayerName.resize(mNumberLayers);
+
+  TString detName = rhs.GetName();
   for (int j{0}; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    if (detName == "IT3" && j < mNumberInnerLayers) {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j); // See V3Layer
+    } else {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    }
   }
 }
 
@@ -245,8 +279,13 @@ Detector& Detector::operator=(const Detector& rhs)
   mNumberLayers = rhs.mNumberLayers;
   mLayerName.resize(mNumberLayers);
 
+  TString detName = rhs.GetName();
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    if (detName == "IT3" && j < mNumberInnerLayers) {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j); // See V3Layer
+    } else {
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    }
   }
 
   return *this;
@@ -701,7 +740,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   switch (id) {
     case 0: // IB Layer 0,1,2: simple cylinder
     {
-      tube = (TGeoShape*)mDescriptorIB.get()->DefineWrapperVolume();
+      tube = (TGeoShape*)mDescriptorIB.get()->defineWrapperVolume();
     } break;
     case 1: // MB Layer 3,4: complex Pcon to avoid MFT overlaps
     {
@@ -736,7 +775,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
       break;
   }
 
-  TGeoMedium* medAir = gGeoManager->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = gGeoManager->GetMedium(Form("%s_AIR$", GetName()));
 
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
@@ -822,7 +861,14 @@ void Detector::constructDetectorGeometry()
   for (Int_t j = 0; j < mNumberLayers; j++) {
 
     if (j < mNumberInnerLayers) {
-      mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->CreateLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+      TString detName = GetName();
+      if (detName == "ITS") {
+        mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+      } else if (detName == "IT3") {
+#ifdef ENABLE_UPGRADES
+        dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+#endif
+      }
       mWrapperLayerId[j] = 0;
     } else {
       TGeoVolume* dest = vITSV;
@@ -868,9 +914,12 @@ void Detector::constructDetectorGeometry()
   }
 
   // Now create the services
-  mServicesGeometry = new V3Services(GetName());
+  TString detName = GetName();
+  if (detName == "ITS") {
+    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createServices(wrapVols[0]);
+  }
 
-  dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->CreateServices(wrapVols[0]);
+  mServicesGeometry = new V3Services(detName);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
@@ -970,8 +1019,9 @@ void Detector::addAlignableVolumes() const
     return;
   }
 
+  TString detName = GetName();
   TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
-  TString sname = GeometryTGeo::composeSymNameITS();
+  TString sname = GeometryTGeo::composeSymNameITS((detName == "IT3"));
 
   LOG(debug) << sname << " <-> " << path;
 
@@ -982,7 +1032,9 @@ void Detector::addAlignableVolumes() const
   Int_t lastUID = 0;
   for (Int_t lr = 0; lr < mNumberLayers; lr++) {
     if (lr < mNumberInnerLayers) {
-      dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->AddAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+      if (detName == "ITS") {
+        dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+      }
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
     }
@@ -1165,7 +1217,12 @@ void Detector::defineSensitiveVolumes()
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
+    TString detName = GetName();
+    if (j < mNumberInnerLayers && detName == "IT3") {
+      volumeName = GeometryTGeo::getITS3SensorPattern() + TString::Itoa(j, 10);
+    } else {
+      volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
+    }
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }

@@ -44,7 +44,7 @@ DescriptorInnerBarrel::DescriptorInnerBarrel() : TObject()
 }
 
 //________________________________________________________________
-DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), fNumLayers(nlayers)
+DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), mNumLayers(nlayers)
 {
   //
   // Standard constructor
@@ -52,16 +52,16 @@ DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), fNumLayer
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrel::GetConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan)
+void DescriptorInnerBarrel::getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan)
 {
-  minradius = fWrapperMinRadius;
-  maxradius = fWrapperMaxRadius;
-  zspan = fWrapperZSpan;
+  minradius = mWrapperMinRadius;
+  maxradius = mWrapperMaxRadius;
+  zspan = mWrapperZSpan;
 }
 
 //________________________________________________________________
-TGeoTube* DescriptorInnerBarrel::DefineWrapperVolume()
+TGeoTube* DescriptorInnerBarrel::defineWrapperVolume()
 {
-  TGeoTube* wrap = new TGeoTube(fWrapperMinRadius, fWrapperMaxRadius, fWrapperZSpan / 2.);
+  TGeoTube* wrap = new TGeoTube(mWrapperMinRadius, mWrapperMaxRadius, mWrapperZSpan / 2.);
   return wrap;
 }

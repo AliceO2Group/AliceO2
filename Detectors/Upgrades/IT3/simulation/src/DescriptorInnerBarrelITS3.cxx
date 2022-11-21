@@ -26,6 +26,7 @@
 #include "TVirtualMCStack.h" // for TVirtualMCStack
 
 #include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 
 using namespace o2::its;
 using namespace o2::its3;
@@ -35,52 +36,97 @@ ClassImp(DescriptorInnerBarrelITS3);
 /// \endcond
 
 //________________________________________________________________
-DescriptorInnerBarrelITS3::DescriptorInnerBarrelITS3(int nlayers) : DescriptorInnerBarrel(nlayers)
+DescriptorInnerBarrelITS3::DescriptorInnerBarrelITS3(Version version) : DescriptorInnerBarrel()
 {
   //
   // Standard constructor
   //
+  switch (version) {
+    case ThreeLayersNoDeadZones: {
+      mNumLayers = 3;
+      break;
+    }
+    case ThreeLayers: {
+      mNumLayers = 3;
+      break;
+    }
+    case FourLayers: {
+      mNumLayers = 4;
+      break;
+    }
+    case FiveLayers: {
+      mNumLayers = 5;
+      break;
+    }
+  }
 
-  fSensorLayerThickness = 30.e-4;
+  mSensorLayerThickness = SegmentationSuperAlpide::SensorLayerThickness;
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS3::ConfigureITS3()
+void DescriptorInnerBarrelITS3::configure()
 {
   // build ITS3 upgrade detector
-  fLayerRadii.resize(fNumLayers);
-  fLayerZLen.resize(fNumLayers);
-  fDetectorThickness.resize(fNumLayers);
-  fChipTypeID.resize(fNumLayers);
-  fBuildLevel.resize(fNumLayers);
-
-  std::vector<std::array<double, 2>> IBtdr5dat; // 18 24
-  IBtdr5dat.emplace_back(std::array<double, 2>{1.8f, 27.15});
-  IBtdr5dat.emplace_back(std::array<double, 2>{2.4f, 27.15});
-  IBtdr5dat.emplace_back(std::array<double, 2>{3.0f, 27.15});
-  if (fNumLayers == 4)
-    IBtdr5dat.emplace_back(std::array<double, 2>{7.0f, 27.15});
+  mLayer.resize(mNumLayers);
+  mLayerRadii.resize(mNumLayers);
+  mLayerZLen.resize(mNumLayers);
+  mDetectorThickness.resize(mNumLayers);
+  mChipTypeID.resize(mNumLayers);
+  mGap.resize(mNumLayers);
 
   const double safety = 0.5;
-  fWrapperMinRadius = IBtdr5dat[0][0] - safety;
-  fWrapperMaxRadius = IBtdr5dat[fNumLayers - 1][0] + safety;
-  fWrapperZSpan = 70.;
 
-  for (auto idLayer{0u}; idLayer < IBtdr5dat.size(); ++idLayer) {
-    fLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
-    fLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
-    fDetectorThickness[idLayer] = fSensorLayerThickness;
-    fChipTypeID[idLayer] = 0;
-    fBuildLevel[idLayer] = 0;
+  std::vector<std::array<double, 3>> IBtdr5dat; // radius, length, gap
+  IBtdr5dat.emplace_back(std::array<double, 3>{1.8f, 27.15, 0.1});
+  IBtdr5dat.emplace_back(std::array<double, 3>{2.4f, 27.15, 0.1});
+  IBtdr5dat.emplace_back(std::array<double, 3>{3.0f, 27.15, 0.1});
+
+  switch (mVersion) {
+    case ThreeLayersNoDeadZones: {
+
+      mWrapperMinRadius = IBtdr5dat[0][0] - safety;
+      mWrapperMaxRadius = IBtdr5dat[mNumLayers - 1][0] + safety;
+
+      for (auto idLayer{0u}; idLayer < IBtdr5dat.size(); ++idLayer) {
+        mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
+        mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
+        mDetectorThickness[idLayer] = mSensorLayerThickness;
+        mGap[idLayer] = 0.1;
+        mChipTypeID[idLayer] = 0;
+        LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} ", idLayer, mLayerRadii[idLayer], mDetectorThickness[idLayer], mGap[idLayer]);
+      }
+      break;
+    }
+    case ThreeLayers: {
+      LOGP(fatal, "ITS3 version ThreeLayers not yet implemented.");
+      break;
+    }
+    case FourLayers: {
+      LOGP(fatal, "ITS3 version FourLayers not yet implemented.");
+      break;
+    }
+    case FiveLayers: {
+      LOGP(fatal, "ITS3 version FourLayers not yet implemented.");
+      break;
+    }
   }
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS3::GetConfigurationLayers(std::vector<double>& radii, std::vector<double>& zlen, std::vector<double>& thickness, std::vector<int>& chipID, std::vector<int>& buildlev)
+ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
 {
-  radii = fLayerRadii;
-  zlen = fLayerZLen;
-  thickness = fDetectorThickness;
-  chipID = fChipTypeID;
-  buildlev = fBuildLevel;
+  if (idLayer >= mNumLayers) {
+    LOGP(fatal, "Trying to define layer {} of inner barrel, but only {} layers expected!", idLayer, mNumLayers);
+    return nullptr;
+  }
+
+  mLayer[idLayer] = new ITS3Layer(idLayer);
+  mLayer[idLayer]->setSensorThick(mDetectorThickness[idLayer]);
+  mLayer[idLayer]->setLayerRadius(mLayerRadii[idLayer]);
+  mLayer[idLayer]->setLayerZLen(mLayerZLen[idLayer]);
+  mLayer[idLayer]->setGapBetweenEmispheres(mGap[idLayer]);
+  mLayer[idLayer]->setChipID(mChipTypeID[idLayer]);
+  mLayer[idLayer]->createLayer(dest);
+
+  return mLayer[idLayer]; // is this needed?
 }

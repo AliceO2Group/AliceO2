@@ -12,8 +12,8 @@
 /// \file DescriptorInnerBarrelITS2.h
 /// \brief Definition of the DescriptorInnerBarrelITS2 class
 
-#ifndef ALICEO2_ITS3_DESCRIPTORINNERBARRELITS2_H
-#define ALICEO2_ITS3_DESCRIPTORINNERBARRELITS2_H
+#ifndef ALICEO2_ITS_DESCRIPTORINNERBARRELITS2_H
+#define ALICEO2_ITS_DESCRIPTORINNERBARRELITS2_H
 
 #include <string>
 #include <vector>
@@ -40,29 +40,30 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   DescriptorInnerBarrelITS2(const DescriptorInnerBarrelITS2& src) = delete;
   DescriptorInnerBarrelITS2& operator=(const DescriptorInnerBarrelITS2& geom) = delete;
 
-  void Configure();
+  void configure();
 
-  V3Layer* CreateLayer(int idLayer, TGeoVolume* dest);
-  void CreateServices(TGeoVolume* dest);
+  V3Layer* createLayer(int idLayer, TGeoVolume* dest);
+  void createServices(TGeoVolume* dest);
 
-  void AddAlignableVolumesLayer(int idLayer, int wrapperLayerId, TString& parentPath, int& lastUID);
+  void addAlignableVolumesLayer(int idLayer, int wrapperLayerId, TString& parentPath, int& lastUID);
 
  private:
-  void AddAlignableVolumesHalfBarrel(int idLayer, int iHalfBarrel, TString& parentPath, int& lastUID) const;
-  void AddAlignableVolumesStave(int idLayer, int iHalfBarrel, int iStave, TString& parentPath, int& lastUID) const;
-  void AddAlignableVolumesHalfStave(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, TString& parentPath, int& lastUID) const;
-  void AddAlignableVolumesModule(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, TString& parentPath, int& lastUID) const;
-  void AddAlignableVolumesChip(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, int iChip, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesHalfBarrel(int idLayer, int iHalfBarrel, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesStave(int idLayer, int iHalfBarrel, int iStave, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesHalfStave(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesModule(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesChip(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, int iChip, TString& parentPath, int& lastUID) const;
 
   // layer properties
-  std::vector<bool> fTurboLayer{};      //! True for "turbo" layers
-  std::vector<double> fLayerPhi0{};     //! Vector of layer's 1st stave phi in lab
-  std::vector<int> fStavePerLayer{};    //! Vector of number of staves per layer
-  std::vector<int> fUnitPerStave{};     //! Vector of number of "units" per stave
-  std::vector<double> fChipThickness{}; //! Vector of chip thicknesses
-  std::vector<double> fStaveWidth{};    //! Vector of stave width (only used for turbo)
-  std::vector<double> fStaveTilt{};     //! Vector of stave tilt (only used for turbo)
-  std::vector<V3Layer*> fLayer{};       //! Vector of layers
+  std::vector<bool> mTurboLayer{};      //! True for "turbo" layers
+  std::vector<double> mLayerPhi0{};     //! Vector of layer's 1st stave phi in lab
+  std::vector<int> mStavePerLayer{};    //! Vector of number of staves per layer
+  std::vector<int> mUnitPerStave{};     //! Vector of number of "units" per stave
+  std::vector<double> mChipThickness{}; //! Vector of chip thicknesses
+  std::vector<double> mStaveWidth{};    //! Vector of stave width (only used for turbo)
+  std::vector<double> mStaveTilt{};     //! Vector of stave tilt (only used for turbo)
+  std::vector<int> mBuildLevel{};       //! Vector of build level
+  std::vector<V3Layer*> mLayer{};       //! Vector of layers
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS2, 1); /// ITS inner barrel geometry descriptor

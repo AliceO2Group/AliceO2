@@ -44,7 +44,7 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2() : DescriptorInnerBarrel()
   // Default constructor
   //
 
-  fSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
+  mSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
 }
 
 //________________________________________________________________
@@ -54,26 +54,25 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2(int nlayers) : DescriptorIn
   // Standard constructor
   //
 
-  fSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
+  mSensorLayerThickness = o2::itsmft::SegmentationAlpide::SensorLayerThickness;
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS2::Configure()
+void DescriptorInnerBarrelITS2::configure()
 {
   // build ITS2 upgrade detector
-  fTurboLayer.resize(fNumLayers);
-  fLayerPhi0.resize(fNumLayers);
-  fLayerRadii.resize(fNumLayers);
-  fLayerZLen.resize(fNumLayers);
-  fStavePerLayer.resize(fNumLayers);
-  fUnitPerStave.resize(fNumLayers);
-  fChipThickness.resize(fNumLayers);
-  fDetectorThickness.resize(fNumLayers);
-  fStaveTilt.resize(fNumLayers);
-  fStaveWidth.resize(fNumLayers);
-  fChipTypeID.resize(fNumLayers);
-  fBuildLevel.resize(fNumLayers);
-  fLayer.resize(fNumLayers);
+  mTurboLayer.resize(mNumLayers);
+  mLayerPhi0.resize(mNumLayers);
+  mLayerRadii.resize(mNumLayers);
+  mStavePerLayer.resize(mNumLayers);
+  mUnitPerStave.resize(mNumLayers);
+  mChipThickness.resize(mNumLayers);
+  mDetectorThickness.resize(mNumLayers);
+  mStaveTilt.resize(mNumLayers);
+  mStaveWidth.resize(mNumLayers);
+  mChipTypeID.resize(mNumLayers);
+  mBuildLevel.resize(mNumLayers);
+  mLayer.resize(mNumLayers);
 
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1)
   std::vector<std::array<double, 6>> IBdat;
@@ -81,68 +80,68 @@ void DescriptorInnerBarrelITS2::Configure()
   IBdat.emplace_back(std::array<double, 6>{3.01, 3.15, 3.46, 9., 12.18, 16});
   IBdat.emplace_back(std::array<double, 6>{3.78, 3.93, 4.21, 9., 9.55, 20});
 
-  for (auto idLayer{0u}; idLayer < fNumLayers; ++idLayer) {
-    fTurboLayer[idLayer] = true;
-    fLayerPhi0[idLayer] = IBdat[idLayer][4];
-    fLayerRadii[idLayer] = IBdat[idLayer][1];
-    fStavePerLayer[idLayer] = IBdat[idLayer][5];
-    fUnitPerStave[idLayer] = IBdat[idLayer][3];
-    fChipThickness[idLayer] = 50.e-4;
-    fStaveWidth[idLayer] = o2::itsmft::SegmentationAlpide::SensorSizeRows;
-    fStaveTilt[idLayer] = radii2Turbo(IBdat[idLayer][0], IBdat[idLayer][1], IBdat[idLayer][2], o2::itsmft::SegmentationAlpide::SensorSizeRows);
-    fDetectorThickness[idLayer] = fSensorLayerThickness;
-    fChipTypeID[idLayer] = 0;
-    fBuildLevel[idLayer] = 0;
+  for (auto idLayer{0u}; idLayer < mNumLayers; ++idLayer) {
+    mTurboLayer[idLayer] = true;
+    mLayerPhi0[idLayer] = IBdat[idLayer][4];
+    mLayerRadii[idLayer] = IBdat[idLayer][1];
+    mStavePerLayer[idLayer] = IBdat[idLayer][5];
+    mUnitPerStave[idLayer] = IBdat[idLayer][3];
+    mChipThickness[idLayer] = 50.e-4;
+    mStaveWidth[idLayer] = o2::itsmft::SegmentationAlpide::SensorSizeRows;
+    mStaveTilt[idLayer] = radii2Turbo(IBdat[idLayer][0], IBdat[idLayer][1], IBdat[idLayer][2], o2::itsmft::SegmentationAlpide::SensorSizeRows);
+    mDetectorThickness[idLayer] = mSensorLayerThickness;
+    mChipTypeID[idLayer] = 0;
+    mBuildLevel[idLayer] = 0;
 
-    LOG(info) << "L# " << idLayer << " Phi:" << fLayerPhi0[idLayer] << " R:" << fLayerRadii[idLayer] << " Nst:" << fStavePerLayer[idLayer] << " Nunit:" << fUnitPerStave[idLayer]
-              << " W:" << fStaveWidth[idLayer] << " Tilt:" << fStaveTilt[idLayer] << " Lthick:" << fChipThickness[idLayer] << " Dthick:" << fDetectorThickness[idLayer]
-              << " DetID:" << fChipTypeID[idLayer] << " B:" << fBuildLevel[idLayer];
+    LOG(info) << "L# " << idLayer << " Phi:" << mLayerPhi0[idLayer] << " R:" << mLayerRadii[idLayer] << " Nst:" << mStavePerLayer[idLayer] << " Nunit:" << mUnitPerStave[idLayer]
+              << " W:" << mStaveWidth[idLayer] << " Tilt:" << mStaveTilt[idLayer] << " Lthick:" << mChipThickness[idLayer] << " Dthick:" << mDetectorThickness[idLayer]
+              << " DetID:" << mChipTypeID[idLayer] << " B:" << mBuildLevel[idLayer];
   }
 
-  fWrapperMinRadius = 2.1;
-  fWrapperMaxRadius = 16.4;
-  fWrapperZSpan = 70.;
+  mWrapperMinRadius = 2.1;
+  mWrapperMaxRadius = 16.4;
+  mWrapperZSpan = 70.;
 }
 
 //________________________________________________________________
-V3Layer* DescriptorInnerBarrelITS2::CreateLayer(int idLayer, TGeoVolume* dest)
+V3Layer* DescriptorInnerBarrelITS2::createLayer(int idLayer, TGeoVolume* dest)
 {
-  if (idLayer >= fNumLayers) {
-    LOG(fatal) << "Trying to define layer " << idLayer << " of inner barrel, but only " << fNumLayers << " layers expected!";
+  if (idLayer >= mNumLayers) {
+    LOG(fatal) << "Trying to define layer " << idLayer << " of inner barrel, but only " << mNumLayers << " layers expected!";
     return nullptr;
   }
 
-  if (fTurboLayer[idLayer]) {
-    fLayer[idLayer] = new V3Layer(idLayer, true, false);
-    fLayer[idLayer]->setStaveWidth(fStaveWidth[idLayer]);
-    fLayer[idLayer]->setStaveTilt(fStaveTilt[idLayer]);
+  if (mTurboLayer[idLayer]) {
+    mLayer[idLayer] = new V3Layer(idLayer, true, false);
+    mLayer[idLayer]->setStaveWidth(mStaveWidth[idLayer]);
+    mLayer[idLayer]->setStaveTilt(mStaveTilt[idLayer]);
   } else {
-    fLayer[idLayer] = new V3Layer(idLayer, false);
+    mLayer[idLayer] = new V3Layer(idLayer, false);
   }
 
-  fLayer[idLayer]->setPhi0(fLayerPhi0[idLayer]);
-  fLayer[idLayer]->setRadius(fLayerRadii[idLayer]);
-  fLayer[idLayer]->setNumberOfStaves(fStavePerLayer[idLayer]);
-  fLayer[idLayer]->setNumberOfUnits(fUnitPerStave[idLayer]);
-  fLayer[idLayer]->setChipType(fChipTypeID[idLayer]);
-  fLayer[idLayer]->setBuildLevel(fBuildLevel[idLayer]);
+  mLayer[idLayer]->setPhi0(mLayerPhi0[idLayer]);
+  mLayer[idLayer]->setRadius(mLayerRadii[idLayer]);
+  mLayer[idLayer]->setNumberOfStaves(mStavePerLayer[idLayer]);
+  mLayer[idLayer]->setNumberOfUnits(mUnitPerStave[idLayer]);
+  mLayer[idLayer]->setChipType(mChipTypeID[idLayer]);
+  mLayer[idLayer]->setBuildLevel(mBuildLevel[idLayer]);
 
-  fLayer[idLayer]->setStaveModel(V3Layer::kIBModel4);
+  mLayer[idLayer]->setStaveModel(V3Layer::kIBModel4);
 
-  if (fChipThickness[idLayer] != 0) {
-    fLayer[idLayer]->setChipThick(fChipThickness[idLayer]);
+  if (mChipThickness[idLayer] != 0) {
+    mLayer[idLayer]->setChipThick(mChipThickness[idLayer]);
   }
-  if (fDetectorThickness[idLayer] != 0) {
-    fLayer[idLayer]->setSensorThick(fDetectorThickness[idLayer]);
+  if (mDetectorThickness[idLayer] != 0) {
+    mLayer[idLayer]->setSensorThick(mDetectorThickness[idLayer]);
   }
 
-  fLayer[idLayer]->createLayer(dest);
+  mLayer[idLayer]->createLayer(dest);
 
-  return fLayer[idLayer]; // is this needed?
+  return mLayer[idLayer]; // is this needed?
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS2::CreateServices(TGeoVolume* dest)
+void DescriptorInnerBarrelITS2::createServices(TGeoVolume* dest)
 {
   //
   // Creates the Inner Barrel Service structures
@@ -160,7 +159,7 @@ void DescriptorInnerBarrelITS2::CreateServices(TGeoVolume* dest)
   // Updated:      21 Oct 2019  Mario Sitta  CYSS added
   //
 
-  std::unique_ptr<V3Services> mServicesGeometry(new V3Services());
+  std::unique_ptr<V3Services> mServicesGeometry(new V3Services("ITS"));
 
   // Create the End Wheels on Side A
   TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();
@@ -178,7 +177,7 @@ void DescriptorInnerBarrelITS2::CreateServices(TGeoVolume* dest)
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS2::AddAlignableVolumesLayer(int idLayer, int wrapperLayerId, TString& parentPath, int& lastUID)
+void DescriptorInnerBarrelITS2::addAlignableVolumesLayer(int idLayer, int wrapperLayerId, TString& parentPath, int& lastUID)
 {
   //
   // Add alignable volumes for a Layer and its daughters
@@ -191,14 +190,14 @@ void DescriptorInnerBarrelITS2::AddAlignableVolumesLayer(int idLayer, int wrappe
   TString path = Form("%s/%s/%s%d_1", parentPath.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), idLayer);
   TString sname = GeometryTGeo::composeSymNameLayer(idLayer);
 
-  int nHalfBarrel = fLayer[idLayer]->getNumberOfHalfBarrelsPerParent();
+  int nHalfBarrel = mLayer[idLayer]->getNumberOfHalfBarrelsPerParent();
   int start = nHalfBarrel > 0 ? 0 : -1;
   for (int iHalfBarrel{start}; iHalfBarrel < nHalfBarrel; ++iHalfBarrel) {
-    AddAlignableVolumesHalfBarrel(idLayer, iHalfBarrel, path, lastUID);
+    addAlignableVolumesHalfBarrel(idLayer, iHalfBarrel, path, lastUID);
   }
 }
 
-void DescriptorInnerBarrelITS2::AddAlignableVolumesHalfBarrel(int idLayer, int iHalfBarrel, TString& parentPath, int& lastUID) const
+void DescriptorInnerBarrelITS2::addAlignableVolumesHalfBarrel(int idLayer, int iHalfBarrel, TString& parentPath, int& lastUID) const
 {
   //
   // Add alignable volumes for a Half barrel and its daughters
@@ -218,13 +217,13 @@ void DescriptorInnerBarrelITS2::AddAlignableVolumesHalfBarrel(int idLayer, int i
     }
   }
 
-  int nStaves = fLayer[idLayer]->getNumberOfStavesPerParent();
+  int nStaves = mLayer[idLayer]->getNumberOfStavesPerParent();
   for (int iStave{0}; iStave < nStaves; ++iStave) {
-    AddAlignableVolumesStave(idLayer, iHalfBarrel, iStave, path, lastUID);
+    addAlignableVolumesStave(idLayer, iHalfBarrel, iStave, path, lastUID);
   }
 }
 
-void DescriptorInnerBarrelITS2::AddAlignableVolumesStave(int idLayer, int iHalfBarrel, int iStave, TString& parentPath, int& lastUID) const
+void DescriptorInnerBarrelITS2::addAlignableVolumesStave(int idLayer, int iHalfBarrel, int iStave, TString& parentPath, int& lastUID) const
 {
   //
   // Add alignable volumes for a Stave and its daughters
@@ -242,14 +241,14 @@ void DescriptorInnerBarrelITS2::AddAlignableVolumesStave(int idLayer, int iHalfB
     LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
-  int nHalfStave = fLayer[idLayer]->getNumberOfHalfStavesPerParent();
+  int nHalfStave = mLayer[idLayer]->getNumberOfHalfStavesPerParent();
   int start = nHalfStave > 0 ? 0 : -1;
   for (int iHalfStave{start}; iHalfStave < nHalfStave; ++iHalfStave) {
-    AddAlignableVolumesHalfStave(idLayer, iHalfBarrel, iStave, iHalfStave, path, lastUID);
+    addAlignableVolumesHalfStave(idLayer, iHalfBarrel, iStave, iHalfStave, path, lastUID);
   }
 }
 
-void DescriptorInnerBarrelITS2::AddAlignableVolumesHalfStave(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, TString& parentPath, int& lastUID) const
+void DescriptorInnerBarrelITS2::addAlignableVolumesHalfStave(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, TString& parentPath, int& lastUID) const
 {
   //
   // Add alignable volumes for a HalfStave (if any) and its daughters
@@ -270,14 +269,14 @@ void DescriptorInnerBarrelITS2::AddAlignableVolumesHalfStave(int idLayer, int iH
     }
   }
 
-  int nModules = fLayer[idLayer]->getNumberOfModulesPerParent();
+  int nModules = mLayer[idLayer]->getNumberOfModulesPerParent();
   int start = nModules > 0 ? 0 : -1;
   for (int iModule{start}; iModule < nModules; iModule++) {
-    AddAlignableVolumesModule(idLayer, iHalfBarrel, iStave, iHalfStave, iModule, path, lastUID);
+    addAlignableVolumesModule(idLayer, iHalfBarrel, iStave, iHalfStave, iModule, path, lastUID);
   }
 }
 
-void DescriptorInnerBarrelITS2::AddAlignableVolumesModule(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, TString& parentPath, int& lastUID) const
+void DescriptorInnerBarrelITS2::addAlignableVolumesModule(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, TString& parentPath, int& lastUID) const
 {
   //
   // Add alignable volumes for a Module (if any) and its daughters
@@ -298,13 +297,13 @@ void DescriptorInnerBarrelITS2::AddAlignableVolumesModule(int idLayer, int iHalf
     }
   }
 
-  int nChips = fLayer[idLayer]->getNumberOfChipsPerParent();
+  int nChips = mLayer[idLayer]->getNumberOfChipsPerParent();
   for (int iChip{0}; iChip < nChips; ++iChip) {
-    AddAlignableVolumesChip(idLayer, iHalfBarrel, iStave, iHalfStave, iModule, iChip, path, lastUID);
+    addAlignableVolumesChip(idLayer, iHalfBarrel, iStave, iHalfStave, iModule, iChip, path, lastUID);
   }
 }
 
-void DescriptorInnerBarrelITS2::AddAlignableVolumesChip(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, int iChip, TString& parentPath, int& lastUID) const
+void DescriptorInnerBarrelITS2::addAlignableVolumesChip(int idLayer, int iHalfBarrel, int iStave, int iHalfStave, int iModule, int iChip, TString& parentPath, int& lastUID) const
 {
   //
   // Add alignable volumes for a Chip
