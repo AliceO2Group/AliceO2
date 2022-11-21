@@ -26,11 +26,12 @@ class FECInfo
   static constexpr int SAMPAsPerFEC = 5;
   static constexpr int ChannelsPerFEC = ChannelsPerSAMPA * SAMPAsPerFEC;
   static constexpr int FECsPerSector = 91;
+  static constexpr int FECsTotal = FECsPerSector * 36;
 
   FECInfo() = default;
   FECInfo(unsigned char index,
-          //unsigned char connector,
-          //unsigned char channel,
+          // unsigned char connector,
+          // unsigned char channel,
           unsigned char sampaChip,
           unsigned char sampaChannel)
     : mIndex(index), /*mConnector(connector), mChannel(channel),*/ mSampaChip(sampaChip), mSampaChannel(sampaChannel)
@@ -38,7 +39,7 @@ class FECInfo
   }
 
   unsigned char getIndex() const { return mIndex; }
-  //const unsigned char getConnector()    const { return mConnector;   } // -> can be calculated from mSampaChannel and mSampaChip
+  // const unsigned char getConnector()    const { return mConnector;   } // -> can be calculated from mSampaChannel and mSampaChip
   unsigned char getFECChannel() const { return mSampaChip * ChannelsPerSAMPA + mSampaChannel; } // -> can be calculated from mSampaChannel and mSampaChip
   unsigned char getSampaChip() const { return mSampaChip; }
   unsigned char getSampaChannel() const { return mSampaChannel; }

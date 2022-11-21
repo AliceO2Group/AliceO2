@@ -53,6 +53,8 @@ enum class CDBType {
   CalTopologyGain,     ///< Q cluster topology correction
                        ///
   ConfigFEEPad,        ///< FEE pad-by-pad configuration map
+  ConfigFEE,           ///< FEE configuration map for each tag
+  ConfigRunInfo,       ///< FEE run information (run -> tag)
                        ///
   ParDetector,         ///< Parameter for Detector
   ParElectronics,      ///< Parameter for Electronics
@@ -105,6 +107,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalVDriftTgl, "TPC/Calib/VDriftTgl"},
   //
   {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
+  {CDBType::ConfigFEE, "TPC/Config/FEE"},
+  {CDBType::ConfigRunInfo, "TPC/Config/RunInfo"},
   //
   {CDBType::ParDetector, "TPC/Parameter/Detector"},
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
