@@ -15,7 +15,6 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
-if [[ -z $OPTIMIZED_PARALLEL_ASYNC ]]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
 if [[ -z $CTF_DIR ]];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
 if [[ -z $CTF_DICT ]];                 then CTF_DICT="ctf_dictionary.root"; fi # Local dictionary file name if its creation is request
 if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
@@ -33,7 +32,7 @@ source $MYDIR/workflow-setup.sh
 workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
-( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
+[[ $GPUTYPE != "CPU" || ! -z $OPTIMIZED_PARALLEL_ASYNC ]] && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
 if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
