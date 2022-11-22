@@ -50,6 +50,7 @@ class VdAndExBCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(enableOutput);
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
+    mCalibrator->createOutputFile(); // internally checks if output is enabled
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -75,7 +76,13 @@ class VdAndExBCalibDevice : public o2::framework::Task
   {
     LOG(info) << "Finalizing calibration";
     mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+    mCalibrator->closeOutputFile();
     sendOutput(ec.outputs());
+  }
+
+  void stop() final
+  {
+    mCalibrator->closeOutputFile();
   }
 
  private:
