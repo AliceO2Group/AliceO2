@@ -109,7 +109,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
   }
 
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
 
   CompressedClusters clusters;
 
