@@ -29,14 +29,15 @@
 namespace o2::tpc
 {
 struct CRUConfig {
-  static constexpr int NConfigValues = 6; ///< number of configuration values
+  static constexpr int NConfigValues = 7; ///< number of configuration values
 
-  bool linkOn{false};     ///< if the link is active
-  bool cmcEnabled{false}; ///< if common mode correction is enabled
-  bool itfEnabled{false}; ///< if ion tail filter correction is enabled
-  bool zsEnabled{false};  ///< if zero suppression is enabled
-  float zsOffset{0.f};    ///< zero suppression offset value
-  float itCorr0{1.f};     ///< ion tail scaling parameter
+  bool linkOn{false};        ///< if the link is active
+  bool cmcEnabled{false};    ///< if common mode correction is enabled
+  bool itfEnabled{false};    ///< if ion tail filter correction is enabled
+  bool zsEnabled{false};     ///< if zero suppression is enabled
+  bool resyncEnabled{false}; ///< if resync feature is enabled
+  float zsOffset{0.f};       ///< zero suppression offset value
+  float itCorr0{1.f};        ///< ion tail scaling parameter
 
   bool setValues(std::string_view cruData);
 

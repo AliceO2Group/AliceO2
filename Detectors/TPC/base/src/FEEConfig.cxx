@@ -35,6 +35,7 @@ bool CRUConfig::setValues(std::string_view cruData)
   zsEnabled = bool(std::stoi(cruDataV[3]));
   zsOffset = std::stof(cruDataV[4]);
   itCorr0 = std::stof(cruDataV[5]);
+  resyncEnabled = bool(std::stoi(cruDataV[6]));
 
   return true;
 }
