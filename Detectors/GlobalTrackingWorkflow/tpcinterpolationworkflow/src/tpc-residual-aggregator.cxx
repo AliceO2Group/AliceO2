@@ -26,7 +26,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
     {"enable-ctp", VariantType::Bool, false, {"Subscribe to lumi info from CTP"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
-    {"disable-root-output", VariantType::Bool, false, {"Disables ROOT file writing"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -67,13 +66,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  auto fileOutput = !configcontext.options().get<bool>("disable-root-output");
-
   WorkflowSpec specs;
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput));
   }
-  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, fileOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
+  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
 
   // CTP input
   if (ctpInput) {
