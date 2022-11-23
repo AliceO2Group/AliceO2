@@ -132,7 +132,7 @@ class MinResSolve : public TObject
   MatrixSparse* fMatU; // aux. space
   SymBDMatrix* fMatBD; // aux. space
 
-  ClassDef(MinResSolve, 0);
+  ClassDefOverride(MinResSolve, 0);
 };
 
 } // namespace mft

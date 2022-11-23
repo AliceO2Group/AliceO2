@@ -77,7 +77,7 @@ class MatrixSparse : public MatrixSq
  protected:
   VectorSparse** fVecs = nullptr;
 
-  ClassDef(MatrixSparse, 0);
+  ClassDefOverride(MatrixSparse, 0);
 };
 
 //___________________________________________________
