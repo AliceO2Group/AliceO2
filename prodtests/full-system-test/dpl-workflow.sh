@@ -15,12 +15,10 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
-if [[ -z $CTF_DIR ]];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
-if [[ -z $CTF_DICT ]];                 then CTF_DICT="ctf_dictionary.root"; fi # Local dictionary file name if its creation is request
-if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
-if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=230; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
-if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
+if [[ -z $CTF_DICT ]];                 then CTF_DICT="ctf_dictionary.root"; fi    # Local dictionary file name if its creation is request
+if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=230; fi       # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
+if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi          # accumulate CTFs until file size reached
+if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi          # but no more than given number of CTFs per file
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
@@ -423,7 +421,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   else
     CTF_CONFIG="--report-data-size-interval 1"
   fi
-  CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS_CTF $CTF_MAXDETEXT --meta-output-dir $CTF_METAFILES_DIR"
+  CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS_CTF $CTF_MAXDETEXT --meta-output-dir $EPN2EOS_METAFILES_DIR"
   if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
 fi
