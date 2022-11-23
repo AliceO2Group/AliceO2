@@ -30,19 +30,17 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CCDB_POPULATOR_UPLOAD_PATH = $CCDB_POPULATOR_UPLOAD_PATH" 1>&2
 fi
 
-# Additional settings for calibration workflows
-if [[ -z $CALIB_DIR ]]; then CALIB_DIR=$FILEWORKDIR; fi # Directory where to store output from calibration workflows
-
-# All meta files go into the same directory
-if [[ -z $CALIB_METAFILES_DIR ]]; then
-  if [[ ! -z $CTF_METAFILES_DIR ]]; then
-    CALIB_METAFILES_DIR=$CTF_METAFILES_DIR
+# Avoid writing calibration data for run types different than physics
+if [[ $RUNTYPE != "PHYSICS" ]] && [[ $CALIB_DIR == "/data/calibration" ]]; then
+  if [[ "0$FORCE_LOCAL_CALIBRATION_OUTPUT" != "01" ]]; then
+    export CALIB_DIR="/dev/null"
   else
-    CALIB_METAFILES_DIR="/dev/null"
+    # Special setting to allow for expert tests. In this case output is written to the current working directory
+    # Since in this case also a meta file would be written we need to disable that explicitly
+    export CALIB_DIR=$FILEWORKDIR
+    export EPN2EOS_METAFILES_DIR="/dev/null"
   fi
 fi
-
-if [[ $RUNTYPE == "SYNTHETIC" ]]; then DISABLE_CALIB_OUTPUT="--disable-root-output"; fi
 
 
 # Adding calibrations
@@ -185,7 +183,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
-    add_W o2-calibration-residual-aggregator "--disable-root-input $DISABLE_CALIB_OUTPUT $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $CALIB_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+    add_W o2-calibration-residual-aggregator "--disable-root-input $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
   fi
   if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
     # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "
