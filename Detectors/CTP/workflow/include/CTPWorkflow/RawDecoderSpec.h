@@ -63,13 +63,17 @@ class RawDecoderSpec : public framework::Task
   // for lumi
   bool mDoLumi = true;
   //
-  gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
+  gbtword80_t mTVXMask = 0x4;  // TVX is 3rd input
+  gbtword80_t mVBAMask = 0x20; // VBA is 6 th input
   LumiInfo mOutputLumiInfo;
   bool mVerbose = false;
-  uint64_t mCounts = 0;
+  uint64_t mCountsT = 0;
+  uint64_t mCountsV = 0;
   uint32_t mNTFToIntegrate = 1;
-  uint32_t mNHBIntegrated = 0;
-  std::deque<size_t> mHistory;
+  uint32_t mNHBIntegratedT = 0;
+  uint32_t mNHBIntegratedV = 0;
+  std::deque<size_t> mHistoryT;
+  std::deque<size_t> mHistoryV;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
