@@ -38,8 +38,16 @@ struct PadTreeData {
 
   int mBCid;
   int mOrbit;
-  unsigned int mHeader0[NASICS];
-  unsigned int mHeader1[NASICS];
+  int mHeader0[NASICS];
+  int mFOURBIT0[NASICS];
+  int mWADD0[NASICS];
+  int mBCID0[NASICS];
+  int mTrailer0[NASICS];
+  int mHeader1[NASICS];
+  int mFOURBIT1[NASICS];
+  int mWADD1[NASICS];
+  int mBCID1[NASICS];
+  int mTrailer1[NASICS];
   int mASICNum[NASICS];
   int mADC[NASICS][NCHANNELS];
   int mTOA[NASICS][NCHANNELS];
@@ -57,8 +65,16 @@ struct PadTreeData {
     mTree = padtree;
     mTree->Branch("ORBIT", &mOrbit, "ORBIT/I");
     mTree->Branch("BCID", &mBCid, "BCID/I");
-    mTree->Branch("HEADER0", &mHeader0, "HEADER0[20]/i");
-    mTree->Branch("HEADER1", &mHeader1, "HEADER1[20]/i");
+    mTree->Branch("HEAD0", &mHeader0, "HEAD0[20]/I");
+    mTree->Branch("FOURBIT0", &mFOURBIT0, "FOURBIT0[20]/I");
+    mTree->Branch("BCID0", &mBCID0, "BCID0[20]/I");
+    mTree->Branch("WADD0", &mWADD0, "WADD0[20]/I");
+    mTree->Branch("TRAILER0", &mTrailer0, "TRAILER0[20]/I");
+    mTree->Branch("HEAD1", &mHeader1, "HEAD1[20]/I");
+    mTree->Branch("FOURBIT1", &mFOURBIT1, "FOURBIT1[20]/I");
+    mTree->Branch("BCID1", &mBCID1, "BCID1[20]/I");
+    mTree->Branch("WADD1", &mWADD1, "WADD1[20]/I");
+    mTree->Branch("TRAILER1", &mTrailer1, "TRAILER1[20]/I");
     mTree->Branch("ASIC", &mASICNum, "ASICNum[20]/I");
     mTree->Branch("ADC", &mADC, "ADC[20][72]/I");
     mTree->Branch("TOA", &mTOA, "TOA[20][72]/I");
@@ -74,8 +90,16 @@ struct PadTreeData {
   {
     mBCid = 0;
     mOrbit = 0;
-    memset(mHeader0, 0, sizeof(unsigned int) * 20);
-    memset(mHeader1, 0, sizeof(unsigned int) * 20);
+    memset(mHeader0, 0, sizeof(int) * 20);
+    memset(mFOURBIT0, 0, sizeof(int) * 20);
+    memset(mBCID0, 0, sizeof(int) * 20);
+    memset(mWADD0, 0, sizeof(int) * 20);
+    memset(mTrailer0, 0, sizeof(int) * 20);
+    memset(mHeader1, 0, sizeof(int) * 20);
+    memset(mFOURBIT1, 0, sizeof(int) * 20);
+    memset(mBCID1, 0, sizeof(int) * 20);
+    memset(mWADD1, 0, sizeof(int) * 20);
+    memset(mTrailer1, 0, sizeof(int) * 20);
     memset(mASICNum, 0, sizeof(int) * 20);
     memset(mADC, 0, sizeof(int) * 20 * 72);
     memset(mTOA, 0, sizeof(int) * 20 * 72);
@@ -99,8 +123,16 @@ struct PadTreeData {
       auto& asicdata = data.getDataForASIC(iasic);
       auto& asicraw = asicdata.getASIC();
       mASICNum[iasic] = iasic;
-      mHeader0[iasic] = asicraw.getFirstHeader().mData;
-      mHeader1[iasic] = asicraw.getSecondHeader().mData;
+      mHeader0[iasic] = asicraw.getFirstHeader().mHeader;
+      mFOURBIT0[iasic] = asicraw.getFirstHeader().mFourbit;
+      mBCID0[iasic] = asicraw.getFirstHeader().mBCID;
+      mWADD0[iasic] = asicraw.getFirstHeader().mWADD;
+      mTrailer0[iasic] = asicraw.getFirstHeader().mTrailer;
+      mHeader1[iasic] = asicraw.getSecondHeader().mHeader;
+      mFOURBIT1[iasic] = asicraw.getSecondHeader().mFourbit;
+      mBCID1[iasic] = asicraw.getSecondHeader().mBCID;
+      mWADD1[iasic] = asicraw.getSecondHeader().mWADD;
+      mTrailer1[iasic] = asicraw.getSecondHeader().mTrailer;
       mCalib0[iasic] = asicraw.getFirstCalib().mADC;
       mCalib1[iasic] = asicraw.getSecondCalib().mADC;
       for (auto ichannel = 0; ichannel < NCHANNELS; ichannel++) {

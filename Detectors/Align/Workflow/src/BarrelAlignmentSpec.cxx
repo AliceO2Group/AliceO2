@@ -34,6 +34,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "TRDBase/TrackletTransformer.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -90,6 +91,7 @@ class BarrelAlignmentSpec : public Task
   std::string mIniParFile{};
   bool mUseIniParErrors = true;
   bool mUseMC = false;
+  bool mIgnoreCCDBAlignment = false;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -99,6 +101,8 @@ class BarrelAlignmentSpec : public Task
   std::string mConfMacro{};
   std::unique_ptr<TMethodCall> mUsrConfMethod;
   std::unique_ptr<o2::trd::TrackletTransformer> mTRDTransformer;
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  //
   TStopwatch mTimer;
 };
 
@@ -108,6 +112,13 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
   mController = std::make_unique<Controller>(mDetMask, mMPsrc, mUseMC);
+  int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  mController->setInstanceID(inst);
+  if (dbg) {
+    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}.root", inst).c_str(), "recreate");
+    mController->setDebugOutputLevel(dbg);
+    mController->setDebugStream(mDBGOut.get());
+  }
 
   mConfMacro = ic.options().get<std::string>("config-macro");
   if (!mConfMacro.empty()) {
@@ -151,6 +162,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     mUsrConfMethod = std::make_unique<TMethodCall>();
     mUsrConfMethod->InitWithPrototype(mConfMacro.c_str(), "o2::align::Controller*, int");
   }
+  mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
@@ -174,6 +186,17 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) {
     initOnceDone = true;
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    if (!mIgnoreCCDBAlignment) {
+      for (auto id = DetID::First; id <= DetID::Last; id++) {
+        const auto* alg = o2::base::GRPGeomHelper::instance().getAlignment(id);
+        if (alg && !alg->empty()) {
+          o2::base::GeometryManager::applyAlignment(*alg);
+        }
+        gGeoManager->RefreshPhysicalNodes(false);
+      }
+    } else {
+      LOG(warn) << "CCDB alignment is NOT applied to ideal geometry";
+    }
     if (!mController->getInitGeomDone()) {
       mController->initDetectors();
     }
@@ -225,11 +248,13 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   updateTimeDependentParams(pc);
   if (mPostProcessing) { // special mode, no data processing
-    if (mPostProcessing & 0x2) {
-      mController->checkConstraints();
-    }
-    if (mPostProcessing & 0x1) {
-      mController->writeCalibrationResults();
+    if (mController->getInstanceID() == 0) {
+      if (mPostProcessing & 0x2) {
+        mController->checkConstraints();
+      }
+      if (mPostProcessing & 0x1) {
+        mController->writeCalibrationResults();
+      }
     }
     pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
@@ -257,6 +282,7 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
       mController->genPedeSteerFile();
     }
   }
+  mDBGOut.reset();
 }
 
 DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, int postprocess, bool useMC)
@@ -288,9 +314,11 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     Options{
       ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
       ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
+      ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
       ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
       ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
-      ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}}}};
+      ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}},
+      ConfigParamSpec{"debug-output", VariantType::Int, 0, {"produce debugging output root files"}}}};
 }
 
 } // namespace align

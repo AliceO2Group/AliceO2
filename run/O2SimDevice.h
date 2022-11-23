@@ -22,7 +22,7 @@
 #include "../macro/o2sim.C"
 #include "TVirtualMC.h"
 #include "TMessage.h"
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>

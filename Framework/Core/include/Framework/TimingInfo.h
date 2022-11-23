@@ -29,6 +29,13 @@ struct TimingInfo {
   uint32_t runNumber = -1;
   uint64_t creation = -1UL;
   uint64_t lapse = 0; // time at the start of the processing. Per thread.
+  /// Wether this TimingInfo refers to the first timeframe
+  /// from a new run.
+  bool globalRunNumberChanged = false;
+  /// Wether this TimingInfo refers to the first timeframe
+  /// from a new run, as being processed by the current stream.
+  /// FIXME: for now this is the same as the above.
+  bool streamRunNumberChanged = false;
 };
 
 } // namespace o2::framework

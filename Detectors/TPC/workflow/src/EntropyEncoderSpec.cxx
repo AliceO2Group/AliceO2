@@ -26,9 +26,11 @@
 #include "TPCClusterDecompressor.inc"
 #include "GPUTPCCompressionKernels.inc"
 #include "TPCCalibration/VDriftHelper.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2::base;
 
 namespace o2
 {
@@ -37,8 +39,12 @@ namespace tpc
 
 EntropyEncoderSpec::~EntropyEncoderSpec() = default;
 
-EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR, std::shared_ptr<o2::base::GRPGeomRequest> pgg) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
 {
+  if (mSelIR) {
+    mGRPRequest = pgg;
+    GRPGeomHelper::instance().setRequest(mGRPRequest);
+  }
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -48,7 +54,10 @@ void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
   if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
     return;
   }
-  if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
+  if (mSelIR && mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
+    return;
+  }
+  if (mSelIR && GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
     return;
   }
 }
@@ -61,26 +70,46 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
   mConfig.reset(new o2::gpu::GPUO2InterfaceConfiguration);
   mConfig->configGRP.solenoidBz = 0;
   mConfParam.reset(new o2::gpu::GPUSettingsO2(mConfig->ReadConfigurableParam()));
+  mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
+  if (mAutoContinuousMaxTimeBin) {
+    mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+  }
 
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
 
   mParam.reset(new o2::gpu::GPUParam);
   mParam->SetDefaults(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, nullptr);
 
-  mTPCVDriftHelper.reset(new VDriftHelper);
+  if (mSelIR) {
+    mTPCVDriftHelper.reset(new VDriftHelper);
+  }
 
   mNThreads = ic.options().get<unsigned int>("nThreads-tpc-encoder");
   mMaxZ = ic.options().get<float>("irframe-clusters-maxz");
   mMaxEta = ic.options().get<float>("irframe-clusters-maxeta");
+
+  mEtaFactor = 1.f / (tanf(2 * atanf(expf(-mMaxEta))));
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
-  mCTFCoder.updateTimeDependentParams(pc);
-  mTPCVDriftHelper->extractCCDBInputs(pc);
-  if (mTPCVDriftHelper->isUpdated()) {
-    TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+  if (mSelIR) {
+    GRPGeomHelper::instance().checkUpdates(pc);
+    if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+      LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+    }
+
+    mConfig->configGRP.continuousMaxTimeBin = (GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+    mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    mParam->UpdateSettings(&mConfig->configGRP);
+
+    mTPCVDriftHelper->extractCCDBInputs(pc);
+    if (mTPCVDriftHelper->isUpdated()) {
+      TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+    }
   }
+
+  mCTFCoder.updateTimeDependentParams(pc, true);
 
   CompressedClusters clusters;
 
@@ -106,6 +135,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   CompressedClusters clustersFiltered = clusters;
   std::vector<std::pair<std::vector<unsigned int>, std::vector<unsigned short>>> tmpBuffer(std::max<int>(mNThreads, 1));
   if (mSelIR) {
+    if (clusters.nTracks && clusters.solenoidBz != -1e6f && clusters.solenoidBz != mParam->bzkG) {
+      throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
+    }
+    if (clusters.nTracks && clusters.maxTimeBin != -1e6 && clusters.maxTimeBin != mParam->par.continuousMaxTimeBin) {
+      throw std::runtime_error("Configured max time bin does not match value used for track model encoding");
+    }
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
     rejectHits.resize(clusters.nUnattachedClusters);
     rejectTracks.resize(clusters.nTracks);
@@ -141,7 +176,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       o2::gpu::TPCClusterDecompressor::decompressTrack(&clusters, *mParam, maxTime, i, offset, checker);
       const float tMin = o2::tpc::ClusterNative::unpackTime(tMinP), tMax = o2::tpc::ClusterNative::unpackTime(tMaxP);
       const auto chkVal = firstIR + (tMin * constants::LHCBCPERTIMEBIN);
-      const auto chkExt = (totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN + 1;
+      const auto chkExt = totalT > tMax - tMin ? ((totalT - (tMax - tMin)) * constants::LHCBCPERTIMEBIN + 1) : 0;
       const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
       if (reject) {
         for (unsigned int k = offset - clusters.nTrackClusters[i]; k < offset; k++) {
@@ -185,9 +220,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       int myThread = 0;
 #endif
       unsigned int count = 0;
-      auto checker = [i, j, firstIR, totalT, this, &preCl, &count, &outBuffer = tmpBuffer[myThread], &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
-        const auto chkVal = firstIR + (cl.getTime() * constants::LHCBCPERTIMEBIN);
-        const auto chkExt = totalT * constants::LHCBCPERTIMEBIN;
+      const float x = mParam->tpcGeometry.Row2X(j);
+      auto checker = [i, j, firstIR, totalT, x, this, &preCl, &count, &outBuffer = tmpBuffer[myThread], &rejectHits, &clustersFiltered](const o2::tpc::ClusterNative& cl, unsigned int k) {
+        const float y = mParam->tpcGeometry.LinearPad2Y(i, j, cl.getPad());
+        const float r = sqrtf(x * x + y * y);
+        const float maxz = r * mEtaFactor + mMaxZ;
+        const unsigned int deltaBC = std::max<float>(0.f, totalT - mFastTransform->convDeltaZtoDeltaTimeInTimeFrameAbs(maxz)) * constants::LHCBCPERTIMEBIN;
+        const auto chkVal = firstIR + (cl.getTime() * constants::LHCBCPERTIMEBIN) - deltaBC;
+        const auto chkExt = totalT * constants::LHCBCPERTIMEBIN - deltaBC;
         const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
         if (reject) {
           rejectHits[k] = true;
@@ -238,17 +278,20 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
-  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
+  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+
+  std::shared_ptr<o2::base::GRPGeomRequest> ggreq;
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+    ggreq = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, false, o2::base::GRPGeomRequest::None, inputs, true);
+    o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   }
   return DataProcessorSpec{
     "tpc-entropy-encoder", // process id
     inputs,
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "TPC", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR)},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR, ggreq)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},

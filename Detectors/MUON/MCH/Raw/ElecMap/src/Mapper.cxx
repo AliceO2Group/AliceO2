@@ -10,12 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHRawElecMap/Mapper.h"
-#include "MCHConstants/DetectionElements.h"
 
 namespace o2::mch::raw
 {
-
-std::array<int, 156> deIdsForAllMCH = o2::mch::constants::deIdsForAllMCH;
 
 std::array<int, 2> deIdsOfCH1R{100, 103};                                                                       // from top to bottom
 std::array<int, 2> deIdsOfCH1L{101, 102};                                                                       // from top to bottom

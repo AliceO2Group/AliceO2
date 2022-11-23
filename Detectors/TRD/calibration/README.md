@@ -15,13 +15,21 @@ The histograms are send to aggregator nodes which calculate for each TRD chamber
 
 To run the calibration one can start the following workflow:
 
-    o2-trd-global-tracking -b --disable-root-output --enable-trackbased-calib | o2-calibration-trd-workflow --vDriftAndExB -b --calib-vdexb-calibration '--tf-per-slot 5 --min-entries 50000 --max-delay 90000'
+    o2-trd-global-tracking -b --disable-root-output --enable-trackbased-calib | o2-calibration-trd-workflow --vDriftAndExB -b --calib-vdexb-calibration '--tf-per-slot 5 --max-delay 90000'
+
+For 'o2-calibration-trd-workflow --vDriftAndExB' there are also the following keyConfig values available:
+
+    TRDCalibParams.
+    - nTrackletsMin; minimum amount of tracklets in tracks
+    - chi2RedMax; maximum reduced chi2 acceptable for tracks quality
+    - minEntriesChamber; minimum number of entries per chamber to fit in a single time slot
+    - minEntriesTotal; minimum total required for meaningful fits
 
 *Hint: You can get information on the meaning of the parameters by running `o2-calibration-trd-workflow --vDriftAndExB -b --help full`*
 
 If you want to run the calibration from a local file with residuals, trdangreshistos.root, you can run:
 
-    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1 --min-entries 50000'
+    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1' --configKeyValues "TRDCalibParams.minEntriesChamber=100;TRDCalibParams.minEntriesTotal=50000"
 
 Additionally it is possible to perform the calibrations fit manually per chamber if you have TPC-TRD or ITS-TPC-TRD tracks, you can run:
 
@@ -32,7 +40,7 @@ Then run the macro `Detectors/TRD/calibration/macros/manualCalibFit.C`.
 This produces a file of similar name with the fitted data and prints out the fit results.
 This is equivalent to running:
 
-    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input '--tf-per-slot 1 --min-entries 2000 --enable-root-output'
+    o2-calibration-trd-workflow --vDriftAndExB -b --enable-root-input '--tf-per-slot 1 --enable-root-output'
 
 You can plot the calibration values for VDrift and ExB for a given Run by using the macro at `Detectors/TRD/cailbration/macros/plotVdriftExB.C`.
 This produces a root file of similar name which holds the time-series plots (reference the macro).

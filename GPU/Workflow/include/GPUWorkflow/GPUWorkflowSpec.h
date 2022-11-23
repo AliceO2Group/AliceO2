@@ -142,6 +142,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGR;
   bool mGRPGeomUpdated = false;
   bool mAutoContinuousMaxTimeBin = false;
+  bool mAutoSolenoidBz = false;
   bool mGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
   bool mMustUpdateFastTransform = false;

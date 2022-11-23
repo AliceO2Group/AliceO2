@@ -396,7 +396,7 @@ class InputRecord
         // If the matcher does not have an entry in the cache, deserialise it
         // and cache the deserialised object at the given id.
         auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
-        LOGP(info, "{}", path);
+        LOGP(debug, "{}", path);
         auto& cache = mRegistry.get<ObjectCache>();
         auto& callbacks = mRegistry.get<CallbackService>();
         auto cacheEntry = cache.matcherToId.find(path);
@@ -413,7 +413,7 @@ class InputRecord
         // The id in the cache is the same, let's simply return it.
         if (oldId.value == id.value) {
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)cache.idToObject[id], false);
-          LOGP(info, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
+          LOGP(debug, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
           return result;
         }
         // The id in the cache is different. Let's destroy the old cached entry

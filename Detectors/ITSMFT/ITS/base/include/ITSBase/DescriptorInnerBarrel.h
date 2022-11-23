@@ -19,6 +19,7 @@
 #include <vector>
 #include <TObject.h>
 #include <TGeoTube.h>
+#include <TMath.h>
 
 namespace o2
 {
@@ -41,28 +42,24 @@ class DescriptorInnerBarrel : public TObject
     return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
   }
 
-  int GetNumberOfLayers() const { return fNumLayers; }
-  double GetSensorThickness() const { return fSensorLayerThickness; }
-  void GetConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
-  TGeoTube* DefineWrapperVolume();
+  int getNumberOfLayers() const { return mNumLayers; }
+  double getSensorThickness() const { return mSensorLayerThickness; }
+  void getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
+  TGeoTube* defineWrapperVolume();
 
  protected:
-  int fNumLayers{3};
+  int mNumLayers{3};
 
   // wrapper volume properties
-  double fWrapperMinRadius{2.1};
-  double fWrapperMaxRadius{16.4};
-  double fWrapperZSpan{70.};
-
-  // sensor properties
-  double fSensorLayerThickness{};
+  double mWrapperMinRadius{2.1};
+  double mWrapperMaxRadius{16.4};
+  double mWrapperZSpan{70.};
 
   // layer properties
-  std::vector<double> fLayerRadii{};
-  std::vector<double> fLayerZLen{};
-  std::vector<double> fDetectorThickness{};
-  std::vector<int> fChipTypeID{};
-  std::vector<int> fBuildLevel{};
+  double mSensorLayerThickness{};           // sensor thickness
+  std::vector<double> mLayerRadii{};        // Vector of layer radius
+  std::vector<double> mDetectorThickness{}; // Vector of detector thickness
+  std::vector<int> mChipTypeID{};           //! Vector of unique chip ID
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrel, 1); /// ITS inner barrel geometry descriptor

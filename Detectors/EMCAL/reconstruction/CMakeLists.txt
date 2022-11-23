@@ -34,6 +34,7 @@ o2_add_library(EMCALReconstruction
         AliceO2::InfoLogger
         O2::DataFormatsEMCAL
         O2::DetectorsRaw
+        O2::DetectorsBase
         O2::EMCALBase
         O2::rANS
         Microsoft.GSL::GSL)

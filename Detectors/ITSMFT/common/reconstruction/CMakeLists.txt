@@ -32,6 +32,7 @@ o2_add_library(ITSMFTReconstruction
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::CommonDataFormat
                                      O2::DetectorsRaw
+                                     O2::DetectorsBase
                                      O2::SimulationDataFormat 
                                      O2::DataFormatsITSMFT
                                      O2::DPLUtils

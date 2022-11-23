@@ -80,7 +80,7 @@ class DigitGlobalPad
                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
 
   /// Fold signal with previous pad signal add ion tail and ToT for sigmal saturation
-  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr, const CalPad* itParams[2] = nullptr);
+  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr, const CalPad* padParams[3] = nullptr);
 
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
@@ -131,12 +131,12 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
   mChargePad += signal;
 }
 
-inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream, const CalPad* itParams[2])
+inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream, const CalPad* padParams[3])
 {
   const auto& eleParam = ParameterElectronics::Instance();
   const auto& itSettings = IonTailSettings::Instance();
-  const float kAmp = (itParams[0]) ? itParams[0]->getValue(sector, pad) * itSettings.ITMultFactor : itSettings.ITMultFactor * 0.1276;
-  const float expLambda = (itParams[1]) ? itParams[1]->getValue(sector, pad) : std::exp(-itSettings.kTime);
+  const float kAmp = (padParams[0]) ? padParams[0]->getValue(sector, pad) * itSettings.ITMultFactor : itSettings.ITMultFactor * 0.1276;
+  const float expLambda = (padParams[1]) ? padParams[1]->getValue(sector, pad) : std::exp(-itSettings.kTime);
   const PrevDigitInfo prevDigInf = prevDigit;
 
   // Saturation tail simulation
@@ -166,6 +166,7 @@ inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int secto
     // debugStream->setStreamer("debug_digits", "UPDATE");
     float kAmpTmp = kAmp;
     float tailSlopeUnitTmp = expLambda;
+    float cmKValue = (padParams[2]) ? padParams[2]->getValue(sector, pad) : 1.f;
     int sec = sector;
     int padn = pad;
     unsigned int timeBin = time;
@@ -178,6 +179,7 @@ inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int secto
                                << "timeBin=" << timeBin
                                << "kAmp=" << kAmpTmp
                                << "tailSlopeUnit=" << tailSlopeUnitTmp
+                               << "cmKValue=" << cmKValue
                                << "charge=" << mChargePad
                                << "prevDig=" << prevDigInfTmp
                                << "dig=" << prevDigit
@@ -239,23 +241,28 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
 
   /// only write out the data if there is actually charge on that pad
   if (mADC > 0) {
-    auto labelview = labels.getLabels(mID);
 
     /// Write out the Digit
     const auto digiPos = output.size();
     output.emplace_back(cru, mADC, pad.getRow(), pad.getPad(), timeBin); /// create Digit and append to container
 
-    labelCollector.clear();
-    for (auto& mcLabel : labelview) {
-      labelCollector.push_back(mcLabel);
-    }
-    if (labelview.size() > 1) {
-      /// Sort the MC labels according to their occurrence
-      using P = std::pair<MCCompLabel, int>;
-      std::sort(labelCollector.begin(), labelCollector.end(), [](const P& a, const P& b) { return a.second > b.second; });
-    }
-    for (auto& mcLabel : labelCollector) {
-      mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
+    // if no id was assigned the digit is from IT, CM or saturation
+    if (mID == -1) {
+      mcTruth.addNoLabelIndex(digiPos);
+    } else {
+      auto labelview = labels.getLabels(mID);
+      labelCollector.clear();
+      for (auto& mcLabel : labelview) {
+        labelCollector.push_back(mcLabel);
+      }
+      if (labelview.size() > 1) {
+        /// Sort the MC labels according to their occurrence
+        using P = std::pair<MCCompLabel, int>;
+        std::sort(labelCollector.begin(), labelCollector.end(), [](const P& a, const P& b) { return a.second > b.second; });
+      }
+      for (auto& mcLabel : labelCollector) {
+        mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
+      }
     }
   }
 }

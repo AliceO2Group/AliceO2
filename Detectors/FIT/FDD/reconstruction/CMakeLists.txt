@@ -14,6 +14,7 @@ o2_add_library(FDDReconstruction
                        src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES O2::FDDBase
                                      O2::DataFormatsFDD
+                                     O2::DetectorsBase
                                      O2::DetectorsRaw)
 
 o2_target_root_dictionary(FDDReconstruction

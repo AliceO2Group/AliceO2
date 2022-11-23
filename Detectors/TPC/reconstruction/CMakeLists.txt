@@ -36,7 +36,8 @@ o2_add_library(TPCReconstruction
                                      O2::TPCBase
                                      O2::GPUO2Interface
                                      O2::TPCFastTransformation
-                                     O2::DetectorsRaw)
+                                     O2::DetectorsRaw 
+                                     O2::DetectorsBase)
 
 o2_target_root_dictionary(
   TPCReconstruction

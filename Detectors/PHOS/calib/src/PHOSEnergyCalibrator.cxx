@@ -36,6 +36,7 @@ PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
   mPtMin = other.mPtMin;
   mEminHGTime = other.mEminHGTime;
   mEminLGTime = other.mEminLGTime;
+  mFillDigitsTree = other.mFillDigitsTree;
   mDigits.clear();
   mHistos = std::make_unique<ETCalibHistos>();
 }
@@ -50,15 +51,20 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
   // Scan current list of clusters
   // Fill time, non-linearity and mgg histograms
   // Fill list of re-calibraiable digits
-  mDigits.clear();
+  if (mFillDigitsTree) {
+    mDigits.clear();
+  }
   for (auto& tr : cluTR) {
-    // Mark new event
-    // First goes new event marker + BC (16 bit), next word orbit (32 bit)
-    EventHeader h = {0};
-    h.mMarker = 16383;
-    h.mBC = tr.getBCData().bc;
-    mDigits.push_back(h.mDataWord);
-    mDigits.push_back(tr.getBCData().orbit);
+
+    if (mFillDigitsTree) {
+      // Mark new event
+      // First goes new event marker + BC (16 bit), next word orbit (32 bit)
+      EventHeader h = {0};
+      h.mMarker = 16383;
+      h.mBC = tr.getBCData().bc;
+      mDigits.push_back(h.mDataWord);
+      mDigits.push_back(tr.getBCData().orbit);
+    }
     mEvBC = tr.getBCData().bc;
 
     int firstCluInEvent = tr.getFirstEntry();
@@ -86,6 +92,10 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
         continue;
       }
       fillTimeMassHisto(clu, cluelements);
+
+      if (!mFillDigitsTree) {
+        continue;
+      }
 
       uint32_t firstCE = clu.getFirstCluEl();
       uint32_t lastCE = clu.getLastCluEl();
@@ -127,9 +137,15 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
   uint32_t firstCE = clu.getFirstCluEl();
   uint32_t lastCE = clu.getLastCluEl();
 
+  short absIdMax = 0;
+  float maxE = 0.;
   for (uint32_t idig = firstCE; idig < lastCE; idig++) {
     const CluElement& ce = cluelements[idig];
     short absId = ce.absId;
+    if (ce.energy > maxE) {
+      maxE = ce.energy;
+      absIdMax = absId;
+    }
     if (ce.isHG) {
       if (ce.energy > mEminHGTime) {
         mHistos->fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
@@ -155,14 +171,21 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
   //  prepare TLorentsVector
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);
+
+  // Correction for the depth of the shower starting point (TDR p 127)
+  const float para = 0.925;
+  const float parb = 6.52;
+  float depth = para * TMath::Log(clu.getEnergy()) + parb;
+  posX -= posX * depth / 460.;
+  posZ -= posZ * depth / 460.;
+
   TVector3 vec3;
   mGeom->local2Global(clu.module(), posX, posZ, vec3);
-  float e = clu.getEnergy();
-  short absId;
-  mGeom->relPosToAbsId(clu.module(), posX, posZ, absId);
-
-  vec3 *= 1. / vec3.Mag();
-  TLorentzVector v(vec3.X() * e, vec3.Y() * e, vec3.Z() * e, e);
+  // float e = clu.getEnergy();
+  float e = Nonlinearity(clu.getCoreEnergy());
+  // Non-perp inc., nonlin
+  vec3 *= e / vec3.Mag();
+  TLorentzVector v(vec3.X(), vec3.Y(), vec3.Z(), e);
   // Fill calibration histograms for all cells, even bad, but partners in inv, mass should be good
   bool isGood = checkCluster(clu);
   for (short ip = mBuffer->size(); ip--;) {
@@ -173,20 +196,20 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
         mHistos->fill(ETCalibHistos::kReInvMassNonlin, e, sum.M());
       }
       if (sum.Pt() > mPtMin) {
-        mHistos->fill(ETCalibHistos::kReInvMassPerCell, absId, sum.M());
+        mHistos->fill(ETCalibHistos::kReInvMassPerCell, absIdMax, sum.M());
       }
     } else { // Mixed
       if (isGood) {
         mHistos->fill(ETCalibHistos::kMiInvMassNonlin, e, sum.M());
       }
       if (sum.Pt() > mPtMin) {
-        mHistos->fill(ETCalibHistos::kMiInvMassPerCell, absId, sum.M());
+        mHistos->fill(ETCalibHistos::kMiInvMassPerCell, absIdMax, sum.M());
       }
     }
   }
 
   // Add to list ot partners only if cluster is good
-  if (isGood) {
+  if (isGood && e > 0.2) {
     mBuffer->addEntry(v);
   }
 }
@@ -203,6 +226,22 @@ bool PHOSEnergySlot::checkCluster(const Cluster& clu)
   }
 
   return (clu.getEnergy() > 0.3 && clu.getMultiplicity() > 1);
+}
+float PHOSEnergySlot::Nonlinearity(float en)
+{
+  // Correct for non-linearity
+  const double a = 9.34913e-01;
+  const double b = 2.33e-03;
+  const double c = -8.10e-05;
+  const double d = 3.2e-02;
+  const double f = -8.0e-03;
+  const double g = 1.e-01;
+  const double h = 2.e-01;
+  const double k = -1.48e-04;
+  const double l = 0.194;
+  const double m = 0.0025;
+
+  return en * (a + b * en + c * en * en + d / en + f / ((en - g) * (en - g) + h) + k / ((en - l) * (en - l) + m));
 }
 
 //==================================================
@@ -229,6 +268,7 @@ Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType ten
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<es>());
+  slot.getContainer()->setFillDigitsTree(mFillDigitsTree);
   slot.getContainer()->setBadMap(mBadMap);
   slot.getContainer()->setCalibration(mCalibParams);
   slot.getContainer()->setCuts(mPtMin, mEminHGTime, mEminLGTime, mDigitEmin, mClusterEmin);
@@ -246,8 +286,10 @@ bool PHOSEnergyCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& 
   slotTF.getContainer()->setRunStartTime(tf);
   slotTF.getContainer()->fill(clusters, cluelements, cluTR);
   // Add collected Digits
-  auto tmpD = slotTF.getContainer()->getCollectedDigits();
-  outputDigits.insert(outputDigits.end(), tmpD.begin(), tmpD.end());
+  if (mFillDigitsTree) {
+    auto tmpD = slotTF.getContainer()->getCollectedDigits();
+    outputDigits.insert(outputDigits.end(), tmpD.begin(), tmpD.end());
+  }
   return true;
 }
 

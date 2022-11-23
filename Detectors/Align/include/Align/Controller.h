@@ -62,6 +62,11 @@ namespace trd
 {
 class TrackletTransformer;
 }
+namespace utils
+{
+class TreeStreamRedirector;
+}
+
 namespace align
 {
 
@@ -261,6 +266,13 @@ class Controller : public TObject
   bool getTRDTrigRecFilterActive() const { return mTRDTrigRecFilterActive; }
   bool getAllowAfterburnerTracks() const { return mAllowAfterburnerTracks; }
 
+  int getInstanceID() const { return mInstanceID; }
+  void setInstanceID(int i) { mInstanceID = i; }
+
+  int getDebugOutputLevel() const { return mDebugOutputLevel; }
+  void setDebugOutputLevel(int i) { mDebugOutputLevel = i; }
+  void setDebugStream(o2::utils::TreeStreamRedirector* d) { mDBGOut = d; }
+
  protected:
   //
   // --------- dummies -----------
@@ -273,6 +285,7 @@ class Controller : public TObject
   GTrackID::mask_t mMPsrc{};
   std::vector<int> mTrackSources;
   o2::framework::TimingInfo mTimingInfo{};
+  int mInstanceID = 0; // instance in case of pipelining
   int mRunNumber = 0;
   int mNDet = 0;                             // number of deectors participating in the alignment
   int mNDOFs = 0;                            // number of degrees of freedom
@@ -300,6 +313,9 @@ class Controller : public TObject
   //
   std::unique_ptr<AlignmentPoint> mRefPoint; //! reference point for track definition
   //
+  int mDebugOutputLevel = 0;
+  o2::utils::TreeStreamRedirector* mDBGOut = nullptr;
+
   // statistics
   ProcStat mStat{}; // processing statistics
   //

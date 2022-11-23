@@ -1067,7 +1067,7 @@ bool AlignmentTrack::residKalman()
   //
   bool inv = false;
   const int kMinNStep = 3;
-  const double kErrSpace = 50.;
+  const double kErrSpace = 100.;
   const double kErrAng = 0.7;
   const double kErrRelPtI = 1.;
   const covMat_t kIniErr = {// initial error
@@ -1108,7 +1108,7 @@ bool AlignmentTrack::residKalman()
   }
   //
   trc.setCov(kIniErr);
-  const double inwardQ2Pt2 = trc.getCovarElem(4, 4) * trc.getQ2Pt() * trc.getQ2Pt();
+  const double inwardQ2Pt2 = 4 * trc.getCovarElem(4, 4) * trc.getQ2Pt() * trc.getQ2Pt();
   trc.setCov(inwardQ2Pt2, 4, 4); // lowest diagonal element (Q2Pt2)
   //
   double chifwd = 0, chibwd = 0;
@@ -1150,7 +1150,7 @@ bool AlignmentTrack::residKalman()
   //
   // outward fit
   trc.setCov(kIniErr);
-  const double outwardQ2Pt2 = trc.getCovarElem(4, 4) * trc.getQ2Pt() * trc.getQ2Pt();
+  const double outwardQ2Pt2 = 4 * trc.getCovarElem(4, 4) * trc.getQ2Pt() * trc.getQ2Pt();
   trc.setCov(outwardQ2Pt2, 4, 4); // lowest diagonal element (Q2Pt2)
   signELoss = -1;                 // normally outward fit goes along track direction: eloss is applied. // RS Check for cosmic
   for (int ip = nPnt; ip--;) {

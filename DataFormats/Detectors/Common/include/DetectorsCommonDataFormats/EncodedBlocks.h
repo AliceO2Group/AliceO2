@@ -709,8 +709,10 @@ auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
 template <typename H, int N, typename W>
 inline auto EncodedBlocks<H, N, W>::create(void* head, size_t sz)
 {
+  const H defh;
   auto b = get(head);
   b->init(sz);
+  b->setHeader(defh);
   return b;
 }
 

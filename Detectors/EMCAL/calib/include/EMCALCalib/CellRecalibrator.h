@@ -142,8 +142,8 @@ class CellRecalibrator
       }
     }
 
-    float calibratedEnergy = inputcell.getTimeStamp();
-    float calibratedTime = inputcell.getEnergy();
+    float calibratedEnergy = inputcell.getEnergy();
+    float calibratedTime = inputcell.getTimeStamp();
 
     if (hasTimeCalibration()) {
       calibratedTime -= mTimeCalibration->getTimeCalibParam(inputcell.getTower(), inputcell.getLowGain());

@@ -77,6 +77,8 @@ struct PluginInfo {
 namespace o2::framework
 {
 struct PluginManager {
+  using WrapperProcessCallback = std::function<void(AlgorithmSpec::ProcessCallback&, ProcessingContext&)>;
+
   template <typename T>
   static T* getByName(DPLPluginHandle* handle, char const* name)
   {
@@ -95,6 +97,9 @@ struct PluginManager {
   /// Load an called @plugin from a library called @a library and
   /// return the associtated AlgorithmSpec.
   static auto loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec;
+  /// Wrap an algorithm with some lambda @wrapper which will be called
+  /// with the original callback and the ProcessingContext.
+  static auto wrapAlgorithm(AlgorithmSpec const& spec, WrapperProcessCallback&& wrapper) -> AlgorithmSpec;
 };
 
 } // namespace o2::framework

@@ -23,7 +23,6 @@
 #include "TPCBase/ParameterGas.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/ConfigurableParamHelper.h>
-#include <SimConfig/SimConfig.h>
 namespace o2
 {
 namespace tpc

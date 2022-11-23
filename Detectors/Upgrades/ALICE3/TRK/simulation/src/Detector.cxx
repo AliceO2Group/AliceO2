@@ -19,7 +19,7 @@
 #include "TRKSimulation/V3Layer.h"
 #include "TRKSimulation/V3Services.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes

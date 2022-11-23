@@ -50,7 +50,7 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   std::vector<int> l1phase{mCalibrator->getCalibration()};
   LOG(info) << "End of stream reached, sending output to CCDB";
-  //prepare all info to be sent to CCDB
+  // prepare all info to be sent to CCDB
   auto flName = o2::ccdb::CcdbApi::generateFileName("L1phase");
   std::map<std::string, std::string> md;
   o2::ccdb::CcdbObjectInfo info("PHS/Calib/L1phase", "L1phase", flName, md, mRunStartTime - o2::ccdb::CcdbObjectInfo::MINUTE,
@@ -65,6 +65,9 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0}, *image.get());
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0}, info);
+  // Send summary to QC
+  LOG(info) << "Sending histos to QC ";
+  ec.outputs().snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0, o2::framework::Lifetime::Sporadic}, mCalibrator->getQcHistos());
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()
@@ -73,6 +76,7 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0, Lifetime::Sporadic);
   outputs.emplace_back(o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0, Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginPHS, "L1PHASEHISTO", 0, o2::framework::Lifetime::Sporadic);
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("cells", "PHS", "CELLS");

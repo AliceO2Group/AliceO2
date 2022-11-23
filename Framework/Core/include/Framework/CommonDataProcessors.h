@@ -59,9 +59,10 @@ struct CommonDataProcessors {
                                             std::vector<InputSpec> const& outputInputs);
 
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
-  /// and simply discards them.
-  static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs,
-                                        int rateLimitingIPCID);
+  /// and simply discards them. @a rateLimitingChannelConfig is the configuration
+  /// for the rate limiting channel, if any required.
+  static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs, std::string rateLimitingChannelConfig);
+  static AlgorithmSpec wrapWithRateLimiting(AlgorithmSpec spec);
 };
 
 } // namespace o2::framework

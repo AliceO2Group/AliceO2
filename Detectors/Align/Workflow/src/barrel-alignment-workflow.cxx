@@ -29,6 +29,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "GlobalTrackingWorkflowHelpers/NoInpDummyOutSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
@@ -48,9 +49,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC-info checks"}},
+    {"enable-mc", o2::framework::VariantType::Bool, false, {"enable MC-info checks"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
-    {"detectors", VariantType::String, std::string{"ITS,TPC,TRD,TOF"}, {"comma-separated list of detectors"}},
+    {"detectors", VariantType::String, std::string{"ITS,TRD,TOF"}, {"comma-separated list of detectors"}},
     {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
     {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints"}},
@@ -77,7 +78,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  DetID::mask_t allowedDets = DetID::getMask("ITS,TPC,TRD,TOF,CPV,PHS,EMC,HMP");
+  DetID::mask_t allowedDets = DetID::getMask("ITS,TRD,TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -86,14 +87,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   bool loadTPCClusters = configcontext.options().get<bool>("enable-tpc-clusters");
   bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
-  bool useMC = !configcontext.options().get<bool>("disable-mc");
+  bool useMC = configcontext.options().get<bool>("enable-mc");
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
   DetID::mask_t skipDetClusters; // optionally skip automatically loaded clusters
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-  GID::mask_t srcCl{};
-  GID::mask_t srcMP = src; // we may need to load more track types than requested to satisfy dependencies, but only those will be fed to millipede
-  if (!postprocess) {
+  GID::mask_t srcCl{}, srcMP = src; // we may need to load more track types than requested to satisfy dependencies, but only those will be fed to millipede
+
+  if (!postprocess) { // this part is needed only if the data should be read
     if (GID::includesDet(DetID::ITS, src)) {
       src |= GID::getSourceMask(GID::ITS);
       srcCl |= GID::getSourceMask(GID::ITS);
@@ -134,19 +135,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // write the configuration used for the workflow
     o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");
   }
-  GID::mask_t dummy;
+
   specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, postprocess, useMC));
   // RS FIXME: check which clusters are really needed
   if (!postprocess) {
+    GID::mask_t dummy;
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src, src, useMC, dummy); // clusters MC is not needed
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
-  }
-  if (!disableRootOut) {
+  } else { // add dummy driver
+    specs.emplace_back(o2::globaltracking::getNoInpDummyOutSpec(0));
   }
 
-  if (!postprocess) {
-    // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
-    o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
-  }
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return std::move(specs);
 }

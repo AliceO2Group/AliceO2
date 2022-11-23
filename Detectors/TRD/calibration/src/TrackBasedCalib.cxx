@@ -14,6 +14,7 @@
 /// \author Ole Schmidt
 
 #include "TRDCalibration/TrackBasedCalib.h"
+#include "TRDCalibration/CalibrationParams.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -78,9 +79,10 @@ void TrackBasedCalib::calculateAngResHistos()
 
 int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
 {
+  auto& params = TRDCalibParams::Instance();
   int nTracksSuccess = 0;
   for (const auto& trkIn : tracks) {
-    if (trkIn.getNtracklets() < 3) {
+    if (trkIn.getNtracklets() < params.nTrackletsMin) {
       // with less than 3 tracklets the TRD-only refit not meaningful
       continue;
     }
@@ -146,6 +148,11 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       if (propagateAndUpdate(trkWork, iLayer, false)) {
         trackFailed = true;
         break;
+      }
+
+      if (trkWork.getReducedChi2() > params.chi2RedMax) {
+        // set an upper bound on acceptable tracks we use for qc
+        continue;
       }
 
       float trkAngle = o2::math_utils::asin(trkWork.getSnp()) * TMath::RadToDeg();

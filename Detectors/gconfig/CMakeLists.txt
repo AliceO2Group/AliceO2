@@ -11,12 +11,12 @@
 
 o2_add_library(G3Setup
                SOURCES src/G3Config.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant3 FairRoot::Base O2::SimulationDataFormat O2::Generators
+               PUBLIC_LINK_LIBRARIES MC::Geant3 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(G4Setup
                SOURCES src/G4Config.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup  ROOT::EGPythia6
 )
 
 o2_add_library(FLUKASetup
@@ -29,7 +29,7 @@ o2_add_library(MCReplaySetup
 )
 o2_add_library(SimSetup
                SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx src/MCReplayParam.cxx
-	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
+	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase O2::SimConfig
               )
 
 o2_target_root_dictionary(SimSetup

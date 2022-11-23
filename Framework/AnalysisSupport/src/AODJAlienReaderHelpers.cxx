@@ -215,8 +215,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         return;
       }
 
-      auto ioStart = uv_hrtime();
-
       for (auto& route : requestedTables) {
         if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
           continue;

@@ -11,7 +11,7 @@
 
 #include "MIDSimulation/Detector.h"
 #include "MIDSimulation/Geometry.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include "FairVolume.h"

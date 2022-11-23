@@ -11,6 +11,7 @@
 
 #include <SimConfig/SimConfig.h>
 #include <DetectorsCommonDataFormats/DetID.h>
+#include <SimulationDataFormat/DigitizationContext.h>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fairlogger/Logger.h>
@@ -57,6 +58,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
+  options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\".");
 }
 
 void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool mIsRun5)
@@ -215,6 +217,8 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
+  mConfigData.mFromCollisionContext = vm["fromCollContext"].as<std::string>();
+  adjustFromCollContext();
 
   // analyse field options
   // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
@@ -259,6 +263,55 @@ bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue
   return true;
 }
 
+void SimConfig::adjustFromCollContext()
+{
+  // When we use pregenerated collision contexts, some options
+  // need to be auto-adjusted. Do so and inform about this in the logs.
+  if (mConfigData.mFromCollisionContext == "") {
+    return;
+  }
+
+  auto context = o2::steer::DigitizationContext::loadFromFile(mConfigData.mFromCollisionContext);
+  if (context) {
+    //  find the events belonging to a source that corresponds to a sim prefix
+    LOG(info) << "Looking up simprefixes " << mConfigData.mOutputPrefix;
+    int sourceid = context->findSimPrefix(mConfigData.mOutputPrefix);
+    if (sourceid == -1) {
+      LOG(error) << "Could not find collisions with sim prefix " << mConfigData.mOutputPrefix << " in the collision context. The collision contet specifies the following prefixes:";
+      for (auto& prefix : context->getSimPrefixes()) {
+        LOG(info) << prefix;
+      }
+      LOG(fatal) << "Aborting due to prefix error";
+    } else {
+      auto collisionmap = context->getCollisionIndicesForSource(sourceid);
+      LOG(info) << "Found " << collisionmap.size() << " events in the collisioncontext for prefix " << mConfigData.mOutputPrefix;
+
+      // check if collisionmap is dense (otherwise it will get screwed up with order/indexing in ROOT output)
+      bool good = true;
+      for (auto index = 0; index < collisionmap.size(); ++index) {
+        if (collisionmap.find(index) == collisionmap.end()) {
+          good = false;
+        }
+      }
+      if (!good) {
+        LOG(fatal) << "events in collisioncontext are non-compact ";
+      }
+
+      // do some adjustments based on the number of events to be simulated
+      if (mConfigData.mNEvents == 0 || mConfigData.mNEvents == collisionmap.size()) {
+        // we take what is specified in the context
+        mConfigData.mNEvents = collisionmap.size();
+      } else {
+        LOG(warning) << "The number of events on the command line and in the collision context differ. Taking the min of the 2";
+        mConfigData.mNEvents = std::min((size_t)mConfigData.mNEvents, collisionmap.size());
+      }
+      LOG(info) << "Setting number of events to simulate to " << mConfigData.mNEvents;
+    }
+  } else {
+    LOG(fatal) << "Could not open collision context file " << mConfigData.mFromCollisionContext;
+  }
+}
+
 bool SimConfig::resetFromArguments(int argc, char* argv[])
 {
   namespace bpo = boost::program_options;
@@ -300,7 +353,7 @@ bool parseSimReconfigFromString(std::string const& argumentstring, SimReconfigDa
   bpo::options_description options("Allowed options");
 
   options.add_options()(
-    "nEvents,n", bpo::value<unsigned int>(&data.nEvents)->default_value(1), "number of events")(
+    "nEvents,n", bpo::value<unsigned int>(&data.nEvents)->default_value(0), "number of events")(
     "generator,g", bpo::value<std::string>(&data.generator)->default_value("boxgen"), "Event generator to be used.")(
     "trigger,t", bpo::value<std::string>(&data.trigger)->default_value(""), "Event generator trigger to be used.")(
     "startEvent", bpo::value<unsigned int>(&data.startEvent)->default_value(0), "index of first event to be used (when applicable)")(

@@ -21,7 +21,7 @@
 #include <fairmq/Device.h>
 #include <fairlogger/Logger.h>
 #include <SimulationDataFormat/MCEventHeader.h>
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <DetectorsCommonDataFormats/DetectorNameConf.h>
@@ -70,7 +70,6 @@
 #include "SimPublishChannelHelper.h"
 
 #ifdef ENABLE_UPGRADES
-#include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
@@ -919,7 +918,7 @@ void O2HitMerger::initDetInstances()
     }
 #ifdef ENABLE_UPGRADES
     if (i == DetID::IT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its3::Detector>(true));
+      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true, "IT3"));
       counter++;
     }
     if (i == DetID::TRK) {

@@ -17,6 +17,7 @@ o2_add_library(FDDSimulation
         O2::FDDBase
         O2::DataFormatsFDD
         O2::DetectorsRaw
+        O2::DetectorsBase
         ROOT::Physics)
 
 o2_target_root_dictionary(FDDSimulation

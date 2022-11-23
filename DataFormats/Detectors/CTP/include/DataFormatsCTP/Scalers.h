@@ -59,6 +59,7 @@ struct CTPScalerO2 {
   uint64_t l1Before;
   uint64_t l1After;
   void printStream(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream, CTPScalerO2& scaler0) const;
   ClassDefNV(CTPScalerO2, 1);
 };
 struct CTPScalerRecordRaw {
@@ -77,6 +78,7 @@ struct CTPScalerRecordO2 {
   std::vector<CTPScalerO2> scalers;
   std::vector<uint64_t> scalersDets;
   void printStream(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream, CTPScalerRecordO2& record0) const;
   ClassDefNV(CTPScalerRecordO2, 3);
 };
 class CTPRunScalers
@@ -85,6 +87,8 @@ class CTPRunScalers
   CTPRunScalers() = default;
 
   void printStream(std::ostream& stream) const;
+  void printO2(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
   std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };

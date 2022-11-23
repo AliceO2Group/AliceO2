@@ -89,6 +89,7 @@ class Tracklet64
   GPUd() int getFormat() const { return ((mtrackletWord & formatmask) >> formatbs); };     // no units 0..15
   GPUd() int getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };           // no units 0..1079
   GPUd() int getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); };     // pad row number [0..15]
+  GPUd() int getPadCol() const;                                                            // estimate the pad column number from the tracklet offset (can be off by +-1 pad)
   GPUd() int getColumn() const { return ((mtrackletWord & colmask) >> colbs); };           // column refers to MCM position in column direction on readout board [0..3]
   GPUd() int getPosition() const { return ((mtrackletWord & posmask) >> posbs); };         // in units of 1/40 pads, 11 bit granularity
   GPUd() int getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };        // in units of 1/1000 pads/timebin, 8 bit granularity

@@ -29,6 +29,8 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
+#include <unordered_map>
+#include <chrono>
 
 namespace o2
 {
@@ -47,6 +49,7 @@ class CCDBPopulator : public o2::framework::Task
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
     mFatalOnFailure = ic.options().get<bool>("fatal-on-failure");
+    mThrottlingDelayMS = ic.options().get<std::int64_t>("throttling-delay");
     mAPI.init(mCCDBpath);
   }
 
@@ -65,6 +68,7 @@ class CCDBPopulator : public o2::framework::Task
     if (runNoFromDH > 0) {
       runNoStr = std::to_string(runNoFromDH);
     }
+    auto nowMS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
       auto refWrp = pc.inputs().get("clbWrapper", isl);
@@ -96,9 +100,19 @@ class CCDBPopulator : public o2::framework::Task
         metadata[o2::base::NameConf::CCDBRunTag.data()] = runNoStr;
         md = &metadata;
       }
-
-      LOG(important) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
-                     << " Valid for " << wrp->getStartValidityTimestamp() << " : " << wrp->getEndValidityTimestamp();
+      std::string msg = fmt::format("Storing in ccdb {}/{} of size {} valid for {} : {}", wrp->getPath(), wrp->getFileName(), pld.size(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+      auto& lastLog = mThrottling[wrp->getPath()];
+      if (lastLog.first + mThrottlingDelayMS < nowMS) {
+        if (lastLog.second) {
+          msg += fmt::format(" ({} uploads were logged as INFO)", lastLog.second);
+          lastLog.second = 0;
+        }
+        lastLog.first = nowMS;
+        LOG(important) << msg;
+      } else {
+        lastLog.second++;
+        LOG(info) << msg;
+      }
       int res = mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
                                        *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
       if (res && mFatalOnFailure) {
@@ -119,7 +133,9 @@ class CCDBPopulator : public o2::framework::Task
 
  private:
   CcdbApi mAPI;
+  long mThrottlingDelayMS = 0;                             // LOG(important) at most once per this period for given path
   bool mFatalOnFailure = true;                             // produce fatal on failed upload
+  std::unordered_map<std::string, std::pair<long, int>> mThrottling;
   std::int64_t mSSpecMin = -1;                             // min subspec to accept
   std::int64_t mSSpecMax = -1;                             // max subspec to accept
   std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; // CCDB path
@@ -145,6 +161,7 @@ DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const s
       {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}},
       {"sspec-min", VariantType::Int64, -1L, {"min subspec to accept"}},
       {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}},
+      {"throttling-delay", VariantType::Int64, 300000L, {"produce important type log at most once per this period in ms for each CCDB path"}},
       {"fatal-on-failure", VariantType::Bool, false, {"do not produce fatal on failed upload"}}}};
 }
 

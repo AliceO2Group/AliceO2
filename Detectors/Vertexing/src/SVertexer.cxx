@@ -522,8 +522,6 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     rejectIfNotCascade = true;
   }
 
-  auto& v0 = mV0sTmp[ithread].back();
-
   // check 3 body decays
   if (checkFor3BodyDecays) {
     int n3bodyDecays = 0;
@@ -559,7 +557,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
-  const auto& v0 = mV0sTmp[ithread].back();
+  const auto v0Id = mV0sTmp[ithread].size() - 1; // we check the last V0 but some cascades may add V0 clones
   auto& tracks = mTracksPool[posneg];
   int nCascIni = mCascadesTmp[ithread].size();
 
@@ -580,6 +578,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
+    const auto& v0 = mV0sTmp[ithread][v0Id];
     auto cascVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
     if (mSVParams->selectBestV0) {
       // select only the best V0 candidate among the compatible ones
@@ -669,7 +668,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       LOG(debug) << "Casc not compatible with any hypothesis";
       continue;
     }
-    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
+    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, v0Id, bach.gid);
     o2::track::TrackParCov trc = casc;
     o2::dataformats::DCA dca;
     if (!trc.propagateToDCA(cascPv, fitterCasc.getBz(), &dca, 5.) ||

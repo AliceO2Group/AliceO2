@@ -46,7 +46,9 @@ class TPCVDriftTglCalibSpec : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Pair<float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 1 << " tracks"; // 1st entry is for VDrift
+    if (data.size()) {
+      LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 1 << " tracks"; // 1st entry is for VDrift
+    }
     mCalibrator->process(data);
     sendOutput(pc.outputs());
   }

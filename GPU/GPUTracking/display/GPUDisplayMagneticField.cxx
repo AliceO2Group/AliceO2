@@ -22,6 +22,11 @@
 #ifndef GPUCA_NO_ROOT
 #include <TGeoGlobalMagField.h>
 #endif
+#if !defined(GPUCA_NO_ROOT) && defined(GPUCA_O2_LIB)
+#include "DetectorsBase/GeometryManager.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/Propagator.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -176,7 +181,14 @@ int GPUDisplayMagneticField::initializeUniforms()
 {
   mRenderConstantsUniform = std::make_unique<RenderConstantsUniform>();
 
-  const auto field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  auto* field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+
+  if (!field) {
+    const auto grp = o2::parameters::GRPObject::loadFrom();
+    o2::base::GeometryManager::loadGeometry();
+    o2::base::Propagator::initFieldFromGRP();
+    field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  }
 
   if (!field) {
     GPUError("Error loading magnetic field data");

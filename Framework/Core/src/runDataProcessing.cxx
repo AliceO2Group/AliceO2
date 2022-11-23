@@ -1061,6 +1061,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
+  fair::Logger::OnFatal([]() { throw runtime_error("Fatal error"); });
   DeviceSpec const& spec = runningWorkflow.devices[ref.index];
   LOG(info) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 

@@ -135,14 +135,11 @@ void Controller::process()
 {
   static int nTF = 0;
   o2::steer::MCKinematicsReader mcReader;
-  std::unique_ptr<o2::utils::TreeStreamRedirector> DBGOut;
   if (mUseMC) {
     if (!mcReader.initFromDigitContext("collisioncontext.root")) {
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
     }
-    DBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("algMCStudy{}.root", nTF).c_str(), "recreate");
   }
-
   auto timerStart = std::chrono::system_clock::now();
   int nVtx = 0, nVtxAcc = 0, nTrc = 0, nTrcAcc = 0;
   for (auto id = DetID::First; id <= DetID::Last; id++) {
@@ -263,6 +260,24 @@ void Controller::process()
           }
           continue;
         }
+
+        // compare refitted and original track
+        if (mDebugOutputLevel) {
+          trackParam_t trcAlgRef(*mAlgTrack.get());
+          std::array<double, 5> dpar{};
+          std::array<double, 15> dcov{};
+          for (int i = 0; i < 5; i++) {
+            dpar[i] = trcIn.getParam(i);
+          }
+          for (int i = 0; i < 15; i++) {
+            dcov[i] = trcIn.getCov()[i];
+          }
+          trackParam_t trcOrig(trcIn.getX(), trcIn.getAlpha(), dpar, dcov, trcIn.getCharge());
+          if (PropagatorD::Instance()->propagateToAlphaX(trcOrig, trcAlgRef.getAlpha(), trcAlgRef.getX(), true)) {
+            (*mDBGOut) << "trcomp"
+                       << "orig=" << trcOrig << "fit=" << trcAlgRef << "\n";
+          }
+        }
         // RS: this is to substitute the refitter track by MC truth, just for debugging
         /*
         if (mUseMC) {
@@ -291,7 +306,7 @@ void Controller::process()
           continue;
         }
 
-        if (mUseMC) {
+        if (mUseMC && mDebugOutputLevel) {
           auto lbl = mRecoData->getTrackMCLabel(trackIndex);
           if (lbl.isValid()) {
             std::vector<float> pntX, pntY, pntZ, trcX, trcY, trcZ, prpX, prpY, prpZ, alpha, xsens, pntXTF, pntYTF, pntZTF, resY, resZ;
@@ -328,14 +343,14 @@ void Controller::process()
               alpha.emplace_back(pnt->getAlphaSens());
               xsens.emplace_back(pnt->getXSens());
             }
-            (*DBGOut) << "mccomp"
-                      << "mcTr=" << mcTrack << "recTr=" << recTrack << "gid=" << trackIndex << "lbl=" << lbl << "vtxConst=" << vtxCont
-                      << "pntX=" << pntX << "pntY=" << pntY << "pntZ=" << pntZ
-                      << "trcX=" << trcX << "trcY=" << trcY << "trcZ=" << trcZ
-                      << "alp=" << alpha << "xsens=" << xsens
-                      << "pntXTF=" << pntXTF << "pntYTF=" << pntYTF << "pntZTF=" << pntZTF
-                      << "resY=" << resY << "resZ=" << resZ
-                      << "detid=" << detid << "volid=" << volid << "\n";
+            (*mDBGOut) << "mccomp"
+                       << "mcTr=" << mcTrack << "recTr=" << recTrack << "gid=" << trackIndex << "lbl=" << lbl << "vtxConst=" << vtxCont
+                       << "pntX=" << pntX << "pntY=" << pntY << "pntZ=" << pntZ
+                       << "trcX=" << trcX << "trcY=" << trcY << "trcZ=" << trcZ
+                       << "alp=" << alpha << "xsens=" << xsens
+                       << "pntXTF=" << pntXTF << "pntYTF=" << pntYTF << "pntZTF=" << pntZTF
+                       << "resY=" << resY << "resZ=" << resZ
+                       << "detid=" << detid << "volid=" << volid << "\n";
           }
         }
         nTrcAcc++;
@@ -350,7 +365,6 @@ void Controller::process()
   auto timerEnd = std::chrono::system_clock::now();
   std::chrono::duration<float, std::milli> duration = timerEnd - timerStart;
   LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", nTF, nVtx, nVtxAcc, nTrc, nTrcAcc, duration.count());
-  DBGOut.reset();
   nTF++;
 }
 
@@ -1150,8 +1164,8 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
 bool Controller::readParameters(const std::string& parfile, bool useErrors)
 {
   // read parameters file (millepede output)
-  if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
-    LOG(error) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
+  if (mNDOFs < 1) {
+    LOG(error) << "Something is wrong in init, no DOFs found: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
   std::ifstream inpf(parfile);
   if (!inpf.good()) {

@@ -14,7 +14,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterGas.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 #include "FairVolume.h" // for FairVolume

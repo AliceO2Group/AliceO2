@@ -24,9 +24,11 @@ o2_add_library(DetectorsBase
                        src/SimFieldUtils.cxx
                        src/TFIDInfoHelper.cxx
                        src/GRPGeomHelper.cxx
+                       src/Stack.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
+                                     O2::DataFormatsCTP
                                      O2::GPUCommon
                                      O2::GPUUtils
                                      O2::ReconstructionDataFormats
@@ -34,6 +36,7 @@ o2_add_library(DetectorsBase
                                      O2::Framework
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
+                                     O2::SimulationDataFormat
                                      O2::SimConfig
                                      O2::CCDB
                                      MC::VMC
@@ -52,6 +55,7 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
                                   include/DetectorsBase/Aligner.h
+                                  include/DetectorsBase/Stack.h
                                   include/DetectorsBase/SimFieldUtils.h)
 
 if(BUILD_SIMULATION)
@@ -60,6 +64,15 @@ if(BUILD_SIMULATION)
     SOURCES test/testMatBudLUT.cxx
     COMPONENT_NAME DetectorsBase
     PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTReconstruction
+    LABELS detectorsbase
+    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+                VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+
+  o2_add_test(
+    MCStack
+    SOURCES test/testStack.cxx
+    COMPONENT_NAME DetectorsBase
+    PUBLIC_LINK_LIBRARIES O2::DetectorsBase
     LABELS detectorsbase
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})

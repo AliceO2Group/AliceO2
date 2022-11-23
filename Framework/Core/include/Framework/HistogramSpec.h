@@ -13,6 +13,7 @@
 #define FRAMEWORK_HISTOGRAMSPEC_H_
 
 #include <string>
+#include <utility>
 #include <variant>
 #include <optional>
 
@@ -82,17 +83,17 @@ constexpr double VARIABLE_WIDTH = 0.;
 struct AxisSpec {
   AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
-      binEdges(binEdges_),
-      title(title_),
-      name(name_)
+      binEdges(std::move(binEdges_)),
+      title(std::move(title_)),
+      name(std::move(name_))
   {
   }
 
   AxisSpec(int nBins_, double binMin_, double binMax_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(nBins_),
       binEdges({binMin_, binMax_}),
-      title(title_),
-      name(name_)
+      title(std::move(title_)),
+      name(std::move(name_))
   {
     if (binMin_ > binMax_) {
       LOG(fatal) << "Defined ill-defined axis";
@@ -103,8 +104,8 @@ struct AxisSpec {
   AxisSpec(ConfigurableAxis binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
       binEdges(std::vector<double>(binEdges_)),
-      title(title_),
-      name(name_)
+      title(std::move(title_)),
+      name(std::move(name_))
   {
     if (binEdges.empty()) {
       return;
@@ -116,7 +117,7 @@ struct AxisSpec {
     binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
   }
 
-  long getNbins() const;
+  [[nodiscard]] long getNbins() const;
 
   /// Function to make the axis logarithmic
   void makeLogarithmic();
@@ -136,7 +137,7 @@ struct AxisSpec {
 struct HistogramConfigSpec {
   HistogramConfigSpec(HistType type_, std::vector<AxisSpec> axes_, uint8_t nSteps_ = 1)
     : type(type_),
-      axes(axes_),
+      axes(std::move(axes_)),
       nSteps(nSteps_)
   {
   }
@@ -151,12 +152,12 @@ struct HistogramConfigSpec {
 
   void addAxis(int nBins_, double binMin_, double binMax_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
   {
-    axes.push_back({nBins_, binMin_, binMax_, title_, name_});
+    axes.emplace_back(nBins_, binMin_, binMax_, title_, name_);
   }
 
   void addAxis(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
   {
-    axes.push_back({binEdges_, title_, name_});
+    axes.emplace_back(binEdges_, title_, name_);
   }
 
   void addAxes(std::vector<AxisSpec> axes_)
@@ -185,22 +186,17 @@ struct HistogramSpec {
     : name(name_),
       hash(compile_time_hash(name_)),
       title(title_),
-      config(config_),
+      config(std::move(config_)),
       callSumw2(callSumw2_)
   {
   }
 
-  HistogramSpec()
-    : name(""),
-      hash(0),
-      config()
-  {
-  }
+  HistogramSpec() = default;
   HistogramSpec(HistogramSpec const& other) = default;
   HistogramSpec(HistogramSpec&& other) = default;
 
   std::string name{};
-  uint32_t hash{};
+  uint32_t hash = 0;
   std::string title{};
   HistogramConfigSpec config{};
   bool callSumw2{}; // wether or not hist needs heavy error structure produced by Sumw2()
@@ -218,33 +214,12 @@ struct HistFactory {
   template <typename T>
   static std::unique_ptr<T> createHist(const HistogramSpec& histSpec);
 
-  // create histogram and return it casted to the correct alternative held in HistPtr variant
-  template <typename T>
-  static HistPtr createHistVariant(const HistogramSpec& histSpec);
-
   // runtime version of the above
   static HistPtr createHistVariant(const HistogramSpec& histSpec);
 
   // helper function to get the axis via index for any type of root histogram
   template <typename T>
   static TAxis* getAxis(const int i, T* hist);
-
- private:
-  static const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistogramCreationCallbacks;
-
-  // helper function to generate the actual histograms
-  template <typename T>
-  static T* generateHist(const std::string& name, const std::string& title, const std::size_t nDim,
-                         const int nBins[], const double lowerBounds[], const double upperBounds[], const int nSteps = 1);
-
-  // helper function to cast the actual histogram type (e.g. TH2F) to the correct interface type (e.g. TH2) that is stored in the HistPtr variant
-  template <typename T>
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
-
-  template <typename T, typename Next, typename... Rest>
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
-
-  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
 };
 
 #define DECLAREEXT(HType) \
