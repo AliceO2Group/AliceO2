@@ -111,7 +111,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
-        lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, 0,countsMBT, countsMBV});
+        lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, 0, countsMBT, countsMBV});
         countsMBT = 0;
         countsMBV = 0;
       }
@@ -143,7 +143,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
               countsMBT++;
             }
             pld = (diglet >> 12) & mVBAMask;
-            if(pld.count() != 0) {
+            if (pld.count() != 0) {
               countsMBV++;
             }
           }
@@ -168,7 +168,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           countsMBT++;
         }
         pld = (remnant >> 12) & mVBAMask;
-        if(pld.count() != 0) {
+        if (pld.count() != 0) {
           countsMBV++;
         }
       }
@@ -222,7 +222,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     mOutputLumiInfo.nHBFCounted = mNHBIntegratedT;
     mOutputLumiInfo.nHBFCountedFV0 = mNHBIntegratedV;
     if (mVerbose) {
-      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(),mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
+      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
   }
