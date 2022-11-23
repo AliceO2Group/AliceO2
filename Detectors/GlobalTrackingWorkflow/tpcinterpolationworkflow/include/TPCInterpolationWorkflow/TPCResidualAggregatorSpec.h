@@ -40,7 +40,7 @@ namespace calibration
 class ResidualAggregatorDevice : public o2::framework::Task
 {
  public:
-  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool ctpInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mCCDBRequest(req), mTrackInput(trackInput), mCTPInput(ctpInput), mWriteOutput(writeOutput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData), mDataRequest(dataRequest) {}
+  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool ctpInput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mCCDBRequest(req), mTrackInput(trackInput), mCTPInput(ctpInput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData), mDataRequest(dataRequest) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -53,26 +53,33 @@ class ResidualAggregatorDevice : public o2::framework::Task
     auto updateInterval = ic.options().get<uint32_t>("updateInterval");
     auto delay = ic.options().get<uint32_t>("max-delay");
 
-    std::string outputDirConf = ic.options().get<std::string>("output-dir");
-    std::string outputDir = o2::utils::Str::rectifyDirectory(outputDirConf);
-    std::string metaFileDir = ic.options().get<std::string>("meta-output-dir");
+    // should we write meta files for epn2eos?
     bool storeMetaFile = false;
+    std::string metaFileDir = ic.options().get<std::string>("meta-output-dir");
     if (metaFileDir != "/dev/null") {
       metaFileDir = o2::utils::Str::rectifyDirectory(metaFileDir);
       storeMetaFile = true;
     }
-    if (!mWriteOutput && (outputDirConf != "none" || storeMetaFile)) {
-      LOGF(info, "File output is disabled, but output directory %s was specified and meta file storage is set to %i. No output file will be written", outputDirConf, storeMetaFile);
+
+    // where should the ROOT output be written? in case its set to /dev/null
+    // we don't write anything, also no meta files of course
+    bool writeOutput = true;
+    std::string outputDir = ic.options().get<std::string>("output-dir");
+    if (outputDir != "/dev/null") {
+      outputDir = o2::utils::Str::rectifyDirectory(outputDir);
+    } else {
+      writeOutput = false;
       storeMetaFile = false;
     }
+
     mAggregator = std::make_unique<o2::tpc::ResidualAggregator>(minEnt);
-    mAggregator->setOutputDir(outputDir);
+    if (writeOutput) {
+      mAggregator->setOutputDir(outputDir);
+    }
     if (storeMetaFile) {
       mAggregator->setMetaFileOutputDir(metaFileDir);
     }
-    if (!mWriteOutput) {
-      mAggregator->disableFileWriting();
-    }
+
     int autosave = ic.options().get<int>("autosave-interval");
     mAggregator->setAutosaveInterval(autosave);
     // TODO mAggregator should get an option to set the binning externally (expose TrackResiduals::setBinning methods to user? as command line option?)
@@ -149,7 +156,6 @@ class ResidualAggregatorDevice : public o2::framework::Task
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< optional CTP input
   bool mTrackInput{false};             ///< flag whether to expect track data as input
   bool mCTPInput{false};               ///< flag whether to expect luminosity input from CTP
-  bool mWriteOutput{true};             ///< if false, no output file will be written
   bool mWriteBinnedResiduals{false};   ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
@@ -160,7 +166,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
+DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
 {
   std::shared_ptr<o2::globaltracking::DataRequest> dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   if (ctpInput) {
@@ -182,14 +188,14 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
     "residual-aggregator",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, ctpInput, writeOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, dataRequest)},
+    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, dataRequest)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 6'000u, {"number of TFs per calibration time slot (put 0 for infinite slot length)"}},
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},
       {"max-delay", VariantType::UInt32, 1u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
       {"compression", VariantType::Int, 101, {"ROOT compression setting for output file (see TFile documentation for meaning of this number)"}},
-      {"output-dir", VariantType::String, "none", {"Output directory for residuals, must exist"}},
+      {"output-dir", VariantType::String, "none", {"Output directory for residuals. Defaults to current working directory. Output is disabled in case set to /dev/null"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}},
       {"autosave-interval", VariantType::Int, 0, {"Write output to file for every n-th TF. 0 means this feature is OFF"}}}};
 }
