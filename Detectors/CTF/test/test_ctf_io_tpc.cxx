@@ -131,5 +131,15 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   //
   // compare with original flat clusters
   BOOST_CHECK(vecIn.size() == bVec.size());
-  BOOST_CHECK(memcmp(vecIn.data(), bVec.data(), bVec.size()) == 0);
+  const CompressedClustersCounters* countOrig = reinterpret_cast<const CompressedClustersCounters*>(bVec.data());
+  const CompressedClustersCounters* countDeco = reinterpret_cast<const CompressedClustersCounters*>(vecIn.data());
+  BOOST_CHECK(countOrig->nTracks == countDeco->nTracks);
+  BOOST_CHECK(countOrig->nAttachedClusters == countDeco->nAttachedClusters);
+  BOOST_CHECK(countOrig->nUnattachedClusters == countDeco->nUnattachedClusters);
+  BOOST_CHECK(countOrig->nAttachedClustersReduced == countDeco->nAttachedClustersReduced);
+  BOOST_CHECK(countOrig->nSliceRows == countDeco->nSliceRows);
+  BOOST_CHECK(countOrig->nComppressionModes == countDeco->nComppressionModes);
+  BOOST_CHECK(countOrig->solenoidBz == countDeco->solenoidBz);
+  BOOST_CHECK(countOrig->maxTimeBin == countDeco->maxTimeBin);
+  BOOST_CHECK(memcmp(vecIn.data() + sizeof(o2::tpc::CompressedClustersCounters), bVec.data() + sizeof(o2::tpc::CompressedClustersCounters), bVec.size() - sizeof(o2::tpc::CompressedClustersCounters)) == 0);
 }
