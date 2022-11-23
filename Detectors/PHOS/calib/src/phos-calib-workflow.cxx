@@ -66,15 +66,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
 
+  bool writeRootOutput = !configcontext.options().get<bool>("disable-root-output");
   std::string outputDir = configcontext.options().get<std::string>("phoscalib-output-dir");
   if (outputDir.compare("/dev/null")) {
     outputDir = o2::utils::Str::rectifyDirectory(outputDir);
+  } else {
+    writeRootOutput = false;
   }
   std::string metaFileDir = configcontext.options().get<std::string>("phoscalib-meta-output-dir");
   if (metaFileDir.compare("/dev/null")) {
     metaFileDir = o2::utils::Str::rectifyDirectory(metaFileDir);
   }
-  bool writeRootOutput = !configcontext.options().get<bool>("disable-root-output");
 
   if (doPedestals && doHgLgRatio) {
     LOG(fatal) << "Can not run pedestal and HG/LG calibration simulteneously";

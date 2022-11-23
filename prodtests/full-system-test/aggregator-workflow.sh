@@ -242,7 +242,7 @@ if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
 
   # PHS
   if [[ $CALIB_PHS_ENERGYCALIB == 1 ]]; then
-    add_W o2-phos-calib-workflow "--energy"
+    add_W o2-phos-calib-workflow "--energy --phoscalib-output-dir $CALIB_DIR --phoscalib-meta-output-dir $EPN2EOS_METAFILES_DIR"
   fi
   if [[ $CALIB_PHS_BADMAPCALIB == 1 ]]; then
     add_W o2-phos-calib-workflow "--badmap --mode 0"
@@ -251,7 +251,7 @@ if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-phos-calib-workflow "--turnon"
   fi
   if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
-    add_W o2-phos-calib-workflow "--runbyrun"
+    add_W o2-phos-calib-workflow "--runbyrun --phoscalib-output-dir $CALIB_DIR --phoscalib-meta-output-dir $EPN2EOS_METAFILES_DIR"
   fi
   if [[ $CALIB_PHS_L1PHASE == 1 ]]; then
     add_W o2-phos-calib-workflow "--l1phase"
