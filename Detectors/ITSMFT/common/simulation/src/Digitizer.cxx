@@ -52,7 +52,7 @@ void Digitizer::init()
   /*for (int i = 0; i < 2; i++) {
     mAlpSimResp[i].initData(i);
   }*/
-  
+
   // importing the charge collection tables
   // (initialized while building O2)
   auto file = TFile::Open(mResponseFile.data());
@@ -63,7 +63,6 @@ void Digitizer::init()
   }*/
   mAlpSimResp[0] = *(o2::itsmft::AlpideSimResponse*)file->Get("response0");
   mAlpSimResp[1] = *(o2::itsmft::AlpideSimResponse*)file->Get("response1");
-
 
   // importing the parameters from DPLDigitizerParam.h
   auto& doptMFT = DPLDigitizerParam<o2::detectors::DetID::MFT>::Instance();

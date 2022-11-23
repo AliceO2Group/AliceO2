@@ -14,5 +14,3 @@ add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 add_subdirectory(data)
-
-#o2_data_file(COPY data DESTINATION Detectors/ITSMFT)
