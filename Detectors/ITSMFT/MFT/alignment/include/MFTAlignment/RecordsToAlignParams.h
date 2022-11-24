@@ -81,7 +81,7 @@ class RecordsToAlignParams : public Aligner
   std::vector<double> mPedeOutParamsErrors;            ///< Vector to store the outputs (errors on the alignement corrections) of the MillePede simulatenous fit
   std::vector<double> mPedeOutParamsPulls;             ///< Vector to store the outputs (pulls on the alignement corrections) of the MillePede simulatenous fit
 
-  ClassDef(RecordsToAlignParams, 0);
+  ClassDefOverride(RecordsToAlignParams, 0);
 };
 
 } // namespace mft
