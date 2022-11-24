@@ -18,6 +18,7 @@
 #include <Rtypes.h>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
+#include <Framework/Logger.h>
 
 namespace o2
 {
@@ -29,12 +30,14 @@ class SegmentationSuperAlpide
 {
  public:
   SegmentationSuperAlpide(int layer = 0) : NPixels{NRows * NCols},
-                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::TwoPI) / double(PitchRow) + 1)},
+                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::PI) / double(PitchRow) + 1)},
                                            ActiveMatrixSizeRows{PitchRow * NRows},
                                            SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
   {
+    LOGP(info, "rows: {} cols: {} npixels: {}", NRows, NCols, NPixels);
+    LOGP(info, "SegmentationSuperAlpide: layer {} ActiveMatrixSizeRows: {} ActiveMatrixSizeCols: {}", layer, ActiveMatrixSizeCols, ActiveMatrixSizeRows);
   }
-  static constexpr std::array<float, 5> Radii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
+  static constexpr std::array<float, 10> Radii = {1.8f, 1.8f, 2.4f, 2.4f, 3.0f, 3.0f, 7.0f, 7.0f, 10.f, 10.f};
   static constexpr float Length = 27.15f;
   static constexpr float PitchCol = 20.e-4;
   static constexpr float PitchRow = 20.e-4;

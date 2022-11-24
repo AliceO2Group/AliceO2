@@ -229,18 +229,21 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   int nSteps = mParams.getNSimSteps();
   short detID{hit.GetDetectorID()};
   const auto& matrix = mGeometry->getMatrixL2G(detID); // <<<< ?????
-  bool innerBarrel{detID < mSuperSegmentations.size()}; 
+  bool innerBarrel{detID < mSuperSegmentations.size()};
   float gap = 0.1; // FIXME: get this properly!
   auto startPos = hit.GetPosStart();
-  float recenteredStartY = (startPos.Y() > 0) ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float startPhi{std::atan2(-recenteredStartY, -startPos.X())};
+  // LOGP(info,  "StartPos: {} {} {}", startPos.X(), startPos.Y(), startPos.Z());
+  float reShiftedStartY = (startPos.Y() > 0) ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float startPhi{std::atan2(reShiftedStartY, startPos.X())};
+  LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
   auto endPos = hit.GetPos();
-  float recenteredEndY = (endPos.Y() > 0) ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float endPhi{std::atan2(-recenteredEndY, -endPos.X())};
+  float reShiftedEndY = (endPos.Y() > 0) ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float endPhi{std::atan2(reShiftedEndY, endPos.X())};
+  LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   if (innerBarrel) {
-    xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
-    xyzLocE = {SegmentationSuperAlpide::Radii[detID] * endPhi, 0.f, endPos.Z()};
+    xyzLocS = {SegmentationSuperAlpide::Radii[detID] * (startPhi), 0.f, startPos.Z()};
+    xyzLocE = {SegmentationSuperAlpide::Radii[detID] * (endPhi), 0.f, endPos.Z()};
   } else {
     xyzLocS = matrix ^ (hit.GetPosStart());
     xyzLocE = matrix ^ (hit.GetPos());
@@ -251,7 +254,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   step *= nStepsInv; // position increment at each step
   // the electrons will be injected in the middle of each step
   math_utils::Vector3D<float> stepH(step * 0.5);
-  xyzLocS += stepH; // Adjust start position to the middle of the first step 
+  xyzLocS += stepH; // Adjust start position to the middle of the first step
   xyzLocE -= stepH; // Adjust end position to the middle of the last step
 
   int rowS = -1, colS = -1, rowE = -1, colE = -1, nSkip = 0;
@@ -270,6 +273,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
       }
       xyzLocE -= step;
     }
+    LOGP(info, "x: {}, z: {}, col: {}, row: {}, detID: {}", xyzLocS.X(), xyzLocS.Z(), colS, rowS, detID);
   } else {
     // get entrance pixel row and col
     while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
