@@ -28,19 +28,16 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
-                                           NPixels{NRows * NCols},
+  SegmentationSuperAlpide(int layer = 0) : NPixels{NRows * NCols},
                                            NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::TwoPI) / double(PitchRow) + 1)},
                                            ActiveMatrixSizeRows{PitchRow * NRows},
                                            SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
   {
   }
-  int mLayer;
-  static constexpr int NLayers = 4;
+  static constexpr std::array<float, 5> Radii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
   static constexpr float Length = 27.15f;
-  static constexpr float Radii[NLayers] = {1.8f, 2.4f, 3.0f, 7.0f};
-  static constexpr float PitchCol = 29.24e-4;
-  static constexpr float PitchRow = 26.88e-4;
+  static constexpr float PitchCol = 20.e-4;
+  static constexpr float PitchRow = 20.e-4;
   static constexpr int NCols = Length / PitchCol;
   int NRows;
   int NPixels;

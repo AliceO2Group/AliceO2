@@ -19,7 +19,7 @@ o2_add_executable(digitizer-workflow
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
                           src/ITSMFTDigitizerSpec.cxx
-                          # src/ITS3DigitizerSpec.cxx
+                          src/ITS3DigitizerSpec.cxx
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
                           src/PHOSDigitizerSpec.cxx
@@ -64,8 +64,8 @@ o2_add_executable(digitizer-workflow
                                         O2::ZDCSimulation
                                         O2::ZDCWorkflow
                                         O2::DetectorsRaw
-                                        # O2::ITS3Simulation
-                                        # O2::ITS3Workflow
+                                        O2::ITS3Simulation
+                                        O2::ITS3Workflow
                                         )
 else()
 o2_add_executable(digitizer-workflow

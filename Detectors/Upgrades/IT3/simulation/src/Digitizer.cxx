@@ -37,11 +37,14 @@ using namespace o2::its3;
 
 void Digitizer::init()
 {
-  for (int iLayer{0}; iLayer < SegmentationSuperAlpide::NLayers; ++iLayer) {
-    mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
+  for (int iLayer{0}; iLayer < mGeometry->getNumberOfLayers() - 4; ++iLayer) {
+    for (int iChip{0}; iChip < mGeometry->getNumberOfChipsPerLayer(iLayer); ++iChip) {
+      LOGP(info, "layer: {} chip: {}", iLayer, iChip);
+      mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
+    }
   }
 
-  const Int_t numOfChips = mGeometry->getNumberOfChips() + SegmentationSuperAlpide::NLayers;
+  const Int_t numOfChips = mGeometry->getNumberOfChips();
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
@@ -143,7 +146,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     auto& extra = *(mExtraBuff.front().get());
     for (int iChip{0}; iChip < mChips.size(); ++iChip) {
       auto& chip = mChips[iChip];
-      if (iChip < SegmentationSuperAlpide::NLayers) {
+      if (iChip < mSuperSegmentations.size()) { // Check if this is a chip of ITS3
         chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mSuperSegmentations[iChip].NRows, mSuperSegmentations[iChip].NCols);
       } else {
         chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
@@ -225,12 +228,15 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
   short detID{hit.GetDetectorID()};
-  const auto& matrix = mGeometry->getMatrixL2G(detID);
-  bool innerBarrel{detID < SegmentationSuperAlpide::NLayers};
+  const auto& matrix = mGeometry->getMatrixL2G(detID); // <<<< ?????
+  bool innerBarrel{detID < mSuperSegmentations.size()}; 
+  float gap = 0.1; // FIXME: get this properly!
   auto startPos = hit.GetPosStart();
-  float startPhi{std::atan2(-startPos.Y(), -startPos.X())};
+  float recenteredStartY = (startPos.Y() > 0) ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float startPhi{std::atan2(-recenteredStartY, -startPos.X())};
   auto endPos = hit.GetPos();
-  float endPhi{std::atan2(-endPos.Y(), -endPos.X())};
+  float recenteredEndY = (endPos.Y() > 0) ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float endPhi{std::atan2(-recenteredEndY, -endPos.X())};
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   if (innerBarrel) {
     xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
@@ -243,10 +249,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   math_utils::Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
   step *= nStepsInv; // position increment at each step
-  // the electrons will injected in the middle of each step
+  // the electrons will be injected in the middle of each step
   math_utils::Vector3D<float> stepH(step * 0.5);
-  xyzLocS += stepH;
-  xyzLocE -= stepH;
+  xyzLocS += stepH; // Adjust start position to the middle of the first step 
+  xyzLocE -= stepH; // Adjust end position to the middle of the last step
 
   int rowS = -1, colS = -1, rowE = -1, colE = -1, nSkip = 0;
   if (innerBarrel) {

@@ -21,7 +21,6 @@ using namespace o2::its3;
 
 void SegmentationSuperAlpide::print()
 {
-  printf("ITS3 segmentation for layer: %d \n", mLayer);
   printf("Pixel size: %.2f (along %d rows) %.2f (along %d columns) microns\n", PitchRow * 1e4, NRows, PitchCol * 1e4, NCols);
   printf("Passive edges: bottom: %.2f, top: %.2f, left/right: %.2f microns\n",
          PassiveEdgeReadOut * 1e4, PassiveEdgeTop * 1e4, PassiveEdgeSide * 1e4);

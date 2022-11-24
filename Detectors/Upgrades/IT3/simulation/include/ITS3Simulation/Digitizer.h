@@ -25,7 +25,7 @@
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "ITSMFTSimulation/DigiParams.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITS3Base/GeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -79,7 +79,7 @@ class Digitizer : public TObject
   const o2::itsmft::DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common itsmft::GeometryTGeo to access matrices and segmentation
-  void setGeometry(const o2::its3::GeometryTGeo* gm) { mGeometry = gm; }
+  void setGeometry(const o2::its::GeometryTGeo* gm) { mGeometry = gm; }
 
   uint32_t getEventROFrameMin() const { return mEventROFrameMin; }
   uint32_t getEventROFrameMax() const { return mEventROFrameMax; }
@@ -122,7 +122,7 @@ class Digitizer : public TObject
 
   o2::itsmft::AlpideSimResponse* mAlpSimResp = nullptr; // simulated response
 
-  const o2::its3::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+  const o2::its::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
   std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
