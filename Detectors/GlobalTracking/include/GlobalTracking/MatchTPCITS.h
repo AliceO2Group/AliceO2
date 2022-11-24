@@ -336,6 +336,10 @@ class MatchTPCITS
   ///< set ITS ROFrame duration in BC (continuous mode only)
   void setITSROFrameLengthInBC(int nbc);
 
+  void setITSTimeBiasInBC(int n);
+  int getITSTimeBiasInBC() const { return mITSTimeBiasInBC; }
+  float getITSTimeBiasMUS() const { return mITSTimeBiasMUS; }
+
   // ==================== >> DPL-driven input >> =======================
   void setITSDictionary(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
 
@@ -458,7 +462,10 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of continuous ITS readout
   int time2ITSROFrameCont(float t) const
   {
-    int rof = t > 0 ? t * mITSROFrameLengthMUSInv : 0;
+    int rof = (t - mITSTimeBiasMUS) * mITSROFrameLengthMUSInv;
+    if (rof < 0) {
+      rof = 0;
+    }
     // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
     return rof < int(mITSTrackROFContMapping.size()) ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
   }
@@ -466,6 +473,7 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of triggered ITS readout
   int time2ITSROFrameTrig(float t, int start) const
   {
+    t -= mITSTimeBiasMUS;
     while (start < mITSROFTimes.size()) {
       if (mITSROFTimes[start].getMax() > t) {
         return start;
@@ -541,6 +549,8 @@ class MatchTPCITS
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSTimeResMUS = -1.;       ///< nominal ITS time resolution derived from ROF
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
+  int mITSTimeBiasInBC = 0;            ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
+  float mITSTimeBiasMUS = 0.;          ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
   float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.;       ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds

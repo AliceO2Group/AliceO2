@@ -163,7 +163,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
     }
-
+    mMatching.setITSTimeBiasInBC(alpParams.roFrameBiasInBC);
     mMatching.setSkipTPCOnly(mSkipTPCOnly);
     mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
     mMatching.setMCTruthOn(mUseMC);
