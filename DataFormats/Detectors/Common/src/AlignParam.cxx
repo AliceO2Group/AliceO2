@@ -48,7 +48,7 @@ TGeoHMatrix AlignParam::createMatrix() const
   /// create a copy of alignment global delta matrix
   TGeoHMatrix mat;
   setMatrixTranslation(mX, mY, mZ, mat);
-  setMatrixRotation(mPhi, mTheta, mPsi, mat);
+  setMatrixRotation(mPsi, mTheta, mPhi, mat);
   return mat;
 }
 
