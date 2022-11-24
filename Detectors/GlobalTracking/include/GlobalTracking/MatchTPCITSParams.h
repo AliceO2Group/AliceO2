@@ -58,6 +58,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float maxVDriftUncertainty = 0.01; ///< max assumed VDrift relative uncertainty, used only in VDrift calibration mode
 
+  float globalTimeBiasMUS = 0.; ///< global time shift to apply to assigned time, brute force way to eliminate bias wrt FIT
+
   //___________________ AfterBurner params
   int requireToReachLayerAB = 5;   ///< AB tracks should reach at least this layer from above
   int lowestLayerAB = 3;           ///< lowest layer to reach in AfterBurner
