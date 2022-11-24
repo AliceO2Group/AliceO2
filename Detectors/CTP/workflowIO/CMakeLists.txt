@@ -16,3 +16,8 @@ o2_add_library(CTPWorkflowIO
                                      O2::DPLUtils
                                      O2::DetectorsRaw
                                      O2::Algorithm)
+
+o2_add_executable(digit-writer
+                  COMPONENT_NAME ctp
+                  SOURCES src/digits-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CTPWorkflowIO)
