@@ -15,6 +15,7 @@
 
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include <unordered_map>
 #include <numeric>
 
@@ -134,9 +135,10 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
 void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont)
 {
   // Scan all inputs and create tracks
-
   mTBrackets.clear();
-  auto creator = [this, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
+  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC; // ITS time is supplied in \mus as beginning of ROF
+  float mftBias = 0.5 * mMFTROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC; // MFT time is supplied in \mus as beginning of ROF
+  auto creator = [this, itsBias, mftBias, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
     if constexpr (!(isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) { // Skip test for forward tracks; do not contribute to vertex
       if (vcont.find(_origID) != vcont.end()) {                                                                         // track is contributor to vertex, already accounted
         return true;
@@ -148,10 +150,10 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       t0 *= this->mTPCBin2MUS;
       terr *= this->mTPCBin2MUS;
     } else if constexpr (isITSTrack<decltype(_tr)>()) {
-      t0 += 0.5 * this->mITSROFrameLengthMUS;           // ITS time is supplied in \mus as beginning of ROF
+      t0 += itsBias;
       terr *= this->mITSROFrameLengthMUS;               // error is supplied as a half-ROF duration, convert to \mus
     } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
-      t0 += 0.5 * this->mMFTROFrameLengthMUS;
+      t0 += mftBias;
       terr *= this->mMFTROFrameLengthMUS;
     } else if constexpr (!(isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) {
       // for all other tracks the time is in \mus with gaussian error

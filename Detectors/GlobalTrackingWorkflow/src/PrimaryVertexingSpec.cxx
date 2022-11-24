@@ -65,6 +65,7 @@ class PrimaryVertexingSpec : public Task
   bool mUseMC{false};          ///< MC flag
   bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
   float mITSROFrameLengthMUS = 0.;
+  float mITSROFBiasMUS = 0.;
   TStopwatch mTimer;
 };
 
@@ -100,7 +101,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     std::vector<o2d::GlobalTrackID> gids;
     auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
     auto trackMaxX = PVertexerParams::Instance().trackMaxX;
-    auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
+    auto halfROFITS = 0.5 * mITSROFrameLengthMUS + mITSROFBiasMUS;
     auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
     auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, trackMaxX, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
@@ -195,6 +196,7 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
     }
+    mITSROFBiasMUS = alpParams.roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
     if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
       mVertexer.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
     }
