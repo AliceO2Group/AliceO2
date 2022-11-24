@@ -459,6 +459,10 @@ if [[ ! -z "$EXTRA_WORKFLOW" ]]; then
   WORKFLOW+="$EXTRA_WORKFLOW"
 fi
 
+if [[ ! -z "$ADD_EXTRA_WORKFLOW" ]]; then
+  add_W $ADD_EXTRA_WORKFLOW
+fi
+
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
