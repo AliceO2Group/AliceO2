@@ -54,11 +54,22 @@ void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMe
 {
   if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     for (size_t i = 0; i < index.indexes.size(); ++i) {
-      auto& metric = metrics.metrics[index.indexes[i]];
-      ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+      if (metrics.metrics.size() <= index.indexes.at(i)) {
+        continue;
+      }
+      auto& metric = metrics.metrics.at(index.indexes.at(i));
+      if (metrics.stringMetrics.size() <= metric.storeIdx) {
+        continue;
+      }
+      if (metrics.stringMetrics.at(metric.storeIdx).empty()) {
+        continue;
+      }
+      char const* name = metrics.stringMetrics.at(metric.storeIdx).at(0).data;
+      assert(name);
+      ImGui::Text("%zu: %s", i, name);
       if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+        ImGui::Text("%zu: %s", i, name);
         ImGui::EndTooltip();
       }
     }
