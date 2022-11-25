@@ -264,14 +264,14 @@ if [[ $CTFINPUT == 1 ]]; then
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   CTF_EMC_SUBSPEC=
   workflow_has_parameter AOD && has_detector EMC && CTF_EMC_SUBSPEC="--emcal-decoded-subspec 1"
-  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS $CTF_EMC_SUBSPEC --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
+  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
 elif [[ $RAWTFINPUT == 1 ]]; then
   TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
   [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
   [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
   if [[ -z $TFName && $WORKFLOWMODE != "print" ]]; then echo "No raw file given!"; exit 1; fi
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
-  add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
+  add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT"
 elif [[ $EXTINPUT == 1 ]]; then
   PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=$EPNSYNCMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
@@ -319,7 +319,7 @@ elif [[ $DIGITINPUT == 1 ]]; then
 else
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
   [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
-  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
+  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "HBFUtils.nHBFPerTF=$NHBPERTF"
 fi
 
 # if root output is requested, record info of processed TFs DataHeader for replay of root files
