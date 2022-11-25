@@ -20,7 +20,7 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -39,8 +39,8 @@ namespace its3
 
 void ClustererDPL::init(InitContext& ic)
 {
-  mClusterer = std::make_unique<o2::its3::Clusterer>();
-  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + SegmentationSuperAlpide::NLayers);
+  mClusterer = std::make_unique<o2::itsmft::Clusterer>();
+  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); /// Fix MEEEE
 
   auto filenameGRP = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
@@ -102,7 +102,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   reader.init();
   auto orig = o2::header::gDataOriginIT3;
-  std::vector<o2::its3::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
 

@@ -13,7 +13,7 @@
 
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "ITS3Workflow/ClustererSpec.h"
-#include "ITS3Workflow/ClusterWriterSpec.h"
+// #include "ITS3Workflow/ClusterWriterSpec.h"
 // #include "ITSWorkflow/TrackerSpec.h"
 // #include "ITSWorkflow/TrackWriterSpec.h"
 // #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
@@ -27,7 +27,7 @@ namespace its3
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
+framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode,
                                     bool upstreamDigits, bool upstreamClusters, bool disableRootOutput,
                                     bool)
 {
@@ -40,9 +40,10 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
   if (!upstreamClusters) {
     specs.emplace_back(o2::its3::getClustererSpec(useMC));
   }
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
-  }
+
+  // if (!disableRootOutput) {
+  //   // specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
+  // }
   // specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
   // if (!disableRootOutput) {
   //   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

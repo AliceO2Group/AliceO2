@@ -107,6 +107,7 @@ class Digitizer : public TObject
   }
 
   std::vector<SegmentationSuperAlpide> mSuperSegmentations;
+  std::vector<int> mLayerID;
   static constexpr float sec2ns = 1e9;
 
   o2::itsmft::DigiParams mParams;          ///< digitization parameters

@@ -37,7 +37,7 @@ class SegmentationSuperAlpide
     LOGP(info, "rows: {} cols: {} npixels: {}", NRows, NCols, NPixels);
     LOGP(info, "SegmentationSuperAlpide: layer {} ActiveMatrixSizeRows: {} ActiveMatrixSizeCols: {}", layer, ActiveMatrixSizeCols, ActiveMatrixSizeRows);
   }
-  static constexpr std::array<float, 10> Radii = {1.8f, 1.8f, 2.4f, 2.4f, 3.0f, 3.0f, 7.0f, 7.0f, 10.f, 10.f};
+  static constexpr std::array<float, 10> Radii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
   static constexpr float Length = 27.15f;
   static constexpr float PitchCol = 20.e-4;
   static constexpr float PitchRow = 20.e-4;

@@ -12,9 +12,9 @@
 o2_add_library(ITS3Workflow
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
-                #        src/RecoWorkflow.cxx
+                       src/RecoWorkflow.cxx
                 #        src/ClusterWriterWorkflow.cxx
-                #        src/ClustererSpec.cxx
+                       src/ClustererSpec.cxx
                 #        src/ClusterWriterSpec.cxx
                       #  src/TrackerSpec.cxx
                       #  src/CookedTrackerSpec.cxx
@@ -23,14 +23,14 @@ o2_add_library(ITS3Workflow
                       #  src/VertexReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
-                                     O2::DataFormatsITS
-                                     O2::DataFormatsITS3
+                                     O2::DataFormatsITSMFT
+                                   #   O2::DataFormatsITS3
                                      O2::SimulationDataFormat
                                      O2::ITS3Simulation
                                     #  O2::ITStracking
-                                    #  O2::ITSReconstruction
+                                     O2::ITSMFTReconstruction
                                     #  O2::ITS3Reconstruction
-                                    #  O2::ITSMFTWorkflow
+                                     O2::ITSWorkflow
                                     #  O2::GPUTracking
 )
 
@@ -44,10 +44,10 @@ o2_add_library(ITS3Workflow
 #                   COMPONENT_NAME its3
 #                   PUBLIC_LINK_LIBRARIES O2::ITS3Workflow)
 
-# o2_add_executable(reco-workflow
-#                   SOURCES src/its3-reco-workflow.cxx
-#                   COMPONENT_NAME its3
-#                   PUBLIC_LINK_LIBRARIES O2::ITS3Workflow)
+o2_add_executable(reco-workflow
+                  SOURCES src/its3-reco-workflow.cxx
+                  COMPONENT_NAME its3
+                  PUBLIC_LINK_LIBRARIES O2::ITS3Workflow)
 
 # o2_add_executable(cluster-writer-workflow
 #                   SOURCES src/its-cluster-writer-workflow.cxx

@@ -9,16 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS_RECOWORKFLOW_H
-#define O2_ITS_RECOWORKFLOW_H
+#ifndef O2_ITS3_RECOWORKFLOW_H
+#define O2_ITS3_RECOWORKFLOW_H
 
 /// @file   RecoWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+// #include "GPUO2Interface.h"
+// #include "GPUReconstruction.h"
+// #include "GPUChainITS.h"
 
 namespace o2
 {
@@ -28,8 +28,12 @@ namespace its3
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU,
-                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool eencode = false);
+framework::WorkflowSpec getWorkflow(bool useMC,
+                                    const std::string& trmode,
+                                    bool upstreamDigits = false,
+                                    bool upstreamClusters = false,
+                                    bool disableRootOutput = false,
+                                    bool eencode = false);
 }
 
 } // namespace its3

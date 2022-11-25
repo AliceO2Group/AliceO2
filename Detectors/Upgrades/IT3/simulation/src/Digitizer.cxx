@@ -18,6 +18,7 @@
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CommonConstants/MathConstants.h"
 
 #include <TRandom.h>
 #include <climits>
@@ -37,10 +38,13 @@ using namespace o2::its3;
 
 void Digitizer::init()
 {
+  mLayerID.clear();
+  mSuperSegmentations.clear();
   for (int iLayer{0}; iLayer < mGeometry->getNumberOfLayers() - 4; ++iLayer) {
     for (int iChip{0}; iChip < mGeometry->getNumberOfChipsPerLayer(iLayer); ++iChip) {
       LOGP(info, "layer: {} chip: {}", iLayer, iChip);
       mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
+      mLayerID.push_back(iLayer);
     }
   }
 
@@ -233,17 +237,22 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   float gap = 0.1; // FIXME: get this properly!
   auto startPos = hit.GetPosStart();
   // LOGP(info,  "StartPos: {} {} {}", startPos.X(), startPos.Y(), startPos.Z());
-  float reShiftedStartY = (startPos.Y() > 0) ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float startPhi{std::atan2(reShiftedStartY, startPos.X())};
-  LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
+  bool isTop = startPos.Y() > 0;
+  float reShiftedStartY = isTop ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float startPhi{std::atan2(-reShiftedStartY, -startPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
+  if (innerBarrel) {
+    // LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
+  }
   auto endPos = hit.GetPos();
-  float reShiftedEndY = (endPos.Y() > 0) ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float endPhi{std::atan2(reShiftedEndY, endPos.X())};
-  LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
+  float reShiftedEndY = isTop ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+  float endPhi{std::atan2(-reShiftedEndY, -endPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
+  if (innerBarrel) {
+    // LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
+  }
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   if (innerBarrel) {
-    xyzLocS = {SegmentationSuperAlpide::Radii[detID] * (startPhi), 0.f, startPos.Z()};
-    xyzLocE = {SegmentationSuperAlpide::Radii[detID] * (endPhi), 0.f, endPos.Z()};
+    xyzLocS = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (startPhi), 0.f, startPos.Z()};
+    xyzLocE = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (endPhi), 0.f, endPos.Z()};
   } else {
     xyzLocS = matrix ^ (hit.GetPosStart());
     xyzLocE = matrix ^ (hit.GetPos());
@@ -262,6 +271,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     // get entrance pixel row and col
     while (!mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
       if (++nSkip >= nSteps) {
+        LOGP(info, "Start: detId {}", detID);
         return; // did not enter to sensitive matrix
       }
       xyzLocS += step;
@@ -269,11 +279,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     // get exit pixel row and col
     while (!mSuperSegmentations[detID].localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
       if (++nSkip >= nSteps) {
+        LOGP(info, "End: detId {}", detID);
         return; // did not enter to sensitive matrix
       }
       xyzLocE -= step;
     }
-    LOGP(info, "x: {}, z: {}, col: {}, row: {}, detID: {}", xyzLocS.X(), xyzLocS.Z(), colS, rowS, detID);
+    // LOGP(info, "x: {}, z: {}, col: {}, row: {}, detID: {}", xyzLocS.X(), xyzLocS.Z(), colS, rowS, detID);
   } else {
     // get entrance pixel row and col
     while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
