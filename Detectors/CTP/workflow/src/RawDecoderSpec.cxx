@@ -69,7 +69,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(ctx.inputs(), filter);
   std::vector<LumiInfo> lumiPointsHBF1;
-  uint64_t countsMB = 0;
+  uint64_t countsMBT = 0;
+  uint64_t countsMBV = 0;
   uint32_t payloadCTP;
   uint32_t orbit0 = 0;
   bool first = true;
@@ -110,8 +111,9 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
-        lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, countsMB});
-        countsMB = 0;
+        lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, 0, countsMBT, countsMBV});
+        countsMBT = 0;
+        countsMBV = 0;
       }
       remnant = 0;
       size_gbt = 0;
@@ -138,7 +140,11 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
             gbtword80_t pld = (diglet >> 12) & mTVXMask;
             if (pld.count() != 0) {
-              countsMB++;
+              countsMBT++;
+            }
+            pld = (diglet >> 12) & mVBAMask;
+            if (pld.count() != 0) {
+              countsMBV++;
             }
           }
           if (!mDoDigits) {
@@ -159,7 +165,11 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
-          countsMB++;
+          countsMBT++;
+        }
+        pld = (remnant >> 12) & mVBAMask;
+        if (pld.count() != 0) {
+          countsMBV++;
         }
       }
       if (!mDoDigits) {
@@ -177,27 +187,42 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   }
   if (mDoLumi) {
-    lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, countsMB});
-    uint32_t tfCounts = 0;
+    lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
+    uint32_t tfCountsT = 0;
+    uint32_t tfCountsV = 0;
     for (auto const& lp : lumiPointsHBF1) {
-      tfCounts += lp.counts;
+      tfCountsT += lp.counts;
+      tfCountsV += lp.countsFV0;
     }
     // LOG(info) << "Lumi rate:" << tfCounts/(128.*88e-6);
-    mHistory.push_back(tfCounts);
-    mCounts += tfCounts;
-    if (mHistory.size() <= mNTFToIntegrate) {
-      mNHBIntegrated += lumiPointsHBF1.size();
+    // FT0
+    mHistoryT.push_back(tfCountsT);
+    mCountsT += tfCountsT;
+    if (mHistoryT.size() <= mNTFToIntegrate) {
+      mNHBIntegratedT += lumiPointsHBF1.size();
     } else {
-      mCounts -= mHistory.front();
-      mHistory.pop_front();
+      mCountsT -= mHistoryT.front();
+      mHistoryT.pop_front();
     }
-    if (mNHBIntegrated) {
+    // FV0
+    mHistoryV.push_back(tfCountsV);
+    mCountsV += tfCountsV;
+    if (mHistoryV.size() <= mNTFToIntegrate) {
+      mNHBIntegratedV += lumiPointsHBF1.size();
+    } else {
+      mCountsV -= mHistoryV.front();
+      mHistoryV.pop_front();
+    }
+    //
+    if (mNHBIntegratedT || mNHBIntegratedV) {
       mOutputLumiInfo.orbit = lumiPointsHBF1[0].orbit;
     }
-    mOutputLumiInfo.counts = mCounts;
-    mOutputLumiInfo.nHBFCounted = mNHBIntegrated;
+    mOutputLumiInfo.counts = mCountsT;
+    mOutputLumiInfo.countsFV0 = mCountsV;
+    mOutputLumiInfo.nHBFCounted = mNHBIntegratedT;
+    mOutputLumiInfo.nHBFCountedFV0 = mNHBIntegratedV;
     if (mVerbose) {
-      LOGP(info, "Orbit {}: {} counts in {} HBFs -> lumi = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCounts, mNHBIntegrated, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError());
+      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
   }
