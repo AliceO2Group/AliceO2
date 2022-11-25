@@ -14,6 +14,7 @@
 /// @author ruben.shahoyan@cern.ch
 
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
