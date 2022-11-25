@@ -483,7 +483,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
       auto &queue = services.get<AsyncQueue>();
-      DeviceSpec const& spec = services.get<DeviceSpec const>();
+      auto& spec = services.get<DeviceSpec const>();
       auto *device = services.get<RawDeviceService>().device();
       /// We use the oldest possible timeslice to debuounce, so that only the latest one
       /// at the end of one iteration is sent.
