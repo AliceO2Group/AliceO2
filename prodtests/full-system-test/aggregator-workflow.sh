@@ -42,11 +42,6 @@ if [[ $RUNTYPE != "PHYSICS" ]] && [[ $CALIB_DIR == "/data/calibration" ]]; then
   fi
 fi
 
-# FIXME: remove when O2DPG is updated, because then this is set in setenv.sh
-if [[ -z "$CALIB_DIR" ]];         then CALIB_DIR="/dev/null"; fi            # Directory where to store output from calibration workflows, /dev/null : skip their writing
-if [[ -z "$EPN2EOS_METAFILES_DIR" ]]; then EPN2EOS_METAFILES_DIR="/dev/null"; fi # Directory where to store epn2eos files metada, /dev/null : skip their writing
-
-
 
 # Adding calibrations
 EXTRA_WORKFLOW_CALIB=
