@@ -27,6 +27,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -202,7 +203,9 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
     mVertexer.init();
-    PVertexerParams::Instance().printKeyValues();
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      PVertexerParams::Instance().printKeyValues();
+    }
   }
   // we may have other params which need to be queried regularly
   pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
