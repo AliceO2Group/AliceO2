@@ -19,6 +19,7 @@
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
 #include "DPLUtils/RootTreeReader.h"
+#include "CommonUtils/StringUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -41,7 +42,7 @@ struct ClusterReader {
   void init(InitContext& ic)
   {
     auto treeName = "o2sim";
-    auto fileName = ic.options().get<std::string>("infile");
+    auto fileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("infile"));
     auto nofEntries{-1};
     auto clusterDescription = mGlobal ? header::DataDescription{"GLOBALCLUSTERS"} : header::DataDescription{"CLUSTERS"};
     if (mUseMC) {
@@ -117,7 +118,7 @@ DataProcessorSpec getClusterReaderSpec(bool useMC, const char* specName, bool gl
 
   auto options = Options{
     {"infile", VariantType::String, "mchclusters.root", {"name of the input cluster file"}},
-  };
+    {"input-dir", VariantType::String, "none", {"Input directory"}}};
 
   return DataProcessorSpec{
     specName,

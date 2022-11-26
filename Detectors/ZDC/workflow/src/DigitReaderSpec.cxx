@@ -38,7 +38,7 @@ void DigitReader::init(InitContext& ic)
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("zdc-digit-infile"));
   mFirstEntry = ic.options().get<int>("first-entry");
   mLastEntry = ic.options().get<int>("last-entry");
-  mFile = std::make_unique<TFile>(filename.c_str());
+  mFile.reset(TFile::Open(filename.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");

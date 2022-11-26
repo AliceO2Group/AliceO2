@@ -35,7 +35,7 @@ void DigitReader::init(InitContext& ic)
   LOG(debug) << "Init Digit reader!";
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("tof-digit-infile"));
-  mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
+  mFile.reset(TFile::Open(filename.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     mState = 0;
