@@ -29,8 +29,8 @@ void TRDTrackletReader::init(InitContext& ic)
 {
   // get the option from the init context
   LOG(info) << "Init TRD tracklet reader!";
-  mInFileNameTrklt = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                                   ic.options().get<std::string>("trd-tracklet-infile"));
+  mInFileNameTrklt = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("trd-tracklet-infile"));
+  mInFileNameCTrklt = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("trd-calib-tracklet-infile"));
   mInTreeNameTrklt = ic.options().get<std::string>("treename");
   connectTree();
   if (mUseTrackletTransform) {
@@ -41,7 +41,7 @@ void TRDTrackletReader::init(InitContext& ic)
 void TRDTrackletReader::connectTreeCTracklet()
 {
   mTreeCTrklt.reset(nullptr); // in case it was already loaded
-  mFileCTrklt.reset(TFile::Open("trdcalibratedtracklets.root"));
+  mFileCTrklt.reset(TFile::Open(mInFileNameCTrklt.c_str()));
   assert(mFileCTrklt && !mFileCTrklt->IsZombie());
   mTreeCTrklt.reset((TTree*)mFileCTrklt->Get("ctracklets"));
   assert(mTreeCTrklt);
@@ -113,7 +113,8 @@ DataProcessorSpec getTRDTrackletReaderSpec(bool useMC, bool useCalibratedTrackle
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackletReader>(useMC, useCalibratedTracklets)},
     Options{
-      {"trd-tracklet-infile", VariantType::String, "trdtracklets.root", {"Name of the input file"}},
+      {"trd-tracklet-infile", VariantType::String, "trdtracklets.root", {"Name of the tracklets input file"}},
+      {"trd-calib-tracklet-infile", VariantType::String, "trdcalibratedtracklets.root", {"Name of the calibrated tracklets input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
     }};

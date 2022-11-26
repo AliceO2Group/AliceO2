@@ -31,6 +31,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
+#include "CommonUtils/StringUtils.h"
 
 using namespace o2::framework;
 
@@ -47,7 +48,7 @@ class DigitsReaderDeviceDPL
 
   void init(InitContext& ic)
   {
-    auto filename = ic.options().get<std::string>("mch-digit-infile");
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("mch-digit-infile"));
     if (mUseMC) {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
@@ -101,7 +102,8 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitsReaderDeviceDPL>(useMC, descriptions)},
-    Options{{"mch-digit-infile", VariantType::String, "mchdigits.root", {"Name of the input file"}}}};
+    Options{{"mch-digit-infile", VariantType::String, "mchdigits.root", {"Name of the input file"}},
+            {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 } // namespace mch
 } // namespace o2

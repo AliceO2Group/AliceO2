@@ -28,6 +28,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessingHeader.h"
 #include <TFile.h>
+#include <TGrid.h>
 
 using namespace o2::raw;
 namespace o2f = o2::framework;
@@ -104,8 +105,11 @@ HBFUtilsInitializer::HBFOpt HBFUtilsInitializer::getOptType(const std::string& o
 //_________________________________________________________
 std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(const std::string& fname)
 {
-  TFile fl(fname.c_str());
-  auto vptr = (std::vector<o2::dataformats::TFIDInfo>*)fl.GetObjectChecked("tfidinfo", "std::vector<o2::dataformats::TFIDInfo>");
+  if (o2::utils::Str::beginsWith(fname, "alien://") && !gGrid && !TGrid::Connect("alien://")) {
+    LOGP(fatal, "could not open alien connection to read {}", fname);
+  }
+  std::unique_ptr<TFile> fl(TFile::Open(fname.c_str()));
+  auto vptr = (std::vector<o2::dataformats::TFIDInfo>*)fl->GetObjectChecked("tfidinfo", "std::vector<o2::dataformats::TFIDInfo>");
   if (!vptr) {
     throw std::runtime_error(fmt::format("Failed to read tfidinfo vector from {}", fname));
   }

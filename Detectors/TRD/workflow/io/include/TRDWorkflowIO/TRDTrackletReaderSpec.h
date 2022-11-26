@@ -48,6 +48,7 @@ class TRDTrackletReader : public o2::framework::Task
   std::unique_ptr<TFile> mFileCTrklt;
   std::unique_ptr<TTree> mTreeCTrklt;
   std::string mInFileNameTrklt{"trdtracklets.root"};
+  std::string mInFileNameCTrklt{"trdcalibratedtracklets.root"};
   std::string mInTreeNameTrklt{"o2sim"};
   std::vector<o2::trd::CalibratedTracklet> mTrackletsCal, *mTrackletsCalPtr = &mTrackletsCal;
   std::vector<char> mTrigRecMask, *mTrigRecMaskPtr = &mTrigRecMask;
