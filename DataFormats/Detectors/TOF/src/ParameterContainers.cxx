@@ -78,7 +78,7 @@ bool ParameterCollection::storeParameters(const Parameters<nPar>& p, const std::
 {
   const bool alreadyPresent = hasKey(key);
   if (alreadyPresent) {
-    LOG(debug) << "Changing parametrization corresponding to key " << key << " from size " << mParameters[key].size() < " to " << p.GetName() << " of size " << p.size();
+    LOG(debug) << "Changing parametrization corresponding to key " << key << " from size " << mParameters[key].size() << " to " << p.GetName() << " of size " << p.size();
   } else {
     mParameters[key] = std::unordered_map<std::string, paramvar_t>{};
     LOG(debug) << "Adding new parametrization corresponding to key " << key << ": " << p.GetName() << " of size " << p.size();
