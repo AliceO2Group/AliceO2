@@ -136,7 +136,7 @@ AlignableVolume::AlignableVolume(const char* symname, int iid, Controller* ctr) 
   if (!ctr) {
     LOG(fatal) << "Controller has to be provided :" << symname;
   }
-  setVolID(0); // volumes have no VID, unless it is sensor
+  setVolID(-1); // volumes have no VID, unless it is sensor
   setNDOFs(kNDOFGeom);
   setFreeDOFPattern(sDefGeomFree);
 }
@@ -753,10 +753,7 @@ void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignPar
   // add to supplied array alignment object for itself and children
   TGeoHMatrix algM;
   createAlignmenMatrix(algM);
-  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), getVolID(), algM, true);
-  const double* translation = algM.GetTranslation();
-  const double* rotation = algM.GetRotationMatrix();
-  arr.emplace_back(getSymName(), getVolID(), translation[0], translation[1], translation[2], rotation[0], rotation[1], rotation[2], true);
+  arr.emplace_back(getSymName(), getVolID(), algM, true);
   int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->createAlignmentObjects(arr);
