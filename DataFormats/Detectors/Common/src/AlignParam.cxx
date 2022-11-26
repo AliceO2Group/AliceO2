@@ -43,6 +43,20 @@ AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic 
 }
 
 //___________________________________________________
+AlignParam::AlignParam(const char* symname, int algID, TGeoMatrix& m, bool global)
+  : mSymName(symname), mAlignableID(algID)
+{
+  setTranslation(m);
+  if (!setRotation(m)) {
+    const double* rot = m.GetRotationMatrix();
+    throw std::runtime_error(fmt::format("Failed to extract roll-pitch-yall angles from [[{},{},{}], [{},{},{}], [{},{},{}] for {}", rot[0], rot[1], rot[2], rot[3], rot[4], rot[5], rot[6], rot[7], rot[8], symname));
+  }
+  if (!global && !setLocalParams(mX, mY, mZ, mPsi, mTheta, mPhi)) {
+    throw std::runtime_error(fmt::format("Alignment creation for {} failed: geomManager is absent", symname));
+  }
+}
+
+//___________________________________________________
 TGeoHMatrix AlignParam::createMatrix() const
 {
   /// create a copy of alignment global delta matrix
@@ -104,6 +118,7 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
   /// Returns false in case the rotation angles can not be
   /// extracted from the matrix
   //
+  constexpr double ZERO = 1e-14;
   if (std::abs(rot[0]) < 1e-7 || std::abs(rot[8]) < 1e-7) {
     LOG(error) << "Failed to extract roll-pitch-yall angles!";
     return false;
@@ -111,6 +126,15 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
   psi = std::atan2(-rot[5], rot[8]);
   theta = std::asin(rot[2]);
   phi = std::atan2(-rot[1], rot[0]);
+  if (std::abs(psi) < ZERO) {
+    psi = 0.;
+  }
+  if (std::abs(theta) < ZERO) {
+    theta = 0.;
+  }
+  if (std::abs(phi) < ZERO) {
+    phi = 0.;
+  }
   return true;
 }
 

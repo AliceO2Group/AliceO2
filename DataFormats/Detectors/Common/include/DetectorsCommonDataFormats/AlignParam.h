@@ -39,6 +39,8 @@ class AlignParam
              double psi, double theta, double phi, // delta rotation
              bool global = true);                  // global (preferable) or local delta definition
 
+  AlignParam(const char* symname, int algID, TGeoMatrix& m, bool global = true);
+
   /// return symbolic name of the volume
   const std::string& getSymName() const { return mSymName; }
   /// iparamater's getters
