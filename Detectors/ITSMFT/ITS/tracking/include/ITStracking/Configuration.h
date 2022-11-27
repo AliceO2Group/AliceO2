@@ -169,9 +169,8 @@ struct TimeFrameGPUConfig {
   size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
   size_t maxVerticesCapacity = 10;
   size_t nMaxROFs = 1e3;
-  size_t partitionStreamRatio = 1;
-  size_t nStreams = 3;
-  size_t maxTotalMemoryGB = 8;
+  size_t nTimeFramePartitions = 3;
+  size_t maxGPUMemoryGB = 8;
 
   VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };

@@ -23,6 +23,7 @@
 #include "ITStrackingGPU/ClusterLinesGPU.h"
 #include "Array.h"
 #include "Vector.h"
+#include <gsl/gsl>
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
@@ -48,16 +49,40 @@ template <int nLayers>
 class GpuTimeFramePartition
 {
  public:
-  GpuTimeFramePartition() = default;
+  GpuTimeFramePartition() = delete;
+  GpuTimeFramePartition(TimeFrameGPUConfig& conf) { mTFGconf = &conf; }
   ~GpuTimeFramePartition();
-  void init(const size_t, const TimeFrameGPUConfig&);
+  void allocate(const size_t);
 
   template <Task task>
-  void reset(const size_t, const TimeFrameGPUConfig&);
+  void reset(const size_t);
 
-  static size_t computeScalingSizeBytes(const int nrof, const TimeFrameGPUConfig&);
+  static size_t computeScalingSizeBytes(const int, const TimeFrameGPUConfig&);
   static size_t computeFixedSizeBytes(const TimeFrameGPUConfig&);
   static size_t computeRofPerPartition(const TimeFrameGPUConfig&);
+
+  /// Interface
+  int* getDeviceROframesClusters(const int);
+  Cluster* getDeviceClusters(const int);
+  unsigned char* getDeviceUsedClusters(const int);
+  TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
+  int* getDeviceClusterExternalIndices(const int);
+  int* getDeviceIndexTables(const int);
+  Tracklet* getDeviceTracklets(const int);
+  int* getDeviceTrackletsLookupTables(const int);
+  Cell* getDeviceCells(const int);
+  int* getDeviceCellsLookupTables(const int);
+
+  int* getDeviceCUBTmpBuffers() { return mCUBTmpBufferDevice; }
+  int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
+  int* getDeviceFoundCells() { return mFoundCellsDevice; }
+  IndexTableUtils* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
+
+  /// Vertexer only
+  Line* getDeviceLines() { return mLinesDevice; };
+  int* getDeviceNFoundLines() { return mNFoundLinesDevice; }
+  int* getDeviceNExclusiveFoundLines() { return mNExclusiveFoundLinesDevice; }
+  unsigned char* getDeviceUsedTracklets() { return mUsedTrackletsDevice; }
 
  private:
   std::array<int*, nLayers> mROframesClustersDevice; // layers x roframes
@@ -71,19 +96,21 @@ class GpuTimeFramePartition
   std::array<Cell*, nLayers - 2> mCellsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
 
-  int* mCUBTmpBuffers;
+  int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
   int* mFoundCellsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
 
   /// Vertexer only
-  Line* mLines;
-  int* mNFoundLines;
-  int* mNExclusiveFoundLines;
-  unsigned char* mUsedTracklets;
-  ///
+  Line* mLinesDevice;
+  int* mNFoundLinesDevice;
+  int* mNExclusiveFoundLinesDevice;
+  unsigned char* mUsedTrackletsDevice;
 
+  /// State and configuration
+  bool mAllocated = false;
   size_t mNRof = 2304;
+  TimeFrameGPUConfig* mTFGconf = nullptr;
 };
 
 template <int nLayers = 7>
@@ -97,6 +124,7 @@ class TimeFrameGPU : public TimeFrame
   void initDevicePartitions(const int);
 
  private:
+  bool mInitialised = false;
   std::vector<GpuTimeFramePartition<nLayers>> mMemPartitions;
   TimeFrameGPUConfig mGpuConfig;
 
@@ -131,37 +159,6 @@ class TimeFrameGPU : public TimeFrame
 // class TimeFrameGPUConfig;
 // namespace gpu
 // {
-
-// template <int nLayers>
-// struct StaticTrackingParameters {
-//   StaticTrackingParameters<nLayers>& operator=(const StaticTrackingParameters<nLayers>& t) = default;
-//   void set(const TrackingParameters& pars);
-
-//   /// General parameters
-//   int ClusterSharing = 0;
-//   int MinTrackLength = nLayers;
-//   float NSigmaCut = 5;
-//   float PVres = 1.e-2f;
-//   int DeltaROF = 0;
-//   int ZBins{256};
-//   int PhiBins{128};
-
-//   /// Cell finding cuts
-//   float CellDeltaTanLambdaSigma = 0.007f;
-// };
-
-// template <int nLayers>
-// void StaticTrackingParameters<nLayers>::set(const TrackingParameters& pars)
-// {
-//   ClusterSharing = pars.ClusterSharing;
-//   MinTrackLength = pars.MinTrackLength;
-//   NSigmaCut = pars.NSigmaCut;
-//   PVres = pars.PVres;
-//   DeltaROF = pars.DeltaROF;
-//   ZBins = pars.ZBins;
-//   PhiBins = pars.PhiBins;
-//   CellDeltaTanLambdaSigma = pars.CellDeltaTanLambdaSigma;
-// }
 
 // template <int nLayers = 7>
 // class TimeFrameGPU : public TimeFrame
