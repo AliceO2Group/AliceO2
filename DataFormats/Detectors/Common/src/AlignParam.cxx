@@ -118,7 +118,6 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
   /// Returns false in case the rotation angles can not be
   /// extracted from the matrix
   //
-  constexpr double ZERO = 1e-14;
   if (std::abs(rot[0]) < 1e-7 || std::abs(rot[8]) < 1e-7) {
     LOG(error) << "Failed to extract roll-pitch-yall angles!";
     return false;
@@ -126,15 +125,6 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
   psi = std::atan2(-rot[5], rot[8]);
   theta = std::asin(rot[2]);
   phi = std::atan2(-rot[1], rot[0]);
-  if (std::abs(psi) < ZERO) {
-    psi = 0.;
-  }
-  if (std::abs(theta) < ZERO) {
-    theta = 0.;
-  }
-  if (std::abs(phi) < ZERO) {
-    phi = 0.;
-  }
   return true;
 }
 
@@ -457,4 +447,34 @@ bool AlignParam::setLocalRotation(const TGeoMatrix& m)
   TGeoHMatrix rotm;
   rotm.SetRotation(m.GetRotationMatrix());
   return setLocalParams(rotm);
+}
+
+//_____________________________________________________________________________
+int AlignParam::rectify(double zero)
+{
+  int nonZero = 6;
+  if (std::abs(mX) < zero) {
+    mX = 0.;
+  }
+  if (std::abs(mY) < zero) {
+    mY = 0.;
+    nonZero--;
+  }
+  if (std::abs(mZ) < zero) {
+    mZ = 0.;
+    nonZero--;
+  }
+  if (std::abs(mPsi) < zero) {
+    mPsi = 0.;
+    nonZero--;
+  }
+  if (std::abs(mTheta) < zero) {
+    mTheta = 0.;
+    nonZero--;
+  }
+  if (std::abs(mPhi) < zero) {
+    mPhi = 0.;
+    nonZero--;
+  }
+  return nonZero;
 }

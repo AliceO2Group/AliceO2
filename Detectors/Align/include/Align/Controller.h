@@ -308,8 +308,7 @@ class Controller : public TObject
   std::vector<float> mGloParVal; // parameters for DOFs
   std::vector<float> mGloParErr; // errors for DOFs
   std::vector<int> mGloParLab;   // labels for DOFs
-  std::vector<int> mOrderedLbl;  //ordered labels
-  std::vector<int> mLbl2ID;      //Label order in mOrderedLbl -> parID
+  std::unordered_map<int, int> mLbl2ID; // Labels mapping to parameter ID
   //
   std::unique_ptr<AlignmentPoint> mRefPoint; //! reference point for track definition
   //

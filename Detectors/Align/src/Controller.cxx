@@ -22,7 +22,6 @@
 #include "Align/AlignableDetector.h"
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableDetectorITS.h"
-//#include "Align/AlignableDetectorTPC.h"
 #include "Align/AlignableDetectorTRD.h"
 #include "Align/AlignableDetectorTOF.h"
 #include "Align/EventVertex.h"
@@ -34,15 +33,6 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "TRDBase/TrackletTransformer.h"
-//#include "AliTrackerBase.h"
-//#include "AliESDCosmicTrack.h"
-//#include "AliESDtrack.h"
-//#include "AliESDEvent.h"
-//#include "AliESDVertex.h"
-//#include "AliRecoParam.h"
-//#include "AliCDBRunRange.h"
-//#include "AliCDBManager.h"
-//#include "AliCDBEntry.h"
 #include "MathUtils/Utils.h"
 
 #include <TMath.h>
@@ -62,6 +52,7 @@
 #include "SimulationDataFormat/MCUtils.h"
 #include "Steer/MCKinematicsReader.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <unordered_map>
 
 using namespace TMath;
 using namespace o2::align::utils;
@@ -233,7 +224,7 @@ void Controller::process()
         }
         if (npnt < algConf.minPointTotal) {
           if (algConf.verbose > 0) {
-            LOGP(info, "RSCOM: too few points {} < {}", npnt, algConf.minPointTotal);
+            LOGP(info, "too few points {} < {}", npnt, algConf.minPointTotal);
           }
           continue;
         }
@@ -256,7 +247,7 @@ void Controller::process()
         }
         if (!mAlgTrack->iniFit()) {
           if (algConf.verbose > 0) {
-            LOGP(warn, "RSCOM: iniFit failed");
+            LOGP(warn, "iniFit failed");
           }
           continue;
         }
@@ -294,14 +285,14 @@ void Controller::process()
         */
         if (!mAlgTrack->processMaterials()) {
           if (algConf.verbose > 0) {
-            LOGP(warn, "RSCOM: processMaterials failed");
+            LOGP(warn, "processMaterials failed");
           }
           continue;
         }
         mAlgTrack->defineDOFs();
         if (!mAlgTrack->calcResidDeriv()) {
           if (algConf.verbose > 0) {
-            LOGP(warn, "RSCOM: calcResidDeriv failed");
+            LOGP(warn, "calcResidDeriv failed");
           }
           continue;
         }
@@ -474,13 +465,10 @@ void Controller::assignDOFs()
   mGloParVal.clear();
   mGloParErr.clear();
   mGloParLab.clear();
-  mOrderedLbl.clear();
   mLbl2ID.clear();
   mGloParVal.reserve(ndofTOT);
   mGloParErr.reserve(ndofTOT);
   mGloParLab.reserve(ndofTOT);
-  mOrderedLbl.reserve(ndofTOT);
-  mLbl2ID.reserve(ndofTOT);
 
   mVtxSens->assignDOFs();
 
@@ -495,14 +483,14 @@ void Controller::assignDOFs()
   if (ndfOld > 0 && ndfOld != mNDOFs) {
     LOG(error) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
   }
-  //
-  // build Lbl <-> parID table
-  /* FIXME RS TODO
-  Sort(mNDOFs, mGloParLab, mLbl2ID, false); // sort in increasing order
-  for (int i = mNDOFs; i--;) {
-    mOrderedLbl[i] = mGloParLab[mLbl2ID[i]];
+  // build Lbl -> parID table
+  for (int i = 0; i < ndofTOT; i++) {
+    int& id = mLbl2ID[mGloParLab[i]];
+    if (id != 0) {
+      LOGP(fatal, "parameters {} and {} share the same label {}", id - 1, i, mGloParLab[i]);
+    }
+    id = i + 1;
   }
-  */
   //
 }
 
@@ -560,7 +548,7 @@ bool Controller::storeProcessedTrack(o2::dataformats::GlobalTrackID tid)
   }
   //
   if (!res) {
-    LOGP(error, "RSCOM: storeProcessedTrack failed");
+    LOGP(error, "storeProcessedTrack failed");
   }
   return res;
 }
@@ -1318,11 +1306,11 @@ void Controller::printLabels() const
 int Controller::label2ParID(int lab) const
 {
   // convert Mille label to ParID (slow)
-  int ind = 0; // FIXME RS TODO // findKeyIndex(lab, mOrderedLbl, mNDOFs);
-  if (ind < 0) {
-    return -1;
+  auto it = mLbl2ID.find(lab);
+  if (it == mLbl2ID.end()) {
+    LOGP(fatal, "Label {} is not mapped to any parameter", lab);
   }
-  return mLbl2ID[ind];
+  return it->second - 1;
 }
 
 //____________________________________________________________
@@ -1719,8 +1707,6 @@ void Controller::expandGlobalsBy(int n)
   mGloParVal.resize(snew);
   mGloParErr.resize(snew);
   mGloParLab.resize(snew);
-  mOrderedLbl.resize(snew);
-  mLbl2ID.resize(snew);
   mNDOFs += n;
 }
 
