@@ -180,8 +180,10 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   auto globalConfig = config.ReadConfigurableParam();
   attr.zsThreshold = config.configReconstruction.tpc.zsThreshold;
   if (globalConfig.zsOnTheFlyDigitsFilter) {
-    IonTailCorrection itCorr;
-    attr.digitsFilter = [&itCorr](std::vector<o2::tpc::Digit>& digits) { itCorr.filterDigitsDirect(digits); };
+    attr.digitsFilter = [](std::vector<o2::tpc::Digit>& digits) {
+      IonTailCorrection itCorr;
+      itCorr.filterDigitsDirect(digits);
+    };
   }
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
