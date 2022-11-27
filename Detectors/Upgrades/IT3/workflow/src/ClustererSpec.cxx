@@ -39,7 +39,7 @@ namespace its3
 
 void ClustererDPL::init(InitContext& ic)
 {
-  mClusterer = std::make_unique<o2::itsmft::Clusterer>();
+  mClusterer = std::make_unique<o2::its3::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); /// Fix MEEEE
 
   auto filenameGRP = ic.options().get<std::string>("grp-file");

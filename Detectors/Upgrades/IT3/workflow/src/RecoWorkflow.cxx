@@ -13,7 +13,7 @@
 
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "ITS3Workflow/ClustererSpec.h"
-// #include "ITS3Workflow/ClusterWriterSpec.h"
+#include "ITS3Workflow/ClusterWriterSpec.h"
 // #include "ITSWorkflow/TrackerSpec.h"
 // #include "ITSWorkflow/TrackWriterSpec.h"
 // #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
@@ -41,9 +41,10 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode,
     specs.emplace_back(o2::its3::getClustererSpec(useMC));
   }
 
-  // if (!disableRootOutput) {
-  //   // specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
-  // }
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
+  }
+
   // specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
   // if (!disableRootOutput) {
   //   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

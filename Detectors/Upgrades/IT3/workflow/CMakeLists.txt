@@ -13,9 +13,9 @@ o2_add_library(ITS3Workflow
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
                        src/RecoWorkflow.cxx
-                #        src/ClusterWriterWorkflow.cxx
+                     #   src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
-                #        src/ClusterWriterSpec.cxx
+                       src/ClusterWriterSpec.cxx
                       #  src/TrackerSpec.cxx
                       #  src/CookedTrackerSpec.cxx
                       #  src/TrackWriterSpec.cxx
@@ -29,7 +29,7 @@ o2_add_library(ITS3Workflow
                                      O2::ITS3Simulation
                                     #  O2::ITStracking
                                      O2::ITSMFTReconstruction
-                                    #  O2::ITS3Reconstruction
+                                     O2::ITS3Reconstruction
                                      O2::ITSWorkflow
                                     #  O2::GPUTracking
 )

@@ -13,7 +13,6 @@ o2_add_library(ITS3Reconstruction
                TARGETVARNAME targetName
                SOURCES src/Clusterer.cxx
                        src/TopologyDictionary.cxx
-
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::ITSMFTReconstruction
                                      O2::ITS3Base

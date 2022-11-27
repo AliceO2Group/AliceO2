@@ -13,6 +13,7 @@
 
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 namespace o2::its3
 {
@@ -20,10 +21,14 @@ namespace o2::its3
 math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const its3::CompCluster& cl) const
 {
 
-  static SegmentationSuperAlpide segmentations[SegmentationSuperAlpide::NLayers]{SegmentationSuperAlpide(0), SegmentationSuperAlpide(1), SegmentationSuperAlpide(2), SegmentationSuperAlpide(3)};
+  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(2),
+                                                  SegmentationSuperAlpide(3),
+                                                  SegmentationSuperAlpide(4),
+                                                  SegmentationSuperAlpide(5)}; // TODO: fix NLayers
   math_utils::Point3D<float> locCl;
-  if (detID >= SegmentationSuperAlpide::NLayers) {
-
+  if (detID >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
   } else {
     segmentations[detID].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
@@ -35,7 +40,12 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
 
 math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const its3::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup)
 {
-  static SegmentationSuperAlpide segmentations[SegmentationSuperAlpide::NLayers]{SegmentationSuperAlpide(0), SegmentationSuperAlpide(1), SegmentationSuperAlpide(2), SegmentationSuperAlpide(3)};
+  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(2),
+                                                  SegmentationSuperAlpide(3),
+                                                  SegmentationSuperAlpide(4),
+                                                  SegmentationSuperAlpide(5)}; // TODO: fix NLayers
 
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
@@ -46,7 +56,7 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
     refCol -= round(zCOG);
   }
   math_utils::Point3D<float> locCl;
-  if (detID >= SegmentationSuperAlpide::NLayers) {
+  if (detID >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
     segmentations[detID].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);

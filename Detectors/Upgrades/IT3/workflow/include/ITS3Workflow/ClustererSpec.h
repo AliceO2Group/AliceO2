@@ -16,7 +16,7 @@
 
 #include <fstream>
 
-#include "ITSMFTReconstruction/Clusterer.h"
+#include "ITS3Reconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -42,7 +42,7 @@ class ClustererDPL : public Task
   bool mPatterns = true;
   int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;
-  std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
+  std::unique_ptr<o2::its3::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
