@@ -112,6 +112,8 @@ class AlignParam
 
   void print() const;
 
+  int rectify(double zero = 1e-13);
+
  protected:
   bool matrixToAngles(const double* rot, double& psi, double& theta, double& phi) const;
   void anglesToMatrix(double psi, double theta, double phi, double* rot) const;

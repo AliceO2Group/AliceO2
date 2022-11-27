@@ -173,8 +173,8 @@ class AlignableVolume : public DOFSet
   void getDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const;
   //
   // creation of global matrices for storage
-  void createGloDeltaMatrix(TGeoHMatrix& deltaM) const;
-  void createLocDeltaMatrix(TGeoHMatrix& deltaM) const;
+  bool createGloDeltaMatrix(TGeoHMatrix& deltaM) const;
+  bool createLocDeltaMatrix(TGeoHMatrix& deltaM) const; // return true if the matrix is not unity
   void createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createAlignmenMatrix(TGeoHMatrix& alg) const;

@@ -49,9 +49,9 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minPointTotal = 4; // total min number of alignment point to account track
   int minDetectors = 1;  // min number of detectors per track
 
-  float maxDCAforVC[2]; // DCA cut in R,Z to allow track be subjected to vertex constraint
-  float maxChi2forVC;   // track-vertex chi2 cut to allow the track be subjected to vertex constraint
-
+  float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
+  float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint
+  float alignParamZero = 1e-13;    // assign 0 to final alignment parameter if its abs val is below this threshold
   float controlFraction = 1.; // fraction for which control output is requested
   bool MilleOut = true;       // Mille output
   bool MPRecOut = true;       // compact Millepede2Record
