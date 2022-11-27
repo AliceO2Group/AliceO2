@@ -31,3 +31,5 @@
 #                                              O2::SimulationDataFormat
 #                                              O2::DetectorsBase
 #                        LABELS its3)
+o2_add_test_root_macro(CheckSquasherITS3.C 
+                       LABELS its3)
