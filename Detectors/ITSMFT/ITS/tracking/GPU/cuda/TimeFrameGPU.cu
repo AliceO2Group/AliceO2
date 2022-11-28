@@ -24,6 +24,7 @@ namespace its
 {
 using constants::GB;
 using constants::MB;
+
 namespace gpu
 {
 using utils::host::checkGPUError;
@@ -87,6 +88,7 @@ GpuTimeFramePartition<nLayers>::~GpuTimeFramePartition()
 template <int nLayers>
 void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof)
 {
+  mNRof = nrof;
   for (int i = 0; i < nLayers; ++i) {
     checkGPUError(cudaMalloc(reinterpret_cast<void**>(&(mROframesClustersDevice[i])), sizeof(int) * nrof));
     checkGPUError(cudaMalloc(reinterpret_cast<void**>(&(mClustersDevice[i])), sizeof(Cluster) * mTFGconf->clustersPerROfCapacity * nrof));
@@ -116,10 +118,9 @@ void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof)
 }
 
 template <int nLayers>
-template <Task task>
-void GpuTimeFramePartition<nLayers>::reset(const size_t nrof)
+void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task)
 {
-  if constexpr ((bool)task) { // Vertexer-only initialisation
+  if ((bool)task) { // Vertexer-only initialisation (cannot be constexpr: due to the presence of gpu raw calls can't be put in header)
     for (int i = 0; i < 2; i++) {
       auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsDevice[i]);
       auto thrustTrackletsEnd = thrustTrackletsBegin + mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof;
@@ -238,13 +239,19 @@ int* GpuTimeFramePartition<nLayers>::getDeviceCellsLookupTables(const int layer)
   return mCellsLookupTablesDevice[layer];
 }
 
-/// Load data
-// template <int nLayers>
-// void GpuTimeFramePartition<nLayers>::copyDeviceClusters(const int layer, const gsl::span<Cluster> cluSpan)
-// {
-//   if (cluSpan.size() > mTFGconf->)
-//     checkGPUError(cudaMemcpy(mROframesClustersDevice[layer], rofClusters, sizeof(int) * nrof, cudaMemcpyHostToDevice));
-// }
+// Load data
+template <int nLayers>
+void GpuTimeFramePartition<nLayers>::copyDeviceData(const size_t startRof, const int maxLayers)
+{
+  for (int i = 0; i < maxLayers; ++i) {
+    mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, mNRof, i);
+    if (mHostClusters[i].size() > mTFGconf->clustersPerROfCapacity * mNRof) {
+      LOGP(warning, "Excess of expected clusters on layer {}, resizing to config value: {}, will lose information!", i, mTFGconf->clustersPerROfCapacity * mNRof);
+    }
+    checkGPUError(cudaMemcpy(mClustersDevice[i], mHostClusters[i].data(),
+                             (int)std::min(mHostClusters[i].size() * mNRof, mTFGconf->clustersPerROfCapacity * mNRof) * sizeof(Cluster), cudaMemcpyHostToDevice));
+  }
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // TimeFrameGPU
@@ -275,7 +282,7 @@ void TimeFrameGPU<nLayers>::initDevice(const int partitions)
   StaticTrackingParameters<nLayers> pars;
   checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mTrackingParamsDevice), sizeof(gpu::StaticTrackingParameters<nLayers>)));
   checkGPUError(cudaMemcpy(mTrackingParamsDevice, &pars, sizeof(gpu::StaticTrackingParameters<nLayers>), cudaMemcpyHostToDevice));
-  mMemPartitions.resize(partitions, mGpuConfig);
+  mMemPartitions.resize(partitions, GpuTimeFramePartition<nLayers>{static_cast<TimeFrame*>(this), mGpuConfig});
   LOGP(debug, "Size of fixed part is: {} MB", GpuTimeFramePartition<nLayers>::computeFixedSizeBytes(mGpuConfig) / MB);
   LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig), mGpuConfig) / MB);
   LOGP(info, "Going to allocate {} partitions containing {} rofs each.", partitions, GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig));
@@ -415,6 +422,7 @@ void TimeFrameGPU<nLayers>::initDevicePartitions(const int nRof)
 // }
 
 template class TimeFrameGPU<7>;
+template class GpuTimeFramePartition<7>;
 } // namespace gpu
 } // namespace its
 } // namespace o2

@@ -21,8 +21,10 @@
 #include "ITStracking/Configuration.h"
 
 #include "ITStrackingGPU/ClusterLinesGPU.h"
-#include "Array.h"
-#include "Vector.h"
+#include "ITStrackingGPU/Array.h"
+#include "ITStrackingGPU/Vector.h"
+#include "ITStrackingGPU/Stream.h"
+
 #include <gsl/gsl>
 
 #include "GPUCommonDef.h"
@@ -49,17 +51,22 @@ template <int nLayers>
 class GpuTimeFramePartition
 {
  public:
-  GpuTimeFramePartition() = delete;
-  GpuTimeFramePartition(TimeFrameGPUConfig& conf) { mTFGconf = &conf; }
-  ~GpuTimeFramePartition();
-  void allocate(const size_t);
-
-  template <Task task>
-  void reset(const size_t);
-
   static size_t computeScalingSizeBytes(const int, const TimeFrameGPUConfig&);
   static size_t computeFixedSizeBytes(const TimeFrameGPUConfig&);
   static size_t computeRofPerPartition(const TimeFrameGPUConfig&);
+
+  GpuTimeFramePartition() = delete;
+  GpuTimeFramePartition(o2::its::TimeFrame* tf, TimeFrameGPUConfig& conf)
+  {
+    mTimeFramePtr = tf;
+    mTFGconf = &conf;
+  }
+  ~GpuTimeFramePartition();
+
+  /// Most relevant operations
+  void allocate(const size_t);
+  void reset(const size_t, const Task);
+  void copyDeviceData(const size_t, const int);
 
   /// Interface
   int* getDeviceROframesClusters(const int);
@@ -85,6 +92,10 @@ class GpuTimeFramePartition
   unsigned char* getDeviceUsedTracklets() { return mUsedTrackletsDevice; }
 
  private:
+  /// Host
+  std::array<gsl::span<const Cluster>, nLayers> mHostClusters;
+
+  /// Device
   std::array<int*, nLayers> mROframesClustersDevice; // layers x roframes
   std::array<Cluster*, nLayers> mClustersDevice;
   std::array<unsigned char*, nLayers> mUsedClustersDevice;
@@ -109,7 +120,8 @@ class GpuTimeFramePartition
 
   /// State and configuration
   bool mAllocated = false;
-  size_t mNRof = 2304;
+  size_t mNRof = 0;
+  o2::its::TimeFrame* mTimeFramePtr = nullptr;
   TimeFrameGPUConfig* mTFGconf = nullptr;
 };
 
@@ -119,9 +131,13 @@ class TimeFrameGPU : public TimeFrame
  public:
   TimeFrameGPU();
   ~TimeFrameGPU();
+
+  /// Most relevant operations
   void initialise(const int, const TrackingParameters&, const int);
   void initDevice(const int);
   void initDevicePartitions(const int);
+  template <Task task>
+  void loadBatch(std::vector<Stream>* = nullptr);
 
  private:
   bool mInitialised = false;
@@ -129,8 +145,26 @@ class TimeFrameGPU : public TimeFrame
   TimeFrameGPUConfig mGpuConfig;
 
   // Device pointers
-  gpu::StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
+  StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
 };
+
+template <int nLayers>
+template <Task task>
+void TimeFrameGPU<nLayers>::loadBatch(std::vector<Stream>* streams)
+{
+  // If no streams provided, use the default ones
+  if (!streams) {
+    for (int iPart{0}; iPart < mGpuConfig.nTimeFramePartitions; ++iPart) {
+      auto startRof = iPart * GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig);
+      mMemPartitions[iPart].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig), task);
+      if constexpr ((bool)task) {
+        mMemPartitions[iPart].copyDeviceData(startRof, 3);
+      } else {
+        mMemPartitions[iPart].copyDeviceData(startRof, nLayers);
+      }
+    }
+  }
+}
 
 // #ifdef __HIPCC__
 // #include <hip/hip_runtime.h>
