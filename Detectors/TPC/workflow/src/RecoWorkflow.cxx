@@ -225,8 +225,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // ClusterDecoderRawSpec
   bool produceCompClusters = isEnabled(OutputType::CompClusters);
   bool produceTracks = isEnabled(OutputType::Tracks);
-  bool runTracker = (produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer)) && inputType != InputType::CompClustersFlat;
-  bool runHWDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
+  bool runGPUReco = (produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer) || inputType == InputType::CompClustersCTF) && inputType != InputType::CompClustersFlat;
+  bool runHWDecoder = !caClusterer && (runGPUReco || isEnabled(OutputType::Clusters));
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
@@ -234,14 +234,14 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
-  runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
+  runGPUReco &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
 
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw) && !isEnabled(OutputType::DisableWriter);
   //bool runZSDecode = inputType == InputType::ZSRaw;
   bool zsToDigit = inputType == InputType::ZSRaw && isEnabled(OutputType::Digits);
 
   if (inputType == InputType::PassThrough) {
-    runTracker = runHWDecoder = runClusterer = runClusterEncoder = zsToDigit = false;
+    runGPUReco = runHWDecoder = runClusterer = runClusterEncoder = zsToDigit = false;
   }
 
   WorkflowSpec parallelProcessors;
@@ -422,7 +422,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // tracker process
   //
   // selected by output type 'tracks'
-  if (runTracker) {
+  if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
@@ -460,7 +460,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker && inputType != InputType::CompClustersFlat, selIR));
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runGPUReco && inputType != InputType::CompClustersFlat, selIR));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
