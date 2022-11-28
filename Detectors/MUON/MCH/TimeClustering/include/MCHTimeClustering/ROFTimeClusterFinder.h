@@ -63,7 +63,7 @@ class ROFTimeClusterFinder
 
     TimeBin() = default;
 
-    bool empty() { return mNDigits == 0; }
+    bool empty() { return mNDigitsPS == 0; }
 
     bool operator<(const TimeBin& other) { return (mNDigitsPS < other.mNDigitsPS); }
     bool operator>(const TimeBin& other) { return (mNDigitsPS > other.mNDigitsPS); }
@@ -72,13 +72,9 @@ class ROFTimeClusterFinder
   };
 
   // peak search parameters
-  static constexpr uint32_t sMaxOrbitsInTF = 256;                              ///< upper limit of the time frame size
-  static constexpr uint32_t sBcInOneOrbit = o2::constants::lhc::LHCMaxBunches; ///< number of bunch-crossings in one orbit
-  static constexpr uint32_t sBcInOneTF = sBcInOneOrbit * sMaxOrbitsInTF;       ///< maximum number of bunch-crossings in one time frame
-
   uint32_t mTimeClusterSize;  ///< maximum size of one time cluster, in bunch crossings
   uint32_t mNbinsInOneWindow; ///< number of time bins considered for the peak search
-  double mBinWidth;           ///< width of one time bin in the peak search algorithm, in bunch crossings
+  uint32_t mBinWidth;         ///< width of one time bin in the peak search algorithm, in bunch crossings
   uint32_t mNbinsInOneTF;     ///< maximum number of peak search bins in one time frame
   DigitFilter mIsGoodDigit;   ///< function to select only digits that are likely signal
   bool mImprovePeakSearch;    ///< whether to only use signal-like digits in the peak search

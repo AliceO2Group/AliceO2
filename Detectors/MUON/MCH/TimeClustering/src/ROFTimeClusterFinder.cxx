@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <fmt/format.h>
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -23,41 +24,64 @@ using namespace std;
 
 //_________________________________________________________________________________________________
 
-ROFTimeClusterFinder::ROFTimeClusterFinder(gsl::span<const o2::mch::ROFRecord> rofs, gsl::span<const o2::mch::Digit> digits, uint32_t timeClusterSize, uint32_t nBins, bool improvePeakSearch, bool debug)
-  : mInputROFs(rofs), mDigits(digits), mTimeClusterSize(timeClusterSize), mNbinsInOneWindow(nBins), mImprovePeakSearch(improvePeakSearch), mDebug(debug)
+ROFTimeClusterFinder::ROFTimeClusterFinder(gsl::span<const o2::mch::ROFRecord> rofs,
+                                           gsl::span<const o2::mch::Digit> digits,
+                                           uint32_t timeClusterSize, uint32_t nBins, bool improvePeakSearch, bool debug)
+  : mTimeClusterSize(timeClusterSize),
+    mNbinsInOneWindow(nBins),
+    mBinWidth(timeClusterSize / nBins),
+    mNbinsInOneTF(0),
+    mIsGoodDigit(createDigitFilter(20, true, true)),
+    mImprovePeakSearch(improvePeakSearch),
+    mTimeBins{},
+    mLastSavedTimeBin(-1),
+    mInputROFs(rofs),
+    mDigits(digits),
+    mOutputROFs{},
+    mDebug(debug)
 {
-  // bin width in bunch crossing units
-  mBinWidth = mTimeClusterSize / mNbinsInOneWindow;
-  mNbinsInOneTF = sBcInOneTF / mBinWidth + 1;
-
-  mTimeBins.resize(mNbinsInOneTF);
-
-  mIsGoodDigit = createDigitFilter(20, true, true);
 }
 
 //_________________________________________________________________________________________________
 
 void ROFTimeClusterFinder::initTimeBins()
 {
-  // initialize the time bins vector
-  std::fill(mTimeBins.begin(), mTimeBins.end(), TimeBin());
+  static constexpr uint32_t maxNTimeBins = 1e7;
+
+  mTimeBins.clear();
+  mNbinsInOneTF = 0;
 
   if (mInputROFs.empty()) {
     return;
   }
 
+  // initialize the time bins vector
   o2::InteractionRecord mFirstIR = mInputROFs.front().getBCData();
+  auto tfSize = mInputROFs.back().getBCData().differenceInBC(mFirstIR);
+  mNbinsInOneTF = tfSize / mBinWidth + 1;
+  if (mNbinsInOneTF > maxNTimeBins) {
+    LOGP(alarm, "Number of time bins exceeding the limit");
+    mNbinsInOneTF = maxNTimeBins;
+  }
+  mTimeBins.resize(mNbinsInOneTF);
 
   // store the number of digits in each bin
+  int64_t previousROFbc = -1;
   for (size_t iRof = 0; iRof < mInputROFs.size(); iRof++) {
     const auto& rof = mInputROFs[iRof];
     const auto& ir = rof.getBCData();
     auto rofBc = ir.differenceInBC(mFirstIR);
     auto binIdx = rofBc / mBinWidth;
 
-    if (binIdx < 0) {
-      continue;
-    } else if (binIdx >= mNbinsInOneTF) {
+    // sanity check: ROFs must be ordered in time
+    if (rofBc <= previousROFbc || rofBc > tfSize) {
+      LOGP(alarm, "Wrong ROF ordering");
+      break;
+    }
+    previousROFbc = rofBc;
+
+    // stop here if the number of bins exceeds the limit
+    if (binIdx >= mNbinsInOneTF) {
       break;
     }
 
