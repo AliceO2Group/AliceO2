@@ -252,7 +252,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   int nvols = algPars.size();
   std::vector<int> ord(nvols);
   std::iota(std::begin(ord), std::end(ord), 0); // sort to apply alignment in correct hierarchy
-  std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() > algPars[b].getLevel(); });
+  std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() < algPars[b].getLevel(); });
 
   bool res = true;
   for (int i = 0; i < nvols; i++) {
