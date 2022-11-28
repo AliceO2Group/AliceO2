@@ -256,6 +256,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
       mPt->Fill(trkTpc.getPt());
       mPhi->Fill(trkTpc.getPhi());
+      mEta->Fill(trkTpc.getEta());
       // we fill also the denominator
       mPtTPC->Fill(trkTpc.getPt());
       mPhiTPC->Fill(trkTpc.getPhi());
@@ -284,8 +285,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       if (!mUseMC) {
         mPt->Fill(trkTpc.getPt());
         mPhi->Fill(trkTpc.getPhi());
+        mEta->Fill(trkTpc.getEta());
       }
-      mEta->Fill(trkTpc.getEta());
       mResidualPt->Fill(trk.getPt(), trk.getPt() - trkTpc.getPt());
       mResidualPhi->Fill(trk.getPhi(), trk.getPhi() - trkTpc.getPhi());
       mResidualEta->Fill(trk.getEta(), trk.getEta() - trkTpc.getEta());
