@@ -35,6 +35,7 @@
 #include "ZDCWorkflow/RecEventReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
+#include "TRDWorkflowIO/TRDPIDReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
 #include "MCHWorkflow/ClusterReaderSpec.h"
@@ -205,5 +206,20 @@ int InputHelper::addInputSpecsIRFramesITS(const o2::framework::ConfigContext& co
     return 0;
   }
   specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec("ITS", 0, "its-irframe-reader", "o2_its_irframe.root"));
+  return 0;
+}
+
+// attach trd pid reader
+int InputHelper::addInputSpecsTRDPID(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, GID::mask_t maskMatches, bool mc)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  if (maskMatches[GID::TPCTRD]) {
+    specs.emplace_back(o2::trd::getTRDPIDTPCReaderSpec(mc));
+  }
+  if (maskMatches[GID::ITSTPCTRD]) {
+    specs.emplace_back(o2::trd::getTRDPIDGlobalReaderSpec(mc));
+  }
   return 0;
 }
