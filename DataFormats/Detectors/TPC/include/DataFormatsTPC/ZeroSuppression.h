@@ -62,8 +62,8 @@ struct TPCZSHDRV2 : public TPCZSHDR {
     payloadExtendsToNextPage = 4
   };
 
-  unsigned short firstZSDataOffset; // zs Version 3: Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
-                                    // zs Version 4: Offset (after the RDH) in bytes of the first ZS data.
+  unsigned short firstZSDataOffset; // zs Version   3: Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
+                                    // zs Version >=4: Offset (from beginning of page) in bytes of the first ZS data.
   unsigned short nTimebinHeaders;   // Number of timebin headers
   unsigned char flags;              // flag field (zs version 4 only): 0 = triggerWordPresent, 1 = bit 8 of nTimeBinSpan (i.e. nTimeBinSpan += 256)
   unsigned char reserved1;          // 16 reserved bits, header is 128 bit
