@@ -848,7 +848,7 @@ void zsEncoderDenseLinkBased::initPage()
   hdr->magicWord = o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader;
   hdr->nTimebinHeaders = 0;
   memcpy(pagePtr, sequenceBuffer.data(), sequenceBuffer.size());
-  hdr->firstZSDataOffset = sequenceBuffer.size();
+  hdr->firstZSDataOffset = sequenceBuffer.size() + sizeof(o2::header::RAWDataHeader);
   pagePtr += sequenceBuffer.size();
   sequenceBuffer.clear();
   hdr->flags = 0;
@@ -878,7 +878,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     throw std::runtime_error("invalid TPC sector");
   }
   int region = cruid % 10;
-  decPagePtr += decHDR->firstZSDataOffset;
+  decPagePtr += decHDR->firstZSDataOffset - sizeof(o2::header::RAWDataHeader);
   std::vector<unsigned char> tmpBuffer;
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
     int sizeLeftInPage = payloadEnd - decPagePtr;
@@ -899,9 +899,9 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
 
       const TPCZSHDRV2* hdrNext = reinterpret_cast<const TPCZSHDRV2*>(pageNext + o2::raw::RDHUtils::getMemorySize(*rdhNext) - sizeof(TPCZSHDRV2));
-      tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset);
+      tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
       memcpy(tmpBuffer.data(), decPagePtr, sizeLeftInPage);
-      memcpy(tmpBuffer.data() + sizeLeftInPage, pageNext + sizeof(o2::header::RAWDataHeader), hdrNext->firstZSDataOffset);
+      memcpy(tmpBuffer.data() + sizeLeftInPage, pageNext + sizeof(o2::header::RAWDataHeader), hdrNext->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
       decPagePtr = tmpBuffer.data();
       payloadEnd = decPagePtr + tmpBuffer.size();
     }
