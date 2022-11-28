@@ -36,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
+    {"disable-trd-pid", o2::framework::VariantType::Bool, true, {"disable trd pid"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
@@ -73,6 +74,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, inputspecs, useMC);
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
+  }
+  if (enableTRDPID) {
+    o2::globaltracking::InputHelper::addInputSpecsTRDPID(configcontext, inputspecs, srcMtc, useMC);
   }
   if (configcontext.options().get<bool>("combine-source-devices")) {
     std::vector<DataProcessorSpec> unmerged;
