@@ -16,6 +16,7 @@ o2_add_library(TRDWorkflow
                SOURCES src/TRDDigitizerSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
                        src/TRDTrackletTransformerSpec.cxx
+                       src/TRDPIDSpec.cxx
                        src/TRDEventDisplayFeedSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
                        src/EntropyDecoderSpec.cxx
@@ -26,7 +27,7 @@ o2_add_library(TRDWorkflow
                        include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                        include/TRDWorkflow/NoiseCalibSpec.h
                        include/TRDWorkflow/NoiseCalibAggregatorSpec.h
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::TRDQC O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflowHelpers O2::GlobalTrackingWorkflowReaders O2::GPUWorkflowHelper O2::ReconstructionDataFormats O2::ITSWorkflow O2::TPCWorkflow O2::TRDWorkflowIO)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::TRDQC O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflowHelpers O2::GlobalTrackingWorkflowReaders O2::GPUWorkflowHelper O2::ReconstructionDataFormats O2::ITSWorkflow O2::TPCWorkflow O2::TRDWorkflowIO O2::TRDPID)
 
 o2_add_executable(trap-sim
                   COMPONENT_NAME trd
@@ -46,6 +47,11 @@ o2_add_executable(global-tracking
 o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+o2_add_executable(pid-workflow
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-pid-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 o2_add_executable(event-display-feed

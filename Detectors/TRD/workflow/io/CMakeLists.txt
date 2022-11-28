@@ -19,6 +19,8 @@ o2_add_library(TRDWorkflowIO
                        src/TRDCalibratedTrackletWriterSpec.cxx
                        src/TRDTrackWriterSpec.cxx
                        src/TRDTrackReaderSpec.cxx
+                       src/TRDPIDWriterSpec.cxx
+                       src/TRDPIDReaderSpec.cxx
                        src/TRDCalibWriterSpec.cxx
                        src/KrClusterWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD O2::SimulationDataFormat O2::DPLUtils O2::GPUDataTypeHeaders O2::DataFormatsTPC)

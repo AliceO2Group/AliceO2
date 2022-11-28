@@ -51,6 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
+  bool enableTRDPID = !configcontext.options().get<bool>("disable-trd-pid");
   bool ctpcfgperrun = configcontext.options().get<bool>("ctpconfig-per-run");
 
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV");
