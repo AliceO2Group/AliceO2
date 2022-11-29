@@ -19,11 +19,17 @@ namespace o2::framework
 /// The kind of service we are asking for
 enum struct ServiceKind {
   /// A Service which is not thread safe, therefore all accesses to it must be mutexed.
-  Serial,
+  DeviceSerial,
   /// A Service which is thread safe and therefore can be used by many threads the same time without risk
-  Global,
+  DeviceGlobal,
   /// A Service which is specific to a given thread in a thread pool
-  Stream
+  DeviceStream,
+  DataProcessorSerial,
+  DataProcessorGlobal,
+  DataProcessorStream,
+  Serial = DataProcessorSerial,
+  Global = DataProcessorGlobal,
+  Stream = DataProcessorStream
 };
 
 struct ServiceTypeHash {

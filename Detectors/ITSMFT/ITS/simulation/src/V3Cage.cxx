@@ -16,7 +16,6 @@
 #include "ITSSimulation/V3Cage.h"
 #include "ITSSimulation/V11Geometry.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSSimulation/Detector.h"
 
 #include <fairlogger/Logger.h> // for LOG
 
@@ -111,6 +110,11 @@ ClassImp(V3Cage);
 
 V3Cage::V3Cage()
   : V11Geometry()
+{
+}
+
+V3Cage::V3Cage(const char* name)
+  : V11Geometry(0, name)
 {
 }
 
@@ -250,8 +254,8 @@ TGeoVolume* V3Cage::createCageCover(const TGeoManager* mgr)
   TGeoCompositeShape* coverSh = new TGeoCompositeShape("coverSheet-cutFold:cutBox1-cutFold:cutBox2+coverFold+coverFold:rotFold");
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medRohacell = mgr->GetMedium("ITS_ROHACELL$");
-  TGeoMedium* medPrepreg = mgr->GetMedium("ITS_M46J6K$");
+  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
+  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_M46J6K$", GetDetName()));
 
   TGeoVolume* coverVol = new TGeoVolume("CageCover", coverSh, medPrepreg);
   coverVol->SetFillColor(kBlue);
@@ -318,7 +322,7 @@ TGeoVolume* V3Cage::createCageCoverRib(const TGeoManager* mgr)
   TGeoCompositeShape* ribSh = new TGeoCompositeShape("coverRibMain+coverRibFold+coverRibFold:rotRibFold");
 
   // We have all shapes: now create the real volume
-  TGeoMedium* medAl = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medAl = mgr->GetMedium(Form("%s_ALUMINUM$", GetDetName()));
 
   TGeoVolume* ribVol = new TGeoVolume("CageCoverRib", ribSh, medAl);
   ribVol->SetFillColor(kGray);
@@ -401,9 +405,9 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
   TGeoCompositeShape* guideSh = new TGeoCompositeShape("guidevert+guidehor:guidehormat1+guidehor:guidehormat2");
 
   // We have all shapes: now create the real volume
-  TGeoMedium* medFabric = mgr->GetMedium("ITS_M46J6K$");
-  TGeoMedium* medFoam = mgr->GetMedium("ITS_ROHACELL$");
-  TGeoMedium* medAlAlloy = mgr->GetMedium("ITS_ENAW7075$");
+  TGeoMedium* medFabric = mgr->GetMedium(Form("%s_M46J6K$", GetDetName()));
+  TGeoMedium* medFoam = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
+  TGeoMedium* medAlAlloy = mgr->GetMedium(Form("%s_ENAW7075$", GetDetName()));
 
   TGeoVolume* inFoilVol = new TGeoVolume("CageSidePanelInFoil", inFoilSh, medFabric);
   inFoilVol->SetFillColor(kBlue);
@@ -738,9 +742,9 @@ TGeoVolume* V3Cage::createCageEndCap(const TGeoManager* mgr)
   TGeoCompositeShape* cblCrosSh = createCageEndCapCableCross(mgr);
 
   // We have all shapes: now create the real volume
-  TGeoMedium* medFabric = mgr->GetMedium("ITS_M46J6K$");
-  TGeoMedium* medFoam = mgr->GetMedium("ITS_ROHACELL$");
-  TGeoMedium* medAl = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medFabric = mgr->GetMedium(Form("%s_M46J6K$", GetDetName()));
+  TGeoMedium* medFoam = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
+  TGeoMedium* medAl = mgr->GetMedium(Form("%s_ALUMINUM$", GetDetName()));
 
   TGeoVolume* fabVol = new TGeoVolume("CageEndCapFabric", fabricSh, medFabric);
   fabVol->SetFillColor(kBlue);

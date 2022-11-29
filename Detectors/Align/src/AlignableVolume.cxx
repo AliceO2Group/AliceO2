@@ -100,6 +100,7 @@
 #include "Align/AlignableVolume.h"
 #include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
+#include "Align/AlignConfig.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "Align/utils.h"
@@ -136,7 +137,7 @@ AlignableVolume::AlignableVolume(const char* symname, int iid, Controller* ctr) 
   if (!ctr) {
     LOG(fatal) << "Controller has to be provided :" << symname;
   }
-  setVolID(0); // volumes have no VID, unless it is sensor
+  setVolID(-1); // volumes have no VID, unless it is sensor
   setNDOFs(kNDOFGeom);
   setFreeDOFPattern(sDefGeomFree);
 }
@@ -417,7 +418,7 @@ void AlignableVolume::calcFree(bool condFix)
   mNDOFsFree = mNDOFGeomFree = 0;
   for (int i = 0; i < mNDOFs; i++) {
     if (!isFreeDOF(i)) {
-      if (condFix) {
+      if (condFix && varsSet()) {
         setParErr(i, -999);
       }
       continue;
@@ -542,17 +543,20 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
 }
 
 //_________________________________________________________________
-void AlignableVolume::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
+bool AlignableVolume::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
 {
   // Create global matrix deltaM from global array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   //
-  createLocDeltaMatrix(deltaM);
-  const TGeoHMatrix& l2g = getMatrixL2G();
-  const TGeoHMatrix& l2gi = l2g.Inverse();
-  deltaM.Multiply(&l2gi);
-  deltaM.MultiplyLeft(&l2g);
+  if (createLocDeltaMatrix(deltaM)) { // do multiplications only if the matrix is non-trivial
+    const TGeoHMatrix& l2g = getMatrixL2G();
+    const TGeoHMatrix l2gi = l2g.Inverse();
+    deltaM.Multiply(&l2gi);
+    deltaM.MultiplyLeft(&l2g);
+    return true;
+  }
+  return false;
   //
 }
 /*
@@ -656,26 +660,30 @@ void AlignableVolume::createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const
 }
 
 //_________________________________________________________________
-void AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
+bool AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
 {
   // Create local matrix deltaM from global array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   auto pars = getParVals();
-  double corr[kNDOFGeom];
+  double corr[kNDOFGeom] = {0.};
+  int nonZero = 0;
   for (int i = kNDOFGeom; i--;) {
-    corr[i] = pars[i];
+    if (pars[i] != 0.) {
+      nonZero++;
+      corr[i] = pars[i];
+    }
   } // we need doubles
   delta2Matrix(deltaM, corr);
-  if (isFrameTRA()) { // we need corrections in local frame!
+  if (isFrameTRA() && nonZero) { // we need corrections in local frame!
     // l' = T2L * delta_t * t = T2L * delta_t * T2L^-1 * l = delta_l * l
     // -> delta_l = T2L * delta_t * T2L^-1
     const TGeoHMatrix& t2l = getMatrixT2L();
-    const TGeoHMatrix& t2li = t2l.Inverse();
+    const TGeoHMatrix t2li = t2l.Inverse();
     deltaM.Multiply(&t2li);
     deltaM.MultiplyLeft(&t2l);
   }
-  //
+  return nonZero;
 }
 
 //_________________________________________________________________
@@ -693,10 +701,8 @@ void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
   // but this creates precision problem.
   // Therefore we use explicitly cached Deltas from prealignment object.
   //
-  createGloDeltaMatrix(alg);
-  //
   const AlignableVolume* par = getParent();
-  if (par) {
+  if (createGloDeltaMatrix(alg) && par) { // account parent matrices only if the alg matrix is non-trivial
     TGeoHMatrix dchain;
     while (par) {
       dchain.MultiplyLeft(&par->getGlobalDeltaRef());
@@ -751,12 +757,13 @@ void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
 void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr) const
 {
   // add to supplied array alignment object for itself and children
+  if (isDummy()) {
+    LOGP(info, "Skipping alignment object creation for dummy volume {}", GetName());
+    return;
+  }
   TGeoHMatrix algM;
   createAlignmenMatrix(algM);
-  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), getVolID(), algM, true);
-  const double* translation = algM.GetTranslation();
-  const double* rotation = algM.GetRotationMatrix();
-  arr.emplace_back(getSymName(), getVolID(), translation[0], translation[1], translation[2], rotation[0], rotation[1], rotation[2], true);
+  arr.emplace_back(getSymName(), getVolID(), algM, true).rectify(AlignConfig::Instance().alignParamZero);
   int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->createAlignmentObjects(arr);

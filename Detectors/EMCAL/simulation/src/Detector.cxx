@@ -30,7 +30,7 @@
 #include "EMCALSimulation/Detector.h"
 #include "EMCALSimulation/SpaceFrame.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>

@@ -55,8 +55,10 @@ RawToCellConverterSpec::~RawToCellConverterSpec()
 
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
-  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
-  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+  if (ctx.services().active<AliceO2::InfoLogger::InfoLoggerContext>()) {
+    auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+    ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+  }
 
   LOG(debug) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {

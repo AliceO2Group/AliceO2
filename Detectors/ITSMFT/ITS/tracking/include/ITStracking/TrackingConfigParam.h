@@ -34,6 +34,8 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int phiSpan = -1;
   int zSpan = -1;
 
+  int nThreads = 1;
+
   O2ParamDef(VertexerParamConfig, "ITSVertexerParam");
 };
 

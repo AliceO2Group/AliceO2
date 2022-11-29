@@ -23,6 +23,7 @@
 #include "EventVisualisationDataConverter/VisualisationCluster.h"
 #include "EventVisualisationDataConverter/VisualisationCalo.h"
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
+#include "DataFormatsParameters/ECSDataAdapters.h"
 #include <forward_list>
 #include <ctime>
 #include <gsl/span>
@@ -187,6 +188,9 @@ class VisualisationEvent
   o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
   void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
 
+  o2::parameters::GRPECS::RunType getRunType() const { return this->mRunType; }
+  void setRunType(o2::parameters::GRPECS::RunType runType) { this->mRunType = runType; }
+
   o2::header::DataHeader::TFCounterType getTfCounter() const { return this->mTfCounter; }
   void setTfCounter(o2::header::DataHeader::TFCounterType value) { this->mTfCounter = value; }
 
@@ -201,6 +205,7 @@ class VisualisationEvent
   o2::header::DataHeader::RunNumberType mRunNumber; /// run number
   o2::header::DataHeader::TFCounterType mTfCounter;
   o2::header::DataHeader::TForbitType mFirstTForbit;
+  o2::parameters::GRPECS::RunType mRunType;
   std::size_t mPrimaryVertex;
 
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event

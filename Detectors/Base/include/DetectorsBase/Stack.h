@@ -234,6 +234,9 @@ class Stack : public FairGenericStack
   /// returns if current track left a TrackReference
   bool currentTrackLeftTrackRef() const { return mCurrentParticle.TestBit(ParticleStatus::kHasTrackRefs); }
 
+  /// set track seeding mode (tracks are seeded individually for increased reproducability)
+  void setTrackSeedingMode(bool m) { mDoTrackSeeding = m; }
+
   typedef std::function<bool(const TParticle& p, const std::vector<TParticle>& particles)> TransportFcn;
 
  private:
@@ -291,6 +294,7 @@ class Stack : public FairGenericStack
   bool mIsG4Like = false; //! flag indicating if the stack is used in a manner done by Geant4
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
+  bool mDoTrackSeeding = false; // whether to do track based seeding
 
   TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
 

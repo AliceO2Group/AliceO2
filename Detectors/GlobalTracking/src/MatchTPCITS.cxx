@@ -576,8 +576,8 @@ bool MatchTPCITS::prepareITSData()
       }
       return false;
     }
-    float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
-    float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+    float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
+    float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
     if (!mITSTriggered) {
       size_t irofCont = nBC / mITSROFrameLengthInBC;
       if (mITSTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
@@ -1260,7 +1260,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     timeErr = mITSTimeResMUS; // chose smallest error
     deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
   }
-  float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
+  float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS;                                                                       /// precise time estimate, optionally corrected for bias
   if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
       mMatchedTracks.pop_back(); // destroy failed track
@@ -1384,7 +1384,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     auto tTPCC = tTPC;
     o2::MCCompLabel lblITS, lblTPC;
     (*mDBGOut) << "refit"
-               << "tpcOrig=" << tpcOrigC << "itsOrig=" << itsOrigC << "itsRef=" << tITSC << "tpcRef=" << tTPCC << "matchRefit=" << trfit;
+               << "tpcOrig=" << tpcOrigC << "itsOrig=" << itsOrigC << "itsRef=" << tITSC << "tpcRef=" << tTPCC << "matchRefit=" << trfit << "timeCorr=" << timeC;
     if (mMCTruthON) {
       lblITS = mITSLblWork[iITS];
       lblTPC = mTPCLblWork[iTPC];
@@ -2151,6 +2151,13 @@ void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClu
   if (chipClRefs) {
     chipClRefs->setEntries(nClInSens); // finalize last chip reference
   }
+}
+
+//______________________________________________
+void MatchTPCITS::setITSTimeBiasInBC(int n)
+{
+  mITSTimeBiasInBC = n;
+  mITSTimeBiasMUS = mITSTimeBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
 }
 
 //______________________________________________

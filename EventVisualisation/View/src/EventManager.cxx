@@ -24,6 +24,7 @@
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include "EventVisualisationBase/ConfigurationManager.h"
+#include "DataFormatsParameters/ECSDataAdapters.h"
 #include <TEveManager.h>
 #include <TEveTrack.h>
 #include <TEveTrackPropagator.h>
@@ -60,15 +61,18 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(info) << "Initializing TEveManager";
+
+  ConfigurationManager::getInstance().getConfig(settings);
+
   vizSettings.firstEvent = true;
 
   for (int i = 0; i < NvisualisationGroups; i++) {
     vizSettings.trackVisibility[i] = true;
-    vizSettings.trackColor[i] = kMagenta;
+    vizSettings.trackColor[i] = settings.GetValue("tracks.byType.unknown", kMagenta);
     vizSettings.trackStyle[i] = 1;
     vizSettings.trackWidth[i] = 1;
     vizSettings.clusterVisibility[i] = true;
-    vizSettings.clusterColor[i] = kBlue;
+    vizSettings.clusterColor[i] = settings.GetValue("clusters.byType.unknown", kBlue);
     vizSettings.clusterStyle[i] = 20;
     vizSettings.clusterSize[i] = 1.0f;
   }
@@ -117,7 +121,7 @@ void EventManager::displayCurrentEvent()
 
     if (this->mShowDate) {
       multiView->getAnnotationTop()->SetText(
-        TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+        TString::Format("Run %d %s\n%s", dataSource->getRunNumber(), std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(), dataSource->getFileTime().c_str()));
     } else {
       multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
     }
@@ -212,14 +216,14 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   size_t clusterCount = 0;
   auto* point_list = new TEvePointSet(detectorName.c_str());
   point_list->IncDenyDestroy(); // don't delete if zero parent
-  point_list->SetMarkerColor(kBlue);
+  point_list->SetMarkerColor(settings.GetValue("clusters.byType.unknown", kBlue));
 
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
-    vistrack->SetLineColor(kMagenta);
+    vistrack->SetLineColor(settings.GetValue("tracks.byType.unknown", kMagenta));
     vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
@@ -299,8 +303,6 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
       std::string configMaxValAbs;
       float defaultMaxValAbs;
     };
-    TEnv settings;
-    ConfigurationManager::getInstance().getConfig(settings);
 
     // TODO: calculate values based on info available in O2
     static const std::unordered_map<o2::dataformats::GlobalTrackID::Source, CaloInfo> caloInfos =
@@ -329,7 +331,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
         return std::hash<float>()(pair.first + 1000.0 * pair.second);
       }
     };
-    std::unordered_map<std::pair<float, float>, int, pair_hash> map; // sum up entries for the same tower
+    std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
       auto key = std::make_pair(calo.getEta(), calo.getPhi());
       map.try_emplace(key, 0);

@@ -122,8 +122,8 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
     module.id = modID;
     module.setChannel(0, IdZPCC, 2 * modID, true, true, -5, 6, 4, 12);
     module.setChannel(1, IdZEM2, 2 * modID, true, true, -5, 6, 4, 12);
-    module.setChannel(2, IdZPC1, 2 * modID + 1, true, false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPC2, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZPC3, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPC4, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -133,8 +133,8 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
     module.id = modID;
     module.setChannel(0, IdZPCC, 2 * modID, false, true, -5, 6, 4, 12);
     module.setChannel(1, IdZPCSum, 2 * modID, true, false, -5, 6, 4, 12);
-    module.setChannel(2, IdZPC3, 2 * modID + 1, true, false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPC4, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZPC1, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPC2, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   conf.check();

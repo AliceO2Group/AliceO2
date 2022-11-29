@@ -13,10 +13,10 @@
 #include <iomanip>
 #include <iostream>
 #include <fmt/format.h>
-#include "InfoLogger/InfoLogger.hxx"
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
+#include "Framework/Logger.h"
 
 using namespace o2::emcal;
 
@@ -42,8 +42,7 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    AliceO2::InfoLogger::InfoLogger logger;
-    logger << e.what();
+    LOG(error) << "Error while decoding RCU trailer: " << e.what();
     throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{} {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), e.what()));
   }
 }

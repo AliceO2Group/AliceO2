@@ -423,7 +423,7 @@ void MaterialManager::loadCutsAndProcessesFromJSON(ESpecial special, std::string
   }
   std::ifstream is(filenameIn);
   if (!is.is_open()) {
-    LOG(error) << "Cannot open file " << filenameIn;
+    LOG(fatal) << "Cannot open MC cuts/processes file " << filenameIn;
     return;
   }
   auto digestCutsFromJSON = [this](int globalindex, rj::Value& cuts) {

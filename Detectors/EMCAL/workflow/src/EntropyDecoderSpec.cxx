@@ -30,6 +30,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, unsigned int sspecOut) : m
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setSupportBCShifts(true);
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -82,6 +83,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, un
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "EMC", "CTFDATA", sspecInp, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "emcal-entropy-decoder",

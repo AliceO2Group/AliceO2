@@ -140,6 +140,9 @@ void TDCCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
   using clbUtils = o2::calibration::Utils;
   const auto& payload = mWorker.getTDCParamUpd(); // new
   auto& info = mWorker.getCcdbObjectInfo();
+  const auto& opt = CalibParamZDC::Instance();
+  opt.updateCcdbObjectInfo(info);
+
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTDCParam>(&payload, &info); // new
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -151,7 +154,6 @@ void TDCCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
-  const auto& opt = CalibParamZDC::Instance();
   if (opt.rootOutput == true) {
     mOutputDir = opt.outputDir;
     if (mOutputDir.compare("/dev/null")) {

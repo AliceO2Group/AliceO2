@@ -36,6 +36,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   float strobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
   float strobeLengthCont = -1.;                       ///< if < 0, full ROF length - delay
   float strobeLengthTrig = 100.;                      ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  int roFrameBiasInBC = 0;                            ///< bias of the start of ROF wrt orbit start: t_irof = (irof*roFrameLengthInBC + roFrameBiasInBC)*BClengthMUS
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());

@@ -33,6 +33,9 @@ PHOSL1phaseSlot::PHOSL1phaseSlot()
     }
     mNorm[d] = 0.;
   }
+  for (int bc = 0; bc < 4; ++bc) {
+    mQcHisto[bc].fill(0);
+  }
 }
 PHOSL1phaseSlot::PHOSL1phaseSlot(const PHOSL1phaseSlot& other)
 {
@@ -92,6 +95,10 @@ void PHOSL1phaseSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<c
           float tcorr = t - timeshift * 25e-9;
           mMean[ddl][b] += tcorr;
           mRMS[ddl][b] += tcorr * tcorr;
+          int it = (tcorr + 200.e-9) / 4.e-9;
+          if (it >= 0 && it < 100) {
+            mQcHisto[b][ddl * 100 + it]++;
+          }
         }
         mNorm[ddl] += 1.;
       }
@@ -110,6 +117,14 @@ void PHOSL1phaseSlot::addMeanRms(std::array<std::array<float, 4>, 14>& sumMean,
     sumNorm[d] += mNorm[d];
   }
 }
+void PHOSL1phaseSlot::addQcHistos(std::array<unsigned int, 1400> (&sum)[4])
+{
+  for (int bc = 4; bc--;) {
+    for (int it = 1400; it--;) {
+      sum[bc][it] += mQcHisto[bc][it];
+    }
+  }
+}
 void PHOSL1phaseSlot::merge(const PHOSL1phaseSlot* prev)
 {
   for (int d = mDDL; d--;) {
@@ -118,6 +133,11 @@ void PHOSL1phaseSlot::merge(const PHOSL1phaseSlot* prev)
       mRMS[d][b] += prev->mRMS[d][b];
     }
     mNorm[d] += prev->mNorm[d];
+  }
+  for (int bc = 4; bc--;) {
+    for (int it = 1400; it--;) {
+      mQcHisto[bc][it] += prev->mQcHisto[bc][it];
+    }
   }
 }
 void PHOSL1phaseSlot::clear()
@@ -128,6 +148,9 @@ void PHOSL1phaseSlot::clear()
       mRMS[d][b] = 0;
     }
     mNorm[d] = 0.;
+  }
+  for (int bc = 4; bc--;) {
+    mQcHisto[bc].fill(0);
   }
 }
 
@@ -141,6 +164,9 @@ PHOSL1phaseCalibrator::PHOSL1phaseCalibrator()
       mRMS[d][b] = 0;
     }
     mNorm[d] = 0.;
+  }
+  for (int bc = 0; bc < 4; ++bc) {
+    mQcHisto[bc].fill(0);
   }
 }
 bool PHOSL1phaseCalibrator::hasEnoughData(const Slot& slot) const
@@ -157,6 +183,7 @@ void PHOSL1phaseCalibrator::finalizeSlot(Slot& slot)
   PHOSL1phaseSlot* ct = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
   ct->addMeanRms(mMean, mRMS, mNorm);
+  ct->addQcHistos(mQcHisto);
   ct->clear();
 }
 
@@ -232,6 +259,11 @@ void PHOSL1phaseCalibrator::endOfStream()
       bestB = iMinRMS;
     } else { // RMS are slimilar, chose closer to zero Mean
       bestB = iMinMean;
+    }
+    if (bestB != 0) { // copy the histogram content to final histo
+      for (int it = 100; it--;) {
+        mQcHisto[0][d * 100 + it] = mQcHisto[bestB][d * 100 + it];
+      }
     }
     mL1phase |= (bestB << (2 * d));
   }

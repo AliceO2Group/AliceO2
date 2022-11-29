@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ZDCWorkflow/EntropyDecoderSpec.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::framework;
 
@@ -30,11 +31,17 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setSupportBCShifts(true);
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    if (mCTFCoder.getBCShift()) {
+      long norb = mCTFCoder.getBCShift() / o2::constants::lhc::LHCMaxBunches;
+      mCTFCoder.setBCShiftOrbits(norb * o2::constants::lhc::LHCMaxBunches);
+      LOGP(info, "BCs 0 and 3563 will be corrected only for {} BCs (= {} integer orbits)", mCTFCoder.getBCShiftOrbits(), norb);
+    }
     return;
   }
 }
@@ -84,6 +91,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "ZDC", "CTFDATA", sspec, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "ZDC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("ZDC/Calib/CTFDictionary"));
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "zdc-entropy-decoder",

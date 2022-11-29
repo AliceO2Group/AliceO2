@@ -53,12 +53,10 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void adoptTimeFrame(TimeFrame& tf);
-  void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
   void setParameters(const VertexingParameters& verPar);
   void getGlobalConfiguration();
   VertexingParameters getVertParameters() const;
 
-  uint32_t getROFrame() const { return mROframe; }
   std::vector<Vertex> exportVertices();
   VertexerTraits* getTraits() const { return mTraits; };
 
@@ -82,9 +80,10 @@ class Vertexer
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
+  void printEpilog(std::function<void(std::string s)> logger, const float total);
 
  private:
-  std::uint32_t mROframe = 0;
+  std::uint32_t mTimeFrameCounter = 0;
 
   VertexerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class

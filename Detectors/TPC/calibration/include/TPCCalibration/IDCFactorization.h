@@ -327,6 +327,12 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \return returns TPC sides for which the factorization is performed
   const std::vector<Side>& getSides() const { return mSides; }
 
+  /// set the IDCZero object
+  void setIDCZero(const Side side, const IDCZero& idcZero) { mIDCZero[mSideIndex[side]] = idcZero; }
+
+  /// set the IDCOne
+  void setIDCOne(const Side side, const IDCOne& idcOne) { mIDCOne[mSideIndex[side]] = idcOne; }
+
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored
   const unsigned int mTimeFramesDeltaIDC{};                         ///< number of timeframes of which Delta IDCs are stored

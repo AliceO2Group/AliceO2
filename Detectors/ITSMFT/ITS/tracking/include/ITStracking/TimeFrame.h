@@ -157,13 +157,16 @@ class TimeFrame
   int getROfCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
 
   // Vertexer
-  void computeTrackletsScans();
+  void computeTrackletsScans(const int nThreads = 1);
   int& getNTrackletsROf(int tf, int combId);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
+  gsl::span<Tracklet> getFoundTracklets(int rofId, int combId);
   gsl::span<const MCCompLabel> getLabelsFoundTracklets(int rofId, int combId) const;
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
+  uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
+
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -244,6 +247,7 @@ class TimeFrame
   std::vector<std::vector<int>> mTrackletsIndexROf;
   std::vector<std::vector<MCCompLabel>> mLinesLabels;
   std::vector<std::vector<MCCompLabel>> mVerticesLabels;
+  std::array<uint32_t, 2> mTotalTracklets = {0, 0};
   // \Vertexer
 };
 
@@ -368,14 +372,14 @@ inline gsl::span<int> TimeFrame::getIndexTable(int rofId, int layer)
           static_cast<gsl::span<int>::size_type>(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)};
 }
 
-inline std::vector<Line>& TimeFrame::getLines(int tf)
+inline std::vector<Line>& TimeFrame::getLines(int rof)
 {
-  return mLines[tf];
+  return mLines[rof];
 }
 
-inline std::vector<ClusterLines>& TimeFrame::getTrackletClusters(int tf)
+inline std::vector<ClusterLines>& TimeFrame::getTrackletClusters(int rof)
 {
-  return mTrackletClusters[tf];
+  return mTrackletClusters[rof];
 }
 
 template <typename... T>
@@ -443,9 +447,9 @@ inline gsl::span<int> TimeFrame::getNTrackletsCluster(int rofId, int combId)
   return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROframesClusters[1][rofId + 1] - startIdx)};
 }
 
-inline int& TimeFrame::getNTrackletsROf(int tf, int combId)
+inline int& TimeFrame::getNTrackletsROf(int rof, int combId)
 {
-  return mNTrackletsPerROf[combId][tf];
+  return mNTrackletsPerROf[combId][rof];
 }
 
 inline bool TimeFrame::isRoadFake(int i) const
@@ -476,6 +480,15 @@ inline std::vector<std::vector<std::vector<int>>>& TimeFrame::getCellsNeighbours
 }
 
 inline std::vector<Road>& TimeFrame::getRoads() { return mRoads; }
+
+inline gsl::span<Tracklet> TimeFrame::getFoundTracklets(int rofId, int combId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<Tracklet>();
+  }
+  auto startIdx{mNTrackletsPerROf[combId][rofId]};
+  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+}
 
 inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int combId) const
 {

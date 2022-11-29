@@ -46,6 +46,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
           PUBLIC_LINK_LIBRARIES O2::GPUO2Interface
                                 O2::GPUWorkflowHelper
                                 O2::DataFormatsGlobalTracking
+                                O2::TPCCalibration
                                 O2::TPCFastTransformation
                                 O2::TRDBase
                                 O2::TOFBase

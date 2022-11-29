@@ -49,8 +49,10 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("myresultfile"));
 
   // test jsonString reader
+  std::string rdn("./");
   std::string dfn("");
   std::string fmode("");
+  float mfs = -1.;
   int ntf = -1;
 
   dh = DataHeader(DataDescription{"DUE"},
@@ -59,7 +61,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptors": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
 
   dod.reset();
-  std::tie(dfn, fmode, ntf) = dod.readJsonString(jsonString);
+  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJsonString(jsonString);
   //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
@@ -105,7 +107,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   jf.close();
 
   dod.reset();
-  std::tie(dfn, fmode, ntf) = dod.readJson(jsonFile);
+  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJson(jsonFile);
   dod.setFilenameBase("AnalysisResults");
   //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);

@@ -418,11 +418,9 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
 
   // Create metadata for database object
-  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
-  if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
-    metadata.insert({"runNumber", std::to_string(this->mRunNumber)});
-  }
-  std::string path("ITS/DCS_CONFIG/");
+  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
+
+  std::string path("ITS/Calib/DCS_CONFIG/");
   const char* filename = "dcs_config.root";
   o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);

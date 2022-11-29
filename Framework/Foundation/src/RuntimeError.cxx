@@ -154,7 +154,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       if (stackTrace[i] && hasExe) {
         char syscom[4096 + PATH_MAX];
 
-        snprintf(syscom, 4096, "addr2line %p -a -p -s -f -e %.*s 2>/dev/null | c++filt -r ", stackTrace[i], exeSize, exe); // last parameter is the name of this app
+        snprintf(syscom, 4096, "addr2line %p -p -s -f -e %.*s 2>/dev/null | c++filt -r ", stackTrace[i], exeSize, exe); // last parameter is the name of this app
 
         FILE* fp;
         char path[1024];

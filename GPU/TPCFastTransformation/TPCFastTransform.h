@@ -200,6 +200,7 @@ class TPCFastTransform : public FlatObject
   GPUd() float convZtoTimeInTimeFrame(int slice, float z, float maxTimeBin) const;
   GPUd() float convDeltaTimeToDeltaZinTimeFrame(int slice, float deltaTime) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const;
+  GPUd() float convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ) const;
   GPUd() float convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const;
   GPUd() float convVertexTimeToZOffset(int slice, float vertexTime, float maxTimeBin) const;
 
@@ -564,6 +565,11 @@ GPUdi() float TPCFastTransform::convDeltaTimeToDeltaZinTimeFrame(int slice, floa
 {
   float deltaZ = deltaTime * mVdrift;
   return slice < getGeometry().getNumberOfSlicesA() ? -deltaZ : deltaZ;
+}
+
+GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrameAbs(float deltaZ) const
+{
+  return deltaZ / mVdrift;
 }
 
 GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const

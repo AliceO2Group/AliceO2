@@ -122,6 +122,9 @@ int checkresult()
   // We can put more or less complex things
   // here.
   auto& conf = o2::conf::SimConfig::Instance();
+  if (!conf.writeToDisc()) {
+    return 0;
+  }
   // easy check: see if we have number of entries in output tree == number of events asked
   std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
@@ -626,11 +629,12 @@ int main(int argc, char* argv[])
     // later stages (digitization).
 
     auto& conf = o2::conf::SimConfig::Instance();
-    // easy check: see if we have number of entries in output tree == number of events asked
-    std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
-    std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
-    o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
-
+    if (conf.writeToDisc()) {
+      // easy check: see if we have number of entries in output tree == number of events asked
+      std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
+      std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
+      o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
+    }
     LOG(info) << "SIMULATION RETURNED SUCCESFULLY";
   }
 

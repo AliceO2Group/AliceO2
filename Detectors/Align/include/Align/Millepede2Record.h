@@ -90,6 +90,7 @@ class Millepede2Record
   float mQ2Pt = 0;                           // q/pt at ref point
   float mTgl = 0;                            // dip angle at ref point
   //
+  int16_t* mMeasType = nullptr; //[mNResid] measurement type (0,1: Y, Z, 10+j : j-th material correction param)
   int16_t* mNDLoc = nullptr; //[mNResid] number of non-0 local derivatives per residual
   int* mNDGlo = nullptr;     //[mNResid] number of non-0 global derivatives per residual
   int* mVolID = nullptr;     //[mNResid] volume id + 1 (0 - not a volume)
@@ -119,7 +120,7 @@ class Millepede2Record
     return mBits & b;
   }
 
-  ClassDefNV(Millepede2Record, 1);
+  ClassDefNV(Millepede2Record, 2);
 };
 } // namespace align
 } // namespace o2

@@ -35,19 +35,19 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   CTPRunScalers scl;
   CTPRunManager mng;
   mng.setCCDBHost(ccdbHost);
-  // mng.setCCDBPathScalers("CTP/Scalers");
   bool ok;
   scl = mng.getScalersFromCCDB(time, srun, ok);
   if (ok == 1) {
     scl.convertRawToO2();
-    // scl.printStream(std::cout);
-    //  scl.printRates();
+    scl.printO2(std::cout);
+    scl.printFromZero(std::cout);
     scl.printIntegrals();
     ctpcfg = mng.getConfigFromCCDB(time, srun);
-    // std::vector<int> clsses;
-    // clsses = ctpcfg.getTriggerClassList();
-    // std::cout << clsses.size() << std::endl;
-    // for(auto const& i : clsses) std::cout << i << std::endl;
+    scl.printRates();
+    //  std::vector<int> clsses;
+    //  clsses = ctpcfg.getTriggerClassList();
+    //  std::cout << clsses.size() << std::endl;
+    //  for(auto const& i : clsses) std::cout << i << std::endl;
   } else {
     std::cout << "Can not find run, please, check parameters" << std::endl;
   }

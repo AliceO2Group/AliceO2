@@ -112,9 +112,10 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
-DeviceSpec const&getRunningDevice(RunningDeviceRef const& running, ServiceRegistryRef const& services)
+DeviceSpec const& getRunningDevice(RunningDeviceRef const& running, ServiceRegistryRef const& services)
 {
-  return services.get<o2::framework::RunningWorkflowInfo const>().devices[running.index];
+  auto& devices = services.get<o2::framework::RunningWorkflowInfo const>().devices;
+  return devices[running.index];
 }
 
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
@@ -146,7 +147,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
 
   ServiceRegistryRef ref{mServiceRegistry};
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
-  auto &state = ref.get<DeviceState>();
+  auto& state = ref.get<DeviceState>();
   assert(state.loop);
   int res = uv_async_init(state.loop, mAwakeHandle, on_communication_requested);
   mAwakeHandle->data = &state;
@@ -171,10 +172,9 @@ void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
   auto* task = (TaskStreamInfo*)handle->data;
-  auto ref = ServiceRegistryRef{*task->registry};
-  auto& context = ref.get<DataProcessorContext>();
-  DataProcessingDevice::doPrepare(context);
-  DataProcessingDevice::doRun(context);
+  auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  DataProcessingDevice::doPrepare(ref);
+  DataProcessingDevice::doRun(ref);
   //  FrameMark;
 }
 
@@ -345,7 +345,7 @@ void DataProcessingDevice::Init()
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
     context.statefulProcess = context.init(initContext);
   }
-  auto& state= ref.get<DeviceState>();
+  auto& state = ref.get<DeviceState>();
   state.inputChannelInfos.resize(spec.inputChannels.size());
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
@@ -375,9 +375,9 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   LOG(debug) << "Signal " << signum << " received.";
   auto* registry = (ServiceRegistry*)handle->data;
   ServiceRegistryRef ref{*registry};
-  auto &state = ref.get<DeviceState>();
-  auto &quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
-  auto &stats = ref.get<DataProcessingStats>();
+  auto& state = ref.get<DeviceState>();
+  auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
+  auto& stats = ref.get<DataProcessingStats>();
   state.loopReason |= DeviceState::SIGNAL_ARRIVED;
   size_t ri = 0;
   while (ri != quotaEvaluator.mOffers.size()) {
@@ -894,7 +894,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   /// FIXME: move erro handling to a service?
   if (context.error != nullptr) {
     context.errorHandling = [&errorCallback = context.error,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
@@ -908,7 +908,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   } else {
     context.errorHandling = [&errorPolicy = mProcessingPolicies.error,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
@@ -980,7 +980,7 @@ void DataProcessingDevice::Reset()
 void DataProcessingDevice::Run()
 {
   ServiceRegistryRef ref{mServiceRegistry};
-  auto &state = ref.get<DeviceState>();
+  auto& state = ref.get<DeviceState>();
   state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
@@ -1070,7 +1070,7 @@ void DataProcessingDevice::Run()
         VariableContextHelpers::getTimeslice(variables);
         forwardInputs(registry, slot, dropped, oldestOutputInfo, false, true);
       };
-      auto &relayer = ref.get<DataRelayer>();
+      auto& relayer = ref.get<DataRelayer>();
       relayer.prunePending(onDrop);
       auto& queue = ref.get<AsyncQueue>();
       auto oldestPossibleTimeslice = relayer.getOldestPossibleOutput();
@@ -1117,6 +1117,7 @@ void DataProcessingDevice::Run()
       if (taskInfo.running) {
         continue;
       }
+      // Stream 0 is for when we run in
       streamRef.index = ti;
     }
     using o2::monitoring::Metric;
@@ -1134,7 +1135,7 @@ void DataProcessingDevice::Run()
 
       static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
         ServiceRegistryRef ref{registry};
-        auto &monitoring = ref.get<Monitoring>();
+        auto& monitoring = ref.get<Monitoring>();
         monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
         monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
         monitoring.flushBuffer();
@@ -1179,10 +1180,10 @@ void DataProcessingDevice::Run()
 
 /// We drive the state loop ourself so that we will be able to support
 /// non-data triggers like those which are time based.
-void DataProcessingDevice::doPrepare(DataProcessorContext& context)
+void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 {
   ZoneScopedN("DataProcessingDevice::doPrepare");
-  ServiceRegistryRef ref{*context.registry};
+  auto& context = ref.get<DataProcessorContext>();
   ref.get<DataProcessingStats>().beginIterationTimestamp = uv_hrtime() / 1000000;
 
   *context.wasActive = false;
@@ -1253,7 +1254,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       // Remember to flush data if we are not running
       // and there is some message pending.
       if (info.parts.Size()) {
-        DataProcessingDevice::handleData(context, info);
+        DataProcessingDevice::handleData(ref, info);
       }
       LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, (int)info.state, info.parts.Size());
       continue;
@@ -1302,7 +1303,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       }
 
       if (info.parts.Size() >= 0) {
-        DataProcessingDevice::handleData(context, info);
+        DataProcessingDevice::handleData(ref, info);
         // Receiving data counts as activity now, so that
         // We can make sure we process all the pending
         // messages without hanging on the uv_run.
@@ -1321,18 +1322,17 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   }
 }
 
-void DataProcessingDevice::doRun(DataProcessorContext& context)
+void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 {
-  auto switchState = [&registry = context.registry](StreamingState newState) {
-    ServiceRegistryRef ref{*registry};
-    auto &state = ref.get<DeviceState>();
+  auto& context = ref.get<DataProcessorContext>();
+  auto switchState = [ref](StreamingState newState) {
+    auto& state = ref.get<DeviceState>();
     LOG(detail) << "New state " << (int)newState << " old state " << (int)state.streaming;
     state.streaming = newState;
     ref.get<ControlService>().notifyStreamingState(state.streaming);
   };
-  ServiceRegistryRef ref{*context.registry};
-  auto &state = ref.get<DeviceState>();
-  auto &spec = ref.get<DeviceSpec const>();
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
 
   if (state.streaming == StreamingState::Idle) {
     *context.wasActive = false;
@@ -1341,19 +1341,18 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 
   context.completed.clear();
   context.completed.reserve(16);
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, context.completed);
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
   DanglingContext danglingContext{*context.registry};
 
   context.registry->preDanglingCallbacks(danglingContext);
   if (*context.wasActive == false) {
-    ServiceRegistryRef ref{*context.registry};
     ref.get<CallbackService>()(CallbackService::Id::Idle);
   }
   auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
   context.completed.clear();
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, context.completed);
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
 
   context.registry->postDanglingCallbacks(danglingContext);
 
@@ -1368,7 +1367,6 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
-    ServiceRegistryRef ref{*context.registry};
     ref.get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
@@ -1376,8 +1374,8 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     /// Besides flushing the queues we must make sure we do not have only
     /// timers as they do not need to be further processed.
     bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
-    auto &relayer = ref.get<DataRelayer>();
-    while (DataProcessingDevice::tryDispatchComputation(context, context.completed) && hasOnlyGenerated == false) {
+    auto& relayer = ref.get<DataRelayer>();
+    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && hasOnlyGenerated == false) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
@@ -1434,8 +1432,9 @@ struct WaitBackpressurePolicy {
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
 /// boilerplate which the user does not need to care about at top level.
-void DataProcessingDevice::handleData(DataProcessorContext& context, InputChannelInfo& info)
+void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& info)
 {
+  auto& context = ref.get<DataProcessorContext>();
   ZoneScopedN("DataProcessingDevice::handleData");
 
   enum struct InputType : int {
@@ -1542,14 +1541,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return results;
   };
 
-  auto reportError = [&registry = *context.registry](const char* message) {
-    ServiceRegistryRef ref{registry};
+  auto reportError = [ref](const char* message) {
     ref.get<DataProcessingStats>().errorCount++;
   };
 
-  auto handleValidMessages = [&info, &context = context, &reportError](std::vector<InputInfo> const& inputInfos) {
-    auto ref = ServiceRegistryRef{*context.registry};
-    auto &relayer = ref.get<DataRelayer>();
+  auto handleValidMessages = [&info, ref, &reportError](std::vector<InputInfo> const& inputInfos) {
+    auto& relayer = ref.get<DataRelayer>();
     static WaitBackpressurePolicy policy;
     auto& parts = info.parts;
     // We relay execution to make sure we have a complete set of parts
@@ -1589,23 +1586,21 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
             nPayloadsPerHeader = 1;
             ii += (nMessages / 2) - 1;
           }
-          auto onDrop = [&registry = *context.registry](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+          auto onDrop = [ref](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
             LOGP(debug, "Dropping message from slot {}. Forwarding as needed. Timeslice {}", slot.index, oldestOutputInfo.timeslice.value);
-            ServiceRegistryRef ref{registry};
             ref.get<AsyncQueue>();
             ref.get<DecongestionService>();
             ref.get<DataRelayer>();
             // Get the current timeslice for the slot.
             auto& variables = ref.get<TimesliceIndex>().getVariablesForSlot(slot);
             VariableContextHelpers::getTimeslice(variables);
-            forwardInputs(registry, slot, dropped, oldestOutputInfo, false, true);
+            forwardInputs(ref, slot, dropped, oldestOutputInfo, false, true);
           };
           auto relayed = relayer.relay(parts.At(headerIndex)->GetData(),
                                        &parts.At(headerIndex),
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
-          ServiceRegistryRef ref{*context.registry};
           switch (relayed) {
             case DataRelayer::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
@@ -1633,6 +1628,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         } break;
         case InputType::SourceInfo: {
           LOGP(detail, "Received SourceInfo");
+          auto &context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1653,6 +1649,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           if (hasBackpressure) {
             break;
           }
+          auto &context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1675,8 +1672,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     /// Notice we do so only if the incoming data has been fully processed.
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
+      auto &context = ref.get<DataProcessorContext>();
       context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-      ServiceRegistryRef ref{*context.registry};
       ref.get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
     }
@@ -1745,8 +1742,9 @@ void update_maximum(std::atomic<T>& maximum_value, T const& value) noexcept
 }
 } // namespace
 
-bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed)
+bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::vector<DataRelayer::RecordAction>& completed)
 {
+  auto& context = ref.get<DataProcessorContext>();
   ZoneScopedN("DataProcessingDevice::tryDispatchComputation");
   LOGP(debug, "DataProcessingDevice::tryDispatchComputation");
   // This is the actual hidden state for the outer loop. In case we decide we
@@ -1759,9 +1757,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // in the cache. This could be controlled from the outside e.g. by waiting
   // for a few sets of inputs to arrive before we actually dispatch the
   // computation, however this can be defined at a later stage.
-  auto canDispatchSomeComputation = [&completed,
-                                     registry = context.registry]() -> bool {
-    ServiceRegistryRef ref{*registry};
+  auto canDispatchSomeComputation = [&completed, ref]() -> bool {
     ref.get<DataRelayer>().getReadyToProcess(completed);
     return completed.empty() == false;
   };
@@ -1770,20 +1766,16 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [&completed,
-                          &registry = context.registry]() -> std::vector<DataRelayer::RecordAction> {
-    ServiceRegistryRef ref{*registry};
-    auto &stats = ref.get<DataProcessingStats>();
-    auto &relayer = ref.get<DataRelayer>();
+  auto getReadyActions = [&completed, ref]() -> std::vector<DataRelayer::RecordAction> {
+    auto& stats = ref.get<DataProcessingStats>();
+    auto& relayer = ref.get<DataRelayer>();
     stats.pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
     stats.incomplete = completed.empty() ? 1 : 0;
     return completed;
   };
 
   //
-  auto getInputSpan = [registry = context.registry,
-                       &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
-    ServiceRegistryRef ref{*registry};
+  auto getInputSpan = [ref, &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
     auto& relayer = ref.get<DataRelayer>();
     if (consume) {
       currentSetOfInputs = relayer.consumeAllInputsForTimeslice(slot);
@@ -1815,8 +1807,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return InputSpan{getter, nofPartsGetter, currentSetOfInputs.size()};
   };
 
-  auto markInputsAsDone = [&registry = context.registry](TimesliceSlot slot) -> void {
-    ServiceRegistryRef ref{*registry};
+  auto markInputsAsDone = [ref](TimesliceSlot slot) -> void {
     auto& relayer = ref.get<DataRelayer>();
     relayer.updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
   };
@@ -1825,17 +1816,27 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&registry = context.registry](TimesliceSlot i) -> void {
-    ServiceRegistryRef ref{*registry};
-    auto &relayer = ref.get<DataRelayer>();
-    auto &timingInfo = ref.get<TimingInfo>();
+  auto prepareAllocatorForCurrentTimeSlice = [ref](TimesliceSlot i) -> void {
+    auto& dataProcessorContext = ref.get<DataProcessorContext>();
+    auto& relayer = ref.get<DataRelayer>();
+    auto& timingInfo = ref.get<TimingInfo>();
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer.getTimesliceForSlot(i);
+
     timingInfo.timeslice = timeslice.value;
     timingInfo.tfCounter = relayer.getFirstTFCounterForSlot(i);
     timingInfo.firstTForbit = relayer.getFirstTFOrbitForSlot(i);
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
+    timingInfo.globalRunNumberChanged = dataProcessorContext.lastRunNumberProcessed <= timingInfo.runNumber;
+    // We report wether or not this timing info refers to a new Run.
+    if (timingInfo.globalRunNumberChanged) {
+      dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
+    }
+    // FIXME: for now there is only one stream, however we
+    //        should calculate this correctly once we finally get the
+    //        the StreamContext in.
+    timingInfo.streamRunNumberChanged = timingInfo.globalRunNumberChanged;
   };
 
   // When processing them, timers will have to be cleaned up
@@ -1884,10 +1885,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 #endif
 
-  auto switchState = [&registry = context.registry](StreamingState newState) {
-    ServiceRegistryRef ref{*registry};
-    auto &control = ref.get<ControlService>();
-    auto &state = ref.get<DeviceState>();
+  auto switchState = [ref](StreamingState newState) {
+    auto& control = ref.get<ControlService>();
+    auto& state = ref.get<DeviceState>();
     state.streaming = newState;
     control.notifyStreamingState(state.streaming);
   };
@@ -1897,9 +1897,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return false;
   }
 
-  auto postUpdateStats = [registry = context.registry](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
-    ServiceRegistryRef ref{*registry};
-    auto & stats = ref.get<DataProcessingStats>();
+  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+    auto& stats = ref.get<DataProcessingStats>();
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -1915,9 +1914,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 
-  auto preUpdateStats = [&registry = context.registry](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
-    ServiceRegistryRef ref{*registry};
-    auto &stats = ref.get<DataProcessingStats>();
+  auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
+    auto& stats = ref.get<DataProcessingStats>();
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -1930,9 +1928,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
   // This is the main dispatching loop
   LOGP(debug, "Processing actions:");
-  ServiceRegistryRef ref{*context.registry};
-  auto &state = ref.get<DeviceState>();
-  auto &spec = ref.get<DeviceSpec const>();
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
 
   for (auto action : getReadyActions()) {
     LOGP(debug, "  Begin action");
@@ -1954,22 +1951,21 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
                          action.op == CompletionPolicy::CompletionOp::Discard;
     InputSpan span = getInputSpan(action.slot, shouldConsume);
-    auto &spec = ref.get<DeviceSpec const>();
+    auto& spec = ref.get<DeviceSpec const>();
     InputRecord record{spec.inputs,
                        span,
                        *context.registry};
-    ProcessingContext processContext{record, *context.registry, ref.get<DataAllocator>()};
+    ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
       ZoneScopedN("service pre processing");
       context.registry->preProcessingCallbacks(processContext);
     }
-    ServiceRegistryRef ref{*context.registry};
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       LOGP(debug, "  - Action is to Discard");
       context.registry->postDispatchingCallbacks(processContext);
       if (spec.forwards.empty() == false) {
         auto& timesliceIndex = ref.get<TimesliceIndex>();
-        forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
+        forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
         continue;
       }
     }
@@ -1983,7 +1979,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     if (context.canForwardEarly && hasForwards && consumeSomething) {
       LOGP(debug, "  - Early forwarding");
       auto& timesliceIndex = ref.get<TimesliceIndex>();
-      forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
+      forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     markInputsAsDone(action.slot);
 
@@ -1992,17 +1988,16 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
 
-    auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
-      ServiceRegistryRef ref{*context.registry};
-      auto &state = ref.get<DeviceState>();
-      auto &spec = ref.get<DeviceSpec const>();
+    auto runNoCatch = [&context, ref, &processContext](DataRelayer::RecordAction& action) mutable {
+      auto& state = ref.get<DeviceState>();
+      auto& spec = ref.get<DeviceSpec const>();
       if (state.quitRequested == false) {
         {
           ZoneScopedN("service post processing");
           // Callbacks from services
           context.registry->preProcessingCallbacks(processContext);
           // Callbacks from users
-          ref.get<CallbackService>()(CallbackService::Id::PreProcessing, ServiceRegistryRef{*(context.registry)}, (int)action.op);
+          ref.get<CallbackService>()(CallbackService::Id::PreProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
         }
         if (context.statefulProcess) {
           ZoneScopedN("statefull process");
@@ -2022,7 +2017,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         {
           ZoneScopedN("service post processing");
-          ref.get<CallbackService>()(CallbackService::Id::PostProcessing, ServiceRegistryRef{*(context.registry)}, (int)action.op);
+          ref.get<CallbackService>()(CallbackService::Id::PostProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
           context.registry->postProcessingCallbacks(processContext);
         }
       }
@@ -2064,12 +2059,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       context.registry->postDispatchingCallbacks(processContext);
-      ref.get<CallbackService>()(CallbackService::Id::DataConsumed, *(context.registry));
+      ref.get<CallbackService>()(CallbackService::Id::DataConsumed, o2::framework::ServiceRegistryRef{ref});
     }
     if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
       LOGP(debug, "Late forwarding");
       auto& timesliceIndex = ref.get<TimesliceIndex>();
-      forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
+      forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     context.registry->postForwardingCallbacks(processContext);
     if (action.op == CompletionPolicy::CompletionOp::Consume) {

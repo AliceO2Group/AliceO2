@@ -11,7 +11,7 @@
 
 #include "MCHSimulation/Detector.h"
 #include "MCHGeometryCreator/Geometry.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "Stepper.h"
 #include "TGeoManager.h"
 #include <sstream>

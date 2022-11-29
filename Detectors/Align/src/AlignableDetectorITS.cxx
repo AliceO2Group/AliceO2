@@ -20,6 +20,7 @@
 #include "Align/Controller.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITStracking/IOUtils.h"
@@ -95,7 +96,7 @@ void AlignableDetectorITS::defineVolumes()
     if (ich != chID) {
       throw std::runtime_error(fmt::format("mismatch between counter {} and composed {} chip IDs", ich, chID));
     }
-    addVolume(sens = new AlignableSensorITS(o2::base::GeometryManager::getSymbolicName(mDetID, ich), chID, getSensLabel(chID), mController));
+    addVolume(sens = new AlignableSensorITS(o2::base::GeometryManager::getSymbolicName(mDetID, ich), chID, getSensLabel(ich), mController));
     int lay = 0, hba, sta = 0, ssta = 0, modd = 0, chip = 0;
     geom->getChipId(chID, lay, hba, sta, ssta, modd, chip);
     AlignableVolume* parVol = sym2vol[modd < 0 ? geom->composeSymNameStave(lay, hba, sta) : geom->composeSymNameModule(lay, hba, sta, ssta, modd)];
@@ -118,33 +119,48 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
   mNPoints = 0;
   auto algTrack = mController->getAlgTrack();
   auto recoData = mController->getRecoContainer();
-  const auto tracks = recoData->getITSTracks();
-  if (tracks.empty()) {
-    return -1; // source not loaded?
-  }
-  const auto& track = tracks[gid.getIndex()];
-  const auto& clusIdx = recoData->getITSTracksClusterRefs();
-  // do we want to apply some cuts?
-  int clEntry = track.getFirstClusterEntry();
-  mFirstPoint = algTrack->getNPoints();
-  for (int icl = track.getNumberOfClusters(); icl--;) {
-    const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
-    auto* sensor = getSensor(clus.getSensorID());
+
+  auto procClus = [this, &algTrack](const ClusterD& clus) {
+    auto* sensor = this->getSensor(clus.getSensorID());
     auto& pnt = algTrack->addDetectorPoint();
     const auto* sysE = sensor->getAddError(); // additional syst error
     pnt.setYZErrTracking(clus.getSigmaY2() + sysE[0] * sysE[0], clus.getSigmaYZ(), clus.getSigmaZ2() + sysE[1] * sysE[1]);
-    if (getUseErrorParam()) { // errors will be calculated just before using the point in the fit, using track info
+    if (this->getUseErrorParam()) { // errors will be calculated just before using the point in the fit, using track info
       pnt.setNeedUpdateFromTrack();
     }
     pnt.setXYZTracking(clus.getX(), clus.getY(), clus.getZ());
     pnt.setSensor(sensor);
     pnt.setAlphaSens(sensor->getAlpTracking());
     pnt.setXSens(sensor->getXTracking());
-    pnt.setDetID(mDetID);
+    pnt.setDetID(this->mDetID);
     pnt.setSID(sensor->getSID());
     pnt.setContainsMeasurement();
     pnt.init();
     mNPoints++;
+  };
+  if (gid.getSource() == GIndex::ITS) {
+    const auto tracks = recoData->getITSTracks();
+    if (tracks.empty()) {
+      return -1; // source not loaded?
+    }
+    const auto& track = tracks[gid.getIndex()];
+    const auto& clusIdx = recoData->getITSTracksClusterRefs();
+    // do we want to apply some cuts?
+    int clEntry = track.getFirstClusterEntry();
+    mFirstPoint = algTrack->getNPoints();
+    for (int icl = track.getNumberOfClusters(); icl--;) {
+      const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
+      procClus(clus);
+    }
+  } else { // ITSAB
+    const auto& trkITSABref = recoData->getITSABRefs()[gid.getIndex()];
+    const auto& ABTrackClusIdx = recoData->getITSABClusterRefs();
+    int nCl = trkITSABref.getNClusters();
+    int clEntry = trkITSABref.getFirstEntry();
+    for (int icl = 0; icl < nCl; icl++) { // clusters are stored from inner to outer layers
+      const auto& clus = mITSClustersArray[ABTrackClusIdx[clEntry + icl]];
+      procClus(clus);
+    }
   }
   return mNPoints;
 }
@@ -157,6 +173,7 @@ bool AlignableDetectorITS::prepareDetectorData()
   const auto clusITS = recoData->getITSClusters();
   const auto patterns = recoData->getITSClustersPatterns();
   auto pattIt = patterns.begin();
+  mITSClustersArray.clear();
   mITSClustersArray.reserve(clusITS.size());
 
   for (auto& c : clusITS) {

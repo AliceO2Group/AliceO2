@@ -14,6 +14,7 @@
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -36,6 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto enableRootInp = configcontext.options().get<bool>("enable-root-input");
 
   WorkflowSpec specs;

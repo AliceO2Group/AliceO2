@@ -41,12 +41,24 @@ class V11Geometry : public TObject
 {
 
  public:
-  V11Geometry() : mDebug(){};
+  V11Geometry() : mDebug(), mDetName("ITS"){};
 
-  V11Geometry(Int_t debug) : mDebug(debug){};
+  V11Geometry(Int_t debug, const char* name = "ITS") : mDebug(debug), mDetName(name){};
 
   ~V11Geometry()
     override = default;
+
+  /// Set detector name
+  void SetDetName(const char* name)
+  {
+    mDetName = name;
+  }
+
+  /// Get detector name
+  const char* GetDetName() const
+  {
+    return mDetName;
+  }
 
   /// Sets the debug flag for debugging output
   void setDebug(Int_t level = 5)
@@ -451,6 +463,7 @@ class V11Geometry : public TObject
   Double_t angleForRoundedCorners1(Double_t dx, Double_t dy, Double_t sdr) const;
 
   Int_t mDebug;                     //! Debug flag/level
+  const char* mDetName;             //! Detector name
   ClassDefOverride(V11Geometry, 1); // Base class for ITS v11 geometry
 };
 } // namespace its

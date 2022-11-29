@@ -17,7 +17,6 @@
 #include "ITSSimulation/V3Services.h"
 #include "ITSSimulation/V11Geometry.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
 
 #include <fairlogger/Logger.h> // for LOG
@@ -57,6 +56,11 @@ ClassImp(V3Services);
 
 V3Services::V3Services()
   : V11Geometry()
+{
+}
+
+V3Services::V3Services(const char* name)
+  : V11Geometry(0, name)
 {
 }
 
@@ -555,8 +559,8 @@ void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const T
   TGeoCompositeShape* stepASh = new TGeoCompositeShape(Form("stepBoxASh%d:stepBoxATr%d-stepPconASh%d", iLay, iLay, iLay));
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
+  TGeoMedium* medPEEK = mgr->GetMedium(Form("%s_PEEKCF30$", GetDetName()));
 
   TGeoVolume* coneABasisVol = new TGeoVolume(Form("ConeABasis%d", iLay), coneABasisSh, medCarbon);
   coneABasisVol->SetFillColor(kBlue);
@@ -785,8 +789,8 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   TGeoCompositeShape* stepCSh = new TGeoCompositeShape(Form("stepBoxCSh%d:stepBoxCTr%d-stepPconCSh%d", iLay, iLay, iLay));
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
+  TGeoMedium* medPEEK = mgr->GetMedium(Form("%s_PEEKCF30$", GetDetName()));
 
   TGeoVolume* endWheelCVol = new TGeoVolume(Form("EndWheelCBasis%d", iLay), endWheelCSh, medCarbon);
   endWheelCVol->SetFillColor(kBlue);
@@ -925,8 +929,8 @@ TGeoVolume* V3Services::ibCyssCylinder(const TGeoManager* mgr)
   TGeoTubeSeg* cyssInnerCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phimin, phimax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = mgr->GetMedium("ITS_F6151B05M$");
-  TGeoMedium* medRohacell = mgr->GetMedium("ITS_ROHACELL$");
+  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_F6151B05M$", GetDetName()));
+  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
 
   TGeoVolume* cyssOuterCylVol = new TGeoVolume("IBCYSSCylinder", cyssOuterCylSh, medPrepreg);
   cyssOuterCylVol->SetLineColor(35);
@@ -1047,8 +1051,8 @@ TGeoVolume* V3Services::ibCyssCone(const TGeoManager* mgr)
   cyssConeFoamSh->DefineSection(4, zlen1, rmin, rmax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = mgr->GetMedium("ITS_F6151B05M$");
-  TGeoMedium* medRohacell = mgr->GetMedium("ITS_ROHACELL$");
+  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_F6151B05M$", GetDetName()));
+  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
 
   TGeoVolume* cyssConeVol = new TGeoVolume("IBCYSSCone", cyssConeSh, medPrepreg);
   cyssConeVol->SetLineColor(35);
@@ -1262,7 +1266,7 @@ TGeoVolume* V3Services::ibCyssFlangeSideA(const TGeoManager* mgr)
   TGeoCompositeShape* cyssFlangeASh = new TGeoCompositeShape(cyssFlangeAComposite.Data());
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medAlu = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medAlu = mgr->GetMedium(Form("%s_ALUMINUM$", GetDetName()));
 
   TGeoVolume* cyssFlangeAVol = new TGeoVolume("IBCYSSFlangeA", cyssFlangeASh, medAlu);
   cyssFlangeAVol->SetLineColor(kCyan);
@@ -1579,7 +1583,7 @@ TGeoVolume* V3Services::ibCyssFlangeSideC(const TGeoManager* mgr)
   TGeoCompositeShape* cyssFlangeCSh = new TGeoCompositeShape(cyssFlangeCComposite.Data());
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medAlu = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medAlu = mgr->GetMedium(Form("%s_ALUMINUM$", GetDetName()));
 
   TGeoVolume* cyssFlangeCVol = new TGeoVolume("IBCYSSFlangeC", cyssFlangeCSh, medAlu);
   cyssFlangeCVol->SetLineColor(kCyan);
@@ -1657,7 +1661,7 @@ void V3Services::obEndWheelSideA(const Int_t iLay, TGeoVolume* mother, const TGe
   TGeoBBox* shelfSh = new TGeoBBox(xlen / 2, ylen / 2, zlen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   Int_t nLay = iLay + sNumberInnerLayers;
 
@@ -1821,7 +1825,7 @@ void V3Services::mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   TGeoBBox* shelfSh = new TGeoBBox(xlen / 2, ylen / 2, zlen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   Int_t nLay = iLay + sNumberInnerLayers;
 
@@ -1988,7 +1992,7 @@ void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   }
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   Int_t nLay = iLay + sNumberInnerLayers + sNumberMiddlLayers;
 
@@ -2128,7 +2132,7 @@ void V3Services::obConeSideA(TGeoVolume* mother, const TGeoManager* mgr)
   obConeRibSh->DefineSection(1, sOBConeAThickAll);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   TGeoVolume* obConeVol = new TGeoVolume("OBConeSideA", obConeSh, medCarbon);
   obConeVol->SetFillColor(kBlue);
@@ -2226,7 +2230,7 @@ void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
   } // for (j = 0,1)
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   TGeoVolume *obTrayVol[2], *obTrayRibVol[2];
 
@@ -2380,7 +2384,7 @@ void V3Services::obConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
   obConeRibSh->DefineSection(1, sOBConeCThickAll);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   TGeoVolume* obConeVol = new TGeoVolume("OBConeSideC", obConeSh, medCarbon);
   obConeVol->SetFillColor(kBlue);
@@ -2495,7 +2499,7 @@ void V3Services::obCYSS11(TGeoVolume* mother, const TGeoManager* mgr)
   TGeoBBox* obCyss20Sh = new TGeoBBox(sOBCYSS20Width / 2, sOBCYSS20Height / 2, sOBCYSS20Zlen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
 
   TGeoVolume* obCyss14Vol = new TGeoVolume("OBCYSS14", obCyss14Sh, medCarbon);
   obCyss14Vol->SetFillColor(kBlue);
@@ -2592,8 +2596,8 @@ void V3Services::ibConvWire(TGeoVolume* mother, const TGeoManager* mgr)
   TGeoCompositeShape* ibWireOutSuppSh = ibConvWireOutSupport();
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medAl = mgr->GetMedium("ITS_ALUMINUM$");
-  TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
+  TGeoMedium* medAl = mgr->GetMedium(Form("%s_ALUMINUM$", GetDetName()));
+  TGeoMedium* medTungsten = mgr->GetMedium(Form("%s_TUNGSTEN$", GetDetName()));
 
   TGeoVolume* ibWireVol = new TGeoVolume("IBGammaConvWire", ibWireSh, medTungsten);
   ibWireVol->SetFillColor(kGray);
@@ -3021,9 +3025,9 @@ void V3Services::obConvWire(TGeoVolume* mother, const TGeoManager* mgr)
   TGeoTube* obWireScrewSh = new TGeoTube(0, sOBGWireScrewDout / 2, sOBGWireScrewLen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
-  TGeoMedium* medTitanium = mgr->GetMedium("ITS_TITANIUM$");
-  TGeoMedium* medBrass = mgr->GetMedium("ITS_BRASS$");
+  TGeoMedium* medTungsten = mgr->GetMedium(Form("%s_TUNGSTEN$", GetDetName()));
+  TGeoMedium* medTitanium = mgr->GetMedium(Form("%s_TITANIUM$", GetDetName()));
+  TGeoMedium* medBrass = mgr->GetMedium(Form("%s_BRASS$", GetDetName()));
 
   TGeoVolume* obWireVol = new TGeoVolume("OBGammaConvWire", obWireSh, medTungsten);
   obWireVol->SetFillColor(kGray);

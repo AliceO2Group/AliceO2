@@ -27,6 +27,13 @@ void PHOSRunbyrunCalibDevice::init(o2::framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   mCalibrator.reset(new PHOSRunbyrunCalibrator());
 
+  if (mOutputDir.compare("/dev/null")) {
+    mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
+  }
+  if (mMetaFileDir.compare("/dev/null")) {
+    mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
+  }
+
   // mCalibrator->setSlotLength(slotL);
   // mCalibrator->setMaxSlotsDelay(delay);
   mCalibrator->setUpdateAtTheEndOfRunOnly();

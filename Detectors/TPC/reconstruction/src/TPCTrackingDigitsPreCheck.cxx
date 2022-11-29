@@ -54,7 +54,8 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
     retVal->tpcDigitsMap = *ptrs->tpcPackedDigits;
     const float zsThreshold = config->configReconstruction.tpc.zsThreshold;
     const int maxContTimeBin = config->configGRP.continuousMaxTimeBin;
-    bool updateDigits = zsThreshold > 0 && ptrs->tpcZS == nullptr;
+    static bool filterOutOfTF = getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF") && atoi(getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF"));
+    bool updateDigits = (zsThreshold > 0 || filterOutOfTF) && ptrs->tpcZS == nullptr;
     const auto& d = ptrs->tpcPackedDigits;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       if (updateDigits) {
@@ -64,7 +65,6 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
       for (int j = 0; j < d->nTPCDigits[i]; j++) {
         int timeBin = d->tpcDigits[i][j].getTimeStamp();
         if (maxContTimeBin && timeBin >= maxContTimeBin) {
-          static bool filterOutOfTF = getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF") && atoi(getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF"));
           if (filterOutOfTF) {
             continue;
           }

@@ -13,6 +13,7 @@
 #include "Generators/GeneratorFromO2KineParam.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCGenStatus.h"
 #include <fairlogger/Logger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>
@@ -245,8 +246,9 @@ bool GeneratorFromO2Kine::importParticles()
 
       LOG(debug) << "Putting primary " << pdg;
 
-      mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
+      mParticles.push_back(TParticle(pdg, t.getStatusCode(), m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
       mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
+      mParticles.back().SetBit(ParticleStatus::kToBeDone, wanttracking);
 
       particlecounter++;
     }

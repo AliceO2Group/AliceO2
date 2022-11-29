@@ -29,7 +29,7 @@ gsl::span<const o2::dataformats::IRFrame> IRFrameSelector::getMatchingFrames(con
     return {};
   }
   auto upper = std::upper_bound(lower, mFrames.end(), o2::dataformats::IRFrame{fr.getMax(), fr.getMax()});
-  return {&*lower, size_t(std::distance(lower, upper) + 1)};
+  return {&*lower, size_t(std::distance(lower, upper))};
 }
 
 long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
@@ -40,7 +40,7 @@ long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
     fr.setMin(fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0});
   }
   if (fwd) {
-    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + bwd : o2::InteractionRecord::getIRMaxBC());
+    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC());
   }
   // find entry which overlaps or above fr
   auto fullcheck = [&fr, this]() -> long {

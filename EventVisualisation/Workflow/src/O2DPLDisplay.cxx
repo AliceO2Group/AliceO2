@@ -176,6 +176,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setRunNumber(tinfo.runNumber);
         helper.mEvent.setTfCounter(tinfo.tfCounter);
         helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
+        helper.mEvent.setRunType(this->mRunType);
         helper.mEvent.setPrimaryVertex(pv);
         helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
         filesSaved++;
@@ -233,6 +234,7 @@ void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     auto grpECS = o2::base::GRPGeomHelper::instance().getGRPECS(); // RS
+    mRunType = grpECS->getRunType();
     mData.init();
   }
   // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // called by the RecoContainer
@@ -293,11 +295,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
-  GID::mask_t allowedTracks = GID::getSourcesMask(O2DPLDisplaySpec::allowedTracks);
-  GID::mask_t allowedClusters = GID::getSourcesMask(O2DPLDisplaySpec::allowedClusters);
+  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
+  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
 
-  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
-  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;
+  if (srcTrk[GID::MFTMCH] && srcTrk[GID::MCHMID]) {
+    srcTrk |= GID::getSourceMask(GID::MFTMCHMID);
+  }
+
+  const GID::mask_t allowedTracks = GID::getSourcesMask(O2DPLDisplaySpec::allowedTracks);
+  const GID::mask_t allowedClusters = GID::getSourcesMask(O2DPLDisplaySpec::allowedClusters);
+
+  srcTrk &= allowedTracks;
+  srcCl &= allowedClusters;
+
   if (!srcTrk.any() && !srcCl.any()) {
     if (cfgc.options().get<bool>("skipOnEmptyInput")) {
       LOG(info) << "No valid inputs for event display, disabling event display";

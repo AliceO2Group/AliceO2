@@ -29,6 +29,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 
 using namespace o2::framework;
 
@@ -134,6 +135,9 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     mVertexer.init();
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      SVertexerParams::Instance().printKeyValues();
+    }
   }
   // we may have other params which need to be queried regularly
   bool updateMaps = false;

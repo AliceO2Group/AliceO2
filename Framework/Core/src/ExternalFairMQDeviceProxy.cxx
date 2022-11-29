@@ -374,15 +374,16 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
   };
 }
 
-InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::SerializationMethod method, uint64_t startTime, uint64_t step)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
 
-  return [timesliceId, spec, step](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, spec, step, method](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
     for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
+      dh.payloadSerializationMethod = method;
 
       // FIXME: this only supports fully specified output specs...
       ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(spec);
@@ -502,8 +503,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
-                        &timingInfo = ctx.services().get<TimingInfo>(),
-                        outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int, size_t ci) {
+                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -563,7 +563,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             timingInfo.timeslice = dph->startTime;
             timingInfo.creation = dph->creation;
           }
-          dataHandler(parts, 0, ci);
+          dataHandler(timingInfo, parts, 0, ci);
         }
       }
     };

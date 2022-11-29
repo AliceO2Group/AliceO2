@@ -75,6 +75,12 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   /// \param writeDebug writting debug output
   void setWriteDebug(const bool writeDebug) { mWriteDebug = writeDebug; }
 
+  /// \param storeNClCCDB store number of cluster in the CCDB
+  void setStoreNClCCDB(const bool storeNClCCDB) { mStoreNClCCDB = storeNClCCDB; }
+
+  /// \param storeNClCCDB store RMS of pad-by-pad histograms in the CCDB
+  void setStoreRMSCCDB(const bool storeRMSCCDB) { mStoreRMSCCDB = storeRMSCCDB; }
+
   /// \param useLastMap buffer last extracted gain map
   void setUseLastExtractedMapAsReference(const bool useLastMap) { mUseLastExtractedMapAsReference = useLastMap; }
 
@@ -113,6 +119,8 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   CalibPadGainTracksBase::NormType mNormType{CalibPadGainTracksBase::region}; ///< Normalization type for the extracted gain map
   bool mUseLastExtractedMapAsReference{false};                                ///< Multiply the current extracted gain map with the last extracted gain map
   std::unique_ptr<CalPad> mGainMapLastIteration;                              ///< gain map extracted from particle tracks from the last iteration
+  bool mStoreNClCCDB{false};                                                  ///< whether to store the number of TPC clusters in the CCDB
+  bool mStoreRMSCCDB{false};                                                  ///< whether to store the RMS of each pad-by-pad histogram in the CCDB
 
   ClassDefOverride(CalibratorPadGainTracks, 1);
 };

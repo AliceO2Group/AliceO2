@@ -36,7 +36,7 @@ void DigitsWriteoutBuffer::init()
   mLiveTime = simParam->getLiveTime();
   mBusyTime = simParam->getBusyTime();
   mPreTriggerTime = simParam->getPreTriggerTime();
-
+  mSwapPhase = simParam->getBCPhaseSwap();
   mDigitStream.init();
 }
 
@@ -156,7 +156,9 @@ void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
   }
 
   mLastEventTime = eventTime;
-  mPhase = ((int)(std::fmod(mLastEventTime, 100) / 25));
+  // mPhase = ((int)(std::fmod(mLastEventTime, 100) / 25));
+  mPhase = (record.bc + mSwapPhase) % 4;
+
   if (mFirstEvent) {
     mFirstEvent = false;
   }

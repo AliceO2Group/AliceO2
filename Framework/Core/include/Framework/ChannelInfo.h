@@ -74,6 +74,8 @@ struct OutputChannelInfo {
 
 struct OutputChannelState {
   TimesliceId oldestForChannel = {0};
+  // How many times sending on this channel failed
+  int64_t droppedMessages = 0;
 };
 
 /// Forward channel information

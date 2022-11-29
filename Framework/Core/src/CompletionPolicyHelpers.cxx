@@ -80,7 +80,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
   };
   switch (op) {
     case CompletionPolicy::CompletionOp::Consume:
-      return CompletionPolicy{"always-consume", matcher, callback};
+      return consumeWhenAny(name.c_str(), matcher);
       break;
     case CompletionPolicy::CompletionOp::ConsumeExisting:
       return CompletionPolicy{"consume-existing", matcher, callback};

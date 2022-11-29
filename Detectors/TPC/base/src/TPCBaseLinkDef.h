@@ -79,6 +79,8 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM> + ;
 #pragma link C++ class o2::tpc::IonTailSettings + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::IonTailSettings> + ;
+#pragma link C++ class o2::tpc::FEEConfig + ;
+#pragma link C++ class o2::tpc::CRUConfig + ;
 
 #pragma link C++ namespace o2::tpc::utils;
 #pragma link C++ function o2::tpc::utils::tokenize(const std::string_view, const std::string_view);

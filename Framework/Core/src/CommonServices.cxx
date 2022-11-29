@@ -135,9 +135,10 @@ o2::framework::ServiceSpec CommonServices::timingInfoSpec()
 {
   return ServiceSpec{
     .name = "timing-info",
-    .init = simpleServiceInit<TimingInfo, TimingInfo>(),
+    .uniqueId = simpleServiceId<TimingInfo>(),
+    .init = simpleServiceInit<TimingInfo, TimingInfo, ServiceKind::Stream>(),
     .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
@@ -782,11 +783,17 @@ o2::framework::ServiceSpec CommonServices::dataAllocatorSpec()
 {
   return ServiceSpec{
     .name = "data-allocator",
+    .uniqueId = simpleServiceId<DataAllocator>(),
     .init = [](ServiceRegistryRef ref, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<DataAllocator>(), new DataAllocator(ref)};
+      return ServiceHandle{
+        .hash = TypeIdHelpers::uniqueId<DataAllocator>(),
+        .instance = new DataAllocator(ref),
+        .kind = ServiceKind::Stream,
+        .name = "data-allocator",
+      };
     },
     .configure = noConfiguration(),
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 /// Split a string into a vector of strings using : as a separator.
@@ -818,7 +825,11 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
 
-  std::string loadableServicesStr = "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
+  std::string loadableServicesStr;
+  // Do not load InfoLogger by default if we are not at P2.
+  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+    loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
+  }
   // Load plugins depending on the environment
   std::vector<LoadableService> loadableServices = {};
   char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
@@ -826,7 +837,9 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   //
   // library1:name1,library2:name2,...
   if (loadableServicesEnv) {
-    loadableServicesStr += ",";
+    if (loadableServicesStr.empty() == false) {
+      loadableServicesStr += ",";
+    }
     loadableServicesStr += loadableServicesEnv;
   }
   loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesStr.c_str());

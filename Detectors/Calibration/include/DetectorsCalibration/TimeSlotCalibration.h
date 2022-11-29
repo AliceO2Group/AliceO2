@@ -36,7 +36,7 @@ class ProcessingContext;
 namespace calibration
 {
 
-template <typename Input, typename Container>
+template <typename Input, typename Container = Input>
 class TimeSlotCalibration
 {
  public:
@@ -104,8 +104,8 @@ class TimeSlotCalibration
   const Slot& getLastSlot() const { return (Slot&)mSlots.back(); }
   const Slot& getFirstSlot() const { return (Slot&)mSlots.front(); }
 
-  template <typename DATA>
-  bool process(const DATA& data);
+  template <typename... DATA>
+  bool process(const DATA&... data);
   virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
   virtual void finalizeOldestSlot();
 
@@ -227,8 +227,8 @@ class TimeSlotCalibration
 
 //_________________________________________________
 template <typename Input, typename Container>
-template <typename DATA>
-bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
+template <typename... DATA>
+bool TimeSlotCalibration<Input, Container>::process(const DATA&... data)
 {
   static bool firstCall = true;
   if (firstCall) {
@@ -251,10 +251,10 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
   }
   auto& slotTF = getSlotForTF(tf);
   using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
-  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&)>::value) {
-    slotTF.getContainer()->fill(mCurrentTFInfo, data);
+  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&...)>::value) {
+    slotTF.getContainer()->fill(mCurrentTFInfo, data...);
   } else {
-    slotTF.getContainer()->fill(data);
+    slotTF.getContainer()->fill(data...);
   }
   if (tf > mMaxSeenTF) {
     mMaxSeenTF = tf; // keep track of the most recent TF processed

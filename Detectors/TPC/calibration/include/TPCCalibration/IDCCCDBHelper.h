@@ -77,9 +77,6 @@ class IDCCCDBHelper
   /// setting the grouping parameters
   void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side = Side::A) { mHelperSector[side] = helperSector; }
 
-  /// setting the pad status map which is used to filter out long term outliers
-  void setPadStatusMap(CalDet<PadFlags>* map) { mPadFlagsMap = map; }
-
   /// \return returns the number of integration intervals for IDCDelta
   unsigned int getNIntegrationIntervalsIDCDelta(const o2::tpc::Side side) const;
 
@@ -105,6 +102,9 @@ class IDCCCDBHelper
   /// \param side side of the TPC
   /// \param integrationInterval integration interval
   float getIDCOneVal(const o2::tpc::Side side, const unsigned int integrationInterval) const;
+
+  /// create the outlier map with the set unscaled IDC0 map
+  void createOutlierMap();
 
   /// \return returns the IDC value which is calculated with: (IDCDelta + 1) * IDCOne * IDCZero
   /// \param sector sector
@@ -156,7 +156,7 @@ class IDCCCDBHelper
 
   /// draw the status map for the flags (for debugging) for a full side
   /// \param side side which will be drawn
-  /// \flag flag which will be drawn
+  /// \param flag which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawPadStatusFlagsMapSide(const o2::tpc::Side side, const PadFlags flag, const std::string filename = "PadStatusFlags_Side.pdf") const { drawPadFlagMap(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, flag); }
 
@@ -178,7 +178,22 @@ class IDCCCDBHelper
   /// \param outFileName name of the output file
   void dumpToFourierCoeffToTree(const char* outFileName = "FourierCCDBTree.root") const;
 
-  // TODO dump ICDelta to separate tree...
+  /// dumping the loaded IDC0, IDC1 to a tree for debugging
+  /// \param outFileName name of the output file
+  void dumpToTreeIDCDelta(const char* outFileName = "IDCCCDBTreeDeltaIDC.root") const;
+
+  /// convert the loaded IDC0 map to a CalDet<float>
+  /// \return returns CalDet containing the IDCZero
+  CalDet<float> getIDCZeroCalDet() const;
+
+  /// convert the loaded IDCDelta to a vector of CalDets
+  /// \return returns std vector of CalDets containing the IDCDelta
+  std::vector<CalDet<float>> getIDCDeltaCalDet() const;
+
+  /// scale the stored IDC0 to 1
+  /// \param rejectOutlier do not take outlier into account
+  /// \return returns the scaling factor which was used to scale the IDC0
+  float scaleIDC0(const Side side, const bool rejectOutlier = true);
 
  private:
   std::array<IDCZero*, SIDES> mIDCZero = {nullptr, nullptr};                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
@@ -186,7 +201,7 @@ class IDCCCDBHelper
   std::array<IDCOne*, SIDES> mIDCOne = {nullptr, nullptr};                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   std::array<IDCGroupHelperSector*, SIDES> mHelperSector = {nullptr, nullptr}; ///< helper for accessing IDC0 and IDC-Delta
   std::array<FourierCoeff*, SIDES> mFourierCoeff = {nullptr, nullptr};         ///< fourier coefficients of IDCOne
-  CalDet<PadFlags>* mPadFlagsMap = nullptr;                                    ///< status flag for each pad (i.e. if the pad is dead)
+  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                              ///< status flag for each pad (i.e. if the pad is dead)
 
   /// helper function for drawing IDCZero
   /// \param sector sector which will be drawn

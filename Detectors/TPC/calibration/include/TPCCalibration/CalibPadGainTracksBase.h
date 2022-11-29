@@ -188,8 +188,14 @@ class CalibPadGainTracksBase
   /// \param mapName name of the caldet
   void setGainMap(const char* inpFile, const char* mapName);
 
-  /// setting a gain map from a file
+  /// setting the gain map
   void setGainMap(const CalPad& gainmap) { mGainMap = std::make_unique<CalPad>(gainmap); }
+
+  /// setting the RMS map
+  void setRMSMap(const CalPad& rmsMap) { mSigmaMap = std::make_unique<CalPad>(rmsMap); }
+
+  /// setting number of clusters map
+  void setNClMap(const CalPad& nclMap) { mNClMap = std::make_unique<CalPad>(nclMap); }
 
   /// set how the extracted gain map is normalized
   void setNormalizationType(const NormType type) { mNormType = type; }

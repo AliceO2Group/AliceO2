@@ -68,6 +68,9 @@ struct SimConfigData {
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
   bool mIsRun5 = false;                       // true if the simulation is for Run 5
+  std::string mFromCollisionContext = "";     // string denoting a collision context file; If given, this file will be used to determine number of events
+  bool mForwardKine = false;                  // true if tracks and event headers are to be published on a FairMQ channel (for reading by other consumers)
+  bool mWriteToDisc = true;                   // whether we write simulation products (kine, hits) to disc
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -146,9 +149,14 @@ class SimConfig
   int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
   void setRun5(bool value = true) { mConfigData.mIsRun5 = value; }
+  bool forwardKine() const { return mConfigData.mForwardKine; }
+  bool writeToDisc() const { return mConfigData.mWriteToDisc; }
 
  private:
   SimConfigData mConfigData; //!
+
+  // adjust/overwrite some option settings when collision context is used
+  void adjustFromCollContext();
 
   ClassDefNV(SimConfig, 1);
 };
@@ -177,6 +185,7 @@ struct SimReconfigData {
   unsigned int primaryChunkSize; // defining max granularity for input primaries of a sim job
   ULong_t startSeed;             // base for random number seeds
   bool stop;                     // to shut down the service
+  std::string mFromCollisionContext = ""; // string denoting a collision context file; If given, this file will be used to determine number of events
 
   ClassDefNV(SimReconfigData, 1);
 };

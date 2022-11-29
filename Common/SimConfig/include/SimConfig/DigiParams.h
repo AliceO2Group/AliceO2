@@ -30,7 +30,8 @@ struct DigiParams : public o2::conf::ConfigurableParamHelper<DigiParams> {
   std::string digitizationgeometry_prefix = "";       // with which geometry prefix we digitized -> leave empty as this needs to be filled by the digitizer workflow
   std::string grpfile = "";                           // which GRP file to use --> leave empty as this needs to be filled by the digitizer workflow
   bool mctruth = true;                                // whether to create labels
-
+  int maxOrbitsToDigitize = -1;                       // Digitizer can use this to truncate digits that fall beyond an orbit limit (relative to start of digization) given by this param; -1 means no limit imposed
+                                                      // This parameter should typically be set to coincide with a single timeframe length or multiples thereof.
   O2ParamDef(DigiParams, "DigiParams");
 };
 

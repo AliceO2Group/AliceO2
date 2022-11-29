@@ -345,11 +345,14 @@ void DigiReco::eor()
     mDbg->Close();
     mDbg.reset();
   }
+
+  ZDCTDCDataErr::print();
+
   if (mNLonely > 0) {
     LOG(warn) << "Detected " << mNLonely << " lonely bunches";
     for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
       if (mLonely[ib]) {
-        LOG(warn) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+        LOGF(warn, "lonely bunch %4d #times=%u #trig=%u", ib, mLonely[ib], mLonelyTrig[ib]);
       }
     }
   }

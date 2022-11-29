@@ -405,7 +405,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       resourceManager.notifyAcceptedOffer(acceptedOffer);
     }
 
-    auto processor = workflow[edge.producer];
+    auto& processor = workflow[edge.producer];
 
     acceptedOffer.cpu = defaultOffer.cpu;
     acceptedOffer.memory = defaultOffer.memory;
@@ -422,22 +422,19 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       break;
     }
 
-    DeviceSpec device;
-    device.name = processor.name;
-    device.id = processor.name;
-    device.channelPrefix = channelPrefix;
-    if (processor.maxInputTimeslices != 1) {
-      device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
-    }
-    device.algorithm = processor.algorithm;
-    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
-    device.options = processor.options;
-    device.rank = processor.rank;
-    device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.producerTimeIndex;
-    device.maxInputTimeslices = processor.maxInputTimeslices;
-    device.resource = {acceptedOffer};
-    device.labels = processor.labels;
+    devices.emplace_back(DeviceSpec{
+      .name = processor.name,
+      .id = processor.maxInputTimeslices == 1 ? processor.name : processor.name + "_t" + std::to_string(edge.producerTimeIndex),
+      .channelPrefix = channelPrefix,
+      .options = processor.options,
+      .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
+      .algorithm = processor.algorithm,
+      .rank = processor.rank,
+      .nSlots = processor.nSlots,
+      .inputTimesliceId = edge.producerTimeIndex,
+      .maxInputTimeslices = processor.maxInputTimeslices,
+      .resource = {acceptedOffer},
+      .labels = processor.labels});
     /// If any of the inputs or outputs are "Lifetime::OutOfBand"
     /// create the associated channels.
     //
@@ -488,9 +485,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
           extraOutputChannelSpec.hostname = meta.defaultValue.get<std::string>();
         }
       }
-      device.outputChannels.push_back(extraOutputChannelSpec);
+      devices.back().outputChannels.push_back(extraOutputChannelSpec);
     }
-    devices.push_back(device);
     return devices.size() - 1;
   };
 
@@ -700,27 +696,28 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       break;
     }
 
-    DeviceSpec device;
-    device.name = processor.name;
-    device.id = processor.name;
-    device.channelPrefix = channelPrefix;
+    DeviceSpec device{
+      .name = processor.name,
+      .id = processor.name,
+      .channelPrefix = channelPrefix,
+      .options = processor.options,
+      .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
+      .algorithm = processor.algorithm,
+      .rank = processor.rank,
+      .nSlots = processor.nSlots,
+      .inputTimesliceId = edge.timeIndex,
+      .maxInputTimeslices = processor.maxInputTimeslices,
+      .resource = {acceptedOffer},
+      .labels = processor.labels};
+
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
-    device.algorithm = processor.algorithm;
-    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
-    device.options = processor.options;
-    device.rank = processor.rank;
-    device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.timeIndex;
-    device.maxInputTimeslices = processor.maxInputTimeslices;
-    device.resource = {acceptedOffer};
-    device.labels = processor.labels;
 
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
     auto id = DeviceId{edge.consumer, edge.timeIndex, devices.size()};
-    devices.push_back(device);
+    devices.emplace_back(std::move(device));
     deviceIndex.push_back(id);
     std::sort(deviceIndex.begin(), deviceIndex.end());
     return devices.size() - 1;
@@ -1097,7 +1094,7 @@ void DeviceSpecHelpers::reworkHomogeneousOption(std::vector<DataProcessorInfo>& 
     finalValue = defaultValue;
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.emplace_back(name);
     info.cmdLineArgs.push_back(finalValue);
   }
 }
@@ -1128,7 +1125,7 @@ void DeviceSpecHelpers::reworkIntegerOption(std::vector<DataProcessorInfo>& info
     finalValue = defaultValueCallback();
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.emplace_back(name);
     info.cmdLineArgs.push_back(std::to_string(finalValue));
   }
 }
@@ -1164,7 +1161,7 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     segmentSize = 2000000000LL;
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back("--shm-segment-size");
+    info.cmdLineArgs.emplace_back("--shm-segment-size");
     info.cmdLineArgs.push_back(std::to_string(segmentSize));
   }
 }
@@ -1299,7 +1296,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none" && varmap["stacktrace-on-signal"].as<std::string>() != "simple") {
         char const* preload = getenv("LD_PRELOAD");
         if (preload == nullptr || strcmp(preload, "libSegFault.so") == 0) {
-          tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
+          tmpEnv.emplace_back("LD_PRELOAD=libSegFault.so");
         } else {
           tmpEnv.push_back(fmt::format("LD_PRELOAD={}:libSegFault.so", preload));
         }
@@ -1329,6 +1326,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("bad-alloc-max-attempts", bpo::value<std::string>());
         realOdesc.add_options()("bad-alloc-attempt-interval", bpo::value<std::string>());
+        realOdesc.add_options()("io-threads", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment-on-creation", bpo::value<std::string>());
@@ -1509,6 +1507,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session")                        //
     ("bad-alloc-max-attempts", bpo::value<std::string>()->default_value("1"), "throw after n attempts to alloc shm")                                                 //
     ("bad-alloc-attempt-interval", bpo::value<std::string>()->default_value("50"), "interval between shm alloc attempts in ms")                                      //
+    ("io-threads", bpo::value<std::string>()->default_value("1"), "number of FMQ io threads")                                                                        //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                                                    //
     ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                                          //
     ("shm-mlock-segment-on-creation", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment once on creation")                             //

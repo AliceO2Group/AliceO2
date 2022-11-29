@@ -12,6 +12,7 @@
 o2_add_library(TPCdcs
                TARGETVARNAME targetName
                SOURCES src/DCSProcessor.cxx
+                       src/DCSConfigSpec.cxx
                        src/DCSSpec.cxx
                        src/DCSDPHints.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
@@ -37,6 +38,11 @@ o2_add_executable(dcs-data-replay
 o2_add_executable(dcs-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-dcs-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCdcs)
+
+o2_add_executable(dcs-config-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-dcs-config-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCdcs)
 
 o2_add_test_root_macro(macro/makeTPCCCDBEntryForDCS.C

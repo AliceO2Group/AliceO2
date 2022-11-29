@@ -89,4 +89,17 @@ auto PluginManager::loadAlgorithmFromPlugin(std::string library, std::string plu
     return algorithm->onInit(ic);
   }};
 };
+
+auto PluginManager::wrapAlgorithm(AlgorithmSpec const& spec, std::function<void(AlgorithmSpec::ProcessCallback&, ProcessingContext&)>&& wrapper) -> AlgorithmSpec
+{
+  return AlgorithmSpec{[spec, wrapper = std::move(wrapper)](InitContext& ic) mutable -> AlgorithmSpec::ProcessCallback {
+    // We either use provided onInit to create the ProcessCallback, or we
+    // call directly the one provided
+    auto old = spec.onInit ? spec.onInit(ic) : spec.onProcess;
+    return [old, wrapper = std::move(wrapper)](ProcessingContext& pc) mutable {
+      // Make sure the wrapper calls the old callback at some point.
+      wrapper(old, pc);
+    };
+  }};
+}
 } // namespace o2::framework

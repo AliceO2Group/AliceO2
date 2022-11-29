@@ -12,6 +12,7 @@
 #include "CommonUtils/StringUtils.h"
 #include <cstdlib>
 #include <filesystem>
+#include <TGrid.h>
 
 using namespace o2::utils;
 
@@ -47,7 +48,7 @@ std::string Str::getRandomString(int lenght)
 
 bool Str::pathExists(const std::string_view p)
 {
-  return std::filesystem::exists(std::string{p});
+  return p.compare(0, 8, "alien://") ? std::filesystem::exists(std::string{p}) : true; // we don't validate alien paths
 }
 
 bool Str::pathIsDirectory(const std::string_view p)
@@ -66,11 +67,23 @@ std::string Str::rectifyDirectory(const std::string_view p)
   if (dir.empty() || dir == "none") {
     dir = "";
   } else {
-    dir = getFullPath(dir);
-    if (!pathIsDirectory(dir)) {
-      throw std::runtime_error(fmt::format("{:s} is not an accessible directory", dir));
+    if (p.compare(0, 8, "alien://") == 0) {
+      if (!gGrid && !TGrid::Connect("alien://")) {
+        throw std::runtime_error(fmt::format("failed to initialize alien for {}", dir));
+      }
+      // for root or raw files do not treat as directory
+      if (dir.back() != '/' && !(endsWith(dir, ".root") || endsWith(dir, ".raw") || endsWith(dir, ".tf"))) {
+        dir += '/';
+      }
     } else {
-      dir += '/';
+      dir = getFullPath(dir);
+      if (!pathIsDirectory(dir)) {
+        throw std::runtime_error(fmt::format("{} is not an accessible directory", dir));
+      } else {
+        if (dir.back() != '/') {
+          dir += '/';
+        }
+      }
     }
   }
   return dir;

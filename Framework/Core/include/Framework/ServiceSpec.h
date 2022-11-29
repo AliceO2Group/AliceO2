@@ -39,6 +39,8 @@ struct WorkflowSpecNode;
 
 class DanglingContext;
 
+/// A callback which returns the uniqueId of the service when invoked
+using ServiceId = std::function<unsigned int()>;
 /// A callback to create a given Service.
 using ServiceInit = ServiceHandle (*)(ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&);
 /// A callback invoked whenever we start running, before the user processing callback.
@@ -127,6 +129,8 @@ using ServicePostRenderGUI = void (*)(ServiceRegistryRef);
 struct ServiceSpec {
   /// Name of the service
   std::string name = "please specify name";
+  /// Callback to get the unique id for the Service
+  ServiceId uniqueId = nullptr;
   /// Callback to initialise the service.
   ServiceInit init = nullptr;
   /// Callback to configure the service.

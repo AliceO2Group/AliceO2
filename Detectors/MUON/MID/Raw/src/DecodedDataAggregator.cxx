@@ -16,6 +16,7 @@
 
 #include "MIDRaw/DecodedDataAggregator.h"
 
+#include "Framework/Logger.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/CrateParameters.h"
 
@@ -58,7 +59,7 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry, size_
       col.setNonBendPattern(col.getNonBendPattern() | loc.patternsNBP[ich]);
     }
   } catch (const std::exception& except) {
-    std::cerr << except.what() << "\n";
+    LOG(alarm) << except.what();
   }
 }
 

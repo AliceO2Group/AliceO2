@@ -570,6 +570,7 @@ constexpr o2::header::DataOrigin gDataOriginTST{"TST"};
 constexpr o2::header::DataOrigin gDataOriginACO{"ACO"}; // for bwd compatibility with DD
 
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
+constexpr o2::header::DataOrigin gDataOriginFOC{"FOC"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
 constexpr o2::header::DataOrigin gDataOriginFCT{"FCT"};

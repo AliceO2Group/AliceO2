@@ -16,6 +16,7 @@ o2_add_library(TPCSpaceCharge
                        src/SpaceChargeParameter.cxx
                        src/TriCubic.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
+                                     O2::Field
                                      Vc::Vc
                                      ROOT::Core)
 

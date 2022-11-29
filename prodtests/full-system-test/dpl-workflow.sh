@@ -15,13 +15,10 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
-if [[ -z $OPTIMIZED_PARALLEL_ASYNC ]]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
-if [[ -z $CTF_DIR ]];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
-if [[ -z $CTF_DICT ]];                 then CTF_DICT="ctf_dictionary.root"; fi # Local dictionary file name if its creation is request
-if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
-if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=230; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
-if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
+if [[ -z $CTF_DICT ]];                 then CTF_DICT="ctf_dictionary.root"; fi    # Local dictionary file name if its creation is request
+if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=230; fi       # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
+if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi          # accumulate CTFs until file size reached
+if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi          # but no more than given number of CTFs per file
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
@@ -33,7 +30,7 @@ source $MYDIR/workflow-setup.sh
 workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
-( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
+[[ $GPUTYPE != "CPU" || ! -z $OPTIMIZED_PARALLEL_ASYNC ]] && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
 if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
@@ -91,7 +88,7 @@ if [[ $SYNCMODE == 1 ]]; then
     [[ ! -z $CUT_RANDOM_FRACTION_ITS ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   fi
   if has_detector_reco ITS; then
-    MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
+    [[ $RUNTYPE == "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   else
     MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=2000;"
   fi
@@ -108,6 +105,7 @@ else
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
   fi
 fi
+[[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
 [[ ! -z $NTRDTRKTHREADS ]] && TRD_CONFIG_KEY+="GPU_proc.ompThreads=$NTRDTRKTHREADS;"
 [[ ! -z $NGPURECOTHREADS ]] && GPU_CONFIG_KEY+="GPU_proc.ompThreads=$NGPURECOTHREADS;"
 [[ ! -z $NMFTTHREADS ]] && MFT_CONFIG+=" --nThreads $NMFTTHREADS"
@@ -180,14 +178,14 @@ if [[ ! -z $EVE_NTH_EVENT ]]; then
   EVE_CONFIG+=" --only-nth-event=$EVE_NTH_EVENT"
 fi
 
-if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
   if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
     GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
-    if [[ $NUMAID == 0 || $NUMAGPUIDS == 0 || "0$ROCR_VISIBLE_DEVICES" == "00,1,2,3" || "0$ROCR_VISIBLE_DEVICES" == "04,5,6,7" ]]; then
+    if [[ "0$ROCR_VISIBLE_DEVICES" != "04,5,6,7" || $NUMAGPUIDS == 0 ]] && [[ $NUMAID == 0 || $NUMAGPUIDS == 0 || "0$ROCR_VISIBLE_DEVICES" == "00,1,2,3" ]]; then
       export TIMESLICEOFFSET=0
     else
       export TIMESLICEOFFSET=$NGPUS
@@ -262,14 +260,14 @@ if [[ $CTFINPUT == 1 ]]; then
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   CTF_EMC_SUBSPEC=
   workflow_has_parameter AOD && has_detector EMC && CTF_EMC_SUBSPEC="--emcal-decoded-subspec 1"
-  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS $CTF_EMC_SUBSPEC --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
+  add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
 elif [[ $RAWTFINPUT == 1 ]]; then
   TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
   [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
   [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
   if [[ -z $TFName && $WORKFLOWMODE != "print" ]]; then echo "No raw file given!"; exit 1; fi
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
-  add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
+  add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT"
 elif [[ $EXTINPUT == 1 ]]; then
   PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=$EPNSYNCMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
@@ -304,11 +302,10 @@ elif [[ $EXTINPUT == 1 ]]; then
       PROXY_INSPEC+=";$PROXY_INNAME:$i/$j"
     done
   done
-  [[ "0$CALIB_TPC_IDC" == "01" && "0$FLP_TPC_IDC" != "01" ]] && PROXY_INSPEC+=";RAWINTPCGA:TPC/IDCGROUPA;RAWINTPCGC:TPC/IDCGROUPC"
   [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://${UDS_PREFIX}metric-feedback-$NUMAID,transport=shmem,rateLogging=0"
   add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
 elif [[ $DIGITINPUT == 1 ]]; then
-  [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1"; exit 1; }
+  [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1" 1>&2; exit 1; }
   DISABLE_DIGIT_ROOT_INPUT=
   DISABLE_DIGIT_CLUSTER_INPUT=
   TOF_INPUT=digits
@@ -317,7 +314,8 @@ elif [[ $DIGITINPUT == 1 ]]; then
   has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
 else
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
-  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
+  [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
+  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "HBFUtils.nHBFPerTF=$NHBPERTF"
 fi
 
 # if root output is requested, record info of processed TFs DataHeader for replay of root files
@@ -357,6 +355,7 @@ fi
 has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES"
 has_detector_reco FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
 has_detector_reco TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
+has_detector_reco TRD && ([[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-trd-digittracklet-writer) && add_W o2-trd-digittracklet-writer
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL --pipeline $(get_N itstpc-track-matcher MATCH REST 1 TPCITS)" "$ITSMFT_STROBES"
 has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES"
 has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES"
@@ -369,7 +368,7 @@ has_detector MFT && has_processing_step MFT_RECO && add_W o2-mft-reco-workflow "
 has_detector FDD && has_processing_step FDD_RECO && add_W o2-fdd-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
-has_detector HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow
+has_detector HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow "--pipeline $(get_N HMP-Clusterization HMP REST 1 HMPCLUS)"
 has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N muon-track-matcher MATCH REST 1)"
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)" "$MFTMCHConf"
@@ -423,7 +422,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   else
     CTF_CONFIG="--report-data-size-interval 1"
   fi
-  CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS_CTF $CTF_MAXDETEXT --meta-output-dir $CTF_METAFILES_DIR"
+  CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS_CTF $CTF_MAXDETEXT --meta-output-dir $EPN2EOS_METAFILES_DIR"
   if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
 fi
@@ -454,6 +453,10 @@ workflow_has_parameter QC && { source $O2DPG_ROOT/DATA/production/qc-workflow.sh
 
 if [[ ! -z "$EXTRA_WORKFLOW" ]]; then
   WORKFLOW+="$EXTRA_WORKFLOW"
+fi
+
+if [[ ! -z "$ADD_EXTRA_WORKFLOW" ]]; then
+  add_W $ADD_EXTRA_WORKFLOW
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------

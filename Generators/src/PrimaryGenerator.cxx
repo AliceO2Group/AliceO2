@@ -15,7 +15,7 @@
 #include "Generators/Generator.h"
 #include "Generators/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include <fairlogger/Logger.h>
 
 #include "FairGenericStack.h"

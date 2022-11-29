@@ -13,8 +13,7 @@
 
 #include <vector>
 
-#include "TTree.h"
-
+#include <TTree.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
@@ -36,7 +35,7 @@ void RecoReader::init(InitContext& ic)
 {
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("zdc-reco-infile"));
-  mFile = std::make_unique<TFile>(filename.c_str());
+  mFile.reset(TFile::Open(filename.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");

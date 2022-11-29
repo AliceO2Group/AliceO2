@@ -10,8 +10,10 @@
 // or submit itself to any jurisdiction.
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ServiceRegistryRef.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
 #include "Framework/Logger.h"
+#include <fairmq/Device.h>
 #include <iostream>
 
 namespace o2::framework
@@ -45,7 +47,7 @@ ServiceRegistry& ServiceRegistry::operator=(ServiceRegistry const& other)
 ServiceRegistry::ServiceRegistry()
 {
   for (size_t i = 0; i < MAX_SERVICES; ++i) {
-    mServicesKey[i].store(0L);
+    mServicesKey[i].store({0L, 0L});
   }
 
   mServicesValue.fill(nullptr);
@@ -58,17 +60,25 @@ ServiceRegistry::ServiceRegistry()
 /// hash used to identify the service, @a service is
 /// a type erased pointer to the service itself.
 /// This method is supposed to be thread safe
-void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, const char* name) const
+void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, Salt salt, const char* name, SpecIndex specIndex) const
 {
+  LOGP(detail, "Registering service {} with hash {} in salt {} of kind {}",
+       (name ? name : "<unknown>"),
+       typeHash.hash,
+       valueFromSalt(salt), (int)kind);
+  if (specIndex.index == -1 && kind == ServiceKind::Stream && service == nullptr) {
+    throw runtime_error_f("Cannot register a stream service %s without a valid spec index", name ? name : "<unknown>");
+  }
   InstanceId id = instanceFromTypeSalt(typeHash, salt);
   Index index = indexFromInstance(id);
   // If kind is not stream, there is only one copy of our service.
   // So we look if it is already registered and reused it if it is.
   // If not, we register it as thread id 0 and as the passed one.
-  if (kind != ServiceKind::Stream && salt.context.streamId != 0) {
-    void* oldService = this->get(typeHash, GLOBAL_CONTEXT_SALT, kind);
+  if (kind != ServiceKind::Stream && salt.streamId != 0) {
+    auto dataProcessorSalt = Salt{.streamId = GLOBAL_CONTEXT_SALT.streamId, .dataProcessorId = salt.dataProcessorId};
+    void* oldService = this->get(typeHash, dataProcessorSalt, kind);
     if (oldService == nullptr) {
-      registerService(typeHash, service, kind, GLOBAL_CONTEXT_SALT);
+      registerService(typeHash, service, kind, dataProcessorSalt);
     } else {
       service = oldService;
     }
@@ -77,10 +87,10 @@ void ServiceRegistry::registerService(ServiceTypeHash typeHash, void* service, S
     // If the service slot was not taken, take it atomically
     bool expected = false;
     if (mServicesBooked[i + index.index].compare_exchange_strong(expected, true,
-                                                                  std::memory_order_seq_cst)) {
+                                                                 std::memory_order_seq_cst)) {
       mServicesValue[i + index.index] = service;
-      mServicesMeta[i + index.index] = Meta{kind, salt};
-      mServicesKey[i + index.index] = typeHash.hash;
+      mServicesMeta[i + index.index] = Meta{kind, name ? strdup(name) : nullptr, specIndex};
+      mServicesKey[i + index.index] = Key{.typeHash = typeHash, .salt = salt};
       std::atomic_thread_fence(std::memory_order_release);
       return;
     }
@@ -96,10 +106,20 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
     ServiceHandle handle = spec.init({*this}, state, options);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindService(spec, handle.instance);
+  } else if (spec.kind == ServiceKind::Stream) {
+    // We register a nullptr in this case, because we really want to have the ptr to
+    // the service spec only.
+    if (!spec.uniqueId) {
+      throw runtime_error_f("Service %s is a stream service, but does not have a uniqueId method.", spec.name.c_str());
+    }
+    if (salt.streamId != 0) {
+      throw runtime_error_f("Declaring a stream service %s in a non-global context is not allowed.", spec.name.c_str());
+    }
+    this->registerService({spec.uniqueId()}, nullptr, spec.kind, salt, spec.name.c_str(), {static_cast<int>(mSpecs.size() - 1)});
   }
 }
 
-void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
+void ServiceRegistry::bindService(ServiceSpec const& spec, void* service) const
 {
   static TracyLockableN(std::mutex, bindMutex, "bind mutex");
   std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
@@ -263,6 +283,114 @@ void ServiceRegistry::postRenderGUICallbacks()
 void ServiceRegistry::throwError(RuntimeErrorRef const& ref) const
 {
   throw ref;
+}
+
+int ServiceRegistry::getPos(ServiceTypeHash typeHash, Salt salt) const
+{
+  InstanceId instanceId = instanceFromTypeSalt(typeHash, salt);
+  Index index = indexFromInstance(instanceId);
+  for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+    if (valueFromKey(mServicesKey[i + index.index].load()) == valueFromKey({typeHash.hash, salt})) {
+      return i + index.index;
+    }
+  }
+  return -1;
+}
+
+void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind, char const* name) const
+{
+  // Cannot find a stream service using a global salt.
+  if (salt.streamId == GLOBAL_CONTEXT_SALT.streamId && kind == ServiceKind::Stream) {
+    throwError(runtime_error_f("Cannot find %s service using a global salt.", name ? name : "a stream"));
+  }
+  // Look for the service. If found, return it.
+  // Notice how due to threading issues, we might
+  // find it with getPos, but the value can still
+  // be nullptr.
+  auto pos = getPos(typeHash, salt);
+  // If we are here it means we never registered a
+  // service for the 0 thread (i.e. the main thread).
+  if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && valueFromSalt(mServicesKey[pos].load().salt) != valueFromSalt(salt)) {
+    throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.streamId, mServicesKey[pos].load().salt.streamId));
+    O2_BUILTIN_UNREACHABLE();
+  }
+
+  if (pos != -1) {
+    bool isStream = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DeviceStream;
+    bool isDataProcessor = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DataProcessorGlobal || mServicesMeta[pos].kind == ServiceKind::DataProcessorSerial;
+
+    if (isStream && salt.streamId <= 0) {
+      throwError(runtime_error_f("A stream service cannot be retrieved from a non stream salt %d", salt.streamId));
+      O2_BUILTIN_UNREACHABLE();
+    }
+
+    if (isDataProcessor && salt.dataProcessorId < 0) {
+      throwError(runtime_error_f("A data processor service cannot be retrieved from a non dataprocessor context %d", salt.dataProcessorId));
+      O2_BUILTIN_UNREACHABLE();
+    }
+
+    mServicesKey[pos].load();
+    std::atomic_thread_fence(std::memory_order_acquire);
+    void* ptr = mServicesValue[pos];
+    if (ptr) {
+      return ptr;
+    }
+  }
+  // We are looking up a service which is not of
+  // stream kind and was not looked up by this thread
+  // before.
+  if (salt.streamId == 0) {
+    for (int i = 0; i < MAX_SERVICES; ++i) {
+      if (mServicesKey[i].load().typeHash.hash == typeHash.hash && valueFromSalt(mServicesKey[i].load().salt) != valueFromSalt(salt)) {
+        throwError(runtime_error_f("Service %s found in registry at %d rather than where expected by getPos", name, i));
+      }
+      if (mServicesKey[i].load().typeHash.hash == typeHash.hash) {
+        throwError(runtime_error_f("Found service %s with hash %d but with salt %d of service kind %d",
+                                   name, typeHash, valueFromSalt(mServicesKey[i].load().salt), (int)mServicesMeta[i].kind));
+      }
+    }
+    throwError(runtime_error_f("Unable to find requested service %s with hash %d using salt %d for service kind %d",
+                               name ? name : "<unknown>", typeHash, valueFromSalt(salt), (int)kind));
+  }
+
+  // Let's lookit up in the global context for the data processor.
+  pos = getPos(typeHash, {.streamId = 0, .dataProcessorId = salt.dataProcessorId});
+  if (pos != -1 && kind != ServiceKind::Stream) {
+    // We found a global service. Register it for this stream and return it.
+    // This will prevent ending up here in the future.
+    LOGP(detail, "Caching global service {} for stream {}", name ? name : "", salt.streamId);
+    mServicesKey[pos].load();
+    std::atomic_thread_fence(std::memory_order_acquire);
+    registerService(typeHash, mServicesValue[pos], kind, salt, name);
+  }
+  if (pos != -1) {
+    mServicesKey[pos].load();
+    std::atomic_thread_fence(std::memory_order_acquire);
+    if (mServicesValue[pos]) {
+      return mServicesValue[pos];
+    }
+    LOGP(detail, "Global service {} for stream {} is nullptr", name ? name : "", salt.streamId);
+  }
+  if (kind == ServiceKind::Stream) {
+    LOGP(detail, "Registering a stream service {} with hash {} and salt {}", name ? name : "", typeHash.hash, valueFromSalt(salt));
+    auto pos = getPos(typeHash, {.streamId = GLOBAL_CONTEXT_SALT.streamId, .dataProcessorId = salt.dataProcessorId});
+    if (pos == -1) {
+      throwError(runtime_error_f("Stream service %s with hash %d using salt %d for service kind %d was not declared upfront.",
+                                 name, typeHash, valueFromSalt(salt), (int)kind));
+    }
+    auto& spec = mSpecs[mServicesMeta[pos].specIndex.index];
+    auto& deviceState = this->get<DeviceState>(globalDeviceSalt());
+    auto& rawDeviceService = this->get<RawDeviceService>(globalDeviceSalt());
+    auto& registry = const_cast<ServiceRegistry&>(*this);
+    // Call init for the proper ServiceRegistryRef
+    ServiceHandle handle = spec.init({registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
+    this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
+    this->bindService(spec, handle.instance);
+    return handle.instance;
+  }
+
+  LOGP(error, "Unable to find requested service {} with hash {} using salt {} for service kind {}", name ? name : "", typeHash.hash, valueFromSalt(salt), (int)kind);
+  return nullptr;
 }
 
 } // namespace o2::framework

@@ -160,7 +160,9 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     }
   } else {
     // magnetic field 0 T or another value which is not covered by the error parameterizations
-    GPUError("No error parameterization available for Bz = %.2f kG", Bz);
+    // using default values instead
+    GPUWarning("No error parameterization available for Bz = %.2f kG. Keeping default value (sigma_y = const. = 1cm)", Bz);
+    mRPhiA2 = 1.f;
   }
 
 #ifdef GPUCA_ALIROOT_LIB
@@ -820,6 +822,35 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       trkWork->setCollisionId(collisionId);
       if (iUpdate == 0 && mNCandidates > 1) {
         *t = mCandidates[2 * iUpdate + nextIdx];
+      }
+      // check if track crosses padrows
+      float projZEntry, projYEntry;
+      // Get Z for Entry of Track
+      prop->getPropagatedYZ(trkWork->getX() - mGeo->GetCdrHght(), projYEntry, projZEntry);
+      // Get Padrow number for Exit&Entry and compare. If is not equal mark
+      // as padrow crossing. While simple, this comes with the cost of not
+      // properly handling Tracklets that hit a different Pad but still get
+      // attached to the Track. It is estimated that the probability for
+      // this is low.
+      const auto padrowEntry = pad->GetPadRowNumber(projZEntry);
+      const auto padrowExit = pad->GetPadRowNumber(trkWork->getZ());
+      if (padrowEntry != padrowExit) {
+        trkWork->setIsCrossingNeighbor(iLayer);
+        trkWork->setHasPadrowCrossing();
+      }
+      const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();
+      // Mark tracklets as Padrow crossing if they have a neighboring tracklet.
+      for (int trkltIdx = glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet]; trkltIdx < glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet + 1]; ++trkltIdx) {
+        // skip orig tracklet
+        if (mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId == trkltIdx) {
+          continue;
+        }
+        if (GPUCommonMath::Abs(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin() - tracklets[trkltIdx].GetZbin()) == 1 &&
+            GPUCommonMath::Abs(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetY() - tracklets[trkltIdx].GetY()) < 1) {
+          trkWork->setIsCrossingNeighbor(iLayer);
+          trkWork->setHasNeighbor();
+          break;
+        }
       }
     } // end update loop
 

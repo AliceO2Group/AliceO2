@@ -18,21 +18,19 @@
 #include <Rtypes.h>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
 
 namespace o2
 {
 namespace its3
 {
 
-/// Segmentation and response for pixels in ITSMFT upgrade
+/// Segmentation and response for pixels in ITS3 upgrade
 class SegmentationSuperAlpide
 {
  public:
   SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
-                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::TwoPI) / double(itsmft::SegmentationAlpide::PitchRow) + 1)},
                                            NPixels{NRows * NCols},
-                                           PitchRow{static_cast<float>(Radii[layer] * constants::math::TwoPI / NRows)},
+                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::TwoPI) / double(PitchRow) + 1)},
                                            ActiveMatrixSizeRows{PitchRow * NRows},
                                            SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
   {
@@ -41,11 +39,11 @@ class SegmentationSuperAlpide
   static constexpr int NLayers = 4;
   static constexpr float Length = 27.15f;
   static constexpr float Radii[NLayers] = {1.8f, 2.4f, 3.0f, 7.0f};
-  static constexpr int NCols = Length / itsmft::SegmentationAlpide::PitchCol;
+  static constexpr float PitchCol = 29.24e-4;
+  static constexpr float PitchRow = 26.88e-4;
+  static constexpr int NCols = Length / PitchCol;
   int NRows;
   int NPixels;
-  static constexpr float PitchCol = Length / NCols;
-  float PitchRow;
   static constexpr float PassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
   static constexpr float PassiveEdgeTop = 0.;                     // Passive area on top
   static constexpr float PassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor

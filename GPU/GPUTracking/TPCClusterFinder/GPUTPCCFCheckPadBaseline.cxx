@@ -47,7 +47,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
   int totalCharges = 0;
   int consecCharges = 0;
   int maxConsecCharges = 0;
-  unsigned short maxCharge = 0;
+  Charge maxCharge = 0;
 
   short localPadId = iThread / NumOfCachedTimebins;
   short localTimeBin = iThread % NumOfCachedTimebins;
@@ -63,7 +63,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
         totalCharges += (q > 0);
         consecCharges = (q > 0) ? consecCharges + 1 : 0;
         maxConsecCharges = CAMath::Max(consecCharges, maxConsecCharges);
-        maxCharge = CAMath::Max<unsigned short>(q, maxCharge);
+        maxCharge = CAMath::Max<Charge>(q, maxCharge);
       }
     }
     GPUbarrier();
@@ -81,46 +81,58 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
 
 #ifndef GPUCA_NO_VC
   using UShort8 = Vc::fixed_size_simd<unsigned short, PadsPerCacheline>;
+  using Charge8 = Vc::fixed_size_simd<float, PadsPerCacheline>;
 
   UShort8 totalCharges{Vc::Zero};
   UShort8 consecCharges{Vc::Zero};
   UShort8 maxConsecCharges{Vc::Zero};
-  UShort8 maxCharge{Vc::Zero};
+  Charge8 maxCharge{Vc::Zero};
 #else
   std::array<unsigned short, PadsPerCacheline> totalCharges{0};
   std::array<unsigned short, PadsPerCacheline> consecCharges{0};
   std::array<unsigned short, PadsPerCacheline> maxConsecCharges{0};
-  std::array<unsigned short, PadsPerCacheline> maxCharge{0};
+  std::array<Charge, PadsPerCacheline> maxCharge{0};
 #endif
 
   tpccf::TPCFragmentTime t = fragment.firstNonOverlapTimeBin();
-  const unsigned short* charge = reinterpret_cast<unsigned short*>(&chargeMap[basePos.delta({0, t})]);
+
+  // Access packed charges as raw integers. We throw away the PackedCharge type here to simplify vectorization.
+  const unsigned short* packedChargeStart = reinterpret_cast<unsigned short*>(&chargeMap[basePos.delta({0, t})]);
 
   for (; t < fragment.lastNonOverlapTimeBin(); t += TimebinsPerCacheline) {
     for (tpccf::TPCFragmentTime localtime = 0; localtime < TimebinsPerCacheline; localtime++) {
 #ifndef GPUCA_NO_VC
-      UShort8 charges{charge + PadsPerCacheline * localtime, Vc::Aligned};
-
-      UShort8::mask_type isCharge = charges != 0;
+      const UShort8 packedCharges{packedChargeStart + PadsPerCacheline * localtime, Vc::Aligned};
+      const UShort8::mask_type isCharge = packedCharges != 0;
 
       if (isCharge.isNotEmpty()) {
         totalCharges(isCharge)++;
         consecCharges += 1;
         consecCharges(not isCharge) = 0;
         maxConsecCharges = Vc::max(consecCharges, maxConsecCharges);
-        maxCharge = Vc::max(maxCharge, charges);
+
+        // Manually unpack charges to float.
+        // Duplicated from PackedCharge::unpack to generate vectorized code:
+        //   Charge unpack() const { return Charge(mVal & ChargeMask) / Charge(1 << DecimalBits); }
+        // Note that PackedCharge has to cut off the highest 2 bits via ChargeMask as they are used for flags by the cluster finder
+        // and are not part of the charge value. We can skip this step because the cluster finder hasn't run yet
+        // and thus these bits are guarenteed to be zero.
+        const Charge8 unpackedCharges = Charge8(packedCharges) / Charge(1 << PackedCharge::DecimalBits);
+        maxCharge = Vc::max(maxCharge, unpackedCharges);
       } else {
         consecCharges = 0;
       }
 #else // Vc not available
       for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
-        const Charge q = charge[PadsPerCacheline * localtime + localpad];
-        const bool isCharge = q != 0;
+        const unsigned short packedCharge = packedChargeStart[PadsPerCacheline * localtime + localpad];
+        const bool isCharge = packedCharge != 0;
         if (isCharge) {
           totalCharges[localpad]++;
           consecCharges[localpad]++;
           maxConsecCharges[localpad] = CAMath::Max(maxConsecCharges[localpad], consecCharges[localpad]);
-          maxCharge[localPadId] = CAMath::Max<unsigned short>(maxCharge[localPad],
+
+          const Charge unpackedCharge = Charge(packedCharge) / Charge(1 << PackedCharge::DecimalBits);
+          maxCharge[localPadId] = CAMath::Max<Charge>(maxCharge[localPad], unpackedCharge);
         } else {
           consecCharges[localpad] = 0;
         }
@@ -128,7 +140,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
 #endif
     }
 
-    charge += ElemsInTileRow;
+    packedChargeStart += ElemsInTileRow;
   }
 
   for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
@@ -156,7 +168,7 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
   return ChargePos{0, 0, INVALID_TIME_BIN};
 }
 
-GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int pad, const GPUTPCClusterFinder& clusterer, int totalCharges, int consecCharges, unsigned short maxCharge)
+GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int pad, const GPUTPCClusterFinder& clusterer, int totalCharges, int consecCharges, Charge maxCharge)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
   const int totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;

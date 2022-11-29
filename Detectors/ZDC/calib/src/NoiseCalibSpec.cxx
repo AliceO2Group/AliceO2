@@ -123,6 +123,9 @@ void NoiseCalibSpec::sendOutput(EndOfStreamContext& ec)
   using clbUtils = o2::calibration::Utils;
   const auto& payload = mWorker.getParam();
   auto& info = mWorker.getCcdbObjectInfo();
+  const auto& opt = CalibParamZDC::Instance();
+  opt.updateCcdbObjectInfo(info);
+
   auto image = o2::ccdb::CcdbApi::createObjectImage<NoiseParam>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -134,7 +137,6 @@ void NoiseCalibSpec::sendOutput(EndOfStreamContext& ec)
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
-  const auto& opt = CalibParamZDC::Instance();
   if (opt.rootOutput == true) {
     mOutputDir = opt.outputDir;
     if (mOutputDir.compare("/dev/null")) {

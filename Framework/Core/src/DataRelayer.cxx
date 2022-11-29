@@ -272,6 +272,10 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
 {
   auto newOldest = mTimesliceIndex.setOldestPossibleInput(proposed, channel);
   LOGP(debug, "DataRelayer::setOldestPossibleInput {} from channel {}", newOldest.timeslice.value, newOldest.channel.value);
+  static bool dontDrop = getenv("DPL_DONT_DROP_OLD_TIMESLICE") && atoi(getenv("DPL_DONT_DROP_OLD_TIMESLICE"));
+  if (dontDrop) {
+    return;
+  }
   for (size_t si = 0; si < mCache.size() / mInputs.size(); ++si) {
     auto& variables = mTimesliceIndex.getVariablesForSlot({si});
     auto timestamp = VariableContextHelpers::getTimeslice(variables);

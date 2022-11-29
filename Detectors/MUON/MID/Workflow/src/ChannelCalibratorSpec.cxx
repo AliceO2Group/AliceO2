@@ -31,6 +31,8 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDCalibration/ChannelCalibrator.h"
+#include "MIDCalibration/ChannelCalibratorParam.h"
+#include "MIDCalibration/ChannelCalibratorFinalizer.h"
 #include "MIDFiltering/ChannelMasksHandler.h"
 #include "MIDFiltering/MaskMaker.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
@@ -51,16 +53,19 @@ class ChannelCalibratorDeviceDPL
  public:
   ChannelCalibratorDeviceDPL(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
-    mCalibrator.setReferenceMasks(makeDefaultMasksFromCrateConfig(feeIdConfig, crateMasks));
+    mRefMasks = makeDefaultMasksFromCrateConfig(feeIdConfig, crateMasks);
   }
 
   void init(of::InitContext& ic)
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    mThreshold = ic.options().get<double>("mid-mask-threshold");
+    mCalibrators[0].setThreshold(ChannelCalibratorParam::Instance().maxNoise);
+    mCalibrators[1].setThreshold(ChannelCalibratorParam::Instance().maxDead);
 
-    mCalibrator.setSlotLength(calibration::INFINITE_TF);
-    mCalibrator.setUpdateAtTheEndOfRunOnly();
+    for (auto& calib : mCalibrators) {
+      calib.setSlotLength(calibration::INFINITE_TF);
+      calib.setUpdateAtTheEndOfRunOnly();
+    }
   }
 
   //_________________________________________________________________
@@ -72,54 +77,60 @@ class ChannelCalibratorDeviceDPL
   void run(of::ProcessingContext& pc)
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto noiseRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_noise_rof");
-    unsigned long nEvents = noiseRof.size();
-    if (nEvents == 0) {
-      return;
-    }
 
+    std::array<gsl::span<const ColumnData>, 2> calibData{pc.inputs().get<gsl::span<ColumnData>>("mid_noise"), pc.inputs().get<gsl::span<ColumnData>>("mid_dead")};
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
-    auto noise = pc.inputs().get<gsl::span<ColumnData>>("mid_noise");
-    auto dead = pc.inputs().get<gsl::span<ColumnData>>("mid_dead");
+    std::array<double, 2> timeOrTriggers{mHBFsPerTF * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
 
-    std::vector<ColumnData> calibData;
-    calibData.insert(calibData.end(), noise.begin(), noise.end());
-    calibData.insert(calibData.end(), dead.begin(), dead.end());
-    mCalibrator.addEvents(nEvents);
-    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator.getCurrentTFInfo());
-    mCalibrator.process(calibData);
+    for (size_t idx = 0; idx < calibData.size(); ++idx) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrators[idx].getCurrentTFInfo());
+      mCalibrators[idx].addTimeOrTriggers(timeOrTriggers[idx]);
+      mCalibrators[idx].process(calibData[idx]);
+    }
   }
 
   void endOfStream(of::EndOfStreamContext& ec)
   {
-    mCalibrator.checkSlotsToFinalize(ChannelCalibrator::INFINITE_TF);
+    for (auto& calib : mCalibrators) {
+      calib.checkSlotsToFinalize(ChannelCalibrator::INFINITE_TF);
+    }
     sendOutput(ec.outputs());
   }
 
  private:
-  ChannelCalibrator mCalibrator{}; ///< Calibrator
+  std::array<ChannelCalibrator, 2> mCalibrators{}; ///< Channels calibrators
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::vector<ColumnData> mRefMasks{}; ///< Reference masks
-  double mThreshold{0.9};              ///< Occupancy threshold for producing a mask
+  int mHBFsPerTF = 128.;               ///< Number of HBFs per TF
 
   void sendOutput(of::DataAllocator& output)
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
-    sendOutput(output, mCalibrator.getBadChannels(), "MID/Calib/BadChannels", 0);
 
-    TObjString masks(mCalibrator.getMasksAsString().c_str());
-    sendOutput(output, masks, "MID/Calib/ElectronicsMasks", 1);
+    output.snapshot(of::Output{header::gDataOriginMID, "NOISY_CHANNELS", 0}, mCalibrators[0].getBadChannels());
+    output.snapshot(of::Output{header::gDataOriginMID, "DEAD_CHANNELS", 0}, mCalibrators[1].getBadChannels());
 
-    mCalibrator.initOutput(); // reset the outputs once they are already sent
+    ChannelCalibratorFinalizer finalizer;
+    finalizer.setReferenceMasks(mRefMasks);
+    finalizer.process(mCalibrators[0].getBadChannels(), mCalibrators[1].getBadChannels());
+    sendOutput(output, finalizer.getBadChannels(), mCalibrators[1].getCurrentTFInfo(), "MID/Calib/BadChannels", 0);
+
+    TObjString masks(finalizer.getMasksAsString().c_str());
+    sendOutput(output, masks, mCalibrators[1].getCurrentTFInfo(), "MID/Calib/ElectronicsMasks", 1);
+
+    output.snapshot(of::Output{header::gDataOriginMID, "BAD_CHANNELS", 0}, finalizer.getBadChannels());
+
+    for (auto& calib : mCalibrators) {
+      calib.initOutput(); // reset the outputs once they are already sent
+    }
   }
 
   template <typename T>
-  void sendOutput(of::DataAllocator& output, T& payload, const char* path, header::DataHeader::SubSpecificationType subSpec)
+  void sendOutput(of::DataAllocator& output, const T& payload, const o2::dataformats::TFIDInfo& tfInfo, const char* path, header::DataHeader::SubSpecificationType subSpec)
   {
     o2::ccdb::CcdbObjectInfo info;
     std::map<std::string, std::string> md;
-    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, mCalibrator.getCurrentTFInfo().creation, mCalibrator.getCurrentTFInfo().creation + 5 * o2::ccdb::CcdbObjectInfo::DAY);
+    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, tfInfo.creation, tfInfo.creation + 5 * o2::ccdb::CcdbObjectInfo::DAY);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -147,13 +158,15 @@ of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, c
   outputSpecs.emplace_back(o2::calibration::Utils::gDataOriginCDBWrapper, "MID_BAD_CHANNELS", 0, of::Lifetime::Sporadic);
   outputSpecs.emplace_back(o2::calibration::Utils::gDataOriginCDBPayload, "MID_BAD_CHANNELS", 1, of::Lifetime::Sporadic);
   outputSpecs.emplace_back(o2::calibration::Utils::gDataOriginCDBWrapper, "MID_BAD_CHANNELS", 1, of::Lifetime::Sporadic);
+  outputSpecs.emplace_back(header::gDataOriginMID, "NOISY_CHANNELS", 0, of::Lifetime::Sporadic);
+  outputSpecs.emplace_back(header::gDataOriginMID, "DEAD_CHANNELS", 0, of::Lifetime::Sporadic);
+  outputSpecs.emplace_back(header::gDataOriginMID, "BAD_CHANNELS", 0, of::Lifetime::Sporadic);
 
   return of::DataProcessorSpec{
     "MIDChannelCalibrator",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks, ccdbRequest)},
-    of::Options{{"mid-mask-threshold", of::VariantType::Double, 0.9, {"Tolerated occupancy before producing a map"}}}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks, ccdbRequest)}};
 }
 } // namespace mid
 } // namespace o2

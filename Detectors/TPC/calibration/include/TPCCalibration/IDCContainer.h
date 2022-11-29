@@ -178,6 +178,19 @@ struct IDCZero {
   /// get number of IDC0 values
   auto getNIDC0() const { return mIDCZero.size(); }
 
+  /// add IDCZero values from other object
+  IDCZero& operator+=(const IDCZero& idczero)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), idczero.mIDCZero.begin(), mIDCZero.begin(), std::plus<>());
+    return *this;
+  }
+
+  IDCZero& operator/=(const float value)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), mIDCZero.begin(), [value](float idczero) { return idczero / value; });
+    return *this;
+  }
+
   std::vector<float> mIDCZero{}; ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   ClassDefNV(IDCZero, 2)
 };
@@ -191,6 +204,10 @@ struct IDCOne {
   /// constructor for initializing member with default value (this is used in the IDCFourierTransform class to perform calculation of the fourier coefficients for the first aggregation interval)
   /// \param nIDC number of IDCs which will be initialized
   IDCOne(const unsigned int nIDC) : mIDCOne{std::vector<float>(nIDC)} {};
+
+  /// \param nIDC number of IDCs which will be initialized
+  /// \param val initialized values of the IDCs
+  IDCOne(const unsigned int nIDC, const float val) : mIDCOne{std::vector<float>(nIDC, val)} {};
 
   /// set IDC one for given index
   /// \param idcOne Delta IDC value which will be set
@@ -209,6 +226,16 @@ struct IDCOne {
 
   /// resize vector
   void resize(const unsigned int size) { mIDCOne.resize(size); }
+
+  /// append an IDCOne vector
+  void append(const IDCOne& idcone) { mIDCOne.insert(mIDCOne.end(), idcone.mIDCOne.begin(), idcone.mIDCOne.end()); }
+
+  /// multiply IDCOne values by a factor
+  IDCOne& operator*=(const float value)
+  {
+    std::transform(mIDCOne.begin(), mIDCOne.end(), mIDCOne.begin(), [value](float idcone) { return idcone * value; });
+    return *this;
+  }
 
   std::vector<float> mIDCOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   ClassDefNV(IDCOne, 2)
@@ -290,6 +317,9 @@ struct FourierCoeff {
   /// \param interval index of interval
   /// \param coefficient index of coefficient
   unsigned int getIndex(const unsigned int interval, const unsigned int coefficient) const { return interval * mCoeffPerTF + coefficient; }
+
+  /// \return returns number of time frames
+  unsigned int getNTimeFrames() const { return getNCoefficients() / mCoeffPerTF; }
 
   /// \return returns the stored value
   /// \param index index of the data

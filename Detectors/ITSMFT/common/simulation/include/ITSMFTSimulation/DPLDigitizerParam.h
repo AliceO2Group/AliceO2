@@ -31,7 +31,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   }
 
   bool continuous = true;          ///< flag for continuous simulation
-  float noisePerPixel = 1.e-7;     ///< ALPIDE Noise per channel
+  float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
   float strobeFlatTop = 7500.;     ///< strobe shape flat top
   float strobeMaxRiseTime = 1100.; ///< strobe max rise time
   float strobeQRiseTime0 = 450.;   ///< q @ which strobe rise time is 0
@@ -52,6 +52,11 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   O2ParamDef(DPLDigitizerParam, getParamName().data());
 
  private:
+  static constexpr float DEFNoisePerPixel()
+  {
+    return N == o2::detectors::DetID::ITS ? 1e-8 : 1e-8;
+  }
+
   static constexpr std::string_view ParamName[2] = {"ITSDigitizerParam", "MFTDigitizerParam"};
 };
 

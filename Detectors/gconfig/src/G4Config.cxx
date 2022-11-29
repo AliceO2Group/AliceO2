@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FairRunSim.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <iostream>
 #include <fairlogger/Logger.h>
@@ -19,6 +19,7 @@
 #include "TPythia6Decayer.h"
 #include "FairModule.h"
 #include "SimConfig/G4Params.h"
+#include "SimConfig/SimParams.h"
 #include "Generators/DecayerPythia8.h"
 
 //using declarations here since SetCuts.C and g4Config.C are included within namespace

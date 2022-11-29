@@ -49,7 +49,7 @@ void AlignableSensorTOF::prepareMatrixT2L()
   getMatrixL2GIdeal().LocalToMaster(loc, glo);
   mX = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   t2l.RotateZ(alp * RadToDeg());
-  const TGeoHMatrix& l2gi = getMatrixL2GIdeal().Inverse();
+  const TGeoHMatrix l2gi = getMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);
   setMatrixT2L(t2l);
   //

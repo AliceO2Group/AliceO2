@@ -22,7 +22,6 @@
 #include "Align/AlignableDetector.h"
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableDetectorITS.h"
-//#include "Align/AlignableDetectorTPC.h"
 #include "Align/AlignableDetectorTRD.h"
 #include "Align/AlignableDetectorTOF.h"
 #include "Align/EventVertex.h"
@@ -34,15 +33,6 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "TRDBase/TrackletTransformer.h"
-//#include "AliTrackerBase.h"
-//#include "AliESDCosmicTrack.h"
-//#include "AliESDtrack.h"
-//#include "AliESDEvent.h"
-//#include "AliESDVertex.h"
-//#include "AliRecoParam.h"
-//#include "AliCDBRunRange.h"
-//#include "AliCDBManager.h"
-//#include "AliCDBEntry.h"
 #include "MathUtils/Utils.h"
 
 #include <TMath.h>
@@ -59,17 +49,23 @@
 #include "MathUtils/SymMatrixSolver.h"
 #include "DataFormatsParameters/GRPObject.h"
 
+#include "SimulationDataFormat/MCUtils.h"
+#include "Steer/MCKinematicsReader.h"
+#include "CommonUtils/TreeStreamRedirector.h"
+#include <unordered_map>
+
 using namespace TMath;
 using namespace o2::align::utils;
 using namespace o2::dataformats;
 using namespace o2::globaltracking;
 
-using GIndex = o2::dataformats::VtxTrackIndex;
-
 namespace o2
 {
 namespace align
 {
+using GIndex = o2::dataformats::VtxTrackIndex;
+using PropagatorD = o2::base::PropagatorD;
+using MatCorrType = PropagatorD::MatCorrType;
 
 void Controller::ProcStat::print() const
 {
@@ -88,13 +84,9 @@ const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC"
 //                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; TODO(milettri, shahoian): needs detector IDs previously stored in AliGeomManager
 const int Controller::sSkipLayers[Controller::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
-
-const Char_t* Controller::sHStatName[Controller::kNHVars] = {
-  "Runs", "Ev.Inp", "Ev.VtxOK", "Tr.Inp", "Tr.2Fit", "Tr.2FitVC", "Tr.2PrMat", "Tr.2ResDer", "Tr.Stored", "Tr.Acc", "Tr.ContRes"};
-
 //________________________________________________________________
-Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask)
-  : mDetMask(detmask), mMPsrc(trcmask)
+Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC)
+  : mDetMask(detmask), mMPsrc(trcmask), mUseMC(useMC)
 {
   init();
 }
@@ -106,11 +98,6 @@ Controller::~Controller()
   closeMPRecOutput();
   closeMilleOutput();
   closeResidOutput();
-  //
-  for (int i = 0; i < DetID::nDetectors; i++) {
-    delete mDetectors[i];
-  }
-  delete mHistoStat;
   //
 }
 
@@ -137,6 +124,15 @@ void Controller::init()
 //________________________________________________________________
 void Controller::process()
 {
+  static int nTF = 0;
+  o2::steer::MCKinematicsReader mcReader;
+  if (mUseMC) {
+    if (!mcReader.initFromDigitContext("collisioncontext.root")) {
+      throw std::invalid_argument("initialization of MCKinematicsReader failed");
+    }
+  }
+  auto timerStart = std::chrono::system_clock::now();
+  int nVtx = 0, nVtxAcc = 0, nTrc = 0, nTrcAcc = 0;
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     auto* det = getDetector(id);
     if (det) {
@@ -148,9 +144,9 @@ void Controller::process()
   auto primVerGIs = mRecoData->getPrimaryVertexMatchedTracks();
   const auto& algConf = AlignConfig::Instance();
   // process vertices with contributor tracks
-  std::unordered_map<GIndex, char> mAmbigTable;
+  std::unordered_map<GIndex, bool> ambigTable;
   int nvRefs = primVer2TRefs.size();
-  bool fieldON = std::abs(o2::base::PropagatorD::Instance()->getNominalBz()) > 0.1;
+  bool fieldON = std::abs(PropagatorD::Instance()->getNominalBz()) > 0.1;
 
   for (int ivref = 0; ivref < nvRefs; ivref++) {
     const o2::dataformats::PrimaryVertex* vtx = (ivref < nvRefs - 1) ? &primVertices[ivref] : nullptr;
@@ -160,54 +156,87 @@ void Controller::process()
       useVertexConstrain = nContrib >= algConf.vtxMinCont && nContrib <= algConf.vtxMaxCont;
     }
     auto& trackRef = primVer2TRefs[ivref];
-    LOGP(info, "processing vtref {} of {}, with {} tracks ", ivref, nvRefs, trackRef.getEntries());
-
+    if (algConf.verbose > 1) {
+      LOGP(info, "processing vtref {} of {} with {} tracks, {}", ivref, nvRefs, trackRef.getEntries(), vtx ? vtx->asString() : std::string{});
+    }
+    nVtx++;
+    bool newVtx = true;
     for (int src : mTrackSources) {
       if ((GIndex::getSourceDetectorsMask(src) & mDetMask).none()) { // do we need this source?
         continue;
       }
       int start = trackRef.getFirstEntryOfSource(src), end = start + trackRef.getEntriesOfSource(src);
       for (int ti = start; ti < end; ti++) {
-        auto& trackIndex = primVerGIs[ti];
-        int npnt = 0;
-        if (trackIndex.isAmbiguous() && mAmbigTable.find(trackIndex) != mAmbigTable.end()) { // was it already processed?
-          continue;
+        auto trackIndex = primVerGIs[ti];
+        if (trackIndex.isAmbiguous()) {
+          auto& ambSeen = ambigTable[trackIndex];
+          if (ambSeen) { // processed
+            continue;
+          }
+          ambSeen = true;
         }
+        int npnt = 0;
         auto contributorsGID = mRecoData->getSingleDetectorRefs(trackIndex);
-        resetForNextTrack();
 
-        const auto& trcKin = mRecoData->getTrackParam(trackIndex); // RS FIXME : make sure this is a barrel track
+        std::string trComb;
+        for (int ig = 0; ig < GIndex::NSources; ig++) {
+          if (contributorsGID[ig].isIndexSet()) {
+            trComb += " " + contributorsGID[ig].asString();
+          }
+        }
+        if (algConf.verbose > 1) {
+          LOG(info) << "processing track " << trackIndex.asString() << " contributors: " << trComb;
+        }
+        resetForNextTrack();
+        nTrc++;
+        // RS const auto& trcOut = mRecoData->getTrackParamOut(trackIndex);
+        auto trcOut = mRecoData->getTrackParamOut(trackIndex);
+        const auto& trcIn = mRecoData->getTrackParam(trackIndex);
         // check detectors contributions
         AlignableDetector* det = nullptr;
         int ndet = 0, npntDet = 0;
 
-        if ((det = getDetector(DetID::ITS)) && contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false))) {
+        if ((det = getDetector(DetID::ITS))) {
+          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false))) {
+            npnt += npntDet;
+            ndet++;
+          } else if (mAllowAfterburnerTracks && contributorsGID[GIndex::ITSAB].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITSAB], false)) > 0) {
+            npnt += npntDet;
+            ndet++;
+          } else {
+            continue;
+          }
+        }
+        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false)) > 0) {
           npnt += npntDet;
           ndet++;
         }
-        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false))) {
-          npnt += npntDet;
-          ndet++;
-        }
-        if ((det = getDetector(DetID::TOF)) && contributorsGID[GIndex::TOF].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TOF], false))) {
+        if ((det = getDetector(DetID::TOF)) && contributorsGID[GIndex::TOF].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TOF], false)) > 0) {
           npnt += npntDet;
           ndet++;
         }
         // other detectors
-        LOGP(info, "processing track {} {} of vtref {}, Ndets:{}, Npoints: {}, use vertex: {}", ti, trackIndex.asString(), ivref, ndet, npnt, useVertexConstrain && trackIndex.isPVContributor());
+        if (algConf.verbose > 1) {
+          LOGP(info, "processing track {} {} of vtref {}, Ndets:{}, Npoints: {}, use vertex: {} | Kin: {} Kout: {}", ti, trackIndex.asString(), ivref, ndet, npnt, useVertexConstrain && trackIndex.isPVContributor(), trcIn.asString(), trcOut.asString());
+        }
         if (ndet < algConf.minDetectors) {
           continue;
         }
         if (npnt < algConf.minPointTotal) {
-          LOGP(info, "RSCOM: too few points {} < {}", npnt, algConf.minPointTotal);
+          if (algConf.verbose > 0) {
+            LOGP(info, "too few points {} < {}", npnt, algConf.minPointTotal);
+          }
           continue;
         }
-        if (trackIndex.isPVContributor() && useVertexConstrain && addVertexConstraint(*vtx)) {
-          mAlgTrack->setRefPoint(mRefPoint.get()); // set vertex as a reference point
+        bool vtxCont = false;
+        if (trackIndex.isPVContributor() && useVertexConstrain) {
+          mAlgTrack->copyFrom(trcIn); // copy kinematices of inner track just for propagation to the vertex
+          if (addVertexConstraint(*vtx)) {
+            mAlgTrack->setRefPoint(mRefPoint.get()); // set vertex as a reference point
+            vtxCont = true;
+          }
         }
-
-        // RS FIXME Account stat.
-        mAlgTrack->copyFrom(trcKin); // copy kinematices
+        mAlgTrack->copyFrom(trcOut); // copy kinematices of outer track as the refit will be done inward
         mAlgTrack->setFieldON(fieldON);
         mAlgTrack->sortPoints();
 
@@ -217,24 +246,117 @@ void Controller::process()
           LOG(error) << "AliAlgTrack->GetInnerPointID() cannot be 0";
         }
         if (!mAlgTrack->iniFit()) {
-          LOGP(error, "RSCOM: iniFit failed");
+          if (algConf.verbose > 0) {
+            LOGP(warn, "iniFit failed");
+          }
           continue;
         }
+
+        // compare refitted and original track
+        if (mDebugOutputLevel) {
+          trackParam_t trcAlgRef(*mAlgTrack.get());
+          std::array<double, 5> dpar{};
+          std::array<double, 15> dcov{};
+          for (int i = 0; i < 5; i++) {
+            dpar[i] = trcIn.getParam(i);
+          }
+          for (int i = 0; i < 15; i++) {
+            dcov[i] = trcIn.getCov()[i];
+          }
+          trackParam_t trcOrig(trcIn.getX(), trcIn.getAlpha(), dpar, dcov, trcIn.getCharge());
+          if (PropagatorD::Instance()->propagateToAlphaX(trcOrig, trcAlgRef.getAlpha(), trcAlgRef.getX(), true)) {
+            (*mDBGOut) << "trcomp"
+                       << "orig=" << trcOrig << "fit=" << trcAlgRef << "\n";
+          }
+        }
+        // RS: this is to substitute the refitter track by MC truth, just for debugging
+        /*
+        if (mUseMC) {
+          auto lbl = mRecoData->getTrackMCLabel(trackIndex);
+          if (lbl.isValid()) {
+            o2::MCTrack mcTrack = *mcReader.getTrack(lbl);
+            std::array<float,3> xyz{(float)mcTrack.GetStartVertexCoordinatesX(),(float)mcTrack.GetStartVertexCoordinatesY(),(float)mcTrack.GetStartVertexCoordinatesZ()},
+              pxyz{(float)mcTrack.GetStartVertexMomentumX(),(float)mcTrack.GetStartVertexMomentumY(),(float)mcTrack.GetStartVertexMomentumZ()};
+            std::array<float,21> cv21{10., 0.,10., 0.,0.,10., 0.,0.,0.,1.,   0.,0.,0.,0.,1., 0.,0.,0.,0.,0.,1.};
+            trcOut.set(xyz, pxyz, cv21, trcOut.getSign(), false);
+            mAlgTrack->copyFrom(trcOut);
+          }
+        }
+        */
         if (!mAlgTrack->processMaterials()) {
-          LOGP(error, "RSCOM: processMaterials failed");
+          if (algConf.verbose > 0) {
+            LOGP(warn, "processMaterials failed");
+          }
           continue;
         }
         mAlgTrack->defineDOFs();
         if (!mAlgTrack->calcResidDeriv()) {
-          LOGP(error, "RSCOM: calcResidDeriv failed");
+          if (algConf.verbose > 0) {
+            LOGP(warn, "calcResidDeriv failed");
+          }
           continue;
         }
-        //        mAlgTrack->Print("ldrcu");
 
+        if (mUseMC && mDebugOutputLevel) {
+          auto lbl = mRecoData->getTrackMCLabel(trackIndex);
+          if (lbl.isValid()) {
+            std::vector<float> pntX, pntY, pntZ, trcX, trcY, trcZ, prpX, prpY, prpZ, alpha, xsens, pntXTF, pntYTF, pntZTF, resY, resZ;
+            std::vector<int> detid, volid;
+
+            o2::MCTrack mcTrack = *mcReader.getTrack(lbl);
+            trackParam_t recTrack{*mAlgTrack};
+            for (int ip = 0; ip < mAlgTrack->getNPoints(); ip++) {
+              double tmp[3], tmpg[3];
+              auto* pnt = mAlgTrack->getPoint(ip);
+              auto* sens = pnt->getSensor();
+              detid.emplace_back(pnt->getDetID());
+              volid.emplace_back(pnt->getVolID());
+              TGeoHMatrix t2g;
+              sens->getMatrixT2G(t2g);
+              t2g.LocalToMaster(pnt->getXYZTracking(), tmpg);
+              pntX.emplace_back(tmpg[0]);
+              pntY.emplace_back(tmpg[1]);
+              pntZ.emplace_back(tmpg[2]);
+              double xyz[3]{pnt->getXTracking(), pnt->getYTracking(), pnt->getZTracking()};
+              xyz[1] += mAlgTrack->getResidual(0, ip);
+              xyz[2] += mAlgTrack->getResidual(1, ip);
+              t2g.LocalToMaster(xyz, tmpg);
+              trcX.emplace_back(tmpg[0]);
+              trcY.emplace_back(tmpg[1]);
+              trcZ.emplace_back(tmpg[2]);
+
+              pntXTF.emplace_back(pnt->getXTracking());
+              pntYTF.emplace_back(pnt->getYTracking());
+              pntZTF.emplace_back(pnt->getZTracking());
+              resY.emplace_back(mAlgTrack->getResidual(0, ip));
+              resZ.emplace_back(mAlgTrack->getResidual(1, ip));
+
+              alpha.emplace_back(pnt->getAlphaSens());
+              xsens.emplace_back(pnt->getXSens());
+            }
+            (*mDBGOut) << "mccomp"
+                       << "mcTr=" << mcTrack << "recTr=" << recTrack << "gid=" << trackIndex << "lbl=" << lbl << "vtxConst=" << vtxCont
+                       << "pntX=" << pntX << "pntY=" << pntY << "pntZ=" << pntZ
+                       << "trcX=" << trcX << "trcY=" << trcY << "trcZ=" << trcZ
+                       << "alp=" << alpha << "xsens=" << xsens
+                       << "pntXTF=" << pntXTF << "pntYTF=" << pntYTF << "pntZTF=" << pntZTF
+                       << "resY=" << resY << "resZ=" << resZ
+                       << "detid=" << detid << "volid=" << volid << "\n";
+          }
+        }
+        nTrcAcc++;
+        if (newVtx) {
+          newVtx = false;
+          nVtxAcc++;
+        }
         storeProcessedTrack(trackIndex);
       }
     }
   }
+  auto timerEnd = std::chrono::system_clock::now();
+  std::chrono::duration<float, std::milli> duration = timerEnd - timerStart;
+  LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", nTF, nVtx, nVtxAcc, nTrc, nTrcAcc, duration.count());
+  nTF++;
 }
 
 //________________________________________________________________
@@ -343,13 +465,10 @@ void Controller::assignDOFs()
   mGloParVal.clear();
   mGloParErr.clear();
   mGloParLab.clear();
-  mOrderedLbl.clear();
   mLbl2ID.clear();
   mGloParVal.reserve(ndofTOT);
   mGloParErr.reserve(ndofTOT);
   mGloParLab.reserve(ndofTOT);
-  mOrderedLbl.reserve(ndofTOT);
-  mLbl2ID.reserve(ndofTOT);
 
   mVtxSens->assignDOFs();
 
@@ -364,14 +483,14 @@ void Controller::assignDOFs()
   if (ndfOld > 0 && ndfOld != mNDOFs) {
     LOG(error) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
   }
-  //
-  // build Lbl <-> parID table
-  /* FIXME RS TODO
-  Sort(mNDOFs, mGloParLab, mLbl2ID, false); // sort in increasing order
-  for (int i = mNDOFs; i--;) {
-    mOrderedLbl[i] = mGloParLab[mLbl2ID[i]];
+  // build Lbl -> parID table
+  for (int i = 0; i < ndofTOT; i++) {
+    int& id = mLbl2ID[mGloParLab[i]];
+    if (id != 0) {
+      LOGP(fatal, "parameters {} and {} share the same label {}", id - 1, i, mGloParLab[i]);
+    }
+    id = i + 1;
   }
-  */
   //
 }
 
@@ -379,7 +498,7 @@ void Controller::assignDOFs()
 void Controller::addDetector(AlignableDetector* det)
 {
   // add detector constructed externally to alignment framework
-  mDetectors[det->getDetID()] = det;
+  mDetectors[det->getDetID()].reset(det);
   mNDet++;
 }
 
@@ -429,7 +548,7 @@ bool Controller::storeProcessedTrack(o2::dataformats::GlobalTrackID tid)
   }
   //
   if (!res) {
-    LOGP(error, "RSCOM: storeProcessedTrack failed");
+    LOGP(error, "storeProcessedTrack failed");
   }
   return res;
 }
@@ -440,7 +559,8 @@ bool Controller::fillMilleData()
   // store MP2 data in Mille format
   if (!mMille) {
     const auto& conf = AlignConfig::Instance();
-    mMille = std::make_unique<Mille>(fmt::format("{}{}", conf.mpDatFileName, conf.MilleOutBin ? sMPDataExt : sMPDataTxtExt).c_str(), conf.MilleOutBin);
+    mMilleFileName = fmt::format("{}_{:08d}_{:010d}{}", AlignConfig::Instance().mpDatFileName, mTimingInfo.runNumber, mTimingInfo.tfCounter, conf.MilleOutBin ? sMPDataExt : sMPDataTxtExt);
+    mMille = std::make_unique<Mille>(mMilleFileName.c_str(), conf.MilleOutBin);
   }
   if (!mAlgTrack->getDerivDone()) {
     LOG(error) << "Track derivatives are not yet evaluated";
@@ -559,7 +679,6 @@ bool Controller::fillControlData(o2::dataformats::GlobalTrackID tid)
   //   mCResid.setInvTrackID(tid);
   // }
   mResidTree->Fill();
-  // fillStatHisto(kTrackControl);
   return true;
 }
 
@@ -583,44 +702,43 @@ void Controller::acknowledgeNewRun()
   // o2::base::PropagatorImpl<double>::initFieldFromGRP();
   // std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 
-  //FIXME(milettri): needs AliESDEvent
-  //  // load needed info for new run
-  //  if (run == mRunNumber){
-  //    return;} // nothing to do
-  //  if (run > 0) {
-  //    mStat[kAccStat][kRun]++;
-  //  }
-  //  if (mRunNumber > 0){
-  //    fillStatHisto(kRunDone);}
-  //  mRunNumber = run;
-  //  LOG(info) << "Processing new run " << mRunNumber;
-  //  //
-  //  // setup magnetic field
-  //  if (fESDEvent &&
-  //      (!TGeoGlobalMagField::Instance()->GetField() ||
-  //       !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
-  //    fESDEvent->InitMagneticField();
-  //  }
-  //  //
-  //  if (!mUseRecoOCDB) {
-  //    LOG(warning) << "Reco-time OCDB will NOT be preloaded";
-  //    return;
-  //  }
-  //  LoadRecoTimeOCDB();
-  //  //
-  //  for (auto id=DetID::First; id<=DetID::Last; id++) {
-  //    AlignableDetector* det = getDetector(id);
-  //    if (!det->isDisabled()){
-  //      det->acknowledgeNewRun(run);}
-  //  }
-  //  //
-  //  // bring to virgin state
-  //  // CleanOCDB();
-  //  //
-  //  // LoadRefOCDB(); //??? we need to get back reference OCDB ???
-  //  //
-  //  mStat[kInpStat][kRun]++;
-  //  //
+  // FIXME(milettri): needs AliESDEvent
+  //   // load needed info for new run
+  //   if (run == mRunNumber){
+  //     return;} // nothing to do
+  //   if (run > 0) {
+  //     mStat[kAccStat][kRun]++;
+  //   }
+  //   if (mRunNumber > 0){
+  //   mRunNumber = run;
+  //   LOG(info) << "Processing new run " << mRunNumber;
+  //   //
+  //   // setup magnetic field
+  //   if (fESDEvent &&
+  //       (!TGeoGlobalMagField::Instance()->GetField() ||
+  //        !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
+  //     fESDEvent->InitMagneticField();
+  //   }
+  //   //
+  //   if (!mUseRecoOCDB) {
+  //     LOG(warning) << "Reco-time OCDB will NOT be preloaded";
+  //     return;
+  //   }
+  //   LoadRecoTimeOCDB();
+  //   //
+  //   for (auto id=DetID::First; id<=DetID::Last; id++) {
+  //     AlignableDetector* det = getDetector(id);
+  //     if (!det->isDisabled()){
+  //       det->acknowledgeNewRun(run);}
+  //   }
+  //   //
+  //   // bring to virgin state
+  //   // CleanOCDB();
+  //   //
+  //   // LoadRefOCDB(); //??? we need to get back reference OCDB ???
+  //   //
+  //   mStat[kInpStat][kRun]++;
+  //   //
 }
 
 // FIXME(milettri): needs OCDB
@@ -773,7 +891,7 @@ bool Controller::testLocalSolution()
 void Controller::initMPRecOutput()
 {
   // prepare MP record output
-  mMPRecFile.reset(TFile::Open(fmt::format("{}{}", AlignConfig::Instance().mpDatFileName, ".root").c_str(), "recreate"));
+  mMPRecFile.reset(TFile::Open(fmt::format("{}_{:08d}_{:010d}{}", AlignConfig::Instance().mpDatFileName, mTimingInfo.runNumber, mTimingInfo.tfCounter, ".root").c_str(), "recreate"));
   mMPRecTree = std::make_unique<TTree>("mpTree", "MPrecord Tree");
   mMPRecTree->Branch("mprec", "o2::align::Millepede2Record", &mMPRecordPtr);
 }
@@ -782,7 +900,7 @@ void Controller::initMPRecOutput()
 void Controller::initResidOutput()
 {
   // prepare residual output
-  mResidFile.reset(TFile::Open(AlignConfig::Instance().residFileName.c_str(), "recreate"));
+  mResidFile.reset(TFile::Open(fmt::format("{}_{:08d}_{:010d}{}", AlignConfig::Instance().residFileName, mTimingInfo.runNumber, mTimingInfo.tfCounter, ".root").c_str(), "recreate"));
   mResidTree = std::make_unique<TTree>("res", "Control Residuals");
   mResidTree->Branch("t", "o2::align::ResidualsController", &mCResidPtr);
 }
@@ -823,7 +941,7 @@ void Controller::closeMilleOutput()
 {
   // close output
   if (mMille) {
-    LOG(info) << "Closing " << AlignConfig::Instance().mpDatFileName << sMPDataExt;
+    LOG(info) << "Closing " << mMilleFileName;
   }
   mMille.reset();
 }
@@ -850,12 +968,11 @@ void Controller::setObligatoryDetector(DetID detID, int trtype, bool v)
 //____________________________________________
 bool Controller::addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx)
 {
-  LOG(info) << "adding vtx constraint";
-  auto* prop = o2::base::PropagatorD::Instance();
+  auto* prop = PropagatorD::Instance();
   const auto& conf = AlignConfig::Instance();
   o2::dataformats::DCA dcaInfo;
   AlignmentTrack::trackParam_t trcDCA(*mAlgTrack.get());
-  if (prop->propagateToDCABxByBz(vtx, trcDCA, conf.maxStep, conf.matCorType, &dcaInfo)) {
+  if (!prop->propagateToDCABxByBz(vtx, trcDCA, conf.maxStep, MatCorrType(conf.matCorType), &dcaInfo)) {
     return false;
   }
   // RS FIXME do selections if needed
@@ -876,77 +993,18 @@ bool Controller::addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx)
   return true;
 }
 
-//FIXME(milettri): needs OCDB
-////______________________________________________________
-//void Controller::writeCalibrationResults() const
-//{
-//  // writes output calibration
-//  CleanOCDB();
-//  AliCDBManager::Instance()->SetDefaultStorage(mOutCDBPath.c_str());
-//  //
-//  AlignableDetector* det;
-//  for (auto id=DetID::First; id<=DetID::Last; id++) {
-//    if (!(det = getDetector(id)) || det->isDisabled()){
-//      continue;
-//    }
-//    det->writeCalibrationResults();
-//  }
-//  //
-//}
-
-//FIXME(milettri): needs OCDB
-////______________________________________________________
-//void Controller::SetOutCDBRunRange(int rmin, int rmax)
-//{
-//  // set output run range
-//  mOutCDBRunRange[0] = rmin >= 0 ? rmin : 0;
-//  mOutCDBRunRange[1] = rmax > mOutCDBRunRange[0] ? rmax : AliCDBRunRange::Infinity();
-//}
-
-//FIXME(milettri): needs OCDB
-////______________________________________________________
-//bool Controller::LoadRefOCDB()
-//{
-//  // setup OCDB whose objects will be used as a reference with respect to which the
-//  // alignment/calibration will prodice its corrections.
-//  // Detectors which need some reference calibration data must use this one
-//  //
-//  //
-//  LOG(info) << "Loading reference OCDB");
-//  CleanOCDB();
-//  AliCDBManager* man = AliCDBManager::Instance();
-//  //
-//  if (!mRefOCDBConf.IsNull() && !gSystem->AccessPathName(mRefOCDBConf.c_str(), kFileExists)) {
-//    LOG(info) << "Executing reference OCDB setup macro %s", mRefOCDBConf.c_str());
-//    if (mRefRunNumber > 0){
-//      gROOT->ProcessLine(Form(".x %s(%d)", mRefOCDBConf.c_str(), mRefRunNumber));}
-//    else
-//      gROOT->ProcessLine(Form(".x %s", mRefOCDBConf.c_str()));
-//  } else {
-//    LOG(warning) << "No reference OCDB config macro "<<mRefOCDBConf.c_str()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
-//    man->SetRaw(true);
-//    man->SetRun(AliCDBRunRange::Infinity());
-//  }
-//  //
-//  if (AliGeomManager::GetGeometry()) {
-//    LOG(info) << "Destroying current geometry before loading reference one");
-//    AliGeomManager::Destroy();
-//  }
-//  AliGeomManager::LoadGeometry("geometry.root");
-//  if (!AliGeomManager::GetGeometry()){
-//    LOG(fatal) << "Failed to load geometry, cannot run");}
-//  //
-//  TString detList = "";
-//  for (int i = 0; i < kNDetectors; i++) {
-//    detList += getDetNameByDetID(i);
-//    detList += " ";
-//  }
-//  AliGeomManager::ApplyAlignObjsFromCDB(detList.c_str());
-//  //
-//  mRefOCDBLoaded++;
-//  //
-//  return true;
-//}
+//______________________________________________________
+void Controller::writeCalibrationResults() const
+{
+  // writes output calibration
+  AlignableDetector* det;
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    if (!(det = getDetector(id)) || det->isDisabled()) {
+      continue;
+    }
+    det->writeCalibrationResults();
+  }
+}
 
 //________________________________________________________
 AlignableDetector* Controller::getDetOfDOFID(int id) const
@@ -981,9 +1039,6 @@ AlignableVolume* Controller::getVolOfDOFID(int id) const
 void Controller::terminate(bool doStat)
 {
   // finalize processing
-  if (mRunNumber > 0) {
-    fillStatHisto(kRunDone);
-  }
   if (doStat) {
     if (mVtxSens) {
       mVtxSens->fillDOFStat(mDOFStat);
@@ -1094,16 +1149,15 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
 }
 
 //___________________________________________________________
-bool Controller::readParameters(const char* parfile, bool useErrors)
+bool Controller::readParameters(const std::string& parfile, bool useErrors)
 {
   // read parameters file (millepede output)
-  if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
-    LOG(error) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
+  if (mNDOFs < 1) {
+    LOG(error) << "Something is wrong in init, no DOFs found: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
   std::ifstream inpf(parfile);
   if (!inpf.good()) {
-    printf("Failed on input filename %s\n", parfile);
-    return false;
+    LOGP(fatal, "Failed on input filename {}", parfile);
   }
   mGloParVal.resize(mNDOFs);
   if (useErrors) {
@@ -1115,8 +1169,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
   fline = fline.Strip(TString::kBoth, ' ');
   fline.ToLower();
   if (!fline.BeginsWith("parameter")) {
-    LOG(error) << "First line is not parameter keyword: " << fline.Data();
-    return false;
+    LOGP(fatal, "First line of {} is not parameter keyword: {}", parfile, fline.Data());
   }
   double v0, v1, v2;
   int lab, asg = 0, asg0 = 0;
@@ -1129,16 +1182,14 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
     int nr = sscanf(fline.Data(), "%d%lf%lf%lf", &lab, &v0, &v1, &v2);
     if (nr < 3) {
       LOG(error) << "Expected to read at least 3 numbers, got " << nr << ", this is NOT milleped output";
-      LOG(error) << "line (" << cnt << ") was:\n " << fline.Data();
-      return false;
+      LOG(fatal) << "line (" << cnt << ") was: " << fline.Data();
     }
     if (nr == 3) {
       asg0++;
     }
     int parID = label2ParID(lab);
     if (parID < 0 || parID >= mNDOFs) {
-      LOG(error) << "Invalid label " << lab << " at line " << cnt << " -> ParID=" << parID;
-      return false;
+      LOG(fatal) << "Invalid label " << lab << " at line " << cnt << " -> ParID=" << parID;
     }
     mGloParVal[parID] = -v0;
     if (useErrors) {
@@ -1243,28 +1294,6 @@ void Controller::MPRec2Mille(TTree* mprTree, const std::string& millefile, bool 
 }
 
 //____________________________________________________________
-void Controller::fillStatHisto(int type, float w)
-{
-  if (!mHistoStat) {
-    createStatHisto();
-  }
-  mHistoStat->Fill((isCosmic() ? kNHVars : 0) + type, w);
-}
-
-//____________________________________________________________
-void Controller::createStatHisto()
-{
-  mHistoStat = new TH1F("stat", "stat", 2 * kNHVars, -0.5, 2 * kNHVars - 0.5);
-  mHistoStat->SetDirectory(nullptr);
-  TAxis* xax = mHistoStat->GetXaxis();
-  for (int j = 0; j < 2; j++) {
-    for (int i = 0; i < kNHVars; i++) {
-      xax->SetBinLabel(j * kNHVars + i + 1, Form("%s.%s", j ? "CSM" : "COL", sHStatName[i]));
-    }
-  }
-}
-
-//____________________________________________________________
 void Controller::printLabels() const
 {
   // print global IDs and Labels
@@ -1277,11 +1306,11 @@ void Controller::printLabels() const
 int Controller::label2ParID(int lab) const
 {
   // convert Mille label to ParID (slow)
-  int ind = 0; // FIXME RS TODO // findKeyIndex(lab, mOrderedLbl, mNDOFs);
-  if (ind < 0) {
-    return -1;
+  auto it = mLbl2ID.find(lab);
+  if (it == mLbl2ID.end()) {
+    LOGP(fatal, "Label {} is not mapped to any parameter", lab);
   }
-  return mLbl2ID[ind];
+  return it->second - 1;
 }
 
 //____________________________________________________________
@@ -1328,47 +1357,6 @@ void Controller::fixLowStatFromDOFStat(int thresh)
     mGloParErr[parID] = -999.;
   }
   //
-}
-
-//____________________________________________________________
-void Controller::loadStat(const char* flname)
-{
-  // load statistics histos from external file produced by alignment task
-  TFile* fl = TFile::Open(flname);
-  //
-  TObject *hdfO = nullptr, *hstO = nullptr;
-  TList* lst = (TList*)fl->Get("clist");
-  if (lst) {
-    hdfO = lst->FindObject("DOFstat");
-    if (hdfO) {
-      lst->Remove(hdfO);
-    }
-    hstO = lst->FindObject("stat");
-    if (hstO) {
-      lst->Remove(hstO);
-    }
-    delete lst;
-  } else {
-    hdfO = fl->Get("DOFstat");
-    hstO = fl->Get("stat");
-  }
-  TH1F* hst = nullptr;
-  if (hstO && (hst = dynamic_cast<TH1F*>(hstO))) {
-    hst->SetDirectory(nullptr);
-  } else {
-    LOG(warning) << "did not find stat histo";
-  }
-  //
-  DOFStatistics* dofSt = nullptr;
-  if (!hdfO || !(dofSt = dynamic_cast<DOFStatistics*>(hdfO))) {
-    LOG(warning) << "did not find DOFstat object";
-  }
-  //
-  setHistoStat(hst);
-  setDOFStat(*dofSt); // FIXME RS TODO
-  //
-  fl->Close();
-  delete fl;
 }
 
 //______________________________________________
@@ -1425,6 +1413,8 @@ void Controller::checkSol(TTree* mpRecTree, bool store,
     outFile->Close();
     delete outFile;
   }
+  delete rLG;
+  delete rL;
   //
 }
 
@@ -1717,8 +1707,6 @@ void Controller::expandGlobalsBy(int n)
   mGloParVal.resize(snew);
   mGloParErr.resize(snew);
   mGloParLab.resize(snew);
-  mOrderedLbl.resize(snew);
-  mLbl2ID.resize(snew);
   mNDOFs += n;
 }
 

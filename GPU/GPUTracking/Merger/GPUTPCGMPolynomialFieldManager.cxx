@@ -195,7 +195,10 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPU
 
   StoredField_t type = kUnknown;
 
-  if (fabsf(fabsf(nominalFieldkG) - 5.00668f) <= fabsf(fabsf(nominalFieldkG) - 2.f)) {
+  if (fabsf(nominalFieldkG) < 0.01f) {
+    type = kUniform;
+    nominalFieldkG = 0;
+  } else if (fabsf(fabsf(nominalFieldkG) - 5.00668f) <= fabsf(fabsf(nominalFieldkG) - 2.f)) {
     type = k5kG;
   } else {
     type = k2kG;

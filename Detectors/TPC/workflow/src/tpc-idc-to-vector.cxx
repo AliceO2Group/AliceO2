@@ -40,14 +40,13 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::string sectorDefault = "0-" + std::to_string(CRU::MaxCRU - 1);
-  int defaultlanes = std::max(1u, std::thread::hardware_concurrency() / 2);
+  std::string crusDefault = "0-" + std::to_string(CRU::MaxCRU - 1);
 
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"crus", VariantType::String, sectorDefault.c_str(), {"List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15"}},
+    {"crus", VariantType::String, crusDefault.c_str(), {"List of TPC crus, comma separated ranges, e.g. 0-3,7,9-15"}},
   };
 
   std::swap(workflowOptions, options);

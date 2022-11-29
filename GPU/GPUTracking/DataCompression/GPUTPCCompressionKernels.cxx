@@ -20,6 +20,7 @@
 #include "GPUTPCCompressionTrackModel.h"
 #include "GPUTPCGeometry.h"
 #include "GPUTPCClusterRejection.h"
+#include "GPUTPCCompressionKernels.inc"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -272,25 +273,9 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       for (unsigned int j = get_local_id(0); j < count; j += get_local_size(0)) {
         int outidx = idOffsetOut + totalCount + j;
         const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[j]];
-        unsigned int lastTime = 0;
-        unsigned int lastPad = 0;
-        if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionDifferences) {
-          if (j != 0) {
-            const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[j - 1]];
-            lastPad = orgClPre.padPacked;
-            lastTime = orgClPre.getTimePacked();
-          } else if (totalCount != 0) {
-            const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][smem.lastIndex];
-            lastPad = orgClPre.padPacked;
-            lastTime = orgClPre.getTimePacked();
-          }
 
-          c.padDiffU[outidx] = orgCl.padPacked - lastPad;
-          c.timeDiffU[outidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
-        } else {
-          c.padDiffU[outidx] = orgCl.padPacked;
-          c.timeDiffU[outidx] = orgCl.getTimePacked();
-        }
+        int preId = j != 0 ? (int)sortBuffer[j - 1] : (totalCount != 0 ? (int)smem.lastIndex : -1);
+        GPUTPCCompression_EncodeUnattached(param.rec.tpc.compressionTypeMask, orgCl, c.timeDiffU[outidx], c.padDiffU[outidx], preId == -1 ? nullptr : &clusters->clusters[iSlice][iRow][preId]);
 
         unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
         unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

@@ -52,6 +52,8 @@ struct CCDBFetcherHelper {
   std::vector<OutputRoute> routes;
   std::unordered_map<std::string, std::string> remappings;
   size_t queryDownScaleRate = 1;
+  int64_t timeToleranceMS = 5000;
+
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
     // find the first = sign in the string. If present drop everything after it
@@ -262,6 +264,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       std::unordered_map<std::string, bool> accountedSpecs;
       auto defHost = options.get<std::string>("condition-backend");
       auto checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
+      helper->timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
       helper->queryDownScaleRate = checkRate > 0 ? checkRate : static_cast<size_t>(-1l);
       LOGP(info, "CCDB Backend at: {}, validity check for every {} TF", defHost, helper->queryDownScaleRate);
       auto remapString = options.get<std::string>("condition-remap");
@@ -380,10 +383,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
 
         int64_t timestamp = ceil((timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
-        if (timestamp + 5000 < timingInfo.creation) {                                                                        // 5 sec. tolerance
+        if (std::abs(int64_t(timingInfo.creation) - timestamp) > helper->timeToleranceMS) {
           static bool notWarnedYet = true;
           if (notWarnedYet) {
-            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, timingInfo.creation);
+            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} differs by >{} from the TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, helper->timeToleranceMS, timingInfo.creation);
             notWarnedYet = false;
             // apparently the orbit reset time from the CTP object makes no sense (i.e. orbit was reset for this run w/o create an object, as it happens for technical runs)
             dtc.orbitResetTimeMUS = 1000 * timingInfo.creation - timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000;

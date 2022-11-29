@@ -27,7 +27,7 @@ namespace o2
 namespace tof
 {
 
-constexpr int MAXNTRACKINSET = 10;
+constexpr int MAXNTRACKINSET = 20;
 // usefull constants
 constexpr unsigned long combinatorial[MAXNTRACKINSET + 1] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049};
 //---------------
@@ -47,7 +47,9 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
 
   int hypo[MAXNTRACKINSET];
 
-  int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
+  //  int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
+  int nmaxtracksinset = MAXNTRACKINSET;
+
   LOG(debug) << "nmaxtracksinset " << nmaxtracksinset;
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
   LOG(debug) << "ntracksinset " << ntracksinset;

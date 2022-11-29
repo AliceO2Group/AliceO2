@@ -106,6 +106,8 @@ struct VertexingParameters {
   int maxTrackletsPerCluster = 2e3;
   int phiSpan = -1;
   int zSpan = -1;
+
+  int nThreads = 1;
 };
 
 struct VertexerHistogramsConfiguration {

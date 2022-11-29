@@ -183,7 +183,19 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return flag;
   };
 
-  auto creator = [maskTrk, this, &correctTrackTime, &flagTime](auto& trk, GID gid, float time, float terr) {
+  // MFT-MCH-MID tracks are labeled as MFT-MCH in the reco container
+  auto fixMFTMCHMIDLabel = [this](GID& gid) {
+    if (gid.getSource() == GID::MFTMCH) {
+      const auto& trFwd = mRecoCont->getGlobalFwdTrack(gid);
+      if (trFwd.getMIDTrackID() != -1) {
+        gid = GID{gid.getIndex(), GID::MFTMCHMID};
+      }
+    }
+  };
+
+  auto creator = [maskTrk, this, &correctTrackTime, &flagTime, &fixMFTMCHMIDLabel](auto& trk, GID gid, float time, float terr) {
+    fixMFTMCHMIDLabel(gid);
+
     const auto src = gid.getSource();
     mTotalDataTypes[src]++;
 
@@ -230,9 +242,12 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
         // TODO: fix TPC tracks?
 
+        GID gid = tvid;
+        fixMFTMCHMIDLabel(gid);
+
         // If a track was not rejected, associate it with its primary vertex
-        if (mGIDTrackTime.find(tvid) != mGIDTrackTime.end()) {
-          mPrimaryVertexTrackGIDs[iv].push_back(tvid);
+        if (mGIDTrackTime.find(gid) != mGIDTrackTime.end()) {
+          mPrimaryVertexTrackGIDs[iv].push_back(gid);
         }
       }
     }
@@ -692,7 +707,7 @@ void EveWorkflowHelper::drawMFTMCH(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMFTMCHMID(GID gid, float trackTime)
 {
-  const auto& trMFTMCHMID = mRecoCont->getGlobalFwdTrack(gid);
+  const auto& trMFTMCHMID = mRecoCont->getGlobalFwdTrack(GID{gid.getIndex(), GID::MFTMCH});
 
   const auto& trackParam = forwardTrackToMCHTrack(trMFTMCHMID);
 

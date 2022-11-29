@@ -16,6 +16,7 @@
 #include "SpacePoints/TrackInterpolation.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 
 using namespace o2::framework;

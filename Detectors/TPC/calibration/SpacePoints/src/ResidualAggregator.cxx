@@ -66,6 +66,7 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   runNumber = rhs.runNumber;
   tfOrbits = std::move(rhs.tfOrbits);
   sumOfResiduals = std::move(rhs.sumOfResiduals);
+  lumi = std::move(rhs.lumi);
 }
 
 void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression)
@@ -113,6 +114,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
     }
     treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
     treeOutRecords->Branch("sumOfResiduals", &sumOfResidualsPtr);
+    treeOutRecords->Branch("lumi", &lumiPtr);
   }
 }
 
@@ -127,7 +129,7 @@ void ResidualsContainer::fillStatisticsBranches()
   }
 }
 
-void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data, const o2::ctp::LumiInfo* lumiInput)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
@@ -190,6 +192,9 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
   }
   runNumber = ti.runNumber;
   tfOrbits.push_back(ti.firstTForbit);
+  if (lumiInput) {
+    lumi.push_back(*lumiInput);
+  }
 
   if (autosaveInterval > 0 && (tfOrbits.size() % autosaveInterval) == 0 && writeToRootFile) {
     writeToFile(false);
@@ -292,6 +297,8 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   std::swap(prev->tfOrbits, tfOrbits);
   prev->sumOfResiduals.insert(prev->sumOfResiduals.end(), sumOfResiduals.begin(), sumOfResiduals.end());
   std::swap(prev->sumOfResiduals, sumOfResiduals);
+  prev->lumi.insert(prev->lumi.end(), lumi.begin(), lumi.end());
+  std::swap(prev->lumi, lumi);
 }
 
 void ResidualsContainer::print()

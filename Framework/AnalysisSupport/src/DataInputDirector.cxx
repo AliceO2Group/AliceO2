@@ -383,7 +383,7 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
       // first argument is 0 as the parent file object contains only 1 file
       return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
     }
-    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
+    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
   }
 
   // create table output

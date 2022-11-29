@@ -156,7 +156,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         endpointAdcSamples[j] += hdr->nADCsamples;
         unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
         unsigned int maxTimeBin = timeBin + hdr->nTimeBinSpan;
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*)hdr;
           if (hdr2->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) {
             maxTimeBin += 256;
@@ -166,7 +166,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           mCFContext->tpcMaxTimeBin = maxTimeBin;
         }
         bool extendsInNextPage = false;
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           if (l + 1 < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k] && o2::raw::RDHUtils::getMemorySize(*rdh) == TPCZSHDR::TPC_ZS_PAGE_SIZE) {
             const o2::header::RAWDataHeader* nextrdh = (const o2::header::RAWDataHeader*)(page + TPCZSHDR::TPC_ZS_PAGE_SIZE);
             extendsInNextPage = o2::raw::RDHUtils::getHeartBeatOrbit(*nextrdh) == o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) && o2::raw::RDHUtils::getMemorySize(*nextrdh) > sizeof(o2::header::RAWDataHeader);
@@ -185,7 +185,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
             fragmentExtends[ff] = false;
           }
         };
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           for (unsigned int ff = 0; ff < firstPossibleFragment; ff++) {
             handleExtends(ff);
           }
@@ -227,7 +227,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           } else {
             handleExtends(f);
             if (timeBin < (unsigned int)fragments[f].first.last()) {
-              if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+              if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
                 for (unsigned int ff = f + 1; ff < mCFContext->nFragments; ff++) {
                   handleExtends(ff);
                 }

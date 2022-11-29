@@ -15,6 +15,8 @@
 #include "Generators/Trigger.h"
 #include "Generators/PrimaryGenerator.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/ParticleStatus.h"
+#include "SimulationDataFormat/MCGenStatus.h"
 #include "FairPrimaryGenerator.h"
 #include <fairlogger/Logger.h>
 #include <cmath>
@@ -131,7 +133,7 @@ Bool_t
                         particle.GetMother(1),
                         particle.GetDaughter(0),
                         particle.GetDaughter(1),
-                        particle.GetStatusCode() == 1,
+                        particle.TestBit(ParticleStatus::kToBeDone),
                         particle.Energy() * mEnergyUnit,
                         particle.T() * mTimeUnit,
                         particle.GetWeight(),

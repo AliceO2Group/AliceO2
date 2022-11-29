@@ -210,7 +210,9 @@ class SACFactorization
   static unsigned int getStack(const unsigned int sector, const unsigned int stack) { return static_cast<unsigned int>(stack + sector * GEMSTACKSPERSECTOR); }
 
   /// \return returns stack (starts at 0 for each side)
-  static unsigned int getStackInSide(const unsigned int sector, const unsigned int stack) { return getStack(sector, stack) % GEMSTACKS / 2; }
+  static unsigned int getStackInSide(const unsigned int sector, const unsigned int stack) { return getStack(sector, stack) % (GEMSTACKS / 2); }
+
+  void setSACZero(const SACZero& sacZero) { mSACZero = sacZero; }
 
  private:
   const unsigned int mTimeFrames{};                             ///< number of timeframes which are stored

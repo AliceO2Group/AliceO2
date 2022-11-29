@@ -15,12 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its3::V11Geometry + ;
-#pragma link C++ class o2::its3::V3Layer + ;
-#pragma link C++ class o2::its3::V3Services + ;
-#pragma link C++ class o2::its3::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::its3::Detector> + ;
-#pragma link C++ class o2::its3::Digitizer + ;
-
+#pragma link C++ class o2::its3::ITS3Layer + ;
+#pragma link C++ class o2::its3::DescriptorInnerBarrelITS3 + ;
+//#pragma link C++ class o2::its3::Digitizer + ;
 
 #endif

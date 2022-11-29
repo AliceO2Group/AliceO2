@@ -156,14 +156,6 @@ struct HelperMethods {
     int sector = hcid / constants::NHCPERSEC;
     return getORIinSuperModule(hcid) + constants::NHCPERSEC * sector;
   }
-
-  inline static void swapByteOrder(unsigned int& word)
-  {
-    word = (word >> 24) |
-           ((word << 8) & 0x00FF0000) |
-           ((word >> 8) & 0x0000FF00) |
-           (word << 24);
-  }
 };
 
 } // namespace trd

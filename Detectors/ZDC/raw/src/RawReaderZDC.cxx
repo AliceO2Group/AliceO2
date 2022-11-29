@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ZDCRaw/RawReaderZDC.h"
+#include <cstdlib>
 
 namespace o2
 {
@@ -110,6 +111,8 @@ void RawReaderZDC::process(const EventChData& ch)
 // pop digits
 int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData)
 {
+  const char* thefcn = "RawReaderZDC::getDigits";
+
   if (mModuleConfig == nullptr) {
     LOG(fatal) << "Missing ModuleConfig";
     return 0;
@@ -242,20 +245,11 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             inconsistent_event = true;
             inconsistent_alice_trig = true;
             mt.f.AliceErr = true;
-            if (mVerbosity > DbgMinimal) {
-              if (alice_0 != ch.f.Alice_0) {
-                printf("im=%d ic=%d Alice_0 mt=%u ch=%u\n", im, ic, mt.f.Alice_0, ch.f.Alice_0);
-              }
-              if (alice_1 != ch.f.Alice_1) {
-                printf("im=%d ic=%d Alice_1 mt=%u ch=%u\n", im, ic, mt.f.Alice_1, ch.f.Alice_1);
-              }
-              if (alice_2 != ch.f.Alice_2) {
-                printf("im=%d ic=%d Alice_2 mt=%u ch=%u\n", im, ic, mt.f.Alice_2, ch.f.Alice_2);
-              }
-              if (alice_3 != ch.f.Alice_3) {
-                printf("im=%d ic=%d Alice_3 mt=%u ch=%u\n", im, ic, mt.f.Alice_3, ch.f.Alice_3);
-              }
-            }
+            LOGF(warn, "%s (m,c)=(%d,%d) Alice [0123]      %u%s%u %u%s%u %u%s%u %u%s%u", thefcn, im, ic,
+                 alice_0, alice_0 == ch.f.Alice_0 ? "==" : "!=", ch.f.Alice_0,
+                 alice_1, alice_1 == ch.f.Alice_1 ? "==" : "!=", ch.f.Alice_1,
+                 alice_2, alice_2 == ch.f.Alice_2 ? "==" : "!=", ch.f.Alice_2,
+                 alice_3, alice_3 == ch.f.Alice_3 ? "==" : "!=", ch.f.Alice_3);
           }
           if (filled_module == false) {
             mt.f.Auto_m = ch.f.Auto_m;
@@ -271,12 +265,18 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           } else if (mt.f.Auto_m != ch.f.Auto_m || mt.f.Auto_0 != ch.f.Auto_0 || mt.f.Auto_1 != ch.f.Auto_1 || mt.f.Auto_2 != ch.f.Auto_2 || mt.f.Auto_3 != ch.f.Auto_3) {
             mt.f.AutoErr = true;
             inconsistent_auto_trig = true;
+            LOGF(warn, "%s (m,c)=(%d,%d) Auto [m0123] %u%s%u %u%s%u %u%s%u %u%s%u %u%s%u", thefcn, im, ic,
+                 mt.f.Auto_m, mt.f.Auto_m == ch.f.Auto_m ? "==" : "!=", ch.f.Auto_m,
+                 mt.f.Auto_0, mt.f.Auto_0 == ch.f.Auto_0 ? "==" : "!=", ch.f.Auto_0,
+                 mt.f.Auto_1, mt.f.Auto_1 == ch.f.Auto_1 ? "==" : "!=", ch.f.Auto_1,
+                 mt.f.Auto_2, mt.f.Auto_2 == ch.f.Auto_2 ? "==" : "!=", ch.f.Auto_2,
+                 mt.f.Auto_3, mt.f.Auto_3 == ch.f.Auto_3 ? "==" : "!=", ch.f.Auto_3);
           }
           ncd++;
         } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
           // Empty channel
         } else {
-          LOG(error) << "Data format error";
+          LOG(error) << thefcn << "RAW Data format error";
         }
       }
       bcdata.moduleTriggers[im] = mt.w;
@@ -298,7 +298,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       }
     }
     if (inconsistent_event) {
-      LOG(error) << "Inconsistent event:" << (inconsistent_auto_trig ? " AUTOT" : "") << (inconsistent_alice_trig ? " ALICET" : "");
+      LOGF(error, "%s %u.%04u Inconsistent event:%s%s", thefcn, bcdata.ir.orbit, bcdata.ir.bc, (inconsistent_auto_trig ? " AUTOT" : ""), (inconsistent_alice_trig ? " ALICET" : ""));
     }
     if ((inconsistent_event && mVerbosity > DbgMinimal) || (mVerbosity >= DbgFull)) {
       bcdata.print(mTriggerMask);

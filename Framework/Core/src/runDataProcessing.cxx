@@ -156,8 +156,6 @@ using DeviceInfos = std::vector<DeviceInfo>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
 
-template class std::vector<DeviceSpec>;
-
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 
 // FIXME: probably find a better place
@@ -1063,6 +1061,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
+  fair::Logger::OnFatal([]() { throw runtime_error("Fatal error"); });
   DeviceSpec const& spec = runningWorkflow.devices[ref.index];
   LOG(info) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
@@ -1805,8 +1804,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-memory-rate-limit",
             "--aod-writer-json",
             "--aod-writer-ntfmerge",
+            "--aod-writer-resdir",
             "--aod-writer-resfile",
             "--aod-writer-resmode",
+            "--aod-writer-maxfilesize",
             "--aod-writer-keep",
             "--aod-parent-access-level",
             "--aod-parent-base-path-replacement",
@@ -2033,8 +2034,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         boost::property_tree::ptree finalConfig;
         assert(infos.size() == runningWorkflow.devices.size());
         for (size_t di = 0; di < infos.size(); ++di) {
-          auto info = infos[di];
-          auto spec = runningWorkflow.devices[di];
+          auto& info = infos[di];
+          auto& spec = runningWorkflow.devices[di];
           finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(info) << "Dumping used configuration in dpl-config.json";
@@ -2387,7 +2388,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     };
   } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
     control.callbacks = {[filename = varmap["dump-workflow-file"].as<std::string>()](WorkflowSpec const& workflow,
-                                                                                     DeviceSpecs const,
+                                                                                     DeviceSpecs const&,
                                                                                      DeviceExecutions const&,
                                                                                      DataProcessorInfos& dataProcessorInfos,
                                                                                      CommandInfo const& commandInfo) {

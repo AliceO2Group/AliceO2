@@ -12,14 +12,14 @@
 o2_add_library(
   MIDWorkflow
   TARGETVARNAME targetName
-  SOURCES src/ClusterizerSpec.cxx
+  SOURCES src/CalibDataProcessorSpec.cxx
+          src/ClusterizerSpec.cxx
           src/ColumnDataSpecsUtils.cxx
           src/DecodedDataAggregatorSpec.cxx
           src/DigitReaderSpec.cxx
           src/EfficiencySpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
-          src/FetToDeadSpec.cxx
           src/FilteringSpec.cxx
           src/MaskHandlerSpec.cxx
           src/MaskMakerSpec.cxx

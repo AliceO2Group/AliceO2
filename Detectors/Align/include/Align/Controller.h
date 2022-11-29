@@ -42,6 +42,7 @@
 #include <TH1F.h>
 #include "Align/utils.h"
 #include "Framework/TimingInfo.h"
+#include "Align/AlignableDetector.h"
 
 // can be fwd declared if we don't require root dict.
 //class TTree;
@@ -61,13 +62,17 @@ namespace trd
 {
 class TrackletTransformer;
 }
+namespace utils
+{
+class TreeStreamRedirector;
+}
+
 namespace align
 {
 
 //class Mille;
 
 class EventVertex;
-class AlignableDetector;
 class AlignableVolume;
 class AlignmentPoint;
 class ResidualsControllerFast;
@@ -107,36 +112,9 @@ class Controller : public TObject
   enum { kInitGeomDone = BIT(14),
          kInitDOFsDone = BIT(15),
          kMPAlignDone = BIT(16) };
-  //
-  enum {     // STAT histo entries
-    kRunDone // input runs
-    ,
-    kEvInp // input events
-    ,
-    kEvVtx // after vtx selection
-    ,
-    kTrackInp // input tracks
-    ,
-    kTrackFitInp // input to ini fit
-    ,
-    kTrackFitInpVC // those with vertex constraint
-    ,
-    kTrackProcMatInp // input to process materials
-    ,
-    kTrackResDerInp // input to resid/deriv calculation
-    ,
-    kTrackStore // stored tracks
-    ,
-    kTrackAcc // tracks accepted
-    ,
-    kTrackControl // control tracks filled
-    //
-    ,
-    kNHVars
-  };
 
   Controller() = default;
-  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask);
+  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC = false);
   ~Controller() final;
 
   void expandGlobalsBy(int n);
@@ -150,7 +128,6 @@ class Controller : public TObject
   void initDetectors();
   void initDOFs();
   void terminate(bool dostat = true);
-  void setStatHistoLabels(TH1* h) const;
   //
   void setInitGeomDone() { SetBit(kInitGeomDone); }
   bool getInitGeomDone() const { return TestBit(kInitGeomDone); }
@@ -191,7 +168,7 @@ class Controller : public TObject
   //  const AliESDVertex* GetVertex() const { return fVertex; } FIXME(milettri): needs AliESDVertex
   //
   //----------------------------------------
-  bool readParameters(const char* parfile = "millepede.res", bool useErrors = true);
+  bool readParameters(const std::string& parfile = "millepede.res", bool useErrors = true);
   auto& getGloParVal() { return mGloParVal; }
   auto& getGloParErr() { return mGloParErr; }
   auto& getGloParLab() { return mGloParLab; }
@@ -219,20 +196,16 @@ class Controller : public TObject
   //  bool CheckSetVertex(const AliESDVertex* vtx); FIXME(milettri): needs AliESDVertex
   bool addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx);
   int getNDetectors() const { return mNDet; }
-  AlignableDetector* getDetector(DetID id) const { return mDetectors[id]; }
+  AlignableDetector* getDetector(DetID id) const { return mDetectors[id].get(); }
 
   EventVertex* getVertexSensor() const { return mVtxSens.get(); }
   //
   void resetForNextTrack();
   int getNDOFs() const { return mGloParVal.size(); }
   //----------------------------------------
-  //  void SetOutCDBRunRange(int rmin = 0, int rmax = 999999999); FIXME(milettri): needs OCDB
-  int* getOutCDBRunRange() const { return (int*)mOutCDBRunRange; }
-  int getOutCDBRunMin() const { return mOutCDBRunRange[0]; }
-  int getOutCDBRunMax() const { return mOutCDBRunRange[1]; }
   float getControlFrac() const { return mControlFrac; }
   void setControlFrac(float v = 1.) { mControlFrac = v; }
-  //  void writeCalibrationResults() const; FIXME(milettri): needs OCDB
+  void writeCalibrationResults() const;
   void applyAlignmentFromMPSol();
   //
   bool fillMPRecData(o2::dataformats::GlobalTrackID tid);
@@ -253,13 +226,7 @@ class Controller : public TObject
   void checkConstraints(const char* params = nullptr);
   DOFStatistics& GetDOFStat() { return mDOFStat; }
   void setDOFStat(const DOFStatistics& st) { mDOFStat = st; }
-  TH1* getHistoStat() const { return mHistoStat; }
-  void detachHistoStat() { setHistoStat(nullptr); }
-  void setHistoStat(TH1F* h) { mHistoStat = h; }
-  void fillStatHisto(int type, float w = 1);
-  void createStatHisto();
   void fixLowStatFromDOFStat(int thresh = 40);
-  void loadStat(const char* flname);
   //
   //----------------------------------------
   //
@@ -293,8 +260,18 @@ class Controller : public TObject
 
   void setTRDTransformer(const o2::trd::TrackletTransformer* trans) { mTRDTransformer = trans; }
   void setTRDTrigRecFilterActive(bool v) { mTRDTrigRecFilterActive = v; }
+  void setAllowAfterburnerTracks(bool v) { mAllowAfterburnerTracks = v; }
+
   const o2::trd::TrackletTransformer* getTRDTransformer() const { return mTRDTransformer; }
   bool getTRDTrigRecFilterActive() const { return mTRDTrigRecFilterActive; }
+  bool getAllowAfterburnerTracks() const { return mAllowAfterburnerTracks; }
+
+  int getInstanceID() const { return mInstanceID; }
+  void setInstanceID(int i) { mInstanceID = i; }
+
+  int getDebugOutputLevel() const { return mDebugOutputLevel; }
+  void setDebugOutputLevel(int i) { mDebugOutputLevel = i; }
+  void setDebugStream(o2::utils::TreeStreamRedirector* d) { mDBGOut = d; }
 
  protected:
   //
@@ -308,16 +285,19 @@ class Controller : public TObject
   GTrackID::mask_t mMPsrc{};
   std::vector<int> mTrackSources;
   o2::framework::TimingInfo mTimingInfo{};
+  int mInstanceID = 0; // instance in case of pipelining
   int mRunNumber = 0;
   int mNDet = 0;                             // number of deectors participating in the alignment
   int mNDOFs = 0;                            // number of degrees of freedom
+  bool mUseMC = false;
   bool mFieldOn = false;                     // field on flag
   int mTracksType = utils::Coll;             // collision/cosmic event type
   std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
   const o2::globaltracking::RecoContainer* mRecoData = nullptr; // externally set RecoContainer
   const o2::trd::TrackletTransformer* mTRDTransformer = nullptr;  // TRD tracket transformer
   bool mTRDTrigRecFilterActive = false;                           // select TRD triggers processed with ITS
-  std::array<AlignableDetector*, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
+  bool mAllowAfterburnerTracks = false;                           // allow using ITS-TPC afterburner tracks
+  std::array<std::unique_ptr<AlignableDetector>, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
 
   std::unique_ptr<EventVertex> mVtxSens; // fake sensor for the vertex
   std::vector<GeometricalConstraint> mConstraints{}; // array of constraints
@@ -328,11 +308,13 @@ class Controller : public TObject
   std::vector<float> mGloParVal; // parameters for DOFs
   std::vector<float> mGloParErr; // errors for DOFs
   std::vector<int> mGloParLab;   // labels for DOFs
-  std::vector<int> mOrderedLbl;  //ordered labels
-  std::vector<int> mLbl2ID;      //Label order in mOrderedLbl -> parID
+  std::unordered_map<int, int> mLbl2ID; // Labels mapping to parameter ID
   //
   std::unique_ptr<AlignmentPoint> mRefPoint; //! reference point for track definition
   //
+  int mDebugOutputLevel = 0;
+  o2::utils::TreeStreamRedirector* mDBGOut = nullptr;
+
   // statistics
   ProcStat mStat{}; // processing statistics
   //
@@ -348,10 +330,9 @@ class Controller : public TObject
   std::unique_ptr<TTree> mResidTree; //! tree to store control residuals
   std::unique_ptr<TFile> mMPRecFile; //! file to store MP record tree
   std::unique_ptr<TFile> mResidFile; //! file to store control residuals tree
-  int mOutCDBRunRange[2] = {};      // run range for output storage
+  std::string mMilleFileName{};      //!
   //
-  DOFStatistics mDOFStat;     // stat of entries per dof
-  TH1F* mHistoStat = nullptr; // histo with general statistics
+  DOFStatistics mDOFStat; // stat of entries per dof
   //
   // input related
   int mRefRunNumber = 0;    // optional run number used for reference
@@ -360,7 +341,6 @@ class Controller : public TObject
   //
   static const int sSkipLayers[kNLrSkip];          // detector layers for which we don't need module matrices
   static const Char_t* sDetectorName[kNDetectors]; // names of detectors //RSREM
-  static const Char_t* sHStatName[kNHVars];        // names for stat.bins in the stat histo
   static const Char_t* sMPDataExt;                 // extension for MP2 binary data
   static const Char_t* sMPDataTxtExt;              // extension for MP2 txt data
   //

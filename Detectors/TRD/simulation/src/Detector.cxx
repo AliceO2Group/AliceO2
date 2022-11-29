@@ -18,7 +18,7 @@
 #include "DataFormatsTRD/Hit.h"
 
 #include "CommonUtils/ShmAllocator.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"
 

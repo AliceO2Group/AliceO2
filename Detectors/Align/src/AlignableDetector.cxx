@@ -22,6 +22,7 @@
 #include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
 #include <TString.h>
 #include <TH1.h>
@@ -42,6 +43,8 @@ namespace align
 //____________________________________________
 AlignableDetector::AlignableDetector(DetID id, Controller* ctr) : DOFSet(id.getName(), ctr), mDetID(id)
 {
+  mVolumes.SetOwner(true);
+  mSensors.SetOwner(false); // sensors are just pointers on particular volumes
 }
 
 //____________________________________________
@@ -419,28 +422,19 @@ void AlignableDetector::writeCalibrationResults() const
 //______________________________________________________
 void AlignableDetector::writeAlignmentResults() const
 {
-  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(lettrich): needs OCDB
-  //  // store updated alignment
-  //  TClonesArray* arr = new TClonesArray("AliAlignObjParams", 10);
-  //  //
-  //  int nvol = getNVolumes();
-  //  for (int iv = 0; iv < nvol; iv++) {
-  //    AlignableVolume* vol = getVolume(iv);
-  //    // call only for top level objects, they will take care of children
-  //    if (!vol->getParent()){
-  //      vol->createAlignmentObjects(arr);}
-  //  }
-  //  //
-  //  AliCDBManager* man = AliCDBManager::Instance();
-  //  AliCDBMetaData* md = new AliCDBMetaData();
-  //  md->SetResponsible(mController->getOutCDBResponsible());
-  //  md->SetComment(mController->getOutCDBResponsible());
-  //  //
-  //  AliCDBId id(Form("%s/Align/Data", mDetID.getName()), mController->getOutCDBRunMin(), mController->getOutCDBRunMax());
-  //  man->Put(arr, id, md);
-  //  //
-  //  delete arr;
+  std::vector<o2::detectors::AlignParam> arr;
+  int nvol = getNVolumes();
+  for (int iv = 0; iv < nvol; iv++) {
+    AlignableVolume* vol = getVolume(iv);
+    // call only for top level objects, they will take care of children
+    if (!vol->getParent()) {
+      vol->createAlignmentObjects(arr);
+    }
+  }
+  TFile outalg(fmt::format("alignment{}.root", getName()).c_str(), "recreate");
+  outalg.WriteObjectAny(&arr, "std::vector<o2::detectors::AlignParam>", o2::base::NameConf::CCDBOBJECT.data());
+  outalg.Close();
+  LOGP(info, "storing {} alignment in {}", getName(), outalg.GetName());
 }
 
 //______________________________________________________
@@ -661,7 +655,7 @@ void AlignableDetector::calcFree(bool condFix)
   mNCalibDOFsFree = 0;
   for (int i = 0; i < mNCalibDOFs; i++) {
     if (!isFreeDOF(i)) {
-      if (condFix) {
+      if (condFix && varsSet()) {
         setParErr(i, -999);
       }
       continue;

@@ -81,9 +81,12 @@ class VertexerTraits
   void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
 
  protected:
   unsigned char mIsGPU;
+  int mNThreads = 1;
 
   VertexingParameters mVrtParams;
   IndexTableUtils mIndexTableUtils;

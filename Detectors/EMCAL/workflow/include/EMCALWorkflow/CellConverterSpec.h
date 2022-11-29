@@ -46,7 +46,7 @@ class CellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  CellConverterSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC){};
+  CellConverterSpec(bool propagateMC, bool useccdb) : framework::Task(), mPropagateMC(propagateMC), mLoadRecoParamFromCCDB(useccdb){};
 
   /// \brief Destructor
   ~CellConverterSpec() override = default;
@@ -73,6 +73,8 @@ class CellConverterSpec : public framework::Task
   /// Output MC-truth: {"EMC", "CELLSMCTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
+
  protected:
   std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits, std::vector<gsl::span<const o2::emcal::MCLabel>>& mcLabels);
 
@@ -84,6 +86,7 @@ class CellConverterSpec : public framework::Task
 
  private:
   bool mPropagateMC = false;                                           ///< Switch whether to process MC true labels
+  bool mLoadRecoParamFromCCDB = false;                                 ///< Flag to load the the SimParams from CCDB
   o2::emcal::Geometry* mGeometry = nullptr;                            ///!<! Geometry pointer
   std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                ///!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;                           ///< Container with output cells
@@ -96,7 +99,7 @@ class CellConverterSpec : public framework::Task
 /// \param propagateMC If true the MC truth container is propagated to the output
 ///
 /// Refer to CellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getCellConverterSpec(bool propagateMC);
+framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, bool useccdb = false);
 
 } // namespace reco_workflow
 

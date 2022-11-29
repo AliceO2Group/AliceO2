@@ -18,6 +18,7 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "CommonUtils/StringUtils.h"
@@ -46,7 +47,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -59,6 +60,7 @@ struct ResidualsContainer {
   uint32_t runNumber;                                                        ///< run number (required for meta data file)
   std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
   std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
+  std::vector<o2::ctp::LumiInfo> lumi, *lumiPtr{&lumi};                      ///< luminosity information from CTP per TF
   std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     // unbinned residuals
   std::vector<TrackData> trkData, *trkDataPtr{&trkData};                                 // track data and cluster ranges
 
@@ -93,7 +95,11 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Unb
   ~ResidualAggregator() final;
 
   void setDataTakingContext(o2::framework::DataTakingContext& dtc) { mDataTakingContext = dtc; }
-  void setOutputDir(std::string dir) { mOutputDir = dir.empty() ? o2::utils::Str::rectifyDirectory("./") : dir; }
+  void setOutputDir(std::string dir)
+  {
+    mOutputDir = dir;
+    mWriteOutput = true;
+  }
   void setMetaFileOutputDir(std::string dir)
   {
     mMetaOutputDir = dir;
@@ -104,7 +110,6 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Unb
   void setWriteUnbinnedResiduals(bool f) { mWriteUnbinnedResiduals = f; }
   void setWriteTrackData(bool f) { mWriteTrackData = f; }
   void setAutosaveInterval(int n) { mAutosaveInterval = n; }
-  void disableFileWriting() { mWriteOutput = false; }
   void setCompression(int c) { mCompressionSetting = c; }
 
   bool hasEnoughData(const Slot& slot) const final;
@@ -119,7 +124,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Unb
   std::string mMetaOutputDir{"none"}; ///< the directory where the meta data file is stored
   std::string mLHCPeriod{""};         ///< the LHC period to be put into the meta file
   bool mStoreMetaData{false};         ///< flag, whether meta file is supposed to be stored
-  bool mWriteOutput{true};            ///< if false, no output files will be written
+  bool mWriteOutput{false};           ///< flag, whether output files are supposed to be stored
   bool mWriteBinnedResiduals{false};  ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file

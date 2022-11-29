@@ -70,12 +70,16 @@ class DataSource
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}
+  virtual o2::parameters::GRPECS::RunType getRunType() { return o2::parameters::GRPECS::RunType::NONE; }
+  virtual void setRunType(o2::parameters::GRPECS::RunType) {}
   virtual std::string getEventName() { return "event"; };
   virtual std::string getEventAbsoluteFilePath() { return ""; };
   virtual int getFirstTForbit() const { return 0; }
   virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }
   virtual void setCollisionTime(std::string) {}
+  virtual std::string getFileTime() const { return "not specified"; }
+  virtual void setFileTime(std::string) {}
   virtual int getTrackMask() const { return 0; }
   virtual void setTrackMask(int) {}
   virtual int getClusterMask() const { return 0; }

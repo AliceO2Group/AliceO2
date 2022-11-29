@@ -216,7 +216,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
   }
   // Do not propagate tracks outside the ALICE detector
   if (math_utils::detail::abs<value_T>(dx) > 1e5 || math_utils::detail::abs<value_T>(getY()) > 1e5 || math_utils::detail::abs<value_T>(getZ()) > 1e5) {
-    LOGP(warning, "Anomalous track, target X:{:f}", xk);
+    LOG(warning) << "Anomalous track, traget X:" << xk;
     return false;
   }
   value_t crv = getCurvature(b[2]);

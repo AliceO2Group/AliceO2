@@ -257,3 +257,69 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
     mEventPartsWithQED.push_back(combinedparts[idx[i]]);
   }
 }
+
+void DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
+{
+  // the goal is to determine timeframe boundaries inside the interaction record vectors
+  // determine if we can do anything
+  LOG(info) << "finalizing timeframe structure";
+  if (mEventRecords.size() == 0) {
+    // nothing to do
+    return;
+  }
+
+  if (mEventRecords.back().orbit < startOrbit) {
+    LOG(error) << "start orbit larger than last collision entry";
+    return;
+  }
+
+  // skip to the first index falling within our constrained
+  int left = 0;
+  while (left < mEventRecords.size() && mEventRecords[left].orbit < startOrbit) {
+    left++;
+  }
+
+  // now we can start (2 pointer approach)
+  auto right = left;
+  int timeframe_count = 1;
+  while (right < mEventRecords.size()) {
+    if (mEventRecords[right].orbit >= startOrbit + timeframe_count * orbitsPerTF) {
+      // we finished one timeframe
+      mTimeFrameStartIndex.emplace_back(std::pair<int, int>(left, right - 1));
+      timeframe_count++;
+      left = right;
+    }
+    right++;
+  }
+  // we finished one timeframe
+  mTimeFrameStartIndex.emplace_back(std::pair<int, int>(left, right - 1));
+  LOG(info) << "Fixed " << mTimeFrameStartIndex.size() << " timeframes ";
+  for (auto p : mTimeFrameStartIndex) {
+    LOG(info) << p.first << " " << p.second;
+  }
+}
+
+std::unordered_map<int, int> DigitizationContext::getCollisionIndicesForSource(int source) const
+{
+  // go through all collisions and pick those that have the give source
+  // then keep only the first collision index
+  std::unordered_map<int, int> result;
+  const auto& parts = getEventParts(false);
+  for (int collindex = 0; collindex < parts.size(); ++collindex) {
+    for (auto& eventpart : parts[collindex]) {
+      if (eventpart.sourceID == source) {
+        result[eventpart.entryID] = collindex;
+      }
+    }
+  }
+  return result;
+}
+
+int DigitizationContext::findSimPrefix(std::string const& prefix) const
+{
+  auto iter = std::find(mSimPrefixes.begin(), mSimPrefixes.end(), prefix);
+  if (iter != mSimPrefixes.end()) {
+    return std::distance(mSimPrefixes.begin(), iter);
+  }
+  return -1;
+}

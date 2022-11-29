@@ -164,7 +164,6 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, va
   //
   // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
-  const value_type Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
   int dir = dx > 0.f ? 1 : -1;
   if (!signCorr) {
@@ -226,7 +225,6 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackPar_t& track, value
   //
   // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
-  const value_type Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
   int dir = dx > 0.f ? 1 : -1;
   if (!signCorr) {
@@ -258,6 +256,7 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackPar_t& track, value
       if (tofInfo) {
         tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
         tofInfo->addX2X0(mb.meanX2X0);
+        tofInfo->addXRho(mb.getXRho(signCorr));
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
@@ -286,7 +285,6 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, value_ty
   //
   // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
-  const value_type Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
   int dir = dx > 0.f ? 1 : -1;
   if (!signCorr) {
@@ -318,6 +316,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, value_ty
       if (tofInfo) {
         tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
         tofInfo->addX2X0(mb.meanX2X0);
+        tofInfo->addXRho(mb.getXRho(signCorr));
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
@@ -346,7 +345,6 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
   //
   // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
-  const value_type Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
   int dir = dx > 0.f ? 1 : -1;
   if (!signCorr) {
@@ -378,6 +376,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
       if (tofInfo) {
         tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
         tofInfo->addX2X0(mb.meanX2X0);
+        tofInfo->addXRho(mb.getXRho(signCorr));
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
@@ -393,24 +392,34 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
 //_______________________________________________________________________
 template <typename value_T>
 template <typename track_T>
-GPUd() bool PropagatorImpl<value_T>::propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly, value_type maxSnp, value_type maxStep,
+GPUd() bool PropagatorImpl<value_T>::propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly, value_type maxSnp, value_type maxStep, int minSteps,
                                                        MatCorrType matCorr, track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   // propagate to alpha,X, if needed in a few steps
   auto snp = track.getSnpAt(alpha, x, getNominalBz());
   // apply safety factor 0.9 for crude rotation estimate
-  if (math_utils::detail::abs<value_type>(snp) < maxSnp * 0.9 && track.rotate(alpha) && propagateTo(track, x, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
-    return true;
+  if (math_utils::detail::abs<value_type>(snp) < maxSnp * 0.9 && track.rotate(alpha)) {
+    auto dx = math_utils::detail::abs<value_type>(x - track.getX());
+    if (dx < Epsilon) {
+      return true;
+    }
+    return propagateTo(track, x, bzOnly, maxSnp, math_utils::detail::min<value_type>(dx / minSteps, maxStep), matCorr, tofInfo, signCorr);
   }
+  return false;
+  /*
   // try to go in a few steps with intermediate rotations
+
+
   auto alphaTrg = alpha;
   math_utils::detail::bringToPMPi<value_type>(alphaTrg);
   auto alpCurr = track.getAlpha();
   math_utils::detail::bringToPMPi<value_type>(alpCurr);
-  auto dalp = math_utils::detail::deltaPhiSmall<value_type>(alpCurr, alphaTrg) / 2; // effective half (alpha - alphaCurr)
-  auto xtmp = (track.getX() + x) / 2;
+  int nsteps = minSteps > 2 ? minSteps : 2;
+  auto dalp = math_utils::detail::deltaPhiSmall<value_type>(alpCurr, alphaTrg) / nsteps; // effective  (alpha - alphaCurr)/nsteps
+  auto xtmp = (track.getX() + x) / nsteps;
   return track.rotate(alpCurr + dalp) && propagateTo(track, xtmp, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr) &&
          track.rotate(alpha) && propagateTo(track, x, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr);
+  */
 }
 
 //_______________________________________________________________________
@@ -427,7 +436,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   value_type xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -476,7 +485,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   value_type xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -525,7 +534,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   value_type xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -573,7 +582,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   value_type xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_type d = math_utils::detail::abs<value_type>(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -611,7 +620,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
-  value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
+  value_T xdca = 0., ydca = 0., length = 0.; // , zdca = 0. // zdca might be used in future
   o2::math_utils::CircleXY<value_T> c;
   constexpr float TinyF = 1e-9;
   auto straigh_line_approx = [&]() {
@@ -691,7 +700,7 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
 #endif
     float bxyzF[3];
     f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyzF);
-    //copy and convert
+    // copy and convert
     constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;
     for (uint i = 0; i < 3; ++i) {
       bxyz[i] = static_cast<value_type>(bxyzF[i]) * kCLight1;
@@ -730,11 +739,11 @@ template class PropagatorImpl<float>;
 template class PropagatorImpl<double>;
 #endif
 #ifndef __HIPCC__ // TODO: Fixme: must prevent HIP from compiling this, should file bug report
-template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-template bool PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackPar_t>(PropagatorImpl<float>::TrackPar_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool GPUd() PropagatorImpl<float>::propagateToAlphaX<PropagatorImpl<float>::TrackParCov_t>(PropagatorImpl<float>::TrackParCov_t&, float, float, bool, float, float, int, PropagatorImpl<float>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 #ifndef GPUCA_GPUCODE_DEVICE
-template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackPar_t>(PropagatorImpl<double>::TrackPar_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
-template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackParCov_t>(PropagatorImpl<double>::TrackParCov_t&, double, double, bool, double, double, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackPar_t>(PropagatorImpl<double>::TrackPar_t&, double, double, bool, double, double, int, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
+template bool PropagatorImpl<double>::propagateToAlphaX<PropagatorImpl<double>::TrackParCov_t>(PropagatorImpl<double>::TrackParCov_t&, double, double, bool, double, double, int, PropagatorImpl<double>::MatCorrType matCorr, track::TrackLTIntegral*, int) const;
 #endif
 #endif
 } // namespace o2::base
