@@ -1160,10 +1160,12 @@ void MatchTOF::selectBestMatches()
       flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
     }
 
-    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                               mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                               deltat,
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    if (matchingPair.getChi2() < 3) { // extra cut in Chi2
+      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                 deltat,
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    }
 
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
