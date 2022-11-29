@@ -42,6 +42,7 @@ struct Options {
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
   bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
+  int maxCollsPerTF = -1; // the maximal number of hadronic collisions per TF (can be used to constrain number of collisions per timeframe to some maximal value)
 };
 
 enum class InteractionLockMode {
@@ -183,7 +184,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
     "use-existing-kine", "Read existing kinematics to adjust event counts")(
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
-    "maxColsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe.")(
+    "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
     "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision");
 
   options.add_options()("help,h", "Produce help message.");
@@ -392,6 +393,11 @@ int main(int argc, char* argv[])
     prefixes.push_back(p.name);
   }
   digicontext.setSimPrefixes(prefixes);
+
+  digicontext.printCollisionSummary();
+
+  // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
+  digicontext.applyMaxCollisionFilter(options.tfid * options.orbitsPerTF, options.orbitsPerTF, options.maxCollsPerTF);
 
   digicontext.finalizeTimeframeStructure(options.tfid * options.orbitsPerTF, options.orbitsPerTF);
   if (options.printContext) {

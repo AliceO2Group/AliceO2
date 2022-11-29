@@ -258,41 +258,104 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
   }
 }
 
-void DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
+namespace
 {
+// a common helper for timeframe structure
+std::vector<std::pair<int, int>> getTimeFrameBoundaries(std::vector<o2::InteractionTimeRecord> const& irecords, long startOrbit, long orbitsPerTF)
+{
+  std::vector<std::pair<int, int>> result;
+
   // the goal is to determine timeframe boundaries inside the interaction record vectors
   // determine if we can do anything
-  LOG(info) << "finalizing timeframe structure";
-  if (mEventRecords.size() == 0) {
+  if (irecords.size() == 0) {
     // nothing to do
-    return;
+    return result;
   }
 
-  if (mEventRecords.back().orbit < startOrbit) {
+  if (irecords.back().orbit < startOrbit) {
     LOG(error) << "start orbit larger than last collision entry";
-    return;
+    return result;
   }
 
   // skip to the first index falling within our constrained
   int left = 0;
-  while (left < mEventRecords.size() && mEventRecords[left].orbit < startOrbit) {
+  while (left < irecords.size() && irecords[left].orbit < startOrbit) {
     left++;
   }
 
   // now we can start (2 pointer approach)
   auto right = left;
   int timeframe_count = 1;
-  while (right < mEventRecords.size()) {
-    if (mEventRecords[right].orbit >= startOrbit + timeframe_count * orbitsPerTF) {
+  while (right < irecords.size()) {
+    if (irecords[right].orbit >= startOrbit + timeframe_count * orbitsPerTF) {
       // we finished one timeframe
-      mTimeFrameStartIndex.emplace_back(std::pair<int, int>(left, right - 1));
+      result.emplace_back(std::pair<int, int>(left, right - 1));
       timeframe_count++;
       left = right;
     }
     right++;
   }
-  // we finished one timeframe
-  mTimeFrameStartIndex.emplace_back(std::pair<int, int>(left, right - 1));
+  // finished last timeframe
+  result.emplace_back(std::pair<int, int>(left, right - 1));
+  return result;
+}
+} // namespace
+
+void DigitizationContext::applyMaxCollisionFilter(long startOrbit, long orbitsPerTF, int maxColl)
+{
+  // the idea is to go through each timeframe and throw away collisions beyond a certain count
+  // then the indices should be condensed
+
+  std::vector<std::vector<o2::steer::EventPart>> newparts;
+  std::vector<o2::InteractionTimeRecord> newrecords;
+
+  // get a timeframe boundary indexing
+  auto timeframeindices = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF);
+
+  std::unordered_map<int, int> currMaxId;                           // the max id encountered for a source
+  std::unordered_map<int, std::unordered_map<int, int>> reIndexMap; // for each source, a map of old to new index for the event parts
+
+  if (maxColl == -1) {
+    maxColl = mEventRecords.size();
+  }
+
+  // now we can go through the structure timeframe by timeframe
+  for (auto timeframe : timeframeindices) {
+    auto firstindex = timeframe.first;
+    auto lastindex = timeframe.second;
+    // copy to new structure
+    for (int index = firstindex; index <= std::min(lastindex, firstindex + maxColl - 1); ++index) {
+      newrecords.push_back(mEventRecords[index]);
+      newparts.push_back(mEventParts[index]);
+
+      // reindex the event parts to achieve compactification (and initial linear increase)
+      for (auto& part : newparts.back()) {
+        auto source = part.sourceID;
+        auto entry = part.entryID;
+        // have we remapped this entry before?
+        if (reIndexMap.find(source) != reIndexMap.end() && reIndexMap[source].find(entry) != reIndexMap[source].end()) {
+          part.entryID = reIndexMap[source][entry];
+        } else {
+          // assign the next free index
+          if (currMaxId.find(source) == currMaxId.end()) {
+            currMaxId[source] = 0;
+          }
+          part.entryID = currMaxId[source];
+          // cache this assignment
+          reIndexMap[source][entry] = currMaxId[source];
+          currMaxId[source] += 1;
+        }
+      }
+    }
+  }
+  // reassignment
+  mEventRecords = newrecords;
+  mEventParts = newparts;
+}
+
+void DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
+{
+  mTimeFrameStartIndex = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF);
   LOG(info) << "Fixed " << mTimeFrameStartIndex.size() << " timeframes ";
   for (auto p : mTimeFrameStartIndex) {
     LOG(info) << p.first << " " << p.second;

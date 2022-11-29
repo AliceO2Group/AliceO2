@@ -116,6 +116,9 @@ class DigitizationContext
   /// returns the GRP object associated to this context
   o2::parameters::GRPObject const& getGRP() const;
 
+  // apply collision number cuts and potential relabeling of eventID
+  void applyMaxCollisionFilter(long startOrbit, long orbitsPerTF, int maxColl);
+
   // finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
   void finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
 
