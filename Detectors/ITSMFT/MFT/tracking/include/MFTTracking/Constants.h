@@ -55,8 +55,8 @@ constexpr Int_t MaxCellsInRoad{100};
 
 namespace index_table
 {
-constexpr Float_t RMin{2.0}; // [cm]
-constexpr Float_t RMax{16.0};
+constexpr Float_t RMin{1.0}; // [cm]
+constexpr Float_t RMax{20.0};
 
 constexpr Float_t PhiMin{0.};
 constexpr Float_t PhiMax{o2::constants::math::TwoPI}; // [rad]
