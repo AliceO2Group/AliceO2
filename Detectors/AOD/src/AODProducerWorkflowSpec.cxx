@@ -36,6 +36,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/Triggers.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -84,6 +85,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <type_traits>
 #include <thread>
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -203,6 +205,10 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
   }
 
   for (auto& emcaltrg : caloEMCCellsTRGR) {
+    // exclude calibration triggers for EMCAL
+    if (emcaltrg.getTriggerBits() & o2::trigger::Cal) {
+      continue;
+    }
     uint64_t globalBC = emcaltrg.getBCData().toLong();
     bcsMap[globalBC] = 1;
   }
@@ -1225,6 +1231,12 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
     auto inputEvent = caloEventHandler->buildEvent(iev);
     auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
     auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
+    if constexpr (std::is_same<decltype(inputEvent), o2::emcal::EventData<o2::emcal::Cell>>::value) {
+      // In case of EMCAL reject Calib triggers
+      if (inputEvent.mTriggerBits & o2::trigger::Cal) {
+        continue;
+      }
+    }
 
     globalBC = interactionRecord.toLong();
     auto item = bcsMap.find(globalBC);
