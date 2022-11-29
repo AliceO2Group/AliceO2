@@ -18,33 +18,11 @@
 #include <fairlogger/Logger.h>
 
 //__________________________________________________________________________
-o2::mft::TrackerConfig::TrackerConfig()
-  : mMinTrackPointsLTF{5},
-    mMinTrackPointsCA{4},
-    mMinTrackStationsLTF{4},
-    mMinTrackStationsCA{4},
-    mLTFclsRCut{0.0100},
-    mLTFclsR2Cut{0.0100 * 0.0100},
-    mROADclsRCut{0.0400},
-    mROADclsR2Cut{0.0400 * 0.0400},
-    mLTFseed2BinWin{3},
-    mLTFinterBinWin{3},
-    mRBins{50},
-    mPhiBins{50},
-    mRPhiBins{50 * 50},
-    mRBinSize{(constants::index_table::RMax - constants::index_table::RMin) / 50.},
-    mPhiBinSize{(constants::index_table::PhiMax - constants::index_table::PhiMin) / 50.},
-    mInverseRBinSize{50. / (constants::index_table::RMax - constants::index_table::RMin)},
-    mInversePhiBinSize{50. / (constants::index_table::PhiMax - constants::index_table::PhiMin)}
-{
-  /// default constructor
-}
-
-//__________________________________________________________________________
 void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
 
+  mFullClusterScan = trkParam.FullClusterScan;
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
@@ -55,17 +33,18 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
   mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
   mLTFseed2BinWin = trkParam.LTFseed2BinWin;
   mLTFinterBinWin = trkParam.LTFinterBinWin;
+  mLTFConeRadius = trkParam.LTFConeRadius;
+  mCAConeRadius = trkParam.CAConeRadius;
 
   mRBins = trkParam.RBins;
   mPhiBins = trkParam.PhiBins;
   mRPhiBins = trkParam.RBins * trkParam.PhiBins;
-  if (mRPhiBins > constants::index_table::MaxRPhiBins) {
-    LOG(warn) << "To many RPhiBins for this configuration!";
-    mRPhiBins = constants::index_table::MaxRPhiBins;
-    mRBins = sqrt(constants::index_table::MaxRPhiBins);
-    mPhiBins = sqrt(constants::index_table::MaxRPhiBins);
-    LOG(warn) << "Using instead RBins " << mRBins << " and PhiBins " << mPhiBins;
-  }
+
+  assert(mRPhiBins < constants::index_table::MaxRPhiBins);
+
   mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
   mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
+
+  mInverseRBinSize = 1.0 / mRBinSize;
+  mInversePhiBinSize = 1.0 / mPhiBinSize;
 }

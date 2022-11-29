@@ -67,10 +67,10 @@ class Tracker : public TrackerConfig
   bool fitTracks(ROframe<T>&);
   void computeTracksMClabels(const std::vector<T>&);
 
-  void initialize(bool fullClusterScan = false);
-  void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
+  void configure(const MFTTrackingParam& trkParam, bool printConfig = false);
 
  private:
+  void initializeFinder();
   void findTracksLTF(ROframe<T>&);
   void findTracksCA(ROframe<T>&);
   void findTracksLTFfcs(ROframe<T>&);
@@ -113,9 +113,6 @@ class Tracker : public TrackerConfig
 
   /// current road for CA algorithm
   Road mRoad;
-
-  /// Special version for TED shots and cosmics, with full scan of the clusters
-  bool mFullClusterScan = false;
 };
 
 //_________________________________________________________________________________________________

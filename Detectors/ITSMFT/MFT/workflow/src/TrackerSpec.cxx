@@ -371,8 +371,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerLVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC));
         tracker->setBz(0);
-        tracker->initConfig(trackingParam, !i);
-        tracker->initialize(trackingParam.FullClusterScan);
+        tracker->configure(trackingParam, !i);
       }
     } else {
       LOG(info) << "Starting MFT tracker: Field is on! Bz = " << Bz;
@@ -381,8 +380,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC));
         tracker->setBz(Bz);
-        tracker->initConfig(trackingParam, !i);
-        tracker->initialize(trackingParam.FullClusterScan);
+        tracker->configure(trackingParam, !i);
       }
     }
   }
