@@ -1247,6 +1247,16 @@ void AODProducerWorkflowDPL::fillCaloTable(const TCaloCursor& caloCellCursor, co
   auto caloPHOSCells = data.getPHOSCells();
   auto caloPHOSCellsTRGR = data.getPHOSTriggers();
 
+  if (!mInputSources[GIndex::PHS]) {
+    caloPHOSCells = {};
+    caloPHOSCellsTRGR = {};
+  }
+
+  if (!mInputSources[GIndex::EMC]) {
+    caloEMCCells = {};
+    caloEMCCellsTRGR = {};
+  }
+
   o2::emcal::EventHandler<o2::emcal::Cell> emcEventHandler;
   o2::phos::EventHandler<o2::phos::Cell> phsEventHandler;
 
