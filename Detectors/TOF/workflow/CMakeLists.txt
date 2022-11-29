@@ -18,6 +18,11 @@ o2_add_library(TOFWorkflowUtils
                        src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction O2::TOFWorkflowIO O2::Steer)
 
+o2_add_executable(make-parameter-collection
+                  SOURCES src/make-parameter-collection.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
+
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
                   COMPONENT_NAME tof
