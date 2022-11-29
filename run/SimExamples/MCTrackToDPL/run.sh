@@ -2,8 +2,8 @@
 
 set -x
 
-# launch generator process (for 100 min bias Pythia8 events)
-o2-sim -j 1 -g pythia8pp -n 100 --noWriteToDisc --forwardKine &> sim.log &
+# launch generator process (for 100 min bias Pythia8 events; no Geant; no geometry)
+o2-sim -j 1 -g pythia8pp -n 100 --noDiscOutput --forwardKine --noGeant -m CAVE -e TGeant3 &> sim.log &
 SIMPROC=$!
 
 # launch a DPL process (having the right proxy configuration)
@@ -12,4 +12,5 @@ TRACKANAPROC=$!
 
 wait ${SIMPROC}
 sleep 5
+kill ${TRACKANAPROC}
 wait ${TRACKANAPROC}
