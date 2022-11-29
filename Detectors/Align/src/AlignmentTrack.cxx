@@ -252,7 +252,11 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
     // while the variation should be done for parameters in the frame where the vector
     // of material corrections has diagonal cov. matrix -> rotate the delta to this frame
     double deltaMatD[kNKinParBON];
-    pnt->diagMatCorr(delta, deltaMatD);
+    //    pnt->diagMatCorr(delta, deltaMatD);
+    for (int ipar = 0; ipar < nParFreeI; ipar++) {
+      double d = pnt->getMatCorrCov()[ipar];
+      deltaMatD[ipar] = d > 0. ? Sqrt(d) * 5 : delta[ipar];
+    }
     //
     //    printf("Vary %d [%+.3e %+.3e %+.3e %+.3e] ",ip,deltaMatD[0],deltaMatD[1],deltaMatD[2],deltaMatD[3]); pnt->print();
 
@@ -607,7 +611,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corrPar, co
   // DIAGONALIZING ITS  COVARIANCE MATRIX!
   // transform parameters from the frame diagonalizing the errors to track frame
   double corr[kNKinParBON] = {0};
-  if (pnt->containsMaterial()) { // are there free params from meterials?
+  if (pnt->containsMaterial()) { // are there free params from materials?
     int nCorrPar = pnt->getNMatPar();
     const double* corrDiag = &corrPar[pnt->getMaxLocVarID() - nCorrPar]; // material corrections for this point start here
     pnt->unDiagMatCorr(corrDiag, corr);                                  // this is to account for MS and RANDOM Eloss (if varied)
@@ -743,6 +747,9 @@ void AlignmentTrack::richardsonDeriv(const trackParam_t* trSet, const double* de
   }
   derY = richardsonExtrap(derRichY, kRichardsonOrd); // dY/dPar
   derZ = richardsonExtrap(derRichZ, kRichardsonOrd); // dZ/dPar
+  if (TMath::IsNaN(derY) || TMath::IsNaN(derZ)) {
+    LOGP(error, "NAN encounterd: DerY {}  : DerZ {}", derY, derZ);
+  }
   //
 }
 
