@@ -940,10 +940,20 @@ void Controller::closeResidOutput()
 void Controller::closeMilleOutput()
 {
   // close output
+  bool compress = false;
   if (mMille) {
     LOG(info) << "Closing " << mMilleFileName;
+    compress = AlignConfig::Instance().GZipMilleOut;
   }
   mMille.reset();
+  if (compress) {
+    std::string cmd = fmt::format("sh -c \"gzip {}\"", mMilleFileName);
+    LOG(info) << "Compressing: " << cmd;
+    const auto sysRet = gSystem->Exec(cmd.c_str());
+    if (sysRet != 0) {
+      LOGP(alarm, "non-zero exit code {} for cmd={}", sysRet, cmd);
+    }
+  }
 }
 
 //____________________________________________

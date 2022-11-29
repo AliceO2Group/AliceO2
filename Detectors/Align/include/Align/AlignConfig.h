@@ -57,6 +57,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   bool MPRecOut = true;       // compact Millepede2Record
   bool KalmanResid = true;    // Kalman residuals
   bool MilleOutBin = true;    // text vs binary output for mille data
+  bool GZipMilleOut = false;  // compress binary records
 
   std::string mpDatFileName{"mpData"};            //  file name for records mille data output
   std::string mpParFileName{"mpParams.txt"};      //  file name for MP params
