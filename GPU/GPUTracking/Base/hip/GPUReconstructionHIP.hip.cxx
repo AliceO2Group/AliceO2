@@ -13,7 +13,6 @@
 /// \author David Rohr
 
 #define __HIP_ENABLE_DEVICE_MALLOC__ 1 // Fix SWDEV-239120
-#define GPUCA_GPUTYPE_VEGA
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
 #define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
 

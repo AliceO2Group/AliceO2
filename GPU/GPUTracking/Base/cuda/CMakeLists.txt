@@ -132,7 +132,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   install(TARGETS GPUTrackingCUDA)
 endif()
 
-# Since
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
 target_compile_definitions(${targetName} PUBLIC GPUCA_GPULIBRARY=CUDA)
 if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "86")
