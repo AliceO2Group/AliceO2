@@ -55,10 +55,8 @@ class ROFTimeClusterFinder
  private:
   /// structure representing one bin in the time histogram used for the peak search algorithm
   struct TimeBin {
-    int32_t mFirstIdx{-1}; ///< index of the first digit ROF in the bin
-    int32_t mLastIdx{-1};  ///< index of the last digit ROF in the bin
-    uint32_t mSize{0};     ///< number of digit ROFs in the bin
-    uint32_t mNDigits{0};  ///< number of digits in the bin
+    int32_t mFirstIdx{-1};  ///< index of the first digit ROF in the bin
+    int32_t mLastIdx{-1};   ///< index of the last digit ROF in the bin
     uint32_t mNDigitsPS{0}; ///< number of digits in the bin for the peak search step
 
     TimeBin() = default;
