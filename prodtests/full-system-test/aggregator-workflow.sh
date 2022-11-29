@@ -116,11 +116,12 @@ if workflow_has_parameter CALIB_PROXIES; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
+    if [[ $EPNSYNCMODE != 1 ]]; then
+      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
+      exit 2
+    fi
+    CHANNELS_LIST=
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
-      if [[ $EPNSYNCMODE != 1 ]]; then
-        echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-        exit 2
-      fi
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
       [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
@@ -128,14 +129,15 @@ if workflow_has_parameter CALIB_PROXIES; then
         FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
     if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
       [[ -z $TPC_SAC_FLP_PORT ]] && TPC_SAC_FLP_PORT=47901
       FLP_ADDRESS_SAC="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
-      CHANNEL_SAC="type=pull,name=tpcsac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
-      add_W o2-dpl-raw-proxy "--proxy-name tpcsac --dataspec \"$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNEL_SAC\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
+    fi
+    if [[ ! -z $CHANNELS_LIST ]]; then
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C;$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
