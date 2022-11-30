@@ -15,6 +15,7 @@
 
 #include "ITStrackingGPU/Utils.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
+#include "ITStrackingGPU/TracerGPU.h"
 
 #include <unistd.h>
 
@@ -273,6 +274,7 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
                                        const int maxLayers)
 {
   initDevice(mGpuConfig.nTimeFramePartitions);
+  RANGE("TimeFrame initialisation", 1);
   o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
 }
 

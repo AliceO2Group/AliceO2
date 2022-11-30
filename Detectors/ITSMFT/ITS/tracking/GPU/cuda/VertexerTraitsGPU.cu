@@ -37,6 +37,8 @@
 #include "TFile.h"
 #endif
 
+#include "ITStrackingGPU/TracerGPU.h"
+
 namespace o2
 {
 namespace its
@@ -80,7 +82,6 @@ GPUh() void gpuThrowOnError()
 
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
-  gpu::utils::host::gpuMalloc((void**)&mDeviceIndexTableUtils, sizeof(IndexTableUtils));
   setIsGPU(true);
 }
 
@@ -94,6 +95,7 @@ void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
+  gpu::utils::host::gpuMalloc((void**)&mDeviceIndexTableUtils, sizeof(IndexTableUtils));
   gpu::utils::host::gpuMemcpyHostToDevice(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(mIndexTableUtils));
   mTimeFrameGPU->initialise(0, trackingParams, 3);
 }
