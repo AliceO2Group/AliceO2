@@ -36,7 +36,7 @@ class ProcessingContext;
 namespace calibration
 {
 
-template <typename Input, typename Container = Input>
+template <typename Container>
 class TimeSlotCalibration
 {
  public:
@@ -106,7 +106,7 @@ class TimeSlotCalibration
 
   template <typename... DATA>
   bool process(const DATA&... data);
-  virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
+  virtual void checkSlotsToFinalize(TFType tf = INFINITE_TF, int maxDelay = 0);
   virtual void finalizeOldestSlot();
 
   // Methods to be implemented by the derived user class
@@ -226,9 +226,9 @@ class TimeSlotCalibration
 };
 
 //_________________________________________________
-template <typename Input, typename Container>
+template <typename Container>
 template <typename... DATA>
-bool TimeSlotCalibration<Input, Container>::process(const DATA&... data)
+bool TimeSlotCalibration<Container>::process(const DATA&... data)
 {
   static bool firstCall = true;
   if (firstCall) {
@@ -268,8 +268,8 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA&... data)
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int maxDelay)
+template <typename Container>
+void TimeSlotCalibration<Container>::checkSlotsToFinalize(TFType tf, int maxDelay)
 {
   // Check which slots can be finalized, provided the newly arrived TF is tf
 
@@ -337,8 +337,8 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
+template <typename Container>
+void TimeSlotCalibration<Container>::finalizeOldestSlot()
 {
   // Enforce finalization and removal of the oldest slot
   if (mSlots.empty()) {
@@ -351,8 +351,8 @@ void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
 }
 
 //________________________________________
-template <typename Input, typename Container>
-inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
+template <typename Container>
+inline TFType TimeSlotCalibration<Container>::tf2SlotMin(TFType tf) const
 {
 
   // returns the min TF of the slot to which "tf" belongs
@@ -368,8 +368,8 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType tf)
+template <typename Container>
+TimeSlot<Container>& TimeSlotCalibration<Container>::getSlotForTF(TFType tf)
 {
 
   LOG(debug) << "Getting slot for TF " << tf;
@@ -423,8 +423,8 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::print() const
+template <typename Container>
+void TimeSlotCalibration<Container>::print() const
 {
   for (int i = 0; i < getNSlots(); i++) {
     LOG(info) << "Slot #" << i << " of " << getNSlots();
@@ -433,8 +433,8 @@ void TimeSlotCalibration<Input, Container>::print() const
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::updateSaveMetaData()
+template <typename Container>
+bool TimeSlotCalibration<Container>::updateSaveMetaData()
 {
   if (mSlots.empty()) {
     LOG(warn) << "Nothing to save, no TimeSlots defined";
@@ -452,8 +452,8 @@ bool TimeSlotCalibration<Input, Container>::updateSaveMetaData()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::saveLastSlot()
+template <typename Container>
+bool TimeSlotCalibration<Container>::saveLastSlot()
 {
   if (!getSavedSlotAllowed()) {
     LOG(info) << "Slot saving is disabled";
@@ -483,8 +483,8 @@ bool TimeSlotCalibration<Input, Container>::saveLastSlot()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::loadSavedSlot()
+template <typename Container>
+bool TimeSlotCalibration<Container>::loadSavedSlot()
 {
   if (!getSavedSlotAllowed()) {
     LOG(info) << "Saved slot usage is disabled";
@@ -517,8 +517,8 @@ bool TimeSlotCalibration<Input, Container>::loadSavedSlot()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-std::string TimeSlotCalibration<Input, Container>::getSaveFilePath() const
+template <typename Container>
+std::string TimeSlotCalibration<Container>::getSaveFilePath() const
 {
   if (mSaveFileName.empty()) {
     LOGP(fatal, "Save file name was not set");

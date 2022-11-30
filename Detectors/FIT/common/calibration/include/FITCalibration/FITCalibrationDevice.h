@@ -32,7 +32,7 @@ class FITCalibrationDevice : public o2::framework::Task
 {
   static constexpr const char* DEFAULT_INPUT_DATA_LABEL = "calib";
   static constexpr const char* sDEFAULT_CCDB_URL = "http://localhost:8080";
-  using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
+  using CalibratorType = FITCalibrator<TimeSlotStorageType, CalibrationObjectType>;
 
  public:
   explicit FITCalibrationDevice(std::string inputDataLabel = DEFAULT_INPUT_DATA_LABEL, std::shared_ptr<o2::base::GRPGeomRequest> req = {})

@@ -24,7 +24,7 @@
 namespace o2::tpc
 {
 /// \brief calibrator class for the residual gain map extraction used on an aggregator node
-class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<CalibPadGainTracksBase::DataTHistos, CalibPadGainTracksBase>
+class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<CalibPadGainTracksBase>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<CalibPadGainTracksBase>;

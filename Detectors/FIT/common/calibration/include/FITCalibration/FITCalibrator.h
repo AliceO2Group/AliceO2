@@ -27,8 +27,8 @@
 namespace o2::fit
 {
 
-template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
-class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>
+template <typename TimeSlotStorageType, typename CalibrationObjectType>
+class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlotStorageType>
 {
 
   // probably will be set via run parameter
@@ -80,7 +80,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   {
     LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot "
               << " start " << tstart << " end " << tend;
-    auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
+    auto& cont = o2::calibration::TimeSlotCalibration<TimeSlotStorageType>::getSlots();
     auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
     slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));
     return slot;

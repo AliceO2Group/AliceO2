@@ -69,7 +69,7 @@ class PHOSRunbyrunSlot
 };
 
 //==========================================================================================
-class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSRunbyrunSlot>
+class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::PHOSRunbyrunSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSRunbyrunSlot>;
 
