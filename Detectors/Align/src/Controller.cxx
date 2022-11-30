@@ -540,10 +540,11 @@ bool Controller::storeProcessedTrack(o2::dataformats::GlobalTrackID tid)
   if (conf.MilleOut) {
     res &= fillMilleData();
   }
-  if (conf.MPRecOut) {
+  float rnd = gRandom->Rndm();
+  if (conf.MPRecOutFraction > rnd) {
     res &= fillMPRecData(tid);
   }
-  if ((conf.controlFraction > gRandom->Rndm()) && mAlgTrack->testLocalSolution()) {
+  if ((conf.controlFraction > rnd) && mAlgTrack->testLocalSolution()) {
     res &= fillControlData(tid);
   }
   //
