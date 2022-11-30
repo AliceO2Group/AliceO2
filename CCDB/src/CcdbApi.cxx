@@ -119,7 +119,8 @@ void CcdbApi::init(std::string const& host)
     snapshotReport += ')';
   }
 
-  mNeedAlienToken = host != "http://o2-ccdb.internal" && host != "http://localhost:8084" && host != "http://127.0.0.1:8084";
+  const std::string httpsprefix = "https://";
+  mNeedAlienToken = host.substr(0, httpsprefix.size()) == httpsprefix) || host == "http://alice-ccdb.cern.ch";
 
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
@@ -756,7 +757,12 @@ bool CcdbApi::initTGrid() const
     mAlienInstance = TGrid::Connect("alien");
     static bool errorShown = false;
     if (!mAlienInstance && errorShown == false) {
-      LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      bool allowNoToken = getenv("O2_CCDB_ALLOW_NO_TOKEN") && atoi(getenv("O2_CCDB_ALLOW_NO_TOKEN"));
+      if (allowNoToken) {
+        LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      } else {
+        LOG(fatal) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      }
       errorShown = true;
     }
   }
