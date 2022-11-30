@@ -480,6 +480,9 @@ void Detector::createMaterials()
   Float_t wRohac[4] = {9., 13., 1., 2.};
   Float_t dRohac = 0.05;
 
+  // Rohacell RIST 110
+  Float_t dRist = 0.11;
+
   // EN AW 7075 (Al alloy with Cu Mg Zn)
   Float_t aENAW7075[4] = {26.98, 63.55, 24.31, 65.41};
   Float_t zENAW7075[4] = {13., 29., 12., 30.};
@@ -554,11 +557,18 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon fleece
   o2::base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
-                             stminSi);
-  // Rohacell
+  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  // AS4C 200 gsm EX1515
+  o2::base::Detector::Material(37, "AS4C200$", 12.0107, 6, 1.48, 999, 999);
+  o2::base::Detector::Medium(37, "AS4C200$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Rohacell (various types)
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  o2::base::Detector::Mixture(38, "RIST110$", aRohac, zRohac, dRist, -4, wRohac);
+  o2::base::Detector::Medium(38, "RIST110$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
   // Carbon prepreg (Cage)
   o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
   o2::base::Detector::Medium(33, "M46J6K$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
