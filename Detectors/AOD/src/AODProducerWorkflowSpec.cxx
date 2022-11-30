@@ -1433,7 +1433,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(debug) << "FOUND " << cpvTrigRecs.size() << " CPV trigger records";
 
   LOG(info) << "FOUND " << primVertices.size() << " primary vertices";
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC_001"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
   auto& decay3BodyBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "DECAY3BODY"});
@@ -1821,33 +1821,34 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
-  std::unordered_map<uint64_t, uint64_t> bcToClassMask;
+  std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> bcToClassMask;
   if (mInputSources[GID::CTP]) {
     LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
-      uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
-      bcToClassMask[bc] = classMask;
+      bcToClassMask[bc] = {ctpDigit.CTPClassMask.to_ulong(), ctpDigit.CTPInputMask.to_ulong()};
       // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
   // filling BC table
-  uint64_t triggerMask = 0;
+  uint64_t triggerMask = 0, triggerInputs = 0;
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
     if (mInputSources[GID::CTP]) {
       auto bcClassPair = bcToClassMask.find(bc);
       if (bcClassPair != bcToClassMask.end()) {
-        triggerMask = bcClassPair->second;
+        triggerMask = bcClassPair->second.first;
+        triggerInputs = bcClassPair->second.second;
       } else {
         triggerMask = 0;
+        triggerInputs = 0;
       }
     }
     bcCursor(0,
              runNumber,
              bc,
-             triggerMask);
+             triggerMask, triggerInputs);
   }
 
   bcToClassMask.clear();
@@ -2346,7 +2347,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
 
-  outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2bc_001"}, "AOD", "BC_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade_001"}, "AOD", "CASCADE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2decay3body"}, "AOD", "DECAY3BODY", 0, Lifetime::Timeframe);
