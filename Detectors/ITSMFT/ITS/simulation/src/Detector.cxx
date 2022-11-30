@@ -560,14 +560,14 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // AS4C 200 gsm EX1515
   o2::base::Detector::Material(37, "AS4C200$", 12.0107, 6, 1.48, 999, 999);
-  o2::base::Detector::Medium(37, "AS4C200$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Medium(37, "AS4C200$", 37, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Rohacell (various types)
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   o2::base::Detector::Mixture(38, "RIST110$", aRohac, zRohac, dRist, -4, wRohac);
-  o2::base::Detector::Medium(38, "RIST110$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Medium(38, "RIST110$", 38, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Carbon prepreg (Cage)
   o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
