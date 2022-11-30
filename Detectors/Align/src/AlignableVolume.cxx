@@ -154,7 +154,7 @@ void AlignableVolume::delta2Matrix(TGeoHMatrix& deltaM, const double* delta) con
 {
   // prepare delta matrix for the volume from its
   // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
-  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
+  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(radians)
 
   //    AliAlignObjParams tempAlignObj;
   //    tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
