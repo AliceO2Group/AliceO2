@@ -988,8 +988,9 @@ bool Controller::addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx)
   }
   // RS FIXME do selections if needed
   mVtxSens->setAlpha(trcDCA.getAlpha());
+  const auto* addErr = mVtxSens->getAddError();
   double xyz[3] = {vtx.getX(), vtx.getY(), vtx.getZ()}, xyzT[3];
-  double c[3] = {0.5 * (vtx.getSigmaX2() + vtx.getSigmaY2()), 0., vtx.getSigmaZ2()};
+  double c[3] = {0.5 * (vtx.getSigmaX2() + vtx.getSigmaY2()) + addErr[0] * addErr[0], 0., vtx.getSigmaZ2() + addErr[1] * addErr[1]};
 
   mVtxSens->applyCorrection(xyz);
   mVtxSens->getMatrixT2L().MasterToLocal(xyz, xyzT);
