@@ -52,9 +52,10 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint
   float alignParamZero = 1e-13;    // assign 0 to final alignment parameter if its abs val is below this threshold
-  float controlFraction = 1.; // fraction for which control output is requested
+  float controlFraction = 1.;      // fraction for which control output is requested
+  float MPRecOutFraction = 1.;     // compact Millepede2Record fraction
+
   bool MilleOut = true;       // Mille output
-  bool MPRecOut = true;       // compact Millepede2Record
   bool KalmanResid = true;    // Kalman residuals
   bool MilleOutBin = true;    // text vs binary output for mille data
   bool GZipMilleOut = false;  // compress binary records
