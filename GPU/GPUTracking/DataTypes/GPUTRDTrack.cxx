@@ -160,19 +160,6 @@ GPUd() int GPUTRDTrack_t<T>::getNlayersFindable() const
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::getNtracklets() const
-{
-  // returns number of tracklets attached to this track
-  int retVal = 0;
-  for (int iLy = 0; iLy < kNLayers; ++iLy) {
-    if (mAttachedTracklets[iLy] >= 0) {
-      ++retVal;
-    }
-  }
-  return retVal;
-}
-
-template <typename T>
 GPUd() int GPUTRDTrack_t<T>::getNmissingConsecLayers(int iLayer) const
 {
   // returns number of consecutive layers in which the track was

@@ -84,7 +84,18 @@ class GPUTRDTrack_t : public T
   // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
   GPUd() o2::dataformats::GlobalTrackID getRefGlobalTrackId() const;
   GPUd() short getCollisionId() const { return mCollisionId; }
-  GPUd() int getNtracklets() const;
+  GPUd() int getNtracklets() const
+  {
+    // returns number of tracklets attached to this track
+    int retVal = 0;
+    for (int iLy = 0; iLy < kNLayers; ++iLy) {
+      if (mAttachedTracklets[iLy] >= 0) {
+        ++retVal;
+      }
+    }
+    return retVal;
+  }
+
   GPUd() float getChi2() const { return mChi2; }
   GPUd() unsigned char getIsCrossingNeighbor() const { return mIsCrossingNeighbor; }
   GPUd() bool getIsCrossingNeighbor(int iLayer) const { return mIsCrossingNeighbor & (1 << iLayer); }
