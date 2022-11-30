@@ -37,8 +37,7 @@ namespace o2::mch::calibration
  * considered bad/noisy and they are stored into a
  * "bad channels" list that is sent to the CDDB populator(s).
  */
-class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o2::mch::calibration::PedestalDigit,
-                                                                               o2::mch::calibration::PedestalData>
+class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o2::mch::calibration::PedestalData>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::mch::calibration::PedestalData>;

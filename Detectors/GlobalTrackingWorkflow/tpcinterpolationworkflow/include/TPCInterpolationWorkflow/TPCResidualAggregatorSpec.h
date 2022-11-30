@@ -46,9 +46,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = ic.options().get<int>("min-entries");
-    auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
+    auto slotLength = ic.options().get<uint32_t>("sec-per-slot");
+    bool useInfiniteSlotLength = false;
     if (slotLength == 0) {
-      slotLength = o2::calibration::INFINITE_TF;
+      useInfiniteSlotLength = true;
     }
     auto updateInterval = ic.options().get<uint32_t>("updateInterval");
     auto delay = ic.options().get<uint32_t>("max-delay");
@@ -83,9 +84,13 @@ class ResidualAggregatorDevice : public o2::framework::Task
     int autosave = ic.options().get<int>("autosave-interval");
     mAggregator->setAutosaveInterval(autosave);
     // TODO mAggregator should get an option to set the binning externally (expose TrackResiduals::setBinning methods to user? as command line option?)
-    mAggregator->setSlotLength(slotLength);
     mAggregator->setMaxSlotsDelay(delay);
-    mAggregator->setCheckIntervalInfiniteSlot(updateInterval);
+    if (useInfiniteSlotLength) {
+      mAggregator->setSlotLength(o2::calibration::INFINITE_TF);
+      mAggregator->setCheckIntervalInfiniteSlot(updateInterval);
+    } else {
+      mAggregator->setSlotLengthInSeconds(slotLength);
+    }
     mAggregator->setWriteBinnedResiduals(mWriteBinnedResiduals);
     mAggregator->setWriteUnbinnedResiduals(mWriteUnbinnedResiduals);
     mAggregator->setWriteTrackData(mWriteTrackData);
@@ -190,11 +195,11 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, dataRequest)},
     Options{
-      {"tf-per-slot", VariantType::UInt32, 6'000u, {"number of TFs per calibration time slot (put 0 for infinite slot length)"}},
-      {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},
+      {"sec-per-slot", VariantType::UInt32, 60u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs (only used in case slot length is infinite)"}},
       {"max-delay", VariantType::UInt32, 1u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
-      {"compression", VariantType::Int, 101, {"ROOT compression setting for output file (see TFile documentation for meaning of this number)"}},
+      {"compression", VariantType::Int, 505, {"ROOT compression setting for output file (see TFile documentation for meaning of this number)"}},
       {"output-dir", VariantType::String, "none", {"Output directory for residuals. Defaults to current working directory. Output is disabled in case set to /dev/null"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}},
       {"autosave-interval", VariantType::Int, 0, {"Write output to file for every n-th TF. 0 means this feature is OFF"}}}};

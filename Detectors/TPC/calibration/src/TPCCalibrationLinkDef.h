@@ -32,7 +32,7 @@
 #pragma link C++ class o2::tpc::CalibLaserTracks + ;
 #pragma link C++ class o2::tpc::LaserTracksCalibrator + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibLaserTracks> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::CalibLaserTracks> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::CalibLaserTracks> + ;
 #pragma link C++ class o2::tpc::TimePair + ;
 #pragma link C++ class std::vector < o2::tpc::TimePair> + ;
 #pragma link C++ class o2::tpc::IDCGroup + ;
@@ -71,7 +71,7 @@
 #pragma link C++ class o2::tpc::CalibdEdx + ;
 #pragma link C++ class o2::tpc::CalibratordEdx + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibdEdx> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::CalibdEdx> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::CalibdEdx> + ;
 #pragma link C++ class o2::tpc::TrackDump + ;
 #pragma link C++ class o2::tpc::TrackDump::ClusterNativeAdd + ;
 #pragma link C++ class o2::tpc::TrackDump::ClusterGlobal + ;
@@ -85,7 +85,7 @@
 #pragma link C++ class o2::tpc::CalibPadGainTracksBase + ;
 #pragma link C++ class o2::tpc::CalDet < o2::tpc::FastHisto < unsigned int>> + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibPadGainTracksBase> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::CalDet < o2::tpc::FastHisto < unsigned int>>, o2::tpc::CalibPadGainTracksBase> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::CalibPadGainTracksBase> + ;
 #pragma link C++ class o2::tpc::CalibratorPadGainTracks + ;
 #pragma link C++ class o2::tpc::sac::DataPoint + ;
 #pragma link C++ class o2::tpc::sac::DecodedData + ;
@@ -102,7 +102,7 @@
 #pragma link C++ class o2::tpc::SACCCDBHelper < unsigned char> + ;
 
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::TPCVDTglContainer> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::Pair < float, float>, o2::tpc::TPCVDTglContainer> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TPCVDTglContainer> + ;
 #pragma link C++ class o2::tpc::TPCVDriftTglCalibration + ;
 #pragma link C++ class o2::tpc::VDriftHelper + ;
 #endif

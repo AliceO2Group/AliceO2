@@ -86,7 +86,7 @@ struct ResidualsContainer {
   ClassDefNV(ResidualsContainer, 3);
 };
 
-class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<UnbinnedResid, ResidualsContainer>
+class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<ResidualsContainer>
 {
   using Slot = o2::calibration::TimeSlot<ResidualsContainer>;
 

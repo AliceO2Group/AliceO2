@@ -65,7 +65,7 @@ class PHOSL1phaseSlot
 };
 
 //==========================================================================================
-class PHOSL1phaseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cell, o2::phos::PHOSL1phaseSlot>
+class PHOSL1phaseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::PHOSL1phaseSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSL1phaseSlot>;
 

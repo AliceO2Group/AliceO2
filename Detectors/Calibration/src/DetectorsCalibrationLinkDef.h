@@ -18,7 +18,7 @@
 #pragma link C++ class o2::calibration::MeanVertexData + ;
 #pragma link C++ class o2::calibration::TimeSlotMetaData + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::calibration::MeanVertexData> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::PrimaryVertex, o2::calibration::MeanVertexData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::MeanVertexData> + ;
 #pragma link C++ class o2::calibration::MeanVertexCalibrator + ;
 #pragma link C++ class o2::calibration::MeanVertexParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::calibration::MeanVertexParams> + ;

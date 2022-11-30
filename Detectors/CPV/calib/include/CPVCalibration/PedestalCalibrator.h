@@ -71,7 +71,7 @@ struct PedestalCalibData {
 
 using PedestalTimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
 //===================================================================
-class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::Digit, o2::cpv::PedestalCalibData>
+class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::PedestalCalibData>
 {
  public:
   PedestalCalibrator();

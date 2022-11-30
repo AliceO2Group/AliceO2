@@ -81,7 +81,7 @@ struct TPCVDTglContainer {
   ClassDefNV(TPCVDTglContainer, 1);
 };
 
-class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::dataformats::Pair<float, float>, TPCVDTglContainer>
+class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<TPCVDTglContainer>
 {
   using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 
