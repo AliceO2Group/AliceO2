@@ -27,7 +27,6 @@ void MatchGlobalFwd::init()
   setAlignResiduals(matchingParam.alignResidual);
   LOG(info) << "MFT Align residuals = " << mAlignResidual;
 
-
   mMatchingPlaneZ = matchingParam.matchPlaneZ;
   LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
 
@@ -596,8 +595,10 @@ bool MatchGlobalFwd::computeCluster(o2::dataformats::GlobalFwdTrack& track, cons
   const auto& clx = cluster.getX();
   const auto& cly = cluster.getY();
   const auto& clz = cluster.getZ();
-  const auto& sigmaX2 = cluster.getSigmaY2() * mAlignResidual * mAlignResidual;; // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
-  const auto& sigmaY2 = cluster.getSigmaZ2() * mAlignResidual * mAlignResidual;; // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+  const auto& sigmaX2 = cluster.getSigmaY2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+  const auto& sigmaY2 = cluster.getSigmaZ2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
 
   const auto& newLayerID = mMFTMapping.ChipID2Layer[cluster.getSensorID()];
   LOG(debug) << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << newLayerID;

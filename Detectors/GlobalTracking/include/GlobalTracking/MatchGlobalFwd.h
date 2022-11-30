@@ -283,7 +283,7 @@ class MatchGlobalFwd
   float mBz = -5.f;                       ///< nominal Bz in kGauss
   float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position
   Float_t mMFTDiskThicknessInX0 = 0.042 / 5; ///< MFT disk thickness in radiation length
-  Float_t mAlignResidual = 1;           ///< Alignment residual for cluster position uncertainty
+  Float_t mAlignResidual = 1;                ///< Alignment residual for cluster position uncertainty
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   int mMFTROFrameLengthInBC = 0;        ///< MFT RO frame in BC (for MFT cont. mode only)
   float mMFTROFrameLengthMUS = -1.;     ///< MFT RO frame in \mus
