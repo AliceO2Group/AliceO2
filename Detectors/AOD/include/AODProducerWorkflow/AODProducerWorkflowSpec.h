@@ -503,10 +503,14 @@ class AODProducerWorkflowDPL : public Task
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
-  template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-  void fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
-                     const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
-                     const std::map<uint64_t, int>& bcsMap, int8_t caloType);
+  template <typename TCaloHandler, typename TCaloCursor, typename TCaloTRGCursor>
+  void addToCaloTable(const TCaloHandler& caloHandler, const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
+                      int eventID, int bcID, int8_t caloType);
+
+  template <typename TCaloCursor, typename TCaloTRGCursor>
+  void fillCaloTable(const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
+                     const std::map<uint64_t, int>& bcsMap,
+                     const o2::globaltracking::RecoContainer& data);
 };
 
 /// create a processor spec
