@@ -153,7 +153,7 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked)
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
+                                                              false,                             // GRPMagField
                                                               false,                             // askMatLUT
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputSpecs,
