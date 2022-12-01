@@ -142,7 +142,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration for end of stream";
-    mAggregator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+    mAggregator->checkSlotsToFinalize();
     mAggregator.reset(); // must invoke destructor manually here, otherwise we get a segfault
   }
 
@@ -195,7 +195,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, dataRequest)},
     Options{
-      {"sec-per-slot", VariantType::UInt32, 60u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs (only used in case slot length is infinite)"}},
       {"max-delay", VariantType::UInt32, 1u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
