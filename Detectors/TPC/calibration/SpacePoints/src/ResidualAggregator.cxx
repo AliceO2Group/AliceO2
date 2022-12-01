@@ -67,6 +67,8 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   tfOrbits = std::move(rhs.tfOrbits);
   sumOfResiduals = std::move(rhs.sumOfResiduals);
   lumi = std::move(rhs.lumi);
+  firstSeenTF = rhs.firstSeenTF;
+  lastSeenTF = rhs.lastSeenTF;
 }
 
 void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression)
@@ -135,6 +137,12 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
   // with binned residuals and statistics
   LOG(debug) << "Filling ResidualsContainer with vector of size " << data.second.size();
   uint32_t nResidualsInTF = 0;
+  if (ti.tfCounter > lastSeenTF) {
+    lastSeenTF = ti.tfCounter;
+  }
+  if (ti.tfCounter < firstSeenTF) {
+    firstSeenTF = ti.tfCounter;
+  }
   for (const auto& residIn : data.second) {
     bool counterIncremented = false;
     if (writeUnbinnedResiduals) {
@@ -299,6 +307,8 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   std::swap(prev->sumOfResiduals, sumOfResiduals);
   prev->lumi.insert(prev->lumi.end(), lumi.begin(), lumi.end());
   std::swap(prev->lumi, lumi);
+
+  firstSeenTF = prev->firstSeenTF;
 }
 
 void ResidualsContainer::print()
@@ -337,15 +347,18 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
     return;
   }
   cont->writeToFile(true);
-  std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), mOutputDir + cont->fileName);
+
+  auto fileName = fmt::format("o2tpc_residuals_{}_{}_{}_{}.root", slot.getTFStart(), slot.getTFEnd(), cont->firstSeenTF, cont->lastSeenTF);
+  auto fileNameWithPath = mOutputDir + fileName;
+  std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), fileNameWithPath);
   if (mStoreMetaData) {
     o2::dataformats::FileMetaData fileMetaData; // object with information for meta data file
-    fileMetaData.fillFileData(mOutputDir + cont->fileName);
+    fileMetaData.fillFileData(fileNameWithPath);
     fileMetaData.setDataTakingContext(mDataTakingContext);
     fileMetaData.type = "calib";
     fileMetaData.priority = "high";
-    auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaOutputDir, cont->fileName);
-    auto metaFileName = fmt::format("{}{}.done", mMetaOutputDir, cont->fileName);
+    auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaOutputDir, fileName);
+    auto metaFileName = fmt::format("{}{}.done", mMetaOutputDir, fileName);
     try {
       std::ofstream metaFileOut(metaFileNameTmp);
       metaFileOut << fileMetaData;
