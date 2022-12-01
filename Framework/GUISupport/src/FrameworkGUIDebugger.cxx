@@ -1071,7 +1071,8 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     showTopologyNodeGraph(guiState, infos, devices, metadata, controls, metricsInfos);
 
     AllMetricsStore metricsStore;
-    std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
+    static std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
+    DeviceMetricsInfoHelpers::clearMetrics(driverMetrics);
 
     metricsStore.metrics[DEVICE_METRICS] = &metricsInfos;
     metricsStore.metrics[DRIVER_METRICS] = &driverMetrics;

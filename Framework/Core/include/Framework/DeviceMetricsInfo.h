@@ -188,6 +188,33 @@ struct DeviceMetricsInfoHelpers {
       static_assert(always_static_assert_v<T>, "Unsupported type");
     }
   }
+
+  static void clearMetrics(std::vector<DeviceMetricsInfo>& infos)
+  {
+    for (auto& info : infos) {
+      info.intMetrics.clear();
+      info.uint64Metrics.clear();
+      info.stringMetrics.clear(); // We do not keep so many strings as metrics as history is less relevant.
+      info.floatMetrics.clear();
+      info.enumMetrics.clear();
+      info.intTimestamps.clear();
+      info.uint64Timestamps.clear();
+      info.floatTimestamps.clear();
+      info.stringTimestamps.clear();
+      info.enumTimestamps.clear();
+      info.max.clear();
+      info.min.clear();
+      info.average.clear();
+      info.minDomain.clear();
+      info.maxDomain.clear();
+      info.metricLabels.clear();
+      info.metricPrefixes.clear();
+      info.metricLabelsAlphabeticallySortedIdx.clear();
+      info.metricLabelsPrefixesSortedIdx.clear();
+      info.metrics.clear();
+      info.changed.clear();
+    }
+  }
 };
 
 } // namespace o2::framework
