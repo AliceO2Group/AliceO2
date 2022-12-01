@@ -78,6 +78,9 @@ namespace align
 class BarrelAlignmentSpec : public Task
 {
  public:
+  enum PostProc { WriteResults = 0x1 << 0,
+                  CheckConstaints = 0x1 << 1,
+                  GenPedeFiles = 0x1 << 2 };
   BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t detmask, int postprocess, bool useMC)
     : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mPostProcessing(postprocess), mUseMC(useMC) {}
   ~BarrelAlignmentSpec() override = default;
@@ -175,7 +178,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIniParFile = ic.options().get<std::string>("initial-params-file");
   mUseIniParErrors = !ic.options().get<bool>("ignore-initial-params-errors");
-  if (mPostProcessing && (mIniParFile.empty() || mIniParFile == "none")) {
+  if (mPostProcessing && !(mPostProcessing != GenPedeFiles) && (mIniParFile.empty() || mIniParFile == "none")) {
     LOGP(warn, "Postprocessing {} is requested but the initial-params-file is not provided", mPostProcessing);
   }
 }
@@ -249,14 +252,13 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   if (mPostProcessing) { // special mode, no data processing
     if (mController->getInstanceID() == 0) {
-      if (mPostProcessing & 0x2) {
+      if (mPostProcessing & PostProc::CheckConstaints) {
         mController->checkConstraints();
       }
-      if (mPostProcessing & 0x1) {
+      if (mPostProcessing & PostProc::WriteResults) {
         mController->writeCalibrationResults();
       }
     }
-    pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   } else {
     RecoContainer recoData;
@@ -270,17 +272,17 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
 
 void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
 {
+  auto inst = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   if (!mPostProcessing) {
-    auto inst = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
     LOGP(info, "Barrel alignment data pereparation total timing: Cpu: {:.3e} Real: {:.3e}  s in {} slots, instance {}", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, inst);
     mController->closeMPRecOutput();
     mController->closeMilleOutput();
     mController->closeResidOutput();
-    if (inst == 0) {
-      LOG(info) << "Writing millepede control files";
-      mController->addAutoConstraints();
-      mController->genPedeSteerFile();
-    }
+  }
+  if (inst == 0 && (!mPostProcessing || (mPostProcessing & PostProc::GenPedeFiles))) {
+    LOG(info) << "Writing millepede control files";
+    mController->addAutoConstraints();
+    mController->genPedeSteerFile();
   }
   mDBGOut.reset();
 }
