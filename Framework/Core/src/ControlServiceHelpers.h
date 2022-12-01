@@ -16,12 +16,13 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <regex>
 
 namespace o2::framework
 {
 struct ControlServiceHelpers {
-  static bool parseControl(std::string const& s, std::smatch& match);
+  static bool parseControl(std::string_view const& s, std::match_results<std::string_view::const_iterator>& match);
   static void processCommand(std::vector<DeviceInfo>& infos,
                              pid_t pid,
                              std::string const& command,

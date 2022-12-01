@@ -184,6 +184,7 @@ foreach(t
         CompletionPolicy
         ComputingResourceHelpers
         ComputingQuotaEvaluator
+        ControlServiceHelpers
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
