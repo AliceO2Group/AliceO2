@@ -18,6 +18,7 @@
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableSensorITS.h"
 #include "Align/Controller.h"
+#include "Align/AlignConfig.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
@@ -119,6 +120,7 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
   mNPoints = 0;
   auto algTrack = mController->getAlgTrack();
   auto recoData = mController->getRecoContainer();
+  const auto& algConf = AlignConfig::Instance();
 
   auto procClus = [this, &algTrack](const ClusterD& clus) {
     auto* sensor = this->getSensor(clus.getSensorID());
@@ -144,6 +146,9 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
       return -1; // source not loaded?
     }
     const auto& track = tracks[gid.getIndex()];
+    if (track.getNClusters() < algConf.minITSClusters) {
+      return -1;
+    }
     const auto& clusIdx = recoData->getITSTracksClusterRefs();
     // do we want to apply some cuts?
     int clEntry = track.getFirstClusterEntry();

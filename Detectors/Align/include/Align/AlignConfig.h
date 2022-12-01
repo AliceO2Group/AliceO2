@@ -46,8 +46,10 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int vtxMaxCont = 99999; // require max number of contributors in Vtx
   int vtxMinContVC = 20;  // min number of contributors to use as constraint
 
-  int minPointTotal = 4; // total min number of alignment point to account track
+  int minPointTotal = 5; // total min number of alignment point to account track
   int minDetectors = 1;  // min number of detectors per track
+  int minITSClusters = 4;  // min ITS clusters to accept the track
+  int minTRDTracklets = 3; // min TRD tracklets to accept the track
 
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint

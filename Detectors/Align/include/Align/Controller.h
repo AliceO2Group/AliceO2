@@ -82,16 +82,18 @@ class Controller : public TObject
 {
  public:
   struct ProcStat {
-    enum { kInput,
-           kAccepted,
-           kNStatCl };
-    enum { kRun,
-           kEventColl,
-           kEventCosm,
-           kTrackColl,
-           kTrackCosm,
-           kMaxStat };
-    std::array<std::array<int, kMaxStat>, kNStatCl> data{};
+    enum {
+      kInput,
+      kAccepted,
+      kNStatCl
+    };
+    enum {
+      kVertices,
+      kTracks,
+      kTracksWithVertex,
+      kMaxStat
+    };
+    std::array<std::array<size_t, kMaxStat>, kNStatCl> data{};
     void print() const;
   };
 
@@ -120,8 +122,6 @@ class Controller : public TObject
   void expandGlobalsBy(int n);
   void process();
 
-  //  bool LoadRefOCDB(); FIXME(milettri): needs OCDB
-  //  bool LoadRecoTimeOCDB(); FIXME(milettri): needs OCDB
   bool getUseRecoOCDB() const { return mUseRecoOCDB; }
   void setUseRecoOCDB(bool v = true) { mUseRecoOCDB = v; }
 
@@ -150,7 +150,6 @@ class Controller : public TObject
   void addAutoConstraints();
   //
   void setTimingInfo(const o2::framework::TimingInfo& ti);
-  void acknowledgeNewRun();
   bool getFieldOn() const { return mFieldOn; }
   void setFieldOn(bool v = true) { mFieldOn = v; }
   int getTracksType() const { return mTracksType; }
@@ -158,7 +157,8 @@ class Controller : public TObject
   bool isCosmic() const { return mTracksType == utils::Cosm; }
   bool isCollision() const { return mTracksType == utils::Coll; }
   void setCosmic(bool v = true) { mTracksType = v ? utils::Cosm : utils::Coll; }
-  float getStat(int cls, int tp) const { return mStat.data[cls][tp]; }
+  auto getStat(int cls, int tp) const { return mStat.data[cls][tp]; }
+  auto& getStat() const { return mStat; }
   //
   bool checkDetectorPattern(DetID::mask_t patt) const;
   bool checkDetectorPoints(const int* npsel) const;

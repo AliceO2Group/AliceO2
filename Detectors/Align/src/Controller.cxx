@@ -69,10 +69,10 @@ using MatCorrType = PropagatorD::MatCorrType;
 
 void Controller::ProcStat::print() const
 {
-  // TODO RS
-  //  const Char_t* Controller::sStatClName[Controller::kNStatCl] = {"Inp: ", "Acc: "};
-  //  const Char_t* Controller::sStatName[Controller::kMaxStat] =
-  //  {"runs", "Ev.Coll", "Ev.Cosm", "Trc.Coll", "Trc.Cosm"};
+  const auto& stat0 = data[kInput];
+  LOGP(info, "StatSeen: Vtx: {:10} Tracks: {:10} TracksWVtx: {:10}", stat0[kVertices], stat0[kTracks], stat0[kTracksWithVertex]);
+  const auto& stat1 = data[kAccepted];
+  LOGP(info, "StatAcc : Vtx: {:10} Tracks: {:10} TracksWVtx: {:10}", stat1[kVertices], stat1[kTracks], stat1[kTracksWithVertex]);
 }
 
 const Char_t* Controller::sMPDataExt = ".mille";
@@ -154,6 +154,7 @@ void Controller::process()
     if (vtx) {
       auto nContrib = vtx->getNContributors();
       useVertexConstrain = nContrib >= algConf.vtxMinCont && nContrib <= algConf.vtxMaxCont;
+      mStat.data[ProcStat::kInput][ProcStat::kVertices]++;
     }
     auto& trackRef = primVer2TRefs[ivref];
     if (algConf.verbose > 1) {
@@ -174,6 +175,10 @@ void Controller::process()
             continue;
           }
           ambSeen = true;
+        }
+        mStat.data[ProcStat::kInput][ProcStat::kTracks]++;
+        if (vtx) {
+          mStat.data[ProcStat::kInput][ProcStat::kTracksWithVertex]++;
         }
         int npnt = 0;
         auto contributorsGID = mRecoData->getSingleDetectorRefs(trackIndex);
@@ -197,7 +202,7 @@ void Controller::process()
         int ndet = 0, npntDet = 0;
 
         if ((det = getDetector(DetID::ITS))) {
-          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false))) {
+          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false)) >= algConf.minITSClusters) {
             npnt += npntDet;
             ndet++;
           } else if (mAllowAfterburnerTracks && contributorsGID[GIndex::ITSAB].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITSAB], false)) > 0) {
@@ -207,7 +212,7 @@ void Controller::process()
             continue;
           }
         }
-        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false)) > 0) {
+        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false)) >= algConf.minTRDTracklets) {
           npnt += npntDet;
           ndet++;
         }
@@ -251,7 +256,6 @@ void Controller::process()
           }
           continue;
         }
-
         // compare refitted and original track
         if (mDebugOutputLevel) {
           trackParam_t trcAlgRef(*mAlgTrack.get());
@@ -344,9 +348,14 @@ void Controller::process()
                        << "detid=" << detid << "volid=" << volid << "\n";
           }
         }
+        mStat.data[ProcStat::kAccepted][ProcStat::kTracks]++;
+        if (vtxCont) {
+          mStat.data[ProcStat::kAccepted][ProcStat::kTracksWithVertex]++;
+        }
         nTrcAcc++;
         if (newVtx) {
           newVtx = false;
+          mStat.data[ProcStat::kAccepted][ProcStat::kVertices]++;
           nVtxAcc++;
         }
         storeProcessedTrack(trackIndex);
@@ -690,95 +699,8 @@ void Controller::setTimingInfo(const o2::framework::TimingInfo& ti)
   LOGP(info, "TIMING {} {}", ti.runNumber, ti.creation);
   if (ti.runNumber != mRunNumber) {
     mRunNumber = ti.runNumber;
-    acknowledgeNewRun();
   }
 }
-
-//_________________________________________________________
-void Controller::acknowledgeNewRun()
-{
-  LOG(warning) << __PRETTY_FUNCTION__ << " yet incomplete";
-
-  // o2::base::GeometryManager::loadGeometry();
-  // o2::base::PropagatorImpl<double>::initFieldFromGRP();
-  // std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-
-  // FIXME(milettri): needs AliESDEvent
-  //   // load needed info for new run
-  //   if (run == mRunNumber){
-  //     return;} // nothing to do
-  //   if (run > 0) {
-  //     mStat[kAccStat][kRun]++;
-  //   }
-  //   if (mRunNumber > 0){
-  //   mRunNumber = run;
-  //   LOG(info) << "Processing new run " << mRunNumber;
-  //   //
-  //   // setup magnetic field
-  //   if (fESDEvent &&
-  //       (!TGeoGlobalMagField::Instance()->GetField() ||
-  //        !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
-  //     fESDEvent->InitMagneticField();
-  //   }
-  //   //
-  //   if (!mUseRecoOCDB) {
-  //     LOG(warning) << "Reco-time OCDB will NOT be preloaded";
-  //     return;
-  //   }
-  //   LoadRecoTimeOCDB();
-  //   //
-  //   for (auto id=DetID::First; id<=DetID::Last; id++) {
-  //     AlignableDetector* det = getDetector(id);
-  //     if (!det->isDisabled()){
-  //       det->acknowledgeNewRun(run);}
-  //   }
-  //   //
-  //   // bring to virgin state
-  //   // CleanOCDB();
-  //   //
-  //   // LoadRefOCDB(); //??? we need to get back reference OCDB ???
-  //   //
-  //   mStat[kInpStat][kRun]++;
-  //   //
-}
-
-// FIXME(milettri): needs OCDB
-////_________________________________________________________
-//bool Controller::LoadRecoTimeOCDB()
-//{
-//  // Load OCDB paths used for the reconstruction of data being processed
-//  // In order to avoid unnecessary uploads, the objects are not actually
-//  // loaded/cached but just added as specific paths with version
-//  LOG(info) << "Preloading Reco-Time OCDB for run " << mRunNumber << " from ESD UserInfo list";
-//  //
-//  CleanOCDB();
-//  //
-//  if (!mRecoOCDBConf.IsNull() && !gSystem->AccessPathName(mRecoOCDBConf.c_str(), kFileExists)) {
-//    LOG(info) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.c_str();
-//    gROOT->ProcessLine(Form(".x %s(%d)", mRecoOCDBConf.c_str(), mRunNumber));
-//    if (AliCDBManager::Instance()->IsDefaultStorageSet()){
-//      return true;}
-//    LOG(fatal) << "macro " << mRecoOCDBConf.c_str() << " failed to configure reco-time OCDB";
-//  } else
-//    LOG(warning) << "No reco-time OCDB config macro" << mRecoOCDBConf.c_str() << "  is found, will use ESD:UserInfo";
-//  //
-//  if (!mESDTree){
-//    LOG(fatal) << "Cannot preload Reco-Time OCDB since the ESD tree is not set";}
-//  const TTree* tr = mESDTree; // go the the real ESD tree
-//  while (tr->GetTree() && tr->GetTree() != tr)
-//    tr = tr->GetTree();
-//  //
-//  const TList* userInfo = const_cast<TTree*>(tr)->GetUserInfo();
-//  TMap* cdbMap = (TMap*)userInfo->FindObject("cdbMap");
-//  TList* cdbList = (TList*)userInfo->FindObject("cdbList");
-//  //
-//  if (!cdbMap || !cdbList) {
-//    userInfo->Print();
-//    LOG(fatal) << "Failed to extract cdbMap and cdbList from UserInfo list";
-//  }
-//  //
-//  return PreloadOCDB(mRunNumber, cdbMap, cdbList);
-//}
 
 //____________________________________________
 void Controller::Print(const Option_t* opt) const

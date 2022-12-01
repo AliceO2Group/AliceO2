@@ -283,6 +283,7 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
     LOG(info) << "Writing millepede control files";
     mController->addAutoConstraints();
     mController->genPedeSteerFile();
+    mController->getStat().print();
   }
   mDBGOut.reset();
 }
