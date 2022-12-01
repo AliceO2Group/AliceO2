@@ -43,7 +43,6 @@ struct DebugGUI {
   virtual void charIn(char key) = 0;
 
   virtual void* initGUI(char const* windowTitle, ServiceRegistry& registry) = 0;
-  virtual void getFrameJSON(void* data, std::ostream& json_data) = 0;
   virtual void getFrameRaw(void* data, void** raw_data, int* size) = 0;
   virtual bool pollGUIPreRender(void* context, float delta) = 0;
   virtual void* pollGUIRender(std::function<void(void)> guiCallback) = 0;
