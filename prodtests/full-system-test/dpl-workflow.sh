@@ -379,7 +379,9 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows applying detector-specific calibrations
-workflow_has_parameter AOD && has_detector EMC && add_W o2-emcal-cell-recalibrator-workflow "--input-subspec 1 --output-subspec 0"
+workflow_has_parameter AOD && has_detector EMC && add_W o2-emcal-cell-recalibrator-workflow "--input-subspec 1 --output-subspec 0 --redirect-led"
+workflow_has_parameter AOD && has_detector EMC && add_W o2-emcal-cell-writer-workflow "--disable-mc --subspec 10 --cell-writer-name emcal-led-cells-writer --emcal-led-cells-writer \"--outfile emcledcells.root\""
+
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
