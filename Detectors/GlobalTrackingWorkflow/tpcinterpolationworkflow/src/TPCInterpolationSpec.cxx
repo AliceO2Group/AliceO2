@@ -28,6 +28,8 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
 #include "SpacePoints/SpacePointsCalibConfParam.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -45,6 +47,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -56,6 +59,14 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // other init-once stuff
     mInterpolation.init();
+    int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
+    int nTracksPerTfMax = (nTfs > 0) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
+    if (nTracksPerTfMax >= 0) {
+      LOGP(info, "We will stop processing tracks after validating {} tracks per TF", nTracksPerTfMax);
+    } else {
+      LOG(info) << "The number of processed tracks per TF is not limited";
+    }
+    mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
   }
   // we may have other params which need to be queried regularly
   if (mTPCVDriftHelper.isUpdated()) {
@@ -208,7 +219,8 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData)},
-    Options{}};
+    Options{
+      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}}}};
 }
 
 } // namespace tpc

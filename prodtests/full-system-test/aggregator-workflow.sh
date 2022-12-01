@@ -85,6 +85,7 @@ fi
 # special settings for aggregator workflows
 if [[ "0$CALIB_TPC_SCDCALIB_SENDTRKDATA" == "01" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
 if [[ -z "$RESIDUAL_AGGREGATOR_AUTOSAVE" ]]; then RESIDUAL_AGGREGATOR_AUTOSAVE=0; fi
+[[ -z $CALIB_TPC_SCDCALIB_SLOTLENGTH ]] && TPCSCD_CONFIG="--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"
 
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
@@ -183,7 +184,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
-    add_W o2-calibration-residual-aggregator "--disable-root-input $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+    add_W o2-calibration-residual-aggregator "--disable-root-input $TPCSCD_CONFIG $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
   fi
   if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
     # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "
