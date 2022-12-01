@@ -762,15 +762,15 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
       draw_list->ChannelsSetCurrent(backgroundLayer); // Background
       ImVec2 p1(-3 * NODE_SLOT_RADIUS, NODE_SLOT_RADIUS), p2(-3 * NODE_SLOT_RADIUS, -NODE_SLOT_RADIUS), p3(0, 0);
-      auto pp1 = p1 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      auto pp2 = p2 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      auto pp3 = p3 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto slotPos = NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto pp1 = p1 + offset + slotPos;
+      auto pp2 = p2 + offset + slotPos;
+      auto pp3 = p3 + offset + slotPos;
       auto color = ARROW_COLOR;
       if (node_idx == node_selected) {
         color = ARROW_SELECTED_COLOR;
       }
       draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-      auto slotPos = NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       draw_list->AddCircleFilled(offset + slotPos, NODE_SLOT_RADIUS, INPUT_SLOT_COLOR);
     }
 
