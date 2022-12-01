@@ -77,10 +77,6 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::disposeGUI();
   }
-  void getFrameJSON(void* data, std::ostream& json_data) override
-  {
-    o2::framework::getFrameJSON(data, json_data);
-  }
   void getFrameRaw(void* data, void** raw_data, int* size) override
   {
     o2::framework::getFrameRaw(data, raw_data, size);
