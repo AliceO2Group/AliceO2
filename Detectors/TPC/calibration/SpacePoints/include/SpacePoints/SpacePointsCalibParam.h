@@ -61,25 +61,6 @@ static constexpr float MaxTgSlp = 1.f;  ///< max value for phi and lambda angles
 // miscellaneous
 static constexpr float sEps = 1e-6f; ///< small number for float comparisons
 
-// define track cuts for track interpolation
-static constexpr int MinTPCNCls = 70;             ///< min number of TPC clusters
-static constexpr int MinTPCNClsNoOuterPoint = 50; ///< min number of TPC clusters if no hit in TRD or TOF exists
-static constexpr float MaxTPCChi2 = 4.f;          ///< cut on TPC reduced chi2
-static constexpr int MinITSNCls = 4;              ///< min number of ITS clusters
-static constexpr int MinITSNClsNoOuterPoint = 6;  ///< min number of ITS clusters if no hit in TRD or TOF exists
-static constexpr float MaxITSChi2 = 4.f;          ///< cut on ITS reduced chi2
-
-// parameters for conversion of Run 2 residual trees
-static constexpr float InvalidR = 10.f;                 ///< clusters with a radius smaller than this are neglected
-static constexpr float InvalidRes = -900.f;             ///< clusters with a residual smaller than this are neglected
-static constexpr int MinNCl = 30;                       ///< min number of clusters in a track to be used for calibration
-static constexpr float MaxQ2Pt = 3.f;                   ///< max fitted q/pt for a track to be used for calibration
-static constexpr float Bz = -5.0077936f;                ///< hard-coded B-field for the moment to compare with results from AliRoot
-static constexpr float MaxDevHelixY = .3f;              ///< max deviation in Y for clusters wrt helix fit
-static constexpr float MaxDevHelixZ = .3f;              ///< max deviation in Z for clusters wrt helix fit
-static constexpr int MinNumberOfAcceptedResiduals = 30; ///< min number of accepted residuals for
-static constexpr float mMaxStdDevMA = 25.f;             ///< max cluster std. deviation (Y^2 + Z^2) wrt moving average to accept
-
 } // namespace param
 } // namespace tpc
 } // namespace o2
