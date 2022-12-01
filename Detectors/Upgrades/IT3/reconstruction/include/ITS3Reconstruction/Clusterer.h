@@ -26,7 +26,7 @@
 #include <memory>
 #include <gsl/span>
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITS3/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
@@ -55,7 +55,7 @@ class MCTruthContainer;
 namespace its3
 {
 
-using CompClusCont = std::vector<itsmft::CompClusterExt>;
+using CompClusCont = std::vector<its3::CompClusterExt>;
 using PatternCont = std::vector<unsigned char>;
 using ROFRecCont = std::vector<itsmft::ROFRecord>;
 
@@ -66,8 +66,8 @@ class Clusterer
   using PixelReader = o2::itsmft::PixelReader;
   using PixelData = o2::itsmft::PixelData;
   using ChipPixelData = o2::itsmft::ChipPixelData;
-  using CompCluster = o2::itsmft::CompCluster;
-  using CompClusterExt = o2::itsmft::CompClusterExt;
+  using CompCluster = o2::its3::CompCluster;
+  using CompClusterExt = o2::its3::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using ConstMCTruth = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
@@ -309,6 +309,9 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
     }
   }
   compClusPtr->emplace_back(row, col, pattID, bbox.chipID);
+  if (row > 1024 || col > 1024) {
+    LOGP(info, "row {} col {}", row, col); 
+  }
 }
 
 } // namespace its3

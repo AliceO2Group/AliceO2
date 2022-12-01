@@ -11,7 +11,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <DataFormatsITSMFT/ROFRecord.h>
-#include <DataFormatsITSMFT/CompCluster.h>
+#include <DataFormatsITS3/CompCluster.h>
 #include <ITSBase/GeometryTGeo.h>
 #include <Framework/Logger.h>
 #include <DataFormatsITSMFT/TopologyDictionary.h>
@@ -32,12 +32,13 @@
 #include <gsl/gsl>
 #endif
 
-void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::itsmft::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict);
+void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::its3::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict);
 
 void CheckSquasherITS3(const uint chipId = 0, const uint startingROF = 0, const unsigned int nRofs = 3, const string fname = "o2clus_it3.root")
 {
-  TColor::InvertPalette();
+  // TColor::InvertPalette();
   gStyle->SetOptStat(0);
+  gStyle->SetPalette(kInvertedDarkBodyRadiator);
   // Geometry
   o2::base::GeometryManager::loadGeometry("");
   auto gman = o2::its::GeometryTGeo::Instance();
@@ -48,7 +49,7 @@ void CheckSquasherITS3(const uint chipId = 0, const uint startingROF = 0, const 
   auto fITSclus = TFile::Open(fname.data(), "r");
   auto treeITSclus = (TTree*)fITSclus->Get("o2sim");
 
-  std::vector<o2::itsmft::CompClusterExt>* ITSclus = nullptr;
+  std::vector<o2::its3::CompClusterExt>* ITSclus = nullptr;
   std::vector<o2::itsmft::ROFRecord>* ITSrof = nullptr;
   std::vector<unsigned char>* ITSpatt = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
@@ -156,7 +157,7 @@ void CheckSquasherITS3(const uint chipId = 0, const uint startingROF = 0, const 
   }
 }
 
-void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::itsmft::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict)
+void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::its3::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict)
 {
   pattVec.reserve(ITSclus->size());
   auto pattIt = ITSpatt->cbegin();
@@ -168,7 +169,7 @@ void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::v
     int npix;
     o2::itsmft::ClusterPattern patt;
 
-    if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mdict.isGroup(pattID)) {
+    if (pattID == o2::its3::CompCluster::InvalidPatternID || mdict.isGroup(pattID)) {
       patt.acquirePattern(pattIt);
       npix = patt.getNPixels();
     } else {
