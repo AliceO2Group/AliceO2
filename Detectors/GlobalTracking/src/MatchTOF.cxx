@@ -1160,7 +1160,7 @@ void MatchTOF::selectBestMatches()
       flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
     }
 
-    if (matchingPair.getChi2() < 3) { // extra cut in Chi2
+    if (matchingPair.getChi2() < 3) { // extra cut in Chi2 for storing calib info
       mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
                                  mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
                                  deltat,

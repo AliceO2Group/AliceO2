@@ -43,6 +43,7 @@ class DigitReader : public Task
   int mState = 0;
   int mCurrentEntry = 0;
   bool mUseMC = true;
+  int mDelayInMuSec1TF = 0;
   WindowFiller mFiller;
   std::unique_ptr<TFile> mFile = nullptr;
   std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
