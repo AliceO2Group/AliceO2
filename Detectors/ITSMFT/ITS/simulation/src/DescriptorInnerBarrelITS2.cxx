@@ -27,6 +27,7 @@
 
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSBase/ITSBaseParam.h"
 #include "ITSSimulation/DescriptorInnerBarrelITS2.h"
 #include "ITSSimulation/V3Services.h"
 #include "ITSSimulation/V3Layer.h"
@@ -159,20 +160,24 @@ void DescriptorInnerBarrelITS2::createServices(TGeoVolume* dest)
   // Updated:      21 Oct 2019  Mario Sitta  CYSS added
   //
 
+  auto& itsBaseParam = ITSBaseParam::Instance();
+
   std::unique_ptr<V3Services> mServicesGeometry(new V3Services("ITS"));
 
-  // Create the End Wheels on Side A
-  TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();
-  dest->AddNode(endWheelsA, 1, nullptr);
+  if (itsBaseParam.buildEndWheels) {
+    // Create the End Wheels on Side A
+    TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();
+    dest->AddNode(endWheelsA, 1, nullptr);
 
-  // Create the End Wheels on Side C
-  TGeoVolume* endWheelsC = mServicesGeometry.get()->createIBEndWheelsSideC();
-  dest->AddNode(endWheelsC, 1, nullptr);
-
-  // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
-  TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
-  dest->AddNode(cyss, 1, nullptr);
-
+    // Create the End Wheels on Side C
+    TGeoVolume* endWheelsC = mServicesGeometry.get()->createIBEndWheelsSideC();
+    dest->AddNode(endWheelsC, 1, nullptr);
+  }
+  if (itsBaseParam.buildCYSSAssembly) {
+    // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
+    TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
+    dest->AddNode(cyss, 1, nullptr);
+  }
   mServicesGeometry.get()->createIBGammaConvWire(dest);
 }
 
