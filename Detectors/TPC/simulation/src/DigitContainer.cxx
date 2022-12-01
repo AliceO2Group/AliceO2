@@ -82,7 +82,7 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
       time = new DigitTime;
     }
 
-    if (maxTimeBinForTimeFrame != -1 && timeBin > maxTimeBinForTimeFrame) {
+    if (maxTimeBinForTimeFrame != -1 && timeBin >= maxTimeBinForTimeFrame) {
       LOG(warn) << "Timebin going beyond timeframe limit .. truncating flush " << timeBin;
       break;
     }
