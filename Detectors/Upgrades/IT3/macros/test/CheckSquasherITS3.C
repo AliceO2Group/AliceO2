@@ -70,7 +70,28 @@ void CheckSquasherITS3(const uint chipId = 0, const uint startingROF = 0, const 
 
   for (unsigned int iR{0}; iR < nRofs; iR++) {
     LOGP(info, "Processing rof {}", iR + startingROF);
-    hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 1024, -0.5, 1023.5, 512, -0.5, 511.5);
+    switch(chipId/2) {
+      case 0:
+      {
+        hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 13575, -0.5, 13574.5, 2828, -0.5, 2827.5);
+        break;
+      }
+      case 1:
+      {
+        hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 13575, -0.5, 13574.5, 3770, -0.5, 3769.5);
+        break;
+      }
+      case 2:
+      {
+        hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 13575, -0.5, 13574.5, 4713, -0.5, 4712.5);
+        break;
+      }
+      default:
+      {
+        hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 1024, -0.5, 1023.5, 512, -0.5, 511.5);
+        break;
+      }
+    }
 
     // work on data
     const auto& rof = (*ITSrof)[startingROF + iR];
