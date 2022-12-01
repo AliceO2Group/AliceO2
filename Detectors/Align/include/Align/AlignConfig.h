@@ -38,7 +38,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minPoints[NTrackTypes] = {4, 10};
   int minDetAcc[NTrackTypes] = {1, 1};
 
-  float minX2X0Pt2Account = 0.5e-3;
+  float minScatteringAngleToAccount = 0.0001;
 
   int verbose = 0;
 
