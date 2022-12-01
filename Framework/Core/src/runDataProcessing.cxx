@@ -1204,17 +1204,27 @@ void force_exit_callback(uv_timer_s* ctx)
   killChildren(*infos, SIGKILL);
 }
 
+std::vector<std::regex> getDumpableMetrics()
+{
+  auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
+  auto dumpableMetrics = std::vector<std::regex>{};
+  for (const auto& metric : performanceMetrics) {
+    dumpableMetrics.emplace_back(metric);
+  }
+  dumpableMetrics.emplace_back("^arrow-bytes-delta$");
+  dumpableMetrics.emplace_back("^aod-bytes-read-uncompressed$");
+  dumpableMetrics.emplace_back("^aod-bytes-read-compressed$");
+  dumpableMetrics.emplace_back("^aod-file-read-info$");
+  dumpableMetrics.emplace_back("^table-bytes-.*");
+  dumpableMetrics.emplace_back("^total-timeframes.*");
+  return dumpableMetrics;
+}
+
 void dumpMetricsCallback(uv_timer_t* handle)
 {
   auto* context = (DriverServerContext*)handle->data;
 
-  auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
-  performanceMetrics.emplace_back("arrow-bytes-delta");
-  performanceMetrics.emplace_back("aod-bytes-read-uncompressed");
-  performanceMetrics.emplace_back("aod-bytes-read-compressed");
-  performanceMetrics.emplace_back("aod-file-read-info");
-  performanceMetrics.emplace_back("table-bytes-.*");
-  performanceMetrics.emplace_back("total-timeframes.*");
+  static auto performanceMetrics = getDumpableMetrics();
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
                                                context->driver->metrics, *(context->specs), performanceMetrics);
 }
