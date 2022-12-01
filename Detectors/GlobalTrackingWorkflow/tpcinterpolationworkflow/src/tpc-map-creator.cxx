@@ -11,12 +11,16 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -25,6 +29,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  o2::conf::ConfigurableParam::writeINI("o2tpcmapcreator-workflow_configuration.ini");
   WorkflowSpec specs;
   specs.emplace_back(o2::tpc::getTPCResidualReaderSpec());
   return specs;

@@ -14,6 +14,7 @@
 /// \author Ole Schmidt
 
 #include <vector>
+#include <boost/algorithm/string/predicate.hpp>
 #include "TFile.h"
 #include "TTree.h"
 #include "Framework/Task.h"
@@ -24,6 +25,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
+#include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::framework;
 
@@ -42,44 +44,84 @@ class TPCResidualReader : public Task
 
  private:
   void connectTree(const std::string& filename);
+
+  /// fill residuals for one sector
+  /// \param iSec sector of the residuals
+  void fillResiduals(const int iSec);
+
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
   TrackResiduals mTrackResiduals;
-  std::string mFileName = "";
+  std::vector<std::string> mFileNames{""};  ///< input files
+  std::string mOutfile{"debugVoxRes.root"}; ///< output file name
   std::vector<o2::tpc::TrackResiduals::LocalResid> mResiduals, *mResidualsPtr = &mResiduals;
 };
 
+void TPCResidualReader::fillResiduals(const int iSec)
+{
+  auto brStats = mTreeStats->GetBranch(Form("sec%d", iSec));
+  brStats->SetAddress(mTrackResiduals.getVoxStatPtr());
+  brStats->GetEntry(mTreeStats->GetEntries() - 1); // only the last entry is of interest
+  mTrackResiduals.fillStats(iSec);
+
+  // in case autosave was enabled, we have multiple entries in the statistics tree
+  auto brResid = mTreeResiduals->GetBranch(Form("sec%d", iSec));
+  brResid->SetAddress(&mResidualsPtr);
+
+  for (int iEntry = 0; iEntry < brResid->GetEntries(); ++iEntry) {
+    brResid->GetEntry(iEntry);
+    LOGF(debug, "Pushing %lu TPC residuals at entry %i for sector %i", mResiduals.size(), iEntry, iSec);
+    for (const auto& res : mResiduals) {
+      LOGF(debug, "Adding residual from Voxel %i-%i-%i. dy(%i), dz(%i), tg(%i)", res.bvox[0], res.bvox[1], res.bvox[2], res.dy, res.dz, res.tgSlp);
+    }
+    mTrackResiduals.getLocalResVec().insert(mTrackResiduals.getLocalResVec().end(), mResiduals.begin(), mResiduals.end());
+  }
+}
+
 void TPCResidualReader::init(InitContext& ic)
 {
-  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                            ic.options().get<std::string>("residuals-infile"));
-  connectTree(mFileName);
+  mFileNames = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("residuals-infiles"));
+  mOutfile = ic.options().get<std::string>("outfile");
   mTrackResiduals.init();
+
+  // check if only one input file (a txt file contaning a list of files is provided)
+  if (mFileNames.size() == 1) {
+    if (boost::algorithm::ends_with(mFileNames.front(), "txt")) {
+      LOGP(info, "Reading files from input file {}", mFileNames.front());
+      std::ifstream is(mFileNames.front());
+      std::istream_iterator<std::string> start(is);
+      std::istream_iterator<std::string> end;
+      std::vector<std::string> fileNamesTmp(start, end);
+      mFileNames = fileNamesTmp;
+    }
+  }
+
+  const std::string inpDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir"));
+  for (auto& file : mFileNames) {
+    file = o2::utils::Str::concat_string(inpDir, file);
+  }
 }
 
 void TPCResidualReader::run(ProcessingContext& pc)
 {
-  mTrackResiduals.createOutputFile(); // FIXME remove when map output is handled properly
+  mTrackResiduals.createOutputFile(mOutfile.data()); // FIXME remove when map output is handled properly
+
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
-    auto brStats = mTreeStats->GetBranch(Form("sec%d", iSec));
-    brStats->SetAddress(mTrackResiduals.getVoxStatPtr());
-    // in case autosave was enabled, we have multiple entries in the statistics tree
-    brStats->GetEntry(mTreeStats->GetEntries() - 1); // only the last entry is of interest
-    auto brResid = mTreeResiduals->GetBranch(Form("sec%d", iSec));
-    brResid->SetAddress(&mResidualsPtr);
-    for (int iEntry = 0; iEntry < brResid->GetEntries(); ++iEntry) {
-      brResid->GetEntry(iEntry);
-      LOGF(debug, "Pushing %lu TPC residuals at entry %i for sector %i", mResiduals.size(), iEntry, iSec);
-      for (const auto& res : mResiduals) {
-        LOGF(debug, "Adding residual from Voxel %i-%i-%i. dy(%i), dz(%i), tg(%i)", res.bvox[0], res.bvox[1], res.bvox[2], res.dy, res.dz, res.tgSlp);
-      }
-      mTrackResiduals.getLocalResVec().insert(mTrackResiduals.getLocalResVec().end(), mResiduals.begin(), mResiduals.end());
+    for (const auto& file : mFileNames) {
+      LOGP(info, "Processing residuals from file {}", file);
+
+      // set up the tree from the input file
+      connectTree(file);
+
+      // fill the residuals for one sector
+      fillResiduals(iSec);
     }
+
     // do processing
     mTrackResiduals.processSectorResiduals(iSec);
     // do cleanup
-    mTrackResiduals.getLocalResVec().clear();
+    mTrackResiduals.clear();
   }
 
   mTrackResiduals.closeOutputFile(); // FIXME remove when map output is handled properly
@@ -116,8 +158,9 @@ DataProcessorSpec getTPCResidualReaderSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<TPCResidualReader>()},
     Options{
-      {"residuals-infile", VariantType::String, "o2tpc_residuals.root", {"Name of the input file"}},
-      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
+      {"residuals-infiles", VariantType::String, "o2tpc_residuals.root", {"comma-separated list of input files or .txt file containing list of input files"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
+      {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}}}};
 }
 
 } // namespace tpc

@@ -415,12 +415,20 @@ class TrackResiduals
   void dumpResults(int iSec);
 
   /// Creates a file for the debug output.
-  void createOutputFile();
+  void createOutputFile(const char* filename = "debugVoxRes.root");
 
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+  /// Fill statistics from TTree
+  void fillStats(int iSec);
+
+  /// clear member to be able to process new sector or new input files
+  void clear();
+
  private:
+  bool mInitResultsContainer{false};
+
   // some constants
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
   static constexpr float sDeadZone{1.5f};   ///< dead zone for TPC in between sectors
@@ -432,7 +440,7 @@ class TrackResiduals
   const SpacePointsCalibConfParam* mParams = nullptr;
 
   // input data
-  std::vector<LocalResid> mLocalResidualsIn;            ///< binned local residuals from aggregator
+  std::vector<LocalResid> mLocalResidualsIn;                        ///< binned local residuals from aggregator
   std::vector<VoxStats> mVoxStatsIn, *mVoxStatsInPtr{&mVoxStatsIn}; ///< the statistics information for each voxel from the aggregator
   // output data
   std::unique_ptr<TFile> mFileOut; ///< output debug file
@@ -441,24 +449,24 @@ class TrackResiduals
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
-  int mNXBins{param::NPadRows};            ///< number of bins in radial direction
-  int mNY2XBins{param::NY2XBins};          ///< number of y/x bins per sector
-  int mNZ2XBins{param::NZ2XBins};          ///< number of z/x bins per sector
-  int mNVoxPerSector{};                    ///< number of voxels per sector
-  float mDX{};                             ///< x bin size
-  float mDXI{};                            ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};            ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2X{};              ///< y/x bin size at given x bin
-  std::vector<float> mDY2XI{};             ///< inverse y/x bin size at given x bin
-  std::vector<float> mY2XBinsDH{};         ///< half width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsDI{};         ///< inverse bin width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsCenter{};     ///< bin center in y/x within the interval [-1..1]
-  float mDZ2X{};                           ///< bin size in z/x
-  float mDZ2XI{};                          ///< inverse of bin size in z/x
-  std::vector<float> mZ2XBinsDH{};         ///< half width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsDI{};         ///< inverse bin width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsCenter{};     ///< bin center in z/x within the interval [0..1]
-  float mMaxZ2X{1.f};                      ///< max z/x value
+  int mNXBins{param::NPadRows};                            ///< number of bins in radial direction
+  int mNY2XBins{param::NY2XBins};                          ///< number of y/x bins per sector
+  int mNZ2XBins{param::NZ2XBins};                          ///< number of z/x bins per sector
+  int mNVoxPerSector{};                                    ///< number of voxels per sector
+  float mDX{};                                             ///< x bin size
+  float mDXI{};                                            ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};                              ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};                             ///< inverse y/x bin size at given x bin
+  std::vector<float> mY2XBinsDH{};                         ///< half width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsDI{};                         ///< inverse bin width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsCenter{};                     ///< bin center in y/x within the interval [-1..1]
+  float mDZ2X{};                                           ///< bin size in z/x
+  float mDZ2XI{};                                          ///< inverse of bin size in z/x
+  std::vector<float> mZ2XBinsDH{};                         ///< half width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsDI{};                         ///< inverse bin width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsCenter{};                     ///< bin center in z/x within the interval [0..1]
+  float mMaxZ2X{1.f};                                      ///< max z/x value
   std::array<bool, VoxDim> mUniformBins{true, true, true}; ///< if binning is uniform for each dimension
   // smoothing
   KernelType mKernelType{KernelType::Epanechnikov};                ///< kernel type (Epanechnikov / Gaussian)
@@ -476,7 +484,7 @@ class TrackResiduals
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
   VoxRes* mVoxelResultsOutPtr{&mVoxelResultsOut};                                           ///< pointer to set the branch address to for the output
 
-  ClassDefNV(TrackResiduals, 2);
+  ClassDefNV(TrackResiduals, 3);
 };
 
 //_____________________________________________________
