@@ -1177,18 +1177,23 @@ bool Controller::readParameters(const std::string& parfile, bool useErrors)
   }
   int cnt = 0;
   TString fline;
-  fline.ReadLine(inpf);
-  fline = fline.Strip(TString::kBoth, ' ');
-  fline.ToLower();
-  if (!fline.BeginsWith("parameter")) {
-    LOGP(fatal, "First line of {} is not parameter keyword: {}", parfile, fline.Data());
+  while (fline.ReadLine(inpf)) {
+    fline = fline.Strip(TString::kBoth, ' ');
+    fline.ToLower();
+    if (fline.Length() == 0 || fline.BeginsWith("!") || fline.BeginsWith("*")) {
+      continue;
+    }
+    if (!fline.BeginsWith("parameter")) {
+      LOGP(fatal, "First line of {} is not parameter keyword: {}", parfile, fline.Data());
+    }
+    break;
   }
   double v0, v1, v2;
   int lab, asg = 0, asg0 = 0;
   while (fline.ReadLine(inpf)) {
     cnt++;
     fline = fline.Strip(TString::kBoth, ' ');
-    if (fline.BeginsWith("!") || fline.BeginsWith("*")) {
+    if (fline.BeginsWith("!") || fline.BeginsWith("*") || fline.BeginsWith("parameter")) { // parameter keyword may repeat
       continue;
     } // ignore comment
     int nr = sscanf(fline.Data(), "%d%lf%lf%lf", &lab, &v0, &v1, &v2);
