@@ -37,6 +37,8 @@ namespace tpc
 
 struct ResidualsContainer {
 
+  using TFType = o2::calibration::TFType;
+
   ResidualsContainer() = default;
   ResidualsContainer(ResidualsContainer&& rhs);
   ResidualsContainer(const ResidualsContainer&); // no copying allowed, this will yield an error message
@@ -80,10 +82,12 @@ struct ResidualsContainer {
   bool writeUnbinnedResiduals{false};
   bool writeTrackData{false};
   int autosaveInterval{0};
+  TFType firstSeenTF{o2::calibration::INFINITE_TF};
+  TFType lastSeenTF{0};
 
   uint64_t nResidualsTotal{0};
 
-  ClassDefNV(ResidualsContainer, 3);
+  ClassDefNV(ResidualsContainer, 4);
 };
 
 class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<ResidualsContainer>
