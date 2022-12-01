@@ -143,7 +143,7 @@ class ITSThresholdCalibrator : public Task
   // Map including PixID for Dead pixels
   std::map<short int, std::vector<int>> mDeadPixID;
   // Vector for the calculation of the most probable value
-  std::map<short int, std::array<int,200>> mpvCounter;  
+  std::map<short int, std::array<int, 200>> mpvCounter;
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
@@ -244,10 +244,10 @@ class ITSThresholdCalibrator : public Task
   short int inMaxVcasn = 80;
   short int inMinIthr = 30;
   short int inMaxIthr = 100;
-  
+
   // Flag to enable most-probable value calculation
   bool isMpv = false;
-  
+
   // parameters for manual mode: if run type is not among the listed one
   bool isManualMode = false;
   bool saveTree;

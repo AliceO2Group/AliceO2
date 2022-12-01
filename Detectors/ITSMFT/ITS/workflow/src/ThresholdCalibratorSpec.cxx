@@ -507,7 +507,7 @@ void ITSThresholdCalibrator::saveThreshold()
         sumSqT += (vThreshold[i]) * (vThreshold[i]);
         sumSqN += ((int)vNoise[i]) * ((int)vNoise[i]);
         countSuccess++;
-        if(vThreshold[i] >= mMin && vThreshold[i] <= mMax && (mScanType == 'I' || mScanType == 'V')) {
+        if (vThreshold[i] >= mMin && vThreshold[i] <= mMax && (mScanType == 'I' || mScanType == 'V')) {
           mpvCounter[vChipid[0]][vThreshold[i] - mMin]++;
         }
       } else {
@@ -697,7 +697,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     // Initialize the histogram used for error function fits
     // Will initialize the TF1 in setRunType (it is different for different runs)
     this->mFitHist = new TH1F(
-      "mFitHist", "mFitHist", N_RANGE, mX[0]-0.5, mX[N_RANGE - 1]+0.5);
+      "mFitHist", "mFitHist", N_RANGE, mX[0] - 0.5, mX[N_RANGE - 1] + 0.5);
 
     // Initialize correct fit function for the scan type
     this->mFitFunction = (this->mScanType == 'I')
@@ -1133,11 +1133,11 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       outVal = avgT;
-      if(isMpv) {
+      if (isMpv) {
         mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
         outVal = mpvT;
       }
-      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; //percentage of unsuccessful threshold extractions 
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
       this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
@@ -1159,11 +1159,11 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       outVal = avgT;
-      if(isMpv) {
+      if (isMpv) {
         mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
         outVal = mpvT;
       }
-      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; //percentage of unsuccessful threshold extractions 
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
       this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
@@ -1184,7 +1184,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; //percentage of unsuccessful threshold extractions
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
       this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
