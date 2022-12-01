@@ -49,7 +49,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data, const o2::ctp::LumiInfo* lumiInput);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -63,8 +63,9 @@ struct ResidualsContainer {
   std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
   std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
   std::vector<o2::ctp::LumiInfo> lumi, *lumiPtr{&lumi};                      ///< luminosity information from CTP per TF
-  std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     // unbinned residuals
-  std::vector<TrackData> trkData, *trkDataPtr{&trkData};                                 // track data and cluster ranges
+  std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     ///< unbinned residuals
+  std::vector<TrackData> trkData, *trkDataPtr{&trkData};                     ///< track data and cluster ranges
+  std::vector<TrackDataCompact> trackInfo, *trackInfoPtr{&trackInfo};        ///< allows to obtain track type for each binned residual downstream
 
   std::string fileName{"o2tpc_residuals"};
   std::string treeNameResiduals{"resid"};
@@ -77,15 +78,17 @@ struct ResidualsContainer {
   std::unique_ptr<TTree> treeOutStats{nullptr};
   std::unique_ptr<TTree> treeOutRecords{nullptr};
 
-  bool writeToRootFile{true};
-  bool writeBinnedResid{false};
-  bool writeUnbinnedResiduals{false};
-  bool writeTrackData{false};
-  int autosaveInterval{0};
-  TFType firstSeenTF{o2::calibration::INFINITE_TF};
-  TFType lastSeenTF{0};
+  // settings
+  bool writeToRootFile{true};         ///< set to false to avoid that any output file is produced
+  bool writeBinnedResid{false};       ///< flag, whether binned residuals should be written out
+  bool writeUnbinnedResiduals{false}; ///< flag, whether unbinned residuals should be written out
+  bool writeTrackData{false};         ///< flag, whether full seeding track information should be written out
+  int autosaveInterval{0};            ///< if > 0, then the output written to file for every n-th TF
 
-  uint64_t nResidualsTotal{0};
+  // additional info
+  TFType firstSeenTF{o2::calibration::INFINITE_TF}; ///< the first TF which was added to this container
+  TFType lastSeenTF{0};                             ///< the last TF which was added to this container
+  uint64_t nResidualsTotal{0};                      ///< the total number of residuals for this container
 
   ClassDefNV(ResidualsContainer, 4);
 };
