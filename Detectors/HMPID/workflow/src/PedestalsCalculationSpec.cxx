@@ -231,13 +231,13 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
           Threshold = (uint32_t)(Variance * mSigmaCut + Average);
           PedThr = ((Threshold & 0x001FF) << 9) | (Pedestal & 0x001FF);
           assert(inserPtr < endPtr);
-          snprintf(inserPtr, endPtr-inserPtr, PEDTHFORMAT, PedThr);
+          snprintf(inserPtr, endPtr - inserPtr, PEDTHFORMAT, PedThr);
           inserPtr += PEDTHBYTES;
         }
         if (COLUMNTAIL) {
           for (int h = 48; h < 64; h++) {
             assert(inserPtr < endPtr);
-            snprintf(inserPtr, endPtr-inserPtr, PEDTHFORMAT, 0);
+            snprintf(inserPtr, endPtr - inserPtr, PEDTHFORMAT, 0);
             inserPtr += PEDTHBYTES;
           }
         }
@@ -245,7 +245,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
     }
     mExTimer.logMes("End write the equipment = " + std::to_string(e));
     assert(inserPtr < endPtr);
-    snprintf(inserPtr, endPtr-inserPtr, "%05X\n", 0xA0A0A); // The closure value
+    snprintf(inserPtr, endPtr - inserPtr, "%05X\n", 0xA0A0A); // The closure value
     inserPtr += 6;
     *inserPtr = '\0'; // close the string rap.
     o2::dcs::addConfigItem(pedestalsConfig, "Equipment" + std::to_string(e), (const char*)outBuffer);
