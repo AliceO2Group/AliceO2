@@ -472,7 +472,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       hasNewMetric = true;
     };
     std::string token(frame, s);
-    std::smatch match;
+    std::match_results<std::string_view::const_iterator> match;
     ParsedConfigMatch configMatch;
     ParsedMetricMatch metricMatch;
 
@@ -870,7 +870,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   // TODO: have multiple display modes
   // TODO: graphical view of the processing?
   assert(infos.size() == controls.size());
-  std::smatch match;
+  std::match_results<std::string_view::const_iterator> match;
   ParsedMetricMatch metricMatch;
   ParsedConfigMatch configMatch;
   const std::string delimiter("\n");

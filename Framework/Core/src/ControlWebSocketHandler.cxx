@@ -56,7 +56,7 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
 
   ParsedConfigMatch configMatch;
   std::string token(frame, s);
-  std::smatch match;
+  std::match_results<std::string_view::const_iterator> match;
 
   if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
     ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());

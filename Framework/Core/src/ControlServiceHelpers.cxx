@@ -15,21 +15,21 @@
 #include <string>
 #include <string_view>
 #include <regex>
-#include <iostream>
 
 namespace o2::framework
 {
 
-bool ControlServiceHelpers::parseControl(std::string const& s, std::smatch& match)
+bool ControlServiceHelpers::parseControl(std::string_view const& s, std::match_results<std::string_view::const_iterator>& match)
 {
-  char const* action = strstr(s.data(), "CONTROL_ACTION:");
-  if (action == nullptr) {
+  size_t pos = s.find("CONTROL_ACTION: ");
+  if (pos == std::string::npos) {
     return false;
   }
-  const static std::regex controlRE1(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
-  const static std::regex controlRE2(".*CONTROL_ACTION: (NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
-  const static std::regex controlRE3(".*CONTROL_ACTION: (NOTIFY_DEVICE_STATE) ([A-Z ]*)", std::regex::optimize);
-  return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2) || std::regex_search(s, match, controlRE3);
+  const static std::regex controlRE1("^READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
+  const static std::regex controlRE2("^(NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
+  const static std::regex controlRE3("^(NOTIFY_DEVICE_STATE) ([A-Z ]*)", std::regex::optimize);
+  std::string_view sv = s.substr(pos + strlen("CONTROL_ACTION: "));
+  return std::regex_search(sv.begin(), sv.end(), match, controlRE1) || std::regex_search(sv.begin(), sv.end(), match, controlRE2) || std::regex_search(sv.begin(), sv.end(), match, controlRE3);
 }
 
 void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
