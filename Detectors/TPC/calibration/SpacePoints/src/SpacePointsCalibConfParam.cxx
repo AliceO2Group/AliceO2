@@ -9,22 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_RESIDUAL_WRITER_H
-#define O2_TPC_RESIDUAL_WRITER_H
+/// \file SpacePointsCalibConfParam.cxx
+/// \brief Configurable params for average space charge distortion correction
+/// \author ole.schmidt@cern.ch
 
-/// @file   TPCResidualWriterSpec.h
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2
-{
-namespace tpc
-{
-
-/// create a processor spec
-framework::DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData);
-
-} // namespace tpc
-} // namespace o2
-
-#endif
+O2ParamImpl(o2::tpc::SpacePointsCalibConfParam);

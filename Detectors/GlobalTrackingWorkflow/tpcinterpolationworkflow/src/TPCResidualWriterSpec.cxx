@@ -15,6 +15,7 @@
 
 #include "SpacePoints/TrackInterpolation.h"
 #include "SpacePoints/TrackResiduals.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"
 #include "DataFormatsCTP/LumiInfo.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
@@ -28,9 +29,9 @@ namespace tpc
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTPCResidualWriterSpec(bool writeUnfiltered, bool writeTrackData)
+DataProcessorSpec getTPCResidualWriterSpec(bool writeTrackData)
 {
-
+  bool writeUnfiltered = SpacePointsCalibConfParam::Instance().writeUnfiltered;
   return MakeRootTreeWriterSpec("tpc-residuals-writer",
                                 "o2residuals_tpc.root",
                                 "residualsTPC",
