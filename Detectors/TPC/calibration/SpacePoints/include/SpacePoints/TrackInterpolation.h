@@ -87,6 +87,16 @@ struct UnbinnedResid {
   ClassDefNV(UnbinnedResid, 1);
 };
 
+/// Structure for the information required to associate each residual with a given track type (ITS-TPC-TRD-TOF, etc)
+struct TrackDataCompact {
+  TrackDataCompact() = default;
+  TrackDataCompact(uint32_t idx, uint8_t nRes, uint8_t source) : idxFirstResidual(idx), nResiduals(nRes), sourceId(source) {}
+  uint32_t idxFirstResidual; ///< the index of the first residual from this track
+  uint8_t nResiduals;        ///< total number of residuals associated to this track
+  uint8_t sourceId;          ///< source ID obtained from the global track ID
+  ClassDefNV(TrackDataCompact, 1);
+};
+
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
   o2::dataformats::GlobalTrackID gid{}; ///< global track ID for seeding track
@@ -210,6 +220,7 @@ class TrackInterpolation
 
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
+  std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
   std::vector<TPCClusterResiduals>& getClusterResidualsUnfiltered() { return mClResUnfiltered; }
   std::vector<TrackData>& getReferenceTracksUnfiltered() { return mTrackDataUnfiltered; }
@@ -234,6 +245,7 @@ class TrackInterpolation
 
   // output
   std::vector<TrackData> mTrackData{};                 ///< this vector is used to store the track quality information on a per track basis
+  std::vector<TrackDataCompact> mTrackDataCompact{};   ///< required to connect each residual to a global track
   std::vector<UnbinnedResid> mClRes{};                 ///< residuals for each available TPC cluster of all tracks
   std::vector<TrackData> mTrackDataUnfiltered{};       ///< same as mTrackData, but for all tracks before outlier filtering
   std::vector<TPCClusterResiduals> mClResUnfiltered{}; ///< same as mClRes, but for all residuals before outlier filtering

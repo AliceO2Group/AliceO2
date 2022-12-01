@@ -43,6 +43,7 @@ void TPCUnbinnedResidualReader::connectTree()
   mTreeIn.reset((TTree*)mFileIn->Get(mInTreeName.c_str()));
   assert(mTreeIn);
   mTreeIn->SetBranchAddress("residuals", &mUnbinnedResidPtr);
+  mTreeIn->SetBranchAddress("trackRefs", &mTrackDataCompactPtr);
   if (mTrackInput) {
     mTreeIn->SetBranchAddress("tracks", &mTrackDataPtr);
   }
@@ -56,6 +57,7 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
   mTreeIn->GetEntry(currEntry);
   LOG(info) << "Pushing " << mUnbinnedResid.size() << " unbinned residuals at entry " << currEntry;
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mUnbinnedResid);
+  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0, Lifetime::Timeframe}, mTrackDataCompact);
   if (mTrackInput) {
     LOG(info) << "Pushing " << mTrackData.size() << " reference tracks for these residuals";
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mTrackData);
@@ -71,6 +73,7 @@ DataProcessorSpec getUnbinnedTPCResidualsReaderSpec(bool trkInput)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
   if (trkInput) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
   }

@@ -156,6 +156,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     }
   }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataCompact());
   if (mSendTrackData) {
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   }
@@ -192,10 +193,15 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
     outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
-    outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+    if (sendTrackData) {
+      outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+    }
   }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
+  if (sendTrackData) {
+    outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
