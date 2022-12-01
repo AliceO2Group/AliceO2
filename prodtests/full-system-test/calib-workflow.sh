@@ -15,9 +15,10 @@ if workflow_has_parameters CALIB_LOCAL_INTEGRATED_AGGREGATOR CALIB_PROXIES; then
 fi
 
 if [[ "0$CALIB_TPC_SCDCALIB_SENDTRKDATA" == "01" ]]; then ENABLE_TRKDATA_OUTPUT="--send-track-data"; fi
+[[ -z $CALIB_TPC_SCDCALIB_SLOTLENGTH ]] && TPCSCD_CONFIG="--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"
 
 # specific calibration workflows
-if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "$ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)" "$ITSMFT_FILES"; fi
+if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "$TPCSCD_CONFIG $ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)" "$ITSMFT_FILES"; fi
 if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
   if [[ -z $SCALEEVENTS_TPC_TIMEGAIN ]]; then SCALEEVENTS_TPC_TIMEGAIN=10; fi
   if [[ -z $SCALETRACKS_TPC_TIMEGAIN ]]; then SCALETRACKS_TPC_TIMEGAIN=1000; fi

@@ -25,6 +25,8 @@ namespace tpc
 // These are configurable params for Primary Vertexer
 struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<SpacePointsCalibConfParam> {
 
+  int maxTracksPerCalibSlot = 3'500'000; ///< the number of tracks which is required to obtain an average correction map
+
   // define track cuts for track interpolation
   int minTPCNCls = 70;             ///< min number of TPC clusters
   int minTPCNClsNoOuterPoint = 50; ///< min number of TPC clusters if no hit in TRD or TOF exists

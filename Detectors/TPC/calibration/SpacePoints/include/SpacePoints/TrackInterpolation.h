@@ -218,6 +218,9 @@ class TrackInterpolation
   /// Sets the flag if material correction should be applied when extrapolating the tracks
   void setMatCorr(MatCorrType matCorr) { mMatCorr = matCorr; }
 
+  /// Sets the maximum number of tracks to be processed (successfully) per TF
+  void setMaxTracksPerTF(int n) { mMaxTracksPerTF = n; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
@@ -233,6 +236,7 @@ class TrackInterpolation
   float mTPCVDriftRef = -1.;    ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
+  int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container

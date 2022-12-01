@@ -86,6 +86,10 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
     } else {
       extrapolateTrack(iSeed);
     }
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
+      break;
+    }
   }
 
   LOG(info) << "Could process " << mTrackData.size() << " tracks successfully";
@@ -378,6 +382,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back((*mGIDs)[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
