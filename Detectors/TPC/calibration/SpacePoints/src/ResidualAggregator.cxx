@@ -67,6 +67,9 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   tfOrbits = std::move(rhs.tfOrbits);
   sumOfResiduals = std::move(rhs.sumOfResiduals);
   lumi = std::move(rhs.lumi);
+  unbinnedRes = std::move(rhs.unbinnedRes);
+  trackInfo = std::move(rhs.trackInfo);
+  trkData = std::move(rhs.trkData);
   firstSeenTF = rhs.firstSeenTF;
   lastSeenTF = rhs.lastSeenTF;
 }
@@ -114,6 +117,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
       treeOutResiduals->Branch(Form("sec%d", iSec), &residualsPtr[iSec]);
       treeOutStats->Branch(Form("sec%d", iSec), &statsPtr[iSec]);
     }
+    treeOutResiduals->Branch("trackInfo", &trackInfoPtr);
     treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
     treeOutRecords->Branch("sumOfResiduals", &sumOfResidualsPtr);
     treeOutRecords->Branch("lumi", &lumiPtr);
@@ -131,11 +135,11 @@ void ResidualsContainer::fillStatisticsBranches()
   }
 }
 
-void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const UnbinnedResid>> data, const o2::ctp::LumiInfo* lumiInput)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
-  LOG(debug) << "Filling ResidualsContainer with vector of size " << data.second.size();
+  LOG(debug) << "Filling ResidualsContainer with vector of size " << resid.size();
   uint32_t nResidualsInTF = 0;
   if (ti.tfCounter > lastSeenTF) {
     lastSeenTF = ti.tfCounter;
@@ -143,7 +147,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
   if (ti.tfCounter < firstSeenTF) {
     firstSeenTF = ti.tfCounter;
   }
-  for (const auto& residIn : data.second) {
+  for (const auto& residIn : resid) {
     bool counterIncremented = false;
     if (writeUnbinnedResiduals) {
       unbinnedRes.push_back(residIn);
@@ -180,15 +184,19 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
     }
     ++nResidualsInTF;
   }
+  for (const auto& trkRef : trkRefsIn) {
+    trackInfo.push_back(trkRef);
+  }
   if (writeBinnedResid) {
     treeOutResiduals->Fill();
+    trackInfo.clear();
     sumOfResiduals.push_back(nResidualsInTF);
   }
   for (auto& residVecOut : residuals) {
     residVecOut.clear();
   }
   if (writeTrackData) {
-    for (const auto& trkIn : data.first) {
+    for (const auto& trkIn : *trkDataIn) {
       trkData.push_back(trkIn);
     }
     treeOutTrackData->Fill();

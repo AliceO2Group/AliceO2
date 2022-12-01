@@ -111,6 +111,8 @@ class ResidualAggregatorDevice : public o2::framework::Task
     std::chrono::duration<double, std::milli> ccdbUpdateTime = std::chrono::high_resolution_clock::now() - runStartTime;
 
     auto residualsData = pc.inputs().get<gsl::span<o2::tpc::UnbinnedResid>>("unbinnedRes");
+    auto trackRefs = pc.inputs().get<gsl::span<o2::tpc::TrackDataCompact>>("trackRefs");
+
     // track data input is optional
     const gsl::span<const o2::tpc::TrackData>* trkDataPtr = nullptr;
     using trkDataType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::tpc::TrackData>>(""))>;
@@ -129,10 +131,9 @@ class ResidualAggregatorDevice : public o2::framework::Task
       lumi = &lumiInput.value();
     }
 
-    auto data = std::make_pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const o2::tpc::UnbinnedResid>>(std::move(*trkData), std::move(residualsData));
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
-    mAggregator->process(data, lumi);
+    mAggregator->process(residualsData, trackRefs, trkDataPtr, lumi);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
     LOGP(info, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
@@ -179,6 +180,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
   }
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("unbinnedRes", "GLO", "UNBINNEDRES");
+  inputs.emplace_back("trackRefs", "GLO", "TRKREFS");
   if (trackInput) {
     inputs.emplace_back("trkData", "GLO", "TRKDATA");
   }

@@ -299,6 +299,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back((*mGIDs)[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
@@ -751,6 +752,7 @@ void TrackInterpolation::diffToMA(const int np, const std::array<float, param::N
 void TrackInterpolation::reset()
 {
   mTrackData.clear();
+  mTrackDataCompact.clear();
   mClRes.clear();
   mTrackDataUnfiltered.clear();
   mClResUnfiltered.clear();
