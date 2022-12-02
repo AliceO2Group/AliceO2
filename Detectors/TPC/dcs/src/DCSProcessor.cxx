@@ -94,7 +94,7 @@ void DCSProcessor::fillHV(const DPCOM& dp)
     // TODO: Remove once type is clear
     static bool statTypePrinted = false;
     if (!statTypePrinted) {
-      LOGP(info, "Delivery type for STATUS: {}", type);
+      LOGP(info, "Delivery type for STATUS ({}): {}", alias, type);
       statTypePrinted = true;
     }
     if (type == DeliveryType::DPVAL_UINT) {
@@ -109,7 +109,7 @@ void DCSProcessor::fillHV(const DPCOM& dp)
     // TODO: Remove once type is clear
     static bool uiTypePrinted = false;
     if (!uiTypePrinted) {
-      LOGP(info, "Delivery type for current, voltage: {}", type);
+      LOGP(info, "Delivery type for current, voltage ({}): {}", alias, type);
       uiTypePrinted = true;
     }
     const auto value = getValueF(dp);
