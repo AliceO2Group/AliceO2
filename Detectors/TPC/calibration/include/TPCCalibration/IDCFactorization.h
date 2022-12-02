@@ -62,7 +62,8 @@ class IDCFactorization : public IDCGroupHelperSector
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param norm normalize IDCs to pad size
-  void factorizeIDCs(const bool norm);
+  /// \param calcDeltas calculate the \Delta I(r,\phi,t) currents
+  void factorizeIDCs(const bool norm, const bool calcDeltas);
 
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
   void calcIDCZero(const bool norm);
