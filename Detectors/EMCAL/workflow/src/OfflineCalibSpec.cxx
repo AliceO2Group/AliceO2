@@ -108,11 +108,11 @@ void OfflineCalibSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   outputFile->Close();
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers)
+o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec)
 {
   return o2::framework::DataProcessorSpec{"EMCALOfflineCalib",
-                                          {{"cells", o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe},
-                                           {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}},
+                                          {{"cells", o2::header::gDataOriginEMC, "CELLS", inputsubspec, o2::framework::Lifetime::Timeframe},
+                                           {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", inputsubspec, o2::framework::Lifetime::Timeframe}},
                                           {},
                                           o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers)};
 }

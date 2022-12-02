@@ -70,7 +70,7 @@ class OfflineCalibSpec : public framework::Task
 /// \brief Creating offline calib spec
 /// \ingroup EMCALworkflow
 ///
-o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers);
+o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec);
 
 } // namespace emcal
 
