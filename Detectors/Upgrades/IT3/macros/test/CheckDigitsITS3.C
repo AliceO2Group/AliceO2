@@ -9,6 +9,7 @@
 #include <TNtuple.h>
 #include <TString.h>
 #include <TTree.h>
+#include <TROOT.h>
 
 #include <vector>
 #include "ITSBase/GeometryTGeo.h"
@@ -26,8 +27,11 @@
 
 #endif
 
-void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root")
+void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root", bool batch = true)
 {
+  if (batch) {
+    gROOT->SetBatch();
+  }
 
   using namespace o2::base;
 
@@ -38,7 +42,6 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
   using o2::itsmft::SegmentationAlpide;
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
-
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
   // Geometry
@@ -46,8 +49,15 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
   auto* gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
-  SegmentationSuperAlpide segs[3]{SegmentationSuperAlpide(0), SegmentationSuperAlpide(1), SegmentationSuperAlpide(2)};
-  SegmentationSuperAlpide& seg = segs[0];
+  // we assume that we have 2 chips per layer
+  const int nChipsPerLayer = 2;
+
+  std::vector<SegmentationSuperAlpide> segs{};
+  for (int iLayer{0}; iLayer < nITS3layers; ++iLayer) {
+    for (int iChip{0}; iChip < nChipsPerLayer; ++iChip) {
+      segs.push_back(SegmentationSuperAlpide(iLayer));
+    }
+  }
 
   // Hits
   TFile* hitFile = TFile::Open(hitfile.data());
@@ -153,7 +163,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
       Int_t chipID = (*digArr)[iDigit].getChipIndex();
 
-      if (chipID / 2 < 3) {
+      if (chipID / nChipsPerLayer < nITS3layers) {
         segs[chipID].detectorToLocal(ix, iz, x, z);
       } else {
         SegmentationAlpide::detectorToLocal(ix, iz, x, z);
@@ -170,17 +180,15 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
         nDigitRead++;
 
         auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
-        if (chipID / 2 < 3) {
+        if (chipID / nChipsPerLayer < nITS3layers) {
           //
-          // invert
-          // xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
-          // xyzLocE = {SegmentationSuperAlpide::Radii[detID] * endPhi, 0.f, endPos.Z()};
+          // invert transformation in Digitiser.cxx
           //
-          double radius = SegmentationSuperAlpide::Radii[chipID / 2];
-          bool isTop = !(chipID % 2);
-          double phi = locD.X() / radius + (isTop ? -0.5 : 0.5) * (float)TMath::Pi();
+          double radius = SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer];
 
-          gloD.SetXYZ(radius * std::cos(phi), (isTop ? radius * std::sin(phi) + 0.1 / 2 : radius * std::sin(phi) - 0.1 / 2), locD.Z());
+          bool isTop = !(chipID % nChipsPerLayer);
+          double phi = locD.X() / radius + (isTop ? -0.5 : +0.5) * (float)TMath::Pi();
+          gloD.SetXYZ(-radius * std::cos(phi), -(isTop ? radius * std::sin(phi) - 0.1 / 2 : radius * std::sin(phi) + 0.1 / 2), locD.Z());
         }
         float dx = 0., dz = 0.;
 
@@ -203,15 +211,14 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
         auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
         auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-        if (chipID / 2 < 3) {
-          // startPhi{std::atan2(-reShiftedStartY, -startPos.X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-          bool isTop = !(chipID % 2);
+        if (chipID / nChipsPerLayer < nITS3layers) {
+          bool isTop = !(chipID % nChipsPerLayer);
           float reShiftedY = isTop ? hit.GetPosStart().Y() - 0.1 / 2 : hit.GetPosStart().Y() + 0.1 / 2;
           float startPhi{std::atan2(-reShiftedY, -hit.GetPosStart().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
           float reShiftedEndY = isTop ? hit.GetPos().Y() - 0.1 / 2 : hit.GetPos().Y() + 0.1 / 2;
           float endPhi{std::atan2(-reShiftedEndY, -hit.GetPos().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-          locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / 2] * endPhi, 0.f, hit.GetPos().Z());
-          locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / 2] * startPhi, 0.f, hit.GetPosStart().Z());
+          locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * endPhi, 0.f, hit.GetPos().Z());
+          locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, 0.f, hit.GetPosStart().Z());
         }
 
         locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
@@ -219,12 +226,15 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
         int row, col;
         float xlc = 0., zlc = 0.;
 
-        segs[chipID / 2 < 3 ? chipID : 0].localToDetector(locH.X(), locH.Z(), row, col);
-        segs[chipID / 2 < 3 ? chipID : 0].detectorToLocal(row, col, xlc, zlc);
-
-        if (chipID < 6) {
-          nt->Fill(chipID, gloD.X(), gloD.Y(), gloD.Z(), ix, iz, row, col, locH.X(), locH.Z(), xlc, zlc, locH.X() - locD.X(), locH.Z() - locD.Z());
+        if (chipID / nChipsPerLayer < nITS3layers) {
+          segs[chipID].localToDetector(locH.X(), locH.Z(), row, col);
+          segs[chipID].detectorToLocal(row, col, xlc, zlc);
+        } else {
+          SegmentationAlpide::localToDetector(locH.X(), locH.Z(), row, col);
+          SegmentationAlpide::detectorToLocal(row, col, xlc, zlc);
         }
+
+        nt->Fill(chipID, gloD.X(), gloD.Y(), gloD.Z(), ix, iz, row, col, locH.X(), locH.Z(), xlc, zlc, locH.X() - locD.X(), locH.Z() - locD.Z());
 
         nDigitFilled++;
       } // not noise
@@ -233,10 +243,25 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
   } // end loop on ROFRecords array
 
-  new TCanvas;
-  nt->Draw("y:x");
-  new TCanvas;
-  nt->Draw("dx:dz", ""); /// abs(dx)<0.02 && abs(dz)<0.02
+  auto canvXY = new TCanvas("canvXY", "", 1600, 1600);
+  canvXY->Divide(2, 2);
+  canvXY->cd(1);
+  nt->Draw("y:x>>h_y_vs_x_IB(1000, -10, 10, 1000, -10, 10)", "id < 6", "colz");
+  canvXY->cd(2);
+  nt->Draw("y:z>>h_y_vs_z_IB(1000, -15, 15, 1000, -10, 10)", "id < 6", "colz");
+  canvXY->cd(3);
+  nt->Draw("y:x>>h_y_vs_x_OB(1000, -50, 50, 1000, -50, 50)", "id >= 6", "colz");
+  canvXY->cd(4);
+  nt->Draw("y:z>>h_y_vs_z_OB(1000, -100, 100, 1000, -50, 50)", "id >= 6", "colz");
+  canvXY->SaveAs("y_vs_x_vs_z.pdf");
+
+  auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
+  canvdXdZ->Divide(2, 1);
+  canvdXdZ->cd(1);
+  nt->Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id < 6", "colz");
+  canvdXdZ->cd(2);
+  nt->Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id >= 6", "colz");
+  canvdXdZ->SaveAs("dx_vs_dz.pdf");
 
   f->Write();
   f->Close();
