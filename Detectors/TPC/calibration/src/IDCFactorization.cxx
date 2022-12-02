@@ -598,7 +598,7 @@ std::vector<unsigned int> o2::tpc::IDCFactorization::getAllIntegrationIntervalsP
   return integrationIntervalsPerTF;
 }
 
-void o2::tpc::IDCFactorization::factorizeIDCs(const bool norm)
+void o2::tpc::IDCFactorization::factorizeIDCs(const bool norm, const bool calcDeltas)
 {
   using timer = std::chrono::high_resolution_clock;
 
@@ -637,13 +637,15 @@ void o2::tpc::IDCFactorization::factorizeIDCs(const bool norm)
   LOGP(info, "IDC1 time: {}", time.count());
   totalTime += time.count();
 
-  LOGP(info, "Calculating IDCDelta");
-  start = timer::now();
-  calcIDCDelta();
-  stop = timer::now();
-  time = stop - start;
-  LOGP(info, "IDCDelta time: {}", time.count());
-  totalTime += time.count();
+  if (calcDeltas) {
+    LOGP(info, "Calculating IDCDelta");
+    start = timer::now();
+    calcIDCDelta();
+    stop = timer::now();
+    time = stop - start;
+    LOGP(info, "IDCDelta time: {}", time.count());
+    totalTime += time.count();
+  }
 
   LOGP(info, "Factorization done. Total time: {}", totalTime);
 }

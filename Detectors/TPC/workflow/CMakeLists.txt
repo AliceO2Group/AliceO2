@@ -200,6 +200,11 @@ o2_add_executable(calib-gainmap-tracks
                   SOURCES src/tpc-calib-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
 
+o2_add_executable(integrate-clusters
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-integrate-cluster-currents
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow

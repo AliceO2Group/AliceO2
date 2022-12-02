@@ -50,8 +50,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
  public:
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides, const int nTFsBuffer)
-    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides}, mNTFsBuffer{nTFsBuffer} {};
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides, const int nTFsBuffer, const bool processClusters)
+    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides}, mNTFsBuffer{nTFsBuffer}, mProcessClusters{processClusters} {};
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -79,6 +79,11 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     if (!refGainMapFile.empty()) {
       LOGP(info, "Loading GainMap from file {}", refGainMapFile);
       mIDCFactorization.setGainMap(refGainMapFile.data(), "GainMap");
+    }
+
+    // disabling CCDB output in order to avoid writing ICCs to IDC CCDB storage!
+    if (mProcessClusters) {
+      mSendOutCCDB = false;
     }
   }
 
@@ -133,15 +138,15 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
       if (mDumpIDCs) {
         LOGP(info, "dumping aggregated and factorized IDCs to file for currTF {}", currTF);
-        mIDCFactorization.dumpToFile(fmt::format("IDCFactorized_{:02}.root", currTF).data());
+        mIDCFactorization.dumpToFile(fmt::format("{}Factorized_{:02}.root", getCurrentType(), currTF).data());
       }
 
-      mIDCFactorization.factorizeIDCs(true); // calculate DeltaIDC, 0D-IDC, 1D-IDC
+      mIDCFactorization.factorizeIDCs(true, !mDisableIDCDelta); // calculate DeltaIDC, 0D-IDC, 1D-IDC
 
       if (mDumpIDC0) {
         LOGP(info, "dumping IDC Zero to file");
         for (auto side : mIDCFactorization.getSides()) {
-          const std::string outFileName = (side == Side::A) ? fmt::format("IDCZero_A_{:02}.root", currTF) : fmt::format("IDCZero_C_{:02}.root", currTF);
+          const std::string outFileName = (side == Side::A) ? fmt::format("{}Zero_A_{:02}.root", getCurrentType(), currTF) : fmt::format("{}Zero_C_{:02}.root", getCurrentType(), currTF);
           mIDCFactorization.dumpIDCZeroToFile(side, outFileName.data());
         }
       }
@@ -149,7 +154,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       if (mDumpIDC1) {
         LOGP(info, "dumping IDC1 to file");
         for (auto side : mIDCFactorization.getSides()) {
-          const std::string outFileName = (side == Side::A) ? fmt::format("IDCOne_A_{:02}.root", currTF) : fmt::format("IDCOne_C_{:02}.root", currTF);
+          const std::string outFileName = (side == Side::A) ? fmt::format("{}One_A_{:02}.root", getCurrentType(), currTF) : fmt::format("{}One_C_{:02}.root", getCurrentType(), currTF);
           mIDCFactorization.dumpIDCOneToFile(side, outFileName.data());
         }
       }
@@ -192,7 +197,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   const IDCDeltaCompression mCompressionDeltaIDC{}; ///< compression type for IDC Delta
   const bool mUsePrecisetimeStamp{true};            ///< use precise time stamp when writing to CCDB
   const bool mSendOutFFT{false};                    ///<  flag if the output will be send for the FFT
-  const bool mSendOutCCDB{false};                   ///< sending the outputs for ccdb populator
+  bool mSendOutCCDB{false};                         ///< sending the outputs for ccdb populator
   long mTFFirst{-1};                                ///< first TF of current aggregation interval
   bool mUpdateGroupingPar{true};                    ///< flag to set if grouping parameters should be updated or not
   const int mLaneId{0};                             ///< the id of the current process within the parallel pipeline
@@ -211,7 +216,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   bool mEnableWritingPadStatusMap{false};           ///< do not store the pad status map in the CCDB
   o2::framework::DataTakingContext mDataTakingContext{};
   bool mSetDataTakingCont{true};
-  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Sporadic}}; ///< filter for looping over input data
+  const bool mProcessClusters{false};
+  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId, mProcessClusters)}, Lifetime::Sporadic}}; ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output, const long timeStampStart)
   {
@@ -325,7 +331,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEndDelta);
 
             if (mDumpIDCDelta) {
-              mIDCGrouping.dumpToFile(fmt::format("IDCDeltaAveraged_chunk{:02}_{:02}_side{}.root", iChunk, timeStampStartDelta, side).data());
+              mIDCGrouping.dumpToFile(fmt::format("{}DeltaAveraged_chunk{:02}_{:02}_side{}.root", getCurrentType(), iChunk, timeStampStartDelta, side).data());
             }
 
             auto startCCDBIDCDelta = timer::now();
@@ -405,9 +411,11 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     mIDCFactorization.reset();
     LOGP(info, "Everything cleared. Waiting for new data to arrive.");
   }
+
+  std::string getCurrentType() const { return mProcessClusters ? "ICC" : "IDC"; }
 };
 
-DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int nTFsBuffer = 1)
+DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int nTFsBuffer = 1, const bool processClusters = false)
 {
   const auto sides = o2::tpc::IDCFactorization::getSides(crus);
 
@@ -435,7 +443,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   }
 
   std::vector<InputSpec> inputSpecs;
-  inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic});
+  inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane, processClusters)}, Lifetime::Sporadic});
   inputSpecs.emplace_back(InputSpec{"firstTF", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCFirstTF(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
   if (usePrecisetimeStamp) {
     inputSpecs.emplace_back(InputSpec{"orbitreset", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
@@ -452,11 +460,12 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   std::copy(std::begin(paramIDCGroup.groupLastPadsThreshold), std::end(paramIDCGroup.groupLastPadsThreshold), std::begin(groupLastPadsThreshold));
   const unsigned int groupPadsSectorEdges = paramIDCGroup.groupPadsSectorEdges;
 
+  const std::string type = processClusters ? "icc" : "idc";
   DataProcessorSpec spec{
-    fmt::format("tpc-factorize-idc-{:02}", lane).data(),
+    fmt::format("tpc-factorize-{}-{:02}", type, lane).data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides, nTFsBuffer)},
+    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides, nTFsBuffer, processClusters)},
     Options{{"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
             {"enablePadStatusMap", VariantType::Bool, false, {"Enabling the usage of the pad-by-pad status map during factorization."}},
             {"enableWritingPadStatusMap", VariantType::Bool, false, {"Write the pad status map to CCDB."}},

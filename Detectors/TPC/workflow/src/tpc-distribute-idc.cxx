@@ -40,7 +40,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are split per lane)"}},
     {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
     {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPIDCSpec."}},
-    {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
+    {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}},
+    {"processClusters", VariantType::Bool, false, {"Processing clusters as input instead of IDCs"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -62,6 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("lanes"));
   const auto firstTF = static_cast<unsigned int>(config.options().get<int>("firstTF"));
   const bool sendPrecisetimeStamp = config.options().get<bool>("send-precise-timestamp");
+  const bool processClusters = config.options().get<bool>("processClusters");
   int nTFsBuffer = config.options().get<int>("n-TFs-buffer");
   if (nTFsBuffer <= 0) {
     nTFsBuffer = 1;
@@ -78,7 +80,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp, nTFsBuffer));
+    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp, nTFsBuffer, processClusters));
   }
 
   return workflow;
