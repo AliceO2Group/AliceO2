@@ -2,7 +2,7 @@
 \page refDetectorsUpgradesIT3 UpgradesIT3
 /doxy -->
 
-# IT3
+# ITS3
 Upgraded version of the ITS that includes upgraded truly-cylindrical inner barrel.
 
 # Run the full simulation

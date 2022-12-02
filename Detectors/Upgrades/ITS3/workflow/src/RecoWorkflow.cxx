@@ -9,14 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   RecoWorkflow.cxx
-
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "ITS3Workflow/ClustererSpec.h"
 #include "ITS3Workflow/ClusterWriterSpec.h"
-// #include "ITSWorkflow/TrackerSpec.h"
-// #include "ITSWorkflow/TrackWriterSpec.h"
-// #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "ITSWorkflow/TrackerSpec.h"
+#include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITS3Workflow/DigitReaderSpec.h"
 
 namespace o2
@@ -27,9 +24,8 @@ namespace its3
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput,
-                                    bool)
+framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig)
 {
   framework::WorkflowSpec specs;
 
@@ -45,14 +41,11 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode,
     specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
   }
 
-  // specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
-  // if (!disableRootOutput) {
-  //   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
-  // }
+  specs.emplace_back(o2::its::getTrackerSpec(useMC, useTrig, trmode, dtype));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
+  }
 
-  // if (eencode) {
-  //   specs.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
-  // }
   return specs;
 }
 

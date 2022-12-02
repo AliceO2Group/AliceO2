@@ -44,10 +44,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
+    {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    /*{"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}*/};
+    {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -62,15 +64,28 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto trmode = configcontext.options().get<std::string>("tracking-mode");
-  // auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
+  auto selTrig = configcontext.options().get<std::string>("select-with-triggers");
+  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
-  auto eencode = configcontext.options().get<bool>("entropy-encoding");
+  if (configcontext.options().get<bool>("disable-tracking")) {
+    trmode = "";
+  }
+  std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
-  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, trmode, extDigits, extClusters, disableRootOutput, eencode);
+  int trType = 0;
+  if (!selTrig.empty() && selTrig != "none") {
+    if (selTrig == "phys") {
+      trType = 1;
+    } else if (selTrig == "trd") {
+      trType = 2;
+    } else {
+      LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
+    }
+  }
+  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

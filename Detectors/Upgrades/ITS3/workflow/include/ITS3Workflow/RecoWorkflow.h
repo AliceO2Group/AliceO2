@@ -16,9 +16,9 @@
 
 #include "Framework/WorkflowSpec.h"
 
-// #include "GPUO2Interface.h"
-// #include "GPUReconstruction.h"
-// #include "GPUChainITS.h"
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainITS.h"
 
 namespace o2
 {
@@ -30,10 +30,11 @@ namespace reco_workflow
 
 framework::WorkflowSpec getWorkflow(bool useMC,
                                     const std::string& trmode,
-                                    bool upstreamDigits = false,
-                                    bool upstreamClusters = false,
-                                    bool disableRootOutput = false,
-                                    bool eencode = false);
+                                    o2::gpu::GPUDataTypes::DeviceType dtype,
+                                    bool upstreamDigits,
+                                    bool upstreamClusters,
+                                    bool disableRootOutput,
+                                    int useTrig);
 }
 
 } // namespace its3

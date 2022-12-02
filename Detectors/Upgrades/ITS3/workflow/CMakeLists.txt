@@ -16,7 +16,7 @@ o2_add_library(ITS3Workflow
                      #   src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
-                      #  src/TrackerSpec.cxx
+                       src/TrackerSpec.cxx
                       #  src/CookedTrackerSpec.cxx
                       #  src/TrackWriterSpec.cxx
                       #  src/TrackReaderSpec.cxx
@@ -24,14 +24,15 @@ o2_add_library(ITS3Workflow
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITSMFT
-                                   #   O2::DataFormatsITS3
+                                     O2::DataFormatsITS3
                                      O2::SimulationDataFormat
                                      O2::ITS3Simulation
-                                    #  O2::ITStracking
+                                     O2::ITStracking
                                      O2::ITSMFTReconstruction
                                      O2::ITS3Reconstruction
                                      O2::ITSWorkflow
-                                    #  O2::GPUTracking
+                                     O2::GPUTracking
+                                     O2::ITSBase
 )
 
 # o2_add_executable(digit-writer-workflow
