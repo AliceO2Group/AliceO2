@@ -476,9 +476,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     ParsedConfigMatch configMatch;
     ParsedMetricMatch metricMatch;
 
-    auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
-      auto ts = "                 " + token;
-      if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
+    auto doParseConfig = [](std::string_view const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
+      if (DeviceConfigHelper::parseConfig(token, configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
         return true;
       }
@@ -923,7 +922,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && ControlServiceHelpers::parseControl(token, match)) {
         ControlServiceHelpers::processCommand(infos, info.pid, match[1].str(), match[2].str());
         result.didProcessControl = true;
-      } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token, configMatch)) {
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token.substr(16), configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
         result.didProcessConfig = true;
       } else if (!control.quiet && (token.find(control.logFilter) != std::string::npos) &&
