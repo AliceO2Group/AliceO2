@@ -237,22 +237,23 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   float gap = 0.1; // FIXME: get this properly!
   auto startPos = hit.GetPosStart();
   // LOGP(info,  "StartPos: {} {} {}", startPos.X(), startPos.Y(), startPos.Z());
-  bool isTop = startPos.Y() > 0;
-  float reShiftedStartY = isTop ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float startPhi{std::atan2(-reShiftedStartY, -startPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
-  if (innerBarrel) {
-    // LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
-  }
-  auto endPos = hit.GetPos();
-  float reShiftedEndY = isTop ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-  float endPhi{std::atan2(-reShiftedEndY, -endPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
-  if (innerBarrel) {
-    // LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
-  }
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   if (innerBarrel) {
+    bool isTop = startPos.Y() > 0;
+    float reShiftedStartY = isTop ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+    float startPhi{std::atan2(-reShiftedStartY, -startPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
+    if (innerBarrel) {
+      // LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
+    }
+    auto endPos = hit.GetPos();
+    float reShiftedEndY = isTop ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
+    float endPhi{std::atan2(-reShiftedEndY, -endPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
+    if (innerBarrel) {
+      // LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
+    }
+    float deltaY = reShiftedEndY - reShiftedEndY;
     xyzLocS = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (startPhi), 0.f, startPos.Z()};
-    xyzLocE = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (endPhi), 0.f, endPos.Z()};
+    xyzLocE = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (endPhi), deltaY, endPos.Z()};
   } else {
     xyzLocS = matrix ^ (hit.GetPosStart());
     xyzLocE = matrix ^ (hit.GetPos());

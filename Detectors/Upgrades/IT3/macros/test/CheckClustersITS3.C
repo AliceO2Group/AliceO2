@@ -9,6 +9,8 @@
 #include <TNtuple.h>
 #include <TString.h>
 #include <TTree.h>
+#include <TROOT.h>
+#include <TStyle.h>
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -26,9 +28,14 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
-void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
-                       std::string inputGeom = "", std::string dictfile = "")
+void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
+                       std::string inputGeom = "", std::string dictfile = "", bool batch = true)
 {
+  gROOT->SetBatch(batch);
+
+  // we assume that we have 2 chips per layer
+  const int nChipsPerLayer = 2;
+
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
   using namespace o2::base;
@@ -158,7 +165,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       auto pattID = cluster.getPatternID();
       o2::math_utils::Point3D<float> locC;
       auto chipID = cluster.getSensorID();
-      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
+      if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         locC = dict.getClusterCoordinates(chipID, cluster, patt, false);
       } else {
@@ -166,13 +173,16 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
         npix = dict.getNpixels(pattID);
+        LOGP(info, "I am invalid and I am on chip {}", chipID);
       }
       // Transformation to the local --> global
-      auto gloC = gman->getMatrixL2G(chipID) * locC;
-      if (chipID < o2::its3::SegmentationSuperAlpide::NLayers) {
-        double radius = SegmentationSuperAlpide::Radii[chipID];
-        double phi = locC.X() / radius;
-        gloC.SetXYZ(radius * std::cos(phi), radius * std::sin(phi), locC.Z());
+      auto gloC = gman->getMatrixL2G(chipID)(locC);
+      if (chipID / nChipsPerLayer < nITS3layers) {
+        double radius = SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer];
+
+        bool isTop = !(chipID % nChipsPerLayer);
+        double phi = locC.X() / radius + (isTop ? -0.5 : +0.5) * (float)TMath::Pi();
+        gloC.SetXYZ(-radius * std::cos(phi), -(isTop ? radius * std::sin(phi) - 0.1 / 2 : radius * std::sin(phi) + 0.1 / 2), locC.Z());
       }
 
       const auto& lab = (clusLabArr->getLabels(clEntry))[0];
@@ -195,24 +205,34 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       float dx = 0, dz = 0;
       int ievH = lab.getEventID();
       o2::math_utils::Point3D<float> locH, locHsta;
+      o2::math_utils::Point3D<float> gloH, gloHsta;
 
       // mean local position of the hit
       locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-      if (chipID < 4) {
-        float startPhi{std::atan2(-hit.GetPosStart().Y(), -hit.GetPosStart().X())};
-        float endPhi{std::atan2(-hit.GetPos().Y(), -hit.GetPos().X())};
-        locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID] * endPhi, 0.f, hit.GetPos().Z());
-        locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID] * startPhi, 0.f, hit.GetPosStart().Z());
+      if (chipID / nChipsPerLayer < nITS3layers) {
+        bool isTop = !(chipID % nChipsPerLayer);
+        float reShiftedY = isTop ? hit.GetPosStart().Y() - 0.1 / 2 : hit.GetPosStart().Y() + 0.1 / 2;
+        float startPhi{std::atan2(-reShiftedY, -hit.GetPosStart().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
+        float reShiftedEndY = isTop ? hit.GetPos().Y() - 0.1 / 2 : hit.GetPos().Y() + 0.1 / 2;
+        float endPhi{std::atan2(-reShiftedEndY, -hit.GetPos().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
+        float deltaY = reShiftedEndY - reShiftedY;
+        locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * endPhi, 0.f, hit.GetPos().Z());
+        locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, deltaY, hit.GetPosStart().Z());
       }
-
       auto x0 = locHsta.X(), dltx = locH.X() - x0;
       auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
       auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
-      auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
-      locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
-      //locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+
+      if (chipID / nChipsPerLayer >= nITS3layers) {
+        auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
+        locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
+      } else {
+        // not really precise, but okish
+        locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+      }
+
       std::array<float, 18> data = {(float)lab.getEventID(), (float)trID,
                                     locH.X(), locH.Z(), dltx / dlty, dltz / dlty,
                                     gloC.X(), gloC.Y(), gloC.Z(),
@@ -223,30 +243,34 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
     }
   }
 
-  new TCanvas;
-  nt.Draw("cgy:cgx");
-  new TCanvas;
-  nt.Draw("dz:dx", "abs(dz)<0.01 && abs(dx)<0.01");
-  new TCanvas;
-  nt.Draw("dz:tz", "abs(dz)<0.005 && abs(tz)<2");
+  auto canvCgXCgY = new TCanvas("canvCgXCgY", "", 1600, 1600);
+  canvCgXCgY->Divide(2, 2);
+  canvCgXCgY->cd(1);
+  nt.Draw("cgy:cgx>>h_cgy_vs_cgx_IB(1000, -10, 10, 1000, -10, 10)", "id < 6", "colz");
+  canvCgXCgY->cd(2);
+  nt.Draw("cgy:cgz>>h_cgy_vs_cgz_IB(1000, -15, 15, 1000, -10, 10)", "id < 6", "colz");
+  canvCgXCgY->cd(3);
+  nt.Draw("cgy:cgx>>h_cgy_vs_cgx_OB(1000, -50, 50, 1000, -50, 50)", "id >= 6", "colz");
+  canvCgXCgY->cd(4);
+  nt.Draw("cgy:cgz>>h_cgy_vs_cgz_OB(1000, -100, 100, 1000, -50, 50)", "id >= 6", "colz");
+  canvCgXCgY->SaveAs("it3clusters_y_vs_x_vs_z.pdf");
 
-  auto c1 = new TCanvas("p1", "pullX");
-  c1->cd();
-  c1->SetLogy();
-  nt.Draw("dx/ex", "abs(dx/ex)<10&&patid<10");
-  auto c2 = new TCanvas("p2", "pullZ");
-  c2->cd();
-  c2->SetLogy();
-  nt.Draw("dz/ez", "abs(dz/ez)<10&&patid<10");
+  auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
+  canvdXdZ->Divide(2, 1);
+  canvdXdZ->cd(1);
+  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id < 6", "colz");
+  canvdXdZ->cd(2);
+  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id >= 6", "colz");
+  canvdXdZ->SaveAs("it3clusters_dx_vs_dz.pdf");
 
-  auto d1 = new TCanvas("d1", "deltaX");
-  d1->cd();
-  d1->SetLogy();
-  nt.Draw("dx", "abs(dx)<5");
-  auto d2 = new TCanvas("d2", "deltaZ");
-  d2->cd();
-  d2->SetLogy();
-  nt.Draw("dz", "abs(dz)<5");
+  // auto c1 = new TCanvas("p1", "pullX");
+  // c1->cd();
+  // c1->SetLogy();
+  // nt.Draw("dx/ex", "abs(dx/ex)<10&&patid<10");
+  // auto c2 = new TCanvas("p2", "pullZ");
+  // c2->cd();
+  // c2->SetLogy();
+  // nt.Draw("dz/ez", "abs(dz/ez)<10&&patid<10");
 
   fout.cd();
   nt.Write();

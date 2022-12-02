@@ -29,9 +29,7 @@
 
 void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root", bool batch = true)
 {
-  if (batch) {
-    gROOT->SetBatch();
-  }
+  gROOT->SetBatch(batch);
 
   using namespace o2::base;
 
@@ -217,8 +215,9 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
           float startPhi{std::atan2(-reShiftedY, -hit.GetPosStart().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
           float reShiftedEndY = isTop ? hit.GetPos().Y() - 0.1 / 2 : hit.GetPos().Y() + 0.1 / 2;
           float endPhi{std::atan2(-reShiftedEndY, -hit.GetPos().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
+          float deltaY = reShiftedEndY - reShiftedY;
           locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * endPhi, 0.f, hit.GetPos().Z());
-          locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, 0.f, hit.GetPosStart().Z());
+          locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, deltaY, hit.GetPosStart().Z());
         }
 
         locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
@@ -253,7 +252,7 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
   nt->Draw("y:x>>h_y_vs_x_OB(1000, -50, 50, 1000, -50, 50)", "id >= 6", "colz");
   canvXY->cd(4);
   nt->Draw("y:z>>h_y_vs_z_OB(1000, -100, 100, 1000, -50, 50)", "id >= 6", "colz");
-  canvXY->SaveAs("y_vs_x_vs_z.pdf");
+  canvXY->SaveAs("it3digits_y_vs_x_vs_z.pdf");
 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
@@ -261,7 +260,7 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
   nt->Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id < 6", "colz");
   canvdXdZ->cd(2);
   nt->Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id >= 6", "colz");
-  canvdXdZ->SaveAs("dx_vs_dz.pdf");
+  canvdXdZ->SaveAs("it3digits_dx_vs_dz.pdf");
 
   f->Write();
   f->Close();

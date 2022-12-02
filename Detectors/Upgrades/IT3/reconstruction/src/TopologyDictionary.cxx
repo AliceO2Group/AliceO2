@@ -22,11 +22,11 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
 {
 
   static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
                                                   SegmentationSuperAlpide(1),
                                                   SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(3),
-                                                  SegmentationSuperAlpide(4),
-                                                  SegmentationSuperAlpide(5)}; // TODO: fix NLayers
+                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
   math_utils::Point3D<float> locCl;
   if (detID >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
@@ -41,11 +41,11 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
 math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const its3::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup)
 {
   static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
                                                   SegmentationSuperAlpide(1),
                                                   SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(3),
-                                                  SegmentationSuperAlpide(4),
-                                                  SegmentationSuperAlpide(5)}; // TODO: fix NLayers
+                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
 
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
