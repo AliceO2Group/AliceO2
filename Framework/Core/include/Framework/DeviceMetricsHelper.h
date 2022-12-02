@@ -96,17 +96,21 @@ struct DeviceMetricsHelper {
     };
   }
 
-  template <typename T>
-  static auto getNumericMetricCursor(size_t metricIndex)
-  {
-    return [metricIndex](DeviceMetricsInfo& metrics, T value, size_t timestamp) {
-      MetricInfo& metric = metrics.metrics[metricIndex];
-
+  static auto updateNumericInfo(DeviceMetricsInfo& metrics, size_t metricIndex, float value, size_t timestamp) {
       metrics.minDomain[metricIndex] = std::min(metrics.minDomain[metricIndex], timestamp);
       metrics.maxDomain[metricIndex] = std::max(metrics.maxDomain[metricIndex], timestamp);
       metrics.max[metricIndex] = std::max(metrics.max[metricIndex], (float)value);
       metrics.min[metricIndex] = std::min(metrics.min[metricIndex], (float)value);
       metrics.changed.at(metricIndex) = true;
+  }
+
+  template <typename T>
+  static auto getNumericMetricCursor(size_t metricIndex)
+  {
+    return [metricIndex](DeviceMetricsInfo& metrics, T value, size_t timestamp) {
+      MetricInfo& metric = metrics.metrics[metricIndex];
+      updateNumericInfo(metrics, metricIndex, (float)value, timestamp);
+
       auto& store = getMetricsStore<T>(metrics);
       auto& timestamps = getTimestampsStore<T>(metrics);
       size_t pos = metric.pos++ % store[metric.storeIdx].size();
