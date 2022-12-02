@@ -28,7 +28,6 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
   const char* cur = s.data();
   const char* next = cur;
   enum struct ParserState {
-    IN_START,
     IN_PREAMBLE,
     IN_KEY,
     IN_VALUE,
@@ -42,19 +41,13 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
   // to be able to parse the timestamp and tags.
   char const* lastSpace = nullptr;
   char const* previousLastSpace = nullptr;
-  ParserState state = ParserState::IN_START;
+  ParserState state = ParserState::IN_PREAMBLE;
 
   while (true) {
     auto previousState = state;
     state = ParserState::IN_ERROR;
     err = nullptr;
     switch (previousState) {
-      case ParserState::IN_START:
-        if (s.size() > 16) {
-          next = next + 16;
-          state = ParserState::IN_PREAMBLE;
-        }
-        break;
       case ParserState::IN_PREAMBLE:
         if (s.data() + s.size() - cur < 9) {
         } else if (strncmp("[CONFIG] ", cur, 9) == 0) {
