@@ -480,6 +480,7 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
          kOnOn };
   const char* comment[3] = {"  ", "! ", "!!"};
   const char* kKeyParam = "parameter";
+  const char* kKeyMeas = "measurement";
   TString opts = opt;
   opts.ToLower();
   bool showDef = opts.Contains("d"); // show free DOF even if not preconditioned
@@ -530,6 +531,12 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
       //
       fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(i),
               getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
+    }
+    // do we consider some DOFs of this volume as measured
+    for (int i = 0; i < mNDOFs; i++) {
+      cmt = isMeasuredDOF(i) ? kOff : kOn;
+      fprintf(parOut, "%s%s %+e %+e\n", comment[cmt], kKeyMeas, getParVal(i), getParErr(i));
+      fprintf(parOut, "%s %d 1.0\n", comment[cmt], getParLab(i));
     }
     fprintf(parOut, "\n");
   }
