@@ -25,6 +25,9 @@
 #pragma link C++ class o2::globaltracking::MatchCosmicsParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchCosmicsParams> + ;
 
+#pragma link C++ class o2::globaltracking::MatchTOFParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchTOFParams> + ;
+
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::ITSTPCMatchingQCParams> + ;
 
 #pragma link C++ class o2::globaltracking::GloFwdAssessment + ;

@@ -40,6 +40,7 @@
 #include "TPCFastTransform.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CorrectionMapsHelper.h"
+#include "GlobalTracking/MatchTOFParams.h"
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -220,6 +221,9 @@ class MatchTOF
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
+  // TOF matching params (work in progress)
+  const MatchTOFParams* mMatchParams = nullptr;
+
   // for derived class
   int mCurrTracksTreeEntry = 0; ///< current tracks tree entry loaded to memory
 
@@ -321,7 +325,7 @@ class MatchTOF
   TStopwatch mTimerMatchITSTPC;
   TStopwatch mTimerMatchTPC;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 4);
+  ClassDefNV(MatchTOF, 5);
 };
 } // namespace globaltracking
 } // namespace o2
