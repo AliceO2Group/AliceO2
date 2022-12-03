@@ -253,6 +253,7 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   if (mPostProcessing) { // special mode, no data processing
     if (mController->getInstanceID() == 0) {
       if (mPostProcessing & PostProc::CheckConstaints) {
+	mController->addAutoConstraints();
         mController->checkConstraints();
       }
       if (mPostProcessing & PostProc::WriteResults) {

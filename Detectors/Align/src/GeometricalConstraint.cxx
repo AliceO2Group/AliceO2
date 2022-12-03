@@ -207,7 +207,7 @@ void GeometricalConstraint::checkConstraint() const
       } // local to global
       //
       matRel.MultiplyLeft(&mPar);
-      constrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePeded
+      constrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePede
                                    //
       TGeoHMatrix tau;
       child->delta2Matrix(tau, parsC); // child correction matrix in the child frame

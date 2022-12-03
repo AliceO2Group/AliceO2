@@ -509,8 +509,8 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   }
   //
   if (nCond || showDef || showFix || showNam) {
-    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
-            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName());
+    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s id : %d\n", comment[cmt], kKeyParam, comment[kOnOn],
+            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName(), getVolID());
   }
   //
   if (nCond || showDef || showFix) {
