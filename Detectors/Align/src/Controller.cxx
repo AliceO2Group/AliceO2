@@ -119,6 +119,7 @@ void Controller::init()
     }
   }
   mVtxSens = std::make_unique<EventVertex>(this);
+  mVtxSens->setInternalID(1);
 }
 
 //________________________________________________________________
@@ -383,8 +384,6 @@ void Controller::initDetectors()
   int dofCnt = 0;
   // special fake sensor for vertex constraint point
   // it has special T2L matrix adjusted for each track, no need to init it here
-  mVtxSens = std::make_unique<EventVertex>(this);
-  mVtxSens->setInternalID(1);
   mVtxSens->prepareMatrixL2G();
   mVtxSens->prepareMatrixL2GIdeal();
   dofCnt += mVtxSens->getNDOFs();
