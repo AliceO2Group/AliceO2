@@ -84,13 +84,13 @@ DECLARE_SOA_TABLE(Collisions_000, "AOD", "COLLISION", //! Time and vertex inform
                   collision::CollisionTime, collision::CollisionTimeRes);
 
 DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and vertex information of collision
-                  o2::soa::Index<>, collision::BCId,
-                  collision::PosX, collision::PosY, collision::PosZ,
-                  collision::CovXX, collision::CovXY, collision::CovYY, collision::CovXZ, collision::CovYZ, collision::CovZZ,
-                  collision::Flags, collision::Chi2, collision::NumContrib,
-                  collision::CollisionTime, collision::CollisionTimeRes);
+                            o2::soa::Index<>, collision::BCId,
+                            collision::PosX, collision::PosY, collision::PosZ,
+                            collision::CovXX, collision::CovXY, collision::CovYY, collision::CovXZ, collision::CovYZ, collision::CovZZ,
+                            collision::Flags, collision::Chi2, collision::NumContrib,
+                            collision::CollisionTime, collision::CollisionTimeRes);
 
-using Collisions = Collisions_001; //current version
+using Collisions = Collisions_001; // current version
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table
