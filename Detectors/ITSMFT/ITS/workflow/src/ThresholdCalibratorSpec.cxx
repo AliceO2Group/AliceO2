@@ -142,6 +142,9 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     throw std::runtime_error("Min VCASN/ITHR is larger than Max VCASN/ITHR: check the settings, analysis not possible");
   }
 
+  // Get flag to enable most-probable value calculation
+  isMpv = ic.options().get<bool>("enable-mpv");
+
   // Parameters to operate in manual mode (when run type is not recognized automatically)
   isManualMode = ic.options().get<bool>("manual-mode");
   if (isManualMode) {
@@ -228,7 +231,7 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSThresholdCalibrator::findUpperLower(
-  const unsigned short int* data, const short int* x, const short int& NPoints,
+  const unsigned short int* data, const short int& NPoints,
   short int& lower, short int& upper, bool flip)
 {
   // Initialize (or re-initialize) upper and lower
@@ -284,7 +287,7 @@ bool ITSThresholdCalibrator::findUpperLower(
 //////////////////////////////////////////////////////////////////////////////
 // Main findThreshold function which calls one of the three methods
 bool ITSThresholdCalibrator::findThreshold(
-  const unsigned short int* data, const short int* x, short int& NPoints,
+  const unsigned short int* data, const float* x, short int& NPoints,
   float& thresh, float& noise)
 {
   bool success = false;
@@ -314,13 +317,13 @@ bool ITSThresholdCalibrator::findThreshold(
 // NPoints is the length of both arrays.
 // thresh, noise, chi2 pointers are updated with results from the fit
 bool ITSThresholdCalibrator::findThresholdFit(
-  const unsigned short int* data, const short int* x, const short int& NPoints,
+  const unsigned short int* data, const float* x, const short int& NPoints,
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+  if (!this->findUpperLower(data, NPoints, lower, upper, flip) || lower == upper) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
                    << lower << ", " << upper << ")";
@@ -362,13 +365,13 @@ bool ITSThresholdCalibrator::findThresholdFit(
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 
-bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* data, const short int* x, const short int& NPoints,
+bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* data, const float* x, const short int& NPoints,
                                                      float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+  if (!this->findUpperLower(data, NPoints, lower, upper, flip) || lower == upper) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Start-finding unsuccessful: (lower, upper) = (" << lower << ", " << upper << ")";
     }
@@ -381,7 +384,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* d
 
   // Fill array with derivatives
   for (int i = lower; i < upper; i++) {
-    deriv[i - lower] = std::abs(data[i + 1] - data[i]) / float(this->mX[i + 1] - mX[i]);
+    deriv[i - lower] = std::abs(data[i + 1] - data[i]) / (this->mX[i + 1] - mX[i]);
     xfx += this->mX[i] * deriv[i - lower];
     fx += deriv[i - lower];
   }
@@ -406,7 +409,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* d
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSThresholdCalibrator::findThresholdHitcounting(
-  const unsigned short int* data, const short int* x, const short int& NPoints, float& thresh)
+  const unsigned short int* data, const float* x, const short int& NPoints, float& thresh)
 {
   unsigned short int numberOfHits = 0;
   bool is50 = false;
@@ -496,7 +499,7 @@ void ITSThresholdCalibrator::saveThreshold()
   if (this->mScanType != 'D' && this->mScanType != 'A') {
     // Save info in a map for later averaging
     int sumT = 0, sumSqT = 0, sumN = 0, sumSqN = 0;
-    int countSuccess = 0;
+    int countSuccess = 0, countUnsuccess = 0;
     for (int i = 0; i < this->N_COL; i++) {
       if (vSuccess[i]) {
         sumT += vThreshold[i];
@@ -504,14 +507,19 @@ void ITSThresholdCalibrator::saveThreshold()
         sumSqT += (vThreshold[i]) * (vThreshold[i]);
         sumSqN += ((int)vNoise[i]) * ((int)vNoise[i]);
         countSuccess++;
+        if (vThreshold[i] >= mMin && vThreshold[i] <= mMax && (mScanType == 'I' || mScanType == 'V')) {
+          mpvCounter[vChipid[0]][vThreshold[i] - mMin]++;
+        }
+      } else {
+        countUnsuccess++;
       }
     }
     short int chipID = vChipid[0];
-    std::array<long int, 5> dataSum{{sumT, sumSqT, sumN, sumSqN, countSuccess}};
+    std::array<long int, 6> dataSum{{sumT, sumSqT, sumN, sumSqN, countSuccess, countUnsuccess}};
     if (!(this->mThresholds.count(chipID))) {
       this->mThresholds[chipID] = dataSum;
     } else {
-      std::array<long int, 5> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4]}};
+      std::array<long int, 6> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4], this->mThresholds[chipID][5] + dataSum[5]}};
       this->mThresholds[chipID] = dataAll;
     }
   }
@@ -679,9 +687,9 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     }
   }
 
-  this->mX = new short int[N_RANGE];
+  this->mX = new float[N_RANGE];
   for (short int i = this->mMin; i <= this->mMax; i++) {
-    this->mX[i - this->mMin] = i;
+    this->mX[i - this->mMin] = (float)i + 0.5;
   }
 
   // Initialize objects for doing the threshold fits
@@ -689,12 +697,12 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     // Initialize the histogram used for error function fits
     // Will initialize the TF1 in setRunType (it is different for different runs)
     this->mFitHist = new TH1F(
-      "mFitHist", "mFitHist", N_RANGE, this->mX[0], this->mX[N_RANGE - 1]);
+      "mFitHist", "mFitHist", N_RANGE, mX[0] - 0.5, mX[N_RANGE - 1] + 0.5);
 
     // Initialize correct fit function for the scan type
     this->mFitFunction = (this->mScanType == 'I')
                            ? new TF1("mFitFunction", erf_ithr, 0, 1500, 2)
-                           : new TF1("mFitFunction", erf, 0, 1500, 2);
+                           : new TF1("mFitFunction", erf, 3, 1500, 2);
     this->mFitFunction->SetParName(0, "Threshold");
     this->mFitFunction->SetParName(1, "Noise");
   }
@@ -934,7 +942,7 @@ void ITSThresholdCalibrator::finaliseCCDB(o2::framework::ConcreteDataMatcher& ma
 
 //////////////////////////////////////////////////////////////////////////////
 // Calculate the average threshold given a vector of threshold objects
-void ITSThresholdCalibrator::findAverage(const std::array<long int, 5>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
+void ITSThresholdCalibrator::findAverage(const std::array<long int, 6>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
 {
   avgT = (!data[4]) ? 0. : (float)data[0] / (float)data[4];
   rmsT = (!data[4]) ? 0. : std::sqrt((float)data[1] / (float)data[4] - avgT * avgT);
@@ -946,7 +954,7 @@ void ITSThresholdCalibrator::findAverage(const std::array<long int, 5>& data, fl
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::addDatabaseEntry(
   const short int& chipID, const char* name, const float& avgT,
-  const float& rmsT, const float& avgN, const float& rmsN, bool status, bool isQC)
+  const float& rmsT, const float& avgN, const float& rmsN, const float& status, bool isQC)
 {
   // Obtain specific chip information from the chip ID (layer, stave, ...)
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -1070,7 +1078,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
     o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
     o2::dcs::addConfigItem(this->mTuning, name, (strcmp(name, "ITHR") == 0 || strcmp(name, "VCASN") == 0) ? std::to_string((int)avgT) : std::to_string(avgT));
     o2::dcs::addConfigItem(this->mTuning, "Rms", std::to_string(rmsT));
-    o2::dcs::addConfigItem(this->mTuning, "Status", std::to_string(status)); // pass or fail
+    o2::dcs::addConfigItem(this->mTuning, "Status", std::to_string(status)); // percentage of unsuccess
   }
   if (this->mScanType == 'T') {
     o2::dcs::addConfigItem(this->mTuning, "Noise", std::to_string(avgN));
@@ -1122,10 +1130,15 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         ++it;
         continue;
       }
-      float avgT, rmsT, avgN, rmsN;
+      float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1]);
-      this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
+      outVal = avgT;
+      if (isMpv) {
+        mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
+        outVal = mpvT;
+      }
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
+      this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1143,10 +1156,15 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         ++it;
         continue;
       }
-      float avgT, rmsT, avgN, rmsN;
+      float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1]);
-      this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
+      outVal = avgT;
+      if (isMpv) {
+        mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
+        outVal = mpvT;
+      }
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
+      this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1166,7 +1184,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1] * 10);
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
       this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
@@ -1314,7 +1332,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"manual-min", VariantType::Int, 0, {"Min value of the variable used for the scan: use only in manual mode"}},
             {"manual-max", VariantType::Int, 50, {"Max value of the variable used for the scan: use only in manual mode"}},
             {"manual-scantype", VariantType::String, "T", {"scan type, can be D, T, I, V: use only in manual mode"}},
-            {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}}}};
+            {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}},
+            {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}}}};
 }
 } // namespace its
 } // namespace o2
