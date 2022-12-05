@@ -221,6 +221,7 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     o2::base::PropagatorD::Instance()->setTGeoFallBackAllowed(false);
     if (!(mIniParFile.empty() || mIniParFile == "none")) {
       mController->readParameters(mIniParFile, mUseIniParErrors);
+      mController->applyAlignmentFromMPSol();
     }
   }
   if (GTrackID::includesDet(DetID::TRD, mMPsrc) && mTRDTransformer) {
