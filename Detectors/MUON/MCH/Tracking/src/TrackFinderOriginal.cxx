@@ -38,12 +38,9 @@ constexpr double TrackFinderOriginal::SDefaultChamberZ[10];
 constexpr double TrackFinderOriginal::SChamberThicknessInX0[10];
 
 //_________________________________________________________________________________________________
-void TrackFinderOriginal::init(float l3Current, float dipoleCurrent)
+void TrackFinderOriginal::init()
 {
   /// Prepare to run the algorithm
-
-  // Create the magnetic field map if not already done
-  mTrackFitter.initField(l3Current, dipoleCurrent);
 
   // Set the parameters used for fitting the tracks during the tracking
   const auto& trackerParam = TrackerParam::Instance();
@@ -65,6 +62,13 @@ void TrackFinderOriginal::init(float l3Current, float dipoleCurrent)
   for (int iCh = 0; iCh < 10; ++iCh) {
     mMaxMCSAngle2[iCh] = TrackExtrap::getMCSAngle2(param, SChamberThicknessInX0[iCh], 1.);
   }
+}
+
+//_________________________________________________________________________________________________
+void TrackFinderOriginal::initField(float l3Current, float dipoleCurrent)
+{
+  /// create the magnetic field map if not already done
+  mTrackFitter.initField(l3Current, dipoleCurrent);
 }
 
 //_________________________________________________________________________________________________

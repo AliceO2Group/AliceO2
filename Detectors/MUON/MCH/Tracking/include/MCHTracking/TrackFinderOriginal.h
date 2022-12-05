@@ -40,7 +40,9 @@ class TrackFinderOriginal
   TrackFinderOriginal(TrackFinderOriginal&&) = delete;
   TrackFinderOriginal& operator=(TrackFinderOriginal&&) = delete;
 
-  void init(float l3Current, float dipoleCurrent);
+  void init();
+  void initField(float l3Current, float dipoleCurrent);
+
   const std::list<Track>& findTracks(const std::array<std::list<const Cluster*>, 10>& clusters);
 
   /// set the debug level defining the verbosity
