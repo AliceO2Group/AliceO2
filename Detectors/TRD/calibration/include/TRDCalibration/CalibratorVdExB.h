@@ -22,6 +22,7 @@
 #include "DataFormatsTRD/AngularResidHistos.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsTRD/CalVdriftExB.h"
+#include "TRDCalibration/CalibrationParams.h"
 
 #include "Rtypes.h"
 #include "TProfile.h"
@@ -85,19 +86,20 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   void retrievePrev(o2::framework::ProcessingContext& pc);
 
  private:
-  bool mInitDone{false};                             ///< flag to avoid creating the TProfiles multiple times
-  size_t mMinEntriesTotal;                           ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
-  size_t mMinEntriesChamber;                         ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
-  bool mEnableOutput;                                ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
-  std::unique_ptr<TFile> mOutFile{nullptr};          ///< output file
-  std::unique_ptr<TTree> mOutTree{nullptr};          ///< output tree
-  FitFunctor mFitFunctor;                            ///< used for minimization procedure
-  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
-  std::vector<o2::trd::CalVdriftExB> mObjectVector;  ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
-  ROOT::Fit::Fitter mFitter;                         ///< Fitter object will be reused across slots
-  double mParamsStart[2];                            ///< Start fit parameter
+  bool mInitDone{false};                                     ///< flag to avoid creating the TProfiles multiple times
+  const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
+  size_t mMinEntriesTotal{mParams.minEntriesChamber};        ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesChamber{mParams.minEntriesTotal};        ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
+  bool mEnableOutput;                                        ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
+  std::unique_ptr<TFile> mOutFile{nullptr};                  ///< output file
+  std::unique_ptr<TTree> mOutTree{nullptr};                  ///< output tree
+  FitFunctor mFitFunctor;                                    ///< used for minimization procedure
+  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector;         ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
+  std::vector<o2::trd::CalVdriftExB> mObjectVector;          ///< vector of CCDB calibration objects; the extracted vDrift and ExB per chamber for given slot
+  ROOT::Fit::Fitter mFitter;                                 ///< Fitter object will be reused across slots
+  double mParamsStart[2];                                    ///< Start fit parameter
 
-  ClassDefOverride(CalibratorVdExB, 4);
+  ClassDefOverride(CalibratorVdExB, 5);
 };
 
 } // namespace trd
