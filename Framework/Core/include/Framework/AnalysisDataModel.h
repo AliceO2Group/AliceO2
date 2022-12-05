@@ -90,7 +90,7 @@ DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and 
                             collision::Flags, collision::Chi2, collision::NumContrib,
                             collision::CollisionTime, collision::CollisionTimeRes);
 
-using Collisions = Collisions_001; // current version
+using Collisions = Collisions_000; // current version
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table
@@ -1016,6 +1016,7 @@ using McParticle = McParticles::iterator;
 } // namespace aod
 namespace soa
 {
+DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 } // namespace soa
