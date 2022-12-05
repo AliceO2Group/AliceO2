@@ -75,10 +75,11 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
   return calibratedDy;
 }
 
-float TrackletTransformer::calibrateX(double x) const
+float TrackletTransformer::calibrateX(int detector, float x) const
 {
-  // Hard-coded value will be replaced once t0 calibration is available from CCDB
-  float t0Correction = -0.279;
+  // NOTE: Calibration value is average over all chambers, stored in PHOS hole (chamber 435)
+  //       option to use chamber-wise values will be implemented in the future
+  float t0Correction = mCalT0->getT0(435);
   return x += t0Correction;
 }
 
@@ -123,7 +124,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 
   float dy = calculateDy(detector, slope, padPlane);
 
-  float calibratedX = calibrateX(x);
+  float calibratedX = calibrateX(detector, x);
 
   // NOTE: Correction to y position based on x calibration NOT YET implemented. Need t0.
   if (trackingFrame) {

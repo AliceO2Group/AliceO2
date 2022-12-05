@@ -16,6 +16,7 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/CalVdriftExB.h"
+#include "DataFormatsTRD/CalT0.h"
 
 namespace o2
 {
@@ -43,13 +44,15 @@ class TrackletTransformer
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
   void setApplyXOR() { mApplyXOR = true; }
 
+  void setCalT0(const CalT0* cal) { mCalT0 = cal; }
+
   float calculateY(int hcid, int column, int position, const PadPlane* padPlane) const;
 
   float calculateZ(int padrow, const PadPlane* padPlane) const;
 
   float calculateDy(int hcid, int slope, const PadPlane* padPlane) const;
 
-  float calibrateX(double x) const;
+  float calibrateX(int detector, float x) const;
 
   std::array<float, 3> transformL2T(int hcid, std::array<double, 3> spacePoint) const;
 
@@ -67,6 +70,7 @@ class TrackletTransformer
   float mXtb0;
 
   const CalVdriftExB* mCalVdriftExB{nullptr};
+  const CalT0* mCalT0{nullptr};
 };
 
 } // namespace trd
