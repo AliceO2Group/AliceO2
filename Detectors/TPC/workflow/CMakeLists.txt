@@ -203,7 +203,7 @@ o2_add_executable(calib-gainmap-tracks
 
 o2_add_executable(integrate-clusters
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-integrate-cluster-currents
+                  SOURCES src/tpc-integrate-cluster-currents.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow
