@@ -20,6 +20,9 @@
 #include "TRandom.h"
 #include "TMath.h"
 #include "TOFBase/EventTimeMaker.h"
+#include "TOFBase/Geo.h"
+
+O2ParamImpl(o2::tof::EventTimeTOFParams);
 
 namespace o2
 {
@@ -27,9 +30,9 @@ namespace o2
 namespace tof
 {
 
-constexpr int MAXNTRACKINSET = 20;
+const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
 // usefull constants
-constexpr unsigned long combinatorial[MAXNTRACKINSET + 1] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049};
+constexpr unsigned long combinatorial[20] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467};
 //---------------
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime)
@@ -40,15 +43,35 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   const int ntracks = tracks.size();
   LOG(debug) << "For the collision time using " << ntracks << " tracks";
 
+  // find the int BC as the more frequent BC
+  std::map<int, int> bcCand;
+  for (const auto& trk : tracks) {
+    int bc = int(trk.tofSignal() * o2::tof::Geo::BC_TIME_INPS_INV);
+    bcCand[bc]++;
+  }
+
+  int maxcount = 0;
+  int maxbc = 0;
+  for (const auto& [bc, count] : bcCand) {
+    if (count > maxcount) {
+      maxbc = bc;
+      maxcount = count;
+    }
+  }
+
+  double t0fill = maxbc * o2::tof::Geo::BC_TIME_INPS;
+
+  //  LOG(info) << "Int bc candidate from TOF : " << maxbc << " - time_in_ps = " << t0fill;
+
   if (ntracks < 2) { // at least 2 tracks required
     LOG(debug) << "Skipping event because at least 2 tracks are required";
     return;
   }
 
-  int hypo[MAXNTRACKINSET];
+  int hypo[maxNtrackInSet];
 
-  //  int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
-  int nmaxtracksinset = MAXNTRACKINSET;
+  int nmaxtracksinset = ntracks > 22 ? 6 : maxNtrackInSet; // max number of tracks in a set for event time computation
+  // int nmaxtracksinset = maxNtrackInSet;
 
   LOG(debug) << "nmaxtracksinset " << nmaxtracksinset;
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
@@ -80,7 +103,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   for (int iset = 0; iset < nset; iset++) {
     LOG(debug) << "iset " << iset << " has size " << trackInSet[iset].size();
     unsigned long bestComb = 0;
-    while (!(status = getStartTimeInSet(tracks, trackInSet[iset], bestComb))) {
+    while (!(status = getStartTimeInSet(tracks, trackInSet[iset], bestComb, t0fill))) {
       ;
     }
     if (status == 1) {
@@ -103,16 +126,45 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   } // end loop in set
 
   // do average among all tracks
-  float finalTime = 0, allweights = 0;
+  int worse = 0;
+  int nRemoved = 0;
+  double finalTime = 0, allweights = 0;
   int ntrackUsed = 0;
-  for (int i = 0; i < evtime.mWeights.size(); i++) {
-    if (evtime.mWeights[i] < weightLimit) {
-      continue;
+  while (worse > -1) {
+    float errworse = EventTimeTOFParams::Instance().maxNsigma;
+    finalTime = 0, allweights = 0;
+    ntrackUsed = 0;
+    worse = -1;
+    for (int i = 0; i < evtime.mWeights.size(); i++) {
+      if (evtime.mWeights[i] < weightLimit) {
+        continue;
+      }
+      ntrackUsed++;
+      allweights += evtime.mWeights[i];
+      finalTime += evtime.mTrackTimes[i] * evtime.mWeights[i];
     }
-    ntrackUsed++;
-    allweights += evtime.mWeights[i];
-    finalTime += evtime.mTrackTimes[i] * evtime.mWeights[i];
+
+    double averageBest = finalTime / allweights;
+    for (int i = 0; i < evtime.mWeights.size(); i++) {
+      if (evtime.mWeights[i] < weightLimit) {
+        continue;
+      }
+      float err = evtime.mTrackTimes[i] - averageBest;
+      err *= sqrt(evtime.mWeights[i]);
+      err = fabs(err);
+      if (err > errworse) {
+        errworse = err;
+        worse = i;
+      }
+    }
+    if (worse > -1) { // remove track
+                      //      LOG(info) << "err " << errworse;
+      evtime.mWeights[worse] = 0;
+      nRemoved++;
+    }
   }
+
+  LOG(debug) << "Removed " << nRemoved << " tracks from start time calculation";
 
   if (allweights < weightLimit) {
     LOG(debug) << "Skipping because allweights " << allweights << " are lower than " << weightLimit;
@@ -136,10 +188,11 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
     LOG(debug) << "Skipping event because at least 2 tracks are required";
     return;
   }
+  const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
 
-  int hypo[MAXNTRACKINSET];
+  int hypo[maxNtrackInSet];
 
-  int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
+  int nmaxtracksinset = ntracks > 22 ? 6 : maxNtrackInSet; // max number of tracks in a set for event time computation
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
 
   int nset = ((ntracks - 1) / ntracksinset) + 1;
@@ -185,7 +238,7 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
   } // end loop in set
 
   // do average among all tracks
-  float finalTime = 0, allweights = 0;
+  double finalTime = 0, allweights = 0;
   int ntrackUsed = 0;
   for (int i = 0; i < evtime.mWeights.size(); i++) {
     if (evtime.mWeights[i] < weightLimit) {
@@ -206,11 +259,15 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
   evtime.mEventTimeMultiplicity = ntrackUsed;
 }
 
-int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb)
+int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb, double refT0)
 {
-  float chi2, chi2best, averageBest = 0;
-  int hypo[MAXNTRACKINSET];
-  float starttime[MAXNTRACKINSET], weighttime[MAXNTRACKINSET];
+  const auto& params = EventTimeTOFParams::Instance();
+  float errworse = params.maxNsigma;
+  const int maxNtrackInSet = TMath::Min(params.maxNtracksInSet, 19);
+  float chi2, chi2best;
+  double averageBest = 0;
+  int hypo[maxNtrackInSet];
+  double starttime[maxNtrackInSet], weighttime[maxNtrackInSet];
 
   chi2best = 10000;
   int ntracks = trackInSet.size();
@@ -226,26 +283,28 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
     unsigned long curr = comb;
 
     int ngood = 0;
-    float average = 0;
-    float sumweights = 0;
+    double average = 0;
+    double sumweights = 0;
     // get track info in the set for current combination
     for (int itrk = 0; itrk < ntracks; itrk++) {
       hypo[itrk] = curr % 3;
       curr /= 3;
       const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
       starttime[itrk] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
-      weighttime[itrk] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
 
-      average += starttime[itrk] * weighttime[itrk];
-      sumweights += weighttime[itrk];
-      ngood++;
+      if (fabs(starttime[itrk] - refT0) < 2000) { // otherwise time inconsistent with the int BC
+        weighttime[itrk] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
+        average += starttime[itrk] * weighttime[itrk];
+        sumweights += weighttime[itrk];
+        ngood++;
+      }
     }
 
     average /= sumweights;
 
     // compute chi2
     chi2 = 0;
-    float deltat;
+    double deltat;
     for (int itrk = 0; itrk < ntracks; itrk++) {
       deltat = starttime[itrk] - average;
       chi2 += deltat * deltat * weighttime[itrk];
@@ -260,7 +319,6 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
   } // end loop in combinations
 
   int worse = -1;
-  float errworse = 4;
   // check the best combination
   unsigned long curr = bestComb;
   for (int itrk = 0; itrk < ntracks; itrk++) {
@@ -289,9 +347,11 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
 
 int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb)
 {
-  float chi2, chi2best, averageBest = 0;
-  int hypo[MAXNTRACKINSET];
-  float starttime[MAXNTRACKINSET], weighttime[MAXNTRACKINSET];
+  const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
+  float chi2, chi2best;
+  double averageBest = 0;
+  int hypo[maxNtrackInSet];
+  double starttime[maxNtrackInSet], weighttime[maxNtrackInSet];
 
   chi2best = 10000;
   int ntracks = trackInSet.size();
@@ -305,8 +365,8 @@ int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector
   unsigned long comb = 0; // use only pions
 
   int ngood = 0;
-  float average = 0;
-  float sumweights = 0;
+  double average = 0;
+  double sumweights = 0;
 
   // get track info in the set for current combination
   for (int itrk = 0; itrk < ntracks; itrk++) {
@@ -324,7 +384,7 @@ int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector
 
   // compute chi2
   chi2 = 0;
-  float deltat;
+  double deltat;
   for (int itrk = 0; itrk < ntracks; itrk++) {
     deltat = starttime[itrk] - average;
     chi2 += deltat * deltat * weighttime[itrk];
