@@ -163,6 +163,9 @@ class MatchGlobalFwd
   void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); ///< Kalman filter fit global Forward track by attaching MFT clusters
   bool computeCluster(o2::dataformats::GlobalFwdTrack& track, const MFTCluster& cluster, int& startingLayerID);
 
+  void setMFTRadLength(float MFT_x2X0) { mMFTDiskThicknessInX0 = MFT_x2X0 / 5.0; }
+  void setAlignResiduals(Float_t res) { mAlignResidual = res; }
+
   template <typename T>
   bool propagateToNextClusterWithMCS(T& track, double z, int& startingLayerID, const int& newLayerID)
   {
@@ -279,7 +282,8 @@ class MatchGlobalFwd
 
   float mBz = -5.f;                       ///< nominal Bz in kGauss
   float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position
-  Float_t mMFTDiskThicknessInX0 = 0.042 / 5;
+  Float_t mMFTDiskThicknessInX0 = 0.042 / 5; ///< MFT disk thickness in radiation length
+  Float_t mAlignResidual = 1;                ///< Alignment residual for cluster position uncertainty
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   int mMFTROFrameLengthInBC = 0;        ///< MFT RO frame in BC (for MFT cont. mode only)
   float mMFTROFrameLengthMUS = -1.;     ///< MFT RO frame in \mus

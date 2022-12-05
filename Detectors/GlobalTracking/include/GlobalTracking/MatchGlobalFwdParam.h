@@ -39,6 +39,8 @@ struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalF
   double matchPlaneZ = -77.5;                             ///< MFT-MCH matching plane z coordinate
   bool useMIDMatch = false;                               ///< Use input from MCH-MID matching
   Int_t saveMode = kBestMatch;                            ///< Global Forward Tracks save mode
+  float MFTRadLength = 0.042;                             ///< MFT thickness in radiation length
+  float alignResidual = 1.;                               ///< Alignment residual for cluster position uncertainty
 
   bool
     isMatchUpstream() const

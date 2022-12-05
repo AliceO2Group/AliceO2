@@ -21,6 +21,12 @@ void MatchGlobalFwd::init()
 
   auto& matchingParam = GlobalFwdMatchingParam::Instance();
 
+  setMFTRadLength(matchingParam.MFTRadLength);
+  LOG(info) << "MFT Radiation Length = " << mMFTDiskThicknessInX0 * 5.;
+
+  setAlignResiduals(matchingParam.alignResidual);
+  LOG(info) << "MFT Align residuals = " << mAlignResidual;
+
   mMatchingPlaneZ = matchingParam.matchPlaneZ;
   LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
 
@@ -555,22 +561,9 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   const auto& mftTrackOut = mMFTWork[MFTMatchId];
   auto ncls = mftTrack.getNumberOfPoints();
   auto offset = mftTrack.getExternalClusterIndexOffset();
-  auto invQPt0 = gTrack.getInvQPt();
-  auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
-
-  // initialize the starting track parameters and cluster
-  auto k = TMath::Abs(o2::constants::math::B2C * mBz);
-  auto Hz = std::copysign(1, mBz);
 
   LOG(debug) << "***************************** Start Fitting new track *****************************";
   LOG(debug) << "N Clusters = " << ncls << "  Best MFT Track Match ID " << gTrack.getMFTTrackID() << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY() << " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl() << "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz() << " qpt = " << 1.0 / gTrack.getInvQPt();
-
-  gTrack.setX(mftTrackOut.getX());
-  gTrack.setY(mftTrackOut.getY());
-  gTrack.setZ(mftTrackOut.getZ());
-  gTrack.setPhi(mftTrackOut.getPhi());
-  gTrack.setTanl(mftTrackOut.getTanl());
-  gTrack.setInvQPt(gTrack.getInvQPt());
 
   LOG(debug) << "MFTTrack: X = " << mftTrackOut.getX()
              << " Y = " << mftTrackOut.getY() << " Z = " << mftTrackOut.getZ()
@@ -578,10 +571,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
              << "  Phi = " << mftTrackOut.getPhi() << " pz = " << mftTrackOut.getPz()
              << " qpt = " << 1.0 / mftTrackOut.getInvQPt();
   LOG(debug) << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
-
-  SMatrix55Sym lastParamCov;
-  Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
-  Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
 
   auto lastLayer = mMFTMapping.ChipID2Layer[mMFTClusters[offset + ncls - 1].getSensorID()];
   LOG(debug) << "Starting by MFTCluster offset " << offset + ncls - 1 << " at lastLayer " << lastLayer;
@@ -606,8 +595,10 @@ bool MatchGlobalFwd::computeCluster(o2::dataformats::GlobalFwdTrack& track, cons
   const auto& clx = cluster.getX();
   const auto& cly = cluster.getY();
   const auto& clz = cluster.getZ();
-  const auto& sigmaX2 = cluster.getSigmaY2(); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
-  const auto& sigmaY2 = cluster.getSigmaZ2(); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+  const auto& sigmaX2 = cluster.getSigmaY2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+  const auto& sigmaY2 = cluster.getSigmaZ2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
 
   const auto& newLayerID = mMFTMapping.ChipID2Layer[cluster.getSensorID()];
   LOG(debug) << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << newLayerID;
