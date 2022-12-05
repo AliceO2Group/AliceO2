@@ -376,7 +376,7 @@ void StepTHn::createTarget(Int_t step, Bool_t sparse)
   mValues[step] = nullptr;
 }
 
-void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
+StepTHnFillOp StepTHn::Prepare(int iStep, int nParams, double positionAndWeight[])
 {
   if (iStep >= mNSteps) {
     LOGF(fatal, "Selected step for filling is not in range of StepTHn.");
@@ -425,7 +425,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
 
     // under/overflow not supported
     if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
-      return;
+      return {-1, 0};
     }
 
     // bins start from 0 here
@@ -446,11 +446,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
     }
   }
 
-  // TODO probably slow; add StepTHnT::add ?
-  mValues[iStep]->SetAt(mValues[iStep]->GetAt(bin) + weight, bin);
-  if (mSumw2[iStep]) {
-    mSumw2[iStep]->SetAt(mSumw2[iStep]->GetAt(bin) + weight, bin);
-  }
+  return {bin, weight};
 }
 
 template class StepTHnT<TArrayF>;

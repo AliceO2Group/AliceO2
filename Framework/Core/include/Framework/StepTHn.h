@@ -27,6 +27,11 @@ class TArrayF;
 class TArrayD;
 class TCollection;
 
+struct StepTHnFillOp {
+  int64_t bin;
+  double weight;
+};
+
 class StepTHn : public TNamed
 {
  public:
@@ -36,7 +41,10 @@ class StepTHn : public TNamed
 
   template <typename... Ts>
   void Fill(int iStep, const Ts&... valuesAndWeight);
-  void Fill(int iStep, int nParams, double positionAndWeight[]);
+
+  StepTHnFillOp Prepare(int iStep, int nParams, double positionAndWeight[]);
+
+  virtual void Fill(int iStep, int nParams, double positionAndWeight[]) = 0;
 
   THnBase* getTHn(Int_t step, Bool_t sparse = kFALSE)
   {
@@ -105,13 +113,40 @@ class StepTHnT : public StepTHn
     }
   }
 
+  void Fill(int iStep, int nParams, double positionAndWeight[]) final
+  {
+    auto op = Prepare(iStep, nParams, positionAndWeight);
+    if (op.bin == -1) {
+      return;
+    }
+
+    if constexpr (std::is_same_v<TemplateArray, TArrayF>) {
+      auto* values = (TArrayF*)mValues[iStep];
+      values->AddAt(op.weight, op.bin);
+      if (mSumw2[iStep]) {
+        ((TArrayF*)mSumw2[iStep])->AddAt(op.weight, op.bin);
+      }
+    } else if constexpr (std::is_same_v<TemplateArray, TArrayD>) {
+      auto* values = (TArrayD*)mValues[iStep];
+      values->AddAt(op.weight, op.bin);
+      if (mSumw2[iStep]) {
+        ((TArrayD*)mSumw2[iStep])->AddAt(op.weight, op.bin);
+      }
+    } else {
+      mValues[iStep]->SetAt(mValues[iStep]->GetAt(op.bin) + op.weight, op.bin);
+      if (mSumw2[iStep]) {
+        mSumw2[iStep]->SetAt(mSumw2[iStep]->GetAt(op.bin) + op.weight, op.bin);
+      }
+    }
+  }
+
   Long64_t Merge(TCollection* list) override;
 
   ClassDef(StepTHnT, 1) // THn like container
 };
 
-typedef StepTHnT<TArrayF> StepTHnF;
-typedef StepTHnT<TArrayD> StepTHnD;
+using StepTHnF = StepTHnT<TArrayF>;
+using StepTHnD = StepTHnT<TArrayD>;
 
 template <typename... Ts>
 void StepTHn::Fill(int iStep, const Ts&... valuesAndWeight)
