@@ -49,7 +49,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, long orbitResetTime, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -59,7 +59,6 @@ struct ResidualsContainer {
   std::array<std::vector<TrackResiduals::LocalResid>*, SECTORSPERSIDE * SIDES> residualsPtr{};
   std::array<std::vector<TrackResiduals::VoxStats>, SECTORSPERSIDE * SIDES> stats{}; ///< voxel statistics sent to the aggregator
   std::array<std::vector<TrackResiduals::VoxStats>*, SECTORSPERSIDE * SIDES> statsPtr{};
-  uint32_t runNumber;                                                        ///< run number (required for meta data file)
   std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
   std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
   std::vector<o2::ctp::LumiInfo> lumi, *lumiPtr{&lumi};                      ///< luminosity information from CTP per TF
@@ -68,9 +67,6 @@ struct ResidualsContainer {
   std::vector<TrackDataCompact> trackInfo, *trackInfoPtr{&trackInfo};        ///< allows to obtain track type for each binned residual downstream
 
   std::string fileName{"o2tpc_residuals"};
-  std::string treeNameResiduals{"resid"};
-  std::string treeNameStats{"stats"};
-  std::string treeNameRecords{"records"};
   std::unique_ptr<TFile> fileOut{nullptr};
   std::unique_ptr<TTree> treeOutResidualsUnbinned{nullptr};
   std::unique_ptr<TTree> treeOutTrackData{nullptr};
@@ -86,11 +82,13 @@ struct ResidualsContainer {
   int autosaveInterval{0};            ///< if > 0, then the output written to file for every n-th TF
 
   // additional info
+  long orbitReset{0};                               ///< current orbit reset time in ms
+  uint32_t firstTForbit{0};                         ///< stored for the first seen TF to allow conversion to time stamp
   TFType firstSeenTF{o2::calibration::INFINITE_TF}; ///< the first TF which was added to this container
   TFType lastSeenTF{0};                             ///< the last TF which was added to this container
   uint64_t nResidualsTotal{0};                      ///< the total number of residuals for this container
 
-  ClassDefNV(ResidualsContainer, 4);
+  ClassDefNV(ResidualsContainer, 5);
 };
 
 class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<ResidualsContainer>

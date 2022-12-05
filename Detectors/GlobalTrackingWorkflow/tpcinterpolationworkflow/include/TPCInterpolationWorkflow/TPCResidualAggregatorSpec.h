@@ -73,6 +73,8 @@ class ResidualAggregatorDevice : public o2::framework::Task
       storeMetaFile = false;
     }
 
+    LOGP(info, "Creating aggregator with {} entries per voxel minimum. Output file writing enabled: {}, meta file writing enabled: {}",
+         minEnt, writeOutput, storeMetaFile);
     mAggregator = std::make_unique<o2::tpc::ResidualAggregator>(minEnt);
     if (writeOutput) {
       mAggregator->setOutputDir(outputDir);
@@ -110,6 +112,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
     updateTimeDependentParams(pc);
     std::chrono::duration<double, std::milli> ccdbUpdateTime = std::chrono::high_resolution_clock::now() - runStartTime;
 
+    // assume that the orbit reset time (given here in ms) can change within a run
+    auto orbitResetTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS();
+
+    // we always require the unbinned residuals and the associated track references
     auto residualsData = pc.inputs().get<gsl::span<o2::tpc::UnbinnedResid>>("unbinnedRes");
     auto trackRefs = pc.inputs().get<gsl::span<o2::tpc::TrackDataCompact>>("trackRefs");
 
@@ -133,7 +139,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
-    mAggregator->process(residualsData, trackRefs, trkDataPtr, lumi);
+    mAggregator->process(residualsData, trackRefs, orbitResetTime, trkDataPtr, lumi);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
     LOGP(info, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
