@@ -86,6 +86,19 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       ClusterNative* cl = buffer + clusters[i][j].size();
       unsigned int end = offsets[i][j] + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
       decompressHits(clustersCompressed, offsets[i][j], end, cl);
+      if (param.rec.tpc.clustersShiftTimebins != 0.f) {
+        for (unsigned int k = 0; k < clustersNative.nClusters[i][j]; k++) {
+          auto& cl = buffer[k];
+          float t = cl.getTime() + param.rec.tpc.clustersShiftTimebins;
+          if (t < 0) {
+            t = 0;
+          }
+          if (param.par.continuousMaxTimeBin > 0 && t > param.par.continuousMaxTimeBin) {
+            t = param.par.continuousMaxTimeBin;
+          }
+          cl.setTime(t);
+        }
+      }
       std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
     }
   }
