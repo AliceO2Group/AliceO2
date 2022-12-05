@@ -42,6 +42,7 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mNSlicesTF = ic.options().get<int>("nSlicesTF");
+    mUseQMax = ic.options().get<bool>("use-qMax");
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final { o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj); }
@@ -82,9 +83,9 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
           const float time = cl.getTime();
           const unsigned int sliceInTF = time / mNTSPerSlice;
           if (sliceInTF < mNSlicesTF) {
-            const float qMax = cl.getQmax();
+            const float charge = mUseQMax ? cl.getQmax() : cl.getQtot();
             const unsigned int padInCRU = Mapper::OFFSETCRUGLOBAL[irow] + static_cast<int>(cl.getPad() + 0.5f);
-            mICCS[cru][sliceInTF * Mapper::PADSPERREGION[cru.region()] + padInCRU] += qMax;
+            mICCS[cru][sliceInTF * Mapper::PADSPERREGION[cru.region()] + padInCRU] += charge;
           } else {
             LOGP(info, "slice in TF of ICC {} is larger than max slice {} with nTSPerSlice {}", sliceInTF, mNSlicesTF, mNTSPerSlice);
           }
@@ -99,6 +100,7 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;     ///< for accessing the b-field
   int mNSlicesTF{1};                                          ///< number of slices the TFs are divided into for integration of clusters currents
+  bool mUseQMax{false};                                       ///< using qMax as cluster current
   int mContinuousMaxTimeBin{-1};                              ///< max time bin of clusters
   std::array<std::vector<float>, o2::tpc::CRU::MaxCRU> mICCS; ///< buffer for ICCs
   bool mInitICCBuffer{true};                                  ///< flag for initializing ICCs only once
@@ -141,6 +143,7 @@ DataProcessorSpec getTPCIntegrateClustersSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<TPCIntegrateClustersDevice>(ccdbRequest)},
     Options{
+      {"use-qMax", VariantType::Bool, false, {"Using qMax instead of qTot as cluster current"}},
       {"nSlicesTF", VariantType::Int, 2, {"Divide the TF into n slices"}}}}; // end DataProcessorSpec
 }
 
