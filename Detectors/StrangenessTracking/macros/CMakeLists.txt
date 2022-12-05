@@ -1,4 +1,4 @@
-o2_add_test_root_macro(AnalyseHyperTree.C
+o2_add_test_root_macro(XiTrackingStudy.C
                        PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction
