@@ -1017,6 +1017,7 @@ namespace soa
 {
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::BCs_001, aod::BCs_000);
 } // namespace soa
 
 namespace aod
