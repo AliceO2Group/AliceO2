@@ -21,6 +21,8 @@
 #include <iosfwd>
 
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
 
 namespace o2
 {
@@ -31,6 +33,7 @@ namespace mch
 class TrackMCH
 {
   using ClusRef = o2::dataformats::RangeRefComp<5>;
+  using Time = o2::dataformats::TimeStampWithError<float, float>;
 
  public:
   TrackMCH() = default;
@@ -107,6 +110,18 @@ class TrackMCH
   /// set the number of the clusters attached to the track and the index of the first one
   void setClusterRef(int firstClusterIdx, int nClusters) { mClusRef.set(firstClusterIdx, nClusters); }
 
+  /// get the interaction record associated to this track
+  InteractionRecord getIR(uint32_t refOrbit) const;
+
+  const Time& getTimeMUS() const { return mTimeMUS; }
+  Time& getTimeMUS() { return mTimeMUS; }
+  void setTimeMUS(const Time& t) { mTimeMUS = t; }
+  void setTimeMUS(float t, float te)
+  {
+    mTimeMUS.setTimeStamp(t);
+    mTimeMUS.setTimeStampError(te);
+  }
+
  private:
   static constexpr int SNParams = 5;  ///< number of track parameters
   static constexpr int SCovSize = 15; ///< number of different elements in the symmetric covariance matrix
@@ -136,8 +151,9 @@ class TrackMCH
   double mZAtMID = 0.;                 ///< z position on the MID side where the parameters are evaluated
   double mParamAtMID[SNParams] = {0.}; ///< 5 parameters: X (cm), SlopeX, Y (cm), SlopeY, q/pYZ ((GeV/c)^-1)
   double mCovAtMID[SCovSize] = {0.};   ///< reduced covariance matrix of track parameters, formated as above
+  Time mTimeMUS;                       ///< associated time in microseconds from the TF start
 
-  ClassDefNV(TrackMCH, 2);
+  ClassDefNV(TrackMCH, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, const TrackMCH& t);
