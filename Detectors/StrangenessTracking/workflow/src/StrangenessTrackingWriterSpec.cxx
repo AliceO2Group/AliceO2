@@ -40,7 +40,7 @@ DataProcessorSpec getStrangenessTrackingWriterSpec()
   };
 
   auto inpStTrkID = InputSpec{"strangetracks", "STK", "STRTRACKS", 0};
-  auto inpClusAtt = InputSpec{"clusupdates", "STK", "CLUSUPDATES",0};
+  auto inpClusAtt = InputSpec{"clusupdates", "STK", "CLUSUPDATES", 0};
 
   return MakeRootTreeWriterSpec("strangenesstracking-writer",
                                 "o2_strange_tracks.root",

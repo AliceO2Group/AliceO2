@@ -109,7 +109,7 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   //  \nlabTPCTOF: %d\nlabITSTPCTOF: %d
 
   mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-  LOG(debug) << "Bz: " << o2::base::Propagator::Instance()->getNominalBz(); 
+  LOG(debug) << "Bz: " << o2::base::Propagator::Instance()->getNominalBz();
   mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
 
   auto pattIt = ITSpatt.begin();

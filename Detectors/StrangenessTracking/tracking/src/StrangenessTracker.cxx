@@ -82,7 +82,7 @@ void StrangenessTracker::process()
       continue;
 
     mStrangeTrack.mPartType = kV0;
-    
+
     auto v0R2 = v0.calcR2();
     auto iBinsV0 = mUtils.getBinRect(correctedV0.getEta(), correctedV0.getPhi(), mStrParams->mEtaBinSize, mStrParams->mPhiBinSize);
     for (int& iBinV0 : iBinsV0) {

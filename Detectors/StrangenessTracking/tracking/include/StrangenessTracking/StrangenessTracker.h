@@ -62,7 +62,6 @@ struct StrangeTrack {
 class StrangenessTracker
 {
  public:
-
   using PID = o2::track::PID;
   using TrackITS = o2::its::TrackITS;
   using ITSCluster = o2::BaseCluster<float>;
