@@ -17,6 +17,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include "TFile.h"
 #include "TTree.h"
+#include "TGrid.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -99,6 +100,9 @@ void TPCResidualReader::init(InitContext& ic)
 
   const std::string inpDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir"));
   for (auto& file : mFileNames) {
+    if ((file.find("alien://") == 0) && !gGrid && !TGrid::Connect("alien://")) {
+      LOG(fatal) << "Failed to open alien connection";
+    }
     file = o2::utils::Str::concat_string(inpDir, file);
   }
 }
