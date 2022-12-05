@@ -24,8 +24,7 @@
 #pragma link C++ class o2::track::TrackParCovD + ;
 #pragma link C++ class o2::track::TrackParCov + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
-#pragma link C++ class std::vector <o2::track::TrackParametrizationWithError < float>> + ;
-
+#pragma link C++ class std::vector < o2::track::TrackParametrizationWithError < float>> + ;
 
 #pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
 #pragma link C++ class o2::track::TrackParFwd + ;
