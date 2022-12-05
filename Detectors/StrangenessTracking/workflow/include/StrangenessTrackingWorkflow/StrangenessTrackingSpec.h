@@ -8,6 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \file StrangenessTrackingSpec.h
+/// \brief
 
 #ifndef O2_STRANGENESS_SPEC_H
 #define O2_STRANGENESS_SPEC_H

@@ -8,6 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \file StrangenessTrackingConfigParam.h
+/// \brief
 
 #ifndef ALICEO2_STRANGENESS_TRACKING_PARAM_H_
 #define ALICEO2_STRANGENESS_TRACKING_PARAM_H_

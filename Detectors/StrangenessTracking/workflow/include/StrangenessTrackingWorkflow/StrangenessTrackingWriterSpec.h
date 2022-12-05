@@ -9,7 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackWriterSpec.h
+/// \file StrangenessTrackingWriterSpec.h
+/// \brief
+///
 
 #ifndef O2_STRANGENESSTRACKINGWRITER
 #define O2_STRANGENESSTRACKINGWRITER
