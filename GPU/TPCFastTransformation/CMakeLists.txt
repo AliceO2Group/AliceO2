@@ -175,6 +175,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
 endif()
 
+install (FILES macro/TPCFastTransformInit.C
+         DESTINATION share/macro/)
+
 #
 # FIXME: this one is misplaced : it depends (at least) on TPCSimulation which is
 # built after GPU...
