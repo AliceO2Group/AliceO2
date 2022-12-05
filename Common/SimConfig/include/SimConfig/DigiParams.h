@@ -32,6 +32,7 @@ struct DigiParams : public o2::conf::ConfigurableParamHelper<DigiParams> {
   bool mctruth = true;                                // whether to create labels
   int maxOrbitsToDigitize = -1;                       // Digitizer can use this to truncate digits that fall beyond an orbit limit (relative to start of digization) given by this param; -1 means no limit imposed
                                                       // This parameter should typically be set to coincide with a single timeframe length or multiples thereof.
+  std::string passName = "unanchored";                // passName for anchored MC
   O2ParamDef(DigiParams, "DigiParams");
 };
 

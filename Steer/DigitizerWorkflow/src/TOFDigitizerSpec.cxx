@@ -33,6 +33,7 @@
 #include "TOFBase/Geo.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTOF/ParameterContainers.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -48,6 +49,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
   TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM), mPass("unanchored"){};
+  // mPass("unanchored") to be replaced with mPass(o2::conf::DigiParams::Instance().passName) once ccdb ready
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
