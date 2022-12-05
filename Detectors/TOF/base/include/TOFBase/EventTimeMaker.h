@@ -22,31 +22,38 @@
 #include "TMath.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "Framework/Logger.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
 
 namespace tof
 {
+struct EventTimeTOFParams : public o2::conf::ConfigurableParamHelper<EventTimeTOFParams> {
+  float maxNsigma = 3.0;
+  int maxNtracksInSet = 10;
+  O2ParamDef(EventTimeTOFParams, "EventTimeTOF");
+};
 
 struct eventTimeContainer {
   eventTimeContainer(const float& e, const float& err, const float& diamond) : mEventTime{e}, mEventTimeError{err}, mDiamondSpread{diamond} {};
-  float mEventTime = 0.f;                    /// Value of the event time
-  float mEventTimeError = 0.f;               /// Uncertainty on the computed event time
+  double mEventTime = 0.f;                   /// Value of the event time
+  double mEventTimeError = 0.f;              /// Uncertainty on the computed event time
   unsigned short mEventTimeMultiplicity = 0; /// Track multiplicity used to compute the event time
 
-  float mSumOfWeights = 0.f;      /// sum of weights of all track contributors
+  double mSumOfWeights = 0.f;     /// sum of weights of all track contributors
   std::vector<float> mWeights;    /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
-  std::vector<float> mTrackTimes; /// eventtime provided by a single track
+  std::vector<double> mTrackTimes; /// eventtime provided by a single track
   float mDiamondSpread = 6.f;     /// spread of primary verdex in cm. Used when resetting the container to the default value
 
   // Aliases
-  const float& eventTime = mEventTime;
-  const float& eventTimeError = mEventTimeError;
+  const double& eventTime = mEventTime;
+  const double& eventTimeError = mEventTimeError;
   const unsigned short& eventTimeMultiplicity = mEventTimeMultiplicity;
-  const float& sumweights = mSumOfWeights;
+  const double& sumweights = mSumOfWeights;
   const std::vector<float>& weights = mWeights;
-  const std::vector<float>& tracktime = mTrackTimes;
+  const std::vector<double>& tracktime = mTrackTimes;
 
   void reset()
   {
@@ -67,6 +74,21 @@ struct eventTimeContainer {
                   float& eventTimeError,
                   const unsigned short& minimumMultiplicity = 2) const
   {
+    double evTime = eventTimeValue;
+    double evTimeRes = eventTimeError;
+    removeBias<trackType, trackFilter>(track, nTrackIndex, evTime, evTimeRes);
+    eventTimeValue = evTime;
+    eventTimeError = evTimeRes;
+  }
+
+  template <typename trackType,
+            bool (*trackFilter)(const trackType&)>
+  void removeBias(const trackType& track,
+                  int& nTrackIndex /* index of the track to remove the bias */,
+                  double& eventTimeValue,
+                  double& eventTimeError,
+                  const unsigned short& minimumMultiplicity = 2) const
+  {
     eventTimeValue = mEventTime;
     eventTimeError = mEventTimeError;
     if (!trackFilter(track)) { // Check if the track was usable for the event time
@@ -81,7 +103,7 @@ struct eventTimeContainer {
       return;
     }
     // Remove the bias
-    float sumw = 1.f / eventTimeError / eventTimeError;
+    double sumw = 1.f / eventTimeError / eventTimeError;
     LOG(debug) << "sumw " << sumw;
     eventTimeValue *= sumw;
     eventTimeValue -= mWeights[nTrackIndex] * mTrackTimes[nTrackIndex];
@@ -99,21 +121,21 @@ struct eventTimeContainer {
 
 struct eventTimeTrack {
   eventTimeTrack() = default;
-  eventTimeTrack(float tof, float expt[3], float expsigma[3]) : mSignal(tof)
+  eventTimeTrack(double tof, float expt[3], float expsigma[3]) : mSignal(tof)
   {
     for (int i = 0; i < 3; i++) {
       expTimes[i] = expt[i];
       expSigma[i] = expsigma[i];
     }
   }
-  float tofSignal() const { return mSignal; }
+  double tofSignal() const { return mSignal; }
   float tofExpSignalPi() const { return expTimes[0]; }
   float tofExpSignalKa() const { return expTimes[1]; }
   float tofExpSignalPr() const { return expTimes[2]; }
   float tofExpSigmaPi() const { return expSigma[0]; }
   float tofExpSigmaKa() const { return expSigma[1]; }
   float tofExpSigmaPr() const { return expSigma[2]; }
-  float mSignal = 0.f;
+  double mSignal = 0.f;
   float expTimes[3] = {0.f, 0.f, 0.f};
   float expSigma[3] = {999.f, 999.f, 999.f};
 };
@@ -141,7 +163,7 @@ bool filterDummy(const trackType& tr)
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
 void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
-int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
+int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb, double refT0 = 0);
 int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
 
 template <typename trackTypeContainer,
