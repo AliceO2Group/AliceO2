@@ -26,6 +26,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                ConfigParamSpec::HelpString{"Semicolon separated key=value strings"});
   workflowOptions.emplace_back("digits", VariantType::Bool, false,
                                ConfigParamSpec::HelpString{"Send associated digits"});
+  workflowOptions.emplace_back("disable-magfield-from-ccdb",
+                               o2::framework::VariantType::Bool, false,
+                               o2::framework::ConfigParamSpec::HelpString{"do not read magnetic field from ccdb"});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -34,5 +37,6 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   bool digits = configcontext.options().get<bool>("digits");
-  return WorkflowSpec{o2::mch::getTrackFinderSpec("mch-track-finder", digits)};
+  bool disableCCDBMagField = configcontext.options().get<bool>("disable-magfield-from-ccdb");
+  return WorkflowSpec{o2::mch::getTrackFinderSpec("mch-track-finder", digits, disableCCDBMagField)};
 }

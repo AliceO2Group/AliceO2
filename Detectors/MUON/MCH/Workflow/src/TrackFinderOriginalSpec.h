@@ -24,7 +24,8 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName = "mch-track-finder-original");
+o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName = "mch-track-finder-original",
+                                                            bool disableCCDBMagField = false);
 
 } // end namespace mch
 } // end namespace o2
