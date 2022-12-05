@@ -198,7 +198,7 @@ class TrackFinderTask
     auto ir = trackROF.getBCData();
     float bcDiff = ir.differenceInBC(startIR);
     bcDiff += rofHalfWidth;
-    float tMean =  o2::constants::lhc::LHCBunchSpacingMUS * bcDiff;
+    float tMean = o2::constants::lhc::LHCBunchSpacingMUS * bcDiff;
     // the time resolution is estimated as the half-width of the track ROF
     float tErr = o2::constants::lhc::LHCBunchSpacingMUS * rofHalfWidth;
     track.setTimeMUS(tMean, tErr);
