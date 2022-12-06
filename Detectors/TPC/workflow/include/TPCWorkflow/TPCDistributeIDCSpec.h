@@ -44,7 +44,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 {
  public:
   TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req, const bool processClusters)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutput(outlanes), mProcessClusters{processClusters}
+    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutputOrbitReset(outlanes), mSendCCDBOutputGRPECS(outlanes), mProcessClusters{processClusters}
   {
     // pre calculate data description for output
     mDataDescrOut.reserve(mOutLanes);
@@ -84,15 +84,22 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     mCheckEveryNData = ic.options().get<int>("check-data-every-n");
     if (mCheckEveryNData == 0) {
       mCheckEveryNData = mTimeFrames / 2;
+      if (mCheckEveryNData == 0) {
+        mCheckEveryNData = 1;
+      }
       mNTFsDataDrop = mCheckEveryNData;
     }
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
   {
-    // send data only when object are updated
-    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-      std::fill(mSendCCDBOutput.begin(), mSendCCDBOutput.end(), true);
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    if (matcher == ConcreteDataMatcher("CTP", "ORBITRESET", 0)) {
+      LOGP(info, "Updating ORBITRESET");
+      std::fill(mSendCCDBOutputOrbitReset.begin(), mSendCCDBOutputOrbitReset.end(), true);
+    } else if (matcher == ConcreteDataMatcher("GLO", "GRPECS", 0)) {
+      LOGP(info, "Updating GRPECS");
+      std::fill(mSendCCDBOutputGRPECS.begin(), mSendCCDBOutputGRPECS.end(), true);
     }
   }
 
@@ -100,11 +107,16 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   {
     // send orbit reset and orbits per TF only once
     if (mCCDBRequest->askTime) {
-      if (pc.inputs().isValid("grpecs") && pc.inputs().isValid("orbitReset")) {
-        o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-        if (pc.inputs().countValidInputs() == 2) {
-          return;
-        }
+      const bool grpecsValid = pc.inputs().isValid("grpecs");
+      const bool orbitResetValid = pc.inputs().isValid("orbitReset");
+      if (grpecsValid) {
+        pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
+      }
+      if (orbitResetValid) {
+        pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
+      }
+      if (pc.inputs().countValidInputs() == (grpecsValid + orbitResetValid)) {
+        return;
       }
     }
 
@@ -151,8 +163,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionIDCFirstTF(), header::DataHeader::SubSpecificationType{currentOutLane}}, mTFStart[currentBuffer]);
     }
 
-    if (mSendCCDBOutput[currentOutLane]) {
-      mSendCCDBOutput[currentOutLane] = false;
+    if (mSendCCDBOutputOrbitReset[currentOutLane] && mSendCCDBOutputGRPECS[currentOutLane]) {
+      mSendCCDBOutputOrbitReset[currentOutLane] = false;
+      mSendCCDBOutputGRPECS[currentOutLane] = false;
       pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()});
     }
 
@@ -222,7 +235,8 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::array<long, 2> mTFEnd{};                                                        ///< storing of last TF for buffer interval
   std::array<bool, 2> mSendOutputStartInfo{true, true};                                ///< flag for sending the info for the start of the aggregation interval
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                              ///< info for CCDB request
-  std::vector<bool> mSendCCDBOutput{};                                                 ///< flag for sending CCDB output
+  std::vector<bool> mSendCCDBOutputOrbitReset{};                                       ///< flag for received orbit reset time from CCDB
+  std::vector<bool> mSendCCDBOutputGRPECS{};                                           ///< flag for received orbit GRPECS from CCDB
   const bool mProcessClusters{false};                                                  ///< processing ICCs instead of IDCs
   unsigned int mCurrentOutLane{0};                                                     ///< index for keeping track of the current output lane
   bool mBuffer{false};                                                                 ///< buffer index

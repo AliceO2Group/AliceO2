@@ -45,6 +45,7 @@
 #pragma link C++ class o2::tpc::IDCAverageGroupBase < o2::tpc::IDCAverageGroupCRU> + ;
 #pragma link C++ class o2::tpc::IDCAverageGroupBase < o2::tpc::IDCAverageGroupTPC> + ;
 #pragma link C++ class o2::tpc::IDCFactorization + ;
+#pragma link C++ class o2::tpc::IDCFactorizeSplit + ;
 #pragma link C++ class o2::tpc::SACFactorization + ;
 #pragma link C++ struct o2::tpc::IDCDelta < float> + ;
 #pragma link C++ struct o2::tpc::IDCDelta < unsigned short> + ;
