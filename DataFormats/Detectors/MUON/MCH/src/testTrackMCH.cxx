@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(TrackIRMatchesTrackTime)
   float tErr = 6.0 * o2::constants::lhc::LHCBunchSpacingMUS;
   track.setTimeMUS(tMean, tErr);
 
-  o2::InteractionRecord trackIR = track.getIR(orbitRef);
+  o2::InteractionRecord trackIR = track.getMeanIR(orbitRef);
   BOOST_CHECK_EQUAL(ir, trackIR);
 }
 
@@ -52,6 +52,6 @@ BOOST_AUTO_TEST_CASE(TrackIRMatchesNegativeTrackTime)
   float tErr = 6.0 * o2::constants::lhc::LHCBunchSpacingMUS;
   track.setTimeMUS(tMean, tErr);
 
-  o2::InteractionRecord trackIR = track.getIR(orbitRef);
+  o2::InteractionRecord trackIR = track.getMeanIR(orbitRef);
   BOOST_CHECK_EQUAL(ir, trackIR);
 }
