@@ -18,6 +18,8 @@
 #include "TPCBase/CalDet.h"
 #include <functional>
 #include "MemoryResources/MemoryResources.h"
+#include "CommonConstants/LHCConstants.h"
+#include "TKey.h"
 
 #if (defined(WITH_OPENMP) || defined(_OPENMP))
 #include <omp.h>
@@ -74,6 +76,62 @@ void o2::tpc::IDCFactorization::dumpToFile(const char* outFileName, const char* 
   TFile fOut(outFileName, "RECREATE");
   fOut.WriteObject(this, outName);
   fOut.Close();
+}
+
+void o2::tpc::IDCFactorization::dumpLargeObjectToFile(const char* outFileName, const char* outName) const
+{
+  TFile fOut(outFileName, "RECREATE");
+  for (int iTF = 0; iTF < mTimeFrames; ++iTF) {
+    IDCFactorizeSplit idcTmp;
+    idcTmp.relTF = iTF;
+    for (int icru = 0; icru < CRU::MaxCRU; ++icru) {
+      idcTmp.idcs[icru] = mIDCs[icru][iTF];
+    }
+    fOut.WriteObject(&idcTmp, fmt::format("IDCs_TF{}", iTF).data());
+  }
+
+  // write empty dummy object to file which can be filled with the previously written IDCs
+  IDCFactorization idcFacTmp(mTimeFrames, mTimeFramesDeltaIDC, mCRUs);
+  idcFacTmp.setRun(getRun());
+  idcFacTmp.setTimeStamp(getTimeStamp());
+  fOut.WriteObject(&idcFacTmp, outName);
+  fOut.Close();
+}
+
+std::unique_ptr<o2::tpc::IDCFactorization> o2::tpc::IDCFactorization::getLargeObjectFromFile(const char* inpFileName, const char* inName)
+{
+  TFile fInp(inpFileName, "READ");
+  o2::tpc::IDCFactorization* idcTmp = (o2::tpc::IDCFactorization*)fInp.Get(inName);
+  std::unique_ptr<IDCFactorization> idc = std::make_unique<IDCFactorization>(idcTmp->getNTimeframes(), idcTmp->getTimeFramesDeltaIDC(), idcTmp->getCRUs());
+  idc->setRun(idcTmp->getRun());
+  idc->setTimeStamp(idcTmp->getTimeStamp());
+  delete idcTmp;
+
+  for (TObject* keyAsObj : *fInp.GetListOfKeys()) {
+    const auto key = dynamic_cast<TKey*>(keyAsObj);
+    LOGP(info, "Key name: {} Type: {}", key->GetName(), key->GetClassName());
+
+    if (std::strcmp(o2::tpc::IDCFactorizeSplit::Class()->GetName(), key->GetClassName()) != 0) {
+      if (std::strcmp(o2::tpc::IDCFactorization::Class()->GetName(), key->GetClassName()) != 0) {
+        LOGP(info, "skipping object. wrong class.");
+      }
+      continue;
+    }
+
+    IDCFactorizeSplit* idcTmp = (IDCFactorizeSplit*)fInp.Get(key->GetName());
+    const int relTF = idcTmp->relTF;
+    if (relTF >= idc->getNTimeframes()) {
+      LOGP(warning, "stored TF {} is larger than max TF {}", relTF, idc->getNTimeframes());
+      continue;
+    }
+    for (int icru = 0; icru < CRU::MaxCRU; ++icru) {
+      auto idcVec = idcTmp->idcs[icru];
+      idc->setIDCs(std::move(idcVec), icru, relTF);
+    }
+    delete idcTmp;
+  }
+  fInp.Close();
+  return idc;
 }
 
 void o2::tpc::IDCFactorization::dumpIDCZeroToFile(const Side side, const char* outFileName, const char* outName) const
@@ -181,6 +239,27 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
                << "\n";
     }
   }
+  pcstream.Close();
+}
+
+void o2::tpc::IDCFactorization::dumpToTreeIDC1(const float integrationTimeOrbits, const char* outFileName) const
+{
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
+  pcstream.GetFile()->cd();
+  std::vector<float> idcOneA = getIDCOneVec(Side::A);
+  std::vector<float> idcOneC = getIDCOneVec(Side::C);
+  std::vector<double> timestamp;
+
+  for (int i = 0; i < idcOneA.size(); ++i) {
+    timestamp.emplace_back((mTimeStamp + i * integrationTimeOrbits * o2::constants::lhc::LHCOrbitMUS * 0.001) / 1000);
+  }
+
+  pcstream << "tree"
+           << "IDC1A=" << idcOneA
+           << "IDC1C=" << idcOneC
+           << "timestamp=" << timestamp
+           << "\n";
+
   pcstream.Close();
 }
 

@@ -31,6 +31,12 @@ namespace o2::tpc
 template <class T>
 class CalDet;
 
+struct IDCFactorizeSplit {
+  std::array<std::vector<float>, CRU::MaxCRU> idcs{};
+  int relTF{};
+  ClassDefNV(IDCFactorizeSplit, 1)
+};
+
 class IDCFactorization : public IDCGroupHelperSector
 {
  public:
@@ -193,6 +199,18 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \return returns vector of processed CRUs
   auto getCRUs() const { return mCRUs; }
 
+  /// \param timeStamp time stamp of the first aggregated IDCs
+  void setTimeStamp(const long timeStamp) { mTimeStamp = timeStamp; }
+
+  /// \return returns time stamp of the first aggregated IDCs
+  long getTimeStamp() const { return mTimeStamp; }
+
+  /// \param run of the aggregated IDCs
+  void setRun(const int run) { mRun = run; }
+
+  /// \return returns run of the IDCs
+  int getRun() const { return mRun; }
+
   // get number of TFs in which the DeltaIDCs are split/stored
   unsigned int getTimeFramesDeltaIDC() const { return mTimeFramesDeltaIDC; }
 
@@ -272,6 +290,17 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
 
+  /// dump large object to disc which exceeds the maximum size of 1GB for an object in a ROOT file
+  /// \param outFileName name of the output file
+  /// \param outName name of the object in the output file
+  void dumpLargeObjectToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
+
+  /// read in an object which was created with dumpLargeObjectToFile
+  /// \param inpFileName name of the output file
+  /// \param inName name of the object in the output file
+  /// \return returns the stored object
+  static std::unique_ptr<IDCFactorization> getLargeObjectFromFile(const char* inpFileName = "IDCFactorized.root", const char* inName = "IDCFactorized");
+
   /// dump the IDC0 to file
   void dumpIDCZeroToFile(const Side side, const char* outFileName = "IDCZero.root", const char* outName = "IDC0") const;
 
@@ -281,6 +310,11 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
   void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
+
+  /// dumping the IDC1 to a TTree including the timestamps (the start time stamp in ms should be set with setTimeStamp())
+  /// \param integrationTimeOrbits integration time in orbits
+  /// \param outFileName name of the output file
+  void dumpToTreeIDC1(const float integrationTimeOrbits = 12, const char* outFileName = "IDC1Tree.root") const;
 
   /// \returns vector containing the number of integration intervals for each stored TF (dropped TFs not taken into account)
   /// \param cru cru which is used for the lookup (cru=-1: automatic cru lookup)
@@ -350,6 +384,8 @@ class IDCFactorization : public IDCGroupHelperSector
   std::array<unsigned int, SIDES> mSideIndex{0, 1};                 ///< index to mIDCZero, mIDCOne and mIDCDelta for TPC side
   std::vector<Side> mSides{};                                       ///< processed TPC sides
   std::vector<unsigned int> mIntegrationIntervalsPerTF{};           ///< storage of integration intervals per TF (taken dropped TFs into account)
+  long mTimeStamp{0};                                               ///< first time stamp of IDCs
+  int mRun{0};                                                      ///< run number of IDCs
 
   /// helper function for drawing IDCDelta
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;
@@ -372,7 +408,7 @@ class IDCFactorization : public IDCGroupHelperSector
   /// helper function for drawing
   void drawPadFlagMap(const bool type, const Sector sector, const std::string filename, const PadFlags flag) const;
 
-  ClassDefNV(IDCFactorization, 1)
+  ClassDefNV(IDCFactorization, 2)
 };
 
 } // namespace o2::tpc
