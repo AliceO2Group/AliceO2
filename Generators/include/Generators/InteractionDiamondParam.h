@@ -36,6 +36,8 @@ enum class EVertexDistribution {
 struct InteractionDiamondParam : public o2::conf::ConfigurableParamHelper<InteractionDiamondParam> {
   double position[3] = {0., 0., 0.};
   double width[3] = {0., 0., 0.};
+  double slopeX = 0.; // z-dependent x pos (see MeanVertexObject)
+  double slopeY = 0.; // z-dependent y pos (see MeanVertexObject)
   EVertexDistribution distribution = EVertexDistribution::kGaus;
   O2ParamDef(InteractionDiamondParam, "Diamond");
 };

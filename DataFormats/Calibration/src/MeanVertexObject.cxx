@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsCalibration/MeanVertexObject.h"
+#include "TRandom.h"
 
 namespace o2
 {
@@ -57,6 +58,16 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObje
 void MeanVertexObject::print() const
 {
   std::cout << *this << std::endl;
+}
+
+math_utils::Point3D<float> MeanVertexObject::sample() const
+{
+  // this assumes gaussian sampling
+  // first determine z; then x and y
+  const auto z = gRandom->Gaus(getZ(), getSigmaZ());
+  const auto x = gRandom->Gaus(getXAtZ(z), getSigmaX());
+  const auto y = gRandom->Gaus(getYAtZ(z), getSigmaY());
+  return math_utils::Point3D<float>(x, y, z);
 }
 
 } // namespace dataformats

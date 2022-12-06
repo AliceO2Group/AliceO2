@@ -17,6 +17,7 @@
 #include <iostream>
 #include <numeric> // for iota
 #include <MathUtils/Cartesian.h>
+#include <DataFormatsCalibration/MeanVertexObject.h>
 
 using namespace o2::steer;
 
@@ -53,6 +54,9 @@ void DigitizationContext::printCollisionSummary(bool withQED, int truncateOutput
       std::cout << "Collision " << i << " TIME " << mEventRecords[i];
       for (auto& e : mEventParts[i]) {
         std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+      }
+      if (i < mInteractionVertices.size()) {
+        std::cout << " sampled vertex : " << mInteractionVertices[i];
       }
       std::cout << "\n";
     }
@@ -385,4 +389,63 @@ int DigitizationContext::findSimPrefix(std::string const& prefix) const
     return std::distance(mSimPrefixes.begin(), iter);
   }
   return -1;
+}
+
+namespace
+{
+struct pair_hash {
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& pair) const
+  {
+    return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+  }
+};
+} // namespace
+
+void DigitizationContext::sampleInteractionVertices(o2::dataformats::MeanVertexObject const& meanv)
+{
+  // mapping of source x event --> index into mInteractionVertices
+  std::unordered_map<std::pair<int, int>, int, pair_hash> vertex_cache;
+
+  mInteractionVertices.clear();
+  int collcount = 0;
+
+  std::unordered_set<int> vset; // used to detect vertex incompatibilities
+  for (auto& coll : mEventParts) {
+    collcount++;
+    vset.clear();
+
+    // first detect if any of these entries already has an associated vertex
+    for (auto& part : coll) {
+      auto source = part.sourceID;
+      auto event = part.entryID;
+      auto cached_iter = vertex_cache.find(std::pair<int, int>(source, event));
+
+      if (cached_iter != vertex_cache.end()) {
+        vset.emplace(cached_iter->second);
+      }
+    }
+
+    // make sure that there is no conflict
+    if (vset.size() > 1) {
+      LOG(fatal) << "Impossible conflict during interaction vertex sampling";
+    }
+
+    int cacheindex = -1;
+    if (vset.size() == 1) {
+      // all of the parts need to be assigned the same existing vertex
+      cacheindex = *(vset.begin());
+      mInteractionVertices.push_back(mInteractionVertices[cacheindex]);
+    } else {
+      // we need to sample a new point
+      mInteractionVertices.emplace_back(meanv.sample());
+      cacheindex = mInteractionVertices.size() - 1;
+    }
+    // update the cache
+    for (auto& part : coll) {
+      auto source = part.sourceID;
+      auto event = part.entryID;
+      vertex_cache[std::pair<int, int>(source, event)] = cacheindex;
+    }
+  }
 }
