@@ -69,11 +69,13 @@ inline std::vector<int> IndexTableUtils::getBinRect(float eta, float phi, float 
   int maxPhiBin = getPhiBin(phi + deltaPhi);
 
   for (int iPhi{minPhiBin}; iPhi <= maxPhiBin; iPhi++) {
-    if (iPhi >= mPhiBins)
+    if (iPhi >= mPhiBins) {
       break;
+    }
     for (int iEta{minEtaBin}; iEta <= maxEtaBin; iEta++) {
-      if (iEta >= mEtaBins)
+      if (iEta >= mEtaBins) {
         break;
+      }
       idxVec.push_back(iEta + mEtaBins * iPhi);
     }
   }

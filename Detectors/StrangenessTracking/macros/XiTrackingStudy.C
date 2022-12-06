@@ -11,7 +11,7 @@
 /// \file XiTrackingStudy.C
 /// \brief Simple macro to check Xi strange tracks
 
-#if !defined(CLING) || defined(ROOTCLING)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -41,6 +41,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "StrangenessTracking/StrangenessTracker.h"
+
 
 #endif
 

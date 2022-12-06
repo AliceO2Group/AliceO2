@@ -78,8 +78,9 @@ void StrangenessTracker::process()
     alphaV0 > 0 ? posTrack.setAbsCharge(2) : negTrack.setAbsCharge(2);
     V0 correctedV0; // recompute V0 for Hypertriton
 
-    if (!recreateV0(posTrack, negTrack, correctedV0))
+    if (!recreateV0(posTrack, negTrack, correctedV0)) {
       continue;
+    }
 
     mStrangeTrack.mPartType = kV0;
 
@@ -189,17 +190,19 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
           break;
         }
       }
-      if (!isDauUpdated)
+      if (!isDauUpdated) {
         break; // no daughter track updated, stop the loop
-
+      }
       nUpdates++;
     }
-    if (nUpdates == nUpdOld)
+    if (nUpdates == nUpdOld) {
       break; // no track updated, stop the loop
+    }
   }
 
-  if (nUpdates < trackClusters.size() || motherClusters.size() < nMinClusMother)
+  if (nUpdates < trackClusters.size() || motherClusters.size() < nMinClusMother) {
     return false;
+  }
 
   o2::track::TrackParCov motherTrackClone = mStrangeTrack.mMother; // clone and reset covariance for final topology refit
   motherTrackClone.resetCovariance();
@@ -208,8 +211,9 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
 
   std::reverse(motherClusters.begin(), motherClusters.end());
   for (auto& clus : motherClusters) {
-    if (!updateTrack(clus, motherTrackClone))
+    if (!updateTrack(clus, motherTrackClone)) {
       break;
+    }
   }
   LOG(debug) << "Inward-outward refit finished, starting final topology refit";
 
@@ -267,13 +271,15 @@ bool StrangenessTracker::updateTrack(const ITSCluster& clus, o2::track::TrackPar
   auto stringOld = track.asString();
   LOG(debug) << "Track before update,  Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
 
-  if (!track.rotate(alpha))
+  if (!track.rotate(alpha)) {
     return false;
+  }
 
   LOG(debug) << "Track rotated,  Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
 
-  if (!propInstance->propagateToX(track, x, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType))
+  if (!propInstance->propagateToX(track, x, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
     return false;
+  }
 
   auto stringNew = track.asString();
   LOG(debug) << "Track after propagation, Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
@@ -282,16 +288,19 @@ bool StrangenessTracker::updateTrack(const ITSCluster& clus, o2::track::TrackPar
     float thick = layer < 3 ? 0.005 : 0.01;
     constexpr float radl = 9.36f; // Radiation length of Si [cm]
     constexpr float rho = 2.33f;  // Density of Si [g/cm^3]
-    if (!track.correctForMaterial(thick, thick * rho * radl))
+    if (!track.correctForMaterial(thick, thick * rho * radl)) {
       return false;
+    }
   }
   auto chi2 = std::abs(track.getPredictedChi2(clus)); // abs to be understood
   LOG(debug) << "Chi2: " << chi2;
-  if (chi2 > mStrParams->mMaxChi2 || chi2 < 0)
+  if (chi2 > mStrParams->mMaxChi2 || chi2 < 0) {
     return false;
+  }
 
-  if (!track.update(clus))
+  if (!track.update(clus)) {
     return false;
+  }
 
   return true;
 }
@@ -305,8 +314,9 @@ bool StrangenessTracker::recreateV0(const o2::track::TrackParCov& posTrack, cons
   } catch (std::runtime_error& e) {
     return false;
   }
-  if (!nCand || !mFitterV0.propagateTracksToVertex())
+  if (!nCand || !mFitterV0.propagateTracksToVertex()) {
     return false;
+  }
 
   const auto& v0XYZ = mFitterV0.getPCACandidatePos();
 
