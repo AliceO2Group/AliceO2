@@ -207,6 +207,11 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
       mTRDTransformer->init();
     }
 
+    if (!(mIniParFile.empty() || mIniParFile == "none")) {
+      mController->readParameters(mIniParFile, mUseIniParErrors);
+      mController->applyAlignmentFromMPSol();
+    }
+
     // call this in the very end
     if (mUsrConfMethod) {
       int dummyPar = 0, ret = 0;
@@ -219,10 +224,6 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     AlignConfig::Instance().printKeyValues(true);
     o2::base::PropagatorD::Instance()->setTGeoFallBackAllowed(false);
-    if (!(mIniParFile.empty() || mIniParFile == "none")) {
-      mController->readParameters(mIniParFile, mUseIniParErrors);
-      mController->applyAlignmentFromMPSol();
-    }
   }
   if (GTrackID::includesDet(DetID::TRD, mMPsrc) && mTRDTransformer) {
     pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
