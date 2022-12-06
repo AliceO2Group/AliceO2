@@ -25,6 +25,8 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include <CommonUtils/FileSystemUtils.h>
+#include <unistd.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -32,6 +34,7 @@ using namespace o2::header;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"enable-test-consumer", o2::framework::VariantType::Bool, false, {"enable a simple test consumer for injected MC tracks"}});
+  workflowOptions.push_back(ConfigParamSpec{"o2sim-pid", o2::framework::VariantType::Int, -1, {"The process id of the source o2-sim"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -97,9 +100,33 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
   o2::framework::InjectorFunction f = o2simKinematicsConverter(outputs, 0, 1);
 
+  // construct the input channel to listen on
+  // use given pid
+  // TODO: this could go away with a proper pipeline implementation
+  std::string channelspec;
+  std::string channelbase = "type=sub,method=connect,address=ipc:/";
+  if (configcontext.options().get<int>("o2sim-pid") != -1) {
+    std::stringstream channelstr;
+    channelstr << channelbase << "/tmp/o2sim-hitmerger-kineforward-" << configcontext.options().get<int>("o2sim-pid") << ",rateLogging=100";
+    channelspec = channelstr.str();
+  } else {
+    // we try to detect an existing channel by name ... as long as it's unique ... else we fail
+    sleep(2); // give time for sim to startup
+    LOG(info) << "Looking for simulation MC-tracks socket";
+    auto socketlist = o2::utils::listFiles("/tmp", "o2sim-hitmerger-kineforward-.*");
+    if (socketlist.size() != 1) {
+      for (auto s : socketlist) {
+        LOG(info) << s;
+      }
+      LOG(fatal) << "Too many or no socket found " << socketlist.size() << "; Please pass sim pid via --o2sim-pid";
+    }
+    LOG(info) << "Found socket " << socketlist[0];
+    channelspec = channelbase + socketlist[0] + ",rateLogging=100";
+  }
+
   specs.emplace_back(specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
                                                       outputs,
-                                                      "type=sub,method=connect,address=ipc:///tmp/o2sim-hitmerger-kineforward,rateLogging=100", f));
+                                                      channelspec.c_str(), f));
 
   if (configcontext.options().get<bool>("enable-test-consumer")) {
     // connect a test consumer
