@@ -42,7 +42,6 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "StrangenessTracking/StrangenessTracker.h"
 
-
 #endif
 
 using GIndex = o2::dataformats::VtxTrackIndex;
