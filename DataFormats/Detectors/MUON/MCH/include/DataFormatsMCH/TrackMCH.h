@@ -110,9 +110,7 @@ class TrackMCH
   /// set the number of the clusters attached to the track and the index of the first one
   void setClusterRef(int firstClusterIdx, int nClusters) { mClusRef.set(firstClusterIdx, nClusters); }
 
-  /// get the interaction record associated to this track
-  InteractionRecord getIR(uint32_t refOrbit) const;
-
+  /// mean time associated to this track, with error
   const Time& getTimeMUS() const { return mTimeMUS; }
   Time& getTimeMUS() { return mTimeMUS; }
   void setTimeMUS(const Time& t) { mTimeMUS = t; }
@@ -121,6 +119,9 @@ class TrackMCH
     mTimeMUS.setTimeStamp(t);
     mTimeMUS.setTimeStampError(te);
   }
+
+  /// interaction record corresponding to the mean track time
+  InteractionRecord getMeanIR(uint32_t refOrbit) const;
 
  private:
   static constexpr int SNParams = 5;  ///< number of track parameters
@@ -151,7 +152,7 @@ class TrackMCH
   double mZAtMID = 0.;                 ///< z position on the MID side where the parameters are evaluated
   double mParamAtMID[SNParams] = {0.}; ///< 5 parameters: X (cm), SlopeX, Y (cm), SlopeY, q/pYZ ((GeV/c)^-1)
   double mCovAtMID[SCovSize] = {0.};   ///< reduced covariance matrix of track parameters, formated as above
-  Time mTimeMUS;                       ///< associated time in microseconds from the TF start
+  Time mTimeMUS{};                     ///< associated time in microseconds from the TF start
 
   ClassDefNV(TrackMCH, 3);
 };

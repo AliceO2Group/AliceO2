@@ -22,7 +22,6 @@
 #include <stdexcept>
 #include <string>
 #include <filesystem>
-#include <limits>
 
 #include <gsl/span>
 
@@ -155,78 +154,31 @@ class TrackFinderTask
   }
 
  private:
-  std::pair<InteractionRecord, bool> trackBC2IR(double trackBCinTF, const ROFRecord& trackROF, uint32_t firstTForbit) const
+  void setTrackTime(TrackMCH& track, const ROFRecord& clusterROF, uint32_t firstTForbit, const gsl::span<const Cluster> usedClusters, const gsl::span<const Digit> usedDigits) const
   {
-    // limits of the current ROF
-    const InteractionRecord& rofStart = trackROF.getBCData();
-    const InteractionRecord& rofEnd = trackROF.getBCData() + int64_t(trackROF.getBCWidth());
-
-    // wrap-up one full orbit if the track time is negative,
-    // the first TF orbit is also decreased by one to compensate
-    if (trackBCinTF < 0) {
-      trackBCinTF += o2::constants::lhc::LHCMaxBunches;
-      firstTForbit -= 1;
-    }
-
-    // get the bc-in-orbit value
-    uint16_t trackBC = uint16_t(uint64_t(trackBCinTF) % o2::constants::lhc::LHCMaxBunches);
-    // get the absolute track orbit by adding the first orbit of the current TF
-    uint32_t trackOrbit = uint32_t(uint64_t(trackBCinTF) / o2::constants::lhc::LHCMaxBunches) + firstTForbit;
-
-    // build the track interaction record
-    InteractionRecord trackIR{trackBC, trackOrbit};
-
-    // if we are outside the cluster ROF, something must be wrong
-    // in this case we log a warning message and we return a default IR value
-    bool isOk = true;
-    if (trackIR < rofStart || trackIR > rofEnd) {
-      LOG(warning) << fmt::format("track time incompatible with track ROF. TRACK: BC={}, IR={},{}  ROF: start={},{}, end={},{}  FIRST_TF_ORBIT: {}",
-                                  trackBCinTF, trackIR.orbit, trackIR.bc, rofStart.orbit, rofStart.bc, rofEnd.orbit, rofEnd.bc, firstTForbit);
-      isOk = false;
-    }
-
-    return {trackIR, isOk};
-  }
-
-  //_________________________________________________________________________________________________
-  void setTrackTimeFromROF(TrackMCH& track, const ROFRecord& trackROF, uint32_t firstTForbit) const
-  {
-    // the track time is taken at the middle of the track ROF,
-    // in microseconds relative to the beginning of the TF
-    InteractionRecord startIR{0, firstTForbit};
-    float rofHalfWidth = 0.5 * trackROF.getBCWidth();
-    auto ir = trackROF.getBCData();
-    float bcDiff = ir.differenceInBC(startIR);
-    bcDiff += rofHalfWidth;
-    float tMean = o2::constants::lhc::LHCBunchSpacingMUS * bcDiff;
-    // the time resolution is estimated as the half-width of the track ROF
-    float tErr = o2::constants::lhc::LHCBunchSpacingMUS * rofHalfWidth;
-    track.setTimeMUS(tMean, tErr);
-  }
-
-  //_________________________________________________________________________________________________
-  void setTrackTime(TrackMCH& track, const ROFRecord& trackROF, uint32_t firstTForbit, const gsl::span<const Cluster> usedClusters, const gsl::span<const Digit> usedDigits) const
-  {
-    float trackBCinTF = 0;
+    double trackBCinTF = 0;
     int nDigits = 0;
 
     // loop over digits and compute the average track time
     for (const auto& cluster : usedClusters.subspan(track.getFirstClusterIdx(), track.getNClusters())) {
       for (const auto& digit : usedDigits.subspan(cluster.firstDigit, cluster.nDigits)) {
         nDigits += 1;
-        trackBCinTF += (float(digit.getTime()) - trackBCinTF) / nDigits;
+        trackBCinTF += (double(digit.getTime()) - trackBCinTF) / nDigits;
       }
     }
 
     // set the track IR from the computed average digits time
     if (nDigits > 0) {
-      float tMean = o2::constants::lhc::LHCBunchSpacingMUS * trackBCinTF;
+      // convert the average digit time from bunch-crossing units to microseconds
+      // add 1.5 BC to account for the fact that the actual digit time in BC units
+      // can be between t and t+3, hence t+1.5 in average
+      float tMean = o2::constants::lhc::LHCBunchSpacingMUS * (trackBCinTF + 1.5);
       float tErr = o2::constants::lhc::LHCBunchSpacingMUS * mTrackTime3Sigma;
       track.setTimeMUS(tMean, tErr);
     } else {
       // if no digits are found, compute the time directly from the track's ROF
-      LOG(warning) << "no digits found when computing the track mean time";
-      setTrackTimeFromROF(track, trackROF, firstTForbit);
+      LOG(fatal) << "MCH: no digits found when computing the track mean time";
+      track.setTimeMUS(clusterROF.getTimeMUS({0, firstTForbit}).first);
     }
   }
 
@@ -277,16 +229,16 @@ class TrackFinderTask
       }
 
       // compute the track time
-      if (mDigits && usedDigits) {
+      if (mDigits) {
         setTrackTime(mchTracks.back(), clusterROF, firstTForbit, usedClusters, *usedDigits);
       } else {
-        setTrackTimeFromROF(mchTracks.back(), clusterROF, firstTForbit);
+        mchTracks.back().setTimeMUS(clusterROF.getTimeMUS({0, firstTForbit}).first);
       }
     }
   }
 
   bool mDigits = false;                         ///< send to associated digits
-  float mTrackTime3Sigma{6.0};                  ///< three times the track time resolution, in BC units
+  float mTrackTime3Sigma{6.0};                  ///< three times the digit time resolution, in BC units
   TrackFinder mTrackFinder{};                   ///< track finder
   std::chrono::duration<double> mElapsedTime{}; ///< timer
 };

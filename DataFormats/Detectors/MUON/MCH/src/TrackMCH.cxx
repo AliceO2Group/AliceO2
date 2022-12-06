@@ -17,7 +17,6 @@
 #include "DataFormatsMCH/TrackMCH.h"
 
 #include <cmath>
-#include <limits>
 #include <fmt/format.h>
 #include <string>
 #include <iostream>
@@ -88,25 +87,11 @@ void TrackMCH::setCovariances(const TMatrixD& src, double (&dest)[SCovSize])
 }
 
 //__________________________________________________________________________
-InteractionRecord TrackMCH::getIR(uint32_t refOrbit) const
+InteractionRecord TrackMCH::getMeanIR(uint32_t refOrbit) const
 {
-  // track time converted in bunch-crossing units
-  auto fbc = mTimeMUS.getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS;
-  // wrap-up one full orbit if the track time is negative,
-  // the first TF orbit is also decreased by one to compensate
-  if (fbc < 0) {
-    fbc += o2::constants::lhc::LHCMaxBunches;
-    refOrbit -= 1;
-  }
-
-  // get the bc-in-orbit value
-  uint64_t trackBCinTF = uint64_t(std::round(fbc));
-  uint16_t trackBC = uint16_t(trackBCinTF % o2::constants::lhc::LHCMaxBunches);
-  // get the absolute track orbit by adding the first orbit of the current TF
-  uint32_t trackOrbit = uint32_t(trackBCinTF / o2::constants::lhc::LHCMaxBunches) + refOrbit;
-
-  // build the track interaction record
-  return {trackBC, trackOrbit};
+  InteractionRecord startIR(0, refOrbit);
+  auto trackBCinTF = std::llround(mTimeMUS.getTimeStamp() / constants::lhc::LHCBunchSpacingMUS);
+  return startIR + trackBCinTF;
 }
 
 std::ostream& operator<<(std::ostream& os, const o2::mch::TrackMCH& t)
