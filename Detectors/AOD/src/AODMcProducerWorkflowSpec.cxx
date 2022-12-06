@@ -106,7 +106,7 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
         flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
         statusCode = mcParticles[particle].getProcess();
       } else {
-        statusCode = mcParticles[particle].getStatusCode();
+        statusCode = mcParticles[particle].getStatusCode().fullEncoding;
       }
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event

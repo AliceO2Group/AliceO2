@@ -23,6 +23,7 @@ constexpr int isEncodedValue{5};
 
 // internal structure to allow convenient manipulation of properties as bits on an int to (dis)entangle HepMC and specific generator status codes
 union MCGenStatusEncoding {
+  MCGenStatusEncoding() : fullEncoding(0) {}
   MCGenStatusEncoding(int enc) : fullEncoding(enc) {}
   // To be backward-compatible, only set transport to 1 if hepmc status is 1
   MCGenStatusEncoding(int hepmcIn, int genIn) : isEncoded(5), hepmc(hepmcIn), gen(genIn), reserved(0) {}
@@ -51,6 +52,24 @@ inline int getGenStatusCode(int encoded)
   if (enc.isEncoded != isEncodedValue) {
     // in this case simply set hepmc code to what was given
     return encoded;
+  }
+  return enc.gen;
+}
+
+inline int getHepMCStatusCode(MCGenStatusEncoding enc)
+{
+  if (enc.isEncoded != isEncodedValue) {
+    // in this case simply set hepmc code to what was given
+    return enc.fullEncoding;
+  }
+  return enc.hepmc;
+}
+
+inline int getGenStatusCode(MCGenStatusEncoding enc)
+{
+  if (enc.isEncoded != isEncodedValue) {
+    // in this case simply set hepmc code to what was given
+    return enc.fullEncoding;
   }
   return enc.gen;
 }

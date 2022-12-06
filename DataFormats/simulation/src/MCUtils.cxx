@@ -14,6 +14,7 @@
 //
 
 #include <SimulationDataFormat/MCUtils.h>
+#include <SimulationDataFormat/MCGenStatus.h>
 
 namespace o2::mcutils
 {
@@ -77,7 +78,7 @@ bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::M
   // particles.
   //
 
-  const int ist = p.getStatusCode(); // the generator status code
+  const int ist = o2::mcgenstatus::getHepMCStatusCode(p.getStatusCode()); // the generator status code
   const int pdg = std::abs(p.GetPdgCode());
   //
   // Initial state particle
