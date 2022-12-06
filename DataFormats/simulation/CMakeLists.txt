@@ -23,6 +23,7 @@ o2_add_library(SimulationDataFormat
                                      FairRoot::Base
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters
+                                     O2::DataFormatsCalibration
                                      O2::GPUCommon
                                      ROOT::TreePlayer)
 

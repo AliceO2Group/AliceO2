@@ -71,6 +71,8 @@ class PrimaryGenerator : public FairPrimaryGenerator
   /** Public embedding methods **/
   Bool_t embedInto(TString fname);
 
+  void setExternalVertexForNextEvent(double x, double y, double z);
+
  protected:
   /** copy constructor **/
   PrimaryGenerator(const PrimaryGenerator&) = default;
@@ -82,6 +84,12 @@ class PrimaryGenerator : public FairPrimaryGenerator
 
   /** set interaction vertex position **/
   void setInteractionVertex(const o2::dataformats::MCEventHeader* event);
+
+  /** generate and fix interaction vertex **/
+  void fixInteractionVertex();
+
+  float mExternalVertexX = 0, mExternalVertexY = 0, mExternalVertexZ = 0; // holding vertex fixed from outside
+  bool mHaveExternalVertex = false;                                       // true of user fixed external vertex from outside for next event
 
   /** embedding members **/
   TFile* mEmbedFile = nullptr;

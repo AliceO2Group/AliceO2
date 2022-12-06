@@ -21,6 +21,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <GPUCommonLogger.h>
 #include <unordered_map>
+#include <MathUtils/Cartesian.h>
+#include <DataFormatsCalibration/MeanVertexObject.h>
 
 namespace o2
 {
@@ -122,6 +124,10 @@ class DigitizationContext
   // finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
   void finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
 
+  // Sample and fix interaction vertices (according to some distribution). Makes sure that same event id
+  // have to have same vertex.
+  void sampleInteractionVertices(o2::dataformats::MeanVertexObject const& v);
+
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
@@ -137,6 +143,9 @@ class DigitizationContext
   std::vector<o2::InteractionTimeRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<o2::steer::EventPart>> mEventParts;
+
+  // for each collision we may record/fix the interaction vertex (to be used in event generation)
+  std::vector<math_utils::Point3D<float>> mInteractionVertices;
 
   // the collision records _with_ QED interleaved;
   std::vector<o2::InteractionTimeRecord> mEventRecordsWithQED;
