@@ -95,9 +95,7 @@ void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
-  gpu::utils::host::gpuMalloc((void**)&mDeviceIndexTableUtils, sizeof(IndexTableUtils));
-  gpu::utils::host::gpuMemcpyHostToDevice(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(mIndexTableUtils));
-  mTimeFrameGPU->initialise(0, trackingParams, 3);
+  mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils);
 }
 
 namespace gpu
@@ -414,7 +412,7 @@ void VertexerTraitsGPU::computeTracklets()
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
   }
-  mTimeFrameGPU->loadBatch<gpu::Task::Vertexer>(nullptr);
+  mTimeFrameGPU->loadBatch<gpu::Task::Vertexer>();
   // for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
   //     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
   //     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
