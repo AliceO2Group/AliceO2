@@ -14,7 +14,9 @@ o2_add_library(FOCALReconstruction
         src/PadData.cxx
         src/PadDecoder.cxx
         src/PadMapper.cxx
-        PUBLIC_LINK_LIBRARIES O2::Headers
+        src/PixelLaneData.cxx
+        src/PixelDecoder.cxx
+        PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers O2::DataFormatsFOCAL O2::ITSMFTReconstruction
         AliceO2::InfoLogger
         Microsoft.GSL::GSL)
 
@@ -23,9 +25,12 @@ o2_target_root_dictionary(
         HEADERS include/FOCALReconstruction/PadData.h
         include/FOCALReconstruction/PadDecoder.h
         include/FOCALReconstruction/PadMapper.h
+        include/FOCALReconstruction/PixelMapper.h
+        include/FOCALReconstruction/PixelDecoder.h
+        include/FOCALReconstruction/PixelLaneData.h
 )
 
 o2_add_executable(rawreader-pad-rootify
         COMPONENT_NAME focal
-        PUBLIC_LINK_LIBRARIES O2::FOCALReconstruction O2::DetectorsRaw ROOT::RIO ROOT::Tree
+        PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL O2::FOCALReconstruction O2::DetectorsRaw ROOT::RIO ROOT::Tree
         SOURCES run/rawReaderPadRootify.cxx)
