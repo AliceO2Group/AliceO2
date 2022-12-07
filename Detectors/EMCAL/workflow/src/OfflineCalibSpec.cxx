@@ -46,10 +46,29 @@ void OfflineCalibSpec::init(o2::framework::InitContext& ctx)
   }
 }
 
+void OfflineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  LOG(info) << "Handling new Calibration objects";
+  if (mCalibrationHandler->finalizeCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void OfflineCalibSpec::updateCalibObjects()
+{
+  if (mCalibrationHandler->hasUpdateGainCalib()) {
+    LOG(info) << "updateCalibObjects: Gain calib params changed";
+    mGainCalibFactors = mCalibrationHandler->getGainCalibration();
+  }
+}
+
 void OfflineCalibSpec::run(framework::ProcessingContext& pc)
 {
   auto cells = pc.inputs().get<gsl::span<o2::emcal::Cell>>("cells");
   auto triggerrecords = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecord");
+  mCalibrationHandler->checkUpdates(pc);
+  updateCalibObjects();
+
   LOG(debug) << "[EMCALOfflineCalib - run] received " << cells.size() << " cells from " << triggerrecords.size() << " triggers ...";
   if (triggerrecords.size()) {
     for (const auto& trg : triggerrecords) {
@@ -74,8 +93,14 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
         LOG(debug) << "[EMCALOfflineSpec - run] Energy: " << c.getEnergy();
         LOG(debug) << "[EMCALOfflineSpec - run] Time: " << c.getTimeStamp();
         LOG(debug) << "[EMCALOfflineSpec - run] IsLowGain: " << c.getLowGain();
-        mCellAmplitude->Fill(c.getEnergy(), c.getTower());
-        if (c.getEnergy() > 0.5) {
+        float cellE = c.getEnergy();
+        if (mGainCalibFactors && mCalibrationHandler->hasGainCalib()) {
+          LOG(info) << "gain calib factor " << mGainCalibFactors->getGainCalibFactors(c.getTower());
+          cellE *= mGainCalibFactors->getGainCalibFactors(c.getTower());
+          LOG(info) << "[EMCALOfflineSpec - run] corrected Energy: " << cellE;
+        }
+        mCellAmplitude->Fill(cellE, c.getTower());
+        if (cellE > 0.5) {
           mCellTime->Fill(c.getTimeStamp(), c.getTower());
           if (c.getLowGain()) {
             mCellTimeLG->Fill(c.getTimeStamp(), c.getTower());
@@ -83,7 +108,7 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
             mCellTimeHG->Fill(c.getTimeStamp(), c.getTower());
           }
           if (mMakeCellIDTimeEnergy) {
-            mCellTimeEnergy->Fill(c.getTower(), c.getTimeStamp(), c.getEnergy());
+            mCellTimeEnergy->Fill(c.getTower(), c.getTimeStamp(), cellE);
           }
         }
       }
@@ -108,11 +133,19 @@ void OfflineCalibSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   outputFile->Close();
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec)
+o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec, bool enableGainCalib)
 {
+
+  std::vector<o2::framework::InputSpec>
+    inputs = {{"cells", o2::header::gDataOriginEMC, "CELLS", inputsubspec, o2::framework::Lifetime::Timeframe},
+              {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", inputsubspec, o2::framework::Lifetime::Timeframe}};
+
+  auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
+  calibhandler->enableGainCalib(enableGainCalib);
+  calibhandler->defineInputSpecs(inputs);
+
   return o2::framework::DataProcessorSpec{"EMCALOfflineCalib",
-                                          {{"cells", o2::header::gDataOriginEMC, "CELLS", inputsubspec, o2::framework::Lifetime::Timeframe},
-                                           {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", inputsubspec, o2::framework::Lifetime::Timeframe}},
+                                          inputs,
                                           {},
-                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers)};
+                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers, calibhandler)};
 }
