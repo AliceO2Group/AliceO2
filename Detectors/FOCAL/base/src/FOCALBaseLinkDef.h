@@ -15,16 +15,5 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::focal::ASICData + ;
-#pragma link C++ class o2::focal::ASICContainer + ;
-#pragma link C++ class o2::focal::PadData + ;
-#pragma link C++ class o2::focal::PadDecoder + ;
-#pragma link C++ class o2::focal::PadMapper + ;
-#pragma link C++ class o2::focal::PixelMapper + ;
-#pragma link C++ class o2::focal::PixelMapping + ;
-#pragma link C++ class o2::focal::PixelMappingIB + ;
-#pragma link C++ class o2::focal::PixelMappingOB + ;
-#pragma link C++ class o2::focal::PixelDecoder + ;
-#pragma link C++ class o2::focal::PixelLaneHandler + ;
-#pragma link C++ class o2::focal::PixelLanePayload + ;
+#pragma link C++ class o2::focal::EventReader + ;
 #endif
