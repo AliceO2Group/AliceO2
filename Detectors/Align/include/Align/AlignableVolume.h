@@ -112,7 +112,7 @@ class AlignableVolume : public DOFSet
   {
     mDOFAsMeas = pat;
   }
-
+  bool isNameMatching(const std::string& regexStr) const;
   bool isFreeDOF(int dof) const { return (mDOF & (0x1 << dof)) != 0; }
   bool isMeasuredDOF(int dof) const { return isFreeDOF(dof) && ((mDOFAsMeas & (0x1 << dof)) != 0); }
   bool isCondDOF(int dof) const;

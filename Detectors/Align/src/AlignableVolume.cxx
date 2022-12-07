@@ -112,6 +112,7 @@
 #include <TH1.h>
 #include <TAxis.h>
 #include <cstdio>
+#include <regex>
 
 ClassImp(o2::align::AlignableVolume);
 
@@ -530,12 +531,12 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
       } // free-unconditioned: print commented if asked
       //
       fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(i),
-              getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
+              -getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
     }
     // do we consider some DOFs of this volume as measured
     for (int i = 0; i < mNDOFs; i++) {
       cmt = isMeasuredDOF(i) ? kOff : kOn;
-      fprintf(parOut, "%s%s %+e %+e\n", comment[cmt], kKeyMeas, getParVal(i), getParErr(i));
+      fprintf(parOut, "%s%s %+e %+e\n", comment[cmt], kKeyMeas, -getParVal(i), getParErr(i));
       fprintf(parOut, "%s %d 1.0\n", comment[cmt], getParLab(i));
     }
     fprintf(parOut, "\n");
@@ -891,6 +892,12 @@ void AlignableVolume::addAutoConstraints()
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->addAutoConstraints();
   }
+}
+
+//________________________________________
+bool AlignableVolume::isNameMatching(const std::string& regexStr) const
+{
+  return (!regexStr.empty() && std::regex_match(getSymName(), std::regex{regexStr}));
 }
 
 } // namespace align

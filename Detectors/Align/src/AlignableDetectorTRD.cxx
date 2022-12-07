@@ -113,7 +113,7 @@ void AlignableDetectorTRD::writePedeInfo(FILE* parOut, const Option_t* opt) cons
   for (int ip = 0; ip < getNCalibDOFs(); ip++) {
     int cmt = isCondDOF(ip) ? kOff : kOn;
     fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(ip),
-            getParVal(ip), getParErr(ip), comment[kOnOn], isFreeDOF(ip) ? "  " : "FX", ip);
+            -getParVal(ip), getParErr(ip), comment[kOnOn], isFreeDOF(ip) ? "  " : "FX", ip);
   }
   //
 }
