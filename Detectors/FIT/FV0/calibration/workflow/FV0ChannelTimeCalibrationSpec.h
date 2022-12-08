@@ -27,7 +27,7 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
                                                               o2::fv0::FV0ChannelTimeOffsetSlotContainer, o2::fv0::FV0ChannelTimeCalibrationObject>;
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
-  const o2::header::DataDescription inputDataDescriptor{"CALIB_DATA"};
+  const o2::header::DataDescription inputDataDescriptor{"CALIB_INFO"};
   const o2::header::DataDescription outputDataDescriptor{"FV0_TIME_CALIB"};
   CalibrationDeviceType::prepareVecInputSpec(inputs, o2::header::gDataOriginFV0, inputDataDescriptor);
   CalibrationDeviceType::prepareVecOutputSpec(outputs, outputDataDescriptor);
