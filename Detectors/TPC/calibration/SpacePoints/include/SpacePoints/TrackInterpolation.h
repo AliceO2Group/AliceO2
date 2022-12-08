@@ -173,7 +173,7 @@ class TrackInterpolation
   void init();
 
   /// Main processing function
-  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes);
+  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters);
 
   /// Extrapolate ITS-only track through TPC and store residuals to TPC clusters along the way
   /// \param seed index
