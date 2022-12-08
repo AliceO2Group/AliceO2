@@ -29,7 +29,7 @@ using constants::MB;
 
 namespace gpu
 {
-using utils::host::checkGPUError;
+using utils::checkGPUError;
 
 template <int nLayers>
 struct StaticTrackingParameters {
@@ -261,6 +261,7 @@ template <int nLayers>
 TimeFrameGPU<nLayers>::TimeFrameGPU()
 {
   mIsGPU = true;
+  utils::getDeviceProp(0, true);
 }
 
 template <int nLayers>

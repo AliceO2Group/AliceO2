@@ -19,7 +19,7 @@ namespace its
 {
 namespace gpu
 {
-using utils::host::checkGPUError;
+using utils::checkGPUError;
 
 Stream::Stream()
 {

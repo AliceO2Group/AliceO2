@@ -45,7 +45,7 @@ namespace its
 {
 using constants::its::VertexerHistogramVolume;
 using constants::math::TwoPi;
-using gpu::utils::host::checkGPUError;
+using gpu::utils::checkGPUError;
 using math_utils::getNormalizedPhi;
 
 using namespace constants::its2;
@@ -87,7 +87,7 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
-  gpu::utils::host::gpuFree(mDeviceIndexTableUtils);
+  gpu::utils::gpuFree(mDeviceIndexTableUtils);
 }
 
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
@@ -414,8 +414,8 @@ void VertexerTraitsGPU::computeTracklets()
   }
   mTimeFrameGPU->loadBatch<gpu::Task::Vertexer>();
   // for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
-  //     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
-  //     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //     const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //     const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
   //     gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(0).get()>>>(
   //       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
   //       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
@@ -513,8 +513,8 @@ void VertexerTraitsGPU::computeTrackletMatching()
   //     return;
   //   }
   //   for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
-  //     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
-  //     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //     const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //     const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
 
   //     size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
 
@@ -731,8 +731,8 @@ void VertexerTraitsGPU::computeVerticesHist()
   //   return;
   // }
   // for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
-  //   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
-  //   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //   const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+  //   const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
 
   //   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
   //   int excLas, nLas, nLines;

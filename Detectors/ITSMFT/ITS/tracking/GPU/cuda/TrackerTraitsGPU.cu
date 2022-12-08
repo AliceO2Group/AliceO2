@@ -35,7 +35,7 @@ namespace o2
 {
 namespace its
 {
-using gpu::utils::host::checkGPUError;
+using gpu::utils::checkGPUError;
 using namespace constants::its2;
 
 namespace gpu
@@ -274,8 +274,8 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   //   }
   //   checkGPUError(cudaMemcpy(mTimeFrameGPU->getDeviceVertices(rof0), paddedVertices.data(), mTimeFrameGPU->getConfig().maxVerticesCapacity * sizeof(Vertex), cudaMemcpyHostToDevice), __FILE__, __LINE__);
   //   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-  //     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
-  //     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
+  //     const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
+  //     const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
   //     const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
 
   //     if (!mTimeFrameGPU->getClustersOnLayer(rof0, iLayer).size()) {
@@ -403,8 +403,8 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
   //       !mTimeFrameGPU->getTrackletSizeHost()[iLayer]) {
   //     continue;
   //   }
-  //   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
-  //   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
+  //   const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
+  //   const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
   //   gpu::computeLayerCellsKernel<true><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
   //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
   //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),

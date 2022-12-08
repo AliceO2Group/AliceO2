@@ -41,15 +41,15 @@ GPUh() void gpuThrowOnError();
 
 namespace utils
 {
-namespace host
-{
-
 #ifdef __CUDACC__
 void checkGPUError(const cudaError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
 #ifdef __HIPCC__
 void checkGPUError(const hipError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
+
+// Dump device properties
+void getDeviceProp(int, bool verbose = true);
 
 dim3 getBlockSize(const int);
 dim3 getBlockSize(const int, const int);
@@ -64,13 +64,9 @@ void gpuMemcpyHostToDevice(void*, const void*, int);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
 void gpuMemcpyToSymbol(const void* symbol, const void* src, int size);
 void gpuMemcpyFromSymbol(void* dst, const void* symbol, int size);
-} // namespace host
 
-namespace device
-{
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
-} // namespace device
 } // namespace utils
 } // namespace gpu
 } // namespace its
