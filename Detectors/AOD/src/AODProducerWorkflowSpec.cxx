@@ -1848,7 +1848,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bc,
-             triggerMask, triggerInputs);
+             triggerMask);
   }
 
   bcToClassMask.clear();
