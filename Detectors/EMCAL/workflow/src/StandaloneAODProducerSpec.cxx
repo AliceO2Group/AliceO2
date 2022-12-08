@@ -91,7 +91,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bcID,
-             triggerMask, triggerInputs);
+             triggerMask);
     auto indexBC = iev;
 
     for (auto& cell : cellsInEvent) {
