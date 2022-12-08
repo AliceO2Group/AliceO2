@@ -45,7 +45,7 @@ DECLARE_SOA_TABLE_VERSIONED(BCs_001, "AOD", "BC", 1, o2::soa::Index<>, //! Root 
                             bc::RunNumber, bc::GlobalBC,
                             bc::TriggerMask, bc::TriggerInputs);
 
-using BCs = BCs_001; //! this defines the current default version
+using BCs = BCs_000; //! this defines the current default version
 using BC = BCs::iterator;
 
 namespace timestamp
