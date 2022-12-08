@@ -68,7 +68,7 @@ class DCSConfigInfo
  private:
   int mData;
   int mAdd;
-  int mType; // RU = 0, ALPIDE = 1
+  int mType; // RU = 0, ALPIDE = 1, UBB = 2, DeadMap = 3
   std::string mVersion;
 
   ClassDefNV(DCSConfigInfo, 1);
