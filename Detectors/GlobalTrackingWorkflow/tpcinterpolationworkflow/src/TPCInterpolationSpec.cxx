@@ -12,6 +12,7 @@
 /// @file  TPCInterpolationSpec.cxx
 
 #include <vector>
+#include <unordered_map>
 
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -101,9 +102,16 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   std::vector<o2::track::TrackParCov> seeds;
   std::vector<float> trkTimes;
   std::vector<GTrackID> gids;
+  std::unordered_map<int, int> trkCounters;
+  // make sure the map has entries for every possible track input type
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTRDTOF, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTRD, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTOF, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPC, 0));
+
   bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
   // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
-  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param](auto& _tr, GTrackID _origID, float t0, float tErr) {
+  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
     if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
       bool trackGood = true;
       bool hasOuterPoint = false;
@@ -141,6 +149,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         seeds.emplace_back(itsTrk->getParamOut()); // FIXME: should this not be a refit of the ITS track?
         gidTables.emplace_back(gidTable);
         gids.push_back(_origID);
+        trkCounters[_origID.getSource()] += 1;
       }
       return true;
     } else {
@@ -155,7 +164,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     // not yet implemented
   }
 
-  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
+  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes, trkCounters);
   mTimer.Stop();
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
 
