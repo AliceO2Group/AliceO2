@@ -112,7 +112,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bcID,
-             triggerMask, triggerInputs);
+             triggerMask);
 
     // fill collision cursor
     collisionsCursor(0,
