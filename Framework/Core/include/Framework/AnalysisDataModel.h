@@ -76,13 +76,21 @@ DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);       //! Collision tim
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float); //! Resolution of collision time
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex information of collision
+DECLARE_SOA_TABLE(Collisions_000, "AOD", "COLLISION", //! Time and vertex information of collision
                   o2::soa::Index<>, collision::BCId,
                   collision::PosX, collision::PosY, collision::PosZ,
                   collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ,
                   collision::Flags, collision::Chi2, collision::NumContrib,
                   collision::CollisionTime, collision::CollisionTimeRes);
 
+DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and vertex information of collision
+                            o2::soa::Index<>, collision::BCId,
+                            collision::PosX, collision::PosY, collision::PosZ,
+                            collision::CovXX, collision::CovXY, collision::CovYY, collision::CovXZ, collision::CovYZ, collision::CovZZ,
+                            collision::Flags, collision::Chi2, collision::NumContrib,
+                            collision::CollisionTime, collision::CollisionTimeRes);
+
+using Collisions = Collisions_000; // current version
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table
@@ -1008,6 +1016,7 @@ using McParticle = McParticles::iterator;
 } // namespace aod
 namespace soa
 {
+DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 } // namespace soa

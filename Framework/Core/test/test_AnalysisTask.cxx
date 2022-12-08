@@ -168,11 +168,11 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task2.inputs[7].binding, "AmbiguousTracks");
   BOOST_CHECK_EQUAL(task2.inputs[8].binding, "Calos");
   BOOST_CHECK_EQUAL(task2.inputs[9].binding, "CaloTriggers");
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions_000");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
-  BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions_000");
   BOOST_CHECK_EQUAL(task3.inputs[2].binding, "Tracks");
   BOOST_CHECK_EQUAL(task3.inputs[1].binding, "TracksExtension");
 
