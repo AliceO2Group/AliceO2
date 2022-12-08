@@ -27,7 +27,13 @@ ClassImp(MagFieldFact);
 
 static MagFieldFact gMagFieldFact;
 
-MagFieldFact::MagFieldFact() : FairFieldFactory(), mFieldPar(nullptr) { fCreator = this; }
+MagFieldFact::MagFieldFact() : FairFieldFactory(), mFieldPar(nullptr)
+{
+#ifdef ALICEO2_HAS_FAIRFIELDFACTORY_FCREATOR
+  fCreator = this;
+#endif
+}
+
 MagFieldFact::~MagFieldFact() = default;
 
 void MagFieldFact::SetParm()
