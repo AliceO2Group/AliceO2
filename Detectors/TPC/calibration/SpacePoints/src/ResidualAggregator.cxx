@@ -98,6 +98,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
     treeOutResidualsUnbinned->Branch("res", &unbinnedResPtr);
+    treeOutResidualsUnbinned->Branch("trackInfo", &trackInfoPtr);
   }
   if (writeTrackData) {
     treeOutTrackData = std::make_unique<TTree>("trackData", "Track information incl cluster range ref");
@@ -123,7 +124,6 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
       treeOutResiduals->Branch(Form("sec%d", iSec), &residualsPtr[iSec]);
       treeOutStats->Branch(Form("sec%d", iSec), &statsPtr[iSec]);
     }
-    treeOutResiduals->Branch("trackInfo", &trackInfoPtr);
     treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
     treeOutRecords->Branch("sumOfResiduals", &sumOfResidualsPtr);
     treeOutRecords->Branch("lumi", &lumiPtr);
@@ -198,7 +198,6 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
   }
   if (writeBinnedResid) {
     treeOutResiduals->Fill();
-    trackInfo.clear();
     sumOfResiduals.push_back(nResidualsInTF);
   }
   for (auto& residVecOut : residuals) {
@@ -214,6 +213,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned->Fill();
     unbinnedRes.clear();
+    trackInfo.clear();
   }
   tfOrbits.push_back(ti.firstTForbit);
   if (lumiInput) {
@@ -285,7 +285,6 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
       // prepare merging of residuals
       prev->treeOutResiduals->SetBranchAddress(Form("sec%d", iSec), &residualsPtr[iSec]);
     }
-    prev->treeOutResiduals->SetBranchAddress("trackInfo", &trackInfoPtr);
     // We append the entries of the tree of the following slot to the
     // previous slot and afterwards move the merged tree to this slot.
     // This way the order of the entries is preserved
@@ -304,6 +303,7 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   }
   if (writeUnbinnedResiduals) {
     prev->treeOutResidualsUnbinned->SetBranchAddress("res", &unbinnedResPtr);
+    prev->treeOutResidualsUnbinned->SetBranchAddress("trackInfo", &trackInfoPtr);
     for (int i = 0; i < treeOutResidualsUnbinned->GetEntries(); ++i) {
       treeOutResidualsUnbinned->GetEntry(i);
       prev->treeOutResidualsUnbinned->Fill();
