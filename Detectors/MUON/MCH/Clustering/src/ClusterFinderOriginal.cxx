@@ -2091,4 +2091,4 @@ void ClusterFinderOriginal::setClusterResolution(Cluster& cluster) const
   }
 }
 
-} // namespace o2
+} // namespace o2::mch

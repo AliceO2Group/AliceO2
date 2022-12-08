@@ -14,6 +14,7 @@
 o2_add_library(MCHWorkflow
                SOURCES
                    src/ClusterFinderOriginalSpec.cxx
+                   src/ClusterFinderGEMSpec.cxx
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
@@ -28,6 +29,7 @@ o2_add_library(MCHWorkflow
                    O2::DetectorsRaw
                    O2::MCHCTF
                    O2::MCHClustering
+                   O2::MCHClusteringGEM
                    O2::MCHPreClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
