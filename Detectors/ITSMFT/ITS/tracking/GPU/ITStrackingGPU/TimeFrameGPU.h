@@ -53,7 +53,7 @@ class GpuTimeFramePartition
  public:
   static size_t computeScalingSizeBytes(const int, const TimeFrameGPUConfig&);
   static size_t computeFixedSizeBytes(const TimeFrameGPUConfig&);
-  static size_t computeRofPerPartition(const TimeFrameGPUConfig&);
+  static size_t computeRofPerPartition(const TimeFrameGPUConfig&, const size_t);
 
   GpuTimeFramePartition() = delete;
   GpuTimeFramePartition(o2::its::TimeFrame* tf, TimeFrameGPUConfig& conf)
@@ -134,10 +134,11 @@ class TimeFrameGPU : public TimeFrame
 
   /// Most relevant operations
   void initialise(const int, const TrackingParameters&, const int, const IndexTableUtils* utils = nullptr);
-  void initDevice(const int, const IndexTableUtils*);
-  void initDevicePartitions(const int);
+  void initDevice(const int, const IndexTableUtils*, const int);
+  void initDevicePartitions(const int, const int);
   template <Task task>
-  void loadBatch();
+  void loadPartitionData(const size_t);
+  size_t getNPartions() const { return mMemPartitions.size(); }
 
  private:
   bool mInitialised = false;
@@ -150,20 +151,19 @@ class TimeFrameGPU : public TimeFrame
 
   // State
   std::vector<Stream> mGpuStreams;
+  size_t mAvailMemGB; //
 };
 
 template <int nLayers>
 template <Task task>
-void TimeFrameGPU<nLayers>::loadBatch()
+void TimeFrameGPU<nLayers>::loadPartitionData(const size_t part)
 {
-  for (int iPart{0}; iPart < mGpuConfig.nTimeFramePartitions; ++iPart) {
-    auto startRof = iPart * GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig);
-    mMemPartitions[iPart].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig), task);
-    if constexpr ((bool)task) {
-      mMemPartitions[iPart].copyDeviceData(startRof, 3, mGpuStreams[iPart]);
-    } else {
-      mMemPartitions[iPart].copyDeviceData(startRof, nLayers, mGpuStreams[iPart]);
-    }
+  auto startRof = part * GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB);
+  mMemPartitions[part].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB), task);
+  if constexpr ((bool)task) {
+    mMemPartitions[part].copyDeviceData(startRof, 3, mGpuStreams[part]);
+  } else {
+    mMemPartitions[part].copyDeviceData(startRof, nLayers, mGpuStreams[part]);
   }
 }
 

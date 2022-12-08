@@ -58,6 +58,7 @@ void Vertexer::findVertices()
 void Vertexer::getGlobalConfiguration()
 {
   auto& vc = o2::its::VertexerParamConfig::Instance();
+  auto& grc = o2::its::GpuRecoParamConfig::Instance();
 
   VertexingParameters verPar;
   verPar.allowSingleContribClusters = vc.allowSingleContribClusters;

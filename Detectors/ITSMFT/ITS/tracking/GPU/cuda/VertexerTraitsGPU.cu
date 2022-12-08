@@ -412,7 +412,9 @@ void VertexerTraitsGPU::computeTracklets()
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
   }
-  mTimeFrameGPU->loadBatch<gpu::Task::Vertexer>();
+  for (size_t part{0}; part < mTimeFrameGPU->getNPartions(); ++part) {
+    mTimeFrameGPU->loadPartitionData<gpu::Task::Vertexer>(part);
+  }
   // for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
   //     const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
   //     const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
