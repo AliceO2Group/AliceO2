@@ -53,6 +53,10 @@ include(O2NameTarget)
 #   (e.g. by protobuf). Note that if you do specify this parameter it replaces
 #   the default, it does not add to them.
 #
+# * PRIVATE_COMPILE_DEFINITIONS (not needed in most cases) : the list of compile
+#   definitions (i.e. `-D` args to the compiler, see
+#   https://cmake.org/cmake/help/latest/command/target_compile_definitions.html)
+#
 function(o2_add_library baseTargetName)
 
   cmake_parse_arguments(
@@ -61,7 +65,7 @@ function(o2_add_library baseTargetName)
     A
     ""
     "TARGETVARNAME"
-    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES;PRIVATE_LINK_LIBRARIES"
+    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES;PRIVATE_LINK_LIBRARIES;PRIVATE_COMPILE_DEFINITIONS"
     )
 
   if(A_UNPARSED_ARGUMENTS)
@@ -149,6 +153,10 @@ function(o2_add_library baseTargetName)
         ${target}
         PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>)
     endif()
+  endif()
+
+  if(A_PRIVATE_COMPILE_DEFINITIONS)
+    target_compile_definitions(${target} PRIVATE ${A_PRIVATE_COMPILE_DEFINITIONS})
   endif()
 
   if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName})
