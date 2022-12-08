@@ -17,6 +17,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 
 #include <cmath>
+#include <limits>
 #include <fmt/format.h>
 #include <string>
 #include <iostream>
