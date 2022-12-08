@@ -27,17 +27,32 @@ find_library(FairRoot_ParBase ParBase)
 find_library(FairRoot_GeoBase GeoBase)
 find_library(FairRoot_Base Base)
 find_library(FairRoot_Gen Gen)
+find_program(FairRoot_CONFIG_EXECUTABLE NAMES fairroot-config)
 
 set(CMAKE_PREFIX_PATH ${OLD_CMAKE_PREFIX_PATH})
 
+if(FairRoot_CONFIG_EXECUTABLE)
+  execute_process(COMMAND ${FairRoot_CONFIG_EXECUTABLE} --major_version
+                  OUTPUT_VARIABLE FairRoot_VERSION_MAJOR
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND ${FairRoot_CONFIG_EXECUTABLE} --minor_version
+                  OUTPUT_VARIABLE FairRoot_VERSION_MINOR
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND ${FairRoot_CONFIG_EXECUTABLE} --patch_version
+                  OUTPUT_VARIABLE FairRoot_VERSION_PATCH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(FairRoot_VERSION "${FairRoot_VERSION_MAJOR}.${FairRoot_VERSION_MINOR}.${FairRoot_VERSION_PATCH}")
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(FairRoot
-                                  DEFAULT_MSG FairRoot_Base
-                                              FairRoot_Tools
-                                              FairRoot_ParBase
-                                              FairRoot_GeoBase
-                                              FairRoot_Gen
-                                              FairRoot_INC)
+                                  REQUIRED_VARS FairRoot_Base
+                                                FairRoot_Tools
+                                                FairRoot_ParBase
+                                                FairRoot_GeoBase
+                                                FairRoot_Gen
+                                                FairRoot_INC
+                                  VERSION_VAR FairRoot_VERSION)
 
 if(NOT TARGET FairRoot::Tools)
   add_library(FairRoot::Tools IMPORTED INTERFACE)
