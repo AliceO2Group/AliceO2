@@ -76,23 +76,47 @@ class MFTDCSConfigProcessor : public o2::framework::Task
 
     using clbUtils = o2::calibration::Utils;
 
-    const auto& payload = mReader.getConfigInfo();
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Preparing the object for DCS Configuration
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    auto clName = o2::utils::MemFileHelper::getClassName(payload);
-    auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+    const auto& payloadConfigInfo = mReader.getConfigInfo();
+    auto clNameConfigInfo = o2::utils::MemFileHelper::getClassName(payloadConfigInfo);
+    auto flNameConfigInfo = o2::ccdb::CcdbApi::generateFileName(clNameConfigInfo);
 
-    std::map<std::string, std::string> md;
-    md.emplace("created_by", "dpl");
+    std::map<std::string, std::string> mdConfigInfo;
+    mdConfigInfo.emplace("created_by", "dpl");
 
-    o2::ccdb::CcdbObjectInfo info("MFT/Config/Params", clName, flName, md, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+    o2::ccdb::CcdbObjectInfo infoConfigInfo("MFT/Config/Params", clNameConfigInfo, flNameConfigInfo, mdConfigInfo, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    auto imageConfigInfo = o2::ccdb::CcdbApi::createObjectImage(&payloadConfigInfo, &infoConfigInfo);
 
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(info) << "Sending object " << infoConfigInfo.getPath() << "/" << infoConfigInfo.getFileName() << " of size " << imageConfigInfo->size()
+              << " bytes, valid for " << infoConfigInfo.getStartValidityTimestamp() << " : " << infoConfigInfo.getEndValidityTimestamp();
 
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG_FILE", 0}, *image.get()); // vector<char>
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG_FILE", 0}, info);         // root-serialized
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG_FILE", 0}, *imageConfigInfo.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG_FILE", 0}, infoConfigInfo);         // root-serialized
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Preparing the object for Dead Map
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const auto& payloadDeadMap = mReader.getNoiseMap();
+    auto clNameDeadMap = o2::utils::MemFileHelper::getClassName(payloadDeadMap);
+    auto flNameDeadMap = o2::ccdb::CcdbApi::generateFileName(clNameDeadMap);
+
+    std::map<std::string, std::string> mdDeadMap;
+    mdDeadMap.emplace("created_by", "dpl");
+
+    o2::ccdb::CcdbObjectInfo infoDeadMap("MFT/Calib/DeadMap", clNameDeadMap, flNameDeadMap, mdDeadMap, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+
+    auto imageDeadMap = o2::ccdb::CcdbApi::createObjectImage(&payloadDeadMap, &infoDeadMap);
+
+    LOG(info) << "Sending object " << infoDeadMap.getPath() << "/" << infoDeadMap.getFileName() << " of size " << imageDeadMap->size()
+              << " bytes, valid for " << infoDeadMap.getStartValidityTimestamp() << " : " << infoDeadMap.getEndValidityTimestamp();
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG_FILE", 1}, *imageDeadMap.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG_FILE", 1}, infoDeadMap);         // root-serialized
   }
   //________________________________________________________________
 
