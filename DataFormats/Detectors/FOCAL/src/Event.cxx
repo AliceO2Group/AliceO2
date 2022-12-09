@@ -166,8 +166,9 @@ std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> PadLayerEvent::getTOA
 std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> PadLayerEvent::getTOTs() const
 {
   std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> tots;
-  for (std::size_t ichan = 0; ichan < constants::PADLAYER_MODULE_NCHANNELS; ichan++)
+  for (std::size_t ichan = 0; ichan < constants::PADLAYER_MODULE_NCHANNELS; ichan++) {
     tots[ichan] = mChannels[ichan].mTOT;
+  }
   return tots;
 }
 

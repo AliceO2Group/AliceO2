@@ -97,7 +97,7 @@ void PixelDecoder::decodeEvent(gsl::span<const o2::itsmft::GBTWord> payload)
     }
     // std::cout << "Trigger has " << combinedChips.size() << " chips from " << foundLanes << " lanes " << std::endl;
     LOG(debug) << "Trigger has " << combinedChips.size() << " chips from " << foundLanes << " lanes ";
-    std::sort(combinedChips.begin(), combinedChips.end(), std::less<PixelChip>());
+    std::sort(combinedChips.begin(), combinedChips.end(), std::less<>());
     for (auto& chip : combinedChips) {
       // std::cout << "Chip " << static_cast<int>(chip.mChipID) << " [lane " << static_cast<int>(chip.mLaneID) << "], with " << chip.mHits.size() << " hit(s) ... " << std::endl;
       LOG(debug) << "Chip " << static_cast<int>(chip.mChipID) << " [lane " << static_cast<int>(chip.mLaneID) << "], with " << chip.mHits.size() << " hit(s) ... ";
