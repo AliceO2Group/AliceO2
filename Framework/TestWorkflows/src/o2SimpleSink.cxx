@@ -17,9 +17,17 @@
 #include <thread>
 #include <vector>
 #include <fairmq/Device.h>
-#include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  workflowOptions.emplace_back(
+    ConfigParamSpec{"dataspec", VariantType::String, "", {"DataSpec for the outputs"}});
+  workflowOptions.emplace_back(
+    ConfigParamSpec{"name", VariantType::String, "test-sink", {"Name of the source"}});
+}
+#include "Framework/runDataProcessing.h"
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
@@ -34,17 +42,19 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 }
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
+  // Get the dataspec option and creates OutputSpecs from it
+  auto dataspec = ctx.options().get<std::string>("dataspec");
+  std::vector<InputSpec> inputs = select(dataspec.c_str());
+
   return WorkflowSpec{
-    {"B",
-     {InputSpec{{"external"}, "TST", "EXT", 0, Lifetime::OutOfBand}},
-     {OutputSpec{{"b1"}, "TST", "B1"}},
-     simplePipe("b1", 0)},
-    {"D",
-     Inputs{
-       InputSpec{"b", "TST", "B1"},
-     },
-     Outputs{},
-     AlgorithmSpec{adaptStateless([]() {})}}};
+    {
+      .name = ctx.options().get<std::string>("name"),
+      .inputs = inputs,
+      .algorithm = AlgorithmSpec{adaptStateless(
+        [](InputRecord& inputs) {
+          LOG(info) << "Received " << inputs.size() << " messages";
+        })},
+    }};
 }
