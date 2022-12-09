@@ -44,7 +44,7 @@ class RawDecoderSpec : public framework::Task
   };
   RawDecoderSpec() = default;
   RawDecoderSpec(uint32_t outputSubspec, bool usePadData, bool usePixelData, bool debug) : mDebugMode(debug), mUsePadData(usePadData), mUsePixelData(usePixelData), mOutputSubspec(outputSubspec) {}
-  ~RawDecoderSpec() = default;
+  ~RawDecoderSpec() override = default;
 
   void init(framework::InitContext& ctx) final;
 
