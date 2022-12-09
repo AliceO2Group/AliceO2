@@ -124,14 +124,19 @@ class DigitizationContext
   // finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
   void finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
 
-  // Sample and fix interaction vertices (according to some distribution). Makes sure that same event id
-  // have to have same vertex.
+  // Sample and fix interaction vertices (according to some distribution). Makes sure that same event ids
+  // have to have same vertex, as well as event ids associated to same collision.
   void sampleInteractionVertices(o2::dataformats::MeanVertexObject const& v);
 
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename = "");
+  // Return the vector of interaction vertices associated with collisions
+  // The vector is empty if no vertices were provided or sampled. In this case, one
+  // may call "sampleInteractionVertices".
+  std::vector<math_utils::Point3D<float>> const& getInteractionVertices() const { return mInteractionVertices; }
+
+  static DigitizationContext* loadFromFile(std::string_view filename = "");
 
  private:
   int mNofEntries = 0;

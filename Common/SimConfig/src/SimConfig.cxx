@@ -34,7 +34,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of modules excluded in geometry (precendence over -m")(
     "readoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors creating hits, all if not given; added to to active modules")(
     "skipReadoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors to skip hit creation (precendence over --readoutDetectors")(
-    "nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "nEvents,n", bpo::value<unsigned int>()->default_value(0), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
@@ -306,7 +306,7 @@ void SimConfig::adjustFromCollContext()
         // we take what is specified in the context
         mConfigData.mNEvents = collisionmap.size();
       } else {
-        LOG(warning) << "The number of events on the command line and in the collision context differ. Taking the min of the 2";
+        LOG(warning) << "The number of events on the command line " << mConfigData.mNEvents << " and in the collision context differ. Taking the min of the 2";
         mConfigData.mNEvents = std::min((size_t)mConfigData.mNEvents, collisionmap.size());
       }
       LOG(info) << "Setting number of events to simulate to " << mConfigData.mNEvents;

@@ -200,7 +200,7 @@ void DigitizationContext::saveToFile(std::string_view filename) const
   file.Close();
 }
 
-DigitizationContext const* DigitizationContext::loadFromFile(std::string_view filename)
+DigitizationContext* DigitizationContext::loadFromFile(std::string_view filename)
 {
   std::string tmpFile;
   if (filename == "") {
