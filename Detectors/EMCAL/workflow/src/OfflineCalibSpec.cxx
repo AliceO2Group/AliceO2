@@ -95,9 +95,9 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
         LOG(debug) << "[EMCALOfflineSpec - run] IsLowGain: " << c.getLowGain();
         float cellE = c.getEnergy();
         if (mGainCalibFactors && mCalibrationHandler->hasGainCalib()) {
-          LOG(info) << "gain calib factor " << mGainCalibFactors->getGainCalibFactors(c.getTower());
+          LOG(debug) << "gain calib factor " << mGainCalibFactors->getGainCalibFactors(c.getTower());
           cellE *= mGainCalibFactors->getGainCalibFactors(c.getTower());
-          LOG(info) << "[EMCALOfflineSpec - run] corrected Energy: " << cellE;
+          LOG(debug) << "[EMCALOfflineSpec - run] corrected Energy: " << cellE;
         }
         mCellAmplitude->Fill(cellE, c.getTower());
         if (cellE > 0.5) {

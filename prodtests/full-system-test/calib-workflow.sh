@@ -28,7 +28,7 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--p
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
 # for async calibrations
-if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1"; fi
+if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
