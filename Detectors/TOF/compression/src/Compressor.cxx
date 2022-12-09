@@ -791,7 +791,9 @@ bool Compressor<RDH, verbose, paranoid>::decoderParanoid()
   /** decoder paranoid **/
 
   if (mDecoderPointer >= mDecoderPointerMax) {
-    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    if (verbose) {
+      printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    }
     mDecoderFatal = true;
     return true;
   }
