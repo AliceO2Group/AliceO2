@@ -78,17 +78,17 @@ bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::M
   // particles.
   //
 
-  const int ist = o2::mcgenstatus::getHepMCStatusCode(p.getStatusCode()); // the generator status code
+  const int hepmcStatusCode = o2::mcgenstatus::getHepMCStatusCode(p.getStatusCode()); // the HepMC status code
   const int pdg = std::abs(p.GetPdgCode());
   //
   // Initial state particle
   // Solution for K0L decayed by Pythia6
   // ->
   // ist > 1 --> essentially means unstable
-  if ((ist > 1) && (pdg != 130) && p.isPrimary()) {
+  if ((hepmcStatusCode > 1) && (pdg != 130) && p.isPrimary()) {
     return false;
   }
-  if ((ist > 1) && p.isSecondary()) {
+  if ((hepmcStatusCode > 1) && p.isSecondary()) {
     return false;
   }
   // <-

@@ -200,7 +200,7 @@ class MCTrackT
   int getProcess() const { return ((PropEncoding)mProp).process; }
 
   /// get generator status code
-  o2::mcgenstatus::MCGenStatusEncoding getStatusCode() const { return mStatusCode; }
+  o2::mcgenstatus::MCGenStatusEncoding getStatusCode() const { return ((o2::mcgenstatus::MCGenStatusEncoding)mStatusCode); }
 
   void setToBeDone(bool f)
   {
@@ -266,9 +266,9 @@ class MCTrackT
   // Additional status codes for MC generator information.
   // NOTE: This additional memory cost might be reduced by using bits elsewhere
   // such as part of mProp (process) or mPDG
-  o2::mcgenstatus::MCGenStatusEncoding mStatusCode;
+  Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 7);
+  ClassDefNV(MCTrackT, 8);
 };
 
 template <typename T>
@@ -367,7 +367,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     setInhibited(true);
   }
   // set MC generator status code only for primaries
-  mStatusCode = part.TestBit(ParticleStatus::kPrimary) ? o2::mcgenstatus::MCGenStatusEncoding(part.GetStatusCode()) : o2::mcgenstatus::MCGenStatusEncoding(-1);
+  mStatusCode = part.TestBit(ParticleStatus::kPrimary) ? part.GetStatusCode() : -1;
 }
 
 template <typename T>
