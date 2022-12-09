@@ -80,7 +80,8 @@ class BarrelAlignmentSpec : public Task
  public:
   enum PostProc { WriteResults = 0x1 << 0,
                   CheckConstaints = 0x1 << 1,
-                  GenPedeFiles = 0x1 << 2 };
+                  GenPedeFiles = 0x1 << 2,
+                  LabelPedeResults = 0x1 << 3 };
   BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t detmask, int postprocess, bool useMC)
     : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mPostProcessing(postprocess), mUseMC(useMC) {}
   ~BarrelAlignmentSpec() override = default;
@@ -114,9 +115,8 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
-  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mUseMC);
   int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
-  mController->setInstanceID(inst);
+  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mUseMC, inst);
   if (dbg) {
     mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}.root", inst).c_str(), "recreate");
     mController->setDebugOutputLevel(dbg);
@@ -282,11 +282,18 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
     mController->closeMilleOutput();
     mController->closeResidOutput();
   }
-  if (inst == 0 && (!mPostProcessing || (mPostProcessing & PostProc::GenPedeFiles))) {
-    LOG(info) << "Writing millepede control files";
-    mController->addAutoConstraints();
-    mController->genPedeSteerFile();
-    mController->getStat().print();
+  if (inst == 0) {
+    if (!mPostProcessing || (mPostProcessing & PostProc::GenPedeFiles)) {
+      LOG(info) << "Writing millepede control files";
+      if (!mPostProcessing) {
+        mController->terminate(); // finalize data stat
+      }
+      mController->addAutoConstraints();
+      mController->genPedeSteerFile();
+      mController->getStat().print();
+    } else if (mPostProcessing & PostProc::LabelPedeResults) {
+      mController->writeLabeledPedeResults();
+    }
   }
   mDBGOut.reset();
 }

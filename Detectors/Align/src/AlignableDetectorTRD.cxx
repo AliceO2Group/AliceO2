@@ -118,6 +118,19 @@ void AlignableDetectorTRD::writePedeInfo(FILE* parOut, const Option_t* opt) cons
   //
 }
 
+//______________________________________________________
+void AlignableDetectorTRD::writeLabeledPedeResults(FILE* parOut) const
+{
+  //
+  AlignableDetector::writeLabeledPedeResults(parOut);
+  //
+  for (int ip = 0; ip < getNCalibDOFs(); ip++) {
+    fprintf(parOut, "%9d %+e %+e\t! calib param %d of %s %s %s\n", getParLab(ip), -getParVal(ip), getParErr(ip), ip, GetName(),
+            isFreeDOF(ip) ? "   " : "FXU", o2::align::utils::isZeroAbs(getParVal(ip)) ? "FXP" : "   ");
+  }
+  //
+}
+
 //_______________________________________________________
 double AlignableDetectorTRD::getCalibDOFVal(int id) const
 {

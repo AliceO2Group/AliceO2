@@ -405,10 +405,9 @@ void AlignableSensor::dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv,
 }
 
 //______________________________________________________
-int AlignableSensor::finalizeStat(DOFStatistics& st)
+int AlignableSensor::finalizeStat()
 {
   // finalize statistics on processed points
-  fillDOFStat(st);
   return mNProcPoints;
 }
 

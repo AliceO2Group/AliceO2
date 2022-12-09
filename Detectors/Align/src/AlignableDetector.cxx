@@ -19,7 +19,6 @@
 #include "Align/AlignableSensor.h"
 #include "Align/Controller.h"
 #include "Align/AlignmentTrack.h"
-#include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonUtils/NameConf.h"
@@ -411,6 +410,23 @@ void AlignableDetector::writePedeInfo(FILE* parOut, const Option_t* opt) const
 }
 
 //______________________________________________________
+void AlignableDetector::writeLabeledPedeResults(FILE* parOut) const
+{
+  // contribute to params and constraints template files for PEDE
+  fprintf(parOut, "\n!!\t\tDetector:\t%s\tNDOFs: %d\n", mDetID.getName(), getNDOFs());
+  //
+  // parameters
+  int nvol = getNVolumes();
+  for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
+    AlignableVolume* vol = getVolume(iv);
+    if (!vol->getParent()) {
+      vol->writeLabeledPedeResults(parOut);
+    }
+  }
+  //
+}
+
+//______________________________________________________
 void AlignableDetector::writeCalibrationResults() const
 {
   // store calibration results
@@ -478,15 +494,13 @@ void AlignableDetector::terminate()
   //  if (isDisabled()) return;
   int nvol = getNVolumes();
   mNProcPoints = 0;
-  auto& st = mController->GetDOFStat();
   for (int iv = 0; iv < nvol; iv++) {
     AlignableVolume* vol = getVolume(iv);
     // call init for root level volumes, they will take care of their children
     if (!vol->getParent()) {
-      mNProcPoints += vol->finalizeStat(st);
+      mNProcPoints += vol->finalizeStat();
     }
   }
-  fillDOFStat(st); // fill stat for calib dofs
 }
 
 //________________________________________
@@ -661,20 +675,6 @@ void AlignableDetector::calcFree(bool condFix)
       continue;
     }
     mNCalibDOFsFree++;
-  }
-  //
-}
-
-//______________________________________________________
-void AlignableDetector::fillDOFStat(DOFStatistics& st) const
-{
-  // fill statistics info hist
-  int ndf = getNCalibDOFs();
-  int dof0 = getFirstParGloID();
-  int stat = getNProcessedPoints();
-  for (int idf = 0; idf < ndf; idf++) {
-    int dof = idf + dof0;
-    st.addStat(dof, stat);
   }
   //
 }
