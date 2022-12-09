@@ -74,6 +74,11 @@ class ConfigParamRegistry
     return mStore->store().count(key) > 0 && mStore->provenance(key) != "default";
   }
 
+  [[nodiscard]] std::vector<ConfigParamSpec> const& specs() const
+  {
+    return mStore->specs();
+  }
+
   template <typename T>
   T get(const char* key) const
   {
