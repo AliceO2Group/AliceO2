@@ -37,7 +37,6 @@
 #pragma link C++ class o2::align::ResidualsController + ;
 #pragma link C++ class o2::align::ResidualsControllerFast + ;
 #pragma link C++ class o2::align::GeometricalConstraint + ;
-#pragma link C++ class o2::align::DOFStatistics + ;
 #pragma link C++ class o2::align::utils;
 
 #pragma link C++ class o2::align::AlignConfig + ;

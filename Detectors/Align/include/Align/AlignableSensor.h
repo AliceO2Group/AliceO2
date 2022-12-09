@@ -21,7 +21,6 @@
 #include <TObjArray.h>
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "Align/AlignableVolume.h"
-#include "Align/DOFStatistics.h"
 #include "Align/utils.h"
 #include <vector>
 
@@ -80,7 +79,7 @@ class AlignableSensor : public AlignableVolume
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
   void updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta) override;
   //
-  int finalizeStat(DOFStatistics& h) override;
+  int finalizeStat() override;
   //
   virtual void prepareMatrixClAlg();
   virtual void prepareMatrixClAlgReco();
