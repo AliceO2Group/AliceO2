@@ -113,8 +113,10 @@ SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t c
   double minFitRange{0};
   double maxFitRange{0};
   auto hist = mHistogram.createSliceYTH1F(channelID);
-  if (CalibParam::Instance().mRebinFactorPerChID[channelID] > 0) {
-    hist->Rebin(CalibParam::Instance().mRebinFactorPerChID[channelID]);
+  if(channelID < sNCHANNELS)
+    if (CalibParam::Instance().mRebinFactorPerChID[channelID] > 0) {
+      hist->Rebin(CalibParam::Instance().mRebinFactorPerChID[channelID]);
+    }
   }
   const float meanHist = hist->GetMean();
   const float rmsHist = hist->GetRMS();
