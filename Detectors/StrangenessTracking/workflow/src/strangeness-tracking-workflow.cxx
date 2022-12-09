@@ -50,7 +50,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 // ------------------------------------------------------------------
 
-
 #include "Framework/runDataProcessing.h"
 #include "Framework/Logger.h"
 
@@ -63,13 +62,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
-  GID::mask_t itsSource = GID::getSourceMask(GID::ITS);  // ITS tracks and clusters
+  GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
   WorkflowSpec specs;
   specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource));
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
-  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs); // S-vertex is always needed
+  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
   specs.emplace_back(getStrangenessTrackingWriterSpec());
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
@@ -78,5 +77,4 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the reco workflow
 
   return std::move(specs);
-
 }
