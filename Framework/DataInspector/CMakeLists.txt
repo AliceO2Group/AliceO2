@@ -9,26 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Logger)
-
-add_subdirectory(Foundation)
-
-add_subdirectory(Core)
-
-add_subdirectory(Utils)
-
-add_subdirectory(AnalysisSupport) 
-add_subdirectory(CCDBSupport)
-add_subdirectory(PhysicsSupport)
-add_subdirectory(DataTakingSupport)
-
-add_subdirectory(RootAnalysisHelpers)
-
-
-# Build the GUI support only if we have DebugGUI
-if (TARGET AliceO2::DebugGUI)
-add_subdirectory(GUISupport)
-endif()
-
-add_subdirectory(TestWorkflows)
-add_subdirectory(DataInspector)
+# Given GCC 7.3 does not provide std::filesystem we use Boost instead
+# Drop this once we move to GCC 8.2+
+o2_add_library(FrameworkDataInspector
+        SOURCES src/Plugin.cxx
+        src/DataInspector.cxx
+        src/DataInspectorService.cxx
+        src/DIMessages.cxx
+        src/DISocket.cxx
+        PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+        PUBLIC_LINK_LIBRARIES O2::Framework)

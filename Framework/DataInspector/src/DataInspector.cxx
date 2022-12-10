@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DataInspector.h"
+#include "DataInspector.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/OutputObjHeader.h"
@@ -36,8 +36,6 @@
 #include "boost/asio.hpp"
 #include <TBufferJSON.h>
 #include <boost/algorithm/string/join.hpp>
-#include "Framework/DISocket.hpp"
-#include "Framework/DataInspectorService.h"
 #include <arrow/table.h>
 #include "Framework/TableConsumer.h"
 #include "boost/archive/iterators/base64_from_binary.hpp"
@@ -125,10 +123,11 @@ namespace o2::framework::DataInspector
     }
   }
 
-  /* Callback which transforms each `DataRef` in `context` to a JSON object and
-  sends it on the `socket`. The messages are sent separately. */
-  void sendToProxy(DataInspectorProxyService& diProxyService, const std::vector<DataRef>& refs, const std::string& deviceName)
+  /* Callback which transforms each `DataRef` to a JSON object*/
+  std::vector<DIMessage> serializeO2Messages(const std::vector<DataRef>& refs, const std::string& deviceName)
   {
+    std::vector<DIMessage> messages{};
+
     for(auto& ref : refs) {
       Document message;
       StringBuffer buffer;
@@ -136,7 +135,9 @@ namespace o2::framework::DataInspector
       buildDocument(message, deviceName, ref);
       message.Accept(writer);
 
-      diProxyService.send(DIMessage{DIMessage::Header::Type::DATA, std::string{buffer.GetString(), buffer.GetSize()}});
+      messages.emplace_back(DIMessage{DIMessage::Header::Type::DATA, std::string{buffer.GetString(), buffer.GetSize()}});
     }
+
+    return messages;
   }
 }

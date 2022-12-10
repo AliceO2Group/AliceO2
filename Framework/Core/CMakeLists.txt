@@ -37,9 +37,6 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/ControlWebSocketHandler.cxx
-                       src/DataInspectorService.cxx
-                       src/DISocket.cxx
-                       src/DIMessages.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DomainInfoHeader.cxx
@@ -125,7 +122,6 @@ o2_add_library(Framework
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
                        src/DataOutputDirector.cxx
-                       src/DataInspector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
                        src/Variant.cxx

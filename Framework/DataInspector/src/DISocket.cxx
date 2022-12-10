@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DISocket.hpp"
+#include "DISocket.h"
 #include <fairlogger/Logger.h>
 
 #define ASIO_CATCH(customMessage) catch(boost::system::system_error& err){ auto msg = std::string{err.what()}; auto code = std::to_string(err.code().value()); throw std::runtime_error{"Exception in DataInspector (boost_code=" + code + ", boost_msg=" + msg + ") - " + customMessage}; }

@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <stdexcept>
-#include "Framework/DataInspector.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
@@ -1089,7 +1088,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")
-      ("inspector", bpo::value<bool>()->zero_tokens()->default_value(false), "add message inspection capabilities")
       ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")
       ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy")
       ("inspector-id", bpo::value<std::string>()->default_value(""), "id of analysis started by DataInspector proxy");
@@ -1104,7 +1102,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
   std::unique_ptr<FairMQDeviceProxy> deviceProxy;
   std::unique_ptr<DeviceContext> deviceContext;
-  std::unique_ptr<DataInspectorProxyService> diProxyService;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1114,7 +1111,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &serviceRegistry,
                                      &deviceState,
                                      &deviceProxy,
-                                     &diProxyService,
                                      &processingPolicies,
                                      &deviceContext,
                                      &loop](fair::mq::DeviceRunner& r) {
@@ -1151,18 +1147,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     }
     if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
       serviceRef.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
-    }
-
-    // We want to register this service only when '--inspector' option was specified
-    if(r.fConfig.GetVarMap()["inspector"].as<bool>() && DataInspector::isNonInternalDevice(spec)) {
-      diProxyService = std::make_unique<DataInspectorProxyService>(
-        ServiceRegistryRef{serviceRegistry},
-        spec,
-        r.fConfig.GetVarMap()["inspector-address"].as<std::string>(),
-        std::stoi(r.fConfig.GetVarMap()["inspector-port"].as<std::string>()),
-        r.fConfig.GetVarMap()["inspector-id"].as<std::string>()
-      );
-      serviceRegistry.registerService(ServiceHandle{TypeIdHelpers::uniqueId<DataInspectorProxyService>(), diProxyService.get()});
     }
   };
 
@@ -2583,7 +2567,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   visibleOptions.add(executorOptions);
 
   auto physicalWorkflow = workflow;
-
   std::map<std::string, size_t> rankIndex;
   // We remove the duplicates because for the moment child get themself twice:
   // once from the actual definition in the child, a second time from the
