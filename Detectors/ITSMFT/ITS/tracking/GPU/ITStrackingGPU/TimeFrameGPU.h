@@ -140,6 +140,9 @@ class TimeFrameGPU : public TimeFrame
   void loadPartitionData(const size_t);
   size_t getNPartions() const { return mMemPartitions.size(); }
 
+  /// interface
+  int getNClustersInRofSpan(const int, const int, const int) const;
+
  private:
   bool mInitialised = false;
   std::vector<GpuTimeFramePartition<nLayers>> mMemPartitions;
@@ -165,6 +168,12 @@ void TimeFrameGPU<nLayers>::loadPartitionData(const size_t part)
   } else {
     mMemPartitions[part].copyDeviceData(startRof, nLayers, mGpuStreams[part]);
   }
+}
+
+template <int nLayers>
+inline int TimeFrameGPU<nLayers>::getNClustersInRofSpan(const int rofIdstart, const int rofSpanSize, const int layerId) const
+{
+  return static_cast<int>(mROframesClusters[layerId][(rofIdstart + rofSpanSize) < mROframesClusters.size() ? rofIdstart + rofSpanSize : mROframesClusters.size() - 1] - mROframesClusters[layerId][rofIdstart]);
 }
 
 // #ifdef __HIPCC__
