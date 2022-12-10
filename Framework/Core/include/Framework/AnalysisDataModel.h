@@ -31,14 +31,21 @@ DECLARE_SOA_STORE();
 
 namespace bc
 {
-DECLARE_SOA_COLUMN(RunNumber, runNumber, int);          //! Run number
-DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);       //! Bunch crossing number (globally unique in this run)
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t); //! CTP trigger mask
+DECLARE_SOA_COLUMN(RunNumber, runNumber, int);              //! Run number
+DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);           //! Bunch crossing number (globally unique in this run)
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t);     //! CTP trigger mask
+DECLARE_SOA_COLUMN(TriggerInputs, triggerInputs, uint64_t); //! CTP inputs
 } // namespace bc
 
-DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>, //! Root of data model for tables pointing to a bunch crossing
+DECLARE_SOA_TABLE(BCs_000, "AOD", "BC", o2::soa::Index<>, //! Root of data model for tables pointing to a bunch crossing, version 000
                   bc::RunNumber, bc::GlobalBC,
                   bc::TriggerMask);
+
+DECLARE_SOA_TABLE_VERSIONED(BCs_001, "AOD", "BC", 1, o2::soa::Index<>, //! Root of data model for tables pointing to a bunch crossing, version 001
+                            bc::RunNumber, bc::GlobalBC,
+                            bc::TriggerMask, bc::TriggerInputs);
+
+using BCs = BCs_000; //! this defines the current default version
 using BC = BCs::iterator;
 
 namespace timestamp
@@ -1019,6 +1026,7 @@ namespace soa
 DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::BCs_001, aod::BCs_000);
 } // namespace soa
 
 namespace aod
