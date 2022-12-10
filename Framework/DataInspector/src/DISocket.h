@@ -18,7 +18,7 @@
 #include <sstream>
 
 struct DIMessage {
-  struct __attribute__ ((packed)) Header {
+  struct __attribute__((packed)) Header {
     enum class Type : uint32_t {
       INVALID = 0,
       DATA = 1,
@@ -41,7 +41,7 @@ struct DIMessage {
     uint64_t payloadSizeLE;
   };
 
-  template<typename T>
+  template <typename T>
   DIMessage(Header::Type type, const T& payload)
   {
     uint64_t payloadSize = 0;
@@ -70,13 +70,13 @@ struct DIMessage {
 
   ~DIMessage();
 
-  template<typename T>
+  template <typename T>
   T get() const
   {
     if constexpr (std::is_same_v<std::string, T>) {
       return std::string{payload, header.payloadSize()};
     } else if constexpr (std::is_integral_v<T>) {
-      return boost::endian::little_to_native(*((T*) payload));
+      return boost::endian::little_to_native(*((T*)payload));
     } else {
       static_assert(o2::framework::always_static_assert_v<T>, "DISocket: Cannot create object of this type.");
     }
@@ -86,7 +86,8 @@ struct DIMessage {
   char* payload;
 };
 
-class DISocket {
+class DISocket
+{
  public:
   DISocket(const std::string& address, int port);
   ~DISocket();
@@ -100,4 +101,4 @@ class DISocket {
   boost::asio::ip::tcp::socket socket;
 };
 
-#endif //O2_DISOCKET_HPP
+#endif // O2_DISOCKET_HPP

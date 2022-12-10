@@ -1087,9 +1087,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
-      ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")
-      ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")
-      ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy")
+      ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")                                                                  //
+      ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")                                                                       //
+      ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy")                                                                                  //
       ("inspector-id", bpo::value<std::string>()->default_value(""), "id of analysis started by DataInspector proxy");
 
     r.fConfig.AddToCmdLineOptions(optsDesc, true);

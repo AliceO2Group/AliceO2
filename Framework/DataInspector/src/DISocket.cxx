@@ -11,7 +11,13 @@
 #include "DISocket.h"
 #include <fairlogger/Logger.h>
 
-#define ASIO_CATCH(customMessage) catch(boost::system::system_error& err){ auto msg = std::string{err.what()}; auto code = std::to_string(err.code().value()); throw std::runtime_error{"Exception in DataInspector (boost_code=" + code + ", boost_msg=" + msg + ") - " + customMessage}; }
+#define ASIO_CATCH(customMessage)                                                                                               \
+  catch (boost::system::system_error & err)                                                                                     \
+  {                                                                                                                             \
+    auto msg = std::string{err.what()};                                                                                         \
+    auto code = std::to_string(err.code().value());                                                                             \
+    throw std::runtime_error{"Exception in DataInspector (boost_code=" + code + ", boost_msg=" + msg + ") - " + customMessage}; \
+  }
 
 DIMessage::Header::Type DIMessage::Header::type() const
 {
@@ -31,7 +37,7 @@ DIMessage::DIMessage(const DIMessage& other) noexcept : header(other.header)
 
 DIMessage& DIMessage::operator=(const DIMessage& other) noexcept
 {
-  if(&other == this)
+  if (&other == this)
     return *this;
 
   this->header = Header{other.header};
@@ -63,10 +69,12 @@ DIMessage::~DIMessage()
   delete[] payload;
 }
 
-DISocket::DISocket(const std::string& address, int port) : ioContext(), socket(ioContext) {
+DISocket::DISocket(const std::string& address, int port) : ioContext(), socket(ioContext)
+{
   try {
     socket.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port));
-  } ASIO_CATCH("DISocket::DISocket")
+  }
+  ASIO_CATCH("DISocket::DISocket")
 }
 
 DISocket::~DISocket()
@@ -84,9 +92,9 @@ void DISocket::send(const DIMessage& message)
   try {
     socket.send(std::array<boost::asio::const_buffer, 2>{
       boost::asio::buffer(&message.header, sizeof(DIMessage::Header)),
-      boost::asio::buffer(message.payload, message.header.payloadSize())
-    });
-  } ASIO_CATCH("DISocket::send")
+      boost::asio::buffer(message.payload, message.header.payloadSize())});
+  }
+  ASIO_CATCH("DISocket::send")
 }
 
 DIMessage DISocket::receive()
@@ -101,6 +109,7 @@ DIMessage DISocket::receive()
     }
 
     return message;
-  } ASIO_CATCH("DISocket::receive")
+  }
+  ASIO_CATCH("DISocket::receive")
   return {};
 }

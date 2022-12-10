@@ -28,6 +28,6 @@ inline bool isNonInternalDevice(const DeviceSpec& spec)
 }
 
 std::vector<DIMessage> serializeO2Messages(const std::vector<DataRef>& refs, const std::string& deviceName);
-}
+} // namespace o2::framework::DataInspector
 
-#endif //O2_DATAINSPECTOR_H
+#endif // O2_DATAINSPECTOR_H
