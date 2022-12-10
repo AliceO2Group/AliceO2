@@ -101,14 +101,14 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
 
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
+      break;
+    }
     if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
       interpolateTrack(trackIndices[iSeed]);
     } else {
       extrapolateTrack(trackIndices[iSeed]);
-    }
-    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
-      LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
-      break;
     }
   }
 

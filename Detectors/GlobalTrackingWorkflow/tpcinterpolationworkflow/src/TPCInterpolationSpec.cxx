@@ -61,11 +61,14 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     // other init-once stuff
     mInterpolation.init();
     int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
-    int nTracksPerTfMax = (nTfs > 0) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
-    if (nTracksPerTfMax >= 0) {
+    bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
+    int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
+    if (nTracksPerTfMax > 0) {
       LOGP(info, "We will stop processing tracks after validating {} tracks per TF", nTracksPerTfMax);
-    } else {
+    } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
+    } else {
+      LOG(error) << "No tracks will be processed. maxTracksPerCalibSlot must be greater than slot length in TFs";
     }
     mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
   }
