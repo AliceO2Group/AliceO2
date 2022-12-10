@@ -18,12 +18,9 @@
 
 namespace DIMessages
 {
-struct RegisterDevice
-{
-  struct Specs
-  {
-    struct Input
-    {
+struct RegisterDevice {
+  struct Specs {
+    struct Input {
       std::string binding;
       std::string sourceChannel;
       size_t timeslice;
@@ -33,8 +30,7 @@ struct RegisterDevice
       boost::optional<uint32_t> subSpec;
     };
 
-    struct Output
-    {
+    struct Output {
       std::string binding;
       std::string channel;
       size_t timeslice;
@@ -45,8 +41,7 @@ struct RegisterDevice
       boost::optional<uint32_t> subSpec;
     };
 
-    struct Forward
-    {
+    struct Forward {
       std::string binding;
       size_t timeslice;
       size_t maxTimeslices;
@@ -73,6 +68,6 @@ struct RegisterDevice
 
   std::string toJson();
 };
-}
+} // namespace DIMessages
 
 #endif // O2_DIMESSAGES_H

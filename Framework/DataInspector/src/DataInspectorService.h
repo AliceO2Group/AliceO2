@@ -25,7 +25,8 @@ namespace o2::framework
 /**
  * Service used for communication with Proxy of DataInspector.
  */
-class DataInspectorProxyService {
+class DataInspectorProxyService
+{
  public:
   DataInspectorProxyService(ServiceRegistryRef serviceRegistry,
                             DeviceSpec const& spec,
@@ -54,6 +55,6 @@ class DataInspectorProxyService {
 struct DIServicePlugin : public ServicePlugin {
   auto create() -> ServiceSpec* final;
 };
-}
+} // namespace o2::framework
 
-#endif //O2_DATAINSPECTORSERVICE_H
+#endif // O2_DATAINSPECTORSERVICE_H
