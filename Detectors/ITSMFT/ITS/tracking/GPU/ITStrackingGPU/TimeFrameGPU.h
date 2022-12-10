@@ -137,7 +137,7 @@ class TimeFrameGPU : public TimeFrame
   void initDevice(const int, const IndexTableUtils*, const int);
   void initDevicePartitions(const int, const int);
   template <Task task>
-  void loadPartitionData(const size_t);
+  size_t loadPartitionData(const size_t, const size_t);
   size_t getNPartions() const { return mMemPartitions.size(); }
 
   /// interface
@@ -159,15 +159,16 @@ class TimeFrameGPU : public TimeFrame
 
 template <int nLayers>
 template <Task task>
-void TimeFrameGPU<nLayers>::loadPartitionData(const size_t part)
+size_t TimeFrameGPU<nLayers>::loadPartitionData(const size_t part, const size_t offset) // offset: readout frame to start from 
 {
-  auto startRof = part * GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB);
+  auto nRof = GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB);
   mMemPartitions[part].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB), task);
   if constexpr ((bool)task) {
     mMemPartitions[part].copyDeviceData(startRof, 3, mGpuStreams[part]);
   } else {
     mMemPartitions[part].copyDeviceData(startRof, nLayers, mGpuStreams[part]);
   }
+  return 
 }
 
 template <int nLayers>

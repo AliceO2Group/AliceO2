@@ -250,11 +250,12 @@ void GpuTimeFramePartition<nLayers>::copyDeviceData(const size_t startRof, const
 {
   RANGE("load_clusters_data", 5);
   for (int i = 0; i < maxLayers; ++i) {
-    mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, mNRof, i);
+    mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, mNRof, i); // Eventually consider whether we can avoid this copy
     if (mHostClusters[i].size() > mTFGconf->clustersPerROfCapacity * mNRof) {
       LOGP(warning, "Excess of expected clusters on layer {}, resizing to config value: {}, will lose information!", i, mTFGconf->clustersPerROfCapacity * mNRof);
     }
     checkGPUError(cudaMemcpyAsync(mClustersDevice[i], mHostClusters[i].data(), (int)std::min(mHostClusters[i].size() * mNRof, mTFGconf->clustersPerROfCapacity * mNRof) * sizeof(Cluster), cudaMemcpyHostToDevice, stream.get()));
+    checkGPUError(cudaMemcpyAsync(mROframesClustersDevice[i], mTimeFramePtr->getROframesClustersPerROFrange(startRof, mNRof, i).data(), mNRof * sizeof(int), cudaMemcpyHostToDevice, stream.get()));
   }
 }
 
@@ -264,6 +265,7 @@ template <int nLayers>
 TimeFrameGPU<nLayers>::TimeFrameGPU()
 {
   mIsGPU = true;
+  utils::getDeviceProp(0, true);
   if (mGpuConfig.maxGPUMemoryGB < 0) {
     // Adaptive to available memory, hungry mode
     size_t free;
