@@ -132,7 +132,6 @@ SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t c
   float meanGaus{};
   float sigmaGaus{};
   float fitChi2{};
-
   if (stat > 0) {
     TFitResultPtr resultFit = hist->Fit("gaus", "0SQ", "", minFitRange, maxFitRange);
     if (((int)resultFit) == 0) {
