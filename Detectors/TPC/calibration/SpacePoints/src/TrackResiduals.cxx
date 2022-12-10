@@ -173,10 +173,10 @@ void TrackResiduals::initBinning()
 //______________________________________________________________________________
 void TrackResiduals::initResultsContainer(int iSec)
 {
-  if (mInitResultsContainer) {
+  if (mInitResultsContainer.test(iSec)) {
     return;
   }
-  mInitResultsContainer = true;
+  mInitResultsContainer.set(iSec);
   mVoxelResults[iSec].resize(mNVoxPerSector);
   for (int ix = 0; ix < mNXBins; ++ix) {
     for (int ip = 0; ip < mNY2XBins; ++ip) {
@@ -299,6 +299,18 @@ void TrackResiduals::setKernelType(KernelType kernel, float bwX, float bwP, floa
 /// processing functions
 ///
 ///////////////////////////////////////////////////////////////////////////////
+
+void TrackResiduals::setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec)
+{
+  initResultsContainer(iSec);
+  std::vector<VoxRes>& secDataTmp = mVoxelResults[iSec];
+  for (int iVox = 0; iVox < mNVoxPerSector; ++iVox) {
+    secDataTmp[iVox].stat[VoxX] = statsIn[iVox].meanPos[VoxX];
+    secDataTmp[iVox].stat[VoxF] = statsIn[iVox].meanPos[VoxF];
+    secDataTmp[iVox].stat[VoxZ] = statsIn[iVox].meanPos[VoxZ];
+    secDataTmp[iVox].stat[VoxDim] = statsIn[iVox].nEntries;
+  }
+}
 
 void TrackResiduals::fillStats(int iSec)
 {
@@ -1452,5 +1464,5 @@ void TrackResiduals::printMem() const
 void TrackResiduals::clear()
 {
   getLocalResVec().clear();
-  mInitResultsContainer = false;
+  mInitResultsContainer.reset();
 }
