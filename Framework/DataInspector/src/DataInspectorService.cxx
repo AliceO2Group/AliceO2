@@ -8,22 +8,24 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DataInspectorService.h"
+#include "DataInspectorService.h"
+#include "DataInspector.h"
 #include "Framework/ServiceSpec.h"
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/DIMessages.h"
+#include "DIMessages.h"
 #include "Framework/ControlService.h"
 
 namespace o2::framework
 {
-DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const std::string& runId) {
+DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const std::string& runId)
+{
   DIMessages::RegisterDevice msg;
   msg.name = spec.name;
   msg.runId = runId;
 
   msg.specs.inputs = std::vector<DIMessages::RegisterDevice::Specs::Input>{};
-  std::transform(spec.inputs.begin(), spec.inputs.end(), std::back_inserter(msg.specs.inputs), [](const InputRoute& input) -> DIMessages::RegisterDevice::Specs::Input{
+  std::transform(spec.inputs.begin(), spec.inputs.end(), std::back_inserter(msg.specs.inputs), [](const InputRoute& input) -> DIMessages::RegisterDevice::Specs::Input {
     boost::optional<std::string> origin;
     boost::optional<std::string> description;
     boost::optional<uint32_t> subSpec;
@@ -40,12 +42,11 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
       .timeslice = input.timeslice,
       .origin = origin,
       .description = description,
-      .subSpec = subSpec
-    };
+      .subSpec = subSpec};
   });
 
   msg.specs.outputs = std::vector<DIMessages::RegisterDevice::Specs::Output>{};
-  std::transform(spec.outputs.begin(), spec.outputs.end(), std::back_inserter(msg.specs.outputs), [](const OutputRoute& output) -> DIMessages::RegisterDevice::Specs::Output{
+  std::transform(spec.outputs.begin(), spec.outputs.end(), std::back_inserter(msg.specs.outputs), [](const OutputRoute& output) -> DIMessages::RegisterDevice::Specs::Output {
     std::string origin;
     std::string description;
     boost::optional<uint32_t> subSpec;
@@ -66,12 +67,11 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
       .maxTimeslices = output.maxTimeslices,
       .origin = origin,
       .description = description,
-      .subSpec = subSpec
-    };
+      .subSpec = subSpec};
   });
 
   msg.specs.forwards = std::vector<DIMessages::RegisterDevice::Specs::Forward>{};
-  std::transform(spec.forwards.begin(), spec.forwards.end(), std::back_inserter(msg.specs.forwards), [](const ForwardRoute& forward) -> DIMessages::RegisterDevice::Specs::Forward{
+  std::transform(spec.forwards.begin(), spec.forwards.end(), std::back_inserter(msg.specs.forwards), [](const ForwardRoute& forward) -> DIMessages::RegisterDevice::Specs::Forward {
     boost::optional<std::string> origin;
     boost::optional<std::string> description;
     boost::optional<uint32_t> subSpec;
@@ -89,8 +89,7 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
       .channel = forward.channel,
       .origin = origin,
       .description = description,
-      .subSpec = subSpec
-    };
+      .subSpec = subSpec};
   });
 
   msg.specs.maxInputTimeslices = spec.maxInputTimeslices;
@@ -111,9 +110,9 @@ DataInspectorProxyService::DataInspectorProxyService(ServiceRegistryRef serviceR
                                                          socket(address, port),
                                                          runId(runId)
 {
-  try{
+  try {
     socket.send(DIMessage{DIMessage::Header::Type::DEVICE_ON, createRegisterMessage(spec, runId).toJson()});
-  } catch(const std::runtime_error& error) {
+  } catch (const std::runtime_error& error) {
     LOG(error) << error.what();
     terminate();
   }
@@ -123,7 +122,7 @@ DataInspectorProxyService::~DataInspectorProxyService()
 {
   try {
     socket.send(DIMessage{DIMessage::Header::Type::DEVICE_OFF, std::string{deviceName}});
-  } catch(const std::runtime_error& error) {
+  } catch (const std::runtime_error& error) {
     LOG(error) << error.what();
     terminate();
   }
@@ -132,11 +131,11 @@ DataInspectorProxyService::~DataInspectorProxyService()
 void DataInspectorProxyService::receive()
 {
   try {
-    if(socket.isMessageAvailable()) {
+    if (socket.isMessageAvailable()) {
       DIMessage msg = socket.receive();
       handleMessage(msg);
     }
-  } catch(const std::runtime_error& error) {
+  } catch (const std::runtime_error& error) {
     LOG(error) << error.what();
     terminate();
   }
@@ -146,13 +145,13 @@ void DataInspectorProxyService::send(DIMessage&& msg)
 {
   try {
     socket.send(std::move(msg));
-  } catch(const std::runtime_error& error) {
+  } catch (const std::runtime_error& error) {
     LOG(error) << error.what();
     terminate();
   }
 }
 
-void DataInspectorProxyService::handleMessage(const DIMessage &msg)
+void DataInspectorProxyService::handleMessage(const DIMessage& msg)
 {
   switch (msg.header.type()) {
     case DIMessage::Header::Type::INSPECT_ON: {
@@ -180,4 +179,54 @@ void DataInspectorProxyService::terminate()
 {
   serviceRegistry.get<ControlService>().readyToQuit(QuitRequest::All);
 }
-}
+
+ServiceSpec* DIServicePlugin::create()
+{
+  return new ServiceSpec{
+    .name = "data-inspector-proxy",
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto proxyAddress = options.GetPropertyAsString("inspector-address");
+      auto proxyPort = std::stoi(options.GetPropertyAsString("inspector-port"));
+      auto runId = options.GetPropertyAsString("inspector-id");
+
+      const auto& spec = services.get<const DeviceSpec>();
+      if (DataInspector::isNonInternalDevice(spec)) {
+        auto* diService = new DataInspectorProxyService(services, spec, proxyAddress, proxyPort, runId);
+        return ServiceHandle{TypeIdHelpers::uniqueId<DataInspectorProxyService>(), diService};
+      } else {
+        return ServiceHandle{0, nullptr};
+      }
+    },
+    .configure = CommonServices::noConfiguration(),
+    .exit = [](ServiceRegistryRef, void* service) {
+            auto *diService = (DataInspectorProxyService *) service;
+            delete diService; },
+    .preSendingMessages = [](ServiceRegistryRef registry, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+            auto &diService = registry.get<DataInspectorProxyService>();
+            diService.receive(); // Check for messages from proxy
+
+            // Check if message is inspected and prepare DataRefs for processing
+            if(diService.isInspected()){
+              std::vector<DataRef> refs{};
+              int i = 0;
+              while (i < parts.Size()) {
+                auto header = o2::header::get<o2::header::DataHeader*>((char*)parts.At(i)->GetData());
+
+                int payloadParts = (int)header->splitPayloadParts;
+                int lastPart = i + payloadParts;
+                while (i < lastPart) {
+                  i++;
+                  refs.push_back(DataRef{nullptr, (char*)parts.At(0)->GetData(), (char*)parts.At(i)->GetData(), parts.At(i)->GetSize()});
+                }
+                i++;
+              }
+
+              // Send copy to proxy
+              auto proxyMessages = DataInspector::serializeO2Messages(refs, registry.get<DeviceSpec const>().name);
+              for(auto& proxyMessage : proxyMessages) {
+                diService.send(std::move(proxyMessage));
+              }
+            } },
+    .kind = ServiceKind::Global};
+};
+} // namespace o2::framework
