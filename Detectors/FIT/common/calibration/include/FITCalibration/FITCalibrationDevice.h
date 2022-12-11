@@ -30,13 +30,16 @@ namespace o2::fit
 template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
 class FITCalibrationDevice : public o2::framework::Task
 {
-  static constexpr const char* DEFAULT_INPUT_DATA_LABEL = "calib";
-  static constexpr const char* sDEFAULT_CCDB_URL = "http://localhost:8080";
+  //  static constexpr const char* sDEFAULT_CCDB_URL = "http://localhost:8080";
+  static constexpr const char* sInputDataLabel = "calibData";
+  static constexpr const char* sOutputDataLabelCDBPayload = "cdbPayloadFIT";
+  static constexpr const char* sOutputDataLabelCDBWrapper = "cdbWrapperFIT";
   using CalibratorType = FITCalibrator<TimeSlotStorageType, CalibrationObjectType>;
 
  public:
-  explicit FITCalibrationDevice(std::string inputDataLabel = DEFAULT_INPUT_DATA_LABEL, std::shared_ptr<o2::base::GRPGeomRequest> req = {})
-    : mInputDataLabel(std::move(inputDataLabel)), mCCDBRequest(req) {}
+  explicit FITCalibrationDevice(std::shared_ptr<o2::base::GRPGeomRequest> req = {}, const std::string& inputDataLabel = sInputDataLabel, const std::string& outputDataLabelCDBPayload = sOutputDataLabelCDBPayload, const std::string& outputDataLabelCDBWrapper = sOutputDataLabelCDBWrapper)
+    : mInputDataLabel(std::move(inputDataLabel)), mCCDBRequest(req), mOutputDataLabelCDBPayload(outputDataLabelCDBPayload), mOutputDataLabelCDBWrapper(outputDataLabelCDBWrapper) {}
+
   void init(o2::framework::InitContext& context) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -48,7 +51,7 @@ class FITCalibrationDevice : public o2::framework::Task
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
 
-    o2::ccdb::BasicCCDBManager::instance().setURL(sDEFAULT_CCDB_URL);
+    //    o2::ccdb::BasicCCDBManager::instance().setURL(sDEFAULT_CCDB_URL);
   }
 
   void run(o2::framework::ProcessingContext& context) final
@@ -73,6 +76,16 @@ class FITCalibrationDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
+  void static prepareVecOutputSpec(std::vector<o2::framework::OutputSpec>& outputs, o2::header::DataDescription dataDescription)
+  {
+    outputs.emplace_back(o2::framework::OutputLabel{sOutputDataLabelCDBPayload}, o2::calibration::Utils::gDataOriginCDBPayload, dataDescription, o2::framework::Lifetime::Sporadic);
+    outputs.emplace_back(o2::framework::OutputLabel{sOutputDataLabelCDBWrapper}, o2::calibration::Utils::gDataOriginCDBWrapper, dataDescription, o2::framework::Lifetime::Sporadic);
+  }
+
+  void static prepareVecInputSpec(std::vector<o2::framework::InputSpec>& inputs, o2::header::DataOrigin dataOrigin, o2::header::DataDescription dataDescription)
+  {
+    inputs.emplace_back(sInputDataLabel, dataOrigin, dataDescription, o2::framework::Lifetime::Sporadic);
+  }
 
  private:
   void _sendCalibrationObjectIfSlotFinalized(o2::framework::DataAllocator& outputs)
@@ -89,8 +102,8 @@ class FITCalibrationDevice : public o2::framework::Task
 
     uint32_t iSendChannel = 0;
     for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
-      outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBPayload, "FIT_CALIB", iSendChannel}, *calibObject);
-      outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBWrapper, "FIT_CALIB", iSendChannel}, ccdbInfo);
+      outputs.snapshot(o2::framework::OutputRef{mOutputDataLabelCDBPayload, iSendChannel}, *calibObject);
+      outputs.snapshot(o2::framework::OutputRef{mOutputDataLabelCDBWrapper, iSendChannel}, ccdbInfo);
       LOG(info) << "_sendOutputs " << ccdbInfo.getStartValidityTimestamp();
       ++iSendChannel;
     }
@@ -98,6 +111,8 @@ class FITCalibrationDevice : public o2::framework::Task
   }
 
   const std::string mInputDataLabel;
+  const std::string mOutputDataLabelCDBPayload;
+  const std::string mOutputDataLabelCDBWrapper;
   std::unique_ptr<CalibratorType> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };

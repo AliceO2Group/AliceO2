@@ -39,4 +39,5 @@ o2_target_root_dictionary(DataFormatsFT0
           include/DataFormatsFT0/FT0ChannelTimeCalibrationObject.h
           include/DataFormatsFT0/GlobalOffsetsInfoObject.h
           include/DataFormatsFT0/GlobalOffsetsCalibrationObject.h
+          include/DataFormatsFT0/SpectraInfoObject.h
 )
