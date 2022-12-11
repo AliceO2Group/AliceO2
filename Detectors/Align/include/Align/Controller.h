@@ -175,6 +175,7 @@ class Controller : public TObject
   int parID2Label(int i) const { return getGloParLab(i); }
   int label2ParID(int lab) const;
   AlignableVolume* getVolOfDOFID(int id) const;
+  AlignableVolume* getVolOfLabel(int label) const;
   AlignableDetector* getDetOfDOFID(int id) const;
   //
   AlignmentPoint* getRefPoint() const { return mRefPoint.get(); }
