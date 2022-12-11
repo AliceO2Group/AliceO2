@@ -951,7 +951,7 @@ void Controller::writeCalibrationResults() const
 AlignableDetector* Controller::getDetOfDOFID(int id) const
 {
   // return detector owning DOF with this ID
-  for (auto id = DetID::First; id <= DetID::Last; id++) {
+  for (auto idet = DetID::First; idet <= DetID::Last; idet++) {
     AlignableDetector* det = getDetector(id);
     if (det && det->ownsDOFID(id)) {
       return det;
@@ -964,8 +964,8 @@ AlignableDetector* Controller::getDetOfDOFID(int id) const
 AlignableVolume* Controller::getVolOfDOFID(int id) const
 {
   // return volume owning DOF with this ID
-  for (auto id = DetID::First; id <= DetID::Last; id++) {
-    AlignableDetector* det = getDetector(id);
+  for (auto idet = DetID::First; idet <= DetID::Last; idet++) {
+    AlignableDetector* det = getDetector(idet);
     if (det && det->ownsDOFID(id)) {
       return det->getVolOfDOFID(id);
     }
@@ -974,6 +974,14 @@ AlignableVolume* Controller::getVolOfDOFID(int id) const
     return mVtxSens.get();
   }
   return nullptr;
+}
+
+//________________________________________________________
+AlignableVolume* Controller::getVolOfLabel(int lbl) const
+{
+  // return volume owning DOF with this label
+  const auto& ent = mLbl2ID.find(lbl);
+  return ent == mLbl2ID.end() ? nullptr : getVolOfDOFID(ent->second);
 }
 
 //________________________________________________________
