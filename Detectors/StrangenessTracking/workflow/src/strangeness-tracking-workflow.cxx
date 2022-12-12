@@ -14,15 +14,23 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
+#include "GlobalTrackingWorkflow/SecondaryVertexWriterSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
-
 #include <vector>
 
 using namespace o2::framework;
 using namespace o2::strangeness_tracking;
+using GID = o2::dataformats::GlobalTrackID;
+using DetID = o2::detectors::DetID;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -49,18 +57,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
+  GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
-  auto wf = o2::strangeness_tracking::getWorkflow(useMC, useRootInput);
-  wf.emplace_back(getStrangenessTrackingWriterSpec());
+  WorkflowSpec specs;
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource));
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
+  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
+  specs.emplace_back(getStrangenessTrackingWriterSpec());
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   // write the configuration used for the reco workflow
-  o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
 
-  return std::move(wf);
+  return std::move(specs);
 }

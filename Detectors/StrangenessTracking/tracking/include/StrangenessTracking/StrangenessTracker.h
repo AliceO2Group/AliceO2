@@ -19,16 +19,20 @@
 #include <gsl/gsl>
 #include <TLorentzVector.h>
 #include "TMath.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "StrangenessTracking/IndexTableUtils.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 
 #include "DataFormatsITS/TrackITS.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsBase/Propagator.h"
@@ -70,11 +74,12 @@ class StrangenessTracker
   using GIndex = o2::dataformats::VtxTrackIndex;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
+  using VBracket = o2::math_utils::Bracket<int>;
 
   StrangenessTracker() = default;
   ~StrangenessTracker() = default;
 
-  void initialise();
+  void prepareITStracks();
   void process();
 
   std::vector<ClusAttachments>& getClusAttachments() { return mClusAttachments; };
@@ -83,6 +88,7 @@ class StrangenessTracker
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
+  void setConfigParams(const StrangenessTrackingParamConfig* params) { mStrParams = params; }
 
   void setupFitters()
   {
@@ -91,8 +97,9 @@ class StrangenessTracker
     mFitterV0.setUseAbsDCA(true);
     mFitter3Body.setUseAbsDCA(true);
   }
-
-  bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, gsl::span<const Cascade> InputCascadeTracks, o2::its::GeometryTGeo* geomITS);
+  bool loadData(const o2::globaltracking::RecoContainer& recoData);
+  void clear();
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
   double calcV0alpha(const V0& v0);
   std::vector<ITSCluster> getTrackClusters();
   float getMatchingChi2(o2::track::TrackParCovF, const TrackITS ITSTrack, ITSCluster matchingClus);
@@ -103,6 +110,7 @@ class StrangenessTracker
 
  protected:
   gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
+  std::vector<VBracket> mITSvtxBrackets;              // time brackets for ITS tracks
   std::vector<int> mTracksIdxTable;                   // index table for ITS tracks
   std::vector<ITSCluster> mInputITSclusters;          // input ITS clusters
   gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
@@ -118,12 +126,12 @@ class StrangenessTracker
 
   const StrangenessTrackingParamConfig* mStrParams = nullptr;
   float mBz = -5; // Magnetic field
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
   DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
-  o2::its::GeometryTGeo* mGeomITS;                                                                                       // ITS geometry
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction                                                                                 // ITS geometry
 
   std::vector<o2::track::TrackParCovF> mDaughterTracks; // vector of daughter tracks
   StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs

@@ -22,6 +22,8 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 #include "TStopwatch.h"
 
@@ -35,15 +37,16 @@ class StrangenessTrackerSpec : public framework::Task
 {
  public:
   using ITSCluster = o2::BaseCluster<float>;
+  using DataRequest = o2::globaltracking::DataRequest;
+  using GTrackID = o2::dataformats::GlobalTrackID;
 
-  StrangenessTrackerSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC);
+  StrangenessTrackerSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC);
   ~StrangenessTrackerSpec() override = default;
 
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
@@ -52,11 +55,11 @@ class StrangenessTrackerSpec : public framework::Task
   TStopwatch mTimer;
   StrangenessTracker mTracker;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  std::shared_ptr<DataRequest> mDataRequest;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
-  const o2::itsmft::TopologyDictionary* mDict = nullptr;
 };
 
-o2::framework::DataProcessorSpec getStrangenessTrackerSpec();
+o2::framework::DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src);
 o2::framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
 
 } // namespace strangeness_tracking
