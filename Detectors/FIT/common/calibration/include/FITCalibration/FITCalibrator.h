@@ -67,7 +67,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlot
     auto starting = slot.getStartTimeMS();
     auto stopping = slot.getEndTimeMS();
     LOGP(info, "!!!! {}({})<=TF<={}({}), starting: {} stopping {}", slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), starting, stopping);
-    auto calibrationObject = container->generateCalibrationObject();
+    auto calibrationObject = container->generateCalibrationObject(slot.getStartTimeMS(), slot.getEndTimeMS(), mExtraInfo);
     std::vector<CalibObjWithInfoType> preparedCalibObjects;
     preparedCalibObjects.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, starting, stopping));
     mStoredCalibrationObjects.insert(mStoredCalibrationObjects.end(),
@@ -99,10 +99,15 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlot
               << " start " << starting << " end " << stopping;
     return result;
   }
+  void setExtraInfo(const std::string& extraInfo)
+  {
+    mExtraInfo = extraInfo;
+  }
 
  private:
   std::vector<CalibObjWithInfoType> mStoredCalibrationObjects{};
   const unsigned int mMinEntries;
+  std::string mExtraInfo;
 };
 
 } // namespace o2::fit

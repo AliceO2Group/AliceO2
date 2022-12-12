@@ -46,12 +46,12 @@ class FITCalibrationDevice : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     auto slotL = context.options().get<uint32_t>("tf-per-slot");
     auto delay = context.options().get<uint32_t>("max-delay");
-
+    const std::string extraInfo = context.options().get<std::string>("extra-info-per-slot");
     mCalibrator = std::make_unique<CalibratorType>();
 
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
-
+    mCalibrator->setExtraInfo(extraInfo);
     //    o2::ccdb::BasicCCDBManager::instance().setURL(sDEFAULT_CCDB_URL);
   }
 

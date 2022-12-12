@@ -56,7 +56,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     o2::framework::Options{
       {"tf-per-slot", o2::framework::VariantType::UInt32, 56000u, {""}},
-      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}}}};
+      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 
   WorkflowSpec workflow;
   workflow.emplace_back(dataProcessorSpec);

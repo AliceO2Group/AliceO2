@@ -16,6 +16,7 @@
 #include <Framework/Logger.h>
 
 #include "TH1.h"
+#include "TFile.h"
 #include "TFitResult.h"
 
 using namespace o2::ft0;
@@ -107,7 +108,7 @@ void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
   mCurrentSlot++;
 }
 
-SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t channelID) const
+SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t channelID, TList* listHists) const
 {
   uint32_t statusBits{};
   double minFitRange{0};
@@ -145,19 +146,40 @@ SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t c
       LOG(debug) << "Bad gaus fit: meanGaus " << meanGaus << " sigmaGaus " << sigmaGaus << " meanHist " << meanHist << " rmsHist " << rmsHist << "resultFit " << ((int)resultFit);
     }
   }
+  if (listHists != nullptr) {
+    auto histPtr = hist.release();
+    const std::string histName = "histCh" + std::to_string(channelID);
+    histPtr->SetName(histName.c_str());
+    listHists->Add(histPtr);
+  }
   return SpectraInfoObject{meanGaus, sigmaGaus, constantGaus, fitChi2, meanHist, rmsHist, stat, statusBits};
 }
 
-TimeSpectraInfoObject FT0TimeOffsetSlotContainer::generateCalibrationObject() const
+TimeSpectraInfoObject FT0TimeOffsetSlotContainer::generateCalibrationObject(long tsStartMS, long tsEndMS, const std::string& extraInfo) const
 {
+  TList* listHists = nullptr;
+  bool storeHists{false};
+  if (extraInfo.size() > 0) {
+    storeHists = true;
+    listHists = new TList();
+    listHists->SetOwner(true);
+    listHists->SetName("output");
+  }
   TimeSpectraInfoObject calibrationObject;
   for (unsigned int iCh = 0; iCh < sNCHANNELS; ++iCh) {
-    calibrationObject.mTime[iCh] = getSpectraInfoObject(iCh);
+    calibrationObject.mTime[iCh] = getSpectraInfoObject(iCh, listHists);
   }
-  calibrationObject.mTimeA = getSpectraInfoObject(sNCHANNELS);
-  calibrationObject.mTimeC = getSpectraInfoObject(sNCHANNELS + 1);
-  calibrationObject.mSumTimeAC = getSpectraInfoObject(sNCHANNELS + 2);
-  calibrationObject.mDiffTimeCA = getSpectraInfoObject(sNCHANNELS + 3);
+  calibrationObject.mTimeA = getSpectraInfoObject(sNCHANNELS, listHists);
+  calibrationObject.mTimeC = getSpectraInfoObject(sNCHANNELS + 1, listHists);
+  calibrationObject.mSumTimeAC = getSpectraInfoObject(sNCHANNELS + 2, listHists);
+  calibrationObject.mDiffTimeCA = getSpectraInfoObject(sNCHANNELS + 3, listHists);
+  if (storeHists) {
+    const std::string filename = extraInfo + "/histsTimeSpectra" + std::to_string(tsStartMS) + "_" + std::to_string(tsEndMS) + ".root";
+    TFile fileHists(filename.c_str(), "RECREATE");
+    fileHists.WriteObject(listHists, listHists->GetName(), "SingleKey");
+    fileHists.Close();
+    delete listHists;
+  }
   return calibrationObject;
 }
 
