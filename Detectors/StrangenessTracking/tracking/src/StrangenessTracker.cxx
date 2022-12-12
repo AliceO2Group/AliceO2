@@ -13,37 +13,84 @@
 
 #include <numeric>
 #include "StrangenessTracking/StrangenessTracker.h"
+#include "ITStracking/IOUtils.h"
 
 namespace o2
 {
 namespace strangeness_tracking
 {
 
-bool StrangenessTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, gsl::span<const Cascade> InputCascadeTracks, o2::its::GeometryTGeo* geomITS)
+void StrangenessTracker::clear()
 {
-  mInputV0tracks = InputV0tracks;
-  mInputCascadeTracks = InputCascadeTracks;
-  mInputITStracks = InputITStracks;
-  mInputITSclusters = InputITSclusters;
-  mInputITSidxs = InputITSidxs;
-  LOG(info) << "all tracks loaded";
-  LOG(info) << "V0 tracks size: " << mInputV0tracks.size();
-  LOG(info) << "Cascade tracks size: " << mInputCascadeTracks.size();
-  LOG(info) << "ITS tracks size: " << mInputITStracks.size();
-  LOG(info) << "ITS clusters size: " << mInputITSclusters.size();
-  LOG(info) << "ITS idxs size: " << mInputITSidxs.size();
-  mGeomITS = geomITS;
-  setupFitters();
-  return true;
-}
-
-void StrangenessTracker::initialise()
-{
+  mDaughterTracks.clear();
+  mClusAttachments.clear();
+  mStrangeTrackVec.clear();
   mTracksIdxTable.clear();
   mSortedITStracks.clear();
   mSortedITSindexes.clear();
+  mITSvtxBrackets.clear();
+}
+
+bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoData)
+{
+  clear();
+  mInputV0tracks = recoData.getV0s();
+  mInputCascadeTracks = recoData.getCascades();
+  mInputITStracks = recoData.getITSTracks();
+  mInputITSidxs = recoData.getITSTracksClusterRefs();
+
+  auto clusITS = recoData.getITSClusters();
+  auto clusPatt = recoData.getITSClustersPatterns();
+  auto pattIt = clusPatt.begin();
+  mInputITSclusters.reserve(clusITS.size());
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mInputITSclusters, mDict);
+
+  mITSvtxBrackets.resize(mInputITStracks.size());
+  for (int i = 0; i < mInputITStracks.size(); i++) {
+    mITSvtxBrackets[i] = {-1, -1};
+  }
+
+  // build time bracket for each ITS track
+  auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+  auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+
+  if (mStrParams->mVertexMatching) {
+    int nv = vtxRefs.size();
+    for (int iv = 0; iv < nv; iv++) {
+      const auto& vtref = vtxRefs[iv];
+      int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
+      for (; it < itLim; it++) {
+        auto tvid = trackIndex[it];
+        if (!recoData.isTrackSourceLoaded(tvid.getSource()) || tvid.getSource() != GIndex::ITS) {
+          continue;
+        }
+        if (mITSvtxBrackets[tvid.getIndex()].getMin() == -1) {
+          mITSvtxBrackets[tvid.getIndex()].setMin(iv);
+          mITSvtxBrackets[tvid.getIndex()].setMax(iv);
+        } else {
+          mITSvtxBrackets[tvid.getIndex()].setMax(iv);
+        }
+      }
+    }
+  }
+
+  LOG(debug) << "V0 tracks size: " << mInputV0tracks.size();
+  LOG(debug) << "Cascade tracks size: " << mInputCascadeTracks.size();
+  LOG(debug) << "ITS tracks size: " << mInputITStracks.size();
+  LOG(debug) << "ITS idxs size: " << mInputITSidxs.size();
+  LOG(debug) << "ITS clusters size: " << mInputITSclusters.size();
+  LOG(debug) << "VtxRefs size: " << vtxRefs.size();
+
+  return true;
+}
+
+void StrangenessTracker::prepareITStracks() // sort tracks by eta and phi and select only tracks with vertex matching
+{
 
   for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
+    if (mStrParams->mVertexMatching && mITSvtxBrackets[iTrack].getMin() == -1) {
+      continue;
+    }
     mSortedITStracks.push_back(mInputITStracks[iTrack]);
     mSortedITSindexes.push_back(iTrack);
   }
@@ -57,9 +104,6 @@ void StrangenessTracker::initialise()
   }
   std::exclusive_scan(mTracksIdxTable.begin(), mTracksIdxTable.begin() + mUtils.mPhiBins * mUtils.mEtaBins, mTracksIdxTable.begin(), 0);
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
-
-  // create config param instance
-  mStrParams = &StrangenessTrackingParamConfig::Instance();
 }
 
 void StrangenessTracker::process()
@@ -92,8 +136,12 @@ void StrangenessTracker::process()
         mDaughterTracks[0] = correctedV0.getProng(0);
         mDaughterTracks[1] = correctedV0.getProng(1);
         mITStrack = mSortedITStracks[iTrack];
-
+        auto& ITSindexRef = mSortedITSindexes[iTrack];
         LOG(debug) << "V0 pos: " << v0.getProngID(0) << " V0 neg: " << v0.getProngID(1) << ", ITS track ref: " << mSortedITSindexes[iTrack];
+        if (mStrParams->mVertexMatching && (mITSvtxBrackets[ITSindexRef].getMin() > v0.getVertexID() ||
+                                            mITSvtxBrackets[ITSindexRef].getMax() < v0.getVertexID())) {
+          continue;
+        }
 
         if (matchDecayToITStrack(sqrt(v0R2))) {
           LOG(debug) << "ITS Track matched with a V0 decay topology ....";
@@ -129,6 +177,13 @@ void StrangenessTracker::process()
         auto& ITSindexRef = mSortedITSindexes[iTrack];
         LOG(debug) << "----------------------";
         LOG(debug) << "CascV0: " << casc.getV0ID() << ", Bach ID: " << casc.getBachelorID() << ", ITS track ref: " << mSortedITSindexes[iTrack];
+
+        if (mStrParams->mVertexMatching && (mITSvtxBrackets[ITSindexRef].getMin() > casc.getVertexID() ||
+                                            mITSvtxBrackets[ITSindexRef].getMax() < casc.getVertexID())) {
+          LOG(debug) << "Vertex ID mismatch: " << mITSvtxBrackets[ITSindexRef].getMin() << " < " << casc.getVertexID() << " < " << mITSvtxBrackets[ITSindexRef].getMax();
+          continue;
+        }
+
         if (matchDecayToITStrack(sqrt(cascR2))) {
           LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
           LOG(debug) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
@@ -144,7 +199,7 @@ void StrangenessTracker::process()
 
 bool StrangenessTracker::matchDecayToITStrack(float decayR)
 {
-
+  auto geom = o2::its::GeometryTGeo::Instance();
   auto trackClusters = getTrackClusters();
   auto& lastClus = trackClusters[0];
   mStrangeTrack.mMatchChi2 = getMatchingChi2(mStrangeTrack.mMother, mITStrack, lastClus);
@@ -164,13 +219,12 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
     auto diffR = decayR - clusRad;
     auto relDiffR = diffR / decayR;
     // Look for the Mother if the Decay radius allows for it, within a tolerance
-    LOG(debug) << "++++++++";
     LOG(debug) << "decayR: " << decayR << ", diffR: " << diffR << ", clus rad: " << clusRad << ", radTol: " << radTol;
     if (relDiffR > -radTol) {
-      LOG(debug) << "Try to attach cluster to Mother, layer: " << mGeomITS->getLayer(clus.getSensorID());
+      LOG(debug) << "Try to attach cluster to Mother, layer: " << geom->getLayer(clus.getSensorID());
       if (updateTrack(clus, mStrangeTrack.mMother)) {
         motherClusters.push_back(clus);
-        nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 0;
+        nAttachments[geom->getLayer(clus.getSensorID())] = 0;
         isMotherUpdated = true;
         nUpdates++;
         LOG(debug) << "Cluster attached to Mother";
@@ -181,11 +235,11 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
     // if Mother is not found, check for V0 daughters compatibility
     if (relDiffR < radTol && !isMotherUpdated) {
       bool isDauUpdated = false;
-      LOG(debug) << "Try to attach cluster to Daughters, layer: " << mGeomITS->getLayer(clus.getSensorID());
+      LOG(debug) << "Try to attach cluster to Daughters, layer: " << geom->getLayer(clus.getSensorID());
       for (int iDau{0}; iDau < mDaughterTracks.size(); iDau++) {
         auto& dauTrack = mDaughterTracks[iDau];
         if (updateTrack(clus, dauTrack)) {
-          nAttachments[mGeomITS->getLayer(clus.getSensorID())] = iDau + 1;
+          nAttachments[geom->getLayer(clus.getSensorID())] = iDau + 1;
           isDauUpdated = true;
           break;
         }
@@ -264,25 +318,18 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
 
 bool StrangenessTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track)
 {
+  auto geom = o2::its::GeometryTGeo::Instance();
   auto propInstance = o2::base::Propagator::Instance();
-  float alpha = mGeomITS->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
-  int layer{mGeomITS->getLayer(clus.getSensorID())};
-
-  auto stringOld = track.asString();
-  LOG(debug) << "Track before update,  Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
+  float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
+  int layer{geom->getLayer(clus.getSensorID())};
 
   if (!track.rotate(alpha)) {
     return false;
   }
 
-  LOG(debug) << "Track rotated,  Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
-
   if (!propInstance->propagateToX(track, x, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
     return false;
   }
-
-  auto stringNew = track.asString();
-  LOG(debug) << "Track after propagation, Y2: " << track.getSigmaY2() << ", Z2: " << track.getSigmaZ2();
 
   if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
     float thick = layer < 3 ? 0.005 : 0.01;
@@ -344,7 +391,8 @@ std::vector<o2::strangeness_tracking::StrangenessTracker::ITSCluster> Strangenes
 
 float StrangenessTracker::getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
 {
-  float alpha = mGeomITS->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
+  auto geom = o2::its::GeometryTGeo::Instance();
+  float alpha = geom->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
   if (v0.rotate(alpha)) {
     if (v0.propagateTo(x, mBz)) {
       return v0.getPredictedChi2(ITStrack.getParamOut());

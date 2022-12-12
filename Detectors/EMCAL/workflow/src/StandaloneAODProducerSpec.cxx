@@ -64,7 +64,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   LOG(info) << "FOUND " << cellsIn.size() << " EMC cells in CTF";
   LOG(info) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
 
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC_001"});
+  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
   auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
@@ -78,7 +78,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   mCaloEventHandler->reset();
   mCaloEventHandler->setCellData(cellsIn, triggersIn);
 
-  uint64_t triggerMask = 1, triggerInputs = 0;
+  uint64_t triggerMask = 1;
   // loop over events
   for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
     o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);

@@ -16,6 +16,7 @@ o2_add_library(FOCALReconstruction
         src/PadMapper.cxx
         src/PixelLaneData.cxx
         src/PixelDecoder.cxx
+        src/PixelMapper.cxx
         PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers O2::DataFormatsFOCAL O2::ITSMFTReconstruction
         AliceO2::InfoLogger
         Microsoft.GSL::GSL)

@@ -16,15 +16,18 @@
 
 #include "TrackFinderOriginalSpec.h"
 
-#include <chrono>
 #include <array>
+#include <chrono>
+#include <filesystem>
 #include <list>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
 #include <gsl/span>
 
 #include "Framework/CallbackService.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -34,9 +37,13 @@
 #include "Framework/Logger.h"
 
 #include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/Cluster.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include "DetectorsBase/Propagator.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinderOriginal.h"
@@ -54,19 +61,35 @@ class TrackFinderTask
 {
  public:
   //_________________________________________________________________________________________________
+  TrackFinderTask(std::shared_ptr<base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+
+  //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
     /// Prepare the track extrapolation tools
 
     LOG(info) << "initializing track finder";
 
-    auto l3Current = ic.options().get<float>("l3Current");
-    auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+    if (mCCDBRequest) {
+      base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    } else {
+      auto grpFile = ic.options().get<std::string>("grp-file");
+      if (std::filesystem::exists(grpFile)) {
+        const auto grp = parameters::GRPObject::loadFrom(grpFile);
+        base::Propagator::initFieldFromGRP(grp);
+        TrackExtrap::setField();
+      } else {
+        float l3Current = ic.options().get<float>("l3Current");
+        float dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+        mTrackFinder.initField(l3Current, dipoleCurrent);
+      }
+    }
+
     auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHTracking", true);
     }
-    mTrackFinder.init(l3Current, dipoleCurrent);
+    mTrackFinder.init();
 
     auto debugLevel = ic.options().get<int>("mch-debug");
     mTrackFinder.debug(debugLevel);
@@ -80,9 +103,24 @@ class TrackFinderTask
   }
 
   //_________________________________________________________________________________________________
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    /// finalize the track extrapolation setting
+    if (mCCDBRequest && base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      if (matcher == framework::ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
+        TrackExtrap::setField();
+      }
+    }
+  }
+
+  //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
     /// for each event in the current TF, read the clusters and find tracks, then send them all
+
+    if (mCCDBRequest) {
+      base::GRPGeomHelper::instance().checkUpdates(pc);
+    }
 
     // get the input messages with clusters
     auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
@@ -147,23 +185,40 @@ class TrackFinderTask
     }
   }
 
-  TrackFinderOriginal mTrackFinder{};           ///< track finder
-  std::chrono::duration<double> mElapsedTime{}; ///< timer
+  std::shared_ptr<base::GRPGeomRequest> mCCDBRequest{}; ///< pointer to the CCDB requests
+  TrackFinderOriginal mTrackFinder{};                   ///< track finder
+  std::chrono::duration<double> mElapsedTime{};         ///< timer
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName)
+o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName, bool disableCCDBMagField)
 {
+  std::vector<InputSpec> inputSpecs{};
+  inputSpecs.emplace_back(InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe});
+  inputSpecs.emplace_back(InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe});
+
+  std::vector<OutputSpec> outputSpecs{};
+  outputSpecs.emplace_back(OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+
+  auto ccdbRequest = disableCCDBMagField ? nullptr
+                                         : std::make_shared<base::GRPGeomRequest>(false,                      // orbitResetTime
+                                                                                  false,                      // GRPECS=true
+                                                                                  false,                      // GRPLHCIF
+                                                                                  true,                       // GRPMagField
+                                                                                  false,                      // askMatLUT
+                                                                                  base::GRPGeomRequest::None, // geometry
+                                                                                  inputSpecs);
+
   return DataProcessorSpec{
     specName,
-    Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
-           InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
-            OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe},
-            OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
+    inputSpecs,
+    outputSpecs,
+    AlgorithmSpec{adaptFromTask<TrackFinderTask>(ccdbRequest)},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
+            {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
             {"mch-config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
             {"mch-debug", VariantType::Int, 0, {"debug level"}}}};
 }

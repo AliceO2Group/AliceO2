@@ -46,7 +46,8 @@ class TrackFinder
   TrackFinder(TrackFinder&&) = delete;
   TrackFinder& operator=(TrackFinder&&) = delete;
 
-  void init(float l3Current, float dipoleCurrent);
+  void init();
+  void initField(float l3Current, float dipoleCurrent);
 
   const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
 
