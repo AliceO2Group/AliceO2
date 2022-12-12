@@ -184,7 +184,7 @@ const PixelMapping& PixelMapper::getMapping(unsigned int feeID) const
   return *(mMappings[feeID % 2]);
 }
 
-std::ostream& o2::xfocal::operator<<(std::ostream& stream, const PixelMapping::InvalidChipException& error)
+std::ostream& o2::focal::operator<<(std::ostream& stream, const PixelMapping::InvalidChipException& error)
 {
   error.print(stream);
   return stream;
