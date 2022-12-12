@@ -264,11 +264,6 @@ class AODProducerWorkflowDPL : public Task
 
   BunchCrossings mBCLookup;
 
-  // zdc helper maps to avoid a number of "if" statements
-  // when filling ZDC table
-  map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
-  map<string, float> mZDCTDCMap;    // mapping TDC channel to a corresponding TDC value
-
   std::vector<uint16_t> mITSTPCTRDTriggers; // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
   std::vector<uint16_t> mTPCTRDTriggers;    // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
   std::vector<uint16_t> mITSROFs;           // mapping from ITS tracks ID to corresponding ROF (for SA ITS tracks time extraction)
