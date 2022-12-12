@@ -53,6 +53,10 @@ if(BUILD_SIMULATION)
   o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()
 
+if(BUILD_SIMULATION)
+  add_subdirectory(O2TrivialMC)
+endif()
+
 o2_data_file(COPY Geometry DESTINATION Detectors)
 
 if(ENABLE_UPGRADES)

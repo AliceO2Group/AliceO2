@@ -17,51 +17,13 @@
 #include "G4ParticleTable.hh"
 #include "G4IonTable.hh"
 
-#include "TGeoManager.h"
-#include "TGeoBBox.h"
-#include "TGeoMaterial.h"
-#include "TGeoMedium.h"
-
-#include "TVirtualMCApplication.h"
 #include "TGeant4.h"
 #include "TG4RunConfiguration.h"
 #include "TG4G3Units.h"
 
 #include "SimConfig/G4Params.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
-
-// That is an absolut minimal implementation of a TVirtualMCApplication
-// Required to instantiate VMC (see below)
-class MCAppDummy : public TVirtualMCApplication
-{
- public:
-  MCAppDummy() : TVirtualMCApplication("MCAppDummy", "MCAppDummy") {}
-  ~MCAppDummy() override = default;
-  MCAppDummy(MCAppDummy const& app) {}
-  void ConstructGeometry() override
-  {
-    auto geoMgr = gGeoManager;
-    // we need some dummies, any material and medium will do
-    auto mat = new TGeoMaterial("vac", 0, 0, 0);
-    auto med = new TGeoMedium("vac", 1, mat);
-    auto vol = geoMgr->MakeBox("cave", med, 1, 1, 1);
-    geoMgr->SetTopVolume(vol);
-    geoMgr->CloseGeometry();
-  }
-  void InitGeometry() override {}
-  void GeneratePrimaries() override {}
-  void BeginEvent() override {}
-  void BeginPrimary() override {}
-  void PreTrack() override {}
-  void Stepping() override {}
-  void PostTrack() override {}
-  void FinishPrimary() override {}
-  void FinishEvent() override {}
-  TVirtualMCApplication* CloneForWorker() const override
-  {
-    return new MCAppDummy(*this);
-  }
-};
+#include "O2TrivialMC/O2TrivialMCApplication.h"
 
 void removeDuplicates(std::vector<int>& vec)
 {
@@ -86,7 +48,7 @@ int main(int argc, char** argv)
 
   // We use our O2 VMC setup to make sure we are in line with our physics definition.
   // need a dummy VMC App
-  new MCAppDummy();
+  new o2::mc::O2TrivialMCApplication();
   // setup G4 as we usually do
   auto& physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup);

@@ -94,7 +94,7 @@ o2_add_executable(hit-merger-runner
 o2_add_executable(g4-determine-unknown-pdg-properties
                   COMPONENT_NAME sim
                   SOURCES g4DetermineUnknownPdgProperties.cxx
-                  PUBLIC_LINK_LIBRARIES MC::Geant4 MC::Geant4VMC internal::allsim)
+                  PUBLIC_LINK_LIBRARIES O2::O2TrivialMC MC::Geant4 MC::Geant4VMC O2::SimConfig)
 
 o2_add_executable(mctracks-proxy
                   COMPONENT_NAME sim
