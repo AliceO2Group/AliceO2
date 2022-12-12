@@ -700,7 +700,7 @@ DECLARE_SOA_COLUMN(Time, time, std::vector<float>);             //! Times of non
 DECLARE_SOA_COLUMN(ChannelT, channelT, std::vector<uint8_t>);   //! Channel IDs which had non-zero amplitudes. There are at maximum 26 channels.
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC",                                                                                 //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT); //
 using Zdc = Zdcs::iterator;
 
