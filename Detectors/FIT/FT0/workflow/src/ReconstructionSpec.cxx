@@ -65,7 +65,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   */
   mRecPoints.reserve(digits.size());
   mRecChData.reserve(channels.size());
-  mReco.processTF(digits, channels,mRecPoints, mRecChData);
+  mReco.processTF(digits, channels, mRecPoints, mRecChData);
   // do we ignore MC in this task?
   LOG(debug) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);

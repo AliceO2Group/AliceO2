@@ -42,12 +42,12 @@ class CollisionTimeRecoTask
   ~CollisionTimeRecoTask() = default;
   void processTF(const gsl::span<const o2::ft0::Digit>& digits,
                  const gsl::span<const o2::ft0::ChannelData>& channels,
-                 std::vector<o2::ft0::RecPoints> &vecRecPoints,
-                 std::vector<o2::ft0::ChannelDataFloat> &vecChData);
+                 std::vector<o2::ft0::RecPoints>& vecRecPoints,
+                 std::vector<o2::ft0::ChannelDataFloat>& vecChData);
 
   o2::ft0::RecPoints processDigit(const o2::ft0::Digit& digit,
                                   const gsl::span<const o2::ft0::ChannelData> inChData,
-                                  std::vector<o2::ft0::ChannelDataFloat> &outChData);
+                                  std::vector<o2::ft0::ChannelDataFloat>& outChData);
   void FinishTask();
   void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const* caliboffsets) { mCalibOffset = caliboffsets; };
   void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
@@ -55,7 +55,8 @@ class CollisionTimeRecoTask
     LOG(info) << "@@@SetSlew " << calibslew->size();
     mCalibSlew = calibslew;
   };
-  float getTimeInPS(const o2::ft0::ChannelData &channelData);
+  float getTimeInPS(const o2::ft0::ChannelData& channelData);
+
  private:
   o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
   std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
