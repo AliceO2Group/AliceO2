@@ -27,7 +27,6 @@
 #include "Align/EventVertex.h"
 #include "Align/ResidualsControllerFast.h"
 #include "Align/GeometricalConstraint.h"
-#include "Align/DOFStatistics.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -85,8 +84,8 @@ const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC"
 const int Controller::sSkipLayers[Controller::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
 //________________________________________________________________
-Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC)
-  : mDetMask(detmask), mMPsrc(trcmask), mUseMC(useMC)
+Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC, int instID)
+  : mDetMask(detmask), mMPsrc(trcmask), mUseMC(useMC), mInstanceID(instID)
 {
   init();
 }
@@ -120,6 +119,13 @@ void Controller::init()
   }
   mVtxSens = std::make_unique<EventVertex>(this);
   mVtxSens->setInternalID(1);
+  const auto& algConf = AlignConfig::Instance();
+  if (algConf.MPRecOutFraction > 0. || mInstanceID == 0) {
+    mMPRecOutFraction = std::abs(algConf.MPRecOutFraction);
+  }
+  if (algConf.controlFraction > 0. || mInstanceID == 0) {
+    mControlFraction = std::abs(algConf.controlFraction);
+  }
 }
 
 //________________________________________________________________
@@ -549,10 +555,10 @@ bool Controller::storeProcessedTrack(o2::dataformats::GlobalTrackID tid)
     res &= fillMilleData();
   }
   float rnd = gRandom->Rndm();
-  if (conf.MPRecOutFraction > rnd) {
+  if (mMPRecOutFraction > rnd) {
     res &= fillMPRecData(tid);
   }
-  if ((conf.controlFraction > rnd) && mAlgTrack->testLocalSolution()) {
+  if ((mControlFraction > rnd) && mAlgTrack->testLocalSolution()) {
     res &= fillControlData(tid);
   }
   //
@@ -866,6 +872,8 @@ void Controller::closeMilleOutput()
   if (mMille) {
     LOG(info) << "Closing " << mMilleFileName;
     compress = AlignConfig::Instance().GZipMilleOut;
+  } else {
+    return;
   }
   mMille.reset();
   if (compress) {
@@ -943,7 +951,7 @@ void Controller::writeCalibrationResults() const
 AlignableDetector* Controller::getDetOfDOFID(int id) const
 {
   // return detector owning DOF with this ID
-  for (auto id = DetID::First; id <= DetID::Last; id++) {
+  for (auto idet = DetID::First; idet <= DetID::Last; idet++) {
     AlignableDetector* det = getDetector(id);
     if (det && det->ownsDOFID(id)) {
       return det;
@@ -956,8 +964,8 @@ AlignableDetector* Controller::getDetOfDOFID(int id) const
 AlignableVolume* Controller::getVolOfDOFID(int id) const
 {
   // return volume owning DOF with this ID
-  for (auto id = DetID::First; id <= DetID::Last; id++) {
-    AlignableDetector* det = getDetector(id);
+  for (auto idet = DetID::First; idet <= DetID::Last; idet++) {
+    AlignableDetector* det = getDetector(idet);
     if (det && det->ownsDOFID(id)) {
       return det->getVolOfDOFID(id);
     }
@@ -969,14 +977,17 @@ AlignableVolume* Controller::getVolOfDOFID(int id) const
 }
 
 //________________________________________________________
-void Controller::terminate(bool doStat)
+AlignableVolume* Controller::getVolOfLabel(int lbl) const
+{
+  // return volume owning DOF with this label
+  const auto& ent = mLbl2ID.find(lbl);
+  return ent == mLbl2ID.end() ? nullptr : getVolOfDOFID(ent->second);
+}
+
+//________________________________________________________
+void Controller::terminate()
 {
   // finalize processing
-  if (doStat) {
-    if (mVtxSens) {
-      mVtxSens->fillDOFStat(mDOFStat);
-    }
-  }
   //
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (getDetector(id)) {
@@ -986,7 +997,7 @@ void Controller::terminate(bool doStat)
   closeMPRecOutput();
   closeMilleOutput();
   closeResidOutput();
-  Print("stat");
+  //  Print("stat");
   //
 }
 
@@ -1012,6 +1023,27 @@ Char_t* Controller::getDOFLabelTxt(int idf) const
 //********************* interaction with PEDE **********************
 
 //______________________________________________________
+void Controller::writeLabeledPedeResults() const
+{
+  // attach labels to millepede.res-like file
+  FILE* parFl = fopen(AlignConfig::Instance().mpLabFileName.c_str(), "w+");
+  fprintf(parFl, "parameters\n");
+  if (mVtxSens) {
+    mVtxSens->writeLabeledPedeResults(parFl);
+  }
+
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (!det || det->isDisabled()) {
+      continue;
+    }
+    det->writeLabeledPedeResults(parFl);
+    //
+  }
+  fclose(parFl);
+}
+
+//______________________________________________________
 void Controller::genPedeSteerFile(const Option_t* opt) const
 {
   // produce steering file template for PEDE + params and constraints
@@ -1020,7 +1052,7 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
          kOn,
          kOnOn };
   const char* cmt[3] = {"  ", "! ", "!!"};
-  const char* kSolMeth[] = {"inversion", "diagonalization", "fullGMRES", "sparseGMRES", "cholesky", "HIP"};
+  const char* kSolMeth[] = {"inversion", "diagonalization", "fullGMRES", "sparseMINRES", "cholesky", "HIP"};
   const int kDefNIter = 3;     // default number of iterations to ask
   const float kDefDelta = 0.1; // def. delta to exit
   TString opts = opt;
@@ -1043,20 +1075,22 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
   for (int i = 0; i < nm; i++) {
     fprintf(strFl, "%s%s %-20s %2d %.2f %s\n", cmt[kOn], "method", kSolMeth[i], kDefNIter, kDefDelta, cmt[kOnOn]);
   }
+  fprintf(strFl, "\n%sskipemptycons\n", cmt[kOff]);
+  fprintf(strFl, "\n%sthreads 20 1\n", cmt[kOff]);
   //
-  const float kDefChi2F0 = 20., kDefChi2F = 3.; // chi2 factors for 1st and following iterations
-  const float kDefDWFrac = 0.2;                 // cut outliers with downweighting above this factor
+  const float kDefChi2F0 = 10., kDefChi2F = 3.; // chi2 factors for 1st and following iterations
+  const float kDefDWFrac = 0.1;                 // cut outliers with downweighting above this factor
   const int kDefOutlierDW = 4;                  // start Cauchy function downweighting from iteration
   const int kDefEntries = 25;                   // min entries per DOF to allow its variation
   //
   fprintf(strFl, "\n\n%s %s\n", cmt[kOnOn], "Optional settings");
-  fprintf(strFl, "\n%s%-20s %.2f %.2f %s %s\n", cmt[kOn], "chisqcut", kDefChi2F0, kDefChi2F,
+  fprintf(strFl, "\n%s%-20s %.2f %.2f %s %s\n", cmt[kOff], "chisqcut", kDefChi2F0, kDefChi2F,
           cmt[kOnOn], "chi2 cut factors for 1st and next iterations");
-  fprintf(strFl, "%s%-20s %2d %s %s\n", cmt[kOn], "outlierdownweighting", kDefOutlierDW,
+  fprintf(strFl, "%s%-20s %2d %s %s\n", cmt[kOff], "outlierdownweighting", kDefOutlierDW,
           cmt[kOnOn], "iteration for outliers downweighting with Cauchi factor");
-  fprintf(strFl, "%s%-20s %.3f %s %s\n", cmt[kOn], "dwfractioncut", kDefDWFrac,
+  fprintf(strFl, "%s%-20s %.3f %s %s\n", cmt[kOff], "dwfractioncut", kDefDWFrac,
           cmt[kOnOn], "cut outliers with downweighting above this factor");
-  fprintf(strFl, "%s%-20s %2d %s %s\n", cmt[kOn], "entries", kDefEntries,
+  fprintf(strFl, "%s%-20s %2d %s %s\n", cmt[kOff], "entries", kDefEntries,
           cmt[kOnOn], "min entries per DOF to allow its variation");
   //
   fprintf(strFl, "\n\n\n%s%-20s %s %s\n\n\n", cmt[kOff], "CFiles", cmt[kOnOn], "put below *.mille files list");
@@ -1277,24 +1311,6 @@ void Controller::writePedeConstraints() const
   }
   //
   fclose(conFl);
-}
-
-//____________________________________________________________
-void Controller::fixLowStatFromDOFStat(int thresh)
-{
-  // fix DOFs having stat below threshold
-  //
-  if (mNDOFs != mDOFStat.getNDOFs()) {
-    LOG(error) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat.getNDOFs();
-    return;
-  }
-  for (int parID = 0; parID < mNDOFs; parID++) {
-    if (mDOFStat.getStat(parID) >= thresh) {
-      continue;
-    }
-    mGloParErr[parID] = -999.;
-  }
-  //
 }
 
 //______________________________________________

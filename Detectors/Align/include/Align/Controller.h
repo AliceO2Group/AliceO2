@@ -76,7 +76,6 @@ class EventVertex;
 class AlignableVolume;
 class AlignmentPoint;
 class ResidualsControllerFast;
-class DOFStatistics;
 
 class Controller : public TObject
 {
@@ -116,7 +115,7 @@ class Controller : public TObject
          kMPAlignDone = BIT(16) };
 
   Controller() = default;
-  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC = false);
+  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC = false, int instID = 0);
   ~Controller() final;
 
   void expandGlobalsBy(int n);
@@ -127,7 +126,7 @@ class Controller : public TObject
 
   void initDetectors();
   void initDOFs();
-  void terminate(bool dostat = true);
+  void terminate();
   //
   void setInitGeomDone() { SetBit(kInitGeomDone); }
   bool getInitGeomDone() const { return TestBit(kInitGeomDone); }
@@ -176,6 +175,7 @@ class Controller : public TObject
   int parID2Label(int i) const { return getGloParLab(i); }
   int label2ParID(int lab) const;
   AlignableVolume* getVolOfDOFID(int id) const;
+  AlignableVolume* getVolOfLabel(int label) const;
   AlignableDetector* getDetOfDOFID(int id) const;
   //
   AlignmentPoint* getRefPoint() const { return mRefPoint.get(); }
@@ -222,11 +222,9 @@ class Controller : public TObject
   void printStatistics() const;
   //
   void genPedeSteerFile(const Option_t* opt = "") const;
+  void writeLabeledPedeResults() const;
   void writePedeConstraints() const;
   void checkConstraints(const char* params = nullptr);
-  DOFStatistics& GetDOFStat() { return mDOFStat; }
-  void setDOFStat(const DOFStatistics& st) { mDOFStat = st; }
-  void fixLowStatFromDOFStat(int thresh = 40);
   //
   //----------------------------------------
   //
@@ -292,6 +290,8 @@ class Controller : public TObject
   bool mUseMC = false;
   bool mFieldOn = false;                     // field on flag
   int mTracksType = utils::Coll;             // collision/cosmic event type
+  float mMPRecOutFraction = 0.;
+  float mControlFraction = 0.;
   std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
   const o2::globaltracking::RecoContainer* mRecoData = nullptr; // externally set RecoContainer
   const o2::trd::TrackletTransformer* mTRDTransformer = nullptr;  // TRD tracket transformer
@@ -331,8 +331,6 @@ class Controller : public TObject
   std::unique_ptr<TFile> mMPRecFile; //! file to store MP record tree
   std::unique_ptr<TFile> mResidFile; //! file to store control residuals tree
   std::string mMilleFileName{};      //!
-  //
-  DOFStatistics mDOFStat; // stat of entries per dof
   //
   // input related
   int mRefRunNumber = 0;    // optional run number used for reference

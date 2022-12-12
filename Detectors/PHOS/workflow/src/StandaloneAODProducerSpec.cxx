@@ -64,7 +64,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   LOG(debug) << "FOUND " << cells.size() << " PHOS cells in CTF";
   LOG(debug) << "FOUND " << ctr.size() << " PHOS tiggers in CTF";
 
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
   auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
@@ -74,7 +74,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
-  uint64_t triggerMask = 1;
+  uint64_t triggerMask = 1, triggerInputs = 0;
   // loop over events
   int indexBC = -1;
   for (const auto& tr : ctr) {

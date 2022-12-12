@@ -20,7 +20,6 @@ o2_add_library(Align
                         src/AlignableDetectorTOF.cxx
                         #src/AlignableDetectorTPC.cxx
                         src/AlignableDetectorTRD.cxx
-                        src/DOFStatistics.cxx
                         src/Millepede2Record.cxx
                         src/AlignmentPoint.cxx
                         src/ResidualsController.cxx
@@ -79,7 +78,6 @@ o2_target_root_dictionary(
           include/Align/ResidualsController.h
           include/Align/ResidualsControllerFast.h
           include/Align/GeometricalConstraint.h
-          include/Align/DOFStatistics.h
           include/Align/utils.h
           include/Align/AlignConfig.h
           )

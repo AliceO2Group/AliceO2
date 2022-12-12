@@ -382,10 +382,10 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
           // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
         }
       } else {
-        LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
+        //        LOG(warning) << "Failed to decompose matrix of size " << int(nMax) << " Clusters mult=" << lastCE-firstCE;
       }
     } else {
-      LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
+      //      LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
     }
     insuficientAccuracy &= (chi2 > o2::phos::PHOSSimParams::Instance().mUnfogingChi2Accuracy * nMax);
     nIterations++;
@@ -549,7 +549,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
     if (ce.energy < eMin) {
       continue;
     }
-    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ce.energy * invE));
+    float w = std::max(0.f, o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ce.energy * invE));
     localPosX += ce.localX * w;
     localPosZ += ce.localZ * w;
     wtot += w;
@@ -577,7 +577,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
     float z = ce.localZ - localPosZ;
     float distance = x * x + z * z;
 
-    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ei * invE));
+    float w = std::max(0.f, o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ei * invE));
     dispersion += w * distance;
     dxx += w * x * x;
     dzz += w * z * z;
@@ -587,27 +587,25 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
     }
   }
   clu.setCoreEnergy(coreE);
-  // dispersion
-  if (wtot > 0) {
-    wtot = 1. / wtot;
-    dispersion *= wtot;
+  // dispersion NB! wtot here already inverse
+  dispersion *= wtot;
 
-    dxx *= wtot;
-    dzz *= wtot;
-    dxz *= wtot;
+  dxx *= wtot;
+  dzz *= wtot;
+  dxz *= wtot;
 
-    lambdaLong = 0.5 * (dxx + dzz) + std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
-    if (lambdaLong > 0) {
-      lambdaLong = std::sqrt(lambdaLong);
-    }
-
-    lambdaShort = 0.5 * (dxx + dzz) - std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
-    if (lambdaShort > 0) { // To avoid exception if numerical errors lead to negative lambda.
-      lambdaShort = std::sqrt(lambdaShort);
-    } else {
-      lambdaShort = 0.;
-    }
+  lambdaLong = 0.5 * (dxx + dzz) + std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
+  if (lambdaLong > 0) {
+    lambdaLong = std::sqrt(lambdaLong);
   }
+
+  lambdaShort = 0.5 * (dxx + dzz) - std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
+  if (lambdaShort > 0) { // To avoid exception if numerical errors lead to negative lambda.
+    lambdaShort = std::sqrt(lambdaShort);
+  } else {
+    lambdaShort = 0.;
+  }
+
   if (dispersion >= 0) {
     clu.setDispersion(std::sqrt(dispersion));
   } else {
@@ -652,12 +650,10 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
   mIsLocalMax.reserve(clu.getMultiplicity());
 
   uint32_t iFirst = clu.getFirstCluEl(), iLast = clu.getLastCluEl();
-  LOG(debug) << "getNumberOfLocalMax: iFirst=" << iFirst << " iLast=" << iLast << " elements=" << cluel.size();
   for (uint32_t i = iFirst; i < iLast; i++) {
     mIsLocalMax.push_back(cluel[i].energy > cluSeed);
   }
 
-  LOG(debug) << "mIsLocalMax size=" << mIsLocalMax.size();
   for (uint32_t i = iFirst; i < iLast - 1; i++) {
     for (uint32_t j = i + 1; j < iLast; j++) {
 
@@ -679,7 +675,6 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
     }   // digit j
   }     // digit i
 
-  LOG(debug) << " Filled mIsLocalMax";
   int iDigitN = 0;
   for (std::size_t i = 0; i < mIsLocalMax.size(); i++) {
     if (mIsLocalMax[i]) {

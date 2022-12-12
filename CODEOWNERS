@@ -33,7 +33,7 @@
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
-/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
 /DataFormats/Detectors/MUON                    @AliceO2Group/muon-experts
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
 /DataFormats/Detectors/Passive                 @sawenzel @benedikt-voelkel
@@ -73,6 +73,7 @@
 /Detectors/ZDC                     @coppedis
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02
+/Detectors/StrangenessTracking     @mconcas @mpuccio @fmazzasc
 
 /EventVisualisation  @jmyrcha
 #/EventVisualisation/Base

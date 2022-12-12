@@ -98,7 +98,6 @@
 
 #include "Align/Controller.h"
 #include "Align/AlignableVolume.h"
-#include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
 #include "Align/AlignConfig.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
@@ -460,15 +459,14 @@ bool AlignableVolume::isCondDOF(int i) const
 }
 
 //______________________________________________________
-int AlignableVolume::finalizeStat(DOFStatistics& st)
+int AlignableVolume::finalizeStat()
 {
   // finalize statistics on processed points
   mNProcPoints = 0;
   for (int ich = getNChildren(); ich--;) {
     AlignableVolume* child = getChild(ich);
-    mNProcPoints += child->finalizeStat(st);
+    mNProcPoints += child->finalizeStat();
   }
-  fillDOFStat(st);
   return mNProcPoints;
 }
 
@@ -511,8 +509,8 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   }
   //
   if (nCond || showDef || showFix || showNam) {
-    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s id : %d\n", comment[cmt], kKeyParam, comment[kOnOn],
-            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName(), getVolID());
+    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s id : %d | Stat: %d\n", comment[cmt], kKeyParam, comment[kOnOn],
+            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName(), getVolID(), getNProcessedPoints());
   }
   //
   if (nCond || showDef || showFix) {
@@ -546,6 +544,23 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->writePedeInfo(parOut, opt);
+  }
+  //
+}
+
+//______________________________________________________
+void AlignableVolume::writeLabeledPedeResults(FILE* parOut) const
+{
+  // write parameters with labels
+  for (int i = 0; i < mNDOFs; i++) {
+    fprintf(parOut, "%9d %+e %+e\t! %s %d:%s vol:%d %s %s\n", getParLab(i), -getParVal(i), getParErr(i), GetName(), i, sDOFName[i], getVolID(),
+            isFreeDOF(i) ? "   " : "FXU", isZeroAbs(getParVal(i)) ? "FXP" : "   ");
+  }
+  // children volume
+  int nch = getNChildren();
+  //
+  for (int ich = 0; ich < nch; ich++) {
+    getChild(ich)->writeLabeledPedeResults(parOut);
   }
   //
 }
@@ -853,19 +868,6 @@ const char* AlignableVolume::getDOFName(int i) const
 {
   // get name of DOF
   return getGeomDOFName(i);
-}
-
-//______________________________________________________
-void AlignableVolume::fillDOFStat(DOFStatistics& h) const
-{
-  // fill statistics info hist
-  int ndf = getNDOFs();
-  int dof0 = getFirstParGloID();
-  int stat = getNProcessedPoints();
-  for (int idf = 0; idf < ndf; idf++) {
-    int dof = idf + dof0;
-    h.addStat(dof, stat);
-  }
 }
 
 //________________________________________

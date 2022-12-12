@@ -29,10 +29,10 @@ union MCGenStatusEncoding {
   MCGenStatusEncoding(int hepmcIn, int genIn) : isEncoded(5), hepmc(hepmcIn), gen(genIn), reserved(0) {}
   int fullEncoding;
   struct {
-    unsigned int isEncoded : 3; // special bits to check whether or not the fullEncoding is a combination of HepMC and gen status codes
     int hepmc : 9;              // HepMC status code
     int gen : 10;               // specific generator status code
     int reserved : 10;          // reserved bits for future usage
+    unsigned int isEncoded : 3; // special bits to check whether or not the fullEncoding is a combination of HepMC and gen status codes
   };
 };
 

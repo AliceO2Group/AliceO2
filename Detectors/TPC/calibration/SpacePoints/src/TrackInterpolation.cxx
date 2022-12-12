@@ -27,6 +27,8 @@
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include <fairlogger/Logger.h>
 #include <set>
+#include <algorithm>
+#include <random>
 
 using namespace o2::tpc;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -55,7 +57,7 @@ void TrackInterpolation::init()
   LOG(info) << "Done initializing TrackInterpolation";
 }
 
-void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes)
+void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters)
 {
   // main processing function
 
@@ -80,15 +82,33 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   mTrackData.reserve(nSeeds);
   mClRes.reserve(nSeeds * param::NPadRows);
 
+  // In case we have more input tracks available than are required per TF
+  // we want to sample them. But we still prefer global ITS-TPC-TRD-TOF tracks
+  // over ITS-TPC-TRD tracks and so on. So we have to shuffle the indices
+  // in blocks.
+  // The input GIDs are sorted. ITS-TPC-TRD-TOF are first followed by ITS-TPC-TRD,
+  // ITS-TPC-TOF and ITS-TPC
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::vector<int> trackIndices(nSeeds);
+  std::iota(trackIndices.begin(), trackIndices.end(), 0);
+  std::shuffle(trackIndices.begin(), trackIndices.begin() + trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), g);
+  int nTracks = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTRD), g);
+  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTRD);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTOF), g);
+  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTOF);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
+
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
-    if (gids[iSeed].includesDet(DetID::TRD) || gids[iSeed].includesDet(DetID::TOF)) {
-      interpolateTrack(iSeed);
-    } else {
-      extrapolateTrack(iSeed);
-    }
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
+    }
+    if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
+      interpolateTrack(trackIndices[iSeed]);
+    } else {
+      extrapolateTrack(trackIndices[iSeed]);
     }
   }
 
@@ -276,14 +296,6 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
   trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
-
-  /*
-  // FIXME
-
-  Calculate number of tracks required per TF based on calibration slot length
-  In case too many tracks available, use std::sample algorithm to take random sample of input tracks
-  (make sure to use first most global tracks, then ITS-TPC-TRD, then ITS-TPC-TOF)
-  */
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (validateTrack(trackData, params, clusterResiduals)) {

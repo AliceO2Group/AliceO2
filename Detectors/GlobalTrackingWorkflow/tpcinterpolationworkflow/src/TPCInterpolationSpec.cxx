@@ -12,6 +12,7 @@
 /// @file  TPCInterpolationSpec.cxx
 
 #include <vector>
+#include <unordered_map>
 
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -60,11 +61,14 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     // other init-once stuff
     mInterpolation.init();
     int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
-    int nTracksPerTfMax = (nTfs > 0) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
-    if (nTracksPerTfMax >= 0) {
+    bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
+    int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
+    if (nTracksPerTfMax > 0) {
       LOGP(info, "We will stop processing tracks after validating {} tracks per TF", nTracksPerTfMax);
-    } else {
+    } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
+    } else {
+      LOG(error) << "No tracks will be processed. maxTracksPerCalibSlot must be greater than slot length in TFs";
     }
     mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
   }
@@ -101,9 +105,16 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   std::vector<o2::track::TrackParCov> seeds;
   std::vector<float> trkTimes;
   std::vector<GTrackID> gids;
+  std::unordered_map<int, int> trkCounters;
+  // make sure the map has entries for every possible track input type
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTRDTOF, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTRD, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTOF, 0));
+  trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPC, 0));
+
   bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
   // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
-  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param](auto& _tr, GTrackID _origID, float t0, float tErr) {
+  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
     if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
       bool trackGood = true;
       bool hasOuterPoint = false;
@@ -141,6 +152,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         seeds.emplace_back(itsTrk->getParamOut()); // FIXME: should this not be a refit of the ITS track?
         gidTables.emplace_back(gidTable);
         gids.push_back(_origID);
+        trkCounters[_origID.getSource()] += 1;
       }
       return true;
     } else {
@@ -155,7 +167,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     // not yet implemented
   }
 
-  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
+  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes, trkCounters);
   mTimer.Stop();
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
 
