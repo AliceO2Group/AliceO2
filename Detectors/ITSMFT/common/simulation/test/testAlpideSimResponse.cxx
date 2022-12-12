@@ -23,7 +23,7 @@ using namespace o2::itsmft;
 BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
 {
   // test for the templated Descriptor struct
-  std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/AlpideResponseData.root";
+  std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
   auto file = TFile::Open(responseFile.data());
   AlpideSimResponse resp = *(o2::itsmft::AlpideSimResponse*)file->Get("response1");
 
