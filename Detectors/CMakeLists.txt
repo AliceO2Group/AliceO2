@@ -31,8 +31,6 @@ add_subdirectory(MUON)
 
 add_subdirectory(TPC)
 
-add_subdirectory(FOCAL)
-
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)

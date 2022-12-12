@@ -10,3 +10,5 @@
 # or submit itself to any jurisdiction.
 
 message(STATUS "Building dataformats for upgrades")
+
+add_subdirectory(FOCAL)
