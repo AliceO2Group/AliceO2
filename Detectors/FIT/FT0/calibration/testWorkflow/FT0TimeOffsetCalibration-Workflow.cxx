@@ -53,7 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "ft0-time-offset-calib",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     o2::framework::Options{
       {"tf-per-slot", o2::framework::VariantType::UInt32, 56000u, {""}},
       {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}}}};
