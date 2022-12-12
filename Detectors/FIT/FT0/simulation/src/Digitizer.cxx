@@ -277,6 +277,10 @@ void Digitizer::storeBC(BCCache& bc,
     }
 
     LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
+    if(is_time_in_signal_gate) {
+      chain|=(1 << o2::ft0::ChannelData::EEventDataBit::kIsCFDinADCgate);
+      chain|=(1 << o2::ft0::ChannelData::EEventDataBit::kIsEventInTVDC);
+    }
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 

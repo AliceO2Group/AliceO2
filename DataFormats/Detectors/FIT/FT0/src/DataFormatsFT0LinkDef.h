@@ -17,6 +17,8 @@
 
 #pragma link C++ class o2::ft0::Digit + ;
 #pragma link C++ class o2::ft0::DigitFilterParam + ;
+#pragma link C++ class o2::ft0::ChannelFilterParam + ;
+#pragma link C++ class o2::ft0::TimeFilterParam + ;
 #pragma link C++ class o2::ft0::ChannelData + ;
 #pragma link C++ class o2::ft0::DetTrigInput + ;
 #pragma link C++ class o2::ft0::TriggersExt + ;
