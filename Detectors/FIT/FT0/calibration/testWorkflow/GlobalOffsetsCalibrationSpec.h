@@ -50,7 +50,8 @@ o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
     Options{
       {"tf-per-slot", VariantType::UInt32, 55000u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}}}};
+      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 }
 
 } // namespace o2::ft0
