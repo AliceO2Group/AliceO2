@@ -20,6 +20,7 @@
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <DataFormatsFT0/DigitFilterParam.h>
+#include <DataFormatsFT0/CalibParam.h>
 #include <cmath>
 #include <bitset>
 #include <cassert>
@@ -100,8 +101,25 @@ float CollisionTimeRecoTask::getTimeInPS(const o2::ft0::ChannelData& channelData
 {
   float offsetChannel{0};
   float slewoffset{0};
-  if (mCalibOffset && channelData.ChId < NCHANNELS) {
-    offsetChannel = mCalibOffset->mTimeOffsets[channelData.ChId];
+  if (mTimeCalibObject && channelData.ChId < NCHANNELS) {
+    // Temporary, will be changed to status bit checking
+    // Check statistics
+    const auto& stat = mTimeCalibObject->mTime[channelData.ChId].mStat;
+    const bool isEnoughStat = stat > CalibParam::Instance().mMaxEntriesThreshold;
+    const bool isNotGoogStat = stat > CalibParam::Instance().mMinEntriesThreshold && !isEnoughStat;
+    // Check fit quality
+    const auto& meanGaus = mTimeCalibObject->mTime[channelData.ChId].mGausMean;
+    const auto& meanHist = mTimeCalibObject->mTime[channelData.ChId].mStatMean;
+    const auto& sigmaGaus = mTimeCalibObject->mTime[channelData.ChId].mGausRMS;
+    const auto& rmsHist = mTimeCalibObject->mTime[channelData.ChId].mStatRMS;
+    const bool isGoodFitResult = (mTimeCalibObject->mTime[channelData.ChId].mStatusBits & 1) > 0;
+    const bool isBadFit = std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma;
+
+    if (isEnoughStat && isGoodFitResult && !isBadFit) {
+      offsetChannel = meanGaus;
+    } else if ((isNotGoogStat || isEnoughStat) && isBadFit) {
+      offsetChannel = meanHist;
+    }
   }
   /*
   if (mCalibSlew  && channelData.ChId < NCHANNELS) {

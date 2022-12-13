@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Calibration/FT0TimeOffsetSlotContainer.h"
-#include "FT0Calibration/CalibParam.h"
+#include "DataFormatsFT0/CalibParam.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 
 #include <Framework/Logger.h>
@@ -30,16 +30,17 @@ bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
     LOG(info) << "RESULT: ready";
     print();
     return true;
-  } else if (mCurrentSlot > CalibParam::Instance().mNExtraSlots) {
-    LOG(info) << "RESULT: Extra slots are used";
+  } else if (mCurrentSlot >= CalibParam::Instance().mNExtraSlots) {
+    LOG(info) << "RESULT: Extra slots(" << CalibParam::Instance().mNExtraSlots << ") are used";
     print();
     return true;
-  } else if (mCurrentSlot == 0) {
+  } else if (mCurrentSlot < CalibParam::Instance().mNExtraSlots) {
     for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
       const auto nEntries = mArrEntries[iCh];
       if (nEntries >= CalibParam::Instance().mMinEntriesThreshold && nEntries < CalibParam::Instance().mMaxEntriesThreshold) {
         // Check if there are any pending channel in first slot
         LOG(info) << "RESULT: pending channels";
+        print();
         return false;
       }
     }
@@ -48,10 +49,10 @@ bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
     print();
     return true;
   } else {
-    // Probably will never happen, all other conditions are already checked
+    // Probably will be never happen, all other conditions are already checked
     LOG(info) << "RESULT: should be never happen";
     print();
-    return false;
+    return true;
   }
 }
 
@@ -82,12 +83,10 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
       mBitsetGoodChIDs.set(iCh);
     }
   }
-  /*
-      const auto totalNCheckedChIDs = mBitsetGoodChIDs.count() + mBitsetBadChIDs.count();
-      if (totalNCheckedChIDs == sNCHANNELS) {
-        mIsReady = true;
-      }
-  */
+  const auto totalNCheckedChIDs = mBitsetGoodChIDs.count() + mBitsetBadChIDs.count();
+  if (totalNCheckedChIDs == sNCHANNELS) {
+    mIsReady = true;
+  }
   //  }
 }
 
@@ -143,6 +142,7 @@ SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t c
       statusBits |= (1 << 0);
     }
     if (((int)resultFit) != 0 || std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma) {
+      statusBits |= (2 << 0);
       LOG(debug) << "Bad gaus fit: meanGaus " << meanGaus << " sigmaGaus " << sigmaGaus << " meanHist " << meanHist << " rmsHist " << rmsHist << "resultFit " << ((int)resultFit);
     }
   }

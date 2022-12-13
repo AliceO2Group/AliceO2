@@ -19,6 +19,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/SpectraInfoObject.h"
 #include <gsl/span>
 #include <array>
 #include <vector>
@@ -49,7 +50,7 @@ class CollisionTimeRecoTask
                                   const gsl::span<const o2::ft0::ChannelData> inChData,
                                   std::vector<o2::ft0::ChannelDataFloat>& outChData);
   void FinishTask();
-  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const* caliboffsets) { mCalibOffset = caliboffsets; };
+  void SetTimeCalibObject(o2::ft0::TimeSpectraInfoObject const* timeCalibObject) { mTimeCalibObject = timeCalibObject; };
   void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
   {
     LOG(info) << "@@@SetSlew " << calibslew->size();
@@ -58,7 +59,7 @@ class CollisionTimeRecoTask
   float getTimeInPS(const o2::ft0::ChannelData& channelData);
 
  private:
-  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
+  o2::ft0::TimeSpectraInfoObject const* mTimeCalibObject = nullptr;
   std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
 
   ClassDefNV(CollisionTimeRecoTask, 3);

@@ -19,8 +19,10 @@
 #include "FT0Workflow/ReconstructionSpec.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
+#include "DataFormatsFT0/DigitFilterParam.h"
+#include "DataFormatsFT0/CalibParam.h"
 #include "DataFormatsFT0/MCLabel.h"
-#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/SpectraInfoObject.h"
 #include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
@@ -34,7 +36,14 @@ void ReconstructionDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  LOG(info) << "ReconstructionDPL::init";
+  o2::ft0::ChannelFilterParam::Instance().printKeyValues();
+  o2::ft0::TimeFilterParam::Instance().printKeyValues();
+  // Parameters which are used in reco, too many will be printed if use printKeyValues()
+  LOG(info) << "FT0 param mMinEntriesThreshold: "<<CalibParam::Instance().mMinEntriesThreshold;
+  LOG(info) << "FT0 param mMaxEntriesThreshold:"<<CalibParam::Instance().mMaxEntriesThreshold;
+  LOG(info) << "FT0 param mMinRMS: "<<CalibParam::Instance().mMinRMS;
+  LOG(info) << "FT0 param mMaxSigma: "<<CalibParam::Instance().mMaxSigma;
+  LOG(info) << "FT0 param mMaxDiffMean: "<<CalibParam::Instance().mMaxDiffMean;
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
@@ -51,9 +60,8 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     LOG(info) << "Ignoring MC info";
   }
   if (mUpdateCCDB) {
-    auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
-    mReco.SetChannelOffset(caliboffsets.get());
-    LOG(info) << "RecoSpec  mReco.SetChannelOffset(&caliboffsets)";
+    auto timeCalibObject = pc.inputs().get<o2::ft0::TimeSpectraInfoObject*>("ft0_timespectra");
+    mReco.SetTimeCalibObject(timeCalibObject.get());
   }
   /*
   auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
@@ -76,7 +84,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 //_______________________________________
 void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  if (matcher == ConcreteDataMatcher("FT0", "TimeOffset", 0)) {
+  if (matcher == ConcreteDataMatcher("FT0", "TimeSpectraInfo", 0)) {
     mUpdateCCDB = false;
     return;
   }
@@ -98,9 +106,9 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-  inputSpec.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
+  inputSpec.emplace_back("ft0_timespectra", "FT0", "TimeSpectraInfo", 0,
                          Lifetime::Condition,
-                         ccdbParamSpec("FT0/Calib/ChannelTimeOffset"));
+                         ccdbParamSpec("FT0/Calib/TimeSpectraInfo"));
 
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);

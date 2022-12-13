@@ -15,7 +15,6 @@
 #include "DataFormatsFT0/SpectraInfoObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
 #include "FT0Calibration/FT0TimeOffsetSlotContainer.h"
-#include "FT0Calibration/CalibParam.h"
 
 using namespace o2::framework;
 
