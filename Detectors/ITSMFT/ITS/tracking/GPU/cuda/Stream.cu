@@ -12,6 +12,7 @@
 
 #include "ITStrackingGPU/Stream.h"
 #include "ITStrackingGPU/Utils.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {
@@ -25,9 +26,9 @@ Stream::Stream()
 {
   checkGPUError(cudaStreamCreate(&mStream));
 }
-// usles
 Stream::~Stream()
 {
+  LOGP(info, "Destroying stream");
   checkGPUError(cudaStreamDestroy(mStream));
 }
 

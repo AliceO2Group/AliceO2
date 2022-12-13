@@ -346,11 +346,8 @@ inline gsl::span<const Cluster> TimeFrame::getClustersPerROFrange(int rofMin, in
 
 inline gsl::span<const int> TimeFrame::getROframesClustersPerROFrange(int rofMin, int range, int layerId) const
 {
-  if (rofMin < 0 || rofMin >= mNrof) {
-    return gsl::span<const int>();
-  }
   int startIdx{rofMin}; // First cluster of rofMin
-  int endIdx{rofMin + std::min(range, mNrof - rofMin)};
+  int endIdx{rofMin + std::min(range, mNrof - rofMin)}; // need to decrease by 1?
   return {&mROframesClusters[layerId][startIdx], static_cast<gsl::span<int>::size_type>(endIdx - startIdx)};
 }
 
