@@ -43,7 +43,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
 
   double rmin = mRadius;
   double rmax = rmin + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; //FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -113,7 +113,7 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 2) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; //FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -197,7 +197,7 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   TGeoMedium* medGlue = gGeoManager->GetMedium("IT3_IMPREG_FLEECE$");
 
   double rmax = mRadius + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; //FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
   double rmedFoam = rmax + radiusBetweenLayer / 2;
 
   TGeoTranslation* transSemicircle[2];
