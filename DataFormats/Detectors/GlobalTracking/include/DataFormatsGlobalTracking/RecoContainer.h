@@ -164,6 +164,7 @@ class VtxTrackIndex;
 class VtxTrackRef;
 class V0;
 class Cascade;
+class StrangeTrack;
 class TrackCosmics;
 class GlobalFwdTrack;
 class MatchInfoFwd;
@@ -237,6 +238,7 @@ struct DataRequest {
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
+  void requestStrangeTracks(bool);
 
   void requestIRFramesITS();
 };
@@ -286,6 +288,12 @@ struct RecoContainer {
                    PVTX_3BODYREFS, // PV -> 3-body decay references
                    NSVTXSLOTS };
 
+  // slots to register strangeness tracking data
+  enum STRKSlots {
+    STRACK,
+    NSTRKSLOTS
+  };
+
   // slots for cosmics
   enum CosmicsSlots { COSM_TRACKS,
                       COSM_TRACKS_MC,
@@ -294,6 +302,7 @@ struct RecoContainer {
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using SVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NSVTXSLOTS>;
+  using STrackAccessor = o2::dataformats::AbstractRefAccessor<int, NSTRKSLOTS>;
   using CosmicsAccessor = o2::dataformats::AbstractRefAccessor<int, NCOSMSLOTS>;
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
@@ -303,6 +312,7 @@ struct RecoContainer {
   std::array<AccSlots, GTrackID::NSources> commonPool;
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
+  STrackAccessor  strkPool; // containers for strangeness tracking related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
@@ -374,6 +384,8 @@ struct RecoContainer {
   void addPVertices(o2::framework::ProcessingContext& pc, bool mc);
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
+
+  void addStrangeTracks(o2::framework::ProcessingContext& pc, bool);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
 
@@ -673,6 +685,10 @@ struct RecoContainer {
   auto getDecays3Body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
+  // Strangeness track
+  const o2::dataformats::StrangeTrack& getStrangeTrack(int i) const { return strkPool.get_as<o2::dataformats::StrangeTrack>(STRACK, i); }
+
+  // Cosmic tracks
   const o2::dataformats::TrackCosmics& getCosmicTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmics>(COSM_TRACKS, i); }
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
   auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }

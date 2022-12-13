@@ -14,11 +14,11 @@
 
 #include <vector>
 #include "StrangenessTrackingWorkflow/StrangenessTrackingWriterSpec.h"
+
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "ReconstructionDataFormats/V0.h"
-#include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 #include "StrangenessTracking/StrangenessTracker.h"
 
 using namespace o2::framework;
@@ -27,7 +27,7 @@ namespace o2
 {
 namespace strangeness_tracking
 {
-using V0 = o2::dataformats::V0;
+using StrangeTrack = dataformats::StrangeTrack;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
