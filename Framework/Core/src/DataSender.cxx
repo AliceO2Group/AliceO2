@@ -20,6 +20,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DataProcessingContext.h"
 
 #include <fairmq/Device.h>
 

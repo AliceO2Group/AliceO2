@@ -13,6 +13,10 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
 #include "Framework/Logger.h"
+#include "Framework/StreamContext.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/DataProcessingContext.h"
+#include "ContextHelpers.h"
 #include <fairmq/Device.h>
 #include <iostream>
 
@@ -105,7 +109,7 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
   if (spec.kind != ServiceKind::Stream) {
     ServiceHandle handle = spec.init({*this}, state, options);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
-    this->bindService(spec, handle.instance);
+    this->bindGlobalService(spec, handle.instance);
   } else if (spec.kind == ServiceKind::Stream) {
     // We register a nullptr in this case, because we really want to have the ptr to
     // the service spec only.
@@ -119,7 +123,7 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
   }
 }
 
-void ServiceRegistry::bindService(ServiceSpec const& spec, void* service) const
+void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) const
 {
   static TracyLockableN(std::mutex, bindMutex, "bind mutex");
   std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
@@ -385,12 +389,44 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     // Call init for the proper ServiceRegistryRef
     ServiceHandle handle = spec.init({registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
-    this->bindService(spec, handle.instance);
+    this->bindGlobalService(spec, handle.instance);
     return handle.instance;
   }
 
   LOGP(error, "Unable to find requested service {} with hash {} using salt {} for service kind {}", name ? name : "", typeHash.hash, valueFromSalt(salt), (int)kind);
   return nullptr;
+}
+
+void ServiceRegistry::postRenderGUICallbacks(ServiceRegistryRef ref)
+{
+  for (auto& handle : mPostRenderGUIHandles) {
+    handle.callback(ref);
+  }
+}
+
+void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const& spec, void* service) const
+{
+  static TracyLockableN(std::mutex, bindMutex, "bind mutex");
+  // Stream services need to store their callbacks in the stream context.
+  // This is to make sure we invoke the correct callback only once per
+  // stream, since they could bind multiple times.
+  // On the other hand, they should not be allowed to have any
+  // other callback, because we would not know which one to invoke.
+  if (spec.kind == ServiceKind::Stream) {
+    ServiceRegistryRef ref{const_cast<ServiceRegistry&>(*this), salt};
+    auto& streamContext = ref.get<StreamContext>();
+    std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
+    auto& dataProcessorContext = ref.get<DataProcessorContext>();
+    ContextHelpers::bindStreamService(dataProcessorContext, streamContext, spec, service);
+  } else {
+    ServiceRegistryRef ref{const_cast<ServiceRegistry&>(*this), salt};
+    std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
+    auto& dataProcessorContext = ref.get<DataProcessorContext>();
+    ContextHelpers::bindProcessorService(dataProcessorContext, spec, service);
+    if (spec.postRenderGUI) {
+      mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
+    }
+  }
 }
 
 } // namespace o2::framework

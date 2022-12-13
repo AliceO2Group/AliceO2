@@ -83,6 +83,7 @@ struct CommonServices {
   static ServiceSpec asyncQueue();
   static ServiceSpec guiMetricsSpec();
   static ServiceSpec dataAllocatorSpec();
+  static ServiceSpec streamContextSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

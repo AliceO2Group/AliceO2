@@ -264,7 +264,11 @@ struct ServiceRegistry {
 
   /// Bind the callbacks of a service spec to a given service.
   /// Notice that
-  void bindService(ServiceSpec const& spec, void* service) const;
+  /// @a the salt of the context which is registering a given service.
+  ///    This is used to make sure each stream / dataprocessor can bind its own callbacks.
+  void bindGlobalService(ServiceSpec const& spec, void* service) const;
+
+  void bindService(ServiceRegistry::Salt salt, ServiceSpec const& spec, void* service) const;
 
   /// Type erased service registration. @a typeHash is the
   /// hash used to identify the service, @a service is
@@ -360,6 +364,11 @@ struct ServiceRegistry {
     throwError(runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId));
     O2_BUILTIN_UNREACHABLE();
   }
+
+  /// Callback invoked by the driver after rendering.
+  /// FIXME: Needs to stay here for the moment as it is used by
+  /// the driver and not by one of the data processors.
+  void postRenderGUICallbacks(ServiceRegistryRef ref);
 };
 
 } // namespace o2::framework

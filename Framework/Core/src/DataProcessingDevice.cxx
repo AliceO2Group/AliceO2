@@ -44,6 +44,7 @@
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/StreamContext.h"
 
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"

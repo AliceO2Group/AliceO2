@@ -19,6 +19,7 @@
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "CommonDriverServices.h"
 #include "Framework/DataProcessingDevice.h"
+#include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Plugins.h"
 #include "Framework/DeviceControl.h"
