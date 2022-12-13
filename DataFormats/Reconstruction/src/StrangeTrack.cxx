@@ -9,25 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file StrangenessTrackingWriterSpec.h
+/// \file StrangeTrack.cxx
 /// \brief
-///
 
-#ifndef O2_STRANGENESSTRACKINGWRITER
-#define O2_STRANGENESSTRACKINGWRITER
+#include "ReconstructionDataFormats/StrangeTrack.h"
 
-#include "Framework/DataProcessorSpec.h"
+using namespace o2::dataformats;
 
-namespace o2
-{
-namespace strangeness_tracking
-{
-
-/// create a processor spec
-/// write ITS tracks to ROOT file
-o2::framework::DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC);
-
-} // namespace strangeness_tracking
-} // namespace o2
-
-#endif /* O2_STRANGENESSTRACKINGWRITER */
+ClassImp(o2::dataformats::StrangeTrack);

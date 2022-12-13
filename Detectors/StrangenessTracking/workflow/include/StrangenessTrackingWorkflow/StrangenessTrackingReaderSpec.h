@@ -9,14 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file StrangenessTrackingWriterSpec.h
-/// \brief
-///
+/// @file   StrangenessTrackingReaderSpec.h
 
-#ifndef O2_STRANGENESSTRACKINGWRITER
-#define O2_STRANGENESSTRACKINGWRITER
+#ifndef O2_STRANGENESS_TRACKING_READERSPEC
+#define O2_STRANGENESS_TRACKING_READERSPEC
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
 
 namespace o2
 {
@@ -24,10 +23,10 @@ namespace strangeness_tracking
 {
 
 /// create a processor spec
-/// write ITS tracks to ROOT file
-o2::framework::DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC);
+/// read secondary vertex data from a root file
+o2::framework::DataProcessorSpec getStrangenessTrackingReaderSpec();
 
 } // namespace strangeness_tracking
 } // namespace o2
 
-#endif /* O2_STRANGENESSTRACKINGWRITER */
+#endif

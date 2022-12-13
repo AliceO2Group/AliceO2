@@ -51,7 +51,7 @@ class StrangenessTrackerSpec : public framework::Task
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
-  bool mIsMC = false;
+  bool mUseMC = false;
   TStopwatch mTimer;
   StrangenessTracker mTracker;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -59,7 +59,7 @@ class StrangenessTrackerSpec : public framework::Task
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
 };
 
-o2::framework::DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src);
+o2::framework::DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 o2::framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
 
 } // namespace strangeness_tracking
