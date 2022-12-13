@@ -21,9 +21,6 @@
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
-#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
-#include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -41,6 +38,7 @@ using namespace o2::framework;
 namespace strangeness_tracking
 {
 
+using StrangeTrack = o2::dataformats::StrangeTrack;
 using DataRequest = o2::globaltracking::DataRequest;
 
 StrangenessTrackerSpec::StrangenessTrackerSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mDataRequest{dr}, mGGCCDBRequest(gr), mIsMC{isMC}

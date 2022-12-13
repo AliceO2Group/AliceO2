@@ -18,11 +18,9 @@
 #pragma link C++ class o2::strangeness_tracking::StrangenessTrackingParamConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::strangeness_tracking::StrangenessTrackingParamConfig> + ;
 #pragma link C++ struct o2::strangeness_tracking::ClusAttachments + ;
-#pragma link C++ struct o2::strangeness_tracking::StrangeTrack + ;
 #pragma link C++ class o2::strangeness_tracking::IndexTableUtils + ;
 
 #pragma link C++ class std::vector < o2::strangeness_tracking::ClusAttachments> + ;
-#pragma link C++ class std::vector < o2::strangeness_tracking::StrangeTrack> + ;
 #pragma link C++ class std::vector < o2::strangeness_tracking::IndexTableUtils> + ;
 
 #endif

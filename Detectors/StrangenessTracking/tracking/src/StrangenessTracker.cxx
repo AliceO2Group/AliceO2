@@ -15,6 +15,8 @@
 #include "StrangenessTracking/StrangenessTracker.h"
 #include "ITStracking/IOUtils.h"
 
+#include <TVector3.h> // to be replaced
+
 namespace o2
 {
 namespace strangeness_tracking
@@ -126,7 +128,7 @@ void StrangenessTracker::process()
       continue;
     }
 
-    mStrangeTrack.mPartType = kV0;
+    mStrangeTrack.mPartType = dataformats::kStrkV0;
 
     auto v0R2 = v0.calcR2();
     auto iBinsV0 = mUtils.getBinRect(correctedV0.getEta(), correctedV0.getPhi(), mStrParams->mEtaBinSize, mStrParams->mPhiBinSize);
@@ -165,7 +167,7 @@ void StrangenessTracker::process()
     auto& cascV0 = mInputV0tracks[casc.getV0ID()];
     mV0dauIDs[0] = cascV0.getProngID(0), mV0dauIDs[1] = cascV0.getProngID(1);
 
-    mStrangeTrack.mPartType = kCascade;
+    mStrangeTrack.mPartType = dataformats::kStrkCascade;
     // first: bachelor, second: V0 pos, third: V0 neg
     auto cascR2 = casc.calcR2();
     auto iBinsCasc = mUtils.getBinRect(casc.getEta(), casc.getPhi(), mStrParams->mEtaBinSize, mStrParams->mPhiBinSize);
@@ -277,7 +279,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   int nCand;
 
   // refit cascade
-  if (mStrangeTrack.mPartType == kCascade) {
+  if (mStrangeTrack.mPartType == dataformats::kStrkCascade) {
     V0 cascV0Upd;
     if (!recreateV0(mDaughterTracks[1], mDaughterTracks[2], cascV0Upd)) {
       LOG(debug) << "Cascade V0 refit failed";
@@ -296,7 +298,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   }
 
   // refit V0
-  else if (mStrangeTrack.mPartType == kV0) {
+  else if (mStrangeTrack.mPartType == dataformats::kStrkV0) {
     try {
       nCand = mFitter3Body.process(mDaughterTracks[0], mDaughterTracks[1], motherTrackClone);
     } catch (std::runtime_error& e) {
