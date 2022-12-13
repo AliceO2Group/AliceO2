@@ -39,11 +39,11 @@ void ReconstructionDPL::init(InitContext& ic)
   o2::ft0::ChannelFilterParam::Instance().printKeyValues();
   o2::ft0::TimeFilterParam::Instance().printKeyValues();
   // Parameters which are used in reco, too many will be printed if use printKeyValues()
-  LOG(info) << "FT0 param mMinEntriesThreshold: "<<CalibParam::Instance().mMinEntriesThreshold;
-  LOG(info) << "FT0 param mMaxEntriesThreshold:"<<CalibParam::Instance().mMaxEntriesThreshold;
-  LOG(info) << "FT0 param mMinRMS: "<<CalibParam::Instance().mMinRMS;
-  LOG(info) << "FT0 param mMaxSigma: "<<CalibParam::Instance().mMaxSigma;
-  LOG(info) << "FT0 param mMaxDiffMean: "<<CalibParam::Instance().mMaxDiffMean;
+  LOG(info) << "FT0 param mMinEntriesThreshold: " << CalibParam::Instance().mMinEntriesThreshold;
+  LOG(info) << "FT0 param mMaxEntriesThreshold:" << CalibParam::Instance().mMaxEntriesThreshold;
+  LOG(info) << "FT0 param mMinRMS: " << CalibParam::Instance().mMinRMS;
+  LOG(info) << "FT0 param mMaxSigma: " << CalibParam::Instance().mMaxSigma;
+  LOG(info) << "FT0 param mMaxDiffMean: " << CalibParam::Instance().mMaxDiffMean;
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
