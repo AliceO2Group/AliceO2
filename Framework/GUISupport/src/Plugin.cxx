@@ -21,6 +21,7 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/CommonServices.h"
 #include "Framework/GuiCallbackContext.h"
+#include "Framework/DataProcessingContext.h"
 #include "SpyService.h"
 #include "SpyServiceHelpers.h"
 #include <fairmq/Channel.h>

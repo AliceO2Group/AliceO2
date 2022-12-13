@@ -166,6 +166,7 @@ BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
   present.resize(outputs.size());
   O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
   BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == false);
+
   BOOST_CHECK_EQUAL(O2DataModelHelpers::describeMissingOutputs(outputs, present),
                     "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA. Present outputs are: TPC/CLUSTERS/0.");
 }

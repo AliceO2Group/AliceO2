@@ -37,6 +37,7 @@
 #include "Framework/Plugins.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/DataProcessingContext.h"
+#include "Framework/StreamContext.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -105,11 +106,14 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     },
     .configure = noConfiguration(),
     .start = [](ServiceRegistryRef services, void* service) {
-      auto* monitoring = (o2::monitoring::Monitoring *) service;
-      auto& context = services.get<DataTakingContext>();
+      auto* monitoring = (o2::monitoring::Monitoring*)service;
 
+      auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      if (extRunNumber == "unspecified") {
+        return;
+      }
       try {
-        monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
+        monitoring->setRunNumber(std::stoul(extRunNumber));
       } catch (...) {
       } },
     .exit = [](ServiceRegistryRef registry, void* service) {
@@ -141,11 +145,22 @@ o2::framework::ServiceSpec CommonServices::timingInfoSpec()
     .kind = ServiceKind::Stream};
 }
 
+o2::framework::ServiceSpec CommonServices::streamContextSpec()
+{
+  return ServiceSpec{
+    .name = "stream-context",
+    .uniqueId = simpleServiceId<StreamContext>(),
+    .init = simpleServiceInit<StreamContext, StreamContext, ServiceKind::Stream>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Stream};
+}
+
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
     .name = "datataking-contex",
-    .init = simpleServiceInit<DataTakingContext, DataTakingContext>(),
+    .uniqueId = simpleServiceId<DataTakingContext>(),
+    .init = simpleServiceInit<DataTakingContext, DataTakingContext, ServiceKind::Stream>(),
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext& processingContext, void* service) {
       auto& context = processingContext.services().get<DataTakingContext>();
@@ -158,6 +173,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
+    // Notice this will be executed only once, because the service is declared upfront.
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
@@ -191,7 +207,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       context.forcedRaw = forcedRaw == "true";
 
       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 struct MissingService {
@@ -699,23 +715,23 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
   return ServiceSpec{
     .name = "data-processing-stats",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      DataProcessingStats* stats = new DataProcessingStats();
+      auto* stats = new DataProcessingStats();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
     .postProcessing = [](ProcessingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
+      auto* stats = (DataProcessingStats*)service;
       stats->performedComputations++; },
     .preDangling = [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
+      auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats); },
     .postDangling = [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
+      auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats); },
     .preEOS = [](EndOfStreamContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
+      auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats); },
     .kind = ServiceKind::Serial};
@@ -729,7 +745,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
   return ServiceSpec{
     .name = "gui-metrics",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      GUIMetrics* stats = new GUIMetrics();
+      auto* stats = new GUIMetrics();
       auto& monitoring = services.get<Monitoring>();
       auto& spec = services.get<DeviceSpec const>();
       monitoring.send({(int)spec.inputChannels.size(), fmt::format("oldest_possible_timeslice/h"), o2::monitoring::Verbosity::Debug});
@@ -811,6 +827,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
     dataProcessorContextSpec(),
+    streamContextSpec(),
     dataAllocatorSpec(),
     asyncQueue(),
     timingInfoSpec(),
