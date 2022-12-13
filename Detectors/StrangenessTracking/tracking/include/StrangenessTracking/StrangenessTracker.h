@@ -17,14 +17,13 @@
 #define _ALICEO2_STRANGENESS_TRACKER_
 
 #include <gsl/gsl>
-#include <TLorentzVector.h>
-#include "TMath.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "StrangenessTracking/IndexTableUtils.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 
@@ -42,30 +41,15 @@ namespace o2
 namespace strangeness_tracking
 {
 
-enum kPartType { kV0,
-                 kCascade,
-                 kThreeBody };
-
 struct ClusAttachments {
 
   std::array<unsigned int, 7> arr;
 };
 
-struct StrangeTrack {
-  kPartType mPartType;
-  o2::track::TrackParCovF mMother;
-  int mITSRef = -1;
-  int mDecayRef = -1;
-  std::array<float, 3> decayVtx;
-  std::array<float, 3> decayMom;
-  float mInvMass;
-  float mMatchChi2;
-  float mTopoChi2;
-};
-
 class StrangenessTracker
 {
  public:
+  using StrangeTrack = o2::dataformats::StrangeTrack;
   using PID = o2::track::PID;
   using TrackITS = o2::its::TrackITS;
   using ITSCluster = o2::BaseCluster<float>;
