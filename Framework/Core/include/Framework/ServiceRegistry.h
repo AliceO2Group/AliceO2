@@ -178,10 +178,6 @@ struct ServiceRegistry {
     return Index{static_cast<int32_t>(id.id & MAX_SERVICES_MASK)};
   }
 
-  /// Callbacks for services to be executed before every process method invokation
-  mutable std::vector<ServiceProcessingHandle> mPreProcessingHandles;
-  /// Callbacks for services to be executed after every process method invokation
-  mutable std::vector<ServiceProcessingHandle> mPostProcessingHandles;
   /// Callbacks for services to be executed before every dangling check
   mutable std::vector<ServiceDanglingHandle> mPreDanglingHandles;
   /// Callbacks for services to be executed after every dangling check
@@ -219,10 +215,6 @@ struct ServiceRegistry {
 
   /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
   void preStartCallbacks();
-  /// Invoke callbacks to be executed before every process method invokation
-  void preProcessingCallbacks(ProcessingContext&);
-  /// Invoke callbacks to be executed after every process method invokation
-  void postProcessingCallbacks(ProcessingContext&);
   /// Invoke callbacks to be executed before every dangling check
   void preDanglingCallbacks(DanglingContext&);
   /// Invoke callbacks to be executed after every dangling check

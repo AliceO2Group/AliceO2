@@ -128,12 +128,6 @@ void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) 
 {
   static TracyLockableN(std::mutex, bindMutex, "bind mutex");
   std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
-  if (spec.preProcessing) {
-    mPreProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.preProcessing, service});
-  }
-  if (spec.postProcessing) {
-    mPostProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.postProcessing, service});
-  }
   if (spec.preDangling) {
     mPreDanglingHandles.push_back(ServiceDanglingHandle{spec, spec.preDangling, service});
   }
@@ -172,20 +166,6 @@ void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) 
   }
 }
 
-/// Invoke callbacks to be executed before every process method invokation
-void ServiceRegistry::preProcessingCallbacks(ProcessingContext& processContext)
-{
-  for (auto& handle : mPreProcessingHandles) {
-    handle.callback(processContext, handle.service);
-  }
-}
-/// Invoke callbacks to be executed after every process method invokation
-void ServiceRegistry::postProcessingCallbacks(ProcessingContext& processContext)
-{
-  for (auto& handle : mPostProcessingHandles) {
-    handle.callback(processContext, handle.service);
-  }
-}
 /// Invoke callbacks to be executed before every dangling check
 void ServiceRegistry::preDanglingCallbacks(DanglingContext& danglingContext)
 {

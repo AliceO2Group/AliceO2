@@ -14,6 +14,24 @@
 namespace o2::framework
 {
 /// Invoke callbacks to be executed before every dangling check
+void DataProcessorContext::preProcessingCallbacks(ProcessingContext& ctx)
+{
+  for (auto& handle : preProcessingHandlers) {
+    LOGP(debug, "Invoking preDanglingCallback for service {}", handle.spec.name);
+    handle.callback(ctx, handle.service);
+  }
+}
+
+/// Invoke callbacks to be executed before every dangling check
+void DataProcessorContext::postProcessingCallbacks(ProcessingContext& ctx)
+{
+  for (auto& handle : postProcessingHandlers) {
+    LOGP(debug, "Invoking postProcessingCallback for service {}", handle.spec.name);
+    handle.callback(ctx, handle.service);
+  }
+}
+
+/// Invoke callbacks to be executed before every dangling check
 void DataProcessorContext::preDanglingCallbacks(DanglingContext& danglingContext)
 {
   for (auto& handle : preDanglingHandles) {

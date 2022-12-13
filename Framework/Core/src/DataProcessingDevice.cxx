@@ -1932,6 +1932,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   auto& state = ref.get<DeviceState>();
   auto& spec = ref.get<DeviceSpec const>();
 
+  auto& dpContext = ref.get<DataProcessorContext>();
+  auto& streamContext = ref.get<StreamContext>();
   for (auto action : getReadyActions()) {
     LOGP(debug, "  Begin action");
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
@@ -1959,7 +1961,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
       ZoneScopedN("service pre processing");
-      context.registry->preProcessingCallbacks(processContext);
+      // Notice this should be thread safe and reentrant
+      // as it is called from many threads.
+      dpContext.preProcessingCallbacks(processContext);
+      streamContext.preProcessingCallbacks(processContext);
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       LOGP(debug, "  - Action is to Discard");
@@ -1992,11 +1997,14 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     auto runNoCatch = [&context, ref, &processContext](DataRelayer::RecordAction& action) mutable {
       auto& state = ref.get<DeviceState>();
       auto& spec = ref.get<DeviceSpec const>();
+      auto& streamContext = ref.get<StreamContext>();
+      auto& dpContext = ref.get<DataProcessorContext>();
       if (state.quitRequested == false) {
         {
           ZoneScopedN("service post processing");
           // Callbacks from services
-          context.registry->preProcessingCallbacks(processContext);
+          dpContext.preProcessingCallbacks(processContext);
+          streamContext.preProcessingCallbacks(processContext);
           // Callbacks from users
           ref.get<CallbackService>()(CallbackService::Id::PreProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
         }
@@ -2019,7 +2027,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         {
           ZoneScopedN("service post processing");
           ref.get<CallbackService>()(CallbackService::Id::PostProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
-          context.registry->postProcessingCallbacks(processContext);
+          streamContext.postProcessingCallbacks(processContext);
+          dpContext.postProcessingCallbacks(processContext);
         }
       }
     };
