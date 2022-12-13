@@ -110,6 +110,7 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
     ServiceHandle handle = spec.init({*this}, state, options);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindGlobalService(spec, handle.instance);
+    this->bindService(salt, spec, handle.instance);
   } else if (spec.kind == ServiceKind::Stream) {
     // We register a nullptr in this case, because we really want to have the ptr to
     // the service spec only.
@@ -390,6 +391,8 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     ServiceHandle handle = spec.init({registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
     this->bindGlobalService(spec, handle.instance);
+    this->bindService(salt, spec, handle.instance);
+
     return handle.instance;
   }
 
@@ -421,8 +424,10 @@ void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const&
   } else {
     ServiceRegistryRef ref{const_cast<ServiceRegistry&>(*this), salt};
     std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
-    auto& dataProcessorContext = ref.get<DataProcessorContext>();
-    ContextHelpers::bindProcessorService(dataProcessorContext, spec, service);
+    if (ref.active<DataProcessorContext>()) {
+      auto& dataProcessorContext = ref.get<DataProcessorContext>();
+      ContextHelpers::bindProcessorService(dataProcessorContext, spec, service);
+    }
     if (spec.postRenderGUI) {
       mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
     }
