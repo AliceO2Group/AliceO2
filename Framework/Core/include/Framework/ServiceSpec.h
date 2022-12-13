@@ -259,6 +259,12 @@ struct ServiceStartHandle {
   void* service;
 };
 
+struct ServiceStartStreamHandle {
+  ServiceSpec const& spec;
+  ServiceStartCallback callback;
+  void* service;
+};
+
 struct ServiceStopHandle {
   ServiceSpec const& spec;
   ServiceStopCallback callback;

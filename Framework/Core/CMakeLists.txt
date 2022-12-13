@@ -53,6 +53,7 @@ o2_add_library(Framework
                        src/DataProcessingHelpers.cxx
                        src/DataProcessorSpecHelpers.cxx
                        src/DataProcessorMatchers.cxx
+                       src/DataProcessingContext.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -114,6 +115,7 @@ o2_add_library(Framework
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
+                       src/StreamContext.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx

@@ -32,6 +32,8 @@ class FairMQResizableBuffer;
 class ArrowContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   ArrowContext(FairMQDeviceProxy& proxy)
     : mProxy{proxy}
   {

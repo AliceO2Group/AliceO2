@@ -53,6 +53,8 @@ struct Output;
 class MessageContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   // so far we are only using one instance per named channel
   static constexpr int DefaultChannelIndex = 0;
 
@@ -110,12 +112,12 @@ class MessageContext
     }
 
     /// @brief return the channel name
-    RouteIndex route() const
+    [[nodiscard]] RouteIndex route() const
     {
       return mRouteIndex;
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
       return mParts.Size() == 0;
     }
@@ -212,7 +214,7 @@ class MessageContext
       return mUpstream->getTransportFactory();
     }
 
-    size_t getNumberOfMessages() const noexcept override
+    [[nodiscard]] size_t getNumberOfMessages() const noexcept override
     {
       return mUpstream->getNumberOfMessages();
     }
@@ -228,7 +230,7 @@ class MessageContext
       return mUpstream->deallocate(p, bytes, alignment < 64 ? 64 : alignment);
     }
 
-    bool do_is_equal(const pmr::memory_resource& other) const noexcept override
+    [[nodiscard]] bool do_is_equal(const pmr::memory_resource& other) const noexcept override
     {
       return this == &other;
     }
@@ -511,7 +513,7 @@ class MessageContext
   // such cached message.
   int64_t addToCache(std::unique_ptr<fair::mq::Message>& message);
   // Clone a message from cache so that it can be added to the context
-  std::unique_ptr<fair::mq::Message> cloneFromCache(int64_t id) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> cloneFromCache(int64_t id) const;
   // Prune a message from cache
   void pruneFromCache(int64_t id);
 
