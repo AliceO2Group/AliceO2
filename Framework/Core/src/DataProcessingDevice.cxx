@@ -1347,7 +1347,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
   DanglingContext danglingContext{*context.registry};
 
-  context.registry->preDanglingCallbacks(danglingContext);
+  context.preDanglingCallbacks(danglingContext);
   if (*context.wasActive == false) {
     ref.get<CallbackService>()(CallbackService::Id::Idle);
   }
@@ -1357,7 +1357,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
   context.completed.clear();
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
 
-  context.registry->postDanglingCallbacks(danglingContext);
+  context.postDanglingCallbacks(danglingContext);
 
   // If we got notified that all the sources are done, we call the EndOfStream
   // callback and return false. Notice that what happens next is actually
@@ -1383,9 +1383,12 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
-    context.registry->preEOSCallbacks(eosContext);
+    context.preEOSCallbacks(eosContext);
+    auto &streamContext = ref.get<StreamContext>();
+    streamContext.preEOSCallbacks(eosContext);
     ref.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
-    context.registry->postEOSCallbacks(eosContext);
+    streamContext.postEOSCallbacks(eosContext);
+    context.postEOSCallbacks(eosContext);
 
     for (auto& channel : spec.outputChannels) {
       LOGP(detail, "Sending end of stream to {}", channel.name);
@@ -1676,7 +1679,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
       auto &context = ref.get<DataProcessorContext>();
-      context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+      context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
       ref.get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
     }

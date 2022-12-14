@@ -166,39 +166,6 @@ void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) 
   }
 }
 
-/// Invoke callbacks to be executed before every dangling check
-void ServiceRegistry::preDanglingCallbacks(DanglingContext& danglingContext)
-{
-  for (auto preDanglingHandle : mPreDanglingHandles) {
-    preDanglingHandle.callback(danglingContext, preDanglingHandle.service);
-  }
-}
-
-/// Invoke callbacks to be executed after every dangling check
-void ServiceRegistry::postDanglingCallbacks(DanglingContext& danglingContext)
-{
-  for (auto postDanglingHandle : mPostDanglingHandles) {
-    LOGP(debug, "Doing postDanglingCallback for service {}", postDanglingHandle.spec.name);
-    postDanglingHandle.callback(danglingContext, postDanglingHandle.service);
-  }
-}
-
-/// Invoke callbacks to be executed before every EOS user callback invokation
-void ServiceRegistry::preEOSCallbacks(EndOfStreamContext& eosContext)
-{
-  for (auto& eosHandle : mPreEOSHandles) {
-    eosHandle.callback(eosContext, eosHandle.service);
-  }
-}
-
-/// Invoke callbacks to be executed after every EOS user callback invokation
-void ServiceRegistry::postEOSCallbacks(EndOfStreamContext& eosContext)
-{
-  for (auto& eosHandle : mPostEOSHandles) {
-    eosHandle.callback(eosContext, eosHandle.service);
-  }
-}
-
 /// Invoke callbacks to be executed after every data Dispatching
 void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext)
 {
@@ -222,13 +189,6 @@ void ServiceRegistry::preExitCallbacks()
   /// I guess...
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
     exitHandle->callback(ServiceRegistryRef{*this}, exitHandle->service);
-  }
-}
-
-void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
-{
-  for (auto& handle : mDomainInfoHandles) {
-    handle.callback(*this, oldestPossibleTimeslice, channelIndex);
   }
 }
 

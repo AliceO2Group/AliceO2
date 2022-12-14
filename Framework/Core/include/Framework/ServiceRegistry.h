@@ -213,14 +213,6 @@ struct ServiceRegistry {
   ServiceRegistry(ServiceRegistry const& other);
   ServiceRegistry& operator=(ServiceRegistry const& other);
 
-  /// Invoke callbacks to be executed before every dangling check
-  void preDanglingCallbacks(DanglingContext&);
-  /// Invoke callbacks to be executed after every dangling check
-  void postDanglingCallbacks(DanglingContext&);
-  /// Invoke callbacks to be executed before every EOS user callback invokation
-  void preEOSCallbacks(EndOfStreamContext&);
-  /// Invoke callbacks to be executed after every EOS user callback invokation
-  void postEOSCallbacks(EndOfStreamContext&);
   /// Invoke callbacks to monitor inputs after dispatching, regardless of them
   /// being discarded, consumed or processed.
   void postDispatchingCallbacks(ProcessingContext&);
@@ -229,9 +221,6 @@ struct ServiceRegistry {
 
   /// Invoke callbacks on exit.
   void preExitCallbacks();
-
-  /// Invoke whenever we get a new DomainInfo message
-  void domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
 
   /// Invoke before sending messages @a parts on a channel @a channelindex
   void preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelindex);
