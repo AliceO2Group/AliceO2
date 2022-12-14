@@ -78,8 +78,8 @@ class CCDBDownloader
   // ADD COMMENT
 
   /**
-    * Time for which sockets will stay open after last download finishes
-    */
+   * Time for which sockets will stay open after last download finishes
+   */
   int socketTimoutMS = 4000;
 
   /**
