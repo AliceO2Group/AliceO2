@@ -1150,7 +1150,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
 
   auto result = runner.Run();
-  serviceRegistry.preExitCallbacks();
+  ServiceRegistryRef serviceRef = {serviceRegistry};
+  auto& context = serviceRef.get<DataProcessorContext>();
+  DataProcessorContext::preExitCallbacks(context.preExitHandles, serviceRef);
   return result;
 }
 
