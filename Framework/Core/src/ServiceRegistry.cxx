@@ -176,13 +176,6 @@ void ServiceRegistry::preExitCallbacks()
   }
 }
 
-void ServiceRegistry::preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelIndex)
-{
-  for (auto& handle : mPreSendingMessagesHandles) {
-    handle.callback(*this, parts, channelIndex);
-  }
-}
-
 void ServiceRegistry::postRenderGUICallbacks()
 {
   for (auto& handle : mPostRenderGUIHandles) {

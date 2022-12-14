@@ -216,9 +216,6 @@ struct ServiceRegistry {
   /// Invoke callbacks on exit.
   void preExitCallbacks();
 
-  /// Invoke before sending messages @a parts on a channel @a channelindex
-  void preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelindex);
-
   /// Invoke after rendering the GUI. Can be used to
   /// add custom GUI elements associated to a given service.
   void postRenderGUICallbacks();
