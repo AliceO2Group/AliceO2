@@ -53,7 +53,6 @@ void check_notransport()
     LOG(info) << "Initializing without Geant transport by applying very tight geometry cuts";
     o2::conf::ConfigurableParam::setValue("SimCutParams", "maxRTracking", 0.0000001);    // 1 nanometer of tracking
     o2::conf::ConfigurableParam::setValue("SimCutParams", "maxAbsZTracking", 0.0000001); // 1 nanometer of tracking
-    // TODO: disable physics processes for material sitting at the vertex
   }
 }
 
@@ -121,8 +120,8 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
 
   std::string outputfilename = s.str();
   run->SetSink(new FairRootFileSink(outputfilename.c_str())); // Output file
-  run->SetName(confref.getMCEngine().c_str()); // Transport engine
-  run->SetIsMT(confref.getIsMT());             // MT mode
+  run->SetName(confref.getMCEngine().c_str());                // Transport engine
+  run->SetIsMT(confref.getIsMT());                            // MT mode
 
   /** set event header **/
   auto header = new o2::dataformats::MCEventHeader();
