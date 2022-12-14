@@ -19,6 +19,7 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back("enable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Propagate MC info"});
+  workflowOptions.emplace_back("digits", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read associated digits"});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -26,5 +27,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool useMC = config.options().get<bool>("enable-mc");
-  return WorkflowSpec{o2::mch::getTrackReaderSpec(useMC)};
+  bool digits = config.options().get<bool>("digits");
+  return WorkflowSpec{o2::mch::getTrackReaderSpec(useMC, "mch-tracks-reader", digits)};
 }

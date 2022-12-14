@@ -25,6 +25,7 @@ namespace mch
 {
 
 o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName = "mch-track-finder-original",
+                                                            bool computeTime = true, bool digits = false,
                                                             bool disableCCDBMagField = false);
 
 } // end namespace mch

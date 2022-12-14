@@ -33,12 +33,13 @@ namespace mch
 class TrackMCH
 {
   using ClusRef = o2::dataformats::RangeRefComp<5>;
-  using Time = o2::dataformats::TimeStampWithError<float, float>;
 
  public:
+  using Time = o2::dataformats::TimeStampWithError<float, float>;
+
   TrackMCH() = default;
   TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
-           double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID);
+           double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID, const Time& time);
   ~TrackMCH() = default;
 
   TrackMCH(const TrackMCH& track) = default;
