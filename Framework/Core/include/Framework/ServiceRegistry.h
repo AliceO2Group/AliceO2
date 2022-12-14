@@ -213,12 +213,6 @@ struct ServiceRegistry {
   ServiceRegistry(ServiceRegistry const& other);
   ServiceRegistry& operator=(ServiceRegistry const& other);
 
-  /// Invoke callbacks to monitor inputs after dispatching, regardless of them
-  /// being discarded, consumed or processed.
-  void postDispatchingCallbacks(ProcessingContext&);
-  /// Callback invoked after the late forwarding has been done
-  void postForwardingCallbacks(ProcessingContext&);
-
   /// Invoke callbacks on exit.
   void preExitCallbacks();
 

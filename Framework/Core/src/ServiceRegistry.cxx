@@ -166,22 +166,6 @@ void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) 
   }
 }
 
-/// Invoke callbacks to be executed after every data Dispatching
-void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext)
-{
-  for (auto& dispatchingHandle : mPostDispatchingHandles) {
-    dispatchingHandle.callback(processContext, dispatchingHandle.service);
-  }
-}
-
-/// Invoke callbacks to be executed after every data Dispatching
-void ServiceRegistry::postForwardingCallbacks(ProcessingContext& processContext)
-{
-  for (auto& forwardingHandle : mPostForwardingHandles) {
-    forwardingHandle.callback(processContext, forwardingHandle.service);
-  }
-}
-
 /// Invoke callback to be executed on exit, in reverse order.
 void ServiceRegistry::preExitCallbacks()
 {
