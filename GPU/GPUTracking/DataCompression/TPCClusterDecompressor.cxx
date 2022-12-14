@@ -83,9 +83,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       if (clusters[i][j].size()) {
         memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
       }
-      ClusterNative* cl = buffer + clusters[i][j].size();
+      ClusterNative* clout = buffer + clusters[i][j].size();
       unsigned int end = offsets[i][j] + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
-      decompressHits(clustersCompressed, offsets[i][j], end, cl);
+      decompressHits(clustersCompressed, offsets[i][j], end, clout);
       if (param.rec.tpc.clustersShiftTimebins != 0.f) {
         for (unsigned int k = 0; k < clustersNative.nClusters[i][j]; k++) {
           auto& cl = buffer[k];
