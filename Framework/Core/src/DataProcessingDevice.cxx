@@ -961,7 +961,7 @@ void DataProcessingDevice::PreRun()
       info.state = InputChannelState::Running;
     }
   }
-  auto &dpContext = ref.get<DataProcessorContext>();
+  auto& dpContext = ref.get<DataProcessorContext>();
   dpContext.preStartCallbacks(ref);
   ref.get<CallbackService>()(CallbackService::Id::Start);
   startPollers();
@@ -972,7 +972,7 @@ void DataProcessingDevice::PostRun()
   stopPollers();
   ServiceRegistryRef ref{mServiceRegistry};
   ref.get<CallbackService>()(CallbackService::Id::Stop);
-  auto &dpContext = ref.get<DataProcessorContext>();
+  auto& dpContext = ref.get<DataProcessorContext>();
   dpContext.postStopCallbacks(ref);
 }
 
@@ -1386,7 +1386,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
     context.preEOSCallbacks(eosContext);
-    auto &streamContext = ref.get<StreamContext>();
+    auto& streamContext = ref.get<StreamContext>();
     streamContext.preEOSCallbacks(eosContext);
     ref.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
     streamContext.postEOSCallbacks(eosContext);
