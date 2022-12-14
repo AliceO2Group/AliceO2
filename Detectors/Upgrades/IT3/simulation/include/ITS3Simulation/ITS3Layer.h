@@ -45,19 +45,34 @@ class ITS3Layer : public TObject
   ~ITS3Layer() override;
 
   void createLayer(TGeoVolume* motherVolume);
+  void createLayerWithDeadZones(TGeoVolume* motherVolume);
+  void createCarbonFoamStructure(TGeoVolume* motherVolume);
+
   void setSensorThick(double thick) { mSensorThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }
   void setLayerZLen(double zLen) { mZLen = zLen; }
   void setGapBetweenEmispheres(double gap) { mGap = gap; }
   void setChipID(int chipID) { mChipTypeID = chipID; }
+  void setFringeChipWidth(double fringeChipWidth) { mFringeChipWidth = fringeChipWidth; }
+  void setMiddleChipWidth(double middleChipWidth) { mMiddleChipWidth = middleChipWidth; }
+  void setNumSubSensorsHalfLayer(int numSubSensorsHalfLayer) { mNumSubSensorsHalfLayer = numSubSensorsHalfLayer; }
+  void setHeightStripFoam(double heightStripFoam) { mHeightStripFoam = heightStripFoam; }
+  void setLengthSemiCircleFoam(double lengthSemiCircleFoam) { mLengthSemiCircleFoam = lengthSemiCircleFoam; }
+  void setThickGluedFoam(double thickGluedFoam) { mThickGluedFoam = thickGluedFoam; }
 
  private:
-  int mLayerNumber{0};         //! layer number
-  double mSensorThickness{0.}; //! sensor thickness
-  double mRadius{0.};          //! radius of layer
-  double mZLen{0.};            //! length of a layer
-  double mGap{0.};             //! gap between emispheres
-  int mChipTypeID{0};          //! chip ID
+  int mLayerNumber{0};             //! layer number
+  double mSensorThickness{0.};     //! sensor thickness
+  double mRadius{0.};              //! radius of layer
+  double mZLen{0.};                //! length of a layer
+  double mGap{0.};                 //! gap between emispheres
+  int mChipTypeID{0};              //! chip ID
+  double mFringeChipWidth{0.};     //! fringe chip width
+  double mMiddleChipWidth{0.};     //! middle chip width
+  int mNumSubSensorsHalfLayer{0};  //! num of subsensors in half layer
+  double mHeightStripFoam{0};      //! strip foam height
+  double mLengthSemiCircleFoam{0}; //! semi-circle foam length
+  double mThickGluedFoam{0};       //! glued foam thickness
 
   ClassDefOverride(ITS3Layer, 0); // ITS3 geometry
 };                                // namespace its3

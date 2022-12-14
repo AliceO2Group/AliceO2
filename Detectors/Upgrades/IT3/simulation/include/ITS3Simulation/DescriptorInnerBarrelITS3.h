@@ -49,10 +49,17 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   ITS3Layer* createLayer(int idLayer, TGeoVolume* dest);
 
  private:
-  Version mVersion{ThreeLayersNoDeadZones}; //! version of ITS3
-  std::vector<double> mLayerZLen{};         //! Vector of layer length in Z coordinate
-  std::vector<double> mGap{};               //! Vector of gap between empispheres
-  std::vector<ITS3Layer*> mLayer{};         //! Vector of layers
+  Version mVersion{ThreeLayersNoDeadZones};    //! version of ITS3
+  std::vector<double> mLayerZLen{};            //! Vector of layer length in Z coordinate
+  std::vector<double> mGap{};                  //! Vector of gap between empispheres
+  std::vector<int> mNumSubSensorsHalfLayer{};  //! Vector of num of subsensors in half layer
+  std::vector<double> mFringeChipWidth{};      //! Vector of fringe chip width
+  std::vector<double> mMiddleChipWidth{};      //! Vector of middle chip width
+  std::vector<double> mHeightStripFoam{};      //! Vector of strip foam height
+  std::vector<double> mLengthSemiCircleFoam{}; //! Vector of semi-circle foam length
+  std::vector<double> mThickGluedFoam{};       //! Vector of  glued foam thickness
+
+  std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS inner barrel geometry descriptor
