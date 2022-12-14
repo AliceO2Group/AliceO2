@@ -66,7 +66,6 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
     mIsFirstTF = false;
   }
   mHistogram.add(histView);
-  //  if (!mIsReady) {
   // This part should at the stage `hasEnoughData()` but it is const method
   for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
     if (mBitsetGoodChIDs.test(iCh) || mBitsetBadChIDs.test(iCh)) {
@@ -87,7 +86,6 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
   if (totalNCheckedChIDs == sNCHANNELS) {
     mIsReady = true;
   }
-  //  }
 }
 
 void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
