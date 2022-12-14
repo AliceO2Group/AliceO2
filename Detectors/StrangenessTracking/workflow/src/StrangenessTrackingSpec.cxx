@@ -75,15 +75,11 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
-  LOG(info) << "Strangeness tracking done, found " << mTracker.getStrangeTrackVec().size() << " strange tracks";
-  LOG(info) << "mUSEMC = " << mUseMC;
   pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
   pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
-  LOG(info) << "Still alive...";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"STK", "STRK_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
-    LOG(info) << "MC labels for strange tracks are available, found" << mTracker.getStrangeTrackLabels().size() << " labels";
   }
 
   mTimer.Stop();
