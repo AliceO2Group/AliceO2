@@ -41,7 +41,7 @@ namespace strangeness_tracking
 using StrangeTrack = o2::dataformats::StrangeTrack;
 using DataRequest = o2::globaltracking::DataRequest;
 
-StrangenessTrackerSpec::StrangenessTrackerSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mDataRequest{dr}, mGGCCDBRequest(gr), mIsMC{isMC}
+StrangenessTrackerSpec::StrangenessTrackerSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mDataRequest{dr}, mGGCCDBRequest(gr), mUseMC{isMC}
 {
   // no ops
 }
@@ -75,9 +75,16 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
-
+  LOG(info) << "Strangeness tracking done, found " << mTracker.getStrangeTrackVec().size() << " strange tracks";
+  LOG(info) << "mUSEMC = " << mUseMC;
   pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
   pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
+  LOG(info) << "Still alive...";
+
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{"STK", "STRK_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
+    LOG(info) << "MC labels for strange tracks are available, found" << mTracker.getStrangeTrackLabels().size() << " labels";
+  }
 
   mTimer.Stop();
 }
@@ -93,6 +100,7 @@ void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
   }
+  mTracker.setMCTruthOn(mUseMC);
 }
 
 ///_______________________________________
@@ -114,12 +122,11 @@ void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src)
+DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC)
 {
 
   // ITS
   auto dataRequest = std::make_shared<DataRequest>();
-  bool useMC = false;
   dataRequest->requestITSClusters(useMC);
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
@@ -137,12 +144,16 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("STK", "STRTRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("STK", "CLUSUPDATES", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back("STK", "STRK_MC", 0, Lifetime::Timeframe);
+    LOG(info) << "Strangeness tracker will use MC";
+  }
 
   return DataProcessorSpec{
     "strangeness-tracker",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<StrangenessTrackerSpec>(dataRequest, ggRequest, false)},
+    AlgorithmSpec{adaptFromTask<StrangenessTrackerSpec>(dataRequest, ggRequest, useMC)},
     Options{}};
 }
 
