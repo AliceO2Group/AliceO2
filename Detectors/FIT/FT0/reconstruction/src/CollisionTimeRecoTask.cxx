@@ -39,8 +39,9 @@ void CollisionTimeRecoTask::processTF(const gsl::span<const o2::ft0::Digit>& dig
   //  vecRecPoints.reserve(digits.size());
   //  vecChData.reserve(channels.size());
   for (const auto& digit : digits) {
-    if (!ChannelFilterParam::Instance().checkTCMbits(digit.getTriggers().getTriggersignals()))
+    if (!ChannelFilterParam::Instance().checkTCMbits(digit.getTriggers().getTriggersignals())) {
       continue;
+    }
     const auto channelsPerDigit = digit.getBunchChannelData(channels);
     vecRecPoints.emplace_back(processDigit(digit, channelsPerDigit, vecChData));
   }
