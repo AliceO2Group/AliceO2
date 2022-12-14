@@ -53,6 +53,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
 // It fills the mPeakFound vector with potential 1s
 void LZEROElectronics::peakFinderOnAllPatches(Patches& p)
 {
+  p.mFiredPatches.clear();
   for (auto& patches : p.mIndexMapPatch) {
     auto PatchID = std::get<0>(patches);
     auto isFound = peakFinderOnPatch(p, PatchID);

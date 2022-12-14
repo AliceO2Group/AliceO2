@@ -27,9 +27,86 @@ using namespace o2::emcal;
 
 //_____________________________________________________________________
 //
+void DigitsWriteoutBufferTRU::fillOutputContainer(bool& isEndOfTimeFrame, bool& isStartOfTimeFrame)
+{
+  int eventTimeBin = 13;
+  bool needsEmptyTimeBins = false;
+  int nProcessedTimeBins = 0;
+  int timeBin = mFirstTimeBin;
+  o2::InteractionRecord nextInteractionRecord;
+
+  std::deque<o2::emcal::DigitTimebin>
+    mDequeTime;
+
+  // If end of run or end of timeframe read out what we have
+  bool isEnd = mEndOfRun || isEndOfTimeFrame;
+  // Checking the Interaction Record for a new event
+  // If the time is different from the one that is currently
+  // saved, this means there is a new collision and we
+  // can read out the previous time bins
+  // markerTimeBin indicates how many steps we can
+  // put our marker forward
+  int markerTimeBin = 0;
+  for (auto& time : mTimeBins) {
+    // The time bins between the last event and the timing of this event are uncorrelated and can be written out
+    // This is true up to 13 samples, which is the pulse of the TRU
+    // So either a new collision in less than 13, or 13 samples are read together
+    if (!(markerTimeBin < eventTimeBin)) {
+      break;
+    }
+
+    /// End of Run
+    if (isEnd) {
+      break;
+    }
+
+    // check if minterrecord which is optional exists.
+    // if it doesn't, keep the previously assigned interrecord value
+    if (time.mInterRecord.has_value()) {
+      auto interactionrecordsavedtmp = time.mInterRecord.value();
+      nextInteractionRecord = interactionrecordsavedtmp;
+      auto nextTime = nextInteractionRecord.bc2ns(nextInteractionRecord.bc, nextInteractionRecord.orbit);
+      auto currentTime = mCurrentInteractionRecord.bc2ns(mCurrentInteractionRecord.bc, mCurrentInteractionRecord.orbit);
+      // If the new IR and the old IR have different times, this means
+      // we have different collisions and we can read out
+      if (nextTime != currentTime) {
+        break;
+      }
+    }
+
+    // increasing the marker for the read out, this tells us
+    // how many time bins we can move forward
+    ++markerTimeBin;
+  }
+
+  // Now filling the vector stream
+  for (auto& time : mTimeBins) {
+    /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
+    if (!(nProcessedTimeBins + mFirstTimeBin < markerTimeBin)) {
+      break;
+    }
+
+    mDequeTime.push_back(time);
+    mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+
+    ++nProcessedTimeBins;
+    ++timeBin;
+  }
+
+  mCurrentInteractionRecord = nextInteractionRecord;
+
+  if (nProcessedTimeBins > 0) {
+    mFirstTimeBin += nProcessedTimeBins;
+    while (nProcessedTimeBins--) {
+      mTimeBins.pop_front();
+    }
+  }
+}
+//_____________________________________________________________________
+//
 void DigitsWriteoutBufferTRU::fillOutputContainer()
 {
-  int eventTimeBin = 15;
+  int eventTimeBin = 13;
   bool needsEmptyTimeBins = false;
   int nProcessedTimeBins = 0;
   int timeBin = mFirstTimeBin;

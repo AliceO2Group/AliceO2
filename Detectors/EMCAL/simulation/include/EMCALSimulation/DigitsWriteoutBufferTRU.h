@@ -49,6 +49,14 @@ namespace o2
 namespace emcal
 {
 
+struct DigitTimebinTRU {
+  bool mRecordMode = false;
+  bool mEndWindow = false;
+  bool mTriggerColl = false;
+  std::optional<o2::InteractionRecord> mInterRecord;
+  std::shared_ptr<std::unordered_map<int, std::list<Digit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<Digit>>>();
+};
+
 /// \class DigitsWriteoutBufferTRU
 /// \brief Container class for time sampled digits to be sent to TRUs in true continuous readout
 /// \ingroup EMCALsimulation
@@ -84,11 +92,15 @@ class DigitsWriteoutBufferTRU
   /// Add digit to the container
   /// \param towerID Cell ID
   /// \param dig Labaled digit to add
-  // /// \param eventTime The time of the event (w.r.t Tigger time)
   void addDigits(unsigned int towerID, std::vector<o2::emcal::LabeledDigit>& digList);
 
   /// Fill output streamer
   void fillOutputContainer();
+
+  /// Fill output streamer
+  /// \param isEndOfTimeFrame End of Time Frame
+  /// \param isStartOfTimeFrame Start of Time Frame
+  void fillOutputContainer(bool& isEndOfTimeFrame, bool& isStartOfTimeFrame);
 
   /// Setters for the live time, busy time, pre-trigger time
   void setLiveTime(unsigned int liveTime) { mLiveTime = liveTime; }
@@ -114,6 +126,7 @@ class DigitsWriteoutBufferTRU
   std::deque<o2::emcal::DigitTimebin> mTimeBins; ///< Container for time sampled digits per tower ID for continuous digits
   unsigned int mFirstTimeBin = 0;
   bool mEndOfRun = 0;
+  o2::InteractionRecord mCurrentInteractionRecord; ///< Interaction Record of the current event, to be used to fill the output container
 
   o2::emcal::DigitsVectorStream mDigitStream; ///< Output vector streamer
 
