@@ -959,7 +959,8 @@ void DataProcessingDevice::PreRun()
       info.state = InputChannelState::Running;
     }
   }
-  mServiceRegistry.preStartCallbacks();
+  auto &dpContext = ref.get<DataProcessorContext>();
+  dpContext.preStartCallbacks(ref);
   ref.get<CallbackService>()(CallbackService::Id::Start);
   startPollers();
 }
@@ -969,7 +970,8 @@ void DataProcessingDevice::PostRun()
   stopPollers();
   ServiceRegistryRef ref{mServiceRegistry};
   ref.get<CallbackService>()(CallbackService::Id::Stop);
-  mServiceRegistry.postStopCallbacks();
+  auto &dpContext = ref.get<DataProcessorContext>();
+  dpContext.postStopCallbacks(ref);
 }
 
 void DataProcessingDevice::Reset()

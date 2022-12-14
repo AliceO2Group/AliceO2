@@ -215,25 +215,6 @@ void ServiceRegistry::postForwardingCallbacks(ProcessingContext& processContext)
   }
 }
 
-/// Callbacks to be called in fair::mq::Device::PreRun()
-void ServiceRegistry::preStartCallbacks()
-{
-  // FIXME: we need to call the callback only once for the global services
-  /// I guess...
-  for (auto startHandle = mPreStartHandles.begin(); startHandle != mPreStartHandles.end(); ++startHandle) {
-    startHandle->callback(*this, startHandle->service);
-  }
-}
-
-void ServiceRegistry::postStopCallbacks()
-{
-  // FIXME: we need to call the callback only once for the global services
-  /// I guess...
-  for (auto& stopHandle : mPostStopHandles) {
-    stopHandle.callback(*this, stopHandle.service);
-  }
-}
-
 /// Invoke callback to be executed on exit, in reverse order.
 void ServiceRegistry::preExitCallbacks()
 {

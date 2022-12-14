@@ -213,8 +213,6 @@ struct ServiceRegistry {
   ServiceRegistry(ServiceRegistry const& other);
   ServiceRegistry& operator=(ServiceRegistry const& other);
 
-  /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
-  void preStartCallbacks();
   /// Invoke callbacks to be executed before every dangling check
   void preDanglingCallbacks(DanglingContext&);
   /// Invoke callbacks to be executed after every dangling check
@@ -229,8 +227,6 @@ struct ServiceRegistry {
   /// Callback invoked after the late forwarding has been done
   void postForwardingCallbacks(ProcessingContext&);
 
-  /// Invoke callbacks on stop.
-  void postStopCallbacks();
   /// Invoke callbacks on exit.
   void preExitCallbacks();
 
