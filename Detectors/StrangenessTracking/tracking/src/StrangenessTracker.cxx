@@ -20,7 +20,6 @@ namespace o2
 namespace strangeness_tracking
 {
 
-
 bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoData)
 {
   clear();
@@ -227,6 +226,10 @@ void StrangenessTracker::process()
           mStrangeTrack.mITSRef = mSortedITSindexes[iTrack];
           mStrangeTrackVec.push_back(mStrangeTrack);
           mClusAttachments.push_back(mStructClus);
+          if (mMCTruthON) {
+            auto lab = getStrangeTrackLabel();
+            mStrangeTrackLabels.push_back(lab);
+          }
         }
       }
     }
