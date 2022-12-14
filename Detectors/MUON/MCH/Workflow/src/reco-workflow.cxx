@@ -103,10 +103,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
     specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
     if (!disableRootOutput) {
-      specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, digits)); // RS cannot find who produces MCH/CLUSTERLABELS/0
+      specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, true));
     }
     if (!disableTracking) {
-      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
+      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", true, digits, false));
       if (useMC) {
         specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
                                                               triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",

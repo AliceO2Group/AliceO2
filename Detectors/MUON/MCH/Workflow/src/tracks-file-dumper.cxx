@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsMCH/Cluster.h"
+#include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/TrackBlock.h"
@@ -31,6 +32,7 @@ namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
 using o2::mch::Cluster;
+using o2::mch::Digit;
 using o2::mch::ROFRecord;
 using o2::mch::TrackAtVtxStruct;
 using o2::mch::TrackMCH;
@@ -136,9 +138,10 @@ int dumpRoot(std::string inputFile)
   ROFRecord rof;
   std::vector<TrackMCH> tracks;
   std::vector<Cluster> clusters;
+  std::vector<Digit> digits;
   std::vector<o2::MCCompLabel> labels;
 
-  while (tr.next(rof, tracks, clusters, labels)) {
+  while (tr.next(rof, tracks, clusters, digits, labels)) {
     std::cout << rof << "\n";
     if (tr.hasLabels() && labels.size() != tracks.size()) {
       std::cerr << "the number of labels do not match the number of tracks\n";
