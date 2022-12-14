@@ -109,7 +109,6 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
   if (spec.kind != ServiceKind::Stream) {
     ServiceHandle handle = spec.init({*this}, state, options);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
-    this->bindGlobalService(spec, handle.instance);
     this->bindService(salt, spec, handle.instance);
   } else if (spec.kind == ServiceKind::Stream) {
     // We register a nullptr in this case, because we really want to have the ptr to
@@ -121,58 +120,6 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
       throw runtime_error_f("Declaring a stream service %s in a non-global context is not allowed.", spec.name.c_str());
     }
     this->registerService({spec.uniqueId()}, nullptr, spec.kind, salt, spec.name.c_str(), {static_cast<int>(mSpecs.size() - 1)});
-  }
-}
-
-void ServiceRegistry::bindGlobalService(ServiceSpec const& spec, void* service) const
-{
-  static TracyLockableN(std::mutex, bindMutex, "bind mutex");
-  std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
-  if (spec.preDangling) {
-    mPreDanglingHandles.push_back(ServiceDanglingHandle{spec, spec.preDangling, service});
-  }
-  if (spec.postDangling) {
-    mPostDanglingHandles.push_back(ServiceDanglingHandle{spec, spec.postDangling, service});
-  }
-  if (spec.preEOS) {
-    mPreEOSHandles.push_back(ServiceEOSHandle{spec, spec.preEOS, service});
-  }
-  if (spec.postEOS) {
-    mPostEOSHandles.push_back(ServiceEOSHandle{spec, spec.postEOS, service});
-  }
-  if (spec.postDispatching) {
-    mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec, spec.postDispatching, service});
-  }
-  if (spec.postForwarding) {
-    mPostForwardingHandles.push_back(ServiceForwardingHandle{spec, spec.postForwarding, service});
-  }
-  if (spec.start) {
-    mPreStartHandles.push_back(ServiceStartHandle{spec, spec.start, service});
-  }
-  if (spec.stop) {
-    mPostStopHandles.push_back(ServiceStopHandle{spec, spec.stop, service});
-  }
-  if (spec.exit) {
-    mPreExitHandles.push_back(ServiceExitHandle{spec, spec.exit, service});
-  }
-  if (spec.domainInfoUpdated) {
-    mDomainInfoHandles.push_back(ServiceDomainInfoHandle{spec, spec.domainInfoUpdated, service});
-  }
-  if (spec.preSendingMessages) {
-    mPreSendingMessagesHandles.push_back(ServicePreSendingMessagesHandle{spec, spec.preSendingMessages, service});
-  }
-  if (spec.postRenderGUI) {
-    mPostRenderGUIHandles.push_back(ServicePostRenderGUIHandle{spec, spec.postRenderGUI, service});
-  }
-}
-
-/// Invoke callback to be executed on exit, in reverse order.
-void ServiceRegistry::preExitCallbacks()
-{
-  // FIXME: we need to call the callback only once for the global services
-  /// I guess...
-  for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
-    exitHandle->callback(ServiceRegistryRef{*this}, exitHandle->service);
   }
 }
 
@@ -288,7 +235,6 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     // Call init for the proper ServiceRegistryRef
     ServiceHandle handle = spec.init({registry, salt}, deviceState, *rawDeviceService.device()->fConfig);
     this->registerService({handle.hash}, handle.instance, handle.kind, salt, handle.name.c_str());
-    this->bindGlobalService(spec, handle.instance);
     this->bindService(salt, spec, handle.instance);
 
     return handle.instance;

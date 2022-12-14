@@ -178,28 +178,6 @@ struct ServiceRegistry {
     return Index{static_cast<int32_t>(id.id & MAX_SERVICES_MASK)};
   }
 
-  /// Callbacks for services to be executed before every dangling check
-  mutable std::vector<ServiceDanglingHandle> mPreDanglingHandles;
-  /// Callbacks for services to be executed after every dangling check
-  mutable std::vector<ServiceDanglingHandle> mPostDanglingHandles;
-  /// Callbacks for services to be executed before every EOS user callback invokation
-  mutable std::vector<ServiceEOSHandle> mPreEOSHandles;
-  /// Callbacks for services to be executed after every EOS user callback invokation
-  mutable std::vector<ServiceEOSHandle> mPostEOSHandles;
-  /// Callbacks for services to be executed after every dispatching
-  mutable std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
-  /// Callbacks for services to be executed after every dispatching
-  mutable std::vector<ServiceForwardingHandle> mPostForwardingHandles;
-  /// Callbacks for services to be executed before Start
-  mutable std::vector<ServiceStartHandle> mPreStartHandles;
-  /// Callbacks for services to be executed on the Stop transition
-  mutable std::vector<ServiceStopHandle> mPostStopHandles;
-  /// Callbacks for services to be executed on exit
-  mutable std::vector<ServiceExitHandle> mPreExitHandles;
-  /// Callbacks for services to be executed on exit
-  mutable std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
-  /// Callbacks for services to be executed before sending messages
-  mutable std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
   /// Callbacks to be executed after the main GUI has been drawn
   mutable std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
@@ -229,12 +207,6 @@ struct ServiceRegistry {
   /// @a salt is used to create the service in the proper context
   /// FIXME: for now we create everything in the global context
   void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt());
-
-  /// Bind the callbacks of a service spec to a given service.
-  /// Notice that
-  /// @a the salt of the context which is registering a given service.
-  ///    This is used to make sure each stream / dataprocessor can bind its own callbacks.
-  void bindGlobalService(ServiceSpec const& spec, void* service) const;
 
   void bindService(ServiceRegistry::Salt salt, ServiceSpec const& spec, void* service) const;
 
