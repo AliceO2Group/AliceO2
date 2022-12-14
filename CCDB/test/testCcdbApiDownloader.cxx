@@ -76,7 +76,6 @@ BOOST_AUTO_TEST_CASE(perform_test)
   std::cout << "HTTP code: " << httpCode << "\n";
 
   curl_easy_cleanup(handle);
-
   curl_global_cleanup();
 }
 
