@@ -27,7 +27,7 @@ class Tracer
 } // namespace gpu
 } // namespace its
 } // namespace o2
-#define RANGE(name, cid) Tracer tracer(name, cid);
+#define RANGE(name, cid) o2::its::gpu::Tracer tracer(name, cid);
 #else
 #define RANGE(name, cid)
 #endif

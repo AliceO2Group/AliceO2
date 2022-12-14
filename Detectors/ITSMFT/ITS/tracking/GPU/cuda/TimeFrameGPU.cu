@@ -37,43 +37,13 @@ using constants::MB;
 namespace gpu
 {
 using utils::checkGPUError;
-
-template <int nLayers>
-struct StaticTrackingParameters {
-  StaticTrackingParameters<nLayers>& operator=(const StaticTrackingParameters<nLayers>& t) = default;
-  void set(const TrackingParameters& pars)
-  {
-    ClusterSharing = pars.ClusterSharing;
-    MinTrackLength = pars.MinTrackLength;
-    NSigmaCut = pars.NSigmaCut;
-    PVres = pars.PVres;
-    DeltaROF = pars.DeltaROF;
-    ZBins = pars.ZBins;
-    PhiBins = pars.PhiBins;
-    CellDeltaTanLambdaSigma = pars.CellDeltaTanLambdaSigma;
-  }
-
-  /// General parameters
-  int ClusterSharing = 0;
-  int MinTrackLength = nLayers;
-  float NSigmaCut = 5;
-  float PVres = 1.e-2f;
-  int DeltaROF = 0;
-  int ZBins{256};
-  int PhiBins{128};
-
-  /// Cell finding cuts
-  float CellDeltaTanLambdaSigma = 0.007f;
-};
-
 /////////////////////////////////////////////////////////////////////////////////////////
-// GpuPartition
+// GpuChunk
 template <int nLayers>
-GpuTimeFramePartition<nLayers>::~GpuTimeFramePartition()
+GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
 {
   if (mAllocated) {
     for (int i = 0; i < nLayers; ++i) {
-      checkGPUError(cudaFree(mROframesClustersDevice[i]));
       checkGPUError(cudaFree(mClustersDevice[i]));
       checkGPUError(cudaFree(mUsedClustersDevice[i]));
       checkGPUError(cudaFree(mTrackingFrameInfoDevice[i]));
@@ -92,15 +62,15 @@ GpuTimeFramePartition<nLayers>::~GpuTimeFramePartition()
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mFoundCellsDevice));
   }
+  mAllocated = false;
 }
 
 template <int nLayers>
-void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof, Stream& stream)
+void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
 {
   RANGE("device_partition_allocation", 2);
   mNRof = nrof;
   for (int i = 0; i < nLayers; ++i) {
-    checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mROframesClustersDevice[i])), sizeof(int) * nrof, stream.get()));
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mClustersDevice[i])), sizeof(Cluster) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mUsedClustersDevice[i])), sizeof(unsigned char) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mTrackingFrameInfoDevice[i])), sizeof(TrackingFrameInfo) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
@@ -121,7 +91,9 @@ void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof, Stream& stream)
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mCUBTmpBufferDevice), mTFGconf->tmpCUBBufferSize * nrof, stream.get()));
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mLinesDevice), sizeof(Line) * mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNFoundLinesDevice), sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
-  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNExclusiveFoundLinesDevice), sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNExclusiveFoundLinesDevice), sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof + 1, stream.get())); // + 1 for cub::DeviceScan::ExclusiveSum, to cover cases where we have maximum number of clusters per ROF
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mUsedTrackletsDevice), sizeof(unsigned char) * mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mClusteredLinesDevice), sizeof(int) * mTFGconf->clustersPerROfCapacity * mTFGconf->maxTrackletsPerCluster * nrof, stream.get()));
 
   /// Invariant allocations
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get()));
@@ -131,11 +103,10 @@ void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof, Stream& stream)
 }
 
 template <int nLayers>
-void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task, Stream& stream)
+void GpuTimeFrameChunk<nLayers>::reset(const size_t nrof, const Task task, Stream& stream)
 {
   RANGE("buffer_reset", 0);
   if ((bool)task) { // Vertexer-only initialisation (cannot be constexpr: due to the presence of gpu raw calls can't be put in header)
-    std::vector<std::thread> t;
     for (int i = 0; i < 2; i++) {
       auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsDevice[i]);
       auto thrustTrackletsEnd = thrustTrackletsBegin + mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof;
@@ -143,6 +114,8 @@ void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task, S
       checkGPUError(cudaMemsetAsync(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
       checkGPUError(cudaMemsetAsync(mNTrackletsPerClusterDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
     }
+    checkGPUError(cudaMemsetAsync(mUsedTrackletsDevice, false, sizeof(unsigned char) * mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
+    checkGPUError(cudaMemsetAsync(mClusteredLinesDevice, -1, sizeof(int) * mTFGconf->clustersPerROfCapacity * mTFGconf->maxTrackletsPerCluster * nrof, stream.get()));
   } else {
     for (int i = 0; i < nLayers - 1; ++i) {
       checkGPUError(cudaMemsetAsync(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
@@ -158,7 +131,7 @@ void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task, S
 }
 
 template <int nLayers>
-size_t GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(const int nrof, const TimeFrameGPUConfig& config)
+size_t GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(const int nrof, const TimeFrameGPUConfig& config)
 {
   size_t rofsize = nLayers * sizeof(int);                                                                      // number of clusters per ROF
   rofsize += nLayers * sizeof(Cluster) * config.clustersPerROfCapacity;                                        // clusters
@@ -169,11 +142,13 @@ size_t GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(const int nrof, c
   rofsize += (nLayers - 1) * sizeof(int) * config.clustersPerROfCapacity;                                      // tracklets lookup tables
   rofsize += (nLayers - 1) * sizeof(Tracklet) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity; // tracklets
   rofsize += 2 * sizeof(int) * config.clustersPerROfCapacity;                                                  // tracklets found per cluster (vertexer)
+  rofsize += sizeof(unsigned char) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity;            // used tracklets (vertexer)
   rofsize += (nLayers - 2) * sizeof(int) * config.validatedTrackletsCapacity;                                  // cells lookup tables
   rofsize += (nLayers - 2) * sizeof(Cell) * config.validatedTrackletsCapacity;                                 // cells
   rofsize += sizeof(Line) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity;                     // lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines exclusive sum
+  rofsize += sizeof(int) * config.clustersPerROfCapacity * config.maxTrackletsPerCluster;                      // lines used in clusterlines
 
   rofsize += (nLayers - 1) * sizeof(int); // total found tracklets
   rofsize += (nLayers - 2) * sizeof(int); // total found cells
@@ -182,7 +157,7 @@ size_t GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(const int nrof, c
 }
 
 template <int nLayers>
-size_t GpuTimeFramePartition<nLayers>::computeFixedSizeBytes(const TimeFrameGPUConfig& config)
+size_t GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(const TimeFrameGPUConfig& config)
 {
   size_t total = config.tmpCUBBufferSize;                  // CUB tmp buffers
   total += sizeof(gpu::StaticTrackingParameters<nLayers>); // static parameters loaded once
@@ -190,91 +165,100 @@ size_t GpuTimeFramePartition<nLayers>::computeFixedSizeBytes(const TimeFrameGPUC
 }
 
 template <int nLayers>
-size_t GpuTimeFramePartition<nLayers>::computeRofPerPartition(const TimeFrameGPUConfig& config, const size_t m)
+size_t GpuTimeFrameChunk<nLayers>::computeRofPerChunk(const TimeFrameGPUConfig& config, const size_t m)
 {
-  return (m * GB / (float)(config.nTimeFramePartitions) - GpuTimeFramePartition<nLayers>::computeFixedSizeBytes(config)) / (float)GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(1, config);
+  return (m * GB / (float)(config.nTimeFrameChunks) - GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(config)) / (float)GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(1, config);
 }
 
 /// Interface
 template <int nLayers>
-int* GpuTimeFramePartition<nLayers>::getDeviceROframesClusters(const int layer)
-{
-  return mROframesClustersDevice[layer];
-}
-
-template <int nLayers>
-Cluster* GpuTimeFramePartition<nLayers>::getDeviceClusters(const int layer)
+Cluster* GpuTimeFrameChunk<nLayers>::getDeviceClusters(const int layer)
 {
   return mClustersDevice[layer];
 }
 
 template <int nLayers>
-unsigned char* GpuTimeFramePartition<nLayers>::getDeviceUsedClusters(const int layer)
+unsigned char* GpuTimeFrameChunk<nLayers>::getDeviceUsedClusters(const int layer)
 {
   return mUsedClustersDevice[layer];
 }
 
 template <int nLayers>
-TrackingFrameInfo* GpuTimeFramePartition<nLayers>::getDeviceTrackingFrameInfo(const int layer)
+TrackingFrameInfo* GpuTimeFrameChunk<nLayers>::getDeviceTrackingFrameInfo(const int layer)
 {
   return mTrackingFrameInfoDevice[layer];
 }
 
 template <int nLayers>
-int* GpuTimeFramePartition<nLayers>::getDeviceClusterExternalIndices(const int layer)
+int* GpuTimeFrameChunk<nLayers>::getDeviceClusterExternalIndices(const int layer)
 {
   return mClusterExternalIndicesDevice[layer];
 }
 
 template <int nLayers>
-int* GpuTimeFramePartition<nLayers>::getDeviceIndexTables(const int layer)
+int* GpuTimeFrameChunk<nLayers>::getDeviceIndexTables(const int layer)
 {
   return mIndexTablesDevice[layer];
 }
 
 template <int nLayers>
-Tracklet* GpuTimeFramePartition<nLayers>::getDeviceTracklets(const int layer)
+Tracklet* GpuTimeFrameChunk<nLayers>::getDeviceTracklets(const int layer)
 {
   return mTrackletsDevice[layer];
 }
 
 template <int nLayers>
-int* GpuTimeFramePartition<nLayers>::getDeviceTrackletsLookupTables(const int layer)
+int* GpuTimeFrameChunk<nLayers>::getDeviceTrackletsLookupTables(const int layer)
 {
   return mTrackletsLookupTablesDevice[layer];
 }
 
 template <int nLayers>
-Cell* GpuTimeFramePartition<nLayers>::getDeviceCells(const int layer)
+Cell* GpuTimeFrameChunk<nLayers>::getDeviceCells(const int layer)
 {
   return mCellsDevice[layer];
 }
 
 template <int nLayers>
-int* GpuTimeFramePartition<nLayers>::getDeviceCellsLookupTables(const int layer)
+int* GpuTimeFrameChunk<nLayers>::getDeviceCellsLookupTables(const int layer)
 {
   return mCellsLookupTablesDevice[layer];
 }
 
 // Load data
 template <int nLayers>
-size_t GpuTimeFramePartition<nLayers>::copyDeviceData(const size_t startRof, const int maxLayers, Stream& stream)
+size_t GpuTimeFrameChunk<nLayers>::loadDataOnDevice(const size_t startRof, const int maxLayers, Stream& stream)
 {
   RANGE("load_clusters_data", 5);
+  mNPopulatedRof = mTimeFramePtr->getNClustersROFrange(startRof, mNRof, 0).size();
   for (int i = 0; i < maxLayers; ++i) {
     mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, mNRof, i);
-    mHostROframesClusters[i] = mTimeFramePtr->getROframesClustersPerROFrange(startRof, mNRof, i);
+    if (maxLayers < nLayers) { // Vertexer
+      mHostIndexTables[0] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, 0);
+      mHostIndexTables[2] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, 2);
+    } else { // Tracker
+      mHostIndexTables[i] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, i);
+    }
     if (mHostClusters[i].size() > mTFGconf->clustersPerROfCapacity * mNRof) {
       LOGP(warning, "Excess of expected clusters on layer {}, resizing to config value: {}, will lose information!", i, mTFGconf->clustersPerROfCapacity * mNRof);
     }
-    checkGPUError(cudaMemcpyAsync(mClustersDevice[i], mHostClusters[i].data(), (int)std::min(mHostClusters[i].size(), mTFGconf->clustersPerROfCapacity * mNRof) * sizeof(Cluster), cudaMemcpyHostToDevice, stream.get()));
-    checkGPUError(cudaMemcpyAsync(mROframesClustersDevice[i], mHostROframesClusters[i].data(), mHostROframesClusters[i].size() * sizeof(int), cudaMemcpyHostToDevice, stream.get()));
+    checkGPUError(cudaMemcpyAsync(mClustersDevice[i],
+                                  mHostClusters[i].data(),
+                                  (int)std::min(mHostClusters[i].size(), mTFGconf->clustersPerROfCapacity * mNRof) * sizeof(Cluster),
+                                  cudaMemcpyHostToDevice, stream.get()));
+    if (mHostIndexTables[i].data()) {
+      checkGPUError(cudaMemcpyAsync(mIndexTablesDevice[i],
+                                    mHostIndexTables[i].data(),
+                                    mHostIndexTables[i].size() * sizeof(int),
+                                    cudaMemcpyHostToDevice, stream.get()));
+    }
   }
-  return mHostROframesClusters[0].size(); // We want to return for how much ROFs we loaded the data.
+  return mNPopulatedRof; // return the number of ROFs we loaded the data for.
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // TimeFrameGPU
+/////////////////////////////////////////////////////////////////////////////////////////
 template <int nLayers>
 TimeFrameGPU<nLayers>::TimeFrameGPU()
 {
@@ -306,10 +290,10 @@ void TimeFrameGPU<nLayers>::registerHostMemory(const int maxLayers)
   } else {
     mHostRegistered = true;
   }
-
   for (auto iLayer{0}; iLayer < maxLayers; ++iLayer) {
     checkGPUError(cudaHostRegister(mClusters[iLayer].data(), mClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
-    checkGPUError(cudaHostRegister(mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
+    checkGPUError(cudaHostRegister(mNClustersPerROF[iLayer].data(), mNClustersPerROF[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
+    checkGPUError(cudaHostRegister(mIndexTables[iLayer].data(), (mStaticTrackingParams.ZBins * mStaticTrackingParams.PhiBins + 1) * mNrof * sizeof(int), cudaHostRegisterPortable));
   }
 }
 
@@ -321,7 +305,8 @@ void TimeFrameGPU<nLayers>::unregisterHostMemory(const int maxLayers)
   }
   for (auto iLayer{0}; iLayer < maxLayers; ++iLayer) {
     checkGPUError(cudaHostUnregister(mClusters[iLayer].data()));
-    checkGPUError(cudaHostUnregister(mROframesClusters[iLayer].data()));
+    checkGPUError(cudaHostUnregister(mNClustersPerROF[iLayer].data()));
+    checkGPUError(cudaHostUnregister(mIndexTables[iLayer].data()));
   }
 }
 
@@ -331,11 +316,11 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
                                        const int maxLayers,
                                        const IndexTableUtils* utils)
 {
-  mGpuStreams.resize(mGpuConfig.nTimeFramePartitions);
+  mGpuStreams.resize(mGpuConfig.nTimeFrameChunks);
   auto init = [&](int p) -> void {
-    this->initDevice(p, utils, maxLayers);
+    this->initDevice(p, utils, trkParam, maxLayers);
   };
-  std::thread t1{init, mGpuConfig.nTimeFramePartitions};
+  std::thread t1{init, mGpuConfig.nTimeFrameChunks};
   RANGE("tf_cpu_initialisation", 1);
   o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
   registerHostMemory(maxLayers);
@@ -343,42 +328,50 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::initDevice(const int partitions, const IndexTableUtils* utils, const int maxLayers)
+void TimeFrameGPU<nLayers>::initDevice(const int chunks, const IndexTableUtils* utils, const TrackingParameters& trkParam, const int maxLayers)
 {
-  StaticTrackingParameters<nLayers> pars;
+  mStaticTrackingParams.ZBins = trkParam.ZBins;
+  mStaticTrackingParams.PhiBins = trkParam.PhiBins;
   checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mTrackingParamsDevice), sizeof(gpu::StaticTrackingParameters<nLayers>)));
-  checkGPUError(cudaMemcpy(mTrackingParamsDevice, &pars, sizeof(gpu::StaticTrackingParameters<nLayers>), cudaMemcpyHostToDevice));
-  if (utils) {
-    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mDeviceIndexTableUtils), sizeof(IndexTableUtils)));
-    checkGPUError(cudaMemcpy(mDeviceIndexTableUtils, utils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
+  checkGPUError(cudaMemcpy(mTrackingParamsDevice, &mStaticTrackingParams, sizeof(gpu::StaticTrackingParameters<nLayers>), cudaMemcpyHostToDevice));
+  if (utils) { // In a sense this check is a proxy to know whether this is the vertexergpu calling.
+    for (auto iLayer{0}; iLayer < maxLayers; ++iLayer) {
+      checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROframesClustersDevice[iLayer]), mROframesClusters[iLayer].size() * sizeof(int)));
+      checkGPUError(cudaMemcpy(mROframesClustersDevice[iLayer], mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice));
+    }
+    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mIndexTableUtilsDevice), sizeof(IndexTableUtils)));
+    checkGPUError(cudaMemcpy(mIndexTableUtilsDevice, utils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
   }
-  mMemPartitions.resize(partitions, GpuTimeFramePartition<nLayers>{static_cast<TimeFrame*>(this), mGpuConfig});
-  LOGP(debug, "Size of fixed part is: {} MB", GpuTimeFramePartition<nLayers>::computeFixedSizeBytes(mGpuConfig) / MB);
-  LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB), mGpuConfig) / MB);
-  LOGP(info, "Allocating {} partitions counting {} rofs each.", partitions, GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB));
+  mMemChunks.resize(chunks, GpuTimeFrameChunk<nLayers>{static_cast<TimeFrame*>(this), mGpuConfig});
+  mVerticesInChunks.resize(chunks);
+  mNVerticesInChunks.resize(chunks);
+  mLabelsInChunks.resize(chunks);
+  LOGP(debug, "Size of fixed part is: {} MB", GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(mGpuConfig) / MB);
+  LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuConfig, mAvailMemGB), mGpuConfig) / MB);
+  LOGP(info, "Allocating {} chunks of {} rofs capacity each.", chunks, GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuConfig, mAvailMemGB));
 
-  initDevicePartitions(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB), maxLayers);
+  initDeviceChunks(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuConfig, mAvailMemGB), maxLayers);
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::initDevicePartitions(const int nRof, const int maxLayers)
+void TimeFrameGPU<nLayers>::initDeviceChunks(const int nRof, const int maxLayers)
 {
   if (mDeviceInitialised) {
     return;
   } else {
     mDeviceInitialised = true;
   }
-  if (!mMemPartitions.size()) {
-    LOGP(fatal, "gpu-tracking: TimeFrame GPU partitions not created");
+  if (!mMemChunks.size()) {
+    LOGP(fatal, "gpu-tracking: TimeFrame GPU chunks not created");
   }
-  for (int iPartition{0}; iPartition < mMemPartitions.size(); ++iPartition) {
-    mMemPartitions[iPartition].allocate(nRof, mGpuStreams[iPartition]);
-    mMemPartitions[iPartition].reset(nRof, maxLayers < nLayers ? gpu::Task::Vertexer : gpu::Task::Tracker, mGpuStreams[iPartition]);
+  for (int iChunk{0}; iChunk < mMemChunks.size(); ++iChunk) {
+    mMemChunks[iChunk].allocate(nRof, mGpuStreams[iChunk]);
+    mMemChunks[iChunk].reset(nRof, maxLayers < nLayers ? gpu::Task::Vertexer : gpu::Task::Tracker, mGpuStreams[iChunk]);
   }
 }
 
 template class TimeFrameGPU<7>;
-template class GpuTimeFramePartition<7>;
+template class GpuTimeFrameChunk<7>;
 } // namespace gpu
 } // namespace its
 } // namespace o2

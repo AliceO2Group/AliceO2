@@ -21,6 +21,7 @@
 #include <array>
 
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"

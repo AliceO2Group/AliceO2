@@ -12,7 +12,7 @@
 # CUDA
 if(CUDA_ENABLED)
 find_package(CUDAToolkit)
-# message(FATAL_ERROR "${CUDAToolkit_FOUND}")
+
 message(STATUS "Building ITS CUDA tracker")
 
 o2_add_library(ITStrackingCUDA
@@ -28,7 +28,7 @@ o2_add_library(ITStrackingCUDA
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
                                      O2::SimulationDataFormat
-                                     CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25  
+                                     CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25
                TARGETVARNAME targetName)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

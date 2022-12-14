@@ -106,7 +106,6 @@ struct VertexingParameters {
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
-  float baseBeamError = 0.005f;
   float maxZPositionAllowed = 25.f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
@@ -136,7 +135,7 @@ struct TimeFrameGPUConfig {
   size_t maxLinesCapacity = 1e2;
   size_t maxVerticesCapacity = 10;
   size_t nMaxROFs = 1e3;
-  size_t nTimeFramePartitions = 3;
+  size_t nTimeFrameChunks = 3;
   int maxGPUMemoryGB = -1;
 
   // VertexerHistogramsConfiguration histConf; // <==== split into separate configs

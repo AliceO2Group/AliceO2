@@ -36,6 +36,7 @@ class IndexTableUtils
   GPUhdi() int getPhiBinIndex(const float) const;
   GPUhdi() int getBinIndex(const int, const int) const;
   GPUhdi() int countRowSelectedBins(const int*, const int, const int, const int) const;
+  GPUhdi() void print() const;
 
   GPUhdi() int getNzBins() const { return mNzBins; }
   GPUhdi() int getNphiBins() const { return mNphiBins; }
@@ -90,6 +91,14 @@ GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const 
   const int maxBinIndex{firstBinIndex + maxZBinIndex - minZBinIndex + 1};
 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
+}
+
+GPUhdi() void IndexTableUtils::print() const
+{
+  printf("NzBins: %d, NphiBins: %d, InversePhiBinSize: %f\n", mNzBins, mNphiBins, mInversePhiBinSize);
+  for (int iLayer{0}; iLayer < 7; ++iLayer) {
+    printf("Layer %d: Z: %f, InverseZBinSize: %f\n", iLayer, mLayerZ[iLayer], mInverseZBinSize[iLayer]);
+  }
 }
 } // namespace its
 } // namespace o2
