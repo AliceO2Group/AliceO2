@@ -65,7 +65,7 @@ class GpuTimeFramePartition
 
   /// Most relevant operations
   void allocate(const size_t, Stream&);
-  void reset(const size_t, const Task);
+  void reset(const size_t, const Task, Stream&);
   size_t copyDeviceData(const size_t, const int, Stream&);
 
   /// Interface
@@ -86,6 +86,7 @@ class GpuTimeFramePartition
   IndexTableUtils* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
 
   /// Vertexer only
+  int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }
   Line* getDeviceLines() { return mLinesDevice; };
   int* getDeviceNFoundLines() { return mNFoundLinesDevice; }
   int* getDeviceNExclusiveFoundLines() { return mNExclusiveFoundLinesDevice; }
@@ -119,6 +120,7 @@ class GpuTimeFramePartition
   int* mNFoundLinesDevice;
   int* mNExclusiveFoundLinesDevice;
   unsigned char* mUsedTrackletsDevice;
+  std::array<int*, 2> mNTrackletsPerClusterDevice;
 
   /// State and configuration
   bool mAllocated = false;
@@ -143,6 +145,8 @@ class TimeFrameGPU : public TimeFrame
   template <Task task>
   size_t loadPartitionData(const size_t, const size_t);
   size_t getNPartions() const { return mMemPartitions.size(); }
+  GpuTimeFramePartition<nLayers>& getPartition(const int part) { return mMemPartitions[part]; }
+  Stream& getStream(const size_t stream) { return mGpuStreams[stream]; }
 
   /// interface
   int getNClustersInRofSpan(const int, const int, const int) const;
@@ -168,7 +172,9 @@ size_t TimeFrameGPU<nLayers>::loadPartitionData(const size_t part, const size_t 
 {
   size_t nRof{0};
 
-  mMemPartitions[part].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB), task); // Reset partitions memory
+  mMemPartitions[part].reset(GpuTimeFramePartition<nLayers>::computeRofPerPartition(mGpuConfig, mAvailMemGB),
+                             task,
+                             mGpuStreams[part]); // Reset partitions memory
   if constexpr ((bool)task) {
     nRof = mMemPartitions[part].copyDeviceData(offset, 3, mGpuStreams[part]);
   } else {

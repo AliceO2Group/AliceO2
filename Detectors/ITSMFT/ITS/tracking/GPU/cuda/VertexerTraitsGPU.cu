@@ -482,7 +482,34 @@ void VertexerTraitsGPU::computeTracklets()
   size_t offset{0};
   do {
     for (size_t part{0}; part < mTimeFrameGPU->getNPartions() && offset < mTimeFrameGPU->mNrof; ++part) {
-      offset += mTimeFrameGPU->loadPartitionData<gpu::Task::Vertexer>(part, offset);
+      auto rofs = mTimeFrameGPU->loadPartitionData<gpu::Task::Vertexer>(part, offset);
+      gpu::trackleterKernelMultipleRof<TrackletMode::Layer0Layer1><<<rofs, 1024, 0, mTimeFrameGPU->getStream(part).get()>>>(
+        mTimeFrameGPU->getPartition(part).getDeviceClusters(0),         // const Cluster* clustersNextLayer,    // 0 2
+        mTimeFrameGPU->getPartition(part).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
+        mTimeFrameGPU->getPartition(part).getDeviceROframesClusters(0), // const int* sizeNextLClusters,
+        mTimeFrameGPU->getPartition(part).getDeviceROframesClusters(1), // const int* sizeCurrentLClusters,
+        mTimeFrameGPU->getPartition(part).getDeviceIndexTables(0),      // const int* nextIndexTables,
+        mTimeFrameGPU->getPartition(part).getDeviceTracklets(0),        // Tracklet* Tracklets,
+        mTimeFrameGPU->getPartition(part).getDeviceNTrackletCluster(0), // int* foundTracklets,
+        mTimeFrameGPU->getPartition(part).getDeviceIndexTableUtils(),   // const IndexTableUtils* utils,
+        offset,                                                         // const int startRofId,
+        rofs,                                                           // const int rofSize,
+        0,                                                              // const float phiCut,
+        0);                                                             // const size_t maxTrackletsPerCluster = 1e2
+      gpu::trackleterKernelMultipleRof<TrackletMode::Layer1Layer2><<<rofs, 1024, 0, mTimeFrameGPU->getStream(part).get()>>>(
+        mTimeFrameGPU->getPartition(part).getDeviceClusters(2),         // const Cluster* clustersNextLayer,    // 0 2
+        mTimeFrameGPU->getPartition(part).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
+        mTimeFrameGPU->getPartition(part).getDeviceROframesClusters(2), // const int* sizeNextLClusters,
+        mTimeFrameGPU->getPartition(part).getDeviceROframesClusters(1), // const int* sizeCurrentLClusters,
+        mTimeFrameGPU->getPartition(part).getDeviceIndexTables(2),      // const int* nextIndexTables,
+        mTimeFrameGPU->getPartition(part).getDeviceTracklets(1),        // Tracklet* Tracklets,
+        mTimeFrameGPU->getPartition(part).getDeviceNTrackletCluster(1), // int* foundTracklets,
+        mTimeFrameGPU->getPartition(part).getDeviceIndexTableUtils(),   // const IndexTableUtils* utils,
+        offset,                                                         // const int startRofId,
+        rofs,                                                           // const int rofSize,
+        0,                                                              // const float phiCut,
+        0);                                                             // const size_t maxTrackletsPerCluster = 1e2
+      offset += rofs;
     }
   } while (offset < mTimeFrameGPU->mNrof);
   mTimeFrameGPU->unregisterHostMemory(3);

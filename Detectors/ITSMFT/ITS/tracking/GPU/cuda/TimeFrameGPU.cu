@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 ///
 #include <thrust/fill.h>
+#include <thrust/execution_policy.h>
 
 #include "ITStracking/Constants.h"
 
@@ -19,6 +20,12 @@
 
 #include <unistd.h>
 #include <thread>
+
+#ifndef __HIPCC__
+#define THRUST_NAMESPACE thrust::cuda
+#else
+#define THRUST_NAMESPACE thrust::hip
+#endif
 
 namespace o2
 {
@@ -105,6 +112,9 @@ void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof, Stream& stream)
       if (i < nLayers - 2) {
         checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mCellsLookupTablesDevice[i])), sizeof(int) * mTFGconf->validatedTrackletsCapacity * nrof, stream.get()));
         checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mCellsDevice[i])), sizeof(Cell) * mTFGconf->validatedTrackletsCapacity * nrof, stream.get()));
+        if (i < 2) {
+          checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNTrackletsPerClusterDevice[i])), sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
+        }
       }
     }
   }
@@ -121,7 +131,7 @@ void GpuTimeFramePartition<nLayers>::allocate(const size_t nrof, Stream& stream)
 }
 
 template <int nLayers>
-void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task)
+void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task, Stream& stream)
 {
   RANGE("buffer_reset", 0);
   if ((bool)task) { // Vertexer-only initialisation (cannot be constexpr: due to the presence of gpu raw calls can't be put in header)
@@ -129,20 +139,21 @@ void GpuTimeFramePartition<nLayers>::reset(const size_t nrof, const Task task)
     for (int i = 0; i < 2; i++) {
       auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsDevice[i]);
       auto thrustTrackletsEnd = thrustTrackletsBegin + mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof;
-      thrust::fill(thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
-      checkGPUError(cudaMemset(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof));
+      thrust::fill(THRUST_NAMESPACE::par.on(stream.get()), thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
+      checkGPUError(cudaMemsetAsync(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
+      checkGPUError(cudaMemsetAsync(mNTrackletsPerClusterDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
     }
   } else {
     for (int i = 0; i < nLayers - 1; ++i) {
-      checkGPUError(cudaMemset(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof));
+      checkGPUError(cudaMemsetAsync(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->clustersPerROfCapacity * nrof, stream.get()));
       auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsDevice[i]);
       auto thrustTrackletsEnd = thrustTrackletsBegin + mTFGconf->maxTrackletsPerCluster * mTFGconf->clustersPerROfCapacity * nrof;
-      thrust::fill(thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
+      thrust::fill(THRUST_NAMESPACE::par.on(stream.get()), thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
       if (i < nLayers - 2) {
-        checkGPUError(cudaMemset(mCellsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->cellsLUTsize * nrof));
+        checkGPUError(cudaMemsetAsync(mCellsLookupTablesDevice[i], 0, sizeof(int) * mTFGconf->cellsLUTsize * nrof, stream.get()));
       }
     }
-    checkGPUError(cudaMemset(mFoundCellsDevice, 0, (nLayers - 2) * sizeof(int)));
+    checkGPUError(cudaMemsetAsync(mFoundCellsDevice, 0, (nLayers - 2) * sizeof(int), stream.get()));
   }
 }
 
@@ -157,6 +168,7 @@ size_t GpuTimeFramePartition<nLayers>::computeScalingSizeBytes(const int nrof, c
   rofsize += nLayers * sizeof(int) * (256 * 128 + 1);                                                          // index tables
   rofsize += (nLayers - 1) * sizeof(int) * config.clustersPerROfCapacity;                                      // tracklets lookup tables
   rofsize += (nLayers - 1) * sizeof(Tracklet) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity; // tracklets
+  rofsize += 2 * sizeof(int) * config.clustersPerROfCapacity;                                                  // tracklets found per cluster (vertexer)
   rofsize += (nLayers - 2) * sizeof(int) * config.validatedTrackletsCapacity;                                  // cells lookup tables
   rofsize += (nLayers - 2) * sizeof(Cell) * config.validatedTrackletsCapacity;                                 // cells
   rofsize += sizeof(Line) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity;                     // lines
@@ -361,7 +373,7 @@ void TimeFrameGPU<nLayers>::initDevicePartitions(const int nRof, const int maxLa
   }
   for (int iPartition{0}; iPartition < mMemPartitions.size(); ++iPartition) {
     mMemPartitions[iPartition].allocate(nRof, mGpuStreams[iPartition]);
-    mMemPartitions[iPartition].reset(nRof, maxLayers < nLayers ? gpu::Task::Vertexer : gpu::Task::Tracker);
+    mMemPartitions[iPartition].reset(nRof, maxLayers < nLayers ? gpu::Task::Vertexer : gpu::Task::Tracker, mGpuStreams[iPartition]);
   }
 }
 
