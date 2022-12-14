@@ -17,6 +17,8 @@
 #define _ALICEO2_STRANGENESS_TRACKER_
 
 #include <gsl/gsl>
+#include <TVector3.h>
+
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "StrangenessTracking/IndexTableUtils.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
@@ -58,21 +60,43 @@ class StrangenessTracker
   using GIndex = o2::dataformats::VtxTrackIndex;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
+  using MCLabContCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabSpan = gsl::span<const o2::MCCompLabel>;
   using VBracket = o2::math_utils::Bracket<int>;
 
   StrangenessTracker() = default;
   ~StrangenessTracker() = default;
 
+  bool loadData(const o2::globaltracking::RecoContainer& recoData);
+  bool matchDecayToITStrack(float decayR);
   void prepareITStracks();
   void process();
+  bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
 
   std::vector<ClusAttachments>& getClusAttachments() { return mClusAttachments; };
   std::vector<StrangeTrack>& getStrangeTrackVec() { return mStrangeTrackVec; };
+  std::vector<o2::MCCompLabel>& getStrangeTrackLabels() { return mStrangeTrackLabels; };
 
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setConfigParams(const StrangenessTrackingParamConfig* params) { mStrParams = params; }
+  void setMCTruthOn(bool v) { mMCTruthON = v; }
+
+  void clear()
+  {
+    mDaughterTracks.clear();
+    mClusAttachments.clear();
+    mStrangeTrackVec.clear();
+    mTracksIdxTable.clear();
+    mSortedITStracks.clear();
+    mSortedITSindexes.clear();
+    mITSvtxBrackets.clear();
+    if (mMCTruthON) {
+      mStrangeTrackLabels.clear();
+    }
+  }
 
   void setupFitters()
   {
@@ -81,32 +105,149 @@ class StrangenessTracker
     mFitterV0.setUseAbsDCA(true);
     mFitter3Body.setUseAbsDCA(true);
   }
-  bool loadData(const o2::globaltracking::RecoContainer& recoData);
-  void clear();
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
-  double calcV0alpha(const V0& v0);
-  std::vector<ITSCluster> getTrackClusters();
-  float getMatchingChi2(o2::track::TrackParCovF, const TrackITS ITSTrack, ITSCluster matchingClus);
-  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, V0& newV0);
 
-  bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
-  bool matchDecayToITStrack(float decayR);
+  double calcV0alpha(const V0& v0)
+  {
+    std::array<float, 3> fV0mom, fPmom, fNmom = {0, 0, 0};
+    v0.getProng(0).getPxPyPzGlo(fPmom);
+    v0.getProng(1).getPxPyPzGlo(fNmom);
+    v0.getPxPyPzGlo(fV0mom);
+
+    TVector3 momNeg(fNmom[0], fNmom[1], fNmom[2]);
+    TVector3 momPos(fPmom[0], fPmom[1], fPmom[2]);
+    TVector3 momTot(fV0mom[0], fV0mom[1], fV0mom[2]);
+
+    Double_t lQlNeg = momNeg.Dot(momTot) / momTot.Mag();
+    Double_t lQlPos = momPos.Dot(momTot) / momTot.Mag();
+    return (lQlPos - lQlNeg) / (lQlPos + lQlNeg);
+  };
+
+  double calcMotherMass(double p2Mother, double p2DauFirst, double p2DauSecond, PID pidDauFirst, PID pidDauSecond)
+  {
+
+    double m2DauFirst = PID::getMass2(pidDauFirst) * PID::getMass2(pidDauFirst);
+    double m2DauSecond = PID::getMass2(pidDauSecond) * PID::getMass2(pidDauSecond);
+    double e2Mother = p2DauFirst + m2DauFirst + p2DauSecond + m2DauSecond;
+    return std::sqrt(e2Mother - p2Mother);
+  }
+
+  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, V0& newV0)
+  {
+
+    int nCand;
+    try {
+      nCand = mFitterV0.process(posTrack, negTrack);
+    } catch (std::runtime_error& e) {
+      return false;
+    }
+    if (!nCand || !mFitterV0.propagateTracksToVertex()) {
+      return false;
+    }
+
+    const auto& v0XYZ = mFitterV0.getPCACandidatePos();
+
+    auto& propPos = mFitterV0.getTrack(0, 0);
+    auto& propNeg = mFitterV0.getTrack(1, 0);
+
+    std::array<float, 3> pP, pN;
+    propPos.getPxPyPzGlo(pP);
+    propNeg.getPxPyPzGlo(pN);
+    std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
+    newV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, mV0dauIDs[0], mV0dauIDs[1], PID::HyperTriton);
+    return true;
+  };
+
+  std::vector<ITSCluster> getTrackClusters()
+  {
+    std::vector<ITSCluster> outVec;
+    auto firstClus = mITStrack.getFirstClusterEntry();
+    auto ncl = mITStrack.getNumberOfClusters();
+    for (int icl = 0; icl < ncl; icl++) {
+      outVec.push_back(mInputITSclusters[mInputITSidxs[firstClus + icl]]);
+    }
+    return outVec;
+  };
+
+  std::vector<int> getTrackClusterSizes()
+  {
+    std::vector<int> outVec;
+    auto firstClus = mITStrack.getFirstClusterEntry();
+    auto ncl = mITStrack.getNumberOfClusters();
+    for (int icl = 0; icl < ncl; icl++) {
+      outVec.push_back(mInputClusterSizes[mInputITSidxs[firstClus + icl]]);
+    }
+    return outVec;
+  };
+
+  void getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
+  {
+    clusSizeVec.resize(ITSclus.size());
+    for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
+      auto& clus = ITSclus[iClus];
+      auto pattID = clus.getPatternID();
+      int npix;
+      o2::itsmft::ClusterPattern patt;
+
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mdict->isGroup(pattID)) {
+        patt.acquirePattern(pattIt);
+        npix = patt.getNPixels();
+      } else {
+
+        npix = mdict->getNpixels(pattID);
+        patt = mdict->getPattern(pattID);
+      }
+      // LOG(info) << "npix: " << npix << " Patt Npixel: " << patt.getNPixels();
+      clusSizeVec.push_back(npix);
+    }
+    // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
+  }
+
+  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
+  {
+    auto geom = o2::its::GeometryTGeo::Instance();
+    float alpha = geom->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
+    if (v0.rotate(alpha)) {
+      if (v0.propagateTo(x, mBz)) {
+        return v0.getPredictedChi2(ITStrack.getParamOut());
+      }
+    }
+    return -100;
+  };
+
+  o2::MCCompLabel getStrangeTrackLabel() // ITS label with fake flag recomputed
+  {
+    bool isFake = false;
+    auto itsTrkLab = mITSTrkLabels[mStrangeTrack.mITSRef];
+    for (unsigned int iLay = 0; iLay < 7; iLay++) {
+      if (mITStrack.hasHitOnLayer(iLay) && mITStrack.isFakeOnLayer(iLay) && mStructClus.arr[iLay] == 0) {
+        isFake = true;
+        break;
+      }
+    }
+    itsTrkLab.setFakeFlag(isFake);
+    return itsTrkLab;
+  }
 
  protected:
-  gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
-  std::vector<VBracket> mITSvtxBrackets;              // time brackets for ITS tracks
-  std::vector<int> mTracksIdxTable;                   // index table for ITS tracks
-  std::vector<ITSCluster> mInputITSclusters;          // input ITS clusters
-  gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
-  gsl::span<const V0> mInputV0tracks;                 // input V0 of decay daughters
-  gsl::span<const Cascade> mInputCascadeTracks;       // input V0 of decay daughters
+  bool mMCTruthON = false;                      /// flag availability of MC truth
+  gsl::span<const TrackITS> mInputITStracks;    // input ITS tracks
+  std::vector<VBracket> mITSvtxBrackets;        // time brackets for ITS tracks
+  std::vector<int> mTracksIdxTable;             // index table for ITS tracks
+  std::vector<int> mInputClusterSizes;          // input cluster sizes
+  std::vector<ITSCluster> mInputITSclusters;    // input ITS clusters
+  gsl::span<const int> mInputITSidxs;           // input ITS track-cluster indexes
+  gsl::span<const V0> mInputV0tracks;           // input V0 of decay daughters
+  gsl::span<const Cascade> mInputCascadeTracks; // input V0 of decay daughters
+  const MCLabContCl* mITSClsLabels = nullptr;   /// input ITS Cluster MC labels
+  MCLabSpan mITSTrkLabels;                      /// input ITS Track MC labels
 
   std::vector<o2::its::TrackITS> mSortedITStracks; // sorted ITS tracks
   std::vector<int> mSortedITSindexes;              // indexes of sorted ITS tracks
   IndexTableUtils mUtils;                          // structure for computing eta/phi matching selections
 
-  std::vector<StrangeTrack> mStrangeTrackVec;    // structure containing updated mother and daughter tracks
-  std::vector<ClusAttachments> mClusAttachments; // # of attached tracks, 1 for mother, 2 for daughter
+  std::vector<StrangeTrack> mStrangeTrackVec;       // structure containing updated mother and daughter tracks
+  std::vector<ClusAttachments> mClusAttachments;    // # of attached tracks, -1 not attached, 0 for the mother, > 0 for the daughters
+  std::vector<o2::MCCompLabel> mStrangeTrackLabels; // vector of MC labels for mother track
 
   const StrangenessTrackingParamConfig* mStrParams = nullptr;
   float mBz = -5; // Magnetic field
@@ -115,7 +256,7 @@ class StrangenessTracker
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
   DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction                                                                                 // ITS geometry
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
 
   std::vector<o2::track::TrackParCovF> mDaughterTracks; // vector of daughter tracks
   StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs
