@@ -9,15 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file DescriptorInnerBarrelITS3Param.h
+/// \brief Implementation of the DescriptorInnerBarrelITS3Param class
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::its3::ITS3Layer + ;
-#pragma link C++ class o2::its3::DescriptorInnerBarrelITS3 + ;
-#pragma link C++ class o2::its3::DescriptorInnerBarrelITS3Param + ;
-//#pragma link C++ class o2::its3::Digitizer + ;
-
-#endif
+#include "ITS3Simulation/DescriptorInnerBarrelITS3Param.h"
+O2ParamImpl(o2::its3::DescriptorInnerBarrelITS3Param);

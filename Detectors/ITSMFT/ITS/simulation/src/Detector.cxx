@@ -126,7 +126,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
   }
 }
 
-Detector::Detector(Bool_t active, TString name)
+Detector::Detector(Bool_t active, TString name, TString its3Version)
   : o2::base::DetImpl<Detector>(name, active),
     mTrackData(),
     /*
@@ -145,7 +145,10 @@ Detector::Detector(Bool_t active, TString name)
     mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
   } else if (name == "IT3") {
 #ifdef ENABLE_UPGRADES
-    mDescriptorIB.reset(new DescriptorInnerBarrelITS3(DescriptorInnerBarrelITS3::ThreeLayersNoDeadZones));
+    mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
+    if (its3Version != "") {
+      dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->setVersion(its3Version.Data());
+    }
 #endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";

@@ -73,6 +73,7 @@
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
+#include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
@@ -829,7 +830,7 @@ class O2HitMerger : public fair::mq::Device
   int mNextFlushID = 1;     //! EventID to be flushed next
   TStopwatch mTimer;
 
-  bool mAsService = false; //! if run in deamonized mode
+  bool mAsService = false;  //! if run in deamonized mode
   bool mForwardKine = true; //! if we forward kinematics (tracks, eventheaders) on some output channel
   bool mWriteToDisc = true; //! if we want to write simulation products to disc
 
@@ -952,7 +953,18 @@ void O2HitMerger::initDetInstances()
     }
 #ifdef ENABLE_UPGRADES
     if (i == DetID::IT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true, "IT3"));
+      std::string confKey = o2::conf::SimConfig::Instance().getKeyValueString();
+      auto params = o2::utils::Str::tokenize(confKey, ';', true);
+      std::string version = "";
+      for (auto& param : params) {
+        auto keyval = o2::utils::Str::tokenize(param, '=');
+        if (keyval[0].find("DescriptorInnerBarrelITS3") != std::string::npos) {
+          version = o2::utils::Str::trim_copy(keyval[1]);
+          break;
+        }
+      }
+
+      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true, "IT3", version));
       counter++;
     }
     if (i == DetID::TRK) {

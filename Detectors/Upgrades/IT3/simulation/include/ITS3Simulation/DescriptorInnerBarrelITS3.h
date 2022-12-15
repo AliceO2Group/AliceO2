@@ -30,34 +30,26 @@ namespace its3
 class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 {
  public:
-  enum Version {
-    ThreeLayersNoDeadZones,
-    ThreeLayers,
-    FourLayers,
-    FiveLayers
-  };
-
-  // standard constructor
-  DescriptorInnerBarrelITS3(Version version);
   // default constructor
   DescriptorInnerBarrelITS3() = default;
 
   DescriptorInnerBarrelITS3(const DescriptorInnerBarrelITS3& src) = delete;
   DescriptorInnerBarrelITS3& operator=(const DescriptorInnerBarrelITS3& geom) = delete;
+  void setVersion(std::string version) { mVersion = version; }
 
   void configure();
   ITS3Layer* createLayer(int idLayer, TGeoVolume* dest);
 
  private:
-  Version mVersion{ThreeLayersNoDeadZones};    //! version of ITS3
-  std::vector<double> mLayerZLen{};            //! Vector of layer length in Z coordinate
-  std::vector<double> mGap{};                  //! Vector of gap between empispheres
-  std::vector<int> mNumSubSensorsHalfLayer{};  //! Vector of num of subsensors in half layer
-  std::vector<double> mFringeChipWidth{};      //! Vector of fringe chip width
-  std::vector<double> mMiddleChipWidth{};      //! Vector of middle chip width
-  std::vector<double> mHeightStripFoam{};      //! Vector of strip foam height
-  std::vector<double> mLengthSemiCircleFoam{}; //! Vector of semi-circle foam length
-  std::vector<double> mThickGluedFoam{};       //! Vector of  glued foam thickness
+  std::string mVersion{"ThreeLayersNoDeadZones"}; //! version of ITS3
+  std::vector<double> mLayerZLen{};               //! Vector of layer length in Z coordinate
+  std::vector<double> mGap{};                     //! Vector of gap between empispheres
+  std::vector<int> mNumSubSensorsHalfLayer{};     //! Vector of num of subsensors in half layer
+  std::vector<double> mFringeChipWidth{};         //! Vector of fringe chip width
+  std::vector<double> mMiddleChipWidth{};         //! Vector of middle chip width
+  std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height
+  std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length
+  std::vector<double> mThickGluedFoam{};          //! Vector of  glued foam thickness
 
   std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
 
