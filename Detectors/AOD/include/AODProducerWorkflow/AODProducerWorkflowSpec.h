@@ -88,8 +88,11 @@ class BunchCrossings
     auto timeindex = std::max((int)0, (int)((timestamp - smallestBC) / mWindowSize));
 
     if (timeindex >= NofWindows) {
-      // there is no next greater; so the bc index is at the end of the vector
-      return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+      // do extra check avoid valse positive due to machine precision
+      if (timestamp > largestBC) { // there is no next greater; so the bc index is at the end of the vector
+        return std::make_pair<int, uint64_t>(mBCTimeVector.size(), 0);
+      }
+      timeindex = int(mBCTimeVector.size() - 1);
     }
 
     const auto* timewindow = &mTimeWindows[timeindex];
@@ -148,11 +151,15 @@ class BunchCrossings
     if (mBCTimeVector.size() % M != 0) {
       window_number += 1;
     }
-    mWindowSize = (mBCTimeVector.back() + 1 - mBCTimeVector[0]) / (1. * window_number);
+    auto bcrange = (mBCTimeVector.back() + 1 - mBCTimeVector[0]);
+    if (bcrange > (uint64_t(3564 * 258))) {
+      LOGP(warn, "Attention: BC range {}:{} covers more than 258 orbits", mBCTimeVector[0], mBCTimeVector.back());
+    }
+    mWindowSize = bcrange / (1. * window_number);
     // now we go through the list of times and bucket them into the correct windows
     mTimeWindows.resize(window_number);
     for (int bcindex = 0; bcindex < mBCTimeVector.size(); ++bcindex) {
-      auto windowindex = (int)(mBCTimeVector[bcindex] - mBCTimeVector[0]) / mWindowSize;
+      auto windowindex = (int)((mBCTimeVector[bcindex] - mBCTimeVector[0]) / mWindowSize);
       // we add "bcindex" to the TimeWindow windowindex
       auto& tw = mTimeWindows[windowindex];
       if (tw.from == -1) {
