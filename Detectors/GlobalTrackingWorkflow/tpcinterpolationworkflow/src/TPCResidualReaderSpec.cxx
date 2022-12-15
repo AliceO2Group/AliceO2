@@ -56,6 +56,7 @@ class TPCResidualReader : public Task
   std::unique_ptr<TTree> mTreeStats;
   std::unique_ptr<TTree> mTreeUnbinnedResiduals;
   bool mDoBinning{false};
+  bool mStoreBinnedResiduals{false};
   GID::mask_t mSources;
   TrackResiduals mTrackResiduals;
   std::vector<std::string> mFileNames{""};  ///< input files
@@ -114,6 +115,8 @@ void TPCResidualReader::init(InitContext& ic)
     }
     file = o2::utils::Str::concat_string(inpDir, file);
   }
+
+  mStoreBinnedResiduals = ic.options().get<bool>("store-binned");
 }
 
 void TPCResidualReader::run(ProcessingContext& pc)
@@ -122,8 +125,12 @@ void TPCResidualReader::run(ProcessingContext& pc)
 
   if (mDoBinning) {
     // initialize the trees for the binned residuals and the statistics
-    LOG(info) << "Preparing the binning of residuals";
+    LOGP(info, "Preparing the binning of residuals. Storing the afterwards is set to {}", mStoreBinnedResiduals);
     mTreeResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
+    if (!mStoreBinnedResiduals) {
+      // if not set to nullptr, the reisduals tree will be added to the output file of TrackResiduals created above
+      mTreeResiduals->SetDirectory(nullptr);
+    }
     for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
       mResidualsSectorPtr[iSec] = &mResidualsSector[iSec];
       mVoxStatsSector[iSec].resize(mTrackResiduals.getNVoxelsPerSector());
@@ -260,7 +267,8 @@ DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src)
     Options{
       {"residuals-infiles", VariantType::String, "o2tpc_residuals.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
-      {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}}}};
+      {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}},
+      {"store-binned", VariantType::Bool, false, {"Store the binned residuals together with the voxel results"}}}};
 }
 
 } // namespace tpc
