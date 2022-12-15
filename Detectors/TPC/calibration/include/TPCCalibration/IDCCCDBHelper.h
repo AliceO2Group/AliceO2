@@ -15,11 +15,12 @@
 
 #ifndef ALICEO2_TPC_IDCCCDBHELPER_H_
 #define ALICEO2_TPC_IDCCCDBHELPER_H_
-
+#include <Framework/Logger.h>
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 #include "Rtypes.h"
 
+#include <fmt/format.h>
 class TCanvas;
 
 namespace o2::tpc
@@ -74,6 +75,19 @@ class IDCCCDBHelper
   /// setting the fourier coefficients
   void setFourierCoeffs(FourierCoeff* fourier, const Side side = Side::A) { mFourierCoeff[side] = fourier; }
 
+  /// set scaling of IDC0 to 1
+  /// \param rejectOutlier do not take outlier into account
+  void setIDCZeroScale(const bool rejectOutlier = true)
+  {
+    mScaleIDC0Aside = this->scaleIDC0(Side::A, rejectOutlier);
+    mScaleIDC0Cside = this->scaleIDC0(Side::C, rejectOutlier);
+    /// check if IDC0 total is not zero, in that case no scalling is applied
+    if (mScaleIDC0Aside == 0.0 || mScaleIDC0Cside == 0.0) {
+      LOGP(error, "Please check the IDC0 total A side {} and C side {}, is zero, therefore no scaling applied!", mScaleIDC0Aside, mScaleIDC0Cside);
+      mScaleIDC0Aside = 1.0;
+      mScaleIDC0Cside = 1.0;
+    }
+  }
   /// setting the grouping parameters
   void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side = Side::A) { mHelperSector[side] = helperSector; }
 
@@ -162,6 +176,8 @@ class IDCCCDBHelper
 
   TCanvas* drawIDCZeroCanvas(TCanvas* outputCanvas, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
 
+  TCanvas* drawIDCZeroScale(TCanvas* outputCanvas, const bool rejectOutlier = true) const;
+
   TCanvas* drawIDCZeroRadialProfile(TCanvas* outputCanvas, int nbinsY, float yMin, float yMax) const;
 
   TCanvas* drawIDCZeroStackCanvas(TCanvas* outputCanvas, Side side, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
@@ -196,6 +212,10 @@ class IDCCCDBHelper
   float scaleIDC0(const Side side, const bool rejectOutlier = true);
 
  private:
+  ///\ to scale IDC0 from its total
+  float mScaleIDC0Aside = 1.0;
+  float mScaleIDC0Cside = 1.0;
+
   std::array<IDCZero*, SIDES> mIDCZero = {nullptr, nullptr};                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   std::array<IDCDelta<DataT>*, SIDES> mIDCDelta = {nullptr, nullptr};          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   std::array<IDCOne*, SIDES> mIDCOne = {nullptr, nullptr};                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}

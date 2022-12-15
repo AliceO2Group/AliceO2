@@ -13,12 +13,18 @@
 #include "TPCCalibration/IDCDrawHelper.h"
 #include "TPCCalibration/IDCGroupHelperSector.h"
 #include "TPCCalibration/IDCContainer.h"
+
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/Painter.h"
+
+#include "TStyle.h"
+#include "TLine.h"
 #include "TCanvas.h"
 #include "TH2Poly.h"
+#include "TGraph.h"
+#include "TText.h"
 #include "TPCCalibration/IDCFactorization.h"
 #include <map>
 
@@ -215,6 +221,44 @@ TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroCanvas(TCanvas* outputCanvas,
 }
 
 template <typename DataT>
+TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroScale(TCanvas* outputCanvas, bool rejectOutlier) const
+{
+  TCanvas* canv = nullptr;
+
+  if (outputCanvas) {
+    canv = outputCanvas;
+  } else {
+    canv = new TCanvas("c_sides_IDC0_scale", "IDC0", 1000, 1000);
+  }
+  canv->cd();
+  double xsides[] = {0, 1};
+  double yTotIDC0[] = {mScaleIDC0Aside, mScaleIDC0Cside};
+  auto gIDC0Scale = new TGraph(2, xsides, yTotIDC0);
+  gIDC0Scale->SetName("g_IDC0ScaleFactor");
+  gIDC0Scale->SetTitle("Scaling Factor (IDC0);Sides;IDC0 Total (arb. unit)");
+  gIDC0Scale->SetMarkerColor(kBlue);
+  gIDC0Scale->SetMarkerStyle(21);
+  gIDC0Scale->SetMarkerSize(1);
+  gIDC0Scale->GetXaxis()->SetLabelColor(0);
+  gIDC0Scale->GetXaxis()->CenterTitle();
+
+  gIDC0Scale->Draw("ap");
+  // Draw labels on the x axis
+  TText* t = new TText();
+  t->SetTextSize(0.035);
+  const char* labels[2] = {"A", "C"};
+  for (Int_t i = 0; i < 2; i++) {
+    t->DrawText(xsides[i], 0.5, labels[i]);
+  }
+  gIDC0Scale->GetXaxis()->SetLimits(-0.5, 1.5);
+  canv->Update();
+  canv->Modified();
+  gIDC0Scale->SetBit(TObject::kCanDelete);
+  t->SetBit(TObject::kCanDelete);
+  return canv;
+}
+
+template <typename DataT>
 TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroRadialProfile(TCanvas* outputCanvas, int nbinsY, float yMin, float yMax) const
 {
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
@@ -250,9 +294,6 @@ TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroRadialProfile(TCanvas* output
 
   IDCDrawHelper::drawRadialProfile(drawFun, *hAside2D, Side::A);
   IDCDrawHelper::drawRadialProfile(drawFun, *hCside2D, Side::C);
-
-  // auto profA = hAside2D->ProfileX();
-  // auto profC = hCside2D->ProfileX();
 
   canv->Divide(1, 2);
   canv->cd(1);
@@ -304,7 +345,6 @@ TCanvas* o2::tpc::IDCCCDBHelper<DataT>::drawIDCZeroStackCanvas(TCanvas* outputCa
 
   IDCDrawHelper::IDCDraw drawFun;
   drawFun.mIDCFunc = idcFunc;
-
   IDCDrawHelper::drawIDCZeroStackCanvas(drawFun, side, type, nbins1D, xMin1D, xMax1D, *canv, integrationInterval);
 
   return canv;
