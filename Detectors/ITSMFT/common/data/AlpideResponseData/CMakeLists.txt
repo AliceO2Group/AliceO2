@@ -19,6 +19,8 @@ o2_add_executable(alpide-response-generator
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/AlpideResponse.cxx)
 
 add_custom_command(TARGET O2exe-alpide-response-generator POST_BUILD
-                   COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i  $ENV{ITSRESPONSE_ROOT}/response/AlpideResponseData/ -o ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/
+                   COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i $ENV{ITSRESPONSE_ROOT}/response/AlpideResponseData/ -o ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/
                    DEPENDS ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/AlpideResponse.cxx
 )
+
+o2_data_file(COPY ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/ DESTINATION Detectors/ITSMFT/data/AlpideResponseData/)
