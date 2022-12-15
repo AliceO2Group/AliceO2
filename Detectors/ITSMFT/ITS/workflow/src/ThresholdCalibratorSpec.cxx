@@ -347,7 +347,7 @@ bool ITSThresholdCalibrator::findThresholdFit(
   this->mFitFunction->SetParameter(0, start);
   this->mFitFunction->SetParameter(1, 8);
 
-  this->mFitHist->Fit("mFitFunction", "QL");
+  this->mFitHist->Fit("mFitFunction", "RQL");
 
   noise = this->mFitFunction->GetParameter(1);
   thresh = this->mFitFunction->GetParameter(0);
@@ -697,7 +697,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     // Initialize the histogram used for error function fits
     // Will initialize the TF1 in setRunType (it is different for different runs)
     this->mFitHist = new TH1F(
-      "mFitHist", "mFitHist", N_RANGE, mX[0] - 0.5, mX[N_RANGE - 1] + 0.5);
+      "mFitHist", "mFitHist", N_RANGE, mX[0] - 1., mX[N_RANGE - 1]);
 
     // Initialize correct fit function for the scan type
     this->mFitFunction = (this->mScanType == 'I')
