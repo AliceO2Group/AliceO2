@@ -98,6 +98,7 @@ o2_add_library(Framework
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
+                       src/O2DataModelHelpers.cxx
                        src/OutputSpec.cxx
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx

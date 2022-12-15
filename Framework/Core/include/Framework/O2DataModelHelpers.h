@@ -14,7 +14,7 @@
 
 #include "Headers/DataHeader.h"
 #include <fairmq/FairMQParts.h>
-#include "Framework/Logger.h"
+#include "Framework/OutputSpec.h"
 
 namespace o2::framework
 {
@@ -70,6 +70,8 @@ struct O2DataModelHelpers {
     }
     return true;
   }
+  static bool checkForMissingSporadic(fair::mq::Parts& parts, std::vector<OutputSpec> const& specs, std::vector<bool>& present);
+  static std::string describeMissingOutputs(std::vector<OutputSpec> const& specs, std::vector<bool> const& present);
 };
 } // namespace o2::framework
 
