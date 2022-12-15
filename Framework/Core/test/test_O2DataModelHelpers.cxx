@@ -100,3 +100,97 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
     return header != nullptr && header->subSpecification == 0;
   }));
 }
+
+// Add a test to check that all the Lifetime::Timeframe messages are
+// actually there in the parts.
+BOOST_AUTO_TEST_CASE(TestTimeframePresent)
+{
+  o2::header::DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 0;
+
+  o2::header::DataHeader dh2;
+  dh2.dataDescription = "CLUSTERS";
+  dh2.dataOrigin = "ITS";
+  dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 0;
+
+  DataProcessingHeader dph1{0, 1};
+  DataProcessingHeader dph2{0, 1};
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::array<fair::mq::MessagePtr, 2> messages;
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  fair::mq::Parts inputs{
+    o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph1}),
+    transport->CreateMessage(1000),
+    o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph2}),
+    transport->CreateMessage(1000)};
+
+  std::vector<OutputSpec> outputs{
+    OutputSpec{{"TPC"}, "CLUSTERS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ITS"}, "CLUSTERS", 0, Lifetime::Timeframe},
+  };
+  std::vector<bool> present;
+  present.resize(outputs.size());
+  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present));
+}
+
+BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
+{
+  o2::header::DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 0;
+
+  DataProcessingHeader dph1{0, 1};
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::array<fair::mq::MessagePtr, 2> messages;
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  fair::mq::Parts inputs{
+    o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph1}),
+    transport->CreateMessage(1000),
+  };
+
+  std::vector<OutputSpec> outputs{
+    OutputSpec{{"TPC"}, "CLUSTERS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ITS"}, "CLUSTERS", 0, Lifetime::Timeframe},
+  };
+  std::vector<bool> present;
+  present.resize(outputs.size());
+  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present) == false);
+  BOOST_CHECK_EQUAL(O2DataModelHelpers::describeMissingOutputs(outputs, present),
+                    "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA.");
+}
+
+BOOST_AUTO_TEST_CASE(TestTimeframeSporadic)
+{
+  o2::header::DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 0;
+
+  DataProcessingHeader dph1{0, 1};
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::array<fair::mq::MessagePtr, 2> messages;
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  fair::mq::Parts inputs{
+    o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph1}),
+    transport->CreateMessage(1000),
+  };
+
+  std::vector<OutputSpec> outputs{
+    OutputSpec{{"TPC"}, "CLUSTERS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ITS"}, "QA", 0, Lifetime::Sporadic},
+  };
+  std::vector<bool> present;
+  present.resize(outputs.size());
+  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present) == true);
+}
