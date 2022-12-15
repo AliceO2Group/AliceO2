@@ -9,13 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# FIXME Is this one supposed to be a header only library (in which case the .h
-# to be installed should be in include/TestWorkflows) or not a library at all ?
-# o2_add_library(TestWorkflows SOURCES src/dummy.cxx
-#
-# set(HEADERS src/o2_sim_its_ALP3.h src/o2_sim_tpc.h )
-#
-
 o2_add_dpl_workflow(dummy-workflow
                   SOURCES src/o2DummyWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
@@ -112,20 +105,3 @@ o2_add_dpl_workflow(test-ccdb-fetcher
                     SOURCES src/test_CCDBFetcher.cxx
                     PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::Framework
                     COMPONENT_NAME TestWorkflows)
-
-if(BUILD_SIMULATION)
-  o2_add_executable(
-    ITSClusterizers
-    COMPONENT_NAME TestWorkflows
-    PUBLIC_LINK_LIBRARIES O2::ITSSimulation O2::ITSReconstruction
-                          O2::DetectorsPassive O2::Generators O2::Framework
-    SOURCES src/test_o2ITSCluserizer.cxx src/o2_sim_its_ALP3.cxx)
-
-  o2_add_executable(TPCSimulation
-                    COMPONENT_NAME TestWorkflows
-                    PUBLIC_LINK_LIBRARIES O2::TPCSimulation
-                                          O2::TPCReconstruction
-                                          O2::DetectorsPassive O2::Generators
-                                          O2::Framework
-                    SOURCES src/test_o2TPCSimulation.cxx src/o2_sim_tpc.cxx)
-endif()
