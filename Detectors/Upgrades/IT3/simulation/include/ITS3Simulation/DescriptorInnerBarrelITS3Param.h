@@ -26,7 +26,7 @@ namespace its3
 /**
  ** a parameter class/struct to keep the settings of
  ** the DescriptorInnerBarrelITS3 class
- ** allow the user to modify them 
+ ** allow the user to modify them
  **/
 
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
