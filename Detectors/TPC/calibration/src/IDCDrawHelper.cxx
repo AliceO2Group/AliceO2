@@ -181,7 +181,6 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
   size_t pad = 1;
 
   outputCanvas.Divide(4, 18);
-
   unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
   unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : Mapper::NSECTORS;
   for (unsigned int sector = sectorStart; sector < sectorEnd; ++sector) {
