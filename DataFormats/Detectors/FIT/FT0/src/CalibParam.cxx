@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Calibration/CalibParam.h"
+#include "DataFormatsFT0/CalibParam.h"
 
 using namespace o2::ft0;
 O2ParamImpl(CalibParam);

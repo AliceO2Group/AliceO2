@@ -11,7 +11,6 @@
 
 o2_add_library(FT0Calibration
         SOURCES
-        src/CalibParam.cxx
         src/FT0TimeOffsetSlotContainer.cxx
         src/GlobalOffsetsContainer.cxx
         src/FT0CalibTimeSlewing.cxx
@@ -28,7 +27,6 @@ o2_add_library(FT0Calibration
            )
        o2_target_root_dictionary(FT0Calibration
         HEADERS
-        include/FT0Calibration/CalibParam.h
         include/FT0Calibration/FT0TimeOffsetSlotContainer.h
         include/FT0Calibration/GlobalOffsetsContainer.h
         include/FT0Calibration/FT0CalibTimeSlewing.h

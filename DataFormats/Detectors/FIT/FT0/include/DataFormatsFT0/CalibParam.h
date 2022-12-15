@@ -27,18 +27,18 @@ struct CalibParam : o2::conf::ConfigurableParamHelper<CalibParam> {
   // Logic for obtaining bad channels and for making decision concerning slot finalization
   std::size_t mMinEntriesThreshold = 500;  // Min number of entries
   std::size_t mMaxEntriesThreshold = 1000; // Max number of entries
-  uint8_t mNExtraSlots = 1;                // Number of extra slots
+  uint8_t mNExtraSlots = 0;                // Number of extra slots
   // Fitting ranges
   double mMinFitRange = -200.; // Min fit range
   double mMaxFitRange = 200.;  // Max fit range
   // Conditions for checking fit quality, otherwise hist mean will be taken as offset
-  double mMaxDiffMean = 20;                 // Max differnce between mean and fit result
+  double mMaxDiffMean = 5;                  // Max differnce between mean and fit result
   double mMinRMS = 3;                       // Min RMS
-  double mMaxSigma = 30;                    // Max fit sigma
+  double mMaxSigma = 32;                    // Max fit sigma
   int mRebinFactorPerChID[Nchannels] = {0}; //[Nchannels]
   //
-  bool mUseDynamicRange = false; // use dynamic ranges [mean-RMS*mRangeInRMS,mean+RMS*mRangeInRMS] for fitting
-  double mRangeInRMS = 3;        // Range for RMS in dynamic case
+  bool mUseDynamicRange = true; // use dynamic ranges [mean-RMS*mRangeInRMS,mean+RMS*mRangeInRMS] for fitting
+  double mRangeInRMS = 1.5;     // Range for RMS in dynamic case
 
   O2ParamDef(CalibParam, "FT0CalibParam");
 };

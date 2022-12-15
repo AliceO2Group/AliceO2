@@ -56,7 +56,7 @@ class FV0ChannelTimeOffsetSlotContainer final
   {
     return mFirstCreation;
   }
-  FV0ChannelTimeCalibrationObject generateCalibrationObject() const;
+  FV0ChannelTimeCalibrationObject generateCalibrationObject(long, long, const std::string&) const;
 
  private:
   std::size_t mMinEntries;

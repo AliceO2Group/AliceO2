@@ -18,6 +18,8 @@
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsFT0/SpectraInfoObject.h"
 
+#include "TList.h"
+
 #include "Rtypes.h"
 namespace o2::ft0
 {
@@ -34,10 +36,10 @@ class FT0TimeOffsetSlotContainer final
   FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer&&) = default;
   bool hasEnoughEntries() const;
   void fill(const gsl::span<const float>& data);
-  SpectraInfoObject getSpectraInfoObject(std::size_t channelID) const;
+  SpectraInfoObject getSpectraInfoObject(std::size_t channelID, TList* listHists) const;
   void merge(FT0TimeOffsetSlotContainer* prev);
   void print() const;
-  TimeSpectraInfoObject generateCalibrationObject() const;
+  TimeSpectraInfoObject generateCalibrationObject(long tsStartMS, long tsEndMS, const std::string& pathToHists) const;
   typedef float FlatHistoValue_t;
   typedef o2::dataformats::FlatHisto2D<FlatHistoValue_t> FlatHisto2D_t;
 

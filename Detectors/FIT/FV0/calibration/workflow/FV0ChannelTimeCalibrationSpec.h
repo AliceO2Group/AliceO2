@@ -42,11 +42,12 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
     "calib-fv0-channel-time",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     o2::framework::Options{
       {"tf-per-slot", o2::framework::VariantType::UInt32, 5u, {""}},
       {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}},
-      {"updateInterval", o2::framework::VariantType::UInt32, 10u, {""}}}};
+      {"updateInterval", o2::framework::VariantType::UInt32, 10u, {""}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 }
 } // namespace o2::fv0
 
