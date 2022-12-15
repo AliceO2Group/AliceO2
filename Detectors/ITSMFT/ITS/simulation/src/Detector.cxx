@@ -147,7 +147,7 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
 #ifdef ENABLE_UPGRADES
     mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
     if (its3Version != "") {
-      dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->setVersion(its3Version.Data());
+      ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->setVersion(its3Version.Data());
     }
 #endif
   } else {
@@ -203,10 +203,10 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
   }
 
   if (detName == "ITS") {
-    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure();
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure();
   } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
-    dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->configure();
+    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
 #endif
   }
   configOuterBarrelITS(mNumberInnerLayers);
@@ -890,10 +890,10 @@ void Detector::constructDetectorGeometry()
     if (j < mNumberInnerLayers) {
       TString detName = GetName();
       if (detName == "ITS") {
-        mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+        mGeometry[j] = ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
       } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
-        dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+        ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
 #endif
       }
       mWrapperLayerId[j] = 0;
@@ -943,7 +943,7 @@ void Detector::constructDetectorGeometry()
   // Now create the services
   TString detName = GetName();
   if (detName == "ITS") {
-    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createServices(wrapVols[0]);
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createServices(wrapVols[0]);
   }
 
   mServicesGeometry = new V3Services(detName);
@@ -1060,7 +1060,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t lr = 0; lr < mNumberLayers; lr++) {
     if (lr < mNumberInnerLayers) {
       if (detName == "ITS") {
-        dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+        ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
       }
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);
