@@ -492,7 +492,7 @@ class AODProducerWorkflowDPL : public Task
                             const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             const gsl::span<const GIndex>& GIndices,
                             const o2::globaltracking::RecoContainer& data,
-                            const std::map<std::pair<int, int>, int>& mcColToEvSrc);
+                            const std::vector<std::vector<int>>& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
