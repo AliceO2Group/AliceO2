@@ -18,7 +18,7 @@
 #include <fstream>
 #include <TRandom.h>
 #include <boost/test/unit_test.hpp>
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"

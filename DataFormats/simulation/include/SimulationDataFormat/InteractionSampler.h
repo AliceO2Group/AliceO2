@@ -76,14 +76,14 @@ class InteractionSampler
 
   o2::InteractionTimeRecord mIR{{0, 0}, 0.};
   o2::InteractionTimeRecord mFirstIR{{4, 0}, 0.};
-  int mIntBCCache = 0;         ///< N interactions left for current BC
+  int mIntBCCache = 0; ///< N interactions left for current BC
 
-  float mIntRate = -1.;        ///< total interaction rate in Hz
-  float mBCTimeRMS = 0.2;      ///< BC time spread in NANOSECONDS
-  double mMuBC = -1.;          ///< interaction probability per BC
+  float mIntRate = -1.;   ///< total interaction rate in Hz
+  float mBCTimeRMS = 0.2; ///< BC time spread in NANOSECONDS
+  double mMuBC = -1.;     ///< interaction probability per BC
 
-  o2::BunchFilling mBCFilling;  ///< patter of active BCs
-  std::vector<float> mTimeInBC; ///< interaction times within single BC
+  o2::BunchFilling mBCFilling;           ///< patter of active BCs
+  std::vector<float> mTimeInBC;          ///< interaction times within single BC
   std::vector<uint16_t> mInteractingBCs; // vector of interacting BCs
   int mCurrBCIdx = 0;                    ///< counter for current interacting bunch
 

@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Lifetime.h"
 #include "Steer/HitProcessingManager.h"
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"

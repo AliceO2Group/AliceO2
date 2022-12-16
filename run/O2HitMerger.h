@@ -38,7 +38,6 @@
 #include <sstream>
 #include <cassert>
 #include "FairSystemInfo.h"
-#include "Steer/InteractionSampler.h"
 
 #include "O2HitMerger.h"
 #include "O2SimDevice.h"
