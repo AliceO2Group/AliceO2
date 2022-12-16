@@ -13,6 +13,7 @@
 /// \brief Reads binned residuals which are written by the aggregator and creates the static distortion maps for the TPC
 /// \author Ole Schmidt
 
+#include <memory>
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 #include "TFile.h"
@@ -59,8 +60,8 @@ class TPCResidualReader : public Task
   bool mStoreBinnedResiduals{false};
   GID::mask_t mSources;
   TrackResiduals mTrackResiduals;
-  std::vector<std::string> mFileNames{""};  ///< input files
-  std::string mOutfile{"debugVoxRes.root"}; ///< output file name
+  std::vector<std::string> mFileNames;                                                              ///< input files
+  std::string mOutfile{"debugVoxRes.root"};                                                         ///< output file name
   std::vector<TrackResiduals::LocalResid> mResiduals, *mResidualsPtr = &mResiduals;                 ///< binned residuals input
   std::array<std::vector<TrackResiduals::LocalResid>, SECTORSPERSIDE * SIDES> mResidualsSector;     ///< binned residuals generated on-the-fly
   std::array<std::vector<TrackResiduals::LocalResid>*, SECTORSPERSIDE * SIDES> mResidualsSectorPtr; ///< for setting branch addresses
@@ -92,28 +93,42 @@ void TPCResidualReader::fillResiduals(const int iSec)
 
 void TPCResidualReader::init(InitContext& ic)
 {
-  mFileNames = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("residuals-infiles"));
+  const auto dontCheckFileAccess = ic.options().get<bool>("dont-check-file-access");
+
+  auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("residuals-infiles"));
   mOutfile = ic.options().get<std::string>("outfile");
   mTrackResiduals.init();
 
   // check if only one input file (a txt file contaning a list of files is provided)
-  if (mFileNames.size() == 1) {
-    if (boost::algorithm::ends_with(mFileNames.front(), "txt")) {
-      LOGP(info, "Reading files from input file {}", mFileNames.front());
-      std::ifstream is(mFileNames.front());
+  if (fileList.size() == 1) {
+    if (boost::algorithm::ends_with(fileList.front(), "txt")) {
+      LOGP(info, "Reading files from input file {}", fileList.front());
+      std::ifstream is(fileList.front());
       std::istream_iterator<std::string> start(is);
       std::istream_iterator<std::string> end;
       std::vector<std::string> fileNamesTmp(start, end);
-      mFileNames = fileNamesTmp;
+      fileList = fileNamesTmp;
     }
   }
 
   const std::string inpDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir"));
-  for (auto& file : mFileNames) {
+  for (const auto& file : fileList) {
     if ((file.find("alien://") == 0) && !gGrid && !TGrid::Connect("alien://")) {
       LOG(fatal) << "Failed to open alien connection";
     }
-    file = o2::utils::Str::concat_string(inpDir, file);
+    const auto fileDir = o2::utils::Str::concat_string(inpDir, file);
+    if (!dontCheckFileAccess) {
+      std::unique_ptr<TFile> filePtr(TFile::Open(fileDir.data()));
+      if (!filePtr || !filePtr->IsOpen() || filePtr->IsZombie()) {
+        LOGP(warning, "Could not open file {}", fileDir);
+        continue;
+      }
+    }
+    mFileNames.emplace_back(fileDir);
+  }
+
+  if (mFileNames.size() == 0) {
+    LOGP(error, "No input files to process");
   }
 
   mStoreBinnedResiduals = ic.options().get<bool>("store-binned");
@@ -268,7 +283,9 @@ DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src)
       {"residuals-infiles", VariantType::String, "o2tpc_residuals.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}},
-      {"store-binned", VariantType::Bool, false, {"Store the binned residuals together with the voxel results"}}}};
+      {"store-binned", VariantType::Bool, false, {"Store the binned residuals together with the voxel results"}},
+      {"dont-check-file-access", VariantType::Bool, false, {"Deactivate check if all files are accessible before adding them to the list of files"}},
+    }};
 }
 
 } // namespace tpc
