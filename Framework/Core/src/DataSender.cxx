@@ -20,6 +20,8 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/O2DataModelHelpers.h"
 
 using namespace o2::monitoring;
 
@@ -66,6 +68,10 @@ DataSender::DataSender(ServiceRegistryRef registry,
     DataSpecUtils::describe(buffer, 127, mOutputs.back());
     monitoring.send({fmt::format("{} ({})", buffer, (int)mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
   }
+  /// Fill the mPresents with the outputs which are not timeframes.
+  for (size_t i = 0; i < mOutputs.size(); ++i) {
+    mPresentDefaults.push_back(mOutputs[i].lifetime != Lifetime::Timeframe);
+  }
 }
 
 std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
@@ -75,8 +81,24 @@ std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
+  O2DataModelHelpers::updateMissingSporadic(parts, mOutputs, mPresent);
   mRegistry.preSendingMessagesCallbacks(parts, channelIndex);
   mPolicy.send(mProxy, parts, channelIndex, mRegistry);
+}
+
+void DataSender::reset()
+{
+  mPresent = mPresentDefaults;
+}
+
+void DataSender::verifyMissingSporadic() const
+{
+  for (auto present : mPresent) {
+    if (!present) {
+      LOGP(warning, O2DataModelHelpers::describeMissingOutputs(mOutputs, mPresent).c_str());
+      return;
+    }
+  }
 }
 
 } // namespace o2::framework
