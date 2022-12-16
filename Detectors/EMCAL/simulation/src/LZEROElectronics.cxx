@@ -35,7 +35,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
   bool trendOfDigitsInTower = false;
   if (TimeSums.size() < 4) {
     return false;
-  } else if (TimeSums[0] < TimeSums[1] && TimeSums[1] < TimeSums[2] && TimeSums[2] < TimeSums[3]) {
+  } else if (TimeSums[0] < TimeSums[1] && TimeSums[1] < TimeSums[2] && TimeSums[2] >= TimeSums[3]) {
     trendOfDigitsInTower = true;
   }
   double integralOfADCvalues = 0;

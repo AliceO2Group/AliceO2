@@ -23,6 +23,7 @@ o2_target_root_dictionary(EMCALSimulation
                                   include/EMCALSimulation/DigitsWriteoutBufferTRU.h
                                   include/EMCALSimulation/LZEROElectronics.h
                                   include/EMCALSimulation/Patches.h
+                                  include/EMCALSimulation/DigitTimebin.h
                                   include/EMCALSimulation/DigitsVectorStream.h
                                   include/EMCALSimulation/RawWriter.h
                                   include/EMCALSimulation/SpaceFrame.h

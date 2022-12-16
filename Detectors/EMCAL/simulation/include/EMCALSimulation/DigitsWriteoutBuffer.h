@@ -22,6 +22,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsVectorStream.h"
+#include "EMCALSimulation/DigitTimebin.h"
 
 namespace o2
 {

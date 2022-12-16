@@ -27,78 +27,57 @@ using namespace o2::emcal;
 
 //_____________________________________________________________________
 //
-void DigitsWriteoutBufferTRU::fillOutputContainer(bool& isEndOfTimeFrame, bool& isStartOfTimeFrame)
+void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord)
 {
   int eventTimeBin = 13;
   bool needsEmptyTimeBins = false;
   int nProcessedTimeBins = 0;
-  int timeBin = mFirstTimeBin;
-  o2::InteractionRecord nextInteractionRecord;
 
-  std::deque<o2::emcal::DigitTimebin>
+  std::deque<o2::emcal::DigitTimebinTRU>
     mDequeTime;
 
   // If end of run or end of timeframe read out what we have
   bool isEnd = mEndOfRun || isEndOfTimeFrame;
-  // Checking the Interaction Record for a new event
-  // If the time is different from the one that is currently
-  // saved, this means there is a new collision and we
-  // can read out the previous time bins
-  // markerTimeBin indicates how many steps we can
-  // put our marker forward
-  int markerTimeBin = 0;
-  for (auto& time : mTimeBins) {
-    // The time bins between the last event and the timing of this event are uncorrelated and can be written out
-    // This is true up to 13 samples, which is the pulse of the TRU
-    // So either a new collision in less than 13, or 13 samples are read together
-    if (!(markerTimeBin < eventTimeBin)) {
-      break;
+  // Checking the Interaction Record for the time of the next event in BC units
+  // Difference becomes the new marker if the collision happens before 13 samples
+  auto difference = nextInteractionRecord.toLong() - mCurrentInteractionRecord.toLong();
+  if (mNoPileupMode || difference >= 13 || isEnd) {
+    // Next collision happening way after the current one, just
+    // send out and clear entire buffer
+    // Simplification and optimization at software level - hardware would continuosly sample, but here we don't need to allocate memory dynamically which we are never going to use
+    // Also in a dedicated no-pileup mode we always write out after each collision.
+    for (auto& time : mTimeBins) {
+      mDequeTime.push_back(time);
     }
+    mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    mCurrentInteractionRecord = nextInteractionRecord;
+    clear();
 
-    /// End of Run
-    if (isEnd) {
-      break;
-    }
+  } else {
+    // Next collsions happing in the tail of the current one,
+    // Copy out up to difference and pop and push this amount
+    // of samples
 
-    // check if minterrecord which is optional exists.
-    // if it doesn't, keep the previously assigned interrecord value
-    if (time.mInterRecord.has_value()) {
-      auto interactionrecordsavedtmp = time.mInterRecord.value();
-      nextInteractionRecord = interactionrecordsavedtmp;
-      auto nextTime = nextInteractionRecord.bc2ns(nextInteractionRecord.bc, nextInteractionRecord.orbit);
-      auto currentTime = mCurrentInteractionRecord.bc2ns(mCurrentInteractionRecord.bc, mCurrentInteractionRecord.orbit);
-      // If the new IR and the old IR have different times, this means
-      // we have different collisions and we can read out
-      if (nextTime != currentTime) {
+    // Now filling the vector stream
+    for (auto& time : mTimeBins) {
+      if (!(nProcessedTimeBins + mFirstTimeBin < difference)) {
         break;
       }
+
+      mDequeTime.push_back(time);
+      // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+
+      ++nProcessedTimeBins;
     }
 
-    // increasing the marker for the read out, this tells us
-    // how many time bins we can move forward
-    ++markerTimeBin;
-  }
-
-  // Now filling the vector stream
-  for (auto& time : mTimeBins) {
-    /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
-    if (!(nProcessedTimeBins + mFirstTimeBin < markerTimeBin)) {
-      break;
-    }
-
-    mDequeTime.push_back(time);
     mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    mCurrentInteractionRecord = nextInteractionRecord;
 
-    ++nProcessedTimeBins;
-    ++timeBin;
-  }
-
-  mCurrentInteractionRecord = nextInteractionRecord;
-
-  if (nProcessedTimeBins > 0) {
-    mFirstTimeBin += nProcessedTimeBins;
-    while (nProcessedTimeBins--) {
-      mTimeBins.pop_front();
+    if (nProcessedTimeBins > 0) {
+      mFirstTimeBin += nProcessedTimeBins;
+      while (nProcessedTimeBins--) {
+        mTimeBins.pop_front();
+      }
     }
   }
 }
@@ -112,7 +91,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer()
   int timeBin = mFirstTimeBin;
   o2::InteractionRecord interactionrecordsaved;
 
-  std::deque<o2::emcal::DigitTimebin>
+  std::deque<o2::emcal::DigitTimebinTRU>
     mDequeTime;
 
   for (auto& time : mTimeBins) {
@@ -152,7 +131,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer()
 DigitsWriteoutBufferTRU::DigitsWriteoutBufferTRU(unsigned int nTimeBins) : mBufferSize(nTimeBins)
 {
   for (int itime = 0; itime < nTimeBins; itime++) {
-    mTimeBins.push_back(o2::emcal::DigitTimebin());
+    mTimeBins.push_back(o2::emcal::DigitTimebinTRU());
   }
 }
 //________________________________________________________
@@ -172,6 +151,7 @@ void DigitsWriteoutBufferTRU::init()
   mLiveTime = simParam->getLiveTime();
   mBusyTime = simParam->getBusyTime();
   mPreTriggerTime = simParam->getPreTriggerTime();
+  mNoPileupMode = simParam->isDisablePileup();
   mEndOfRun = 0;
 
   mDigitStream.init();
@@ -180,7 +160,7 @@ void DigitsWriteoutBufferTRU::init()
 void DigitsWriteoutBufferTRU::clear()
 {
   mTimeBins.clear();
-  mEndOfRun = 0;
+  // mEndOfRun = 0;
 }
 //________________________________________________________
 void DigitsWriteoutBufferTRU::finish()
@@ -189,7 +169,7 @@ void DigitsWriteoutBufferTRU::finish()
 }
 //________________________________________________________
 // Add digits to the buffer
-void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<LabeledDigit>& digList)
+void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<Digit>& digList)
 {
 
   // mTimeBin has to have the absolute time information
@@ -199,7 +179,7 @@ void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<Labele
 
     auto towerEntry = buffEntry.mDigitMap->find(towerID);
     if (towerEntry == buffEntry.mDigitMap->end()) {
-      towerEntry = buffEntry.mDigitMap->insert(std::pair<int, std::list<o2::emcal::LabeledDigit>>(towerID, std::list<o2::emcal::LabeledDigit>())).first;
+      towerEntry = buffEntry.mDigitMap->insert(std::pair<int, std::list<o2::emcal::Digit>>(towerID, std::list<o2::emcal::Digit>())).first;
     }
     towerEntry->second.push_back(dig);
   }

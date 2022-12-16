@@ -41,6 +41,7 @@
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsVectorStream.h"
 #include "EMCALSimulation/LZEROElectronics.h"
+#include "EMCALSimulation/DigitTimebin.h"
 
 // using namespace o2::emcal;
 
@@ -49,13 +50,13 @@ namespace o2
 namespace emcal
 {
 
-struct DigitTimebinTRU {
-  bool mRecordMode = false;
-  bool mEndWindow = false;
-  bool mTriggerColl = false;
-  std::optional<o2::InteractionRecord> mInterRecord;
-  std::shared_ptr<std::unordered_map<int, std::list<Digit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<Digit>>>();
-};
+// struct DigitTimebinTRU {
+//   bool mRecordMode = false;
+//   bool mEndWindow = false;
+//   bool mTriggerColl = false;
+//   std::optional<o2::InteractionRecord> mInterRecord;
+//   std::shared_ptr<std::unordered_map<int, std::list<Digit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<Digit>>>();
+// };
 
 /// \class DigitsWriteoutBufferTRU
 /// \brief Container class for time sampled digits to be sent to TRUs in true continuous readout
@@ -92,15 +93,15 @@ class DigitsWriteoutBufferTRU
   /// Add digit to the container
   /// \param towerID Cell ID
   /// \param dig Labaled digit to add
-  void addDigits(unsigned int towerID, std::vector<o2::emcal::LabeledDigit>& digList);
+  void addDigits(unsigned int towerID, std::vector<o2::emcal::Digit>& digList);
 
   /// Fill output streamer
   void fillOutputContainer();
 
   /// Fill output streamer
   /// \param isEndOfTimeFrame End of Time Frame
-  /// \param isStartOfTimeFrame Start of Time Frame
-  void fillOutputContainer(bool& isEndOfTimeFrame, bool& isStartOfTimeFrame);
+  /// \param nextInteractionRecord Next interaction record, to compute the amount of TimeBins to be saved
+  void fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord);
 
   /// Setters for the live time, busy time, pre-trigger time
   void setLiveTime(unsigned int liveTime) { mLiveTime = liveTime; }
@@ -123,9 +124,10 @@ class DigitsWriteoutBufferTRU
   unsigned long mLastEventTime = 0;              ///< The event time of last collisions in the readout window
   unsigned int mPhase = 0;                       ///< The event L1 phase
   bool mFirstEvent = true;                       ///< Flag to the first event in the run
-  std::deque<o2::emcal::DigitTimebin> mTimeBins; ///< Container for time sampled digits per tower ID for continuous digits
+  std::deque<o2::emcal::DigitTimebinTRU> mTimeBins; ///< Container for time sampled digits per tower ID for continuous digits
   unsigned int mFirstTimeBin = 0;
   bool mEndOfRun = 0;
+  bool mNoPileupMode = false;                      ///< pileup mode from SimParam
   o2::InteractionRecord mCurrentInteractionRecord; ///< Interaction Record of the current event, to be used to fill the output container
 
   o2::emcal::DigitsVectorStream mDigitStream; ///< Output vector streamer
