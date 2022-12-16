@@ -14,9 +14,8 @@
 
 namespace o2::framework
 {
-bool O2DataModelHelpers::checkForMissingSporadic(fair::mq::Parts& parts, std::vector<OutputSpec> const& specs, std::vector<bool>& present)
+void O2DataModelHelpers::updateMissingSporadic(fair::mq::Parts& parts, std::vector<OutputSpec> const& specs, std::vector<bool>& present)
 {
-  std::fill(present.begin(), present.end(), false);
   // Mark as present anything which is not of Lifetime timeframe.
   for (size_t i = 0; i < specs.size(); ++i) {
     if (specs[i].lifetime != Lifetime::Timeframe) {
@@ -41,7 +40,6 @@ bool O2DataModelHelpers::checkForMissingSporadic(fair::mq::Parts& parts, std::ve
     }
   };
   O2DataModelHelpers::for_each_header(parts, timeframeDataExists);
-  return std::all_of(present.begin(), present.end(), [](auto const& p) { return p; });
 }
 
 std::string O2DataModelHelpers::describeMissingOutputs(std::vector<OutputSpec> const& specs, std::vector<bool> const& present)
@@ -60,6 +58,23 @@ std::string O2DataModelHelpers::describeMissingOutputs(std::vector<OutputSpec> c
     }
   }
   error += ". If this is expected, please change its lifetime to Sporadic / QA.";
+  first = true;
+  for (size_t i = 0; i < specs.size(); ++i) {
+    if (present[i] == true) {
+      if (first) {
+        error += " Present outputs are: ";
+        first = false;
+      } else {
+        error += ", ";
+      }
+      error += DataSpecUtils::describe(specs[i]);
+    }
+  }
+  if (first) {
+    error += " No output was present.";
+  } else {
+    error += ".";
+  }
   return error;
 }
 } // namespace o2::framework
