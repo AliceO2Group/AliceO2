@@ -89,9 +89,12 @@ class DigitizationContext
   // returns the source for a given simprefix ... otherwise -1 if not found
   int findSimPrefix(std::string const& prefix) const;
 
+  /// add QED contributions to context, giving prefix; maximal event number and qed interaction rate
+  void fillQED(std::string_view QEDprefix, int max_events, double qedrate);
+
   /// add QED contributions to context; QEDprefix is prefix of QED production
   /// irecord is vector of QED interaction times (sampled externally)
-  void fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord);
+  void fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord, int max_events = -1, bool fromKinematics = true);
 
   /// Common functions the setup input TChains for reading, given the state (prefixes) encapsulated
   /// by this context. The input vector needs to be empty otherwise nothing will be done.

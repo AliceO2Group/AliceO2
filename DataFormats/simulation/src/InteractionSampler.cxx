@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::steer;
