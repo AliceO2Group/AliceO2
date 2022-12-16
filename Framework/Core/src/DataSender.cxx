@@ -72,6 +72,22 @@ DataSender::DataSender(ServiceRegistryRef registry,
   for (size_t i = 0; i < mOutputs.size(); ++i) {
     mPresentDefaults.push_back(mOutputs[i].lifetime != Lifetime::Timeframe);
   }
+
+  /// Check if all the inputs are of kind Timeframe / Optional
+  /// and that the completion policy is the default one. If not,
+  /// we actually reset the mPresentDefaults to be empty, so that
+  /// the check is disabled.
+  for (auto& input : mSpec.inputs) {
+    if (input.matcher.lifetime != Lifetime::Timeframe && input.matcher.lifetime != Lifetime::Optional) {
+      LOGP(detail, "Disabling the Lifetime::timeframe check because not all the inputs are of kind Lifetime::Timeframe");
+      mPresentDefaults.resize(0);
+      break;
+    }
+  }
+  if (mSpec.completionPolicy.name != "consume-all" && mSpec.completionPolicy.name != "consume-all-ordered") {
+    LOGP(detail, "Disabling the Lifetime::timeframe check because the completion policy is not the default one");
+    mPresentDefaults.resize(0);
+  }
 }
 
 std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
@@ -81,7 +97,10 @@ std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
-  O2DataModelHelpers::updateMissingSporadic(parts, mOutputs, mPresent);
+  // In case the vector is empty, it means the check is disabled
+  if (mPresentDefaults.empty() == false) {
+    O2DataModelHelpers::updateMissingSporadic(parts, mOutputs, mPresent);
+  }
   auto& dataProcessorContext = mRegistry.get<DataProcessorContext>();
   dataProcessorContext.preSendingMessagesCallbacks(mRegistry, parts, channelIndex);
   mPolicy.send(mProxy, parts, channelIndex, mRegistry);
