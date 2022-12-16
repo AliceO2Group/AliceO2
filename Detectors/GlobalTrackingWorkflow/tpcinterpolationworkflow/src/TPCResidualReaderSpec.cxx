@@ -23,6 +23,7 @@
 #include "Framework/ControlService.h"
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
+#include "SpacePoints/TrackInterpolation.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
@@ -38,7 +39,7 @@ namespace tpc
 class TPCResidualReader : public Task
 {
  public:
-  TPCResidualReader() = default;
+  TPCResidualReader(bool doBinning, GID::mask_t src) : mDoBinning(doBinning), mSources(src) {}
   ~TPCResidualReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -53,10 +54,19 @@ class TPCResidualReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
+  std::unique_ptr<TTree> mTreeUnbinnedResiduals;
+  bool mDoBinning{false};
+  bool mStoreBinnedResiduals{false};
+  GID::mask_t mSources;
   TrackResiduals mTrackResiduals;
   std::vector<std::string> mFileNames{""};  ///< input files
   std::string mOutfile{"debugVoxRes.root"}; ///< output file name
-  std::vector<o2::tpc::TrackResiduals::LocalResid> mResiduals, *mResidualsPtr = &mResiduals;
+  std::vector<TrackResiduals::LocalResid> mResiduals, *mResidualsPtr = &mResiduals;                 ///< binned residuals input
+  std::array<std::vector<TrackResiduals::LocalResid>, SECTORSPERSIDE * SIDES> mResidualsSector;     ///< binned residuals generated on-the-fly
+  std::array<std::vector<TrackResiduals::LocalResid>*, SECTORSPERSIDE * SIDES> mResidualsSectorPtr; ///< for setting branch addresses
+  std::array<std::vector<TrackResiduals::VoxStats>, SECTORSPERSIDE * SIDES> mVoxStatsSector;        ///< voxel statistics generated on-the-fly
+  std::vector<UnbinnedResid> mUnbinnedResiduals, *mUnbinnedResidualsPtr = &mUnbinnedResiduals;      ///< unbinned residuals input
+  std::vector<TrackDataCompact> mTrackData, *mTrackDataPtr = &mTrackData;                           ///< the track references for unbinned residuals
 };
 
 void TPCResidualReader::fillResiduals(const int iSec)
@@ -105,21 +115,99 @@ void TPCResidualReader::init(InitContext& ic)
     }
     file = o2::utils::Str::concat_string(inpDir, file);
   }
+
+  mStoreBinnedResiduals = ic.options().get<bool>("store-binned");
 }
 
 void TPCResidualReader::run(ProcessingContext& pc)
 {
   mTrackResiduals.createOutputFile(mOutfile.data()); // FIXME remove when map output is handled properly
 
-  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+  if (mDoBinning) {
+    // initialize the trees for the binned residuals and the statistics
+    LOGP(info, "Preparing the binning of residuals. Storing the afterwards is set to {}", mStoreBinnedResiduals);
+    mTreeResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
+    if (!mStoreBinnedResiduals) {
+      // if not set to nullptr, the reisduals tree will be added to the output file of TrackResiduals created above
+      mTreeResiduals->SetDirectory(nullptr);
+    }
+    for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+      mResidualsSectorPtr[iSec] = &mResidualsSector[iSec];
+      mVoxStatsSector[iSec].resize(mTrackResiduals.getNVoxelsPerSector());
+      for (int ix = 0; ix < mTrackResiduals.getNXBins(); ++ix) {
+        for (int ip = 0; ip < mTrackResiduals.getNY2XBins(); ++ip) {
+          for (int iz = 0; iz < mTrackResiduals.getNZ2XBins(); ++iz) {
+            auto& statsVoxel = mVoxStatsSector[iSec][mTrackResiduals.getGlbVoxBin(ix, ip, iz)];
+            // COG estimates are set to the bin center by default
+            mTrackResiduals.getVoxelCoordinates(iSec, ix, ip, iz, statsVoxel.meanPos[TrackResiduals::VoxX], statsVoxel.meanPos[TrackResiduals::VoxF], statsVoxel.meanPos[TrackResiduals::VoxZ]);
+          }
+        }
+      }
+      mTreeResiduals->Branch(Form("sec%d", iSec), &mResidualsSectorPtr[iSec]);
+    }
+    // now go through all input files, apply the track selection and fill the binned residuals
     for (const auto& file : mFileNames) {
       LOGP(info, "Processing residuals from file {}", file);
-
-      // set up the tree from the input file
       connectTree(file);
+      for (int iEntry = 0; iEntry < mTreeUnbinnedResiduals->GetEntries(); ++iEntry) {
+        mTreeUnbinnedResiduals->GetEntry(iEntry);
+        for (const auto& trkInfo : mTrackData) {
+          if (!GID::includesSource(trkInfo.sourceId, mSources)) {
+            continue;
+          }
+          for (int i = trkInfo.idxFirstResidual; i < trkInfo.idxFirstResidual + trkInfo.nResiduals; ++i) {
+            const auto& residIn = mUnbinnedResiduals[i];
+            int sec = residIn.sec;
+            auto& residVecOut = mResidualsSector[sec];
+            auto& statVecOut = mVoxStatsSector[sec];
+            std::array<unsigned char, TrackResiduals::VoxDim> bvox;
+            float xPos = param::RowX[residIn.row];
+            float yPos = residIn.y * param::MaxY / 0x7fff;
+            float zPos = residIn.z * param::MaxZ / 0x7fff;
+            if (!mTrackResiduals.findVoxelBin(sec, xPos, yPos, zPos, bvox)) {
+              // we are not inside any voxel
+              LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
+              continue;
+            }
+            residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
+            auto& stat = statVecOut[mTrackResiduals.getGlbVoxBin(bvox)];
+            float& binEntries = stat.nEntries;
+            float oldEntries = binEntries++;
+            float norm = 1.f / binEntries;
+            // update COG for voxel bvox (update for X only needed in case binning is not per pad row)
+            float xPosInv = 1.f / xPos;
+            stat.meanPos[TrackResiduals::VoxX] = (stat.meanPos[TrackResiduals::VoxX] * oldEntries + xPos) * norm;
+            stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * oldEntries + yPos * xPosInv) * norm;
+            stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * oldEntries + zPos * xPosInv) * norm;
+          }
+        }
+      }
+      mTreeResiduals->Fill();
+      for (auto& residuals : mResidualsSector) {
+        residuals.clear();
+      }
+    }
+  }
 
-      // fill the residuals for one sector
-      fillResiduals(iSec);
+  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+    if (mDoBinning) {
+      // for each sector fill the vector of local residuals from the respective branch
+      auto brResid = mTreeResiduals->GetBranch(Form("sec%d", iSec));
+      brResid->SetAddress(&mResidualsPtr);
+      for (int iEntry = 0; iEntry < brResid->GetEntries(); ++iEntry) {
+        brResid->GetEntry(iEntry);
+        mTrackResiduals.getLocalResVec().insert(mTrackResiduals.getLocalResVec().end(), mResiduals.begin(), mResiduals.end());
+      }
+      mTrackResiduals.setStats(mVoxStatsSector[iSec], iSec);
+    } else {
+      // we read the binned residuals directly from the input files
+      for (const auto& file : mFileNames) {
+        LOGP(info, "Processing residuals from file {}", file);
+        // set up the tree from the input file
+        connectTree(file);
+        // fill the residuals for one sector
+        fillResiduals(iSec);
+      }
     }
 
     // do processing
@@ -139,19 +227,34 @@ void TPCResidualReader::run(ProcessingContext& pc)
 
 void TPCResidualReader::connectTree(const std::string& filename)
 {
-  mTreeResiduals.reset(nullptr); // in case it was already loaded
-  mTreeStats.reset(nullptr);     // in case it was already loaded
+  if (!mDoBinning) {
+    // in case we do the binning on-the-fly, we fill these trees manually
+    // and don't want to delete them in between
+    mTreeResiduals.reset(nullptr); // in case it was already loaded
+    mTreeStats.reset(nullptr);     // in case it was already loaded
+  }
+  mTreeUnbinnedResiduals.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
-  mTreeResiduals.reset((TTree*)mFile->Get("resid"));
-  assert(mTreeResiduals);
-  mTreeStats.reset((TTree*)mFile->Get("stats"));
-  assert(mTreeStats);
-
-  LOG(info) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
+  if (!mDoBinning) {
+    // we load the already binned residuals and the voxel statistics
+    mTreeResiduals.reset((TTree*)mFile->Get("resid"));
+    assert(mTreeResiduals);
+    mTreeStats.reset((TTree*)mFile->Get("stats"));
+    assert(mTreeStats);
+    LOG(info) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
+  } else {
+    // we load the unbinned residuals
+    LOG(info) << "Loading the binned residuals";
+    mTreeUnbinnedResiduals.reset((TTree*)mFile->Get("unbinnedResid"));
+    assert(mTreeUnbinnedResiduals);
+    mTreeUnbinnedResiduals->SetBranchAddress("res", &mUnbinnedResidualsPtr);
+    mTreeUnbinnedResiduals->SetBranchAddress("trackInfo", &mTrackDataPtr);
+    LOG(info) << "Loaded tree from " << filename << " with " << mTreeUnbinnedResiduals->GetEntries() << " entries";
+  }
 }
 
-DataProcessorSpec getTPCResidualReaderSpec()
+DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -160,11 +263,12 @@ DataProcessorSpec getTPCResidualReaderSpec()
     "tpc-residual-reader",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCResidualReader>()},
+    AlgorithmSpec{adaptFromTask<TPCResidualReader>(doBinning, src)},
     Options{
       {"residuals-infiles", VariantType::String, "o2tpc_residuals.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
-      {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}}}};
+      {"outfile", VariantType::String, "debugVoxRes.root", {"Output file name"}},
+      {"store-binned", VariantType::Bool, false, {"Store the binned residuals together with the voxel results"}}}};
 }
 
 } // namespace tpc

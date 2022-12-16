@@ -173,10 +173,10 @@ void TrackResiduals::initBinning()
 //______________________________________________________________________________
 void TrackResiduals::initResultsContainer(int iSec)
 {
-  if (mInitResultsContainer) {
+  if (mInitResultsContainer.test(iSec)) {
     return;
   }
-  mInitResultsContainer = true;
+  mInitResultsContainer.set(iSec);
   mVoxelResults[iSec].resize(mNVoxPerSector);
   for (int ix = 0; ix < mNXBins; ++ix) {
     for (int ip = 0; ip < mNY2XBins; ++ip) {
@@ -299,6 +299,18 @@ void TrackResiduals::setKernelType(KernelType kernel, float bwX, float bwP, floa
 /// processing functions
 ///
 ///////////////////////////////////////////////////////////////////////////////
+
+void TrackResiduals::setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec)
+{
+  initResultsContainer(iSec);
+  std::vector<VoxRes>& secDataTmp = mVoxelResults[iSec];
+  for (int iVox = 0; iVox < mNVoxPerSector; ++iVox) {
+    secDataTmp[iVox].stat[VoxX] = statsIn[iVox].meanPos[VoxX];
+    secDataTmp[iVox].stat[VoxF] = statsIn[iVox].meanPos[VoxF];
+    secDataTmp[iVox].stat[VoxZ] = statsIn[iVox].meanPos[VoxZ];
+    secDataTmp[iVox].stat[VoxDim] = statsIn[iVox].nEntries;
+  }
+}
 
 void TrackResiduals::fillStats(int iSec)
 {
@@ -468,8 +480,8 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
   resVox.dZSigLTM = zResults[2];
 
-  LOGF(debug, "D[0]=%.2f, D[1]=%.2f, D[2]=%.2f, E[0]=%.2f, E[1]=%.2f, E[2]=%.2f, EXYCorr=%.4f",
-       resVox.D[0], resVox.D[1], resVox.D[2], resVox.E[0], resVox.E[1], resVox.E[2], resVox.EXYCorr);
+  LOGF(debug, "D[0]=%.2f, D[1]=%.2f, D[2]=%.2f, E[0]=%.2f, E[1]=%.2f, E[2]=%.2f, EXYCorr=%.4f, dYSigMAD=%.3f, dZSigLTM=%.3f",
+       resVox.D[0], resVox.D[1], resVox.D[2], resVox.E[0], resVox.E[1], resVox.E[2], resVox.EXYCorr, resVox.dYSigMAD, resVox.dZSigLTM);
 
   resVox.flags |= DistDone;
 
@@ -539,7 +551,8 @@ int TrackResiduals::validateVoxels(int iSec)
       } // loop over Z
     }   // loop over Y/X
     mValidFracXBins[iSec][ix] = static_cast<float>(cntValid) / (mNY2XBins * mNZ2XBins);
-    LOG(debug) << "sector " << iSec << ": xBin " << ix << " has " << mValidFracXBins[iSec][ix] * 100 << "% of voxels valid";
+    LOGP(debug, "Sector {}: xBin {} has {} % of voxels valid. Total masked due to fit: {} ,and sigma: {}",
+         iSec, ix, mValidFracXBins[iSec][ix] * 100., cntMaskedFit, cntMaskedSigma);
   } // loop over X
 
   // mask X-bins which cannot be smoothed
@@ -1452,5 +1465,5 @@ void TrackResiduals::printMem() const
 void TrackResiduals::clear()
 {
   getLocalResVec().clear();
-  mInitResultsContainer = false;
+  mInitResultsContainer.reset();
 }

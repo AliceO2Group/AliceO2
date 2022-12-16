@@ -64,7 +64,8 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
     int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
     if (nTracksPerTfMax > 0) {
-      LOGP(info, "We will stop processing tracks after validating {} tracks per TF", nTracksPerTfMax);
+      LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
+           nTracksPerTfMax, SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot, nTfs);
     } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
     } else {

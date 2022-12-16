@@ -420,6 +420,9 @@ class TrackResiduals
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+  /// Set the voxel statistics directly from outside
+  void setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec);
+
   /// Fill statistics from TTree
   void fillStats(int iSec);
 
@@ -427,7 +430,7 @@ class TrackResiduals
   void clear();
 
  private:
-  bool mInitResultsContainer{false};
+  std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
 
   // some constants
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
