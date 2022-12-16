@@ -321,6 +321,16 @@ o2::framework::ServiceSpec CommonServices::dataSender()
                            new DataSender(services, spec.sendingPolicy)};
     },
     .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext&, void* service) {
+      auto& dataSender = *reinterpret_cast<DataSender*>(service);
+      dataSender.reset(); },
+    .postDispatching = [](ProcessingContext& ctx, void* service) {
+      auto& dataSender = *reinterpret_cast<DataSender*>(service);
+      // If the quit was requested, the post dispatching can still happen
+      // but with an empty set of data.
+      if (ctx.services().get<DeviceState>().quitRequested == false) {
+        dataSender.verifyMissingSporadic();
+      } },
     .kind = ServiceKind::Serial};
 }
 

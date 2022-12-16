@@ -70,7 +70,16 @@ struct O2DataModelHelpers {
     }
     return true;
   }
-  static bool checkForMissingSporadic(fair::mq::Parts& parts, std::vector<OutputSpec> const& specs, std::vector<bool>& present);
+  static void updateMissingSporadic(fair::mq::Parts& parts, std::vector<OutputSpec> const& specs, std::vector<bool>& present);
+  static bool validateOutputs(std::vector<bool>& present)
+  {
+    for (auto p : present) {
+      if (!p) {
+        return false;
+      }
+    }
+    return true;
+  }
   static std::string describeMissingOutputs(std::vector<OutputSpec> const& specs, std::vector<bool> const& present);
 };
 } // namespace o2::framework
