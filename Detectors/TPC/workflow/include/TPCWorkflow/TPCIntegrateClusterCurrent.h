@@ -42,7 +42,17 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mNSlicesTF = ic.options().get<int>("nSlicesTF");
-    mUseQMax = ic.options().get<bool>("use-qMax");
+    mType = ic.options().get<int>("type");
+
+    if (mType == 0) {
+      LOGP(info, "Using qTot as currents");
+    } else if (mType == 1) {
+      LOGP(info, "Using qMax as currents");
+    } else if (mType == 2) {
+      LOGP(info, "Using nCl as currents");
+    } else {
+      LOGP(fatal, "type should be 0, 1 or 2");
+    }
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final { o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj); }
@@ -83,11 +93,19 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
           const float time = cl.getTime();
           const unsigned int sliceInTF = time / mNTSPerSlice;
           if (sliceInTF < mNSlicesTF) {
-            const float charge = mUseQMax ? cl.getQmax() : cl.getQtot();
+            float charge = 0;
+            if (mType == 0) {
+              charge = cl.getQtot();
+            } else if (mType == 1) {
+              charge = cl.getQtot();
+            } else if (mType == 2) {
+              charge = 1;
+            }
+
             const unsigned int padInCRU = Mapper::OFFSETCRUGLOBAL[irow] + static_cast<int>(cl.getPad() + 0.5f);
             mICCS[cru][sliceInTF * Mapper::PADSPERREGION[cru.region()] + padInCRU] += charge;
           } else {
-            LOGP(info, "slice in TF of ICC {} is larger than max slice {} with nTSPerSlice {}", sliceInTF, mNSlicesTF, mNTSPerSlice);
+            LOGP(debug, "slice in TF of ICC {} is larger than max slice {} with nTSPerSlice {}", sliceInTF, mNSlicesTF, mNTSPerSlice);
           }
         }
       }
@@ -100,7 +118,7 @@ class TPCIntegrateClustersDevice : public o2::framework::Task
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;     ///< for accessing the b-field
   int mNSlicesTF{1};                                          ///< number of slices the TFs are divided into for integration of clusters currents
-  bool mUseQMax{false};                                       ///< using qMax as cluster current
+  int mType{0};                                               ///< type which is used as the current
   int mContinuousMaxTimeBin{-1};                              ///< max time bin of clusters
   std::array<std::vector<float>, o2::tpc::CRU::MaxCRU> mICCS; ///< buffer for ICCs
   bool mInitICCBuffer{true};                                  ///< flag for initializing ICCs only once
@@ -143,7 +161,7 @@ DataProcessorSpec getTPCIntegrateClustersSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<TPCIntegrateClustersDevice>(ccdbRequest)},
     Options{
-      {"use-qMax", VariantType::Bool, false, {"Using qMax instead of qTot as cluster current"}},
+      {"type", VariantType::Int, 0, {"Type of current which will be processed: 0=qTot, 1=qMax, 2=nCl"}},
       {"nSlicesTF", VariantType::Int, 2, {"Divide the TF into n slices"}}}}; // end DataProcessorSpec
 }
 
