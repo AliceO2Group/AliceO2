@@ -60,6 +60,9 @@ class IDCFactorization : public IDCGroupHelperSector
   /// destructor
   ~IDCFactorization();
 
+  /// default move constructor
+  IDCFactorization(IDCFactorization&&) = default;
+
   /// returns sides for CRUs
   /// \param crus crus which will be checked for their side
   static std::vector<o2::tpc::Side> getSides(const std::vector<uint32_t>& crus);
