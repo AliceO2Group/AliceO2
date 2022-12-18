@@ -71,7 +71,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
