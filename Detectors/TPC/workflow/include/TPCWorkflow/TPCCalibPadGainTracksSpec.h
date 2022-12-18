@@ -181,7 +181,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       LOGP(info, "fetching residual gain map");
       pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcresidualgainmap");
     }
-    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+    mTPCVDriftHelper.extractCCDBInputs(pc);
     o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {

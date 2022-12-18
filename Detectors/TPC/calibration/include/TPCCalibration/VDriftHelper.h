@@ -57,15 +57,17 @@ class VDriftHelper
   std::string_view getSourceName() const { return SourceNames[mSource]; }
 
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
+  void extractCCDBInputs(o2::framework::ProcessingContext& pc, bool laser = true, bool itstpcTgl = true);
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, bool laser = true, bool itstpcTgl = true);
-  static void extractCCDBInputs(o2::framework::ProcessingContext& pc, bool laser = true, bool itstpcTgl = true);
 
  protected:
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
-
+  VDriftCorrFact mVDLaser{};
+  VDriftCorrFact mVDTPCITSTgl{};
   VDriftCorrFact mVD{};
-  Source mSource{};       // update source
+  Source mSource{Source::GasParam}; // update source
   bool mUpdated = false;  // signal update, must be reset once new value is fetched
+  bool mForceGasParam = false;         // enforce vdrift from gasParam
   uint32_t mMayRenormSrc = 0xffffffff; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0, flag per source
 
   ClassDefNV(VDriftHelper, 1);
