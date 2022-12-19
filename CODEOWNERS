@@ -41,6 +41,7 @@
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
 /DataFormats/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
 /DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
+/DataFormats/Detectors/Upgrades/IT3            @fgrosa @arossi81
 /DataFormats/Detectors/ZDC                     @coppedis
 
 #/DataFormats/Headers
@@ -70,6 +71,7 @@
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
 /Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
 /Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
+/Detectors/Upgrades/IT3            @fgrosa @arossi81
 /Detectors/ZDC                     @coppedis
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02
