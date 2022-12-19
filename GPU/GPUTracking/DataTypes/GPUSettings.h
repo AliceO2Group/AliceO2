@@ -59,6 +59,7 @@ struct GPUSettingsGRP {
   int homemadeEvents = 0;       // Toy-MC events
   int continuousMaxTimeBin = 0; // 0 for triggered events, -1 for default of 23ms
   int needsClusterer = 0;       // Set to true if the data requires the clusterizer
+  int doCompClusterDecode = 0;  // Set to true if the data contains compressed TPC clusters
 };
 
 // Parameters of the current time frame
