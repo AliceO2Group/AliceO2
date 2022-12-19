@@ -52,6 +52,9 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
     mConfig->configGRP.needsClusterer = 1;
   }
+  if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCCompressedClusters)) {
+    mConfig->configGRP.doCompClusterDecode = 1;
+  }
   mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
   mOutputRegions.reset(new GPUTrackingOutputs);
