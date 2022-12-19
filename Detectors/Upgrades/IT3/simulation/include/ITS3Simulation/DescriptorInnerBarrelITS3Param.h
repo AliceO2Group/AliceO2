@@ -29,8 +29,17 @@ namespace its3
  ** allow the user to modify them
  **/
 
+enum class ITS3Version {
+  None = 0,                   /* none */
+  ThreeLayersNoDeadZones = 1, /* three layers without dead zones */
+  ThreeLayers = 2,            /* three layers with dead zones */
+  FourLayers = 3,             /* four layers with dead zones */
+  FiveLayers = 4              /* five layers with dead zones */
+};
+
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
-  std::string mVersion{""};
+  ITS3Version mVersion = ITS3Version::None;
+  std::string const& getITS3LayerConfigString() const;
   O2ParamDef(DescriptorInnerBarrelITS3Param, "DescriptorInnerBarrelITS3");
 };
 

@@ -41,10 +41,10 @@ void DescriptorInnerBarrelITS3::configure()
 {
   // set version
   auto& param = DescriptorInnerBarrelITS3Param::Instance();
-  if (param.mVersion != "") {
+  if (param.getITS3LayerConfigString() != "") {
     LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
     LOG(info) << param;
-    setVersion(param.mVersion);
+    setVersion(param.getITS3LayerConfigString());
   } else {
     LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
     LOG(info) << "DescriptorInnerBarrelITS3.mVersion : " << mVersion;

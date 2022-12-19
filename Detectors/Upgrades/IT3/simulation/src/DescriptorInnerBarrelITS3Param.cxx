@@ -14,3 +14,21 @@
 
 #include "ITS3Simulation/DescriptorInnerBarrelITS3Param.h"
 O2ParamImpl(o2::its3::DescriptorInnerBarrelITS3Param);
+
+namespace o2
+{
+namespace its3
+{
+
+namespace
+{
+static const std::string confstrings[5] = {"", "ThreeLayersNoDeadZones", "ThreeLayers", "FourLayers", "FiveLayers"};
+}
+
+std::string const& DescriptorInnerBarrelITS3Param::getITS3LayerConfigString() const
+{
+  return confstrings[(int)mVersion];
+}
+
+} // namespace its3
+} // end namespace o2
