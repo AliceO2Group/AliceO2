@@ -54,7 +54,7 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
       clInfo.padrow = padrow;
 
       if (clustersGlobal) {
-        auto& clGlobal = clustersGlobal->emplace_back(ClusterGlobal{clInfo.getGx(), clInfo.getGy(), cl.qMax, cl.qTot, sector, padrow});
+        auto& clGlobal = clustersGlobal->emplace_back(ClusterGlobal{clInfo.gx(), clInfo.gy(), cl.qMax, cl.qTot, sector, padrow});
       }
     }
   }
@@ -90,28 +90,34 @@ void TrackDump::finalize()
   mTreeDump.reset();
 }
 
-float TrackDump::ClusterNativeAdd::getLx() const
+float TrackDump::ClusterNativeAdd::cpad() const
 {
-  static GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
+  const GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
+  return getPad() - gpuGeom.NPads(padrow) / 2.f;
+}
+
+float TrackDump::ClusterNativeAdd::lx() const
+{
+  const GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
   return gpuGeom.Row2X(padrow);
 }
 
-float TrackDump::ClusterNativeAdd::getLy() const
+float TrackDump::ClusterNativeAdd::ly() const
 {
-  static GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
+  const GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
   return gpuGeom.LinearPad2Y(sector, padrow, getPad());
 }
 
-float TrackDump::ClusterNativeAdd::getGx() const
+float TrackDump::ClusterNativeAdd::gx() const
 {
-  const LocalPosition2D l2D{getLx(), getLy()};
+  const LocalPosition2D l2D{lx(), ly()};
   const auto g2D = Mapper::LocalToGlobal(l2D, Sector(sector));
   return g2D.x();
 }
 
-float TrackDump::ClusterNativeAdd::getGy() const
+float TrackDump::ClusterNativeAdd::gy() const
 {
-  const LocalPosition2D l2D{getLx(), getLy()};
+  const LocalPosition2D l2D{lx(), ly()};
   const auto g2D = Mapper::LocalToGlobal(l2D, Sector(sector));
   return g2D.y();
 }
