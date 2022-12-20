@@ -31,6 +31,7 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
 {
   // set all members to their default values (needed since in-class initialization not possible with AliRoot)
   mChi2 = 0.f;
+  mSignal = -1.f;
   mRefGlobalTrackId = 0;
   mCollisionId = -1;
   mFlags = 0;
@@ -82,6 +83,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
   setRefGlobalTrackIdRaw(t.fTPCTrackID);
   mChi2 = 0.f;
+  mSignal = -1.f;
   mFlags = 0;
   mIsCrossingNeighbor = 0;
   mCollisionId = -1;
@@ -112,7 +114,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(t)
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
+  : T(t), mChi2(t.mChi2), mSignal(t.mSignal), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
 {
   // copy constructor
   for (int i = 0; i < kNLayers; ++i) {
@@ -136,6 +138,7 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   }
   *(T*)this = t;
   mChi2 = t.mChi2;
+  mSignal = t.mSignal;
   mRefGlobalTrackId = t.mRefGlobalTrackId;
   mCollisionId = t.mCollisionId;
   mFlags = t.mFlags;
