@@ -75,13 +75,28 @@ class IDCFactorization : public IDCGroupHelperSector
   void factorizeIDCs(const bool norm, const bool calcDeltas);
 
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
+  /// \param norm normalize IDCs to pad area
   void calcIDCZero(const bool norm);
 
   /// fill I_0 values in case of dead pads,FECs etc.
   void fillIDCZeroDeadPads();
 
   /// create status map for pads which are dead or delivering extremly high values (static outliers will be mapped)
+  /// \param debug create debug output
+  void createStatusMapOutlier(const bool debug = false);
+
+  /// 1. createStatusMap, 2. checkFECs, 3. checkNeighbourOutliers
   void createStatusMap();
+
+  /// after the pad-by-pad status map has been created it can be used to mark FECs which deliver wrong values
+  /// \param maxOutliersPerFEC  if the ratio n_outliers_per_FEC / n_pads_per_FEC is larger than this value, the whole FEC is masked
+  void checkFECs(const float maxOutliersPerFEC = 0.7);
+
+  /// check for each pad where there is no outlier found the neighbouring pads for outliers. If more than n neighbours contains outliers this pad is also marked as an outlier pad
+  /// +- one pad in row direction and +- two pads in pad direction are considered
+  /// \param maxIter maximum number of iterations of the procedure
+  /// \param nOutliersNeighbours minimum number of outliers of the neighbouring pads which are required to mask a pad as outlier
+  void checkNeighbourOutliers(const int maxIter = 10, const int nOutliersNeighbours = 8);
 
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   void calcIDCOne();
@@ -312,12 +327,15 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
-  void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
+  void dumpToTree(const Side side, const char* outFileName = "IDCTree.root");
 
   /// dumping the IDC1 to a TTree including the timestamps (the start time stamp in ms should be set with setTimeStamp())
   /// \param integrationTimeOrbits integration time in orbits
   /// \param outFileName name of the output file
   void dumpToTreeIDC1(const float integrationTimeOrbits = 12, const char* outFileName = "IDC1Tree.root") const;
+
+  /// dump IDCDelta to a TTree
+  void dumpIDCDeltaToTree(const Side side, const int chunk = 0, const char* outFileName = "IDCDeltaTree.root");
 
   /// \returns vector containing the number of integration intervals for each stored TF (dropped TFs not taken into account)
   /// \param cru cru which is used for the lookup (cru=-1: automatic cru lookup)
@@ -371,6 +389,21 @@ class IDCFactorization : public IDCGroupHelperSector
   /// set the IDCOne
   void setIDCOne(const Side side, const IDCOne& idcOne) { mIDCOne[mSideIndex[side]] = idcOne; }
 
+  /// set the IDCDelta
+  void setIDCDelta(const Side side, const IDCDelta<float>& idcDelta, const int index = 0) { mIDCDelta[mSideIndex[side]][index] = idcDelta; }
+
+  /// \return returns mean of IDC0 for given side
+  float getMeanZ(const Side side) const;
+
+  /// normalize IDC0 with the set gain map
+  void normIDCZeroGain() { normIDCZero(0); }
+
+  /// normalize IDC0 with the median per stack
+  void normIDCZeroStackMedian() { normIDCZero(1); }
+
+  /// \return returns median of IDC0 per stack for all stacks
+  std::array<float, o2::tpc::GEMSTACKS> getStackMedian() const;
+
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored
   const unsigned int mTimeFramesDeltaIDC{};                         ///< number of timeframes of which Delta IDCs are stored
@@ -400,7 +433,7 @@ class IDCFactorization : public IDCGroupHelperSector
   void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
 
   /// get time frame and index of integrationInterval in the TF
-  void getTF(const unsigned int region, unsigned int integrationInterval, unsigned int& timeFrame, unsigned int& interval) const;
+  void getTF(unsigned int integrationInterval, unsigned int& timeFrame, unsigned int& interval) const;
 
   /// \returns chunk from timeframe
   unsigned int getChunk(const unsigned int timeframe) const;
@@ -410,6 +443,9 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// helper function for drawing
   void drawPadFlagMap(const bool type, const Sector sector, const std::string filename, const PadFlags flag) const;
+
+  /// normalize IDC0
+  void normIDCZero(const int type);
 
   ClassDefNV(IDCFactorization, 2)
 };
