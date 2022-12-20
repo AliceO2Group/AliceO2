@@ -223,7 +223,7 @@ DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                              
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                                  //! Chi2 for the TRD track segment
 DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //! Chi2 for the TOF track segment
 DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //! dE/dx signal in the TPC
-DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! dE/dx signal in the TRD
+DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! PID signal in the TRD
 DECLARE_SOA_COLUMN(Length, length, float);                                                    //! Track length
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //! TOF expected momentum obtained in tracking, used to compute the expected times
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!

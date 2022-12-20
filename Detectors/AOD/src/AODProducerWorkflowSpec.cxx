@@ -2066,6 +2066,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {                                        // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
     const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GIndex::Source::TRD]); // refitted TRD trac
     extraInfoHolder.trdChi2 = trdOrig.getChi2();
+    extraInfoHolder.trdSignal = trdOrig.getSignal();
     extraInfoHolder.trdPattern = getTRDPattern(trdOrig);
     if (extraInfoHolder.trackTimeRes < 0.) { // time is not set yet, this is possible only for TPC-TRD and ITS-TPC-TRD tracks, since those with TOF are set upstream
       // TRD is triggered: time uncertainty is within a BC
