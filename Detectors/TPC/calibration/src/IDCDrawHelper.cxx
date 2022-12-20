@@ -18,6 +18,7 @@
 #include "TGraphErrors.h"
 #include "TMultiGraph.h"
 #include <fmt/format.h>
+#include "TROOT.h"
 
 unsigned int o2::tpc::IDCDrawHelper::getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side)
 {
@@ -79,11 +80,12 @@ void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side si
     poly->SetMaximum(maxZ);
   }
 
-  TCanvas* can = new TCanvas("can", "can", 650, 600);
+  TCanvas* can = ((TVirtualPad*)gROOT->GetSelectedPad()) ? ((TCanvas*)((TVirtualPad*)gROOT->GetSelectedPad()->GetCanvas())) : new TCanvas("can", "can", 650, 600);
   can->SetTopMargin(0.04f);
   can->SetRightMargin(0.14f);
   can->SetLeftMargin(0.1f);
   poly->Draw("colz");
+  o2::tpc::painter::drawSectorsXY(side);
 
   std::string sideName = (side == Side::A) ? "A-Side" : "C-Side";
   TLatex latex;

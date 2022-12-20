@@ -449,7 +449,9 @@ enum class PadFlags : unsigned short {
   flagSaturatedPad = 1 << 3, ///< flag for saturated status binary 0100
   flagHighPad = 1 << 4,      ///< flag for pad with extremly high IDC value
   flagLowPad = 1 << 5,       ///< flag for pad with extremly low IDC value
-  flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+  flagSkip = 1 << 6,         ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+  flagFEC = 1 << 7,          ///< flag for a whole masked FEC
+  flagNeighbour = 1 << 8     ///< flag if n neighbouring pads are outlier
 };
 
 inline PadFlags operator&(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) & static_cast<int>(b)); }
