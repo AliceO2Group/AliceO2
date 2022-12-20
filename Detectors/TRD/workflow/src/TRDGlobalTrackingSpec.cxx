@@ -25,7 +25,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
-
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonConstants/GeomConstants.h"
@@ -114,6 +114,12 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
     LOGF(info, "The search road in time for ITS-TPC tracks is set to %.1f sigma and %.2f us are added to it on top",
          mRec->GetParam().rec.trd.nSigmaTerrITSTPC, mRec->GetParam().rec.trd.addTimeRoadITSTPC);
+
+    /// Get the PID model if requested
+    if (mWithPID) {
+      mBase = getTRDPIDBase(mPolicy);
+      mBase->init(pc);
+    }
   }
 
   bool updateCalib = false;
@@ -350,9 +356,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOGF(info, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
   // start the tracking
-  //mTracker->DumpTracks();
+  // mTracker->DumpTracks();
   mChainTracking->DoTRDGPUTracking<GPUTRDTrackerKernels::o2Version>(mTracker);
-  //mTracker->DumpTracks();
+  // mTracker->DumpTracks();
 
   // finished tracking, now collect the output
   std::vector<TrackTRD> tracksOutITSTPC;
@@ -390,6 +396,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       if (mUseMC) {
         fillMCTruthInfo(trdTrack, itstpcTrackLabels[trackGID], trdLabelsITSTPC, matchLabelsITSTPC, inputTracks.getTRDTrackletsMCLabels());
       }
+      if (mWithPID) {
+        tracksOutITSTPC.back().setSignal(mBase->process(trdTrack, inputTracks, false));
+      }
     } else {
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
@@ -400,6 +409,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       }
       if (mUseMC) {
         fillMCTruthInfo(trdTrack, tpcTrackLabels[trackGID], trdLabelsTPC, matchLabelsTPC, inputTracks.getTRDTrackletsMCLabels());
+      }
+      if (mWithPID) {
+        tracksOutTPC.back().setSignal(mBase->process(trdTrack, inputTracks, true));
       }
     }
   }
@@ -459,8 +471,8 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
     outerParam.resetCovariance(100);                                  // reset covariance to something big
     // refit
-    for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
-      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
+    for (int icl = 0; icl < nCl; icl++) {                                                              // clusters are stored from inner to outer layers
+      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]]; // register in clRefs from outer to inner layer
       if (!outerParam.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
           !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
         break;
@@ -653,7 +665,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
@@ -683,12 +695,34 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
 
+  // Request PID policy data
+  if (withPID) {
+    switch (policy) {
+      case PIDPolicy::LQ1D:
+        // inputs.emplace_back("LQ1D", "TRD", "LQ1D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ1D"));
+        break;
+      case PIDPolicy::LQ3D:
+        // inputs.emplace_back("LQ3D", "TRD", "LQ3D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ3D"));
+        break;
+      case PIDPolicy::Test:
+        inputs.emplace_back("mlTest", "TRD", "MLTEST", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/pid/xgb1"));
+        break;
+      case PIDPolicy::Dummy:
+        break;
+      default:
+        throw std::runtime_error("Unable to load requested PID policy data!");
+    }
+  }
+
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe);
     if (useMC) {
       outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe);
       outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe);
+    }
+    if (withPID) {
+      outputs.emplace_back(o2::header::gDataOriginTRD, "TRDPID_ITSTPC", 0, Lifetime::Timeframe);
     }
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
@@ -711,7 +745,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
