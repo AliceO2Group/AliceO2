@@ -1251,6 +1251,12 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
       pattern |= 0x1 << il;
     }
   }
+  if (track.getHasNeighbor()) {
+    pattern |= 0x1 << 6;
+  }
+  if (track.getHasPadrowCrossing()) {
+    pattern |= 0x1 << 7;
+  }
   return pattern;
 }
 
