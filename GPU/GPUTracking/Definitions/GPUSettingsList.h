@@ -97,6 +97,7 @@ AddOptionRTC(trkltResRPhiIdeal, float, 1.f, "", 0, "Optimal tracklet rphi resolu
 AddOptionRTC(applyDeflectionCut, unsigned char, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
 AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
+AddOptionRTC(matCorrType, unsigned char, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")
 AddHelp("help", 'h')
 EndConfig()
 
