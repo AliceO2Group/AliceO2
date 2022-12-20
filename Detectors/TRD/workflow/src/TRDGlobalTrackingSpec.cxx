@@ -644,6 +644,9 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
       return false;
     }
   }
+  if (!inwards) { // to make sure that the inward fit will start from the trkParam
+    ((o2::track::TrackParCov&)trk) = *trkParam;
+  }
   return true;
 }
 
