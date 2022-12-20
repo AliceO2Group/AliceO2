@@ -39,7 +39,7 @@ enum struct ChannelAccountingType {
   /// The channel is a normal input channel
   DPL,
   /// A raw FairMQ channel which is not accounted by the framework
-  RAW
+  RAWFMQ
 };
 
 /// This represent the current state of an input channel.  Its values can be
