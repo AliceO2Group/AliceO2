@@ -9,11 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(pid)
-add_subdirectory(reconstruction)
-add_subdirectory(macros)
-add_subdirectory(qc)
-add_subdirectory(workflow)
+o2_add_test_root_macro(ccdbModelUpload.C
+                       PUBLIC_LINK_LIBRARIES O2::TRDPID
+                       LABELS trd)
