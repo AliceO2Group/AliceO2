@@ -73,6 +73,9 @@ class LZEROElectronics
   /// \param p Patches object
   void updatePatchesADC(Patches& p);
 
+  /// Add noise to this digit
+  void addNoiseDigits(Digit& d1);
+
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p Patches object
   const std::vector<int>& getFiredPatches(Patches& p) const { return p.mFiredPatches; }
@@ -82,6 +85,9 @@ class LZEROElectronics
 
  private:
   double mThreshold = 0;
+  TRandom3* mRandomGenerator = nullptr; ///< random number generator
+  const SimParam* mSimParam = nullptr;  ///< SimParam object
+  bool mSimulateNoiseDigits = true;     ///< simulate noise digits
 
   ClassDefNV(LZEROElectronics, 1);
 };

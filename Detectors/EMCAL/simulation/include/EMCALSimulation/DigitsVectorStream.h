@@ -39,14 +39,6 @@ namespace emcal
 /// \author Markus Fasel, ORNL
 /// \date 16/02/2022
 
-// struct DigitTimebin {
-//   bool mRecordMode = false;
-//   bool mEndWindow = false;
-//   bool mTriggerColl = false;
-//   std::optional<o2::InteractionRecord> mInterRecord;
-//   std::shared_ptr<std::unordered_map<int, std::list<LabeledDigit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<LabeledDigit>>>();
-// };
-
 class DigitsVectorStream
 {
 
@@ -65,7 +57,6 @@ class DigitsVectorStream
 
   /// Fill all the containers, digits, labels, and trigger records
   void fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2::InteractionRecord record);
-  void fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record);
 
   /// Getters for the finals data vectors, digits vector, labels vector, and trigger records vector
   const std::vector<o2::emcal::Digit>& getDigits() const { return mDigits; }
@@ -76,7 +67,6 @@ class DigitsVectorStream
   void doSimulateNoiseDigits(bool doNoise = true) { mSimulateNoiseDigits = doNoise; }
   /// Add noise to this digit
   void addNoiseDigits(LabeledDigit& d1);
-  void addNoiseDigits(Digit& d1);
 
   /// Remove digits below the threshold
   void doRemoveDigitsBelowThreshold(bool doThreshold = true) { mRemoveDigitsBelowThreshold = doThreshold; }

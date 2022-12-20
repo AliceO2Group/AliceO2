@@ -79,7 +79,10 @@ class DigitsWriteoutBufferTRU
   void clear();
 
   /// clear DigitsVectorStream
-  void flush() { mDigitStream.clear(); }
+  void flush()
+  {
+    // mDigitStream.clear();
+  }
 
   void init();
 
@@ -96,9 +99,6 @@ class DigitsWriteoutBufferTRU
   void addDigits(unsigned int towerID, std::vector<o2::emcal::Digit>& digList);
 
   /// Fill output streamer
-  void fillOutputContainer();
-
-  /// Fill output streamer
   /// \param isEndOfTimeFrame End of Time Frame
   /// \param nextInteractionRecord Next interaction record, to compute the amount of TimeBins to be saved
   void fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord);
@@ -111,26 +111,26 @@ class DigitsWriteoutBufferTRU
 
   unsigned int getPhase() const { return mPhase; }
 
-  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigitStream.getDigits(); }
-  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigitStream.getTriggerRecords(); }
-  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigitStream.getMCLabels(); }
+  // const std::vector<o2::emcal::Digit>& getDigits() const { return mDigitStream.getDigits(); }
+  // const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigitStream.getTriggerRecords(); }
+  // const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigitStream.getMCLabels(); }
 
  private:
-  unsigned int mBufferSize = 15;                 ///< The size of the buffer
-  unsigned int mLiveTime = 1500;                 ///< EMCal live time (ns)
-  unsigned int mBusyTime = 35000;                ///< EMCal busy time (ns)
-  unsigned int mPreTriggerTime = 600;            ///< EMCal pre-trigger time (ns)
-  unsigned long mTriggerTime = 0;                ///< Time of the collision that fired the trigger (ns)
-  unsigned long mLastEventTime = 0;              ///< The event time of last collisions in the readout window
-  unsigned int mPhase = 0;                       ///< The event L1 phase
-  bool mFirstEvent = true;                       ///< Flag to the first event in the run
+  unsigned int mBufferSize = 15;                    ///< The size of the buffer
+  unsigned int mLiveTime = 1500;                    ///< EMCal live time (ns)
+  unsigned int mBusyTime = 35000;                   ///< EMCal busy time (ns)
+  unsigned int mPreTriggerTime = 600;               ///< EMCal pre-trigger time (ns)
+  unsigned long mTriggerTime = 0;                   ///< Time of the collision that fired the trigger (ns)
+  unsigned long mLastEventTime = 0;                 ///< The event time of last collisions in the readout window
+  unsigned int mPhase = 0;                          ///< The event L1 phase
+  bool mFirstEvent = true;                          ///< Flag to the first event in the run
   std::deque<o2::emcal::DigitTimebinTRU> mTimeBins; ///< Container for time sampled digits per tower ID for continuous digits
   unsigned int mFirstTimeBin = 0;
   bool mEndOfRun = 0;
   bool mNoPileupMode = false;                      ///< pileup mode from SimParam
   o2::InteractionRecord mCurrentInteractionRecord; ///< Interaction Record of the current event, to be used to fill the output container
 
-  o2::emcal::DigitsVectorStream mDigitStream; ///< Output vector streamer
+  // o2::emcal::DigitsVectorStream mDigitStream; ///< Output vector streamer
 
   ClassDefNV(DigitsWriteoutBufferTRU, 5);
   // ClassDefNV are for obejects which do not inherit from tobject

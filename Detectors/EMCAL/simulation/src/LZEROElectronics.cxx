@@ -64,6 +64,9 @@ void LZEROElectronics::peakFinderOnAllPatches(Patches& p)
 //________________________________________________________
 void LZEROElectronics::init()
 {
+  mSimParam = &(o2::emcal::SimParam::Instance());
+  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
 }
 //________________________________________________________
 void LZEROElectronics::clear()
@@ -73,4 +76,19 @@ void LZEROElectronics::clear()
 void LZEROElectronics::updatePatchesADC(Patches& p)
 {
   p.updateADC();
+}
+//_______________________________________________________________________
+void LZEROElectronics::addNoiseDigits(Digit& d1)
+{
+  double amplitude = d1.getAmplitude();
+  double sigmaHG = mSimParam->getPinNoise();
+  double sigmaLG = mSimParam->getPinNoiseLG();
+
+  uint16_t noiseHG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaHG) / constants::EMCAL_ADCENERGY));                                 // ADC
+  uint16_t noiseLG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaLG) / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR))); // ADC
+
+  // MCLabel label(true, 1.0);
+  Digit d(d1.getTower(), noiseLG, noiseHG, d1.getTimeStamp());
+
+  d1 += d;
 }

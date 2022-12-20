@@ -30,19 +30,14 @@ namespace emcal
 {
 
 template <class DigitTemplate>
-struct DigitTimebinTemplate;
+struct DigitTimebinBase;
 
-/// \brief DigitTimebin is DigitTimebinTemplate<LabeledDigit>
-// typedef DigitTimebinTemplate<LabeledDigit> DigitTimebin2;
-using DigitTimebin = DigitTimebinTemplate<LabeledDigit>;
-using DigitTimebinTRU = DigitTimebinTemplate<Digit>;
+/// \brief DigitTimebin is DigitTimebinBase<LabeledDigit>
+using DigitTimebin = DigitTimebinBase<LabeledDigit>;
+using DigitTimebinTRU = DigitTimebinBase<Digit>;
 
-/// \brief DigitTimebinTRU is DigitTimebinTemplate<Digit>
-// typedef DigitTimebinTemplate<Digit>
-//   DigitTimebinTRU2;
-
-/// \struct DigitTimebinTemplate
-/// \brief DigitTimebinTemplate templated, used for the DigitsWriteoutBuffer and DigitsWriteoutBufferTRU
+/// \struct DigitTimebinBase
+/// \brief DigitTimebinBase templated, used for the DigitsWriteoutBuffer and DigitsWriteoutBufferTRU
 /// \ingroup EMCALsimulation
 /// \author Markus Fasel, ORNL
 /// \author Hadi Hassan, ORNL
@@ -55,13 +50,13 @@ using DigitTimebinTRU = DigitTimebinTemplate<Digit>;
 /// \param mInterRecord InteractionRecord
 /// \param mDigitMap map of the digits, templated
 template <class DigitTemplate>
-struct DigitTimebinTemplate {
+struct DigitTimebinBase {
   bool mRecordMode = false;
   bool mEndWindow = false;
   bool mTriggerColl = false;
   std::optional<o2::InteractionRecord> mInterRecord;
   std::shared_ptr<std::unordered_map<int, std::list<DigitTemplate>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<DigitTemplate>>>();
-  ClassDefNV(DigitTimebinTemplate, 1);
+  ClassDefNV(DigitTimebinBase, 1);
 };
 
 } // namespace emcal

@@ -48,22 +48,6 @@ void DigitsVectorStream::addNoiseDigits(LabeledDigit& d1)
   d1 += d;
 }
 //_______________________________________________________________________
-void DigitsVectorStream::addNoiseDigits(Digit& d1)
-{
-  double amplitude = d1.getAmplitude();
-  double sigmaHG = mSimParam->getPinNoise();
-  double sigmaLG = mSimParam->getPinNoiseLG();
-
-  uint16_t noiseHG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaHG) / constants::EMCAL_ADCENERGY));                                 // ADC
-  uint16_t noiseLG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaLG) / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR))); // ADC
-
-  // MCLabel label(true, 1.0);
-  Digit d(d1.getTower(), noiseLG, noiseHG, d1.getTimeStamp());
-
-  d1 += d;
-}
-
-//_______________________________________________________________________
 void DigitsVectorStream::fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2::InteractionRecord record)
 {
   std::map<unsigned int, std::list<LabeledDigit>> outputList;
@@ -146,80 +130,4 @@ void DigitsVectorStream::clear()
   mLabels.clear();
   mTriggerRecords.clear();
   mStartIndex = 0;
-}
-//_______________________________________________________________________
-void DigitsVectorStream::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record)
-{
-  std::map<unsigned int, std::list<Digit>> outputList;
-
-  for (auto& digitsTimeBin : digitlist) {
-
-    for (auto& [tower, digitsList] : *digitsTimeBin.mDigitMap) {
-
-      if (digitsList.size() == 0) {
-        continue;
-      }
-      digitsList.sort();
-
-      int digIndex = 0;
-      for (auto& ld : digitsList) {
-
-        // Loop over all digits in the time sample and sum the digits that belongs to the same tower and falls in one time bin
-        int digIndex1 = 0;
-        for (auto ld1 = digitsList.begin(); ld1 != digitsList.end(); ++ld1) {
-
-          if (digIndex == digIndex1) {
-            digIndex1++;
-            continue;
-          }
-
-          if (ld.canAdd(*ld1)) {
-            ld += *ld1;
-            digitsList.erase(ld1--);
-          }
-          digIndex1++;
-        }
-
-        if (mSimulateNoiseDigits) {
-          addNoiseDigits(ld);
-        }
-
-        if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
-          continue;
-        }
-        if (ld.getAmplitude() < 0) {
-          continue;
-        }
-        if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
-          continue;
-        }
-
-        outputList[tower].push_back(ld);
-        digIndex++;
-      }
-    }
-  }
-
-  unsigned int numberOfNewDigits = 0;
-  for (const auto& [tower, outdiglist] : outputList) {
-    for (const auto& d : outdiglist) {
-      // outdiglist.sort();
-
-      // Digit digit = d.getDigit();
-      // std::vector<MCLabel> labels = d.getLabels();
-      mDigits.push_back(d);
-      // mDigits.push_back(digit);
-      numberOfNewDigits++;
-
-      // Int_t LabelIndex = mLabels.getIndexedSize();
-      // for (const auto& label : labels) {
-      //   mLabels.addElementRandomAccess(LabelIndex, label);
-      // }
-    }
-  }
-
-  mTriggerRecords.emplace_back(record, o2::trigger::PhT, mStartIndex, numberOfNewDigits);
-  mStartIndex = mDigits.size();
-
-  LOG(info) << "Have " << mStartIndex << " digits ";
 }

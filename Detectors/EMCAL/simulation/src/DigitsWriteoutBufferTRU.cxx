@@ -49,7 +49,8 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     for (auto& time : mTimeBins) {
       mDequeTime.push_back(time);
     }
-    mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    // Will fill LZEROElectronics instead
+    // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     mCurrentInteractionRecord = nextInteractionRecord;
     clear();
 
@@ -70,7 +71,8 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
       ++nProcessedTimeBins;
     }
 
-    mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    // Will fill LZEROElectronics instead
+    // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     mCurrentInteractionRecord = nextInteractionRecord;
 
     if (nProcessedTimeBins > 0) {
@@ -78,51 +80,6 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
       while (nProcessedTimeBins--) {
         mTimeBins.pop_front();
       }
-    }
-  }
-}
-//_____________________________________________________________________
-//
-void DigitsWriteoutBufferTRU::fillOutputContainer()
-{
-  int eventTimeBin = 13;
-  bool needsEmptyTimeBins = false;
-  int nProcessedTimeBins = 0;
-  int timeBin = mFirstTimeBin;
-  o2::InteractionRecord interactionrecordsaved;
-
-  std::deque<o2::emcal::DigitTimebinTRU>
-    mDequeTime;
-
-  for (auto& time : mTimeBins) {
-    /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
-    if (!(nProcessedTimeBins + mFirstTimeBin < eventTimeBin)) {
-      break;
-    }
-
-    /// End of Run
-    if (mEndOfRun) {
-      break;
-    }
-
-    mDequeTime.push_back(time);
-
-    // check if minterrecord whcih is optional exists.
-    // if it doesn't, keep the previously assigned interrecrod value
-    if (time.mInterRecord.has_value()) {
-      auto interactionrecordsavedtmp = time.mInterRecord.value();
-      interactionrecordsaved = interactionrecordsavedtmp;
-    }
-    mDigitStream.fill(mDequeTime, interactionrecordsaved);
-
-    ++nProcessedTimeBins;
-    ++timeBin;
-  }
-
-  if (nProcessedTimeBins > 0) {
-    mFirstTimeBin += nProcessedTimeBins;
-    while (nProcessedTimeBins--) {
-      mTimeBins.pop_front();
     }
   }
 }
@@ -154,7 +111,7 @@ void DigitsWriteoutBufferTRU::init()
   mNoPileupMode = simParam->isDisablePileup();
   mEndOfRun = 0;
 
-  mDigitStream.init();
+  // mDigitStream.init();
 }
 //________________________________________________________
 void DigitsWriteoutBufferTRU::clear()
