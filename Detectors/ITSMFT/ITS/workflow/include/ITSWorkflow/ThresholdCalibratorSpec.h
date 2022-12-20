@@ -60,7 +60,7 @@ namespace o2
 namespace its
 {
 
-constexpr int N_INJ = 50;
+int nInj = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
@@ -254,6 +254,9 @@ class ITSThresholdCalibrator : public Task
   short int manualMin;
   short int manualMax;
   std::string manualScanType;
+
+  // for CRU_ITS data processing
+  bool isCRUITS = false;
 
   // map to get confDB id
   std::vector<int>* mConfDBmap;
