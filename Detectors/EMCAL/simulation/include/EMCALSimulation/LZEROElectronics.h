@@ -21,11 +21,10 @@
 #include <gsl/span>
 #include "TRandom3.h"
 #include "DataFormatsEMCAL/Digit.h"
-#include "EMCALSimulation/LabeledDigit.h"
+#include "EMCALSimulation/DigitTimebin.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "EMCALSimulation/SimParam.h"
-// #include "EMCALBase/TriggerMappingV2.h"
 #include "EMCALSimulation/Patches.h"
 
 namespace o2
@@ -76,9 +75,18 @@ class LZEROElectronics
   /// Add noise to this digit
   void addNoiseDigits(Digit& d1);
 
+  /// Implements the fill of the patches
+  /// \param digitlist digits to be assigned to patches
+  /// \param record interaction record time to be propagated
+  /// \param allPatches vector contained the patches of all TRUs
+  void fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& allPatches);
+
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p Patches object
-  const std::vector<int>& getFiredPatches(Patches& p) const { return p.mFiredPatches; }
+  const std::vector<int>& getFiredPatches(Patches& p) const
+  {
+    return p.mFiredPatches;
+  }
 
   // Getter for the threshold used for the integral of the ADC values in the LZERO algorithm
   const double getLZEROThreshold() const { return mThreshold; }

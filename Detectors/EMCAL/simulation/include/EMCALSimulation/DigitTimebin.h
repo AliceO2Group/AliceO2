@@ -22,6 +22,7 @@
 #include "EMCALSimulation/LabeledDigit.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
