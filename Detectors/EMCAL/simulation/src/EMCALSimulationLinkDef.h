@@ -23,7 +23,8 @@
 // EMCAL TRU
 // new
 // attempt
-// attempt2
+// attempt
+// attempt TRU
 #pragma link C++ class o2::emcal::DigitsWriteoutBufferTRU + ;
 #pragma link C++ class o2::emcal::DigitsVectorStream + ;
 #pragma link C++ class o2::emcal::LZEROElectronics + ;

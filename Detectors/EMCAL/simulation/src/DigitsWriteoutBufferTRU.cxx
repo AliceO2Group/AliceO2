@@ -27,7 +27,7 @@ using namespace o2::emcal;
 
 //_____________________________________________________________________
 //
-void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord)
+void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord, std::vector<Patches>& patchesFromAllTRUs, LZEROElectronics& LZERO)
 {
   int eventTimeBin = 13;
   bool needsEmptyTimeBins = false;
@@ -49,8 +49,13 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     for (auto& time : mTimeBins) {
       mDequeTime.push_back(time);
     }
-    // Will fill LZEROElectronics instead
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
+    for (auto& patches : patchesFromAllTRUs) {
+      LZERO.updatePatchesADC(patches);
+      LZERO.peakFinderOnAllPatches(patches);
+    }
+
     mCurrentInteractionRecord = nextInteractionRecord;
     clear();
 
@@ -71,8 +76,12 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
       ++nProcessedTimeBins;
     }
 
-    // Will fill LZEROElectronics instead
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
+    for (auto& patches : patchesFromAllTRUs) {
+      LZERO.updatePatchesADC(patches);
+      LZERO.peakFinderOnAllPatches(patches);
+    }
     mCurrentInteractionRecord = nextInteractionRecord;
 
     if (nProcessedTimeBins > 0) {

@@ -101,7 +101,7 @@ class DigitsWriteoutBufferTRU
   /// Fill output streamer
   /// \param isEndOfTimeFrame End of Time Frame
   /// \param nextInteractionRecord Next interaction record, to compute the amount of TimeBins to be saved
-  void fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord);
+  void fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord, std::vector<Patches>& patchesFromAllTRUs, LZEROElectronics& LZERO);
 
   /// Setters for the live time, busy time, pre-trigger time
   void setLiveTime(unsigned int liveTime) { mLiveTime = liveTime; }
