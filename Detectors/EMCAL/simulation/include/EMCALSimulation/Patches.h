@@ -34,10 +34,21 @@ struct FastOrStruct {
   std::vector<double> mADCvalues;
   double mPreviousTimebinADCvalue = 0.;
 
+  /// Compute current timesum
+  double timesum()
+  {
+    double timesumvalue = 0;
+    for (auto ADCvalue : mADCvalues) {
+      timesumvalue += ADCvalue;
+    }
+    return timesumvalue;
+  }
+
   void init()
   {
   }
 
+  // Update internal ADC values (4 timebins)
   void updateADC(double ADCvalue)
   {
     if (mADCvalues.size() == 4) {

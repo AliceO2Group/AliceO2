@@ -52,15 +52,19 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
 //_____________________________________________________________________
 // Peak finding algorithm on all patches
 // It fills the mPeakFound vector with potential 1s
-void LZEROElectronics::peakFinderOnAllPatches(Patches& p)
+bool LZEROElectronics::peakFinderOnAllPatches(Patches& p)
 {
+  bool isFoundGlobal = false;
   p.mFiredPatches.clear();
   for (auto& patches : p.mIndexMapPatch) {
     auto PatchID = std::get<0>(patches);
     auto isFound = peakFinderOnPatch(p, PatchID);
-    if (isFound)
+    if (isFound) {
       p.mFiredPatches.push_back(PatchID);
+      isFoundGlobal = true;
+    }
   }
+  return isFoundGlobal;
 }
 //________________________________________________________
 void LZEROElectronics::init()
@@ -85,8 +89,9 @@ void LZEROElectronics::addNoiseDigits(Digit& d1)
   double sigmaHG = mSimParam->getPinNoise();
   double sigmaLG = mSimParam->getPinNoiseLG();
 
-  uint16_t noiseHG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaHG) / constants::EMCAL_ADCENERGY));                                 // ADC
-  uint16_t noiseLG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaLG) / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR))); // ADC
+  uint16_t noiseHG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaHG) / constants::EMCAL_ADCENERGY)); // ADC
+  // uint16_t noiseLG = std::floor(std::abs(mRandomGenerator->Gaus(0, sigmaLG) / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR))); // ADC
+  uint16_t noiseLG = 0; // ADC
 
   // MCLabel label(true, 1.0);
   Digit d(d1.getTower(), noiseLG, noiseHG, d1.getTimeStamp());
@@ -147,29 +152,38 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       digIndex++;
     }
 
+    // Evaluate -> peak finder (ALL Patches in ALL TRUs)
+    // in case peak found:
+    // - Create trigger input (IR of that timebin - delay [typically 8 or 9 samples - rollback (0)])
+    // - Create L1 timesums (trivial - last time integral) -> Collect from all fastOrs in ALL TRUs
+
+    // Trigger Inputs needs to have the correction of the delay
+    // Propagating for now all the interaction record
+    // The typical delay is 8 to 9 BCs and the rollback as well
+    // The rollback is taken from EMCALReconstruction/RecoParam.h
+    // The delay is due to the interactions between EMCAL and CTP
+    // It accounts for the difference in times between L0a, L0b, and then there will be a L1 and L1b delay
+    // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
+    bool foundPeak = false;
     for (auto& patches : patchesFromAllTRUs) {
       updatePatchesADC(patches);
-      peakFinderOnAllPatches(patches);
+      bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
+      if (foundPeakCurrentTRU)
+        foundPeak = true;
+    }
+
+    EMCALTriggerInputs TriggerInputsForL1;
+    if (foundPeak) {
+      TriggerInputsForL1.mInterRecord = record;
+      int whichTRU = 0;
+      for (auto& patches : patchesFromAllTRUs) {
+        int whichFastOr = 0;
+        for (auto& fastor : patches.mFastOrs) {
+          TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
+          whichFastOr++;
+        }
+        whichTRU++;
+      }
     }
   }
-
-  // Evaluate -> peak finder (ALL Patches in ALL TRUs)
-  // in case peak found:
-  // - Create trigger input (IR of that timebin - delay [typically 8 or 9 samples - rollback (0)])
-  // - Create L1 timesums (trivial - last time integral) -> Collect from all fastOrs in ALL TRUs
-
-  // for (const auto& [fastor, outdiglist] : outputList) {
-  //   Digit updateFastOrDigit;
-  //   for (const auto& d : outdiglist) {
-  //     updateFastOrDigit += d;
-  //   }
-  //   auto& patchTRU = allPatches[whichTRU];
-  //   auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
-  //   fastOrPatchTRU.updateADC(updateFastOrDigit.getAmplitudeADC());
-  // }
-
-  // mTriggerRecords.emplace_back(record, o2::trigger::PhT, mStartIndex, numberOfNewDigits);
-  // mStartIndex = mDigits.size();
-
-  // LOG(info) << "Have " << mStartIndex << " digits ";
 }

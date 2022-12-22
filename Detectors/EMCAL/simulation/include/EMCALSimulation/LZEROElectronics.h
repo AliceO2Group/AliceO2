@@ -33,6 +33,19 @@ namespace o2
 namespace emcal
 {
 
+/// @brief Trigger Inputs object, summary of the entire information needed for the L1 algorithm
+/// \param mDelay Typical delay in BCs
+/// \param mRollback Rollback from EMCALReconstruction/RecoParam.h
+/// \param mInterRecord Last known interaction record
+/// \param mLastTimesumAllFastOrs Vector of tuples with TRU ID, FastOrID with STU indexing, and their last Timesums
+struct EMCALTriggerInputs {
+  int mDelay = 8;                                                   ///< Typical delay in BCs
+  int mRollback = 1;                                                ///< Rollback from EMCALReconstruction/RecoParam.h
+  o2::InteractionRecord mInterRecord;                ///< Last known interaction record
+  std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
+  ClassDefNV(EMCALTriggerInputs, 1);
+};
+
 /// \class LZEROElectronics
 /// \brief Container class for Digits, MC lebels, and trigger records
 /// \ingroup EMCALsimulation
@@ -67,7 +80,7 @@ class LZEROElectronics
 
   /// Calls the peak finder algorithm on all patches
   /// \param p Patches object
-  void peakFinderOnAllPatches(Patches& p);
+  bool peakFinderOnAllPatches(Patches& p);
 
   /// Update patches
   /// \param p Patches object
@@ -76,7 +89,7 @@ class LZEROElectronics
   /// Add noise to this digit
   void addNoiseDigits(Digit& d1);
 
-  /// Implements the fill of the patches
+  /// Implements the fill of the patches. Runs the peak finding, and ships to L1 in case it finds something
   /// \param digitlist digits to be assigned to patches
   /// \param record interaction record time to be propagated
   /// \param patchesFromAllTRUs vector contained the patches of all TRUs
