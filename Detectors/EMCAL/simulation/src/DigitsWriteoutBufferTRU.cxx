@@ -51,10 +51,10 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     }
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
-    for (auto& patches : patchesFromAllTRUs) {
-      LZERO.updatePatchesADC(patches);
-      LZERO.peakFinderOnAllPatches(patches);
-    }
+    // for (auto& patches : patchesFromAllTRUs) {
+    //   LZERO.updatePatchesADC(patches);
+    //   LZERO.peakFinderOnAllPatches(patches);
+    // }
 
     mCurrentInteractionRecord = nextInteractionRecord;
     clear();
@@ -78,10 +78,10 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
 
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
-    for (auto& patches : patchesFromAllTRUs) {
-      LZERO.updatePatchesADC(patches);
-      LZERO.peakFinderOnAllPatches(patches);
-    }
+    // for (auto& patches : patchesFromAllTRUs) {
+    //   LZERO.updatePatchesADC(patches);
+    //   LZERO.peakFinderOnAllPatches(patches);
+    // }
     mCurrentInteractionRecord = nextInteractionRecord;
 
     if (nProcessedTimeBins > 0) {

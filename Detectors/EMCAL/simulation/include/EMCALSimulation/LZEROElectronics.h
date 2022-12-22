@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/Patches.h"
+#include "EMCALBase/TriggerMappingV2.h"
 
 namespace o2
 {
@@ -78,8 +79,8 @@ class LZEROElectronics
   /// Implements the fill of the patches
   /// \param digitlist digits to be assigned to patches
   /// \param record interaction record time to be propagated
-  /// \param allPatches vector contained the patches of all TRUs
-  void fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& allPatches);
+  /// \param patchesFromAllTRUs vector contained the patches of all TRUs
+  void fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs);
 
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p Patches object
@@ -96,8 +97,9 @@ class LZEROElectronics
   TRandom3* mRandomGenerator = nullptr; ///< random number generator
   const SimParam* mSimParam = nullptr;  ///< SimParam object
   bool mSimulateNoiseDigits = true;     ///< simulate noise digits
+  TriggerMappingV2 triggerMap;          ///< trigger map to properly assign an absolute FastOr to TRU FastOr
 
-  ClassDefNV(LZEROElectronics, 1);
+  ClassDefNV(LZEROElectronics, 2);
 };
 
 } // namespace emcal

@@ -20,11 +20,6 @@
 #pragma link C++ class o2::emcal::Digitizer + ;
 #pragma link C++ class o2::emcal::SDigitizer + ;
 #pragma link C++ class o2::emcal::DigitsWriteoutBuffer + ;
-// EMCAL TRU
-// new
-// attempt
-// attempt
-// attempt TRU
 #pragma link C++ class o2::emcal::DigitsWriteoutBufferTRU + ;
 #pragma link C++ class o2::emcal::DigitsVectorStream + ;
 #pragma link C++ class o2::emcal::LZEROElectronics + ;

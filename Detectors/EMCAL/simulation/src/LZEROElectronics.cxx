@@ -18,8 +18,8 @@
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/LZEROElectronics.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "EMCALBase/TriggerMappingV2.h"
 #include "EMCALSimulation/DigitTimebin.h"
+#include "EMCALBase/TriggerMappingV2.h"
 #include "TMath.h"
 
 using namespace o2::emcal;
@@ -94,11 +94,15 @@ void LZEROElectronics::addNoiseDigits(Digit& d1)
   d1 += d;
 }
 //_______________________________________________________________________
-void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& allPatches)
+void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs)
 {
-  std::map<unsigned int, std::list<Digit>> outputList;
+  // std::map<unsigned int, std::list<Digit>> outputList;
 
   for (auto& digitsTimeBin : digitlist) {
+    // Inside the DigitTimebinTRU
+    // Fill the LZEROElectronics with the new ADC value
+    // At the end of the loop run the peak finder
+    // Ship to LONEElectronics in case a peak is found
 
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
 
@@ -108,56 +112,61 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       digitsList.sort();
 
       int digIndex = 0;
+      Digit summedDigit;
+      bool first = true;
       for (auto& ld : digitsList) {
-
-        // Loop over all digits in the time sample and sum the digits that belongs to the same fastor and falls in one time bin
-        int digIndex1 = 0;
-        for (auto ld1 = digitsList.begin(); ld1 != digitsList.end(); ++ld1) {
-
-          if (digIndex == digIndex1) {
-            digIndex1++;
-            continue;
-          }
-
-          if (ld.canAdd(*ld1)) {
-            ld += *ld1;
-            digitsList.erase(ld1--);
-          }
-          digIndex1++;
+        if (first) {
+          summedDigit = ld;
+          first = false;
+        } else {
+          summedDigit += ld;
         }
-
-        if (mSimulateNoiseDigits) {
-          addNoiseDigits(ld);
-        }
-
-        // if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
-        //   continue;
-        // }
-        if (ld.getAmplitude() < 0) {
-          continue;
-        }
-        // if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
-        //   continue;
-        // }
-
-        outputList[fastor].push_back(ld);
-        digIndex++;
       }
+
+      if (mSimulateNoiseDigits) {
+        addNoiseDigits(summedDigit);
+      }
+
+      // if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
+      //   continue;
+      // }
+      if (summedDigit.getAmplitude() < 0) {
+        continue;
+      }
+      // if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
+      //   continue;
+      // }
+
+      // outputList[fastor].push_back(ld);
+      auto whichTRU = std::get<0>(triggerMap.getTRUFromAbsFastORIndex(fastor));
+      auto whichFastOr = std::get<1>(triggerMap.getTRUFromAbsFastORIndex(fastor));
+      auto& patchTRU = patchesFromAllTRUs[whichTRU];
+      auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
+
+      fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      digIndex++;
+    }
+
+    for (auto& patches : patchesFromAllTRUs) {
+      updatePatchesADC(patches);
+      peakFinderOnAllPatches(patches);
     }
   }
 
-  TriggerMappingV2 triggerMap;
-  for (const auto& [fastor, outdiglist] : outputList) {
-    auto whichTRU = std::get<0>(triggerMap.getTRUFromAbsFastORIndex(fastor));
-    auto whichFastOr = std::get<1>(triggerMap.getTRUFromAbsFastORIndex(fastor));
-    Digit updateFastOrDigit;
-    for (const auto& d : outdiglist) {
-      updateFastOrDigit += d;
-    }
-    auto& patchTRU = allPatches[whichTRU];
-    auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
-    fastOrPatchTRU.updateADC(updateFastOrDigit.getAmplitudeADC());
-  }
+  // Evaluate -> peak finder (ALL Patches in ALL TRUs)
+  // in case peak found:
+  // - Create trigger input (IR of that timebin - delay [typically 8 or 9 samples - rollback (0)])
+  // - Create L1 timesums (trivial - last time integral) -> Collect from all fastOrs in ALL TRUs
+
+  // for (const auto& [fastor, outdiglist] : outputList) {
+  //   Digit updateFastOrDigit;
+  //   for (const auto& d : outdiglist) {
+  //     updateFastOrDigit += d;
+  //   }
+  //   auto& patchTRU = allPatches[whichTRU];
+  //   auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
+  //   fastOrPatchTRU.updateADC(updateFastOrDigit.getAmplitudeADC());
+  // }
 
   // mTriggerRecords.emplace_back(record, o2::trigger::PhT, mStartIndex, numberOfNewDigits);
   // mStartIndex = mDigits.size();
