@@ -71,7 +71,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
@@ -442,7 +442,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   int nCl = -1, clEntry = -1, nClRefit = 0, clRefs[14];
   float chi2Out = 0;
   auto geom = o2::its::GeometryTGeo::Instance();
-
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   if (detRefs[GTrackID::ITS].isIndexSet()) { // this is ITS track
     const auto& trkITS = mITSTracksArray[detRefs[GTrackID::ITS]];
     outerParam = trkITS.getParamOut();
@@ -462,7 +462,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
       const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
       if (!outerParam.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
-          !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
+          !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
         break;
       }
       chi2Out += outerParam.getPredictedChi2(clus);
@@ -520,7 +520,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
         // note: we should eventually use TPC pid in the refit (TODO)
         // note: since we are at small R, we can use field BZ component at origin rather than 3D field
-        !propagator->propagateToX(trk, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &trk.getLTIntegralOut())) {
+        !propagator->propagateToX(trk, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
       break;
     }
     chi2In += trk.getPredictedChi2(clus);
@@ -538,7 +538,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   // and since for the LTOF calculation the material effects are irrelevant, we skip material corrections
   const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   o2::track::TrackPar trkPar(trk);
-  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trkPar, propagator->getNominalBz(), o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, nullptr, &trk.getLTIntegralOut())) {
+  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trkPar, propagator->getNominalBz(), o2::base::Propagator::MAX_STEP, matCorr, nullptr, &trk.getLTIntegralOut())) {
     LOG(error) << "LTOF integral might be incorrect";
   }
   return true;
@@ -547,7 +547,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
 bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont)
 {
   auto propagator = o2::base::Propagator::Instance();
-
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   // refit TPC-TRD track outwards toward outermost TRD space point
   auto& outerParam = trk.getOuterParam();
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
@@ -589,7 +589,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   trk.getLTIntegralOut().addStep(lInt, trk.getP2Inv());
   // trk.getLTIntegralOut().addX2X0(lInt * mTPCmeanX0Inv); // do we need to account for the material budget here? probably?
 
-  if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, &trk.getLTIntegralOut())) {
+  if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
     LOG(debug) << "Final propagation to inner TPC radius failed (not removing the track because of this)";
   }
   propagator->estimateLTFast(trk.getLTIntegralOut(), trk); // guess about initial value for the track integral from the origin
@@ -604,6 +604,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
   int lyEnd = inwards ? -1 : NLAYER;
   o2::track::TrackParCov* trkParam = inwards ? &trk : &trk.getOuterParam();
   o2::track::TrackLTIntegral* tofL = inwards ? &trk.getLTIntegralOut() : nullptr;
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   if (inwards) {
     // reset covariance to something big for inwards refit
     trkParam->resetCovariance(100);
@@ -621,7 +622,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
         return false;
       }
     }
-    if (!propagator->PropagateToXBxByBz(*trkParam, mTrackletsCalib[trkltId].getX(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, tofL)) {
+    if (!propagator->PropagateToXBxByBz(*trkParam, mTrackletsCalib[trkltId].getX(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, tofL)) {
       LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLy, trkParam->getPt(), trkParam->getX(), mTrackletsCalib[trkltId].getX());
       return false;
     }
@@ -643,6 +644,9 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
       LOGF(debug, "Failed to update track with space point in layer %i", iLy);
       return false;
     }
+  }
+  if (!inwards) { // to make sure that the inward fit will start from the trkParam
+    ((o2::track::TrackParCov&)trk) = *trkParam;
   }
   return true;
 }

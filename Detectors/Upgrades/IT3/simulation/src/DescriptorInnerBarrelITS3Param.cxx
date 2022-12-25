@@ -9,25 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackFinderSpec.h
-/// \brief Definition of a data processor to read clusters, reconstruct tracks and send them
-///
-/// \author Philippe Pillot, Subatech
+/// \file DescriptorInnerBarrelITS3Param.h
+/// \brief Implementation of the DescriptorInnerBarrelITS3Param class
 
-#ifndef O2_MCH_TRACKFINDERSPEC_H_
-#define O2_MCH_TRACKFINDERSPEC_H_
-
-#include "Framework/DataProcessorSpec.h"
+#include "ITS3Simulation/DescriptorInnerBarrelITS3Param.h"
+O2ParamImpl(o2::its3::DescriptorInnerBarrelITS3Param);
 
 namespace o2
 {
-namespace mch
+namespace its3
 {
 
-o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName = "mch-track-finder", bool computeTime = true,
-                                                    bool digits = false, bool disableCCDBMagField = false);
+namespace
+{
+static const std::string confstrings[5] = {"", "ThreeLayersNoDeadZones", "ThreeLayers", "FourLayers", "FiveLayers"};
+}
 
-} // end namespace mch
+std::string const& DescriptorInnerBarrelITS3Param::getITS3LayerConfigString() const
+{
+  return confstrings[(int)mVersion];
+}
+
+} // namespace its3
 } // end namespace o2
-
-#endif // O2_MCH_TRACKFINDERSPEC_H_

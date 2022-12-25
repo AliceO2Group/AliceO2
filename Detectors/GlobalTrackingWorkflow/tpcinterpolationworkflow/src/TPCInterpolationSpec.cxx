@@ -54,7 +54,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -64,7 +64,8 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
     int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
     if (nTracksPerTfMax > 0) {
-      LOGP(info, "We will stop processing tracks after validating {} tracks per TF", nTracksPerTfMax);
+      LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
+           nTracksPerTfMax, SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot, nTfs);
     } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
     } else {

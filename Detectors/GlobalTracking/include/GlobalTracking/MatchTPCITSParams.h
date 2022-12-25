@@ -56,7 +56,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float tfEdgeTimeToleranceMUS = 1.; ///< corrected TPC time allowed to go out from the TF time edges by this amount
 
-  float maxVDriftUncertainty = 0.01; ///< max assumed VDrift relative uncertainty, used only in VDrift calibration mode
+  float maxVDriftUncertainty = 0.02; ///< max assumed VDrift relative uncertainty, used only in VDrift calibration mode
+  float maxVDriftTrackQ2Pt = 1.0;    ///< use only tracks below this q/pt (with field only)
 
   float globalTimeBiasMUS = 0.; ///< global time shift to apply to assigned time, brute force way to eliminate bias wrt FIT
   float globalTimeExtraErrorMUS = 0.; ///< extra error to add to global time estimate

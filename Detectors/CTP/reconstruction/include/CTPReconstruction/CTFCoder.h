@@ -136,14 +136,13 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   //
   data.clear();
 
-  uint32_t firstEntry = 0, digCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
   lumi.nHBFCounted = header.lumiNHBFs;
   lumi.counts = header.lumiCounts;
   lumi.orbit = header.lumiOrbit;
   auto itInp = bytesInput.begin();
   auto itCls = bytesClass.begin();
-
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
@@ -152,8 +151,15 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
     } else {
       ir.bc += bcInc[itrig];
     }
+    if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
+      checkIROK = true;
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      itInp += CTFHelper::CTPInpNBytes;
+      itCls += CTFHelper::CTPClsNBytes;
+      continue;
+    }
     auto& dig = data.emplace_back();
-    dig.intRecord = ir;
+    dig.intRecord = ir - mBCShift;
     for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
       dig.CTPInputMask |= static_cast<uint64_t>(*itInp++) << (8 * i);
     }
@@ -163,7 +169,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   }
   assert(itInp == bytesInput.end());
   assert(itCls == bytesClass.end());
-  iosize.rawIn = data.size() * sizeof(CTPDigit);
+  iosize.rawIn = header.nTriggers * sizeof(CTPDigit);
   return iosize;
 }
 

@@ -1403,7 +1403,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
-  if (mVDriftCalibOn) {
+  if (mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt)) {
     mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl());
   }
   //  trfit.print(); // DBG

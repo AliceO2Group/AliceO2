@@ -29,8 +29,8 @@ namespace mch
 
 //__________________________________________________________________________
 TrackMCH::TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
-                   double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID)
-  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters), mZAtMID(zAtMID)
+                   double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID, const Time& time)
+  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters), mZAtMID(zAtMID), mTimeMUS(time)
 {
   /// constructor
   setParameters(param);

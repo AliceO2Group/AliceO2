@@ -58,10 +58,11 @@ class TrackDump
     uint8_t sector = 0;
     uint8_t padrow = 0;
 
-    float getLx() const;
-    float getLy() const;
-    float getGx() const;
-    float getGy() const;
+    float lx() const;
+    float ly() const;
+    float gx() const;
+    float gy() const;
+    float cpad() const;
 
     ClassDefNV(ClusterNativeAdd, 1);
   };

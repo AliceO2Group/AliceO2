@@ -742,13 +742,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   const gsl::span<const GIndex>& GIndices,
                                                   const o2::globaltracking::RecoContainer& data,
-                                                  const std::map<std::pair<int, int>, int>& mcColToEvSrc)
+                                                  const std::vector<std::vector<int>>& mcColToEvSrc)
 {
   int NSources = 0;
   int NEvents = 0;
   for (auto& p : mcColToEvSrc) {
-    NSources = std::max(p.first.second, NSources);
-    NEvents = std::max(p.first.first, NEvents);
+    NSources = std::max(p[1], NSources);
+    NEvents = std::max(p[2], NEvents);
   }
   NSources++; // 0 - indexed
   NEvents++;
@@ -802,9 +802,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
   int tableIndex = 1;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo.first.first;
-    int source = colInfo.first.second;
-    int mcColId = colInfo.second;
+    int event = colInfo[2];
+    int source = colInfo[1];
+    int mcColId = colInfo[0];
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -1613,7 +1613,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
   // correct ordering when iterating over container elements
-  std::map<std::pair<int, int>, int> mcColToEvSrc;
+  std::vector<std::vector<int>> mcColToEvSrc;
 
   if (mUseMC) {
     // TODO: figure out collision weight
@@ -1653,10 +1653,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                              truncateFloatFraction(mcColWeight, mCollisionPosition),
                              header.GetB());
         }
-        mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
       }
     }
   }
+
+  std::sort(mcColToEvSrc.begin(), mcColToEvSrc.end(),
+            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
 
   // vector of FDD amplitudes
   int16_t aFDDAmplitudesA[8] = {0u};
@@ -1740,8 +1743,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     // filling MC collision labels
     for (auto& label : primVerLabels) {
-      auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
-      int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
+      auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
+                             [&label](const auto& mcColInfo) { return mcColInfo[1] == label.getSourceID() && mcColInfo[2] == label.getEventID(); });
+      int32_t mcCollisionID = -1;
+      if (it != mcColToEvSrc.end()) {
+        mcCollisionID = it->at(0);
+      }
       uint16_t mcMask = 0; // todo: set mask using normalized weights?
       mcColLabelsCursor(0, mcCollisionID, mcMask);
     }

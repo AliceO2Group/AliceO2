@@ -90,7 +90,7 @@ DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and 
                             collision::Flags, collision::Chi2, collision::NumContrib,
                             collision::CollisionTime, collision::CollisionTimeRes);
 
-using Collisions = Collisions_000; // current version
+using Collisions = Collisions_001; // current version
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table

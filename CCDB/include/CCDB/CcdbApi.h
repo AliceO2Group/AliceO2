@@ -63,6 +63,8 @@ class CcdbApi //: public DatabaseInterface
 
   const std::string getUniqueAgentID() const { return mUniqueAgentID; }
 
+  static bool checkAlienToken();
+
   /**
    * Initialize connection to CCDB
    *

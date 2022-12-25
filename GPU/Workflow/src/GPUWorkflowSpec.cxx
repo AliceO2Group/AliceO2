@@ -1123,7 +1123,7 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
       }
 
       if (mSpecConfig.outputTracks) {
-        o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+        mTPCVDriftHelper->extractCCDBInputs(pc);
         o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
       }
       if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {

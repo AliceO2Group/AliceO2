@@ -111,7 +111,8 @@ class TrackFitterTask
         const auto& param = track.first();
         tracksOut.emplace_back(param.getZ(), param.getParameters(), param.getCovariances(),
                                param.getTrackChi2(), clustersOut.size(), track.getNClusters(),
-                               paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
+                               paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances(),
+                               mchTrack.getTimeMUS());
         clustersOut.insert(clustersOut.end(), trackClusters.begin(), trackClusters.end());
       }
 

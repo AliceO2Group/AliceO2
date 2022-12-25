@@ -77,7 +77,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Name : Detector Name
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
   ///         kFALSE for inactive detectors
-  Detector(Bool_t active, TString name = "ITS");
+  Detector(Bool_t active, TString name = "ITS", TString its3Version = "");
 
   /// Default constructor
   Detector();

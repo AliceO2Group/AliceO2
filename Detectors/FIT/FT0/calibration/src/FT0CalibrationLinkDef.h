@@ -15,7 +15,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ft0::CalibParam + ;
 #pragma link C++ class o2::ft0::FT0TimeOffsetSlotContainer + ;
 #pragma link C++ class o2::ft0::GlobalOffsetsContainer + ;
 #pragma link C++ class o2::ft0::FT0CalibTimeSlewing + ;
