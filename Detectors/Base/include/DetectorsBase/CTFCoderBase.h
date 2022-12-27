@@ -34,7 +34,7 @@
 
 namespace o2
 {
-namespace framework
+namespace frameworkT
 {
 class ProcessingContext;
 }

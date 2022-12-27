@@ -19,6 +19,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 namespace o2
 {

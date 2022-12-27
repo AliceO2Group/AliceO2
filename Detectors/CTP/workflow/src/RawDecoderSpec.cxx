@@ -257,14 +257,21 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   pld >>= 12;
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
-  uint32_t bcid = (diglet & bcidmask).to_ulong();
+  int32_t bcid = (diglet & bcidmask).to_ulong();
   // LOG(info) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir;
-  ir.orbit = triggerOrbit;
-  ir.bc = bcid;
-  digit.intRecord = ir;
+  int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
+    if(bcid > BCShiftCorrection) {
+       ir.bc = bcid - BCShiftCorrection;
+       ir.orbit = triggerOrbit;
+    } else {
+      ir.bc = (bcid + 3564) - BCShiftCorrection;
+      ir.orbit = triggerOrbit - 1;
+    }
+    digit.intRecord = ir;
+    LOG(debug) << "IR bcid:" << ir.bc << " orbit:" << ir.orbit << " pld:" << pld;
     if (digits.count(ir) == 0) {
       digit.setInputMask(pld);
       digits[ir] = digit;
@@ -272,7 +279,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
     } else if (digits.count(ir) == 1) {
       if (digits[ir].CTPInputMask.count() == 0) {
         digits[ir].setInputMask(pld);
-        LOG(debug) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
+        LOG(debug) << bcid << " inputs bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
       } else {
         LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit;
       }
@@ -280,6 +287,15 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+    uint32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
+    if(bcid > offset) {
+       ir.bc = bcid - offset;
+       ir.orbit = triggerOrbit;
+    } else {
+      ir.bc = (bcid + 3564) - offset;
+      ir.orbit = triggerOrbit - 1;
+    }
+    digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
       digits[ir] = digit;
