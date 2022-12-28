@@ -265,12 +265,12 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
     bcid = bcid - BCShiftCorrection;
     int32_t orbitCorrection = 0;
-    if(bcid < 0) {
+    if (bcid < 0) {
       bcid = bcid % 3564;
       bcid += 3564;
       orbitCorrection = -1;
     }
-    if(bcid > 3564) {
+    if (bcid > 3564) {
       bcid = bcid % 3564;
       orbitCorrection = 1;
     }
@@ -296,12 +296,12 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
     uint32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     bcid = bcid - offset;
     int32_t orbitCorrection = 0;
-    if(bcid < 0) {
+    if (bcid < 0) {
       bcid = bcid % 3564;
       bcid += 3564;
       orbitCorrection = -1;
     }
-    if(bcid > 3564) {
+    if (bcid > 3564) {
       bcid = bcid % 3564;
       orbitCorrection = 1;
     }
