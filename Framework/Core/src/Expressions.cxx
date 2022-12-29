@@ -214,8 +214,10 @@ const char* stringType(atype::type t)
       return "uint32";
     case atype::UINT64:
       return "uint64";
+    default:
+      return "unsupported";
   }
-  return "uknownn";
+  O2_BUILTIN_UNREACHABLE();
 }
 
 Operations createOperations(Filter const& expression)
