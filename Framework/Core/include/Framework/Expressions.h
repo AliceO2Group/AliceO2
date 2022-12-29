@@ -63,7 +63,7 @@ struct ExpressionInfo {
 
 namespace o2::framework::expressions
 {
-const char* stringType(atype t);
+const char* stringType(atype::type t);
 
 template <typename... T>
 struct LiteralStorage {

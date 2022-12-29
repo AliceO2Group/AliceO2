@@ -189,7 +189,7 @@ void updatePlaceholders(Filter& filter, InitContext& context)
   }
 }
 
-const char* stringType(atype t)
+const char* stringType(atype::type t)
 {
   switch (t) {
     case atype::BOOL:
