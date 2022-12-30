@@ -338,11 +338,28 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterC(0, 15);
   auto tableC = builderC.finalize();
 
+  TableBuilder builderD;
+  auto rowWriterD = builderD.persist<int32_t, int32_t>({"x", "z"});
+  rowWriterD(0, 16, 8);
+  rowWriterD(0, 17, 9);
+  rowWriterD(0, 18, 10);
+  rowWriterD(0, 19, 11);
+  rowWriterD(0, 20, 12);
+  rowWriterD(0, 21, 13);
+  rowWriterD(0, 22, 14);
+  rowWriterD(0, 23, 15);
+  auto tableD = builderD.finalize();
+
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
   using TestC = o2::soa::Table<test::Z>;
+  using TestD = o2::soa::Table<test::X, test::Z>;
   using ConcatTest = Concat<TestA, TestB>;
   using JoinedTest = Join<TestA, TestC>;
+  using NestedJoinTest = Join<JoinedTest, TestD>;
+  using NestedConcatTest = Concat<Join<TestA, TestB>, TestD>;
+
+  static_assert(std::is_same_v<NestedJoinTest::table_t, o2::soa::Table<o2::soa::Index<>, test::Y, test::X, test::Z>>, "Bad nested join");
 
   static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
   ConcatTest tests{tableA, tableB};
@@ -350,6 +367,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(test.index(), test.x());
   }
+
+  static_assert(std::is_same_v<NestedConcatTest::table_t, o2::soa::Table<test::X>>, "Bad nested concat");
 
   // Hardcode a selection for the first 5 odd numbers
   using FilteredTest = Filtered<TestA>;
