@@ -16,6 +16,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUParam.h"
 #include "GPUTPCCompressionTrackModel.h"
+#include "GPULogging.h"
 #include <algorithm>
 #include <cstring>
 #include <atomic>
@@ -67,12 +68,17 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   ClusterNative* clusterBuffer = allocator(nTotalClusters);
   unsigned int offsets[NSLICES][GPUCA_ROW_COUNT];
   offset = 0;
+  unsigned int decodedAttachedClusters = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
       clustersNative.nClusters[i][j] = clusters[i][j].size() + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
       offsets[i][j] = offset;
       offset += (i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      decodedAttachedClusters += clusters[i][j].size();
     }
+  }
+  if (decodedAttachedClusters != clustersCompressed->nAttachedClusters) {
+    GPUWarning("%u / %u clusters failed track model decoding (%f %%)", clustersCompressed->nAttachedClusters - decodedAttachedClusters, clustersCompressed->nAttachedClusters, 100.f * (float)(clustersCompressed->nAttachedClusters - decodedAttachedClusters) / (float)clustersCompressed->nAttachedClusters);
   }
   clustersNative.clustersLinear = clusterBuffer;
   clustersNative.setOffsetPtrs();
