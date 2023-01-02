@@ -257,25 +257,15 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   pld >>= 12;
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
-  int32_t bcid = (diglet & bcidmask).to_ulong();
+  uint16_t bcid = (diglet & bcidmask).to_ulong();
   // LOG(info) << bcid << "    pld:" << pld;
-  o2::InteractionRecord ir;
+  o2::InteractionRecord ir = {bcid,triggerOrbit};
   int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+    LOG(info) << "ir ori:" << ir;
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
-    bcid = bcid - BCShiftCorrection;
-    int32_t orbitCorrection = 0;
-    if (bcid < 0) {
-      bcid = bcid % 3564;
-      bcid += 3564;
-      orbitCorrection = -1;
-    }
-    if (bcid > 3564) {
-      bcid = bcid % 3564;
-      orbitCorrection = 1;
-    }
-    ir.bc = bcid;
-    ir.orbit = triggerOrbit + orbitCorrection;
+    ir -= BCShiftCorrection;
+    LOG(info) << "ir corrected:" << ir;
     digit.intRecord = ir;
     LOG(debug) << "IR bcid:" << ir.bc << " orbit:" << ir.orbit << " pld:" << pld;
     if (digits.count(ir) == 0) {
@@ -294,20 +284,9 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
     uint32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
-    bcid = bcid - offset;
-    int32_t orbitCorrection = 0;
-    if (bcid < 0) {
-      bcid = bcid % 3564;
-      bcid += 3564;
-      orbitCorrection = -1;
-    }
-    if (bcid > 3564) {
-      bcid = bcid % 3564;
-      orbitCorrection = 1;
-    }
-    ir.bc = bcid;
-    ir.orbit = triggerOrbit + orbitCorrection;
-    LOG(debug) << "bc ori:" << (diglet & bcidmask).to_ulong() << " corrected:" << ir.bc << " orbit correction:" << orbitCorrection;
+    LOG(info) << "ir ori:" << ir;
+    ir -= offset;
+    LOG(info) << "ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
