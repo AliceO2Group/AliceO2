@@ -400,6 +400,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
     }
   }
+  std::unique_ptr<char[]> tmpEmptyCompClusters;
   if (mSpecConfig.zsDecoder) {
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
     auto isSameRdh = [](const char* left, const char* right) -> bool {
@@ -443,6 +444,11 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       pCompClustersFlat = &compClustersFlatDummy;
     } else {
       pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
+    }
+    if (pCompClustersFlat == nullptr) {
+      tmpEmptyCompClusters.reset(new char[sizeof(CompressedClustersFlat)]);
+      memset(tmpEmptyCompClusters.get(), 0, sizeof(CompressedClustersFlat));
+      pCompClustersFlat = (CompressedClustersFlat*)tmpEmptyCompClusters.get();
     }
   } else if (!mSpecConfig.zsOnTheFly) {
     if (mVerbosity) {
