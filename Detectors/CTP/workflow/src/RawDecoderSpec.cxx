@@ -259,7 +259,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   const gbtword80_t bcidmask = 0xfff;
   uint16_t bcid = (diglet & bcidmask).to_ulong();
   // LOG(info) << bcid << "    pld:" << pld;
-  o2::InteractionRecord ir = {bcid,triggerOrbit};
+  o2::InteractionRecord ir = {bcid, triggerOrbit};
   int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(info) << "ir ori:" << ir;

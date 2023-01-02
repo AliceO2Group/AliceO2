@@ -197,8 +197,8 @@ struct InteractionRecord {
   {
     // bc self-addition operator, no check for orbit wrap
     auto l = toLong() + dbc;
-    if(l < 0) {
-      l += InteractionRecord(3564,0xffffffff).toLong();
+    if (l < 0) {
+      l += InteractionRecord(3564, 0xffffffff).toLong();
     }
     bc = l % o2::constants::lhc::LHCMaxBunches;
     orbit = l / o2::constants::lhc::LHCMaxBunches;
