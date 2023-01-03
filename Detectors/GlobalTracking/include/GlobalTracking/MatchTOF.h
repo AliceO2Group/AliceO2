@@ -147,6 +147,8 @@ class MatchTOF
   std::vector<o2::dataformats::MatchInfoTOF>& getMatchedTrackVector(trkType index) { return mMatchedTracks[index]; }
   std::vector<o2::dataformats::CalibInfoTOF>& getCalibVector() { return mCalibInfoTOF; }
 
+  std::vector<o2::dataformats::MatchInfoTOFReco>& getMatchedTracksPair(int sec) { return mMatchedTracksPairsSec[sec]; }
+
   std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(trkType index) { return mOutTOFLabels[index]; } ///< get vector of TOF labels of matched tracks
 
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -194,8 +196,10 @@ class MatchTOF
   void setTS(unsigned long creationTime) { mTimestamp = creationTime; }
   unsigned long getTS() const { return mTimestamp; }
 
-  static void grouppingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& groupped);
-  static void printGroupping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& groupped);
+  static void groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls);
+  static void printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped);
+
+  void storeMatchable(bool val = true) { mStoreMatchable = val; }
 
  private:
   bool prepareFITData();
@@ -261,6 +265,7 @@ class MatchTOF
   bool mIsTPCTRDused = false;
   bool mIsITSTPCTRDused = false;
   bool mSetHighPurity = false;
+  bool mStoreMatchable = false;
 
   unsigned long mTimestamp = 0; ///< in ms
 
@@ -305,6 +310,7 @@ class MatchTOF
 
   ///<array of track-TOFCluster pairs from the matching
   std::vector<o2::dataformats::MatchInfoTOFReco> mMatchedTracksPairs;
+  std::vector<o2::dataformats::MatchInfoTOFReco> mMatchedTracksPairsSec[o2::constants::math::NSectors];
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;

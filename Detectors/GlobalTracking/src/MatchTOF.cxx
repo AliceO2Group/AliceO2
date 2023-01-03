@@ -135,6 +135,34 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
       doMatchingForTPC(sec);
       mTimerMatchTPC.Stop();
     }
+
+    if (mStoreMatchable) {
+      // fill per sector
+      mMatchedTracksPairsSec[sec].clear();
+      mMatchedTracksPairsSec[sec].insert(mMatchedTracksPairsSec[sec].end(), mMatchedTracksPairs.begin(), mMatchedTracksPairs.end());
+
+      // if MC check if good or fake matches
+      if (mMCTruthON) {
+        for (auto& matchingPair : mMatchedTracksPairsSec[sec]) {
+          int trkType = (int)matchingPair.getTrackType();
+          int itrk = matchingPair.getIdLocal();
+          const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
+          const auto& labelTrack = mTracksLblWork[trkType][itrk];
+
+          // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
+          bool fake = true;
+          for (auto& lbl : labelsTOF) {
+            if (labelTrack == lbl) { // compares src, evID, trID, ignores fake flag.
+              fake = false;
+            }
+          }
+          if (fake) {
+            matchingPair.setFakeMatch();
+          }
+        }
+      }
+    }
+
     LOG(debug) << "...done. Now check the best matches";
     nMatches[sec] = mMatchedTracksPairs.size();
     selectBestMatches();
@@ -208,7 +236,7 @@ int MatchTOF::prepareInteractionTimes()
   return 0;
 }
 //______________________________________________
-void MatchTOF::printGroupping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& groupped)
+void MatchTOF::printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped)
 {
   printf("Original vector\n");
   for (const auto& seed : origin) {
@@ -217,7 +245,7 @@ void MatchTOF::printGroupping(const std::vector<o2::dataformats::MatchInfoTOFRec
 
   printf("\nGroups\n");
   int ngroups = 0;
-  for (const auto& gr : groupped) {
+  for (const auto& gr : grouped) {
     ngroups++;
     printf("Group %d\n", ngroups);
     for (const auto& seed : gr) {
@@ -226,28 +254,28 @@ void MatchTOF::printGroupping(const std::vector<o2::dataformats::MatchInfoTOFRec
   }
 }
 //______________________________________________
-void MatchTOF::grouppingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& groupped)
+void MatchTOF::groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls)
 {
-  groupped.clear();
+  grouped.clear();
+  firstEls.clear();
+  secondEls.clear();
 
   std::vector<o2::dataformats::MatchInfoTOFReco> dummy;
-
-  // lists of elements in the group
-  std::vector<int> firstEls;
-  std::vector<int> secondEls;
+  std::vector<int> dummyInt;
 
   int pos = 0;
   while (origin.size()) { // go ahead if there are elements
     bool found = true;
-    groupped.push_back(dummy);
-    firstEls.clear();
-    secondEls.clear();
+    grouped.push_back(dummy);
+    auto& trkId = firstEls.emplace_back(dummyInt);
+    auto& cluId = secondEls.emplace_back(dummyInt);
+
     // first element is the seed
     const auto& seed = origin[0];
-    firstEls.push_back(seed.getIdLocal());
-    secondEls.push_back(seed.getTOFClIndex());
+    trkId.push_back(seed.getIdLocal());
+    cluId.push_back(seed.getTOFClIndex());
     // remove element added to the current group
-    groupped[pos].push_back(seed);
+    grouped[pos].push_back(seed);
     origin.erase(origin.begin());
 
     while (found) {
@@ -256,13 +284,13 @@ void MatchTOF::grouppingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> ori
         const auto& seed = origin[i];
         int matchFirst = -1;
         int matchSecond = -1;
-        for (const int& ind : firstEls) {
+        for (const int& ind : trkId) {
           if (seed.getIdLocal() == ind) {
             matchFirst = ind;
             break;
           }
         }
-        for (const int& ind : secondEls) {
+        for (const int& ind : cluId) {
           if (seed.getTOFClIndex() == ind) {
             matchSecond = ind;
             break;
@@ -271,10 +299,10 @@ void MatchTOF::grouppingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> ori
 
         if (matchFirst >= 0 || matchSecond >= 0) { // belong to this group
           if (matchFirst < 0)
-            firstEls.push_back(seed.getIdLocal());
+            trkId.push_back(seed.getIdLocal());
           if (matchSecond < 0)
-            secondEls.push_back(seed.getTOFClIndex());
-          groupped[pos].push_back(seed);
+            cluId.push_back(seed.getTOFClIndex());
+          grouped[pos].push_back(seed);
           origin.erase(origin.begin() + i);
           found = true;
           break;

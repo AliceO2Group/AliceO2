@@ -9,25 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFMatcherSpec.h
+/// @file   TOFMatchableWriterSpec.h
 
-#ifndef O2_TOF_MATCHER_SPEC
-#define O2_TOF_MATCHER_SPEC
+#ifndef TOFWORKFLOW_TOFMATCHABLEWRITER_H_
+#define TOFWORKFLOW_TOFMATCHABLEWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
-namespace globaltracking
+namespace tof
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd = 0., bool pushMatchable = 0);
+/// write TOF calbi info in a root file
+o2::framework::DataProcessorSpec getTOFMatchableWriterSpec(const char* outdef = "o2matchable_tof.root");
 
-} // namespace globaltracking
+} // namespace tof
 } // namespace o2
 
-#endif /* O2_TOF_MATCHER_SPEC */
+#endif /* TOFWORKFLOW_TOFMATCHABLEWRITER_H_ */
