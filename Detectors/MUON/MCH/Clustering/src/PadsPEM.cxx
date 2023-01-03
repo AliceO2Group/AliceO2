@@ -34,7 +34,7 @@ extern ClusterConfig clusterConfig;
 
 void Pads::padBoundsToCenter(const Pads& pads)
 {
-  if (mode == xyInfSupMode) {
+  if (mode == PadMode::xyInfSupMode) {
     double* xInf = pads.x;
     double* yInf = pads.y;
     double* xSup = pads.dx;
@@ -45,13 +45,13 @@ void Pads::padBoundsToCenter(const Pads& pads)
       x[i] = xInf[i] + dx[i];
       y[i] = yInf[i] + dy[i];
     }
-    mode = xydxdyMode;
+    mode = PadMode::xydxdyMode;
   }
 }
 
 void Pads::padCenterToBounds(const Pads& pads)
 {
-  if (mode == xyInfSupMode) {
+  if (mode == PadMode::xyInfSupMode) {
     double* xInf = x;
     double* yInf = y;
     double* xSup = dx;
@@ -62,13 +62,13 @@ void Pads::padCenterToBounds(const Pads& pads)
       yInf[i] = pads.y[i] - pads.dy[i];
       ySup[i] = pads.y[i] + pads.dy[i];
     }
-    mode = xydxdyMode;
+    mode = PadMode::xydxdyMode;
   }
 }
 
 void Pads::padCenterToBounds()
 {
-  if (mode == xydxdyMode) {
+  if (mode == PadMode::xydxdyMode) {
     double* xInf = x;
     double* yInf = y;
     double* xSup = dx;
@@ -82,13 +82,13 @@ void Pads::padCenterToBounds()
       yInf[i] = u - dy[i];
       ySup[i] = u + dy[i];
     }
-    mode = xyInfSupMode;
+    mode = PadMode::xyInfSupMode;
   }
 }
 
 void Pads::padBoundsToCenter()
 {
-  if (mode == xyInfSupMode) {
+  if (mode == PadMode::xyInfSupMode) {
     double* xInf = x;
     double* yInf = y;
     double* xSup = dx;
@@ -100,7 +100,7 @@ void Pads::padBoundsToCenter()
       x[i] = xInf[i] + dx[i];
       y[i] = yInf[i] + dy[i];
     }
-    mode = xydxdyMode;
+    mode = PadMode::xydxdyMode;
   }
 }
 PadIdx_t* Pads::buildFirstNeighbors(double* X, double* Y, double* DX,
@@ -414,7 +414,8 @@ Pads::Pads(const Pads* pads, int size)
   mode = pads->mode;
   chamberId = pads->chamberId;
   totalCharge = pads->totalCharge;
-  allocate(size);
+  int size_ = (size < nPads) ? nPads : size;
+  allocate(size_);
   memcpy(x, pads->x, sizeof(double) * nPads);
   memcpy(y, pads->y, sizeof(double) * nPads);
   memcpy(dx, pads->dx, sizeof(double) * nPads);
@@ -442,7 +443,7 @@ Pads::Pads(const Pads& pads, PadMode mode_)
     memcpy(dx, pads.dx, sizeof(double) * nPads);
     memcpy(dy, pads.dy, sizeof(double) * nPads);
     memcpy(q, pads.q, sizeof(double) * nPads);
-  } else if (mode == xydxdyMode) {
+  } else if (mode == PadMode::xydxdyMode) {
     //  xyInfSupMode ->  xydxdyMode
     padBoundsToCenter(pads);
     memcpy(q, pads.q, sizeof(double) * nPads);
@@ -462,7 +463,7 @@ Pads::Pads(const Pads& pads, PadMode mode_)
 Pads::Pads(const Pads& pads, const Mask_t* mask)
 {
   nPads = vectorSumShort(mask, pads.nPads);
-  mode = xydxdyMode;
+  mode = PadMode::xydxdyMode;
   chamberId = pads.chamberId;
   allocate();
 
@@ -501,7 +502,7 @@ xydxdyMode; nPads = nPads_; chamberId = chId; allocate();
 Pads::Pads(double* x_, double* y_, double* dx_, double* dy_, int chId,
            int nPads_)
 {
-  mode = xydxdyMode;
+  mode = PadMode::xydxdyMode;
   nPads = nPads_;
   nObsPads = nPads;
   chamberId = chId;
@@ -524,7 +525,7 @@ Pads::Pads(const double* x_, const double* y_, const double* dx_,
            const Mask_t* saturate_, short selectedCath, int chId,
            PadIdx_t* mapCathPadIdxToPadIdx, int nAllPads)
 {
-  mode = xydxdyMode;
+  mode = PadMode::xydxdyMode;
   int nCathode1 = vectorSumShort(cathode, nAllPads);
   nPads = nCathode1;
   if (selectedCath == 0) {
@@ -556,7 +557,7 @@ Pads::Pads(const double* x_, const double* y_, const double* dx_,
            const double* dy_, const double* q_, const short* cathode,
            const Mask_t* saturate_, int chId, int nAllPads)
 {
-  mode = xydxdyMode;
+  mode = PadMode::xydxdyMode;
   // int nCathode1 = vectorSumShort(cathode, nAllPads);
   nPads = nAllPads;
   nObsPads = nPads;
@@ -584,8 +585,8 @@ Pads::Pads(const Pads* pads0, const Pads* pads1, PadMode mode_)
 {
 
   // Take Care: pads0 and pads2 must be in xydxdyMode
-  bool padsMode = (pads0 == nullptr) ? true : (pads0->mode == xydxdyMode);
-  padsMode = (pads1 == nullptr) ? padsMode : (pads1->mode == xydxdyMode);
+  bool padsMode = (pads0 == nullptr) ? true : (pads0->mode == PadMode::xydxdyMode);
+  padsMode = (pads1 == nullptr) ? padsMode : (pads1->mode == PadMode::xydxdyMode);
   if (!padsMode) {
     throw std::out_of_range("Pads:: bad mode (xydxdyMode required) for pad merging");
   }
@@ -635,7 +636,7 @@ Pads::Pads(const Pads* pads0, const Pads* pads1, PadMode mode_)
   }
   */
   // ??? printPads(" Before InfSup", *this);
-  if (mode_ == xyInfSupMode) {
+  if (mode_ == PadMode::xyInfSupMode) {
     padCenterToBounds();
   }
   totalCharge = vectorSum(q, nPads);
@@ -1662,7 +1663,7 @@ Pads* Pads::extractLocalMaxOnCoarsePads_Remanent(std::vector<PadIdx_t>& localMax
     localMax = newPixels->selectPads(index, k0);
     nNewPixels = k0;
   } else {
-    localMax = new Pads(newPixels, PadMode::xydxdyMode);
+    localMax = new Pads(*newPixels, PadMode::xydxdyMode);
     k0 = nNewPixels;
   }
 
@@ -2244,7 +2245,7 @@ void Pads::printPads(const char* title, const Pads& pads)
 {
   printf("%s\n", title);
   printf("print pads nPads=%4d nObsPads=%4d mode=%1d\n", pads.nPads, pads.nObsPads, pads.mode);
-  if (pads.mode == xydxdyMode) {
+  if (pads.mode == PadMode::xydxdyMode) {
     printf("    i       x       y      dx      dy         q\n");
     for (int i = 0; i < pads.nPads; i++) {
       printf("  %3d %7.3f %7.3f %7.3f %7.3f %9.2f\n", i,

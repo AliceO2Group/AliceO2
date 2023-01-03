@@ -685,7 +685,7 @@ void computeFastCij(const Pads& pads, const Pads& pixel, double Cij[])
   //
   // Returning array: Charge Integral on all the pads Cij[]
 
-  if ((pads.mode != Pads::xyInfSupMode) || (pixel.mode != Pads::xydxdyMode)) {
+  if ((pads.mode != Pads::PadMode::xyInfSupMode) || (pixel.mode != Pads::PadMode::xydxdyMode)) {
     printf(
       "[computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",
@@ -778,7 +778,7 @@ void computeFastCijV0(const Pads& pads, const Pads& pixel, double Cij[])
   //
   // Returning array: Charge Integral on all the pads Cij[]
 
-  if ((pads.mode != Pads::xyInfSupMode) || (pixel.mode != Pads::xydxdyMode)) {
+  if ((pads.mode != Pads::PadMode::xyInfSupMode) || (pixel.mode != Pads::PadMode::xydxdyMode)) {
     printf(
       "[computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",
@@ -902,7 +902,7 @@ void computeCij(const Pads& pads, const Pads& pixel, double Cij[])
   //
   // Returning array: Charge Integral on all the pads Cij[]
 
-  if ((pads.mode != Pads::xyInfSupMode) || (pixel.mode != Pads::xydxdyMode)) {
+  if ((pads.mode != Pads::PadMode::xyInfSupMode) || (pixel.mode != Pads::PadMode::xydxdyMode)) {
     printf(
       "computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",

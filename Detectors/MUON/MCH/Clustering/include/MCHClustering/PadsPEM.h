@@ -47,15 +47,15 @@ inline static PadIdx_t getTheFirstNeighborOf(PadIdx_t* neigh, PadIdx_t i)
 class Pads
 {
  public:
-  enum PadMode {
-    xydxdyMode = 0x0,  ///< x, y, dx, dy pad coordinates
-    xyInfSupMode = 0x1 ///< xInf=x, xSup=dx, yInf=y, ySup=dy pad coordinates
+  enum class PadMode {
+    xydxdyMode,  ///< x, y, dx, dy pad coordinates
+    xyInfSupMode ///< xInf=x, xSup=dx, yInf=y, ySup=dy pad coordinates
   };
   static constexpr double epsilonGeometry =
     1.0e-04; // Uncertainty on pad location (in cm)
   // Representation mode  (see padMode)
   // PadMode mode;
-  PadMode mode = xydxdyMode;
+  PadMode mode = PadMode::xydxdyMode;
 
   // Utilities
   static void printNeighbors(const PadIdx_t* neigh, int N);
@@ -66,7 +66,7 @@ class Pads
   };
 
   // Allocation constructor
-  Pads(int N, int chId, PadMode mode = xydxdyMode);
+  Pads(int N, int chId, PadMode mode = PadMode::xydxdyMode);
   // Build a new set of pads with different coordinates
   // xydxdy mode or xyInfSup
   Pads(const Pads& pads, PadMode mode_);

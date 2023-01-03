@@ -636,7 +636,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   if (nbrOfCathodePlanes == 1) {
     // One Cathode case
     // Pad Projection is the cluster itself
-    projectedPads = new Pads(*pads[singleCathPlaneID], Pads::xydxdyMode);
+    projectedPads = new Pads(*pads[singleCathPlaneID], Pads::PadMode::xydxdyMode);
     projNeighbors = projectedPads->buildFirstNeighbors();
     return projectedPads->getNbrOfPads();
   }
@@ -647,8 +647,8 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   vectorSetZeroChar(intersectionMatrix, N0 * N1);
 
   // Get the pad limits
-  Pads padInfSup0(*pads[0], Pads::xyInfSupMode);
-  Pads padInfSup1(*pads[1], Pads::xyInfSupMode);
+  Pads padInfSup0(*pads[0], Pads::PadMode::xyInfSupMode);
+  Pads padInfSup1(*pads[1], Pads::PadMode::xyInfSupMode);
   mapIJToK = new PadIdx_t[N0 * N1];
   vectorSetInt(mapIJToK, -1, N0 * N1);
 
@@ -1952,7 +1952,7 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
 
   } else {
     // Concatenate the 2 planes of the subCluster For the fitting
-    fitPads = new Pads(pads[0], pads[1], Pads::xydxdyMode);
+    fitPads = new Pads(pads[0], pads[1], Pads::PadMode::xydxdyMode);
   }
   // Compute the barycenter to speed
   /*
@@ -2185,7 +2185,7 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
   int nPixels = pixels->getNbrOfPads();
   // Merge pads of the 2 cathodes
   // TODO ??? : see if it can be once with Fitting (see fitPads)
-  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::xyInfSupMode);
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
   int nPads = mergedPads->getNbrOfPads();
   // Local maximum locations
   Pads* localMax = nullptr;
@@ -2229,7 +2229,7 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
-      saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
 
@@ -2383,7 +2383,7 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
   int nPixels = pixels->getNbrOfPads();
   // Merge pads of the 2 cathodes
   // TODO ??? : see if it can be once with Fitting (see fitPads)
-  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::xyInfSupMode);
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
   int nPads = mergedPads->getNbrOfPads();
   // ??? printf("    nbr merged pads = %d\n", nPads);
   // Local maximum locations
@@ -2441,7 +2441,7 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
-      saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
 
@@ -2765,7 +2765,7 @@ int ClusterPEM::findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsI
   int nPixels = pixels->getNbrOfPads();
   // Merge pads of the 2 cathodes
   // TODO ??? : see if it can be once with Fitting (see fitPads)
-  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::xyInfSupMode);
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
   int nPads = mergedPads->getNbrOfPads();
   Pads* localMax = nullptr;
   Pads* saveLocalMax = nullptr;
@@ -2835,7 +2835,7 @@ int ClusterPEM::findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsI
   }
   while (goon) {
     if (localMax != nullptr) {
-      saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
     /*
@@ -3160,7 +3160,7 @@ int ClusterPEM::findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupC
   int nPixels = pixels->getNbrOfPads();
   // Merge pads of the 2 cathodes
   // TODO ??? : see if it can be once with Fitting (see fitPads)
-  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::xyInfSupMode);
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
   int nPads = mergedPads->getNbrOfPads();
   Pads* localMax = nullptr;
   Pads* saveLocalMax = nullptr;
@@ -3196,7 +3196,7 @@ int ClusterPEM::findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupC
   }
   while (goon) {
     if (localMax != nullptr) {
-      saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
     /*
