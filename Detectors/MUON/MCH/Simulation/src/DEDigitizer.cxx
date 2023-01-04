@@ -58,8 +58,11 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   // local position of the charge distribution
   auto exitPoint = hit.exitPoint();
   auto entrancePoint = hit.entrancePoint();
-  
+  //ToDo: only working if track crossing and straight line within gas volume of detector
+  //no exception treatment, straight-line approximation: ok, need treatment for stopped tracks
   math_utils::Point3D<float> pos((exitPoint.X()+entrancePoint.X())/2., (exitPoint.Y()+entrancePoint.Y())/2., (exitPoint.Z()+entrancePoint.Z())/2.);
+  //one possibility: compare exitPoint-z with z of end of detector-element...: complicated 
+  
   math_utils::Point3D<float> lpos{};
   mTransformation.MasterToLocal(pos, lpos);
   auto localX = mResponse.getAnod(lpos.X());
