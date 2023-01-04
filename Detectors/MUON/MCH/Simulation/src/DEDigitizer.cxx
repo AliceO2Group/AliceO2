@@ -56,7 +56,10 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto chargeNonBending = charge / chargeCorr;
 
   // local position of the charge distribution
-  math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
+  auto exitPoint = hit.exitPoint();
+  auto entrancePoint = hit.entrancePoint();
+  
+  math_utils::Point3D<float> pos((exitPoint.X()+entrancePoint.X())/2., (exitPoint.Y()+entrancePoint.Y())/2., (exitPoint.Z()+entrancePoint.Z())/2.);
   math_utils::Point3D<float> lpos{};
   mTransformation.MasterToLocal(pos, lpos);
   auto localX = mResponse.getAnod(lpos.X());
