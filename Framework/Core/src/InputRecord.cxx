@@ -169,4 +169,18 @@ size_t InputRecord::countValidInputs() const
   return count;
 }
 
+[[nodiscard]] std::string InputRecord::describeAvailableInputs() const
+{
+  std::stringstream ss;
+  ss << "Available inputs: ";
+  bool first = true;
+  for (auto const& route : mInputsSchema) {
+    if (!first) {
+      ss << ", ";
+    }
+    ss << route.matcher.binding;
+  }
+  return ss.str();
+}
+
 } // namespace o2::framework
