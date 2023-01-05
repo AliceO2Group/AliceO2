@@ -40,7 +40,7 @@ struct NoiseCalibData {
 //=========================================================================
 
 using NoiseTimeSlot = o2::calibration::TimeSlot<o2::cpv::NoiseCalibData>;
-class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::Digit, o2::cpv::NoiseCalibData>
+class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::NoiseCalibData>
 {
  public:
   NoiseCalibrator();

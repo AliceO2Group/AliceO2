@@ -44,6 +44,7 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
 
   auto& calibPadGainTracks = *slot.getContainer();
   calibPadGainTracks.setNormalizationType(mNormType);
+  calibPadGainTracks.setLogTransformQ(mLogTransformQ);
   calibPadGainTracks.finalize(mMinEntriesMean, mMinRelgain, mMaxRelgain, mLowTruncation, mUpTruncation);
   mIntervals.emplace_back(startTF, endTF);
   mTimeIntervals.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());

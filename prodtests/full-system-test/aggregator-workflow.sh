@@ -85,6 +85,7 @@ fi
 # special settings for aggregator workflows
 if [[ "0$CALIB_TPC_SCDCALIB_SENDTRKDATA" == "01" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
 if [[ -z "$RESIDUAL_AGGREGATOR_AUTOSAVE" ]]; then RESIDUAL_AGGREGATOR_AUTOSAVE=0; fi
+[[ -z $CALIB_TPC_SCDCALIB_SLOTLENGTH ]] && TPCSCD_CONFIG="--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"
 
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
@@ -116,11 +117,12 @@ if workflow_has_parameter CALIB_PROXIES; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
+    if [[ $EPNSYNCMODE != 1 ]]; then
+      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
+      exit 2
+    fi
+    CHANNELS_LIST=
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
-      if [[ $EPNSYNCMODE != 1 ]]; then
-        echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-        exit 2
-      fi
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
       [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
@@ -128,14 +130,15 @@ if workflow_has_parameter CALIB_PROXIES; then
         FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
     if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
       [[ -z $TPC_SAC_FLP_PORT ]] && TPC_SAC_FLP_PORT=47901
       FLP_ADDRESS_SAC="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
-      CHANNEL_SAC="type=pull,name=tpcsac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
-      add_W o2-dpl-raw-proxy "--proxy-name tpcsac --dataspec \"$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNEL_SAC\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
+    fi
+    if [[ ! -z $CHANNELS_LIST ]]; then
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C;$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
@@ -183,7 +186,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
-    add_W o2-calibration-residual-aggregator "--disable-root-input $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+    add_W o2-calibration-residual-aggregator "--disable-root-input $TPCSCD_CONFIG $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
   fi
   if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
     # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "

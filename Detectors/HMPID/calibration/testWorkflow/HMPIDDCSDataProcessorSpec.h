@@ -140,7 +140,11 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       } else if (mRunChecker.getRunStatus() ==
                  RunStatus::START) { // saw new run with wanted detectors
         LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
-        grp->print();
+        if (grp) {
+          grp->print();
+        } else {
+          LOG(error) << "GRPECS pointer is null";
+        }
         mProcessor->setRunNumberFromGRP(mRunChecker.getFollowedRun()); // ef: just the same as for emcal ef: set startValidity here if run-specific object
         if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
           mProcessor->setStartValidity(dataTime);

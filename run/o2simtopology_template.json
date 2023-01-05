@@ -137,7 +137,7 @@
               {
                 "type": "pub",
                 "method": "bind",
-                "address": "ipc:///tmp/o2sim-hitmerger-kineforward",
+                "address": "ipc:///tmp/o2sim-hitmerger-kineforward-#PID#",
                 "sndBufSize": 1000,
                 "rcvBufSize": 1000,
                 "rateLogging": 0

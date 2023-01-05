@@ -86,7 +86,7 @@ class TPCFastTransformHelperO2
     std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal);
 
   /// creates TPCFastTransform object
-  std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp);
+  std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp, const int nKnotsY = 10, const int nKnotsZ = 20);
 
   /// Updates the transformation with the new time stamp
   int updateCalibration(TPCFastTransform& transform, Long_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f);

@@ -103,7 +103,7 @@ int16_t FV0ChannelTimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t c
 
   return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
 }
-FV0ChannelTimeCalibrationObject FV0ChannelTimeOffsetSlotContainer::generateCalibrationObject() const
+FV0ChannelTimeCalibrationObject FV0ChannelTimeOffsetSlotContainer::generateCalibrationObject(long, long, const std::string&) const
 {
   FV0ChannelTimeCalibrationObject calibrationObject;
 

@@ -129,19 +129,21 @@ class ITSThresholdCalibrator : public Task
   static constexpr short int N_PIX_DCOL = 50;
 
   // The x-axis of the correct data fit chosen above
-  short int* mX = nullptr;
+  float* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
   std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::map<short int, std::array<long int, 5>> mThresholds;
+  std::map<short int, std::array<long int, 6>> mThresholds;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
   // Map including PixID for Inefficient pixels
   std::map<short int, std::vector<int>> mIneffPixID;
   // Map including PixID for Dead pixels
   std::map<short int, std::vector<int>> mDeadPixID;
+  // Vector for the calculation of the most probable value
+  std::map<short int, std::array<int, 200>> mpvCounter;
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
@@ -165,18 +167,18 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const unsigned short int*, const short int*, short int&, float&, float&);
-  bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
+  bool findUpperLower(const unsigned short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const unsigned short int*, const float*, short int&, float&, float&);
+  bool findThresholdFit(const unsigned short int*, const float*, const short int&, float&, float&);
+  bool findThresholdDerivative(const unsigned short int*, const float*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const unsigned short int*, const float*, const short int&, float&);
   bool isScanFinished(const short int&, const short int&, const short int&);
-  void findAverage(const std::array<long int, 5>&, float&, float&, float&, float&);
+  void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const float&,
-                        const float&, const float&, const float&, bool, bool);
+                        const float&, const float&, const float&, const float&, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
@@ -242,6 +244,9 @@ class ITSThresholdCalibrator : public Task
   short int inMaxVcasn = 80;
   short int inMinIthr = 30;
   short int inMaxIthr = 100;
+
+  // Flag to enable most-probable value calculation
+  bool isMpv = false;
 
   // parameters for manual mode: if run type is not among the listed one
   bool isManualMode = false;

@@ -83,31 +83,31 @@ void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
 
   if (hmpidString == TEMP_IN_ID) {
     if (mVerbose) {
-      LOG(info) << "Temperature_in DP: " << alias;
+      LOG(info) << "Temperature_in DP: " << dp;
     }
     fillTempIn(dp);
   } else if (hmpidString == TEMP_OUT_ID) {
     if (mVerbose) {
-      LOG(info) << "Temperature_out DP: " << alias;
+      LOG(info) << "Temperature_out DP: " << dp;
     }
     fillTempOut(dp);
   } else if (hmpidString == HV_ID) {
     if (mVerbose) {
-      LOG(info) << "HV DP: " << alias;
+      LOG(info) << "HV DP: " << dp;
     }
     fillHV(dp);
   } else if (hmpidString == ENV_PRESS_ID) {
     if (mVerbose) {
-      LOG(info) << "Environment Pressure DP: " << alias;
+      LOG(info) << "Environment Pressure DP: " << dp;
     }
     fillEnvPressure(dp);
   } else if (hmpidString == CH_PRESS_ID) {
     if (mVerbose) {
-      LOG(info) << "Chamber Pressure DP: " << alias;
+      LOG(info) << "Chamber Pressure DP: " << dp;
     }
     fillChPressure(dp);
   } else { // ef: changed to warn and unkown DP ==> missing data DP
-    LOG(warn) << "Missing data point: " << alias;
+    LOG(warn) << "Missing data point: " << dp;
   }
 }
 
@@ -137,34 +137,34 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
   if (alias.substr(alias.length() - 10) == WAVE_LEN_ID) {
     waveLenVec[num].emplace_back(dp);
     if (mVerbose) {
-      LOG(info) << "WAVE_LEN_ID DP: " << alias;
+      LOG(info) << "WAVE_LEN_ID DP: " << dp;
     }
   } else if (transparencyString == FREON_CELL_ID) {
     freonCellVec[num].emplace_back(dp);
     if (mVerbose) {
-      LOG(info) << "FREON_CELL_ID DP: " << alias;
+      LOG(info) << "FREON_CELL_ID DP: " << dp;
     }
   } else if (transparencyString == ARGON_CELL_ID) {
     if (mVerbose) {
-      LOG(info) << "ARGON_CELL_ID DP: " << alias;
+      LOG(info) << "ARGON_CELL_ID DP: " << dp;
     }
     argonCellVec[num].emplace_back(dp);
   } else if (transparencyString == REF_ID) {
     if (alias.substr(alias.length() - 14) == ARGON_REF_ID) {
       if (mVerbose) {
-        LOG(info) << "ARGON_REF_ID DP: " << alias;
+        LOG(info) << "ARGON_REF_ID DP: " << dp;
       }
       argonRefVec[num].emplace_back(dp);
     } else if (alias.substr(alias.length() - 14) == FREON_REF_ID) {
       freonRefVec[num].emplace_back(dp);
       if (mVerbose) {
-        LOG(info) << "FREON_REF_ID DP: " << alias;
+        LOG(info) << "FREON_REF_ID DP: " << dp;
       }
     } else { // ef: remove mVerbose, change to warn, and "DP not found" ==> "Missing DP"
-      LOG(warn) << "Missing Data point: " << alias;
+      LOG(warn) << "Missing Data point: " << dp;
     }
   } else { // ef:change to warn and "DP not found" ==> "Missing DP"
-    LOG(warn) << "Missing Data point: " << alias;
+    LOG(warn) << "Missing Data point: " << dp;
   }
 }
 

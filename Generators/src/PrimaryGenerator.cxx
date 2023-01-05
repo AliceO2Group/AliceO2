@@ -15,6 +15,7 @@
 #include "Generators/Generator.h"
 #include "Generators/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DetectorsBase/Stack.h"
 #include <fairlogger/Logger.h>
 
@@ -62,12 +63,6 @@ Bool_t PrimaryGenerator::Init()
     return FairPrimaryGenerator::Init();
   }
 
-  /** normal generation **/
-
-  /** retrieve and set interaction diamond **/
-  auto& diamond = InteractionDiamondParam::Instance();
-  setInteractionDiamond(diamond.position, diamond.width);
-
   /** base class init **/
   return FairPrimaryGenerator::Init();
 }
@@ -80,6 +75,7 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
 
   /** normal generation if no embedding **/
   if (!mEmbedTree) {
+    fixInteractionVertex(); // <-- always fixes vertex outside of FairROOT
     return FairPrimaryGenerator::GenerateEvent(pStack);
   }
 
@@ -202,35 +198,6 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 
 /*****************************************************************/
 
-void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t* sigmaxyz)
-{
-  /** set interaction diamond **/
-
-  LOG(info) << "Setting interaction diamond: position = {"
-            << xyz[0] << "," << xyz[1] << "," << xyz[2] << "} cm";
-  LOG(info) << "Setting interaction diamond: width = {"
-            << sigmaxyz[0] << "," << sigmaxyz[1] << "," << sigmaxyz[2] << "} cm";
-  SetBeam(xyz[0], xyz[1], sigmaxyz[0], sigmaxyz[1]);
-  SetTarget(xyz[2], sigmaxyz[2]);
-
-  auto const& param = InteractionDiamondParam::Instance();
-  SmearVertexXY(false);
-  SmearVertexZ(false);
-  SmearGausVertexXY(false);
-  SmearGausVertexZ(false);
-  if (param.distribution == o2::eventgen::EVertexDistribution::kFlat) {
-    SmearVertexXY(true);
-    SmearVertexZ(true);
-  } else if (param.distribution == o2::eventgen::EVertexDistribution::kGaus) {
-    SmearGausVertexXY(true);
-    SmearGausVertexZ(true);
-  } else {
-    LOG(error) << "PrimaryGenerator: Unsupported vertex distribution";
-  }
-}
-
-/*****************************************************************/
-
 void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
 {
   /** set interaction vertex **/
@@ -242,6 +209,45 @@ void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
   SmearVertexZ(false);
   SmearGausVertexXY(false);
   SmearGausVertexZ(false);
+}
+
+/*****************************************************************/
+void PrimaryGenerator::setExternalVertexForNextEvent(double x, double y, double z)
+{
+  mExternalVertexX = x;
+  mExternalVertexY = y;
+  mExternalVertexZ = z;
+  mHaveExternalVertex = true;
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::fixInteractionVertex()
+{
+  // if someone gave vertex from outside; we will take it
+  if (mHaveExternalVertex) {
+    SetBeam(mExternalVertexX, mExternalVertexY, 0., 0.);
+    SetTarget(mExternalVertexZ, 0.);
+    mHaveExternalVertex = false; // the vertex is now consumed
+    return;
+  }
+
+  // sampling a vertex and fixing for next event; no smearing will be done
+  // inside FairPrimaryGenerator;
+  SmearVertexXY(false);
+  SmearVertexZ(false);
+  SmearGausVertexXY(false);
+  SmearGausVertexZ(false);
+
+  auto const& param = InteractionDiamondParam::Instance();
+  const auto& xyz = param.position;
+  const auto& sigma = param.width;
+  o2::dataformats::MeanVertexObject meanv(xyz[0], xyz[1], xyz[2], sigma[0], sigma[1], sigma[2], param.slopeX, param.slopeY);
+  auto sampledvertex = meanv.sample();
+
+  LOG(info) << "Sampled interacting vertex " << sampledvertex;
+  SetBeam(sampledvertex.X(), sampledvertex.Y(), 0., 0.);
+  SetTarget(sampledvertex.Z(), 0.);
 }
 
 /*****************************************************************/

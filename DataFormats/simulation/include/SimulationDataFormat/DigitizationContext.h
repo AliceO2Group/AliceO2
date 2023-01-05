@@ -21,6 +21,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <GPUCommonLogger.h>
 #include <unordered_map>
+#include <MathUtils/Cartesian.h>
+#include <DataFormatsCalibration/MeanVertexObject.h>
 
 namespace o2
 {
@@ -116,13 +118,25 @@ class DigitizationContext
   /// returns the GRP object associated to this context
   o2::parameters::GRPObject const& getGRP() const;
 
+  // apply collision number cuts and potential relabeling of eventID
+  void applyMaxCollisionFilter(long startOrbit, long orbitsPerTF, int maxColl);
+
   // finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
   void finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
+
+  // Sample and fix interaction vertices (according to some distribution). Makes sure that same event ids
+  // have to have same vertex, as well as event ids associated to same collision.
+  void sampleInteractionVertices(o2::dataformats::MeanVertexObject const& v);
 
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename = "");
+  // Return the vector of interaction vertices associated with collisions
+  // The vector is empty if no vertices were provided or sampled. In this case, one
+  // may call "sampleInteractionVertices".
+  std::vector<math_utils::Point3D<float>> const& getInteractionVertices() const { return mInteractionVertices; }
+
+  static DigitizationContext* loadFromFile(std::string_view filename = "");
 
  private:
   int mNofEntries = 0;
@@ -134,6 +148,9 @@ class DigitizationContext
   std::vector<o2::InteractionTimeRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<o2::steer::EventPart>> mEventParts;
+
+  // for each collision we may record/fix the interaction vertex (to be used in event generation)
+  std::vector<math_utils::Point3D<float>> mInteractionVertices;
 
   // the collision records _with_ QED interleaved;
   std::vector<o2::InteractionTimeRecord> mEventRecordsWithQED;

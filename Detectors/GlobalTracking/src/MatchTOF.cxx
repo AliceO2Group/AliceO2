@@ -57,6 +57,10 @@ ClassImp(MatchTOF);
 //______________________________________________
 void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 {
+  if (!mMatchParams) {
+    mMatchParams = &o2::globaltracking::MatchTOFParams::Instance();
+  }
+
   ///< running the matching
   mRecoCont = &inp;
   mStartIR = inp.startIR;
@@ -1160,10 +1164,12 @@ void MatchTOF::selectBestMatches()
       flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
     }
 
-    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                               mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                               deltat,
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    if (matchingPair.getChi2() < mMatchParams->calibMaxChi2) { // extra cut in ChiSquare for storing calib info
+      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                 deltat,
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    }
 
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());

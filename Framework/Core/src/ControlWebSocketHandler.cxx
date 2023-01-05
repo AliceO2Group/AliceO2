@@ -35,9 +35,8 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
   std::string_view tokenSV(frame, s);
   ParsedMetricMatch metricMatch;
 
-  auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
-    auto ts = "                 " + token;
-    if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
+  auto doParseConfig = [](std::string_view const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
+    if (DeviceConfigHelper::parseConfig(token, configMatch)) {
       DeviceConfigHelper::processConfig(configMatch, info);
       return true;
     }
@@ -55,8 +54,8 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
   }
 
   ParsedConfigMatch configMatch;
-  std::string token(frame, s);
-  std::smatch match;
+  std::string_view const token(frame, s);
+  std::match_results<std::string_view::const_iterator> match;
 
   if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
     ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());

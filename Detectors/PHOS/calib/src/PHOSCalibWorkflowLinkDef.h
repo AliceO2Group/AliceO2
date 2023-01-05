@@ -20,23 +20,23 @@
 #pragma link C++ class o2::phos::PHOSBadMapCalibDevice + ;
 #pragma link C++ class o2::phos::ETCalibHistos + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSEnergySlot> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cluster, o2::phos::PHOSEnergySlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::PHOSEnergySlot> + ;
 #pragma link C++ class o2::phos::TurnOnHistos + ;
 #pragma link C++ class o2::phos::PHOSTurnonSlot + ;
 #pragma link C++ class o2::phos::PHOSTurnonCalibrator + ;
 #pragma link C++ class o2::phos::PHOSTurnonCalibDevice + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSTurnonSlot> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cluster, o2::phos::PHOSTurnonSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::PHOSTurnonSlot> + ;
 #pragma link C++ class o2::phos::PHOSRunbyrunSlot + ;
 #pragma link C++ class o2::phos::PHOSRunbyrunCalibrator + ;
 #pragma link C++ class o2::phos::PHOSRunbyrunCalibDevice + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSRunbyrunSlot> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cluster, o2::phos::PHOSRunbyrunSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::PHOSRunbyrunSlot> + ;
 #pragma link C++ class o2::phos::PHOSL1phaseSlot + ;
 #pragma link C++ class o2::phos::PHOSL1phaseCalibrator + ;
 #pragma link C++ class o2::phos::PHOSL1phaseCalibDevice + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSL1phaseSlot> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::Cell, o2::phos::PHOSL1phaseSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::PHOSL1phaseSlot> + ;
 #pragma link C++ class vector < int> + ;
 
 #endif

@@ -50,7 +50,7 @@ namespace emcal
 /// \brief class used for managment of bad channel and time calibration
 /// template DataInput can be ChannelData or TimeData   // o2::emcal::EMCALChannelData, o2::emcal::EMCALTimeCalibData
 template <typename DataInput, typename DataOutput>
-class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>
+class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<DataInput>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<DataInput>;
@@ -187,7 +187,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
 template <typename DataInput, typename DataOutput>
 o2::calibration::TimeSlot<DataInput>& EMCALChannelCalibrator<DataInput, DataOutput>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
-  auto& cont = o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>::getSlots();
+  auto& cont = o2::calibration::TimeSlotCalibration<DataInput>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<DataInput>());
   return slot;

@@ -17,6 +17,9 @@
 
 #pragma link C++ class o2::ft0::Digit + ;
 #pragma link C++ class o2::ft0::DigitFilterParam + ;
+#pragma link C++ class o2::ft0::ChannelFilterParam + ;
+#pragma link C++ class o2::ft0::TimeFilterParam + ;
+#pragma link C++ class o2::ft0::CalibParam + ;
 #pragma link C++ class o2::ft0::ChannelData + ;
 #pragma link C++ class o2::ft0::DetTrigInput + ;
 #pragma link C++ class o2::ft0::TriggersExt + ;
@@ -45,6 +48,9 @@
 
 #pragma link C++ class o2::ft0::FT0CalibrationInfoObject + ;
 #pragma link C++ class o2::ft0::FT0ChannelTimeCalibrationObject + ;
+#pragma link C++ class o2::ft0::SpectraInfoObject + ;
+#pragma link C++ class o2::ft0::TimeSpectraInfoObject + ;
+#pragma link C++ class o2::ft0::AmpSpectraInfoObject + ;
 #pragma link C++ class o2::ft0::GlobalOffsetsCalibrationObject + ;
 #pragma link C++ class o2::ft0::RecoCalibInfoObject + ;
 #pragma link C++ class o2::ft0::GlobalOffsetsInfoObject + ;

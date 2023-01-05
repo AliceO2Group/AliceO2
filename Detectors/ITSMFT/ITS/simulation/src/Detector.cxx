@@ -126,7 +126,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
   }
 }
 
-Detector::Detector(Bool_t active, TString name)
+Detector::Detector(Bool_t active, TString name, TString its3Version)
   : o2::base::DetImpl<Detector>(name, active),
     mTrackData(),
     /*
@@ -145,7 +145,10 @@ Detector::Detector(Bool_t active, TString name)
     mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
   } else if (name == "IT3") {
 #ifdef ENABLE_UPGRADES
-    mDescriptorIB.reset(new DescriptorInnerBarrelITS3(DescriptorInnerBarrelITS3::ThreeLayersNoDeadZones));
+    mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
+    if (its3Version != "") {
+      ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->setVersion(its3Version.Data());
+    }
 #endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
@@ -200,10 +203,10 @@ Detector::Detector(Bool_t active, TString name)
   }
 
   if (detName == "ITS") {
-    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure();
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure();
   } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
-    dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->configure();
+    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
 #endif
   }
   configOuterBarrelITS(mNumberInnerLayers);
@@ -480,6 +483,9 @@ void Detector::createMaterials()
   Float_t wRohac[4] = {9., 13., 1., 2.};
   Float_t dRohac = 0.05;
 
+  // Rohacell RIST 110
+  Float_t dRist = 0.11;
+
   // EN AW 7075 (Al alloy with Cu Mg Zn)
   Float_t aENAW7075[4] = {26.98, 63.55, 24.31, 65.41};
   Float_t zENAW7075[4] = {13., 29., 12., 30.};
@@ -554,11 +560,18 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon fleece
   o2::base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
-                             stminSi);
-  // Rohacell
+  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  // AS4C 200 gsm EX1515
+  o2::base::Detector::Material(37, "AS4C200$", 12.0107, 6, 1.48, 999, 999);
+  o2::base::Detector::Medium(37, "AS4C200$", 37, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Rohacell (various types)
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  o2::base::Detector::Mixture(38, "RIST110$", aRohac, zRohac, dRist, -4, wRohac);
+  o2::base::Detector::Medium(38, "RIST110$", 38, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
   // Carbon prepreg (Cage)
   o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
   o2::base::Detector::Medium(33, "M46J6K$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
@@ -609,6 +622,20 @@ void Detector::createMaterials()
   // Titanium
   o2::base::Detector::Material(35, "TITANIUM$", 47.867, 22, 4.506, 999, 999);
   o2::base::Detector::Medium(35, "TITANIUM$", 35, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // For ITS3
+
+  // Araldite 2011
+  Float_t dAraldite = 1.05;
+
+  // ERG Duocel
+  o2::base::Detector::Material(39, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
+  o2::base::Detector::Medium(39, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Impregnated carbon fleece
+  // (as educated guess we assume 50% carbon fleece 50% Araldite glue)
+  o2::base::Detector::Material(40, "IMPREG_FLEECE$", 12.0107, 6, 0.5 * (dAraldite + 0.4), 999, 999);
+  o2::base::Detector::Medium(40, "IMPREG_FLEECE$", 34, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -863,10 +890,10 @@ void Detector::constructDetectorGeometry()
     if (j < mNumberInnerLayers) {
       TString detName = GetName();
       if (detName == "ITS") {
-        mGeometry[j] = dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+        mGeometry[j] = ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
       } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
-        dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
+        ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->createLayer(j, wrapVols[0]); // define IB layers on first wrapper volume always
 #endif
       }
       mWrapperLayerId[j] = 0;
@@ -916,7 +943,7 @@ void Detector::constructDetectorGeometry()
   // Now create the services
   TString detName = GetName();
   if (detName == "ITS") {
-    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->createServices(wrapVols[0]);
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createServices(wrapVols[0]);
   }
 
   mServicesGeometry = new V3Services(detName);
@@ -1033,7 +1060,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t lr = 0; lr < mNumberLayers; lr++) {
     if (lr < mNumberInnerLayers) {
       if (detName == "ITS") {
-        dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
+        ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->addAlignableVolumesLayer(lr, mWrapperLayerId[lr], path, lastUID);
       }
     } else {
       addAlignableVolumesLayer(lr, path, lastUID);

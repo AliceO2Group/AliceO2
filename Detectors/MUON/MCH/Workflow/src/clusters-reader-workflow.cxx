@@ -28,7 +28,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back("enable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Propagate MC info"});
   workflowOptions.emplace_back("local", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read clusters in local reference frame"});
-  workflowOptions.emplace_back("digits", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read the associated digits"});
+  workflowOptions.emplace_back("no-digits", VariantType::Bool, false, ConfigParamSpec::HelpString{"Do not read associated digits"});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
@@ -38,7 +38,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool useMC = config.options().get<bool>("enable-mc");
   bool global = !config.options().get<bool>("local");
-  bool digits = config.options().get<bool>("digits");
+  bool digits = !config.options().get<bool>("no-digits");
   WorkflowSpec wf{o2::mch::getClusterReaderSpec(useMC, "mch-cluster-reader", global, digits)};
   o2::raw::HBFUtilsInitializer hbfIni(config, wf);
   return wf;

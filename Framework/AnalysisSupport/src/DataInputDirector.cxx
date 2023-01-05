@@ -221,7 +221,7 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   return fileAndFolder;
 }
 
-DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
+DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF, std::string treename)
 {
   if (!mParentFileMap) {
     // This file has no parent map
@@ -247,7 +247,7 @@ DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
   }
 
   if (mLevel == mAllowedParentLevel) {
-    throw std::runtime_error(fmt::format(R"(parent file requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", mLevel, mAllowedParentLevel, folderName.c_str(), mcurrentFile->GetName()));
+    throw std::runtime_error(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mAllowedParentLevel, folderName.c_str(), mcurrentFile->GetName()));
   }
 
   LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
@@ -374,7 +374,7 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
 
   if (!tree) {
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.c_str());
-    auto parentFile = getParentFile(counter, numTF);
+    auto parentFile = getParentFile(counter, numTF, treename);
     if (parentFile != nullptr) {
       int parentNumTF = parentFile->findDFNumber(0, fileAndFolder.folderName);
       if (parentNumTF == -1) {

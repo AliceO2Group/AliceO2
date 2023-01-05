@@ -33,6 +33,7 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -84,6 +85,16 @@ struct UnbinnedResid {
   unsigned char row; ///< TPC pad row
   unsigned char sec; ///< TPC sector (0..35)
   ClassDefNV(UnbinnedResid, 1);
+};
+
+/// Structure for the information required to associate each residual with a given track type (ITS-TPC-TRD-TOF, etc)
+struct TrackDataCompact {
+  TrackDataCompact() = default;
+  TrackDataCompact(uint32_t idx, uint8_t nRes, uint8_t source) : idxFirstResidual(idx), nResiduals(nRes), sourceId(source) {}
+  uint32_t idxFirstResidual; ///< the index of the first residual from this track
+  uint8_t nResiduals;        ///< total number of residuals associated to this track
+  uint8_t sourceId;          ///< source ID obtained from the global track ID
+  ClassDefNV(TrackDataCompact, 1);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
@@ -162,7 +173,7 @@ class TrackInterpolation
   void init();
 
   /// Main processing function
-  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes);
+  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters);
 
   /// Extrapolate ITS-only track through TPC and store residuals to TPC clusters along the way
   /// \param seed index
@@ -195,27 +206,24 @@ class TrackInterpolation
   /// First a circular fit in the azimuthal plane is performed and subsequently a linear fit in the transversal plane
   bool compareToHelix(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const;
 
-  /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- mNMAShort points)
+  /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- nMAShort points)
   void diffToLocLine(const int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY) const;
 
-  /// For a given set of points, calculate their deviation from the moving average (build from the neighbourhood +- mNMALong points)
+  /// For a given set of points, calculate their deviation from the moving average (build from the neighbourhood +- nMALong points)
   void diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA) const;
 
   // -------------------------------------- settings --------------------------------------------------
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
-  /// Enables storage and sending of residuals and track parameters without outlier rejection
-  void setWriteUnfiltered() { mWriteUnfiltered = true; }
-
-  /// Sets the maximum phi angle at which track extrapolation is aborted
-  void setMaxSnp(float snp) { mMaxSnp = snp; }
-  /// Sets the maximum step length for track extrapolation
-  void setMaxStep(float step) { mMaxStep = step; }
   /// Sets the flag if material correction should be applied when extrapolating the tracks
   void setMatCorr(MatCorrType matCorr) { mMatCorr = matCorr; }
 
+  /// Sets the maximum number of tracks to be processed (successfully) per TF
+  void setMaxTracksPerTF(int n) { mMaxTracksPerTF = n; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
+  std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
   std::vector<TPCClusterResiduals>& getClusterResidualsUnfiltered() { return mClResUnfiltered; }
   std::vector<TrackData>& getReferenceTracksUnfiltered() { return mTrackDataUnfiltered; }
@@ -223,18 +231,12 @@ class TrackInterpolation
  private:
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
   // parameters + settings
-  float mTPCTimeBinMUS{.2f}; ///< TPC time bin duration in us
-  float mSigYZ2TOF{.75f};    ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
-  float mMaxSnp{.85f};          ///< max snp when propagating ITS tracks
-  float mMaxStep{2.f};          ///< maximum step for propagation
+  const SpacePointsCalibConfParam* mParams = nullptr;
+  float mTPCTimeBinMUS{.2f};    ///< TPC time bin duration in us
   float mTPCVDriftRef = -1.;    ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
-  int mNMALong{15};                                  ///< number of points to be used for moving average (long range)
-  int mNMAShort{3};                                  ///< number of points to be used for estimation of distance from local line (short range)
-  float mMaxRejFrac{.15f};                           ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
-  float mMaxRMSLong{.8f};                            ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
-  bool mWriteUnfiltered{false};                      ///< if set, all residuals and track parameters will be aggregated and dumped without outlier rejection
+  int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
@@ -247,6 +249,7 @@ class TrackInterpolation
 
   // output
   std::vector<TrackData> mTrackData{};                 ///< this vector is used to store the track quality information on a per track basis
+  std::vector<TrackDataCompact> mTrackDataCompact{};   ///< required to connect each residual to a global track
   std::vector<UnbinnedResid> mClRes{};                 ///< residuals for each available TPC cluster of all tracks
   std::vector<TrackData> mTrackDataUnfiltered{};       ///< same as mTrackData, but for all tracks before outlier filtering
   std::vector<TPCClusterResiduals> mClResUnfiltered{}; ///< same as mClRes, but for all residuals before outlier filtering

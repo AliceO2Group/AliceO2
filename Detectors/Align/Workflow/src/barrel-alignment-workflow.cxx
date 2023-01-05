@@ -54,7 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"detectors", VariantType::String, std::string{"ITS,TRD,TOF"}, {"comma-separated list of detectors"}},
     {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
     {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
-    {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints"}},
+    {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);

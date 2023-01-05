@@ -47,9 +47,10 @@ void Digitizer::init()
     mChips[i].setChipIndex(i);
   }
   if (!mParams.getAlpSimResponse()) {
-    mAlpSimResp = std::make_unique<o2::itsmft::AlpideSimResponse>();
-    mAlpSimResp->initData(1);
-    mParams.setAlpSimResponse(mAlpSimResp.get());
+    std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/AlpideResponseData.root";
+    auto file = TFile::Open(responseFile.data());
+    mAlpSimResp = (o2::itsmft::AlpideSimResponse*)file->Get("response1");
+    mParams.setAlpSimResponse(mAlpSimResp);
   }
   mParams.print();
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();

@@ -26,7 +26,7 @@ namespace o2
 namespace calibration
 {
 
-class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o2::dataformats::PrimaryVertex, o2::calibration::MeanVertexData>
+class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o2::calibration::MeanVertexData>
 {
   using PVertex = o2::dataformats::PrimaryVertex;
   using MeanVertexData = o2::calibration::MeanVertexData;

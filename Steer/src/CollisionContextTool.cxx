@@ -16,12 +16,15 @@
 #include <regex>
 #include "Steer/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "Generators/InteractionDiamondParam.h"
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
 #include <fairlogger/Logger.h>
 #include "Steer/MCKinematicsReader.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 //
 // Created by Sandro Wenzel on 13.07.21.
@@ -42,6 +45,9 @@ struct Options {
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
   bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
+  int maxCollsPerTF = -1; // the maximal number of hadronic collisions per TF (can be used to constrain number of collisions per timeframe to some maximal value)
+  bool genVertices = false;         // whether to assign vertices to collisions
+  std::string configKeyValues = ""; // string to init config key values
 };
 
 enum class InteractionLockMode {
@@ -183,8 +189,8 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
     "use-existing-kine", "Read existing kinematics to adjust event counts")(
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
-    "maxColsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe.")(
-    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision");
+    "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
+    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")("with-vertices", "Assign vertices to collisions.");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -204,7 +210,9 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     if (vm.count("use-existing-kine")) {
       optvalues.useexistingkinematics = true;
     }
-
+    if (vm.count("with-vertices")) {
+      optvalues.genVertices = true;
+    }
   } catch (const bpo::error& e) {
     std::cerr << e.what() << "\n\n";
     std::cerr << "Error parsing options; Available options:\n";
@@ -220,6 +228,9 @@ int main(int argc, char* argv[])
   if (!parseOptions(argc, argv, options)) {
     exit(1);
   }
+
+  // init params
+  o2::conf::ConfigurableParam::updateFromString(options.configKeyValues);
 
   // init random generator
   gRandom->SetSeed(options.seed);
@@ -393,7 +404,22 @@ int main(int argc, char* argv[])
   }
   digicontext.setSimPrefixes(prefixes);
 
+  // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
+  digicontext.applyMaxCollisionFilter(options.tfid * options.orbitsPerTF, options.orbitsPerTF, options.maxCollsPerTF);
+
   digicontext.finalizeTimeframeStructure(options.tfid * options.orbitsPerTF, options.orbitsPerTF);
+
+  if (options.genVertices) {
+    // TODO: offer option taking meanVertex directly from CCDB !
+
+    // sample interaction vertices
+
+    // init this vertex from CCDB or InteractionDiamond parameter
+    const auto& dparam = o2::eventgen::InteractionDiamondParam::Instance();
+    o2::dataformats::MeanVertexObject meanv(dparam.position[0], dparam.position[1], dparam.position[2], dparam.width[0], dparam.width[1], dparam.width[2], dparam.slopeX, dparam.slopeY);
+    digicontext.sampleInteractionVertices(meanv);
+  }
+
   if (options.printContext) {
     digicontext.printCollisionSummary();
   }

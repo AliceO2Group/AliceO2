@@ -54,7 +54,7 @@ boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMet
 bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics,
                                                   const DeviceMetricsInfo& driverMetrics,
                                                   const std::vector<DeviceSpec>& specs,
-                                                  std::vector<std::string> const& performanceMetrics) noexcept
+                                                  std::vector<std::regex> const& performanceMetricsRegex) noexcept
 {
 
   assert(metrics.size() == specs.size());
@@ -70,14 +70,13 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
     boost::property_tree::ptree deviceRoot;
 
     for (size_t mi = 0; mi < deviceMetrics.metricLabels.size(); mi++) {
-      std::string metricLabel = deviceMetrics.metricLabels[mi].label;
+      std::string_view metricLabel{deviceMetrics.metricLabels[mi].label, deviceMetrics.metricLabels[mi].size};
 
-      auto same = [metricLabel](std::string const& matcher) -> bool {
-        std::regex r{matcher};
-        return std::regex_match(metricLabel, r);
+      auto same = [metricLabel](std::regex const& matcher) -> bool {
+        return std::regex_match(metricLabel.begin(), metricLabel.end(), matcher);
       };
       //check if we are interested
-      if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
+      if (std::find_if(std::begin(performanceMetricsRegex), std::end(performanceMetricsRegex), same) == performanceMetricsRegex.end()) {
         continue;
       }
       auto storeIdx = deviceMetrics.metrics[mi].storeIdx;
@@ -109,7 +108,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
         default:
           continue;
       }
-      deviceRoot.add_child(metricLabel, metricNode);
+      deviceRoot.add_child(std::string(metricLabel), metricNode);
     }
 
     root.add_child(specs[idx].id, deviceRoot);
@@ -117,14 +116,13 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
   boost::property_tree::ptree driverRoot;
   for (size_t mi = 0; mi < driverMetrics.metricLabels.size(); mi++) {
-    const char* metricLabel = driverMetrics.metricLabels[mi].label;
-    auto same = [metricLabel](std::string const& matcher) -> bool {
-      std::regex r{matcher};
-      return std::regex_match(metricLabel, r);
+    std::string_view const metricLabel{driverMetrics.metricLabels[mi].label, driverMetrics.metricLabels[mi].size};
+    auto same = [metricLabel](std::regex const& matcher) -> bool {
+      return std::regex_match(metricLabel.begin(), metricLabel.end(), matcher);
     };
 
     //check if we are interested
-    if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
+    if (std::find_if(std::begin(performanceMetricsRegex), std::end(performanceMetricsRegex), same) == performanceMetricsRegex.end()) {
       continue;
     }
 
@@ -157,7 +155,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       default:
         continue;
     }
-    driverRoot.add_child(metricLabel, metricNode);
+    driverRoot.add_child(std::string{metricLabel}, metricNode);
   }
 
   root.add_child("driver", driverRoot);

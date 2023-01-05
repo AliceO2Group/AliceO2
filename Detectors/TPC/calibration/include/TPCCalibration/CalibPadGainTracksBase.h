@@ -203,6 +203,12 @@ class CalibPadGainTracksBase
   /// \return return how the extracted gain map is normalized
   auto getNormalizationType() const { return mNormType; }
 
+  /// set if the cluster charge is transformed using log(1+Q)
+  bool setLogTransformQ(const bool logTransformQ) { return mLogTransformQ = logTransformQ; }
+
+  /// \return returns if the cluster charge is transformed using log(1+Q)
+  bool getLogTransformQ() const { return mLogTransformQ; }
+
   /// resetting the histograms which are used for extraction of the gain map
   void resetHistos();
 
@@ -225,6 +231,7 @@ class CalibPadGainTracksBase
   std::unique_ptr<CalPad> mSigmaMap;          ///< standard deviation map
   std::unique_ptr<CalPad> mNClMap;            ///< statistics (number of entries per pad)
   NormType mNormType = region;                ///< Normalization type for the extracted gain map
+  bool mLogTransformQ{true};                  ///< transformation of q/dedx -> log(1 + q/dedx)
 
   /// Helper function for drawing the extracted gain map
   void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm = false) const;

@@ -17,6 +17,7 @@
 #define ALICEO2_DATA_MCTRACK_H_
 
 #include "SimulationDataFormat/ParticleStatus.h"
+#include "SimulationDataFormat/MCGenStatus.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
@@ -199,7 +200,7 @@ class MCTrackT
   int getProcess() const { return ((PropEncoding)mProp).process; }
 
   /// get generator status code
-  int getStatusCode() const { return mStatusCode; }
+  o2::mcgenstatus::MCGenStatusEncoding getStatusCode() const { return ((o2::mcgenstatus::MCGenStatusEncoding)mStatusCode); }
 
   void setToBeDone(bool f)
   {
@@ -267,7 +268,7 @@ class MCTrackT
   // such as part of mProp (process) or mPDG
   Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 6);
+  ClassDefNV(MCTrackT, 8);
 };
 
 template <typename T>

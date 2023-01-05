@@ -129,7 +129,7 @@ void MFTAssessment::createHistos()
 
   mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
 
-  mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}; #chi^{2}; # entries", 21, -0.5, 20.5);
+  mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}/NDF; #chi^{2}/NDF; # entries", 210, -0.5, 20.5);
 
   mTrackCharge = std::make_unique<TH1F>("mMFTTrackCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
 
@@ -339,7 +339,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 
   for (auto& oneTrack : mMFTTracks) {
     mTrackNumberOfClusters->Fill(oneTrack.getNumberOfPoints());
-    mTrackChi2->Fill(oneTrack.getTrackChi2());
+    mTrackChi2->Fill(oneTrack.getChi2OverNDF());
     mTrackCharge->Fill(oneTrack.getCharge());
     mTrackPhi->Fill(oneTrack.getPhi());
     mTrackEta->Fill(oneTrack.getEta());
@@ -515,7 +515,7 @@ void MFTAssessment::processRecoTracks()
     float phi_Rec = mftTrack.getPhi();
     o2::math_utils::bringTo02Pi(phi_Rec);
     const auto& nClusters = mftTrack.getNumberOfPoints();
-    const auto& Chi2_Rec = mftTrack.getTrackChi2();
+    const auto& Chi2_Rec = mftTrack.getChi2OverNDF();
     int Q_Rec = mftTrack.getCharge();
 
     mHistPtVsEta[kReco]->Fill(eta_Rec, pt_Rec);
@@ -569,7 +569,7 @@ void MFTAssessment::processTrueTracks()
           float phi_Rec = mftTrack.getPhi();
           o2::math_utils::bringTo02Pi(phi_Rec);
           const auto& nClusters = mftTrack.getNumberOfPoints();
-          const auto& Chi2_Rec = mftTrack.getTrackChi2();
+          const auto& Chi2_Rec = mftTrack.getChi2OverNDF();
           int Q_Rec = mftTrack.getCharge();
           // Residuals at vertex
           auto x_res = mftTrack.getX() - vxGen;

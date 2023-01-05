@@ -27,8 +27,8 @@
 namespace o2::fit
 {
 
-template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
-class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>
+template <typename TimeSlotStorageType, typename CalibrationObjectType>
+class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlotStorageType>
 {
 
   // probably will be set via run parameter
@@ -67,7 +67,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
     auto starting = slot.getStartTimeMS();
     auto stopping = slot.getEndTimeMS();
     LOGP(info, "!!!! {}({})<=TF<={}({}), starting: {} stopping {}", slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), starting, stopping);
-    auto calibrationObject = container->generateCalibrationObject();
+    auto calibrationObject = container->generateCalibrationObject(slot.getStartTimeMS(), slot.getEndTimeMS(), mExtraInfo);
     std::vector<CalibObjWithInfoType> preparedCalibObjects;
     preparedCalibObjects.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, starting, stopping));
     mStoredCalibrationObjects.insert(mStoredCalibrationObjects.end(),
@@ -80,7 +80,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   {
     LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot "
               << " start " << tstart << " end " << tend;
-    auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
+    auto& cont = o2::calibration::TimeSlotCalibration<TimeSlotStorageType>::getSlots();
     auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
     slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));
     return slot;
@@ -99,10 +99,15 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
               << " start " << starting << " end " << stopping;
     return result;
   }
+  void setExtraInfo(const std::string& extraInfo)
+  {
+    mExtraInfo = extraInfo;
+  }
 
  private:
   std::vector<CalibObjWithInfoType> mStoredCalibrationObjects{};
   const unsigned int mMinEntries;
+  std::string mExtraInfo;
 };
 
 } // namespace o2::fit

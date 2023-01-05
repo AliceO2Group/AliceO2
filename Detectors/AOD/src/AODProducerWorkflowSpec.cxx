@@ -742,13 +742,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   const gsl::span<const GIndex>& GIndices,
                                                   const o2::globaltracking::RecoContainer& data,
-                                                  const std::map<std::pair<int, int>, int>& mcColToEvSrc)
+                                                  const std::vector<std::vector<int>>& mcColToEvSrc)
 {
   int NSources = 0;
   int NEvents = 0;
   for (auto& p : mcColToEvSrc) {
-    NSources = std::max(p.first.second, NSources);
-    NEvents = std::max(p.first.first, NEvents);
+    NSources = std::max(p[1], NSources);
+    NEvents = std::max(p[2], NEvents);
   }
   NSources++; // 0 - indexed
   NEvents++;
@@ -802,9 +802,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
   int tableIndex = 1;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo.first.first;
-    int source = colInfo.first.second;
-    int mcColId = colInfo.second;
+    int event = colInfo[2];
+    int source = colInfo[1];
+    int mcColId = colInfo[0];
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -872,7 +872,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
         statusCode = mcParticles[particle].getProcess();
       } else {
-        statusCode = mcParticles[particle].getStatusCode();
+        statusCode = mcParticles[particle].getStatusCode().fullEncoding;
       }
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
@@ -1207,26 +1207,91 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
   return pattern;
 }
 
-// fill calo related tables (cells and calotrigger table)
-template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
-                                           const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
-                                           const std::map<uint64_t, int>& bcsMap, int8_t caloType)
+template <typename TCaloHandler, typename TCaloCursor, typename TCaloTRGCursor>
+void AODProducerWorkflowDPL::addToCaloTable(const TCaloHandler& caloHandler, const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
+                                            int eventID, int bcID, int8_t caloType)
 {
-  uint64_t globalBC = 0;    // global BC ID
-  uint64_t globalBCRel = 0; // BC id reltive to minGlBC (from FIT)
+  auto inputEvent = caloHandler.buildEvent(eventID);
+  auto cellsInEvent = inputEvent.mCells; // get cells belonging to current event
+  for (auto& cell : cellsInEvent) {      // loop over all cells in collision
+    caloCellCursor(0,
+                   bcID,
+                   CellHelper::getCellNumber(cell),
+                   truncateFloatFraction(CellHelper::getAmplitude(cell), mCaloAmp),
+                   truncateFloatFraction(CellHelper::getTimeStamp(cell), mCaloTime),
+                   cell.getType(),
+                   caloType); // 1 = emcal, -1 = undefined, 0 = phos
+
+    // todo: fix dummy values in CellHelper when it is clear what is filled for trigger information
+    if (CellHelper::isTRU(cell)) { // Write only trigger cells into this table
+      caloTRGCursor(0,
+                    bcID,
+                    CellHelper::getFastOrAbsID(cell),
+                    CellHelper::getLnAmplitude(cell),
+                    CellHelper::getTriggerBits(cell),
+                    caloType);
+    }
+  }
+}
+
+// fill calo related tables (cells and calotrigger table)
+template <typename TCaloCursor, typename TCaloTRGCursor>
+void AODProducerWorkflowDPL::fillCaloTable(const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
+                                           const std::map<uint64_t, int>& bcsMap,
+                                           const o2::globaltracking::RecoContainer& data)
+{
+  // get calo information
+  auto caloEMCCells = data.getEMCALCells();
+  auto caloEMCCellsTRGR = data.getEMCALTriggers();
+
+  auto caloPHOSCells = data.getPHOSCells();
+  auto caloPHOSCellsTRGR = data.getPHOSTriggers();
+
+  if (!mInputSources[GIndex::PHS]) {
+    caloPHOSCells = {};
+    caloPHOSCellsTRGR = {};
+  }
+
+  if (!mInputSources[GIndex::EMC]) {
+    caloEMCCells = {};
+    caloEMCCellsTRGR = {};
+  }
+
+  o2::emcal::EventHandler<o2::emcal::Cell> emcEventHandler;
+  o2::phos::EventHandler<o2::phos::Cell> phsEventHandler;
 
   // get cell belonging to an eveffillnt instead of timeframe
-  caloEventHandler->reset();
-  caloEventHandler->setCellData(calocells, caloCellTRGR);
+  emcEventHandler.reset();
+  emcEventHandler.setCellData(caloEMCCells, caloEMCCellsTRGR);
+
+  phsEventHandler.reset();
+  phsEventHandler.setCellData(caloPHOSCells, caloPHOSCellsTRGR);
+
+  int emcNEvents = emcEventHandler.getNumberOfEvents();
+  int phsNEvents = phsEventHandler.getNumberOfEvents();
+
+  std::vector<std::tuple<uint64_t, int8_t, int>> caloEvents; // <bc, caloType, eventID>
+
+  caloEvents.reserve(emcNEvents + phsNEvents);
+
+  for (int iev = 0; iev < emcNEvents; ++iev) {
+    uint64_t bc = emcEventHandler.getInteractionRecordForEvent(iev).toLong();
+    caloEvents.emplace_back(std::make_tuple(bc, 1, iev));
+  }
+
+  for (int iev = 0; iev < phsNEvents; ++iev) {
+    uint64_t bc = phsEventHandler.getInteractionRecordForEvent(iev).toLong();
+    caloEvents.emplace_back(std::make_tuple(bc, 0, iev));
+  }
+
+  std::sort(caloEvents.begin(), caloEvents.end(),
+            [](const auto& left, const auto& right) { return std::get<0>(left) < std::get<0>(right); });
 
   // loop over events
-  for (int iev = 0; iev < caloEventHandler->getNumberOfEvents(); iev++) {
-    auto inputEvent = caloEventHandler->buildEvent(iev);
-    auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
-    auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
-
-    globalBC = interactionRecord.toLong();
+  for (int i = 0; i < emcNEvents + phsNEvents; ++i) {
+    uint64_t globalBC = std::get<0>(caloEvents[i]);
+    int8_t caloType = std::get<1>(caloEvents[i]);
+    int eventID = std::get<2>(caloEvents[i]);
     auto item = bcsMap.find(globalBC);
     int bcID = -1;
     if (item != bcsMap.end()) {
@@ -1234,28 +1299,15 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
     } else {
       LOG(warn) << "Error: could not find a corresponding BC ID for a calo point; globalBC = " << globalBC << ", caloType = " << (int)caloType;
     }
-
-    // loop over all cells in collision
-    for (auto& cell : cellsInEvent) {
-      caloCellCursor(0,
-                     bcID,
-                     CellHelper::getCellNumber(cell),
-                     truncateFloatFraction(CellHelper::getAmplitude(cell), mCaloAmp),
-                     truncateFloatFraction(CellHelper::getTimeStamp(cell), mCaloTime),
-                     cell.getType(),
-                     caloType); // 1 = emcal, -1 = undefined, 0 = phos
-
-      // todo: fix dummy values in CellHelper when it is clear what is filled for trigger information
-      if (CellHelper::isTRU(cell)) { // Write only trigger cells into this table
-        caloCellTRGTableCursor(0,
-                               bcID,
-                               CellHelper::getFastOrAbsID(cell),
-                               CellHelper::getLnAmplitude(cell),
-                               CellHelper::getTriggerBits(cell),
-                               caloType);
-      }
+    if (caloType == 0) { // phs
+      addToCaloTable(phsEventHandler, caloCellCursor, caloTRGCursor, eventID, bcID, caloType);
+    }
+    if (caloType == 1) { // emc
+      addToCaloTable(emcEventHandler, caloCellCursor, caloTRGCursor, eventID, bcID, caloType);
     }
   }
+
+  caloEvents.clear();
 }
 
 void AODProducerWorkflowDPL::init(InitContext& ic)
@@ -1361,13 +1413,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto zdcBCRecData = recoData.getZDCBCRecData();
   auto zdcTDCData = recoData.getZDCTDCData();
 
-  // get calo information
-  auto caloEMCCells = recoData.getEMCALCells();
-  auto caloEMCCellsTRGR = recoData.getEMCALTriggers();
-
-  auto caloPHOSCells = recoData.getPHOSCells();
-  auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
-
   auto cpvClusters = recoData.getCPVClusters();
   auto cpvTrigRecs = recoData.getCPVTriggers();
 
@@ -1384,15 +1429,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(debug) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
   LOG(debug) << "FOUND " << fddRecPoints.size() << " FDD rec. points";
-  LOG(debug) << "FOUND " << caloEMCCells.size() << " EMC cells";
-  LOG(debug) << "FOUND " << caloEMCCellsTRGR.size() << " EMC Trigger Records";
   LOG(debug) << "FOUND " << cpvClusters.size() << " CPV clusters";
   LOG(debug) << "FOUND " << cpvTrigRecs.size() << " CPV trigger records";
 
   LOG(info) << "FOUND " << primVertices.size() << " primary vertices";
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
-  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION_001"});
   auto& decay3BodyBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "DECAY3BODY"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD_001"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
@@ -1570,7 +1613,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
   // correct ordering when iterating over container elements
-  std::map<std::pair<int, int>, int> mcColToEvSrc;
+  std::vector<std::vector<int>> mcColToEvSrc;
 
   if (mUseMC) {
     // TODO: figure out collision weight
@@ -1610,10 +1653,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                              truncateFloatFraction(mcColWeight, mCollisionPosition),
                              header.GetB());
         }
-        mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
       }
     }
   }
+
+  std::sort(mcColToEvSrc.begin(), mcColToEvSrc.end(),
+            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
 
   // vector of FDD amplitudes
   int16_t aFDDAmplitudesA[8] = {0u};
@@ -1697,8 +1743,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     // filling MC collision labels
     for (auto& label : primVerLabels) {
-      auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
-      int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
+      auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
+                             [&label](const auto& mcColInfo) { return mcColInfo[1] == label.getSourceID() && mcColInfo[2] == label.getEventID(); });
+      int32_t mcCollisionID = -1;
+      if (it != mcColToEvSrc.end()) {
+        mcCollisionID = it->at(0);
+      }
       uint16_t mcMask = 0; // todo: set mask using normalized weights?
       mcColLabelsCursor(0, mcCollisionID, mcMask);
     }
@@ -1809,16 +1859,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   bcToClassMask.clear();
 
-  if (mInputSources[GIndex::EMC]) {
-    // fill EMC cells to tables
-    // TODO handle MC info
-    o2::emcal::EventHandler<o2::emcal::Cell> caloEventHandler;
-    fillCaloTable(&caloEventHandler, caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap, 1);
-  }
-
-  if (mInputSources[GIndex::PHS]) {
-    o2::phos::EventHandler<o2::phos::Cell> caloEventHandler;
-    fillCaloTable(&caloEventHandler, caloPHOSCells, caloPHOSCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap, 0);
+  if (mInputSources[GIndex::PHS] || mInputSources[GIndex::EMC]) {
+    fillCaloTable(caloCellsCursor, caloCellsTRGTableCursor, bcsMap, recoData);
   }
 
   // fill cpvcluster table
@@ -2313,7 +2355,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade_001"}, "AOD", "CASCADE_001", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2collision_001"}, "AOD", "COLLISION_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2decay3body"}, "AOD", "DECAY3BODY", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fdd_001"}, "AOD", "FDD_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);

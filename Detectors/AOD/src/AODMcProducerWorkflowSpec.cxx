@@ -45,9 +45,9 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
 
   int tableIndex = 1;
   for (auto& colInfo : mMCColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo.first.first;
-    int source = colInfo.first.second;
-    int mcColId = colInfo.second;
+    int event = colInfo[2];
+    int source = colInfo[1];
+    int mcColId = colInfo[0];
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -106,7 +106,7 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
         flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
         statusCode = mcParticles[particle].getProcess();
       } else {
-        statusCode = mcParticles[particle].getStatusCode();
+        statusCode = mcParticles[particle].getStatusCode().fullEncoding;
       }
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
@@ -256,7 +256,7 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
       for (int ievt = 0; ievt < nEvents; ievt++) {
         auto& header = mcReader->getMCEventHeader(isrc, ievt);
         updateMCCollisions(header, generatorID);
-        mMCColToEvSrc.emplace(std::pair<int, int>(ievt, isrc), icol);
+        mMCColToEvSrc.emplace_back(std::vector<int>{icol, isrc, ievt});
         icol++;
       }
     }
@@ -276,10 +276,13 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           updateMCCollisions(header, generatorID);
         }
-        mMCColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), icol); // point background and injected signal events to one collision
+        mMCColToEvSrc.emplace_back(std::vector<int>{icol, sourceID, eventID}); // point background and injected signal events to one collision
       }
     }
   }
+
+  std::sort(mMCColToEvSrc.begin(), mMCColToEvSrc.end(),
+            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
 
   // filling mc particles table
   fillMCParticlesTable(*mcReader, mcParticlesCursor);

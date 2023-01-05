@@ -18,6 +18,7 @@
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableSensorTRD.h"
 #include "Align/Controller.h"
+#include "Align/AlignConfig.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/TrackletTransformer.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -112,7 +113,20 @@ void AlignableDetectorTRD::writePedeInfo(FILE* parOut, const Option_t* opt) cons
   for (int ip = 0; ip < getNCalibDOFs(); ip++) {
     int cmt = isCondDOF(ip) ? kOff : kOn;
     fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(ip),
-            getParVal(ip), getParErr(ip), comment[kOnOn], isFreeDOF(ip) ? "  " : "FX", ip);
+            -getParVal(ip), getParErr(ip), comment[kOnOn], isFreeDOF(ip) ? "  " : "FX", ip);
+  }
+  //
+}
+
+//______________________________________________________
+void AlignableDetectorTRD::writeLabeledPedeResults(FILE* parOut) const
+{
+  //
+  AlignableDetector::writeLabeledPedeResults(parOut);
+  //
+  for (int ip = 0; ip < getNCalibDOFs(); ip++) {
+    fprintf(parOut, "%9d %+e %+e\t! calib param %d of %s %s %s\n", getParLab(ip), -getParVal(ip), getParErr(ip), ip, GetName(),
+            isFreeDOF(ip) ? "   " : "FXU", o2::align::utils::isZeroAbs(getParVal(ip)) ? "FXP" : "   ");
   }
   //
 }
@@ -150,6 +164,12 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
   // If inv==true, the track propagates in direction of decreasing tracking X
   // (i.e. upper leg of cosmic track)
   //
+  const auto& algConf = AlignConfig::Instance();
+  const auto recoData = mController->getRecoContainer();
+  const auto& trk = recoData->getTrack<o2::trd::TrackTRD>(gid);
+  if (trk.getNtracklets() < algConf.minTRDTracklets) {
+    return -1;
+  }
   auto propagator = o2::base::Propagator::Instance(); // float version!
   static float prevBz = -99999.;
   if (prevBz != propagator->getNominalBz()) {
@@ -160,9 +180,7 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
   const auto* transformer = mController->getTRDTransformer();
   auto algTrack = mController->getAlgTrack();
   mFirstPoint = algTrack->getNPoints();
-  const auto recoData = mController->getRecoContainer();
   const auto trackletsRaw = recoData->getTRDTracklets();
-  const auto& trk = recoData->getTrack<o2::trd::TrackTRD>(gid);
   bool fail = false;
   int nPntIni = algTrack->getNPoints();
   o2::track::TrackPar trkParam = trk.getOuterParam(); // we refit outer param inward to get tracklet coordinates accounting for tilt

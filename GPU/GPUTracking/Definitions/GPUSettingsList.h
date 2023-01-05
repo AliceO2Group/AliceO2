@@ -47,6 +47,7 @@ AddOptionRTC(trackReferenceX, float, 1000.f, "", 0, "Transport all tracks to thi
 AddOptionRTC(zsThreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
 AddOptionRTC(tubeChi2, float, 5.f * 5.f, "", 0, "Max chi2 to mark cluster adjacent to track")
 AddOptionRTC(tubeMaxSize2, float, 2.5f * 2.5f, "", 0, "Square of max tube size (normally derrived from tpcTubeChi2)")
+AddOptionRTC(clustersShiftTimebins, float, 0, "", 0, "Shift of TPC clusters (applied during CTF cluster decoding)")
 AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, unsigned short, 500, "", 0, "Except pad from cluster finding if total number of charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(maxConsecTimeBinAboveThreshold, unsigned short, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, unsigned short, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
@@ -96,6 +97,7 @@ AddOptionRTC(trkltResRPhiIdeal, float, 1.f, "", 0, "Optimal tracklet rphi resolu
 AddOptionRTC(applyDeflectionCut, unsigned char, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
 AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
+AddOptionRTC(matCorrType, unsigned char, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")
 AddHelp("help", 'h')
 EndConfig()
 

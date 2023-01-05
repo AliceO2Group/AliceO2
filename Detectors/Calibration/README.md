@@ -4,52 +4,60 @@
 
 # Time-interval based calibration flow for O2
 
-The calibration flow of O2 foresees that every calibration device (expected to all run on one single aggregation node) will receive the TimeFrames with calibration input from every EPN in an asynchronous way. The calibration device will have to process the TFs in time intervals (TimeSlots) which allow to create CCDB entries with the needed granularity and update frequency (defined by the calibration device itself).
+The calibration flow of O2 foresees that all calibration devices are running on dedicated EPN calibration nodes. These nodes are also called aggregator nodes. A particular calibration device can only run on a single calibration node, as it is supposed to receive the complete input data from each EPN processing node.
+The processing nodes can send the data either for every TF or sporadically. In the latter case for example accumulated for every 10 TFs.
+In both cases the calibration input reaches the calibration nodes asynchronously. And since there are up to 250 EPNs processing TFs in two different NUMA domains, TFs which reach the calibration node consecutively might in reality be 500 TFs apart in absolute time.
+This is because the processing time of individual TFs can vary quite significantly.
+The calibration devices have to prepare the calibration objects for time intervals (TimeSlots) which are defined by the user.
+They have a specificied duration and a minimum statistics requirement.
+For example a calibration is supposed to aggregate data for 10 minutes and for a meaningful calibration within these 10 minutes a certain amount of global tracks is required. In case after 10 minutes the amount of global tracks is not sufficient, the framework can automatically increase the interval of 10 minutes until enough global tracks are available to create the calibration object.
 
-## TimeSlotCalibration<Input, Container>
-Each calibration device (to be run in a workflow) has to derive from `o2::calibration::TimeSlotCalibration`, which is a templated class that takes as types the Input type (i.e. the object to be processed, coming from the upstream device) and the Container type (i.e. the object that will contain the calibration data per TimeSlot). Each calibration device has to be configured with the following parameters:
 
-`tf-per-slot` : default length of a TiemSlot in TFs (will be widened in case of too little statistics). If this is set to `o2::calibration::INFINITE_TF`, then there will be only 1 slot at a time, valid till infinity. Value 0 is reserved for a special mode: a single slot w/o explicit boundaries is
-filled until the requested statistics is reached. Once `hasEnoughData` return true, the slot will be closed with really seen min/max TFs and new one will be created with lower boundary equal the end of the previous slot.
-The slot duration can be also set via methods `setSlotLengthInSeconds(int s)` or `setSlotLengthInOrbits(int n)`, which will be internally converted (and rounded) to the number of TFs at the 1st TF processing (when the NHBF per orbit will be available from the GRPECS).
+## TimeSlotCalibration<Container>
+Each calibration device which is supposed to run on the aggregator should derive from `o2::calibration::TimeSlotCalibration<Container>`. It is a templated class. The `Container` type is the object in which the calibration data per TimeSlot will be accumulated.
 
-`updateInterval` : to be used together with `tf-per-slot = o2::calibration::INFINITE_TF`: it allows to try to finalize the slot (and produce calibration) when the `updateInterval` has passed. Note that this is an approximation (as explained in the code) due to the fact that TFs will come asynchronously (not ordered in time).
+### Configuration of the TimeSlot
 
-`max-delay` : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
-If `tf-per-slot == o2::calibration::INFINITE_TF`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
+Internally the default length of a TimeSlot is calculated in number of TFs. The default TF length is 128 orbits, but theoretically this can change. Therefore it is advised to set the TimeSlot length via the methods `setSlotLengthInSeconds(int s)` or `setSlotLengthInOrbits(int n)`, which will be internally converted (and rounded) to the corresponding number of TFs at the 1st TF processing. At that time we know the TF length from the GRPECS object.
+One can also set the number of TFs per slot directly via `setSlotLength(o2::calibration::TFType n)`. With `setSlotLength(o2::calibration::INFINITE_TF)` there will be only 1 slot at a time, valid till infinity. A special mode is configured with `setSlotLength(0)` in which case there will only be a single slot, w/o explicit boundaries which is filled until the statistics is reached. In case `setSlotLength(0)` is configured we can also use `setCheckIntervalInfiniteSlot(o2::calibration::TFType updateInterval)` in which case the calibration checks whether the statistics is sufficient only after `updateInterval` TFs. Otherwise it would check after every TF.
 
-`updateAtTheEndOfRunOnly` : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
+The TFs arrive asynchronously at the aggregator node. The `TimeSlotCalibration` keeps a `std::deque` of TimeSlots for which it aggregates the input data simultaneously. Whenever a slot has reached its configured duration the statistics requirement is checked. In case it is not fulfilled, the slot can be extended or merged to the previous slot in order to obtain the required statistics.
 
-Example for the options above:
-`tf-per-slot = 20`
-`max-delay = 3`
-Then if we are processing TF 61 and TF 0 comes, TF 0 will be discarded.
+By default, TFs which arrive more than `3 * SlotLengthInTF` later than the most recent TF processed are discarded. This maximum delay can be configured via `setMaxSlotsDelay(int nSlots)`. If it is set to 4 and each slot has the length of 30 TFs, then upon processing of TF 121 the input from TF0 would be discarded, if it was not already processed.
 
-Each calibration device has to implement the following methods:
 
-`void initOutput()`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo);
+In order to prepare only one CCDB object at the end of the run you can use `setUpdateAtTheEndOfRunOnly()`. In this case all the above settings for the slot duration are irrelevant. And upon the `endOfStream` of your calibration device you should make a call to `checkSlotsToFinalize()`.
 
-`bool hasEnoughData(const o2::calibration::TimeSlot<Container>& slot)` : method to determine whether a TimeSlot has enough data to be calibrated; if not, it will be merged to the following (in time) one;
 
-`void finalizeSlot(o2::calibration::TimeSlot<Container>& slot)` : method to process the calibration data accumulated in each TimeSlot;
+### Mandatory methods to implement when deriving from `o2::calibration::TimeSlotCalibration<Container>`
 
-`o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, TFType tstart, TFType tend)` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
+
+- `void initOutput()`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo);
+
+- `bool hasEnoughData(const o2::calibration::TimeSlot<Container>& slot)` : method to determine whether a TimeSlot has enough data to be calibrated; if not, it will be merged to the following (in time) one;
+
+- `void finalizeSlot(o2::calibration::TimeSlot<Container>& slot)` : method to process the calibration data accumulated in each TimeSlot;
+
+- `o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, TFType tstart, TFType tend)` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
 
 See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
 
 ## TimeSlot<Container>
+
 The TimeSlot is a templated class which takes as input type the Container that will hold the calibration data needed to produce the calibration objects (histograms, vectors, array...). Each calibration device could implement its own Container, according to its needs.
 
 The Container class needs to implement the following methods:
 
-`void fill(const gsl::span<const Input> data)`  : method to decide how to use the calibration data within the container (e.g. fill a vector);
-or
-`void fill(o2::dataformats::TFIDInfo& ti, const gsl::span<const Input> data)`  : method to decide how to use the calibration data within the container (e.g. fill a vector) and having access to the TFIDInfo struct providing relevant info for current TF (tfCounter, runNumber, creationTime etc.)
+- `void merge(const Container* prev)` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
+
+- `void print()` : method to print the content of the Container
+
+- `void fill(DATA data, ...)`  : method to decide how to use the calibration data within the container (e.g. fill a vector). The type of `DATA` is usually `const gsl::span<your-input-data>`, but can also be anything else. Optionally the `fill` method can accept additional input of arbitrary type;
+
+or, alternatively
+
+- `void fill(o2::dataformats::TFIDInfo& ti, DATA data, ...)`  : method to decide how to use the calibration data within the container (e.g. fill a vector) and having access to the TFIDInfo struct providing relevant info for current TF (tfCounter, runNumber, creationTime etc.).
 If provided, this latter method will be used.
-
-`void merge(const Container* prev)` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
-
-`void print()` : method to print the content of the Container
 
 See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
 
@@ -57,7 +65,7 @@ The Slot provides a generic methods to access its boundaries: `getTFStart()` and
 
 ## detector-specific-calibrator-workflow
 
-Each calibration will need to be implemented in the form of a workflow, whose options should include those for the calibration device itself (`tf-per-slot` and `max-delay`, see above).
+Each calibration will need to be implemented in the form of a workflow, whose options should include those for the calibration device itself (for example the slot length and statistics requirement).
 The output to be sent by the calibrator should include:
 
 *   a vector of the snapshots of the object to be put in the CCDB;
@@ -75,6 +83,16 @@ output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCph
 Note that in order to access the absolute time of the slot boundaries, one should subscribe to CTP orbit reset time object (at least) via GRPGeomHelper class.
 
 See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx
+
+## Integration of calibration workflows into the global framework
+
+For the synchronous processing on the EPN the calibration workflows are grouped according to their origin (BARREL, CALO, MUON and FORWARD) and to the nature of their input (TF for devices expecting input for every TF and SPORADIC for devices expecting input sporadically).
+For each group (e.g. `BARREL_TF`) a pair of `o2-dpl-output-proxy` running on the processing EPNs and `o2-dpl-raw-proxy` running on the calibration nodes is initialized and these proxys are used to transfer the input from processing nodes to the calibration node.
+Have a look at the `DATA/common/setenv_calib.sh` script in O2DPG where for each calibration the required data descriptors are added to the proxies.
+In addition there is always some logic to decide whether a specific calibration should be enabled or not.
+
+The workflow which is running on the processing nodes should be added in the `prodtests/full-system-test/calib-workflow.sh` script.
+The workflow running on the aggregator should be added to `prodtests/full-system-test/aggregator-workflow.sh`.
 
 ## Calibrating over multiple runs
 

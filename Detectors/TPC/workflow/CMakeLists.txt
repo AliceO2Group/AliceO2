@@ -34,6 +34,7 @@ o2_add_library(TPCWorkflow
                        src/TrackAndClusterFilterSpec.cxx
                        src/FileWriterSpec.cxx
                        src/TPCVDriftTglCalibSpec.cxx
+                       src/ClusterQCSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -200,6 +201,11 @@ o2_add_executable(calib-gainmap-tracks
                   SOURCES src/tpc-calib-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
 
+o2_add_executable(integrate-clusters
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-integrate-cluster-currents.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
@@ -224,6 +230,11 @@ o2_add_executable(calibrator-gainmap-tracks
 
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(cluster-qc
+                  SOURCES src/tpc-cluster-qc.cxx
                   COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 

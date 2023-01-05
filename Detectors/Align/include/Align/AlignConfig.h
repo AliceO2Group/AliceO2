@@ -38,7 +38,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minPoints[NTrackTypes] = {4, 10};
   int minDetAcc[NTrackTypes] = {1, 1};
 
-  float minX2X0Pt2Account = 0.5e-3;
+  float minScatteringAngleToAccount = 0.0001;
 
   int verbose = 0;
 
@@ -48,21 +48,26 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
 
   int minPointTotal = 4; // total min number of alignment point to account track
   int minDetectors = 1;  // min number of detectors per track
+  int minITSClusters = 4;  // min ITS clusters to accept the track
+  int minTRDTracklets = 3; // min TRD tracklets to accept the track
 
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint
   float alignParamZero = 1e-13;    // assign 0 to final alignment parameter if its abs val is below this threshold
-  float controlFraction = 1.; // fraction for which control output is requested
+  float controlFraction = -1.;     // fraction for which control output is requested, if negative - only 1st instance of device will write them
+  float MPRecOutFraction = -1.;    // compact Millepede2Record fraction, if negative - only 1st instance of device will write them
+
   bool MilleOut = true;       // Mille output
-  bool MPRecOut = true;       // compact Millepede2Record
   bool KalmanResid = true;    // Kalman residuals
   bool MilleOutBin = true;    // text vs binary output for mille data
+  bool GZipMilleOut = false;  // compress binary records
 
   std::string mpDatFileName{"mpData"};            //  file name for records mille data output
   std::string mpParFileName{"mpParams.txt"};      //  file name for MP params
   std::string mpConFileName{"mpConstraints.txt"}; //  file name for MP constraints
   std::string mpSteerFileName{"mpSteer.txt"};     //  file name for MP steering
   std::string residFileName{"mpContolRes"};       //  file name for optional control residuals
+  std::string mpLabFileName{"mpResultsLabeled.txt"}; //  file name for relabeled MP params
   //
   std::string outCDBPath{};        // output OCDB path
   std::string outCDBComment{};     // optional comment to add to output cdb objects

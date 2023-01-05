@@ -149,6 +149,9 @@ bool Millepede2Record::fillTrack(AlignmentTrack& trc, const std::vector<int>& id
         int lp0 = pnt->getMinLocVarID();  // point may depend on material variables starting from this one
         int lp1 = pnt->getMaxLocVarID();  // and up to this one (exclusive)
         for (int j = lp0; j < lp1; j++) { // derivatives over material variables
+          if (TMath::IsNaN(deriv[j])) {
+            LOGP(error, "Deriv {} of {}:{} is NAN", j, lp0, lp1);
+          }
           if (isZeroAbs(deriv[j])) {
             continue;
           }

@@ -26,7 +26,7 @@ namespace mft
 class TrackerConfig
 {
  public:
-  TrackerConfig();
+  TrackerConfig() = default;
   TrackerConfig(const TrackerConfig& conf) = default;
   TrackerConfig& operator=(const TrackerConfig& conf) = default;
 
@@ -36,29 +36,32 @@ class TrackerConfig
   const Int_t getPhiBinIndex(const Float_t phi) const;
   const Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex) const;
 
+ protected:
   // tracking configuration parameters
-  Int_t mMinTrackPointsLTF = 5;
-  Int_t mMinTrackPointsCA = 4;
-  Int_t mMinTrackStationsLTF = 4;
-  Int_t mMinTrackStationsCA = 4;
-  Float_t mLTFclsRCut = 0.0100;
-  Float_t mLTFclsR2Cut = 0.0100 * 0.0100;
-  Float_t mROADclsRCut = 0.0400;
-  Float_t mROADclsR2Cut = 0.0400 * 0.0400;
-  Int_t mLTFseed2BinWin = 3;
-  Int_t mLTFinterBinWin = 3;
-  Int_t mRBins = 50;
-  Int_t mPhiBins = 50;
-  Int_t mRPhiBins = 50 * 50;
-  Float_t mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / 50.;
-  Float_t mPhiBinSize = constants::index_table::PhiMax / 50.;
-  Float_t mInverseRBinSize = 50. / (constants::index_table::RMax - constants::index_table::RMin);
-  Float_t mInversePhiBinSize = 50. / constants::index_table::PhiMax;
-  Bool_t mLTFConeRadius = kFALSE;
-  Bool_t mCAConeRadius = kFALSE;
+  Int_t mMinTrackPointsLTF;
+  Int_t mMinTrackPointsCA;
+  Int_t mMinTrackStationsLTF;
+  Int_t mMinTrackStationsCA;
+  Float_t mLTFclsRCut;
+  Float_t mLTFclsR2Cut;
+  Float_t mROADclsRCut;
+  Float_t mROADclsR2Cut;
+  Int_t mLTFseed2BinWin;
+  Int_t mLTFinterBinWin;
+  Int_t mRBins;
+  Int_t mPhiBins;
+  Int_t mRPhiBins;
+  Float_t mRBinSize;
+  Float_t mPhiBinSize;
+  Float_t mInverseRBinSize;
+  Float_t mInversePhiBinSize;
+  Bool_t mLTFConeRadius;
+  Bool_t mCAConeRadius;
 
- private:
-  ClassDefNV(TrackerConfig, 1);
+  /// Special track finder for TED shots and cosmics, with full scan of the clusters
+  bool mFullClusterScan = false;
+
+  ClassDefNV(TrackerConfig, 2);
 };
 
 inline const Int_t TrackerConfig::getRBinIndex(const Float_t r) const

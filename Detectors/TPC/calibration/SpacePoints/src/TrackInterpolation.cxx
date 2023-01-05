@@ -27,6 +27,8 @@
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include <fairlogger/Logger.h>
 #include <set>
+#include <algorithm>
+#include <random>
 
 using namespace o2::tpc;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -49,12 +51,13 @@ void TrackInterpolation::init()
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   mRecoParam.setBfield(mBz);
   mGeoTRD = o2::trd::Geometry::instance();
+  mParams = &SpacePointsCalibConfParam::Instance();
 
   mInitDone = true;
   LOG(info) << "Done initializing TrackInterpolation";
 }
 
-void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes)
+void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters)
 {
   // main processing function
 
@@ -79,11 +82,33 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   mTrackData.reserve(nSeeds);
   mClRes.reserve(nSeeds * param::NPadRows);
 
+  // In case we have more input tracks available than are required per TF
+  // we want to sample them. But we still prefer global ITS-TPC-TRD-TOF tracks
+  // over ITS-TPC-TRD tracks and so on. So we have to shuffle the indices
+  // in blocks.
+  // The input GIDs are sorted. ITS-TPC-TRD-TOF are first followed by ITS-TPC-TRD,
+  // ITS-TPC-TOF and ITS-TPC
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::vector<int> trackIndices(nSeeds);
+  std::iota(trackIndices.begin(), trackIndices.end(), 0);
+  std::shuffle(trackIndices.begin(), trackIndices.begin() + trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), g);
+  int nTracks = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTRD), g);
+  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTRD);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTOF), g);
+  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTOF);
+  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
+
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
-    if (gids[iSeed].includesDet(DetID::TRD) || gids[iSeed].includesDet(DetID::TOF)) {
-      interpolateTrack(iSeed);
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
+      break;
+    }
+    if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
+      interpolateTrack(trackIndices[iSeed]);
     } else {
-      extrapolateTrack(iSeed);
+      extrapolateTrack(trackIndices[iSeed]);
     }
   }
 
@@ -130,7 +155,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       LOG(debug) << "Failed to rotate track during first extrapolation";
       return;
     }
-    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed on first extrapolation";
       return;
     }
@@ -155,8 +180,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
     float clTOFX = clTOF.getX();
     std::array<float, 2> clTOFYZ{clTOF.getY(), clTOF.getZ()};
-    std::array<float, 3> clTOFCov{mSigYZ2TOF, 0.f, mSigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
-    if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, mMaxSnp, mMaxStep, mMatCorr)) {
+    std::array<float, 3> clTOFCov{mParams->sigYZ2TOF, 0.f, mParams->sigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
+    if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed final propagation to TOF radius";
       return;
     }
@@ -186,7 +211,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           return;
         }
       }
-      if (!propagator->PropagateToXBxByBz(trkWork, trdSP.getX(), mMaxSnp, mMaxStep, mMatCorr)) {
+      if (!propagator->PropagateToXBxByBz(trkWork, trdSP.getX(), mParams->maxSnp, mParams->maxStep, mMatCorr)) {
         LOG(debug) << "Failed propagation to TRD layer " << iLayer;
         return;
       }
@@ -218,7 +243,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       LOG(debug) << "Failed to rotate track during back propagation";
       return;
     }
-    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed on back propagation";
       //printf("trkX(%.2f), clX(%.2f), clY(%.2f), clZ(%.2f), alphaTOF(%.2f)\n", trkWork.getX(), param::RowX[iRow], clTOFYZ[0], clTOFYZ[1], clTOFAlpha);
       return;
@@ -272,14 +297,6 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
   trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
 
-  /*
-  // FIXME
-
-  Calculate number of tracks required per TF based on calibration slot length
-  In case too many tracks available, use std::sample algorithm to take random sample of input tracks
-  (make sure to use first most global tracks, then ITS-TPC-TRD, then ITS-TPC-TOF)
-  */
-
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (validateTrack(trackData, params, clusterResiduals)) {
     // track is good
@@ -298,8 +315,9 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back((*mGIDs)[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
   }
-  if (mWriteUnfiltered) {
+  if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
     trkDataTmp.clIdx.setFirstEntry(mClResUnfiltered.size());
     trkDataTmp.clIdx.setEntries(clusterResiduals.size());
@@ -331,7 +349,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     if (!trkWork.rotate(o2::math_utils::sector2Angle(sector))) {
       return;
     }
-    if (!propagator->PropagateToXBxByBz(trkWork, x, mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, x, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       return;
     }
     TPCClusterResiduals res;
@@ -376,8 +394,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back((*mGIDs)[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
   }
-  if (mWriteUnfiltered) {
+  if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
     trkDataTmp.clIdx.setFirstEntry(mClResUnfiltered.size());
     trkDataTmp.clIdx.setEntries(clusterResiduals.size());
@@ -388,7 +407,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
 
 bool TrackInterpolation::validateTrack(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
 {
-  if (clsRes.size() < param::MinNCl) {
+  if (clsRes.size() < mParams->minNCl) {
     // no enough clusters for this track to be considered
     LOG(debug) << "Skipping track with too few clusters: " << clsRes.size();
     return false;
@@ -399,7 +418,7 @@ bool TrackInterpolation::validateTrack(const TrackData& trk, TrackParams& params
     LOG(debug) << "Skipping track too far from helix approximation";
     return false;
   }
-  if (fabsf(params.qpt) > param::MaxQ2Pt) {
+  if (fabsf(params.qpt) > mParams->maxQ2Pt) {
     LOG(debug) << "Skipping track with too high q/pT: " << params.qpt;
     return false;
   }
@@ -545,23 +564,23 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
       params.tglArr[iCl] *= -1.f;
     }
   }
-  // LOGF(info, "CompareToHelix: hMaxY(%f), hMinY(%f), hMaxZ(%f), hMinZ(%f). Max deviation allowed: y(%.2f), z(%.2f)", hMaxY, hMinY, hMaxZ, hMinZ, param::MaxDevHelixY, param::MaxDevHelixZ);
+  // LOGF(info, "CompareToHelix: hMaxY(%f), hMinY(%f), hMaxZ(%f), hMinZ(%f). Max deviation allowed: y(%.2f), z(%.2f)", hMaxY, hMinY, hMaxZ, hMinZ, mParams->maxDevHelixY, mParams->maxDevHelixZ);
   // LOGF(info, "New pt/Q (%f), old pt/Q (%f)", 1./params.qpt, 1./trk.qPt);
-  return fabsf(hMaxY - hMinY) < param::MaxDevHelixY && fabsf(hMaxZ - hMinZ) < param::MaxDevHelixZ;
+  return fabsf(hMaxY - hMinY) < mParams->maxDevHelixY && fabsf(hMaxZ - hMinZ) < mParams->maxDevHelixZ;
 }
 
 bool TrackInterpolation::outlierFiltering(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
 {
-  if (clsRes.size() < mNMALong) {
+  if (clsRes.size() < mParams->nMALong) {
     LOG(debug) << "Skipping track with too few clusters for long moving average: " << clsRes.size();
     return false;
   }
   float rmsLong = checkResiduals(trk, params, clsRes);
-  if (static_cast<float>(params.flagRej.count()) / clsRes.size() > mMaxRejFrac) {
+  if (static_cast<float>(params.flagRej.count()) / clsRes.size() > mParams->maxRejFrac) {
     LOG(debug) << "Skipping track with too many clusters rejected: " << static_cast<float>(params.flagRej.count()) / clsRes.size();
     return false;
   }
-  if (rmsLong > mMaxRMSLong) {
+  if (rmsLong > mParams->maxRMSLong) {
     LOG(debug) << "Skipping track with too large RMS: " << rmsLong;
     return false;
   }
@@ -609,7 +628,7 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
       absDevZ[nAccZ++] = fabsf(zDiffLL[iCl]);
     }
   }
-  if (nAccY < param::MinNumberOfAcceptedResiduals || nAccZ < param::MinNumberOfAcceptedResiduals) {
+  if (nAccY < mParams->minNumberOfAcceptedResiduals || nAccZ < mParams->minNumberOfAcceptedResiduals) {
     // mask all clusters
     params.flagRej.set();
     return 0.f;
@@ -642,13 +661,13 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   for (int iCl = 0; iCl < nCl; ++iCl) {
     yDiffLL[iCl] *= rmsYkeepI;
     zDiffLL[iCl] *= rmsZkeepI;
-    if (yDiffLL[iCl] * yDiffLL[iCl] + zDiffLL[iCl] * zDiffLL[iCl] > param::mMaxStdDevMA) {
+    if (yDiffLL[iCl] * yDiffLL[iCl] + zDiffLL[iCl] * zDiffLL[iCl] > mParams->maxStdDevMA) {
       params.flagRej.set(iCl);
     } else {
       yAcc[nAcc++] = params.dy[iCl];
     }
   }
-  if (nAcc > mNMALong) {
+  if (nAcc > mParams->nMALong) {
     diffToMA(nAcc, yAcc, yDiffLong);
     float average = 0.f;
     float rms = 0.f;
@@ -689,8 +708,8 @@ void TrackInterpolation::diffToLocLine(const int np, int idxOffset, const std::a
   }
 
   for (int iCl = 0; iCl < np; ++iCl) {
-    int iClLeft = iCl - mNMAShort;
-    int iClRight = iCl + mNMAShort;
+    int iClLeft = iCl - mParams->nMAShort;
+    int iClRight = iCl + mParams->nMAShort;
     if (iClLeft < 0) {
       iClLeft = 0;
     }
@@ -698,7 +717,7 @@ void TrackInterpolation::diffToLocLine(const int np, int idxOffset, const std::a
       iClRight = np - 1;
     }
     int nPoints = iClRight - iClLeft;
-    if (nPoints < mNMAShort) {
+    if (nPoints < mParams->nMAShort) {
       continue;
     }
     float nPointsInv = 1.f / nPoints;
@@ -729,8 +748,8 @@ void TrackInterpolation::diffToMA(const int np, const std::array<float, param::N
   }
   for (int i = 0; i < np; ++i) {
     diffMA[i] = 0;
-    int iLeft = i - mNMALong;
-    int iRight = i + mNMALong;
+    int iLeft = i - mParams->nMALong;
+    int iRight = i + mParams->nMALong;
     if (iLeft < 0) {
       iLeft = 0;
     }
@@ -738,8 +757,8 @@ void TrackInterpolation::diffToMA(const int np, const std::array<float, param::N
       iRight = np - 1;
     }
     int nPoints = iRight - iLeft;
-    if (nPoints < mNMALong) {
-      // this cannot happen, since at least mNMALong points are required as neighbours for this function to be called
+    if (nPoints < mParams->nMALong) {
+      // this cannot happen, since at least mParams->nMALong points are required as neighbours for this function to be called
       continue;
     }
     float movingAverage = (sum[iRight] - sum[iLeft - 1] - (sum[i] - sum[i - 1])) / nPoints;
@@ -750,6 +769,7 @@ void TrackInterpolation::diffToMA(const int np, const std::array<float, param::N
 void TrackInterpolation::reset()
 {
   mTrackData.clear();
+  mTrackDataCompact.clear();
   mClRes.clear();
   mTrackDataUnfiltered.clear();
   mClResUnfiltered.clear();

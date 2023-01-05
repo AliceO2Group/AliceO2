@@ -24,7 +24,6 @@
 #include "Align/DOFSet.h"
 #include "Align/utils.h"
 #include "Align/AlignmentTrack.h"
-#include "Align/DOFStatistics.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableSensor.h"
 #include "Align/AlignableVolume.h"
@@ -110,7 +109,6 @@ class AlignableDetector : public DOFSet
   virtual int assignDOFs();
   virtual void initDOFs();
   virtual void terminate();
-  void fillDOFStat(DOFStatistics& dofst) const;
   virtual void addVolume(AlignableVolume* vol);
   virtual void defineVolumes();
   virtual void defineMatrices();
@@ -175,6 +173,7 @@ class AlignableDetector : public DOFSet
   void constrainOrphans(const double* sigma, const char* match = nullptr);
 
   virtual void writePedeInfo(FILE* parOut, const Option_t* opt = "") const;
+  virtual void writeLabeledPedeResults(FILE* parOut) const;
   virtual void writeCalibrationResults() const;
   virtual void writeAlignmentResults() const;
   //

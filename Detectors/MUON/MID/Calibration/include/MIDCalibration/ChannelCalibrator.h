@@ -56,7 +56,7 @@ class CalibData
   ClassDefNV(CalibData, 1);
 };
 
-class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<ColumnData, CalibData>
+class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<CalibData>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<CalibData>;

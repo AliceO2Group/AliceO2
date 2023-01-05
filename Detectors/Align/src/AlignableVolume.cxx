@@ -98,7 +98,6 @@
 
 #include "Align/Controller.h"
 #include "Align/AlignableVolume.h"
-#include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
 #include "Align/AlignConfig.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
@@ -112,6 +111,7 @@
 #include <TH1.h>
 #include <TAxis.h>
 #include <cstdio>
+#include <regex>
 
 ClassImp(o2::align::AlignableVolume);
 
@@ -154,7 +154,7 @@ void AlignableVolume::delta2Matrix(TGeoHMatrix& deltaM, const double* delta) con
 {
   // prepare delta matrix for the volume from its
   // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
-  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
+  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(radians)
 
   //    AliAlignObjParams tempAlignObj;
   //    tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
@@ -459,15 +459,14 @@ bool AlignableVolume::isCondDOF(int i) const
 }
 
 //______________________________________________________
-int AlignableVolume::finalizeStat(DOFStatistics& st)
+int AlignableVolume::finalizeStat()
 {
   // finalize statistics on processed points
   mNProcPoints = 0;
   for (int ich = getNChildren(); ich--;) {
     AlignableVolume* child = getChild(ich);
-    mNProcPoints += child->finalizeStat(st);
+    mNProcPoints += child->finalizeStat();
   }
-  fillDOFStat(st);
   return mNProcPoints;
 }
 
@@ -480,6 +479,7 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
          kOnOn };
   const char* comment[3] = {"  ", "! ", "!!"};
   const char* kKeyParam = "parameter";
+  const char* kKeyMeas = "measurement";
   TString opts = opt;
   opts.ToLower();
   bool showDef = opts.Contains("d"); // show free DOF even if not preconditioned
@@ -509,8 +509,8 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   }
   //
   if (nCond || showDef || showFix || showNam) {
-    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
-            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName());
+    fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s id : %d | Stat: %d\n", comment[cmt], kKeyParam, comment[kOnOn],
+            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName(), getVolID(), getNProcessedPoints());
   }
   //
   if (nCond || showDef || showFix) {
@@ -529,7 +529,13 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
       } // free-unconditioned: print commented if asked
       //
       fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(i),
-              getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
+              -getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
+    }
+    // do we consider some DOFs of this volume as measured
+    for (int i = 0; i < mNDOFs; i++) {
+      cmt = isMeasuredDOF(i) ? kOff : kOn;
+      fprintf(parOut, "%s%s %+e %+e\n", comment[cmt], kKeyMeas, -getParVal(i), getParErr(i));
+      fprintf(parOut, "%s %d 1.0\n", comment[cmt], getParLab(i));
     }
     fprintf(parOut, "\n");
   }
@@ -538,6 +544,23 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->writePedeInfo(parOut, opt);
+  }
+  //
+}
+
+//______________________________________________________
+void AlignableVolume::writeLabeledPedeResults(FILE* parOut) const
+{
+  // write parameters with labels
+  for (int i = 0; i < mNDOFs; i++) {
+    fprintf(parOut, "%9d %+e %+e\t! %s %d:%s vol:%d %s %s\n", getParLab(i), -getParVal(i), getParErr(i), GetName(), i, sDOFName[i], getVolID(),
+            isFreeDOF(i) ? "   " : "FXU", isZeroAbs(getParVal(i)) ? "FXP" : "   ");
+  }
+  // children volume
+  int nch = getNChildren();
+  //
+  for (int ich = 0; ich < nch; ich++) {
+    getChild(ich)->writeLabeledPedeResults(parOut);
   }
   //
 }
@@ -847,19 +870,6 @@ const char* AlignableVolume::getDOFName(int i) const
   return getGeomDOFName(i);
 }
 
-//______________________________________________________
-void AlignableVolume::fillDOFStat(DOFStatistics& h) const
-{
-  // fill statistics info hist
-  int ndf = getNDOFs();
-  int dof0 = getFirstParGloID();
-  int stat = getNProcessedPoints();
-  for (int idf = 0; idf < ndf; idf++) {
-    int dof = idf + dof0;
-    h.addStat(dof, stat);
-  }
-}
-
 //________________________________________
 void AlignableVolume::addAutoConstraints()
 {
@@ -884,6 +894,12 @@ void AlignableVolume::addAutoConstraints()
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->addAutoConstraints();
   }
+}
+
+//________________________________________
+bool AlignableVolume::isNameMatching(const std::string& regexStr) const
+{
+  return (!regexStr.empty() && std::regex_match(getSymName(), std::regex{regexStr}));
 }
 
 } // namespace align

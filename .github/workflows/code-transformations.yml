@@ -44,7 +44,7 @@ jobs:
         COMMIT_FILES=$(git diff --diff-filter d --name-only $BASE_COMMIT)
         if [ -z "$COMMIT_FILES" ]; then
           echo "No files to check" >&2
-          echo ::set-output name=clean::true
+          echo clean=true >> "$GITHUB_OUTPUT"
           exit 0
         fi
         perl -p -i -e "${{ env.REFACTORING }}" $COMMIT_FILES
@@ -52,13 +52,13 @@ jobs:
         if git diff --exit-code; then
           echo "Refactoring not needed."
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-refactoring-${{ github.event.pull_request.number }} -f || true
-          echo ::set-output name=clean::true
+          echo clean=true >> "$GITHUB_OUTPUT"
         else
           git commit -m "${{ env.RATIONALE }}" -a
           git show | cat
           git fetch https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-refactoring-${{ github.event.pull_request.number }} -f
-          echo ::set-output name=clean::false
+          echo clean=false >> "$GITHUB_OUTPUT"
         fi
 
     - name: pull-request

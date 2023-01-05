@@ -107,3 +107,5 @@ add_subdirectory(helpers)
 add_subdirectory(readers)
 add_subdirectory(writers)
 add_subdirectory(qc)
+
+add_subdirectory(study)

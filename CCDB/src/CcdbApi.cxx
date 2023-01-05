@@ -63,6 +63,25 @@ CcdbApi::~CcdbApi()
   curl_global_cleanup();
 }
 
+bool CcdbApi::checkAlienToken()
+{
+#ifdef __APPLE__
+  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
+  return true;
+#endif
+  if (getenv("ALICEO2_CCDB_NOTOKENCHECK") && atoi(getenv("ALICEO2_CCDB_NOTOKENCHECK"))) {
+    return true;
+  }
+  if (getenv("JALIEN_TOKEN_CERT")) {
+    return true;
+  }
+  auto returncode = system("alien-token-info &> /dev/null");
+  if (returncode == -1) {
+    LOG(error) << "...";
+  }
+  return returncode == 0;
+}
+
 void CcdbApi::curlInit()
 {
   // todo : are there other things to initialize globally for curl ?
@@ -119,7 +138,8 @@ void CcdbApi::init(std::string const& host)
     snapshotReport += ')';
   }
 
-  mNeedAlienToken = host != "http://o2-ccdb.internal" && host != "http://localhost:8084" && host != "http://127.0.0.1:8084";
+  const std::string httpsprefix = "https://";
+  mNeedAlienToken = host.substr(0, httpsprefix.size()) == httpsprefix || host == "http://alice-ccdb.cern.ch";
 
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
@@ -753,10 +773,18 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 bool CcdbApi::initTGrid() const
 {
   if (mNeedAlienToken && !mAlienInstance) {
+    static bool allowNoToken = getenv("ALICEO2_CCDB_NOTOKENCHECK") && atoi(getenv("ALICEO2_CCDB_NOTOKENCHECK"));
+    if (!allowNoToken && !checkAlienToken()) {
+      LOG(fatal) << "Alien Token Check failed - Please get an alien token before running with https CCDB endpoint, or alice-ccdb.cern.ch!";
+    }
     mAlienInstance = TGrid::Connect("alien");
     static bool errorShown = false;
     if (!mAlienInstance && errorShown == false) {
-      LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      if (allowNoToken) {
+        LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      } else {
+        LOG(fatal) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      }
       errorShown = true;
     }
   }

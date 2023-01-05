@@ -782,12 +782,12 @@ bool RawFileReader::init()
 //_____________________________________________________________________
 o2h::DataOrigin RawFileReader::getDataOrigin(const std::string& ors)
 {
-  constexpr int NGoodOrigins = 20;
+  constexpr int NGoodOrigins = 21;
   constexpr std::array<o2h::DataOrigin, NGoodOrigins> goodOrigins{
     o2h::gDataOriginFLP, o2h::gDataOriginTST, o2h::gDataOriginCPV, o2h::gDataOriginCTP, o2h::gDataOriginEMC,
     o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginHMP, o2h::gDataOriginITS,
     o2h::gDataOriginMCH, o2h::gDataOriginMFT, o2h::gDataOriginMID, o2h::gDataOriginPHS, o2h::gDataOriginTOF,
-    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC};
+    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC, o2h::gDataOriginFOC};
 
   for (auto orgood : goodOrigins) {
     if (ors == orgood.as<std::string>()) {

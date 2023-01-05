@@ -60,7 +60,7 @@ class AODMcProducerWorkflowDPL : public Task
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
   // correct ordering when iterating over container elements
-  std::map<std::pair<int, int>, int> mMCColToEvSrc;
+  std::vector<std::vector<int>> mMCColToEvSrc;
 
   // MC production metadata holder
   std::vector<TString> mMetaDataKeys;

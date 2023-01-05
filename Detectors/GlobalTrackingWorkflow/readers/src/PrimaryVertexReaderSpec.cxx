@@ -50,7 +50,7 @@ class PrimaryVertexReader : public o2::framework::Task
  protected:
   void connectTree();
 
-  bool mVerbose = false;
+  int mVerbose = 0;
   bool mUseMC = false;
 
   std::vector<PVertex> mVertices, *mVerticesPtr = &mVertices;
@@ -73,7 +73,7 @@ void PrimaryVertexReader::init(InitContext& ic)
 {
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("primary-vertex-infile"));
-  mVerbose = ic.options().get<bool>("verbose-reader");
+  mVerbose = ic.options().get<int>("vertex-verbosity");
   connectTree();
 }
 
@@ -107,8 +107,19 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
       }
       LOG(info) << "References: " << mPV2MatchIdxRef[cnt];
       for (int is = 0; is < GIndex::NSources; is++) {
-        LOG(info) << GIndex::getSourceName(is) << " : " << mPV2MatchIdxRef[cnt].getEntriesOfSource(is) << " attached:";
+        int ncontrib = 0, nambig = 0;
         int idMin = mPV2MatchIdxRef[cnt].getFirstEntryOfSource(is), idMax = idMin + mPV2MatchIdxRef[cnt].getEntriesOfSource(is);
+        for (int i = idMin; i < idMax; i++) {
+          if (mPV2MatchIdx[i].isPVContributor()) {
+            ncontrib++;
+          } else if (mPV2MatchIdx[i].isAmbiguous()) {
+            nambig++;
+          }
+        }
+        LOGP(info, "{} : total attached: {}, contributors: {}, ambiguous: {}", GIndex::getSourceName(is), mPV2MatchIdxRef[cnt].getEntriesOfSource(is), ncontrib, nambig);
+        if (mVerbose < 2) {
+          continue;
+        }
         std::string trIDs;
         int cntT = 0;
         for (int i = idMin; i < idMax; i++) {
@@ -174,7 +185,7 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
       {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}},
       {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
-      {"verbose-reader", VariantType::Bool, false, {"Print vertex/tracks info"}}}};
+      {"vertex-verbosity", VariantType::Int, 0, {"Print vertex/tracks info: 1) number of contributor and attached, 2) full dump"}}}};
 }
 
 } // namespace vertexing

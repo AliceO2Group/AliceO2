@@ -472,13 +472,12 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       hasNewMetric = true;
     };
     std::string token(frame, s);
-    std::smatch match;
+    std::match_results<std::string_view::const_iterator> match;
     ParsedConfigMatch configMatch;
     ParsedMetricMatch metricMatch;
 
-    auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
-      auto ts = "                 " + token;
-      if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
+    auto doParseConfig = [](std::string_view const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
+      if (DeviceConfigHelper::parseConfig(token, configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
         return true;
       }
@@ -870,7 +869,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   // TODO: have multiple display modes
   // TODO: graphical view of the processing?
   assert(infos.size() == controls.size());
-  std::smatch match;
+  std::match_results<std::string_view::const_iterator> match;
   ParsedMetricMatch metricMatch;
   ParsedConfigMatch configMatch;
   const std::string delimiter("\n");
@@ -923,7 +922,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && ControlServiceHelpers::parseControl(token, match)) {
         ControlServiceHelpers::processCommand(infos, info.pid, match[1].str(), match[2].str());
         result.didProcessControl = true;
-      } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token, configMatch)) {
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token.substr(16), configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
         result.didProcessConfig = true;
       } else if (!control.quiet && (token.find(control.logFilter) != std::string::npos) &&
@@ -1204,17 +1203,27 @@ void force_exit_callback(uv_timer_s* ctx)
   killChildren(*infos, SIGKILL);
 }
 
+std::vector<std::regex> getDumpableMetrics()
+{
+  auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
+  auto dumpableMetrics = std::vector<std::regex>{};
+  for (const auto& metric : performanceMetrics) {
+    dumpableMetrics.emplace_back(metric);
+  }
+  dumpableMetrics.emplace_back("^arrow-bytes-delta$");
+  dumpableMetrics.emplace_back("^aod-bytes-read-uncompressed$");
+  dumpableMetrics.emplace_back("^aod-bytes-read-compressed$");
+  dumpableMetrics.emplace_back("^aod-file-read-info$");
+  dumpableMetrics.emplace_back("^table-bytes-.*");
+  dumpableMetrics.emplace_back("^total-timeframes.*");
+  return dumpableMetrics;
+}
+
 void dumpMetricsCallback(uv_timer_t* handle)
 {
   auto* context = (DriverServerContext*)handle->data;
 
-  auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
-  performanceMetrics.emplace_back("arrow-bytes-delta");
-  performanceMetrics.emplace_back("aod-bytes-read-uncompressed");
-  performanceMetrics.emplace_back("aod-bytes-read-compressed");
-  performanceMetrics.emplace_back("aod-file-read-info");
-  performanceMetrics.emplace_back("table-bytes-.*");
-  performanceMetrics.emplace_back("total-timeframes.*");
+  static auto performanceMetrics = getDumpableMetrics();
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
                                                context->driver->metrics, *(context->specs), performanceMetrics);
 }

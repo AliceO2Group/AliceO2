@@ -13,3 +13,5 @@
 
 using namespace o2::ft0;
 O2ParamImpl(DigitFilterParam);
+O2ParamImpl(ChannelFilterParam);
+O2ParamImpl(TimeFilterParam);

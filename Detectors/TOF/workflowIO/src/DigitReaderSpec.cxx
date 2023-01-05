@@ -35,6 +35,8 @@ void DigitReader::init(InitContext& ic)
   LOG(debug) << "Init Digit reader!";
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("tof-digit-infile"));
+  mDelayInMuSec1TF = atof(ic.options().get<std::string>("delay-1st-tf").c_str()) * 1E6;
+
   mFile.reset(TFile::Open(filename.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << filename.c_str() << " file !";
@@ -46,6 +48,12 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
+  static bool firstCall = true;
+  if (firstCall) {
+    usleep(mDelayInMuSec1TF);
+  }
+  firstCall = false;
+
   if (mState != 1) {
     return;
   }
@@ -118,6 +126,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
       {"tof-digit-infile", VariantType::String, "tofdigits.root", {"Name of the input file"}},
+      {"delay-1st-tf", VariantType::String, "none", {"delay in seconds before 1st TF"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

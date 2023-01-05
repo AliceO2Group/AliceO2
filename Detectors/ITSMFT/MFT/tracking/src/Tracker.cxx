@@ -18,7 +18,6 @@
 #include "MFTTracking/TrackCA.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "ReconstructionDataFormats/Track.h"
-
 #include "Framework/Logger.h"
 
 namespace o2
@@ -44,9 +43,11 @@ void Tracker<T>::setBz(Float_t bz)
 
 //_________________________________________________________________________________________________
 template <typename T>
-void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
+void Tracker<T>::configure(const MFTTrackingParam& trkParam, bool printConfig)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
+  initialize(trkParam);
+  initializeFinder();
 
   mTrackFitter->setMFTRadLength(trkParam.MFTRadLength);
   mTrackFitter->setVerbosity(trkParam.verbose);
@@ -56,32 +57,6 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
   } else {
     mTrackFitter->setTrackModel(trkParam.trackmodel);
   }
-
-  mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
-  mMinTrackPointsCA = trkParam.MinTrackPointsCA;
-  mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
-  mMinTrackStationsCA = trkParam.MinTrackStationsCA;
-  mLTFclsRCut = trkParam.LTFclsRCut;
-  mLTFclsR2Cut = mLTFclsRCut * mLTFclsRCut;
-  mROADclsRCut = trkParam.ROADclsRCut;
-  mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
-  mLTFseed2BinWin = trkParam.LTFseed2BinWin;
-  mLTFinterBinWin = trkParam.LTFinterBinWin;
-  mLTFConeRadius = trkParam.LTFConeRadius;
-  mCAConeRadius = trkParam.CAConeRadius;
-
-  mRBins = trkParam.RBins;
-  mPhiBins = trkParam.PhiBins;
-  mRPhiBins = trkParam.RBins * trkParam.PhiBins;
-  if (mRPhiBins > constants::index_table::MaxRPhiBins) {
-    LOG(warn) << "To many RPhiBins for this configuration!";
-    mRPhiBins = constants::index_table::MaxRPhiBins;
-    mRBins = sqrt(constants::index_table::MaxRPhiBins);
-    mPhiBins = sqrt(constants::index_table::MaxRPhiBins);
-    LOG(warn) << "Using instead RBins " << mRBins << " and PhiBins " << mPhiBins;
-  }
-  mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
-  mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
 
   if (printConfig) {
     LOG(info) << "Configurable tracker parameters:";
@@ -126,12 +101,11 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 
 //_________________________________________________________________________________________________
 template <typename T>
-void Tracker<T>::initialize(bool fullClusterScan)
+void Tracker<T>::initializeFinder()
 {
   mRoad.initialize();
 
-  if (fullClusterScan) {
-    mFullClusterScan = true;
+  if (mFullClusterScan) {
     return;
   }
 

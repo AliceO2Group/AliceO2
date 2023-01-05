@@ -90,7 +90,7 @@ void TPCFastTransformHelperO2::init()
   mIsInitialized = 1;
 }
 
-std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp)
+std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp, const int nKnotsY, const int nKnotsZ)
 {
   /// initializes TPCFastTransform object
 
@@ -135,10 +135,10 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
       int row = scenario * 10;
       TPCFastSpaceChargeCorrection::SplineType spline;
       if (!mCorrectionMap.isInitialized() || row >= nRows) {
-        spline.recreate(8, 20);
+        spline.recreate(nKnotsY, nKnotsZ);
       } else {
         // TODO: update the calibrator
-        spline.recreate(8, 20);
+        spline.recreate(nKnotsY, nKnotsZ);
         /*
         // create the input function
         for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {

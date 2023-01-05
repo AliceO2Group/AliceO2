@@ -26,6 +26,7 @@
 
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "SpacePoints/TrackInterpolation.h"
 
 #include "TTree.h"
@@ -115,8 +116,7 @@ class TrackResiduals
   // -------------------------------------- initialization --------------------------------------------------
   /// Steers the initialization (binning, default settings for smoothing, container for the results).
   /// \param initBinning Binning does not need to be initialized in case only outlier filtering is performed
-  /// \param bz The nominal magnetic field along Z in kG
-  void init(bool doBinning = true, float bz = param::Bz);
+  void init(bool doBinning = true);
   /// Initializes the binning in X, Y/X and Z.
   void initBinning();
   /// Initializes the results structure for given sector.
@@ -405,38 +405,6 @@ class TrackResiduals
   /// \return Inverse of the distance between bins
   float getDZ2XI(int iz = 0) const;
 
-  // -------------------------------------- settings --------------------------------------------------
-
-  void setMaxPointsPerSector(int nPoints) { mMaxPointsPerSector = nPoints; }
-  void setMinEntriesPerVoxel(int nEntries) { mMinEntriesPerVoxel = nEntries; }
-  void setLTMCut(float ltmCut) { mLTMCut = ltmCut; }
-  void setMinFracLTM(float ltmCut) { mMinFracLTM = ltmCut; }
-  void setMinValidVoxFracDrift(float frac) { mMinValidVoxFracDrift = frac; }
-  void setMinGoodXBinsToCover(int n) { mMinGoodXBinsToCover = n; }
-  void setMaxBadXBinsToCover(int n) { mMaxBadXBinsToCover = n; }
-  void setMaxFracBadRowsPerSector(float frac) { mMaxFracBadRowsPerSector = frac; }
-  void setMaxFitErrY2(float err) { mMaxFitErrY2 = err; }
-  void setMaxFitErrX2(float err) { mMaxFitErrX2 = err; }
-  void setMaxFitCorrXY(float corr) { mMaxFitCorrXY = corr; }
-  void setMaxSigY(float sigY) { mMaxSigY = sigY; }
-  void setMaxSigZ(float sigZ) { mMaxSigZ = sigZ; }
-  void setMaxGaussStdDev(float sigmas) { mMaxGaussStdDev = sigmas; }
-
-  int getMaxPointsPerSector() const { return mMaxPointsPerSector; }
-  int getMinEntriesPerVoxel() const { return mMinEntriesPerVoxel; }
-  float getLTMCut() const { return mLTMCut; }
-  float getMinFracLTM() const { return mMinFracLTM; }
-  float getMinValidVoxFracDrift() const { return mMinValidVoxFracDrift; }
-  int getMinGoodXBinsToCover() const { return mMinGoodXBinsToCover; }
-  int getMaxBadXBinsToCover() const { return mMaxBadXBinsToCover; }
-  float getMaxFracBadRowsPerSector() const { return mMaxFracBadRowsPerSector; }
-  float getMaxFitErrY2() const { return mMaxFitErrY2; }
-  float getMaxFitErrX2() const { return mMaxFitErrX2; }
-  float getMaxFitCorrXY() const { return mMaxFitCorrXY; }
-  float getMaxSigY() const { return mMaxSigY; }
-  float getMaxSigZ() const { return mMaxSigZ; }
-  float getMaxGaussStdDev() const { return mMaxGaussStdDev; }
-
   // -------------------------------------- debugging --------------------------------------------------
 
   /// Prints the current memory usage
@@ -447,12 +415,23 @@ class TrackResiduals
   void dumpResults(int iSec);
 
   /// Creates a file for the debug output.
-  void createOutputFile();
+  void createOutputFile(const char* filename = "debugVoxRes.root");
 
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+  /// Set the voxel statistics directly from outside
+  void setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec);
+
+  /// Fill statistics from TTree
+  void fillStats(int iSec);
+
+  /// clear member to be able to process new sector or new input files
+  void clear();
+
  private:
+  std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
+
   // some constants
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
   static constexpr float sDeadZone{1.5f};   ///< dead zone for TPC in between sectors
@@ -460,8 +439,11 @@ class TrackResiduals
   static constexpr int sSmtLinDim{4};       ///< max matrix size for smoothing (pol1)
   static constexpr int sMaxSmtDim{7};       ///< max matrix size for smoothing (pol2)
 
+  // settings
+  const SpacePointsCalibConfParam* mParams = nullptr;
+
   // input data
-  std::vector<LocalResid> mLocalResidualsIn;            ///< binned local residuals from aggregator
+  std::vector<LocalResid> mLocalResidualsIn;                        ///< binned local residuals from aggregator
   std::vector<VoxStats> mVoxStatsIn, *mVoxStatsInPtr{&mVoxStatsIn}; ///< the statistics information for each voxel from the aggregator
   // output data
   std::unique_ptr<TFile> mFileOut; ///< output debug file
@@ -470,41 +452,25 @@ class TrackResiduals
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
-  int mNXBins{param::NPadRows};            ///< number of bins in radial direction
-  int mNY2XBins{param::NY2XBins};          ///< number of y/x bins per sector
-  int mNZ2XBins{param::NZ2XBins};          ///< number of z/x bins per sector
-  int mNVoxPerSector{};                    ///< number of voxels per sector
-  float mDX{};                             ///< x bin size
-  float mDXI{};                            ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};            ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2X{};              ///< y/x bin size at given x bin
-  std::vector<float> mDY2XI{};             ///< inverse y/x bin size at given x bin
-  std::vector<float> mY2XBinsDH{};         ///< half width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsDI{};         ///< inverse bin width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsCenter{};     ///< bin center in y/x within the interval [-1..1]
-  float mDZ2X{};                           ///< bin size in z/x
-  float mDZ2XI{};                          ///< inverse of bin size in z/x
-  std::vector<float> mZ2XBinsDH{};         ///< half width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsDI{};         ///< inverse bin width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsCenter{};     ///< bin center in z/x within the interval [0..1]
-  float mMaxZ2X{1.f};                      ///< max z/x value
+  int mNXBins{param::NPadRows};                            ///< number of bins in radial direction
+  int mNY2XBins{param::NY2XBins};                          ///< number of y/x bins per sector
+  int mNZ2XBins{param::NZ2XBins};                          ///< number of z/x bins per sector
+  int mNVoxPerSector{};                                    ///< number of voxels per sector
+  float mDX{};                                             ///< x bin size
+  float mDXI{};                                            ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};                              ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};                             ///< inverse y/x bin size at given x bin
+  std::vector<float> mY2XBinsDH{};                         ///< half width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsDI{};                         ///< inverse bin width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsCenter{};                     ///< bin center in y/x within the interval [-1..1]
+  float mDZ2X{};                                           ///< bin size in z/x
+  float mDZ2XI{};                                          ///< inverse of bin size in z/x
+  std::vector<float> mZ2XBinsDH{};                         ///< half width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsDI{};                         ///< inverse bin width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsCenter{};                     ///< bin center in z/x within the interval [0..1]
+  float mMaxZ2X{1.f};                                      ///< max z/x value
   std::array<bool, VoxDim> mUniformBins{true, true, true}; ///< if binning is uniform for each dimension
-  // settings
-  float mBz{param::Bz};                          ///< nominal magnetic field along Z
-  int mMaxPointsPerSector{30'000'000};           ///< maximum number of accepted points per sector
-  int mMinEntriesPerVoxel{15};                   ///< minimum number of points in voxel for processing
-  float mLTMCut{.75f};                           ///< fraction op points to keep when trimming input data
-  float mMinFracLTM{.5f};                        ///< minimum fraction of points to keep when trimming data to fit expected sigma
-  float mMinValidVoxFracDrift{.5f};              ///< if more than this fraction of bins are bad for one pad row the whole pad row is declared bad
-  int mMinGoodXBinsToCover{3};                   ///< minimum number of consecutive good bins, otherwise bins are declared bad
-  int mMaxBadXBinsToCover{4};                    ///< a lower number of consecutive bad X bins will not be declared bad
-  float mMaxFracBadRowsPerSector{.4f};           ///< maximum fraction of bad rows before whole sector is masked
-  float mMaxFitErrY2{1.f};                       ///< maximum fit error for Y2
-  float mMaxFitErrX2{9.f};                       ///< maximum fit error for X2
-  float mMaxFitCorrXY{.95f};                     ///< maximum fit correlation for x and y
-  float mMaxSigY{1.1f};                          ///< maximum sigma for y of the voxel
-  float mMaxSigZ{.7f};                           ///< maximum sigma for z of the voxel
-  float mMaxGaussStdDev{5.f};                    ///< maximum number of sigmas to be considered for gaussian kernel smoothing
   // smoothing
   KernelType mKernelType{KernelType::Epanechnikov};                ///< kernel type (Epanechnikov / Gaussian)
   bool mUseErrInSmoothing{true};                                   ///< weight kernel by point error
@@ -521,7 +487,7 @@ class TrackResiduals
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
   VoxRes* mVoxelResultsOutPtr{&mVoxelResultsOut};                                           ///< pointer to set the branch address to for the output
 
-  ClassDefNV(TrackResiduals, 2);
+  ClassDefNV(TrackResiduals, 3);
 };
 
 //_____________________________________________________

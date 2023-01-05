@@ -78,6 +78,8 @@ const static ImColor NODE_LABEL_BACKGROUND_COLOR = {45, 45, 45, 255};
 const static ImColor NODE_LABEL_TEXT_COLOR = {244, 244, 244, 255};
 const static ImVec4& ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
 const static ImVec4& WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
+const static ImColor ARROW_BACKGROUND_COLOR = {100, 100, 0};
+const static ImColor ARROW_HALFGROUND_COLOR = {170, 170, 70};
 const static ImColor ARROW_COLOR = {200, 200, 100};
 const static ImColor ARROW_SELECTED_COLOR = {200, 0, 100};
 const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
@@ -86,6 +88,8 @@ const static ImColor LEGEND_COLOR = {100, 100, 100};
 
 /// Layout choices
 const static float GRID_SZ = 64.0f;
+const static float ARROW_BACKGROUND_THICKNESS = 1.f;
+const static float ARROW_HALFGROUND_THICKNESS = 2.f;
 const static float ARROW_THICKNESS = 3.f;
 const static float NODE_BORDER_THICKNESS = 4.f;
 const static ImVec4 LEGEND_BACKGROUND_COLOR = {0.125, 0.180, 0.196, 1};
@@ -597,20 +601,64 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   // Display grid
   displayGrid(show_grid, offset, draw_list);
 
-  // Display links
+  ImVec2 win_pos = ImGui::GetCursorScreenPos();
+  ImVec2 canvas_sz = ImGui::GetWindowSize();
+  // Display links but only if they are inside the view.
   for (int link_idx = 0; link_idx < links.Size; link_idx++) {
+    // Do the geometry culling upfront.
+    NodeLink const& link = links[link_idx];
+    ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link.InputIdx, link.InputSlot);
+    ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link.OutputIdx, link.OutputSlot);
+
+    if ((p1.x > win_pos.x + canvas_sz.x + 50) && (p2.x > win_pos.x + canvas_sz.x + 50)) {
+      continue;
+    }
+
+    if ((p1.y > win_pos.y + canvas_sz.y + 50) && (p2.y > win_pos.y + canvas_sz.y + 50)) {
+      continue;
+    }
+
+    if ((p1.y < win_pos.y) && (p2.y < win_pos.y)) {
+      continue;
+    }
+
+    if ((p1.x < win_pos.x) && (p2.x < win_pos.x)) {
+      continue;
+    }
     draw_list->ChannelsSetCurrent(0); // Background
-    NodeLink* link = &links[link_idx];
-    auto color = ARROW_COLOR;
-    auto thickness = ARROW_THICKNESS;
-    if (link->InputIdx == node_selected || link->OutputIdx == node_selected) {
+    auto color = ARROW_BACKGROUND_COLOR;
+    auto thickness = ARROW_BACKGROUND_THICKNESS;
+
+    bool p1Inside = false;
+    bool p2Inside = false;
+    if ((p1.x > win_pos.x) && (p1.x < (win_pos.x + canvas_sz.x)) && (p1.y < (win_pos.y + canvas_sz.y)) && (p1.y > win_pos.y)) {
+      p1Inside = true;
+    }
+
+    if ((p2.x > win_pos.x) && (p2.x < (win_pos.x + canvas_sz.x)) && (p2.y < (win_pos.y + canvas_sz.y)) && (p2.y > win_pos.y)) {
+      p2Inside = true;
+    }
+
+    if (p1Inside && p2Inside) {
+      // Whatever the two edges completely within the view, gets brighter color and foreground.
+      draw_list->ChannelsSetCurrent(2);
+      color = ARROW_COLOR;
+      thickness = ARROW_THICKNESS;
+    } else if (p1Inside || p2Inside) {
+      draw_list->ChannelsSetCurrent(1);
+      // Whenever one of the two ends is within the view, increase the color but keep the background
+      color = ARROW_HALFGROUND_COLOR;
+      thickness = ARROW_HALFGROUND_THICKNESS;
+    }
+
+    // If something belongs to a selected node, it gets the selected color.
+    if (link.InputIdx == node_selected || link.OutputIdx == node_selected) {
       auto foregroundLayer = (nodes.Size + 1) * 2 + 1;
       draw_list->ChannelsSetCurrent(foregroundLayer);
       color = ARROW_SELECTED_COLOR;
       thickness = thickness + 2;
     }
-    ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link->InputIdx, link->InputSlot);
-    ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link->OutputIdx, link->OutputSlot);
+
     draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, color, thickness);
   }
 
@@ -714,15 +762,15 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
       draw_list->ChannelsSetCurrent(backgroundLayer); // Background
       ImVec2 p1(-3 * NODE_SLOT_RADIUS, NODE_SLOT_RADIUS), p2(-3 * NODE_SLOT_RADIUS, -NODE_SLOT_RADIUS), p3(0, 0);
-      auto pp1 = p1 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      auto pp2 = p2 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      auto pp3 = p3 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto slotPos = NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto pp1 = p1 + offset + slotPos;
+      auto pp2 = p2 + offset + slotPos;
+      auto pp3 = p3 + offset + slotPos;
       auto color = ARROW_COLOR;
       if (node_idx == node_selected) {
         color = ARROW_SELECTED_COLOR;
       }
       draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-      auto slotPos = NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       draw_list->AddCircleFilled(offset + slotPos, NODE_SLOT_RADIUS, INPUT_SLOT_COLOR);
     }
 

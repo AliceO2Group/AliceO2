@@ -21,10 +21,6 @@
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/CommonServices.h"
 
-#include <fairmq/Device.h>
-
-#include <fmt/ostream.h>
-
 using namespace o2::monitoring;
 
 namespace o2::framework

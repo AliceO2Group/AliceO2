@@ -2440,21 +2440,22 @@ void V3Services::obCYSS11(TGeoVolume* mother, const TGeoManager* mgr)
   // Return:
   //
   // Created:      02 Mar 2020  Mario Sitta
+  // Updated:      30 Nov 2022  Mario Sitta  Fix materials and thicknesses
   //
 
   static const Double_t sOBCYSS14Zlen = 1556.8 * sMm;
   static const Double_t sOBCYSS14DInt = 898.0 * sMm;
-  static const Double_t sOBCYSS14DExt = 900.5 * sMm;
+  static const Double_t sOBCYSS14DExt = 902.0 * sMm;
   static const Double_t sOBCYSS14PhiCut = 4.0 * sMm;
 
   static const Double_t sOBCYSS13Zlen = 1481.0 * sMm;
   static const Double_t sOBCYSS13DInt = sOBCYSS14DExt;
-  static const Double_t sOBCYSS13DExt = 915.5 * sMm;
+  static const Double_t sOBCYSS13DExt = 918.0 * sMm;
   static const Double_t sOBCYSS13PhiCut = 10.55 * sMm;
 
   static const Double_t sOBCYSS12Zlen = 1520.6 * sMm;
   static const Double_t sOBCYSS12DInt = sOBCYSS13DExt;
-  static const Double_t sOBCYSS12DExt = 918.0 * sMm;
+  static const Double_t sOBCYSS12DExt = 922.0 * sMm;
   static const Double_t sOBCYSS12PhiCut = 4.0 * sMm;
 
   static const Double_t sOBCYSS20Zlen = 1500.6 * sMm;
@@ -2499,13 +2500,14 @@ void V3Services::obCYSS11(TGeoVolume* mother, const TGeoManager* mgr)
   TGeoBBox* obCyss20Sh = new TGeoBBox(sOBCYSS20Width / 2, sOBCYSS20Height / 2, sOBCYSS20Zlen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_M55J6K$", GetDetName())); // TO BE CHECKED
+  TGeoMedium* medRist = mgr->GetMedium(Form("%s_RIST110$", GetDetName()));
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_AS4C200$", GetDetName()));
 
   TGeoVolume* obCyss14Vol = new TGeoVolume("OBCYSS14", obCyss14Sh, medCarbon);
   obCyss14Vol->SetFillColor(kBlue);
   obCyss14Vol->SetLineColor(kBlue);
 
-  TGeoVolume* obCyss13Vol = new TGeoVolume("OBCYSS13", obCyss13Sh, medCarbon);
+  TGeoVolume* obCyss13Vol = new TGeoVolume("OBCYSS13", obCyss13Sh, medRist);
   obCyss13Vol->SetFillColor(kBlue);
   obCyss13Vol->SetLineColor(kBlue);
 

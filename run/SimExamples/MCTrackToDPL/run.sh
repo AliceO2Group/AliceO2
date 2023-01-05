@@ -7,7 +7,7 @@ o2-sim -j 1 -g pythia8pp -n 100 --noDiscOutput --forwardKine --noGeant -m CAVE -
 SIMPROC=$!
 
 # launch a DPL process (having the right proxy configuration)
-o2-sim-mctracks-proxy --enable-test-consumer &> out_mcanalysis.log &
+o2-sim-mctracks-proxy --enable-test-consumer --o2sim-pid ${SIMPROC} &> out_mcanalysis.log &
 TRACKANAPROC=$!
 
 wait ${SIMPROC}

@@ -13,6 +13,7 @@
 #define O2_MCH_WORKFLOW_TRACK_TREE_READER_H
 
 #include "DataFormatsMCH/Cluster.h"
+#include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -31,8 +32,10 @@ class TrackTreeReader
   bool next(ROFRecord& rof,
             std::vector<TrackMCH>& tracks,
             std::vector<Cluster>& clusters,
+            std::vector<Digit>& digits,
             std::vector<o2::MCCompLabel>& labels);
 
+  bool hasDigits() { return mDigits.get() != nullptr; }
   bool hasLabels() { return mLabels.get() != nullptr; }
 
  private:
@@ -40,6 +43,7 @@ class TrackTreeReader
   TTreeReaderValue<std::vector<o2::mch::TrackMCH>> mTracks = {mTreeReader, "tracks"};
   TTreeReaderValue<std::vector<o2::mch::ROFRecord>> mRofs = {mTreeReader, "trackrofs"};
   TTreeReaderValue<std::vector<o2::mch::Cluster>> mClusters = {mTreeReader, "trackclusters"};
+  std::unique_ptr<TTreeReaderValue<std::vector<o2::mch::Digit>>> mDigits{};
   std::unique_ptr<TTreeReaderValue<std::vector<o2::MCCompLabel>>> mLabels{};
   size_t mCurrentRof;
 };

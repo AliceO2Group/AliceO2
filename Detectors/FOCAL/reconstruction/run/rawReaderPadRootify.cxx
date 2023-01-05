@@ -12,6 +12,7 @@
 /// \file rawReaderFileNew.cxx
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 
+#include <bitset>
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <gsl/span>
@@ -162,7 +163,7 @@ struct PadTreeData {
   }
 };
 
-void convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecord& currentir, PadTreeData& rootified)
+int convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecord& currentir, PadTreeData& rootified)
 {
   auto payloadsizeGBT = padrawdata.size() * sizeof(char) / sizeof(o2::focal::PadGBTWord);
   auto gbtdata = gsl::span<const o2::focal::PadGBTWord>(reinterpret_cast<const o2::focal::PadGBTWord*>(padrawdata.data()), payloadsizeGBT);
@@ -178,6 +179,7 @@ void convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecor
     rootified.fill(decoder.getData());
     rootified.fillTree();
   }
+  return nevents;
 }
 
 int main(int argc, char** argv)
@@ -240,6 +242,8 @@ int main(int argc, char** argv)
   PadTreeData rootified;
   rootified.connectTree(padtree);
 
+  int nHBFprocessed = 0, nTFprocessed = 0, nEventsProcessed = 0;
+  std::map<int, int> nEvnetsHBF;
   while (1) {
     int tfID = reader.getNextTFToRead();
     if (tfID >= reader.getNTimeFrames()) {
@@ -267,17 +271,30 @@ int main(int argc, char** argv)
           if (trigger & o2::trigger::SOT || trigger & o2::trigger::HB) {
             if (o2::raw::RDHUtils::getStop(rdh)) {
               LOG(debug) << "Stop bit received - processing payload";
-              convertPadData(hbfbuffer, currentir, rootified);
+              auto nevents = convertPadData(hbfbuffer, currentir, rootified);
               hbfbuffer.clear();
+              nHBFprocessed++;
+              nEventsProcessed += nevents;
+              auto found = nEvnetsHBF.find(nevents);
+              if (found == nEvnetsHBF.end()) {
+                nEvnetsHBF[nevents] = 1;
+              } else {
+                found->second++;
+              }
             } else {
               LOG(debug) << "New HBF or Timeframe";
               hbfbuffer.clear();
               currentir.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
               currentir.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
             }
+          } else {
+            LOG(error) << "Found unknown trigger" << std::bitset<32>(trigger);
           }
           currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
           continue;
+        }
+        if (o2::raw::RDHUtils::getStop(rdh)) {
+          LOG(error) << "Unexpected stop";
         }
 
         // non-0 payload size:
@@ -297,5 +314,13 @@ int main(int argc, char** argv)
       }
     }
     reader.setNextTFToRead(++tfID);
+    nTFprocessed++;
+  }
+  rootfilewriter->Write();
+  LOG(info) << "Processed " << nTFprocessed << " timeframes, " << nHBFprocessed << " HBFs";
+  LOG(info) << "Analyzed " << nEventsProcessed << " events:";
+  LOG(info) << "=============================================================";
+  for (auto& [nevents, nHBF] : nEvnetsHBF) {
+    LOG(info) << "  " << nevents << " event(s)/HBF: " << nHBF << " HBFs ...";
   }
 }

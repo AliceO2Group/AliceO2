@@ -202,8 +202,13 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const unsigned int rangeI
     inputSpecs.emplace_back(InputSpec{"lane", gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionLane(), Lifetime::Sporadic});
   }
 
+  std::string processorName = "tpc-aggregator-ft";
+  if (processSACs) {
+    processorName = "tpc-aggregator-ft-sac";
+  }
+
   return DataProcessorSpec{
-    "tpc-aggregator-ft",
+    processorName,
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(nFourierCoefficientsStore, rangeIDC, senddebug, processSACs, inputLanes)},

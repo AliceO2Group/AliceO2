@@ -1260,6 +1260,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     timeErr = mITSTimeResMUS; // chose smallest error
     deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
   }
+  timeErr += mParams->globalTimeExtraErrorMUS;
   float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS;                                                                       /// precise time estimate, optionally corrected for bias
   if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
@@ -1402,7 +1403,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
-  if (mVDriftCalibOn) {
+  if (mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt)) {
     mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl());
   }
   //  trfit.print(); // DBG

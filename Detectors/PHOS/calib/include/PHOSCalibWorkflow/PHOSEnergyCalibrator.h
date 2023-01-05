@@ -112,7 +112,7 @@ class PHOSEnergySlot
   std::vector<uint32_t> mDigits; /// list of calibration digits
 };
 
-class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSEnergySlot>
+class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::PHOSEnergySlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSEnergySlot>;
 
