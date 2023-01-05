@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file clusters-to-tracks-original-workflow.cxx
-/// \brief Implementation of a DPL device to run the original track finder algorithm
+/// \file clusters-to-tracks-workflow.cxx
+/// \brief Implementation of a DPL device to run the track finder algorithm
 ///
 /// \author Philippe Pillot, Subatech
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "TrackFinderOriginalSpec.h"
+#include "MCHTracking/TrackFinderSpec.h"
 
 using namespace o2::framework;
 
@@ -30,6 +30,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                ConfigParamSpec::HelpString{"Send associated digits"});
   workflowOptions.emplace_back("disable-magfield-from-ccdb", VariantType::Bool, false,
                                ConfigParamSpec::HelpString{"do not read magnetic field from ccdb"});
+  workflowOptions.emplace_back("original", VariantType::Bool, false,
+                               ConfigParamSpec::HelpString{"use the original track finder algorithm"});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -40,6 +42,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   bool computeTime = !configcontext.options().get<bool>("disable-time-computation");
   bool digits = configcontext.options().get<bool>("digits");
   bool disableCCDBMagField = configcontext.options().get<bool>("disable-magfield-from-ccdb");
-  return WorkflowSpec{o2::mch::getTrackFinderOriginalSpec("mch-track-finder-original",
-                                                          computeTime, digits, disableCCDBMagField)};
+  bool original = configcontext.options().get<bool>("original");
+  return WorkflowSpec{o2::mch::getTrackFinderSpec(original ? "mch-track-finder-original" : "mch-track-finder",
+                                                  computeTime, digits, disableCCDBMagField, original)};
 }

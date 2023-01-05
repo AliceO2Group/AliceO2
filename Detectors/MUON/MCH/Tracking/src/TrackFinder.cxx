@@ -145,6 +145,17 @@ void TrackFinder::initField(float l3Current, float dipoleCurrent)
 }
 
 //_________________________________________________________________________________________________
+const std::list<Track>& TrackFinder::findTracks(gsl::span<const Cluster> clusters)
+{
+  /// Group the clusters per DE and run the track finder algorithm
+  std::unordered_map<int, std::list<const Cluster*>> clustersPerDE{};
+  for (const auto& cluster : clusters) {
+    clustersPerDE[cluster.getDEId()].emplace_back(&cluster);
+  }
+  return findTracks(clustersPerDE);
+}
+
+//_________________________________________________________________________________________________
 const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters)
 {
   /// Run the track finder algorithm

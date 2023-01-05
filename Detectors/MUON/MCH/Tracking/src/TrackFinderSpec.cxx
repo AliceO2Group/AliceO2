@@ -9,20 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackFinderOriginalSpec.cxx
+/// \file TrackFinderSpec.cxx
 /// \brief Implementation of a data processor to read clusters, reconstruct tracks and send them
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "TrackFinderOriginalSpec.h"
+#include "MCHTracking/TrackFinderSpec.h"
 
-#include <array>
 #include <chrono>
 #include <filesystem>
 #include <list>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include <gsl/span>
 
@@ -47,6 +47,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
+#include "MCHTracking/TrackFinder.h"
 #include "MCHTracking/TrackFinderOriginal.h"
 #include "MCHTracking/TrackExtrap.h"
 
@@ -58,11 +59,12 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
+template <typename T>
 class TrackFinderTask
 {
  public:
   //_________________________________________________________________________________________________
-  TrackFinderTask(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
+  TrackFinderTask<T>(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
     : mComputeTime(computeTime), mDigits(digits), mCCDBRequest(req) {}
 
   //_________________________________________________________________________________________________
@@ -148,15 +150,9 @@ class TrackFinderTask
 
     for (const auto& clusterROF : clusterROFs) {
 
-      // sort the input clusters of the current event per chamber
-      std::array<std::list<const Cluster*>, 10> clusters{};
-      for (const auto& cluster : clustersIn.subspan(clusterROF.getFirstIdx(), clusterROF.getNEntries())) {
-        clusters[cluster.getChamberId()].emplace_back(&cluster);
-      }
-
       // run the track finder
       auto tStart = std::chrono::high_resolution_clock::now();
-      const auto& tracks = mTrackFinder.findTracks(clusters);
+      const auto& tracks = mTrackFinder.findTracks(clustersIn.subspan(clusterROF.getFirstIdx(), clusterROF.getNEntries()));
       auto tEnd = std::chrono::high_resolution_clock::now();
       mElapsedTime += tEnd - tStart;
 
@@ -262,13 +258,13 @@ class TrackFinderTask
   bool mDigits = false;                                 ///< send to associated digits
   std::shared_ptr<base::GRPGeomRequest> mCCDBRequest{}; ///< pointer to the CCDB requests
   float mTrackTime3Sigma{6.0};                          ///< three times the digit time resolution, in BC units
-  TrackFinderOriginal mTrackFinder{};                   ///< track finder
+  T mTrackFinder{};                                     ///< track finder
   std::chrono::duration<double> mElapsedTime{};         ///< timer
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName, bool computeTime, bool digits,
-                                                            bool disableCCDBMagField)
+o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName, bool computeTime, bool digits,
+                                                    bool disableCCDBMagField, bool original)
 {
   std::vector<InputSpec> inputSpecs{};
   inputSpecs.emplace_back(InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe});
@@ -298,7 +294,8 @@ o2::framework::DataProcessorSpec getTrackFinderOriginalSpec(const char* specName
     specName,
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TrackFinderTask>(computeTime, digits, ccdbRequest)},
+    original ? AlgorithmSpec{adaptFromTask<TrackFinderTask<TrackFinderOriginal>>(computeTime, digits, ccdbRequest)}
+             : AlgorithmSpec{adaptFromTask<TrackFinderTask<TrackFinder>>(computeTime, digits, ccdbRequest)},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
             {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
