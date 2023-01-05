@@ -195,6 +195,17 @@ class InputRecord
   [[nodiscard]] DataRef getFirstValid(bool throwOnFailure = false) const;
 
   [[nodiscard]] size_t getNofParts(int pos) const;
+
+  // Given a binding by string, return the associated DataRef
+  DataRef getDataRefByString(const char* bindingName, int part = 0) const
+  {
+    int pos = getPos(bindingName);
+    if (pos < 0) {
+      auto msg = describeAvailableInputs();
+      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", bindingName, msg.c_str());
+    }
+    return this->getByPos(pos, part);
+  }
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -211,28 +222,13 @@ class InputRecord
   {
     DataRef ref{nullptr, nullptr};
     using decayed = std::decay_t<R>;
+
     // Get the actual dataref
     if constexpr (std::is_same_v<decayed, char const*> ||
-                  std::is_same_v<decayed, char*> ||
-                  std::is_same_v<decayed, std::string>) {
-      try {
-        int pos = -1;
-        if constexpr (std::is_same_v<decayed, std::string>) {
-          pos = getPos(binding.c_str());
-        } else {
-          pos = getPos(binding);
-        }
-        if (pos < 0) {
-          throw std::invalid_argument("no matching route found for " + std::string(binding));
-        }
-        ref = this->getByPos(pos, part);
-      } catch (const std::exception& e) {
-        if constexpr (std::is_same_v<decayed, std::string>) {
-          throw runtime_error_f("Unknown argument requested %s - %s", binding.c_str(), e.what());
-        } else {
-          throw runtime_error_f("Unknown argument requested %s - %s", binding, e.what());
-        }
-      }
+                  std::is_same_v<decayed, char*>) {
+      ref = getDataRefByString(binding, part);
+    } else if constexpr (std::is_same_v<decayed, std::string>) {
+      ref = getDataRefByString(binding.c_str(), part);
     } else if constexpr (std::is_same_v<decayed, DataRef>) {
       ref = binding;
     } else {
@@ -662,6 +658,9 @@ class InputRecord
   }
 
  private:
+  // Produce a string describing the available inputs.
+  [[nodiscard]] std::string describeAvailableInputs() const;
+
   ServiceRegistryRef mRegistry;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;
