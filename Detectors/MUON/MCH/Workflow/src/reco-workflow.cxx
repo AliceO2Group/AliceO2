@@ -25,11 +25,10 @@
 #include "MCHGeometryTransformer/ClusterTransformerSpec.h"
 #include "MCHPreClustering/PreClusterFinderSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
+#include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/ClusterWriterSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
-#include "TrackFinderSpec.h"
-#include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
 using namespace o2::framework;
@@ -112,7 +111,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, true));
     }
     if (!disableTracking) {
-      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", true, digits, false));
+      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", true, digits, false, false));
       if (useMC) {
         specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
                                                               triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
