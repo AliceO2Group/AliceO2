@@ -815,8 +815,8 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
   int slice[2] = {-1, -1};
   std::vector<int> pset;
-  int withSlices[] = {3, 13, 19};
-  int withSets[] = {0, 1, 13, 14};
+  std::array<int, 3> withSlices = {3, 13, 19};
+  std::array<int, 4> withSets = {0, 1, 13, 14};
   int sizes[] = {3, 1, 5, 4};
   int c1 = 0;
   int c2 = 0;
@@ -824,12 +824,12 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     pset.clear();
     slice[0] = -1;
     slice[1] = -1;
-    if (i == withSlices[c1]) {
+    if (c1 < withSlices.size() && i == withSlices[c1]) {
       slice[0] = i - 2;
       slice[1] = i - 1;
       ++c1;
     }
-    if (i == withSets[c2]) {
+    if (c2 < withSets.size() && i == withSets[c2]) {
       for (auto z = 0; z < sizes[c2]; ++z) {
         pset.push_back(i + 1 + z);
       }
@@ -862,7 +862,7 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     }
     auto opss = p.pointSet_as<PointsSelfIndex>();
     auto opss_ids = p.pointSetIds();
-    if (i == withSets[c2]) {
+    if (c2 < withSets.size() && i == withSets[c2]) {
       BOOST_CHECK_EQUAL(opss.size(), sizes[c2]);
       BOOST_CHECK_EQUAL(opss.begin()->globalIndex(), i + 1);
       BOOST_CHECK_EQUAL(opss.back().globalIndex(), i + sizes[c2]);
