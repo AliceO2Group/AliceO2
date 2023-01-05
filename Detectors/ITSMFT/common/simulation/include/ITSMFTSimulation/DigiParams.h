@@ -110,9 +110,9 @@ class DigiParams
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  float mVbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
-  float mIBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float mOBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float mVbb = 0.0;   ///< back bias absolute value for MFT (in Volt)
+  float mIBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float mOBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 

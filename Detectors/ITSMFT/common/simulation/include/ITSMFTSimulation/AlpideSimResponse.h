@@ -27,8 +27,8 @@ namespace o2
 namespace itsmft
 {
 /*
- * AlpideRespSimMat : class to access the response: probability to collect electron 
- * in MNPix*MNPix cells. 
+ * AlpideRespSimMat : class to access the response: probability to collect electron
+ * in MNPix*MNPix cells.
  */
 class AlpideRespSimMat
 {
@@ -75,11 +75,11 @@ class AlpideRespSimMat
 /*
  * AlpideSimResponse: container for Alpide simulates parameterized response matrices
  * Based on the Miljenko Šuljić standalone code and needs as an input text matrices
- * from simulation. 
- * Provides for the electron injected to point X(columns direction),Y (rows direction) 
- * (with respect to pixel center) and Z (depth, with respect to epitaxial layer inner 
- * serface!!! i.e. touching the substrate) the probability to be collected in every 
- * of NPix*NPix pixels with reference pixel in the center. 
+ * from simulation.
+ * Provides for the electron injected to point X(columns direction),Y (rows direction)
+ * (with respect to pixel center) and Z (depth, with respect to epitaxial layer inner
+ * serface!!! i.e. touching the substrate) the probability to be collected in every
+ * of NPix*NPix pixels with reference pixel in the center.
  */
 
 class AlpideSimResponse
@@ -91,22 +91,22 @@ class AlpideSimResponse
   int getDepthBin(float pos) const;
   std::string composeDataName(int colBin, int rowBin);
 
-  int mNBinCol = 0;                    /// number of bins in X(col direction)
-  int mNBinRow = 0;                    /// number of bins in Y(row direction)
-  int mNBinDpt = 0;                    /// number of bins in Z(sensor dept)
-  int mMaxBinCol = 0;                  /// max allowed Xb (to avoid subtraction)
-  int mMaxBinRow = 0;                  /// max allowed Yb (to avoid subtraction)
+  int mNBinCol = 0;                                   /// number of bins in X(col direction)
+  int mNBinRow = 0;                                   /// number of bins in Y(row direction)
+  int mNBinDpt = 0;                                   /// number of bins in Z(sensor dept)
+  int mMaxBinCol = 0;                                 /// max allowed Xb (to avoid subtraction)
+  int mMaxBinRow = 0;                                 /// max allowed Yb (to avoid subtraction)
   float mColMax = SegmentationAlpide::PitchCol / 2.f; /// upper boundary of Col
   float mRowMax = SegmentationAlpide::PitchRow / 2.f; /// upper boundary of Row
-  float mDptMin = 0.f;                 /// lower boundary of Dpt
-  float mDptMax = 0.f;                 /// upper boundary of Dpt
-  float mDptShift = 0.f;               /// shift of the depth center wrt 0
-  float mStepInvCol = 0;               /// inverse step of the Col grid
-  float mStepInvRow = 0;               /// inverse step of the Row grid
-  float mStepInvDpt = 0;               /// inverse step of the Dpt grid
-  std::vector<AlpideRespSimMat> mData; /// response data
+  float mDptMin = 0.f;                                /// lower boundary of Dpt
+  float mDptMax = 0.f;                                /// upper boundary of Dpt
+  float mDptShift = 0.f;                              /// shift of the depth center wrt 0
+  float mStepInvCol = 0;                              /// inverse step of the Col grid
+  float mStepInvRow = 0;                              /// inverse step of the Row grid
+  float mStepInvDpt = 0;                              /// inverse step of the Dpt grid
+  std::vector<AlpideRespSimMat> mData;                /// response data
   /// path to look for data file
-  std::string mDataPath = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/";
+  std::string mDataPath;
   std::string mGridColName = "grid_list_x.txt";             /// name of the file with grid in Col
   std::string mGridRowName = "grid_list_y.txt";             /// name of the file with grid in Row
   std::string mColRowDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given Col,Row
@@ -115,7 +115,7 @@ class AlpideSimResponse
   AlpideSimResponse() = default;
   ~AlpideSimResponse() = default;
 
-  void initData(int tableNumber);
+  void initData(int tableNumber, std::string dataPath, const bool quiet = true);
 
   bool getResponse(float vRow, float vCol, float cDepth, AlpideRespSimMat& dest) const;
   const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const;
