@@ -34,6 +34,7 @@ class Response
   ~Response() = default;
 
   float getChargeSpread() const { return mChargeSpread; }
+  float getPitch() const {return mPitch; }
   float getSigmaIntegration() const { return mSigmaIntegration; }
   bool isAboveThreshold(float charge) const { return charge > mChargeThreshold; }
 
