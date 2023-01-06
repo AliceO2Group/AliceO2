@@ -58,11 +58,25 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   // local position of the charge distribution
   auto exitPoint = hit.exitPoint();
   auto entrancePoint = hit.entrancePoint();
+  auto hitlengthZ = entrancePoint.Z() - exitPoint.Z();//global coordinate: muon arm at negative z
   //ToDo: only working if track crossing and straight line within gas volume of detector
+  //most general: take crossing of trajectory with plane at z of anode wire as the relevant point.
   //no exception treatment, straight-line approximation: ok, need treatment for stopped tracks
-  math_utils::Point3D<float> pos((exitPoint.X()+entrancePoint.X())/2., (exitPoint.Y()+entrancePoint.Y())/2., (exitPoint.Z()+entrancePoint.Z())/2.);
-  //one possibility: compare exitPoint-z with z of end of detector-element...: complicated 
+  //could get from mResponse info about z-depth of detection Element, check if different between exit and entrance point is smaller to make the case.
+  auto pitch = mResponse.getPitch();
+
+  math_utils::Point3D<float> pos{};
   
+  if(hitlengthZ > pitch * 1.99) {
+    pos.X() = (exitPoint.X() + entrancePoint.X())/2.;
+    pos.Y() = (exitPoint.Y() + entrancePoint.Y())/2.;
+    pos.Z() = (exitPoint.Z() + entrancePoint.Z())/2.;
+  //one possibility: compare exitPoint-z with z of end of detector-element...: complicated 
+  } else {
+    pos.X() = exitPoint.X(); //take Bragg peak coordinates assuming electron drift parallel to z
+    pos.Y() = exitPoint.Z(); //take Bragg peak coordinates assuming electron drift parallel to z
+    pos.Z() = entrancePoint.Z() - pitch; //take wire position global coordinate negative
+  }
   math_utils::Point3D<float> lpos{};
   mTransformation.MasterToLocal(pos, lpos);
   auto localX = mResponse.getAnod(lpos.X());
