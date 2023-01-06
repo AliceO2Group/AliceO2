@@ -95,7 +95,7 @@ float Response::eLossRatio(float logbetagamma) const
   // Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
   /// copied from aliroot AliMUONv1.cxx
   float eLossRatioParam[5] = {0,1.02138, -9.54149e-02, +7.83433e-02, -9.98208e-03, +3.83279e-04};
-  return eLossRatioParam[0] + eLossRatioParam[1] * betagamma + eLossRatioParam[2] * std::pow(betagamma, 2) + eLossRatioParam[3] * std::pow(betagamma, 3) + eLossRatioParam[4] * std::pow(betagamma, 4);
+  return eLossRatioParam[0] + eLossRatioParam[1] * logbetagamma + eLossRatioParam[2] * std::pow(logbetagamma, 2) + eLossRatioParam[3] * std::pow(logbetagamma, 3) + eLossRatioParam[4] * std::pow(logbetagamma, 4);
 }
 //_____________________________________________________________________
 float Response::angleEffect10(float elossratio) const
