@@ -74,7 +74,7 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   //one possibility: compare exitPoint-z with z of end of detector-element...: complicated 
   } else {
     pos.X() = exitPoint.X(); //take Bragg peak coordinates assuming electron drift parallel to z
-    pos.Y() = exitPoint.Z(); //take Bragg peak coordinates assuming electron drift parallel to z
+    pos.Y() = exitPoint.Y(); //take Bragg peak coordinates assuming electron drift parallel to z
     pos.Z() = entrancePoint.Z() - pitch; //take wire position global coordinate negative
   }
   math_utils::Point3D<float> lpos{};
