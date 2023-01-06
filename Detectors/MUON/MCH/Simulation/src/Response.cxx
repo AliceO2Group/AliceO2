@@ -89,3 +89,38 @@ uint32_t Response::nSamples(float charge) const
   double signalParam[3] = {14., 13., 1.5};
   return std::round(std::pow(charge / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
 }
+//_____________________________________________________________________
+float Response::eLossRatio(float logbetagamma) const
+{
+  // Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
+  /// copied from aliroot AliMUONv1.cxx
+  float eLossRatioParam[5] = {1.02138, -9.54149e-02, +7.83433e-02, -9.98208e-03, +3.83279e-04};
+  return eLossRatioParam[0] + eLossRatioParam[1] * logbetagamma + eLossRatioParam[2] * std::pow(logbetagamma, 2) + eLossRatioParam[3] * std::pow(logbetagamma, 3) + eLossRatioParam[4] * std::pow(logbetagamma, 4);
+}
+//_____________________________________________________________________
+float Response::angleEffect10(float elossratio) const
+{
+  /// Angle effect in tracking chambers at theta =10 degres as a function of ElossRatio (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis) (in micrometers)
+  /// copied from aliroot AliMUONv1.cxx
+  float angleEffectParam[3] = {1.90691e+02, -6.62258e+01, 1.28247e+01};
+  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2);
+}
+//_____________________________________________________________________
+float Response::angleEffectNorma(float elossratio) const
+{
+  /// Angle effect: Normalisation form theta=10 degres to theta between 0 and 10 (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis)
+  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
+  /// copied from aliroot AliMUONv1.cxx
+  float angleEffectParam[4] = {4.148, -6.809e-01, 5.151e-02, -1.490e-03};
+  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2) + angleEffectParam[3] * std::pow(elossratio, 3);
+}
+//_____________________________________________________________________
+float Response::magAngleEffectNorma(float angle, float bfield) const
+{
+  /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
+  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
+  /// copied from aliroot AliMUONv1.cxx
+  float angleEffectParam[7] = {8.6995, 25.4022, 13.8822, 2.4717, 1.1551, -0.0624, 0.0012};
+  float aux = std::abs(angle - angleEffectParam[0] * bfield);
+  return 121.24 / ((angleEffectParam[1] + angleEffectParam[2] * std::abs(bfield)) + angleEffectParam[3] * aux + angleEffectParam[4] * std::pow(aux, 2) + angleEffectParam[5] * std::pow(aux, 3) + angleEffectParam[6] * std::pow(aux, 4));
+}

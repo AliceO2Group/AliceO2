@@ -34,6 +34,7 @@ class Response
   ~Response() = default;
 
   float getChargeSpread() const { return mChargeSpread; }
+  float getPitch() const { return mPitch; }
   float getSigmaIntegration() const { return mSigmaIntegration; }
   bool isAboveThreshold(float charge) const { return charge > mChargeThreshold; }
 
@@ -64,6 +65,21 @@ class Response
   /// compute the number of samples corresponding to the charge in ADC units
   uint32_t nSamples(float charge) const;
 
+  /// Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
+  float eLossRatio(float logbetagamma) const;
+  /// ToDo: check Aliroot formula vs PDG, if really log_10 and not ln or bug in Aliroot
+
+  /// Angle effect in tracking chambers at theta =10 degres as a function of ElossRatio (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis) (in micrometers)
+  float angleEffect10(float elossratio) const;
+
+  /// Angle effect: Normalisation form theta=10 degres to theta between 0 and 10 (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis)
+  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
+  float angleEffectNorma(float elossratio) const;
+
+  /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
+  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
+  float magAngleEffectNorma(float angle, float bfield) const;
+
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function
   float mPitch = 0.f;             ///< anode-cathode pitch (cm)
@@ -72,6 +88,8 @@ class Response
   float mSigmaIntegration = 0.f;  ///< number of sigmas used for charge distribution
   float mChargeCorr = 0.f;        ///< amplitude of charge correlation between cathodes
   float mChargeThreshold = 0.f;   ///< minimum fraction of charge considered
+  bool mAngleEffect = true;       ///< switch for angle effect influencing charge deposition
+  bool mMagnetEffect = true;      ///< switch for magnetic field influencing charge deposition
 };
 } // namespace mch
 } // namespace o2
