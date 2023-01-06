@@ -90,7 +90,7 @@ class Response
   float mChargeCorr = 0.f;        ///< amplitude of charge correlation between cathodes
   float mChargeThreshold = 0.f;   ///< minimum fraction of charge considered
   bool mAngleEffect = true;       ///< switch for angle effect influencing charge deposition
-  bool mMageffect = true;         ///< switch for magnetic field influencing charge deposition
+  bool mMagnetEffect = true;         ///< switch for magnetic field influencing charge deposition
 
         
 
