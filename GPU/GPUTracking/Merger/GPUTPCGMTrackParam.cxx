@@ -86,22 +86,19 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
   float lastUpdateX = -1.f;
   unsigned char lastRow = 255;
   unsigned char lastSlice = 255;
-  bool storedOuter = false;
+  unsigned char storeOuter = 0;
 
   for (int iWay = 0; iWay < nWays; iWay++) {
     int nMissed = 0, nMissed2 = 0;
-    if (iWay && param.rec.tpc.nWaysOuter && iWay == nWays - 1 && outerParam) {
-      CADEBUG(printf("\t%21sStorOut Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
-      for (int i = 0; i < 5; i++) {
-        outerParam->P[i] = mP[i];
-      }
-      for (int i = 0; i < 15; i++) {
-        outerParam->C[i] = mC[i];
-      }
-      outerParam->X = mX;
-      outerParam->alpha = prop.GetAlpha();
-      if (merger->OutputTracks()[iTrk].Looper()) {
-        storedOuter = true;
+    if (iWay && storeOuter != 255 && param.rec.tpc.nWaysOuter && outerParam) {
+      storeOuter = 0;
+      if (iWay == nWays - 1) {
+        StoreOuter(outerParam, prop);
+        if (merger->OutputTracks()[iTrk].Looper()) {
+          storeOuter = 1;
+        }
+      } else if (iWay == nWays - 2 && merger->OutputTracks()[iTrk].Looper()) {
+        storeOuter = 2;
       }
     }
 
@@ -134,6 +131,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         if (mC[2] < 0.5f) {
           mC[2] = 0.5f;
         }
+      }
+
+      if (storeOuter == 2 && clusters[ihit].leg == clusters[maxN - 1].leg - 1) {
+        StoreOuter(outerParam, prop);
+        storeOuter = 255;
       }
 
       unsigned char clusterState = clusters[ihit].state;
@@ -310,16 +312,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       ConstrainSinPhi();
       if (retVal == 0) // track is updated
       {
-        if (storedOuter && clusters[ihit].leg == clusters[maxN - 1].leg) {
-          for (int i = 0; i < 5; i++) {
-            outerParam->P[i] = mP[i];
-          }
-          for (int i = 0; i < 15; i++) {
-            outerParam->C[i] = mC[i];
-          }
-          outerParam->X = mX;
-          outerParam->alpha = prop.GetAlpha();
-          storedOuter = false;
+        if (storeOuter == 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
+          StoreOuter(outerParam, prop);
+          storeOuter = 255;
         }
         noFollowCircle2 = false;
         lastUpdateX = mX;
@@ -620,6 +615,19 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
   return CAMath::Abs(mX * lrFactor - toY) > 1.f &&                                                                       // transport further in Y
          CAMath::Abs(mP[2]) < 0.7f &&                                                                                    // rotate back
          (up ? (-mP[0] * lrFactor > toX || (right ^ (mP[2] > 0))) : (-mP[0] * lrFactor < toX || (right ^ (mP[2] < 0)))); // don't overshoot in X
+}
+
+GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop)
+{
+  CADEBUG(printf("\t%21sStorOut Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
+  for (int i = 0; i < 5; i++) {
+    outerParam->P[i] = mP[i];
+  }
+  for (int i = 0; i < 15; i++) {
+    outerParam->C[i] = mC[i];
+  }
+  outerParam->X = mX;
+  outerParam->alpha = prop.GetAlpha();
 }
 
 GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
