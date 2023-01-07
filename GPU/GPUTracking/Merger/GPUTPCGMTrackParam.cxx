@@ -86,6 +86,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
   float lastUpdateX = -1.f;
   unsigned char lastRow = 255;
   unsigned char lastSlice = 255;
+  bool storedOuter = false;
 
   for (int iWay = 0; iWay < nWays; iWay++) {
     int nMissed = 0, nMissed2 = 0;
@@ -99,6 +100,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       }
       outerParam->X = mX;
       outerParam->alpha = prop.GetAlpha();
+      if (merger->OutputTracks()[iTrk].Looper()) {
+        storedOuter = true;
+      }
     }
 
     int resetT0 = initResetT0();
@@ -306,6 +310,17 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       ConstrainSinPhi();
       if (retVal == 0) // track is updated
       {
+        if (storedOuter && clusters[ihit].leg == clusters[maxN - 1].leg) {
+          for (int i = 0; i < 5; i++) {
+            outerParam->P[i] = mP[i];
+          }
+          for (int i = 0; i < 15; i++) {
+            outerParam->C[i] = mC[i];
+          }
+          outerParam->X = mX;
+          outerParam->alpha = prop.GetAlpha();
+          storedOuter = false;
+        }
         noFollowCircle2 = false;
         lastUpdateX = mX;
         covYYUpd = mC[0];
