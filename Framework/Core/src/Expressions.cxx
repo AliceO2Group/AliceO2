@@ -189,6 +189,37 @@ void updatePlaceholders(Filter& filter, InitContext& context)
   }
 }
 
+const char* stringType(atype::type t)
+{
+  switch (t) {
+    case atype::BOOL:
+      return "bool";
+    case atype::DOUBLE:
+      return "double";
+    case atype::FLOAT:
+      return "float";
+    case atype::INT8:
+      return "int8";
+    case atype::INT16:
+      return "int16";
+    case atype::INT32:
+      return "int32";
+    case atype::INT64:
+      return "int64";
+    case atype::UINT8:
+      return "uint8";
+    case atype::UINT16:
+      return "uint16";
+    case atype::UINT32:
+      return "uint32";
+    case atype::UINT64:
+      return "uint64";
+    default:
+      return "unsupported";
+  }
+  O2_BUILTIN_UNREACHABLE();
+}
+
 Operations createOperations(Filter const& expression)
 {
   Operations OperationSpecs;
@@ -350,7 +381,7 @@ Operations createOperations(Filter const& expression)
     if (t1 == atype::DOUBLE) {
       return atype::DOUBLE;
     }
-    throw runtime_error_f("Invalid combination of argument types %d and %d", t1, t2);
+    throw runtime_error_f("Invalid combination of argument types %s and %s", stringType(t1), stringType(t2));
   };
 
   for (auto it = OperationSpecs.rbegin(); it != OperationSpecs.rend(); ++it) {
@@ -526,27 +557,27 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
     if (spec.datum.index() == 2) {
       auto content = std::get<LiteralNode::var_t>(spec.datum);
       switch (content.index()) {
-        case 0: //int
+        case 0: // int
           return gandiva::TreeExprBuilder::MakeLiteral(static_cast<int32_t>(std::get<int>(content)));
-        case 1: //bool
+        case 1: // bool
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<bool>(content));
-        case 2: //float
+        case 2: // float
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<float>(content));
-        case 3: //double
+        case 3: // double
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<double>(content));
-        case 4: //uint8
+        case 4: // uint8
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint8_t>(content));
-        case 5: //int64
+        case 5: // int64
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<int64_t>(content));
-        case 6: //int16
+        case 6: // int16
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<int16_t>(content));
-        case 7: //uint16
+        case 7: // uint16
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint16_t>(content));
-        case 8: //int8
+        case 8: // int8
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<int8_t>(content));
-        case 9: //uint32
+        case 9: // uint32
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint32_t>(content));
-        case 10: //uint64
+        case 10: // uint64
           return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint64_t>(content));
         default:
           throw runtime_error("Malformed LiteralNode");
