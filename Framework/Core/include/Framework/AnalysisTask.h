@@ -118,18 +118,18 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(name, value, inputs), ...);
   }
 
-  template <typename T, int AI>
-  static void appendSomethingWithMetadata(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t hash)
+  template <typename T>
+  static void appendSomethingWithMetadata(int ai, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t hash)
   {
     static_assert(std::is_lvalue_reference_v<T>, "Argument to process needs to be a reference (&).");
     using dT = std::decay_t<T>;
     if constexpr (soa::is_soa_filtered_v<dT>) {
       auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
-      eInfos.push_back({AI, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+      eInfos.push_back({ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
     } else if constexpr (soa::is_soa_iterator_v<dT>) {
       auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({AI, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+        eInfos.push_back({ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), name, value, inputs);
@@ -138,7 +138,8 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (appendSomethingWithMetadata<Args, o2::framework::has_type_at_v<Args>(pack<Args...>{})>(name, value, inputs, eInfos, typeHash<R (C::*)(Args...)>()), ...);
+    int ai = 0;
+    (appendSomethingWithMetadata<Args>(ai++, name, value, inputs, eInfos, typeHash<R (C::*)(Args...)>()), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
