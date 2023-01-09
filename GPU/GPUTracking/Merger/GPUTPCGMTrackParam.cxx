@@ -93,7 +93,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
     if (iWay && storeOuter != 255 && param.rec.tpc.nWaysOuter && outerParam) {
       storeOuter = 0;
       if (iWay == nWays - 1) {
-        StoreOuter(outerParam, prop);
+        StoreOuter(outerParam, prop, 0);
         if (merger->OutputTracks()[iTrk].Looper()) {
           storeOuter = 1;
         }
@@ -134,8 +134,12 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       }
 
       if (storeOuter == 2 && clusters[ihit].leg == clusters[maxN - 1].leg - 1) {
-        StoreOuter(outerParam, prop);
-        storeOuter = 255;
+        if (lastLeg == clusters[maxN - 1].leg) {
+          StoreOuter(outerParam, prop, 1);
+          storeOuter = 255;
+        } else {
+          storeOuter = 0;
+        }
       }
 
       unsigned char clusterState = clusters[ihit].state;
@@ -313,7 +317,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       if (retVal == 0) // track is updated
       {
         if (storeOuter == 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
-          StoreOuter(outerParam, prop);
+          StoreOuter(outerParam, prop, 2);
           storeOuter = 255;
         }
         noFollowCircle2 = false;
@@ -616,9 +620,9 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
          (up ? (-mP[0] * lrFactor > toX || (right ^ (mP[2] > 0))) : (-mP[0] * lrFactor < toX || (right ^ (mP[2] < 0)))); // don't overshoot in X
 }
 
-GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop)
+GPUdii() void GPUTPCGMTrackParam::StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop, int phase)
 {
-  CADEBUG(printf("\t%21sStorOut Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
+  CADEBUG(printf("\t%21sStorO%d  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", phase, prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14])));
   for (int i = 0; i < 5; i++) {
     outerParam->P[i] = mP[i];
   }
