@@ -490,7 +490,6 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int& ihit, int wayDirectio
     xx /= count;
     yy /= count;
     zz /= count;
-    CADEBUG(printf("\t\tDouble row (%f tot charge)\n", count));
   }
   return 0;
 }
@@ -704,20 +703,20 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
   if (prop.RotateToAlpha(prop.GetAlpha() + (CAMath::Pi() / 2.f) * lrFactor)) {
     return 1;
   }
-  CADEBUG(printf("Rotated: X %f Y %f Z %f SinPhi %f (Alpha %f / %f)\n", mP[0], mX, mP[1], mP[2], prop.GetAlpha(), prop.GetAlpha() + CAMath::Pi() / 2.f));
+  CADEBUG(printf("\tRotated: X %f Y %f Z %f SinPhi %f (Alpha %f / %f)\n", mP[0], mX, mP[1], mP[2], prop.GetAlpha(), prop.GetAlpha() + CAMath::Pi() / 2.f));
   while (slice != toSlice || FollowCircleChk(lrFactor, toY, toX, up, right)) {
     while ((slice != toSlice) ? (CAMath::Abs(mX) <= CAMath::Abs(mP[0]) * CAMath::Tan(kSectAngle / 2.f)) : FollowCircleChk(lrFactor, toY, toX, up, right)) {
       int err = prop.PropagateToXAlpha(mX + 1.f, prop.GetAlpha(), inFlyDirection);
       if (err) {
-        CADEBUG(printf("propagation error (%d)\n", err));
+        CADEBUG(printf("\t\tpropagation error (%d)\n", err));
         prop.RotateToAlpha(prop.GetAlpha() - (CAMath::Pi() / 2.f) * lrFactor);
         return 1;
       }
-      CADEBUG(printf("Propagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
+      CADEBUG(printf("\tPropagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
       for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
         float rowX = Merger->Param().tpcGeometry.Row2X(j);
         if (CAMath::Abs(rowX - (-mP[0] * lrFactor)) < 1.5f) {
-          CADEBUG(printf("Attempt row %d (Y %f Z %f)\n", j, mX * lrFactor, mP[1]));
+          CADEBUG(printf("\t\tAttempt row %d (Y %f Z %f)\n", j, mX * lrFactor, mP[1]));
           AttachClusters(Merger, slice, j, iTrack, false, mX * lrFactor, mP[1]);
         }
       }
@@ -732,16 +731,16 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
           slice += 18;
         }
       }
-      CADEBUG(printf("Rotating to slice %d\n", slice));
+      CADEBUG(printf("\tRotating to slice %d\n", slice));
       if (prop.RotateToAlpha(param.Alpha(slice) + (CAMath::Pi() / 2.f) * lrFactor)) {
-        CADEBUG(printf("rotation error\n"));
+        CADEBUG(printf("\t\trotation error\n"));
         prop.RotateToAlpha(prop.GetAlpha() - (CAMath::Pi() / 2.f) * lrFactor);
         return 1;
       }
-      CADEBUG(printf("After Rotatin Alpha %f Position X %f Y %f Z %f SinPhi %f\n", prop.GetAlpha(), mP[0], mX, mP[1], mP[2]));
+      CADEBUG(printf("\tAfter Rotatin Alpha %f Position X %f Y %f Z %f SinPhi %f\n", prop.GetAlpha(), mP[0], mX, mP[1], mP[2]));
     }
   }
-  CADEBUG(printf("Rotating back\n"));
+  CADEBUG(printf("\tRotating back\n"));
   for (int i = 0; i < 2; i++) {
     if (prop.RotateToAlpha(prop.GetAlpha() + (CAMath::Pi() / 2.f) * lrFactor) == 0) {
       break;
@@ -750,11 +749,11 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
       CADEBUG(printf("Final rotation failed\n"));
       return 1;
     }
-    CADEBUG(printf("resetting physical model\n"));
+    CADEBUG(printf("\tresetting physical model\n"));
     prop.SetTrack(this, prop.GetAlpha());
   }
   prop.Rotate180();
-  CADEBUG(printf("Mirrored position: Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f\n", prop.GetAlpha(), mX, mP[0], mP[1], mP[2], mP[3]));
+  CADEBUG(printf("\tMirrored position: Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f\n", prop.GetAlpha(), mX, mP[0], mP[1], mP[2], mP[3]));
   iRow = toRow;
   float dx = toX - Merger->Param().tpcGeometry.Row2X(toRow);
   if (up ^ (toX > mX)) {
