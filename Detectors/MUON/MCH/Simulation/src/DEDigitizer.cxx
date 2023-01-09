@@ -58,7 +58,14 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   // local position of the charge distribution
   auto exitPoint = hit.exitPoint();
   auto entrancePoint = hit.entrancePoint();
-  auto hitlengthZ = entrancePoint.Z() - exitPoint.Z();//global coordinate: muon arm at negative z
+  math_utils::Point3D<float> lexit{};
+  math_utils::Point3D<float> lentrance{};
+  mTransformation.MasterToLocal(exitPoint, lexit);
+  mTransformation.MasterToLocal(entrancePoint, lentrance);
+
+  auto hitlengthZ = lentrance.Z() - lexit.Z();//
+  //ToDO: check check sign convention of local coordinate system 
+  //global coordinate: muon arm at negative z
   //ToDo: only working if track crossing and straight line within gas volume of detector
   //most general: take crossing of trajectory with plane at z of anode wire as the relevant point.
   //no exception treatment, straight-line approximation: ok, need treatment for stopped tracks
@@ -68,12 +75,12 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   math_utils::Point3D<float> pos{};
   
   if(hitlengthZ > pitch * 1.99) {
-    pos.SetXYZ(exitPoint.X() + entrancePoint.X())/2., exitPoint.Y() + entrancePoint.Y())/2., exitPoint.Z() + entrancePoint.Z())/2.);
+    pos.SetXYZ((lexit.X() + lentrance.X())/2., (lexit.Y() + lentrance.Y())/2., (lexit.Z() + lentrance.Z())/2.);
   //one possibility: compare exitPoint-z with z of end of detector-element...: complicated 
   } else {
-      pos.SetXYZ(exitPoint.X(), //take Bragg peak coordinates assuming electron drift parallel to z
-		 exitPoint.Y(), //take Bragg peak coordinates assuming electron drift parallel to z
-		 entrancePoint.Z() - pitch); //take wire position global coordinate negative
+      pos.SetXYZ(lexit.X(), //take Bragg peak coordinates assuming electron drift parallel to z
+		 lexit.Y(), //take Bragg peak coordinates assuming electron drift parallel to z
+		 lentrance.Z() - pitch); //take wire position global coordinate negative
   }
   math_utils::Point3D<float> lpos{};
   mTransformation.MasterToLocal(pos, lpos);
