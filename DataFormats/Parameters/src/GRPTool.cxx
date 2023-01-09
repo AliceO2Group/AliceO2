@@ -57,7 +57,7 @@ struct Options {
   bool print = false; // whether to print outcome of GRP operation
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
-  std::string ccdbhost = "https://alice-ccdb.cern.ch";
+  std::string ccdbhost = "http://alice-ccdb.cern.ch";
   bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
 };
 

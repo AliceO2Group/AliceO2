@@ -185,7 +185,7 @@ int main(int argc, char** argv)
     add_option("flps,f", bpo::value<string>()->default_value(""), "comma separated list of FLPs in the data taking");
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
-    add_option("ccdb-server", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
     add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
     add_option("marginSOR", bpo::value<long>()->default_value(4 * o2::ccdb::CcdbObjectInfo::DAY), "validity at SOR");

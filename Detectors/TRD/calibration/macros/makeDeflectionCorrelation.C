@@ -71,7 +71,7 @@ static o2::trd::NoiseStatusMCM* noiseMapPtr;
 static void ccdbDownload(unsigned int runNumber, std::string ccdb, timePoint queryInterval)
 {
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbMgr.setURL("https://alice-ccdb.cern.ch/");
+  ccdbMgr.setURL("http://alice-ccdb.cern.ch/");
   auto runDuration = ccdbMgr.getRunDuration(runNumber);
   std::map<std::string, std::string> md;
   md["runNumber"] = std::to_string(runNumber);

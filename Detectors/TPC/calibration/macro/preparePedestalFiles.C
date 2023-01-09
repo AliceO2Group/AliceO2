@@ -41,7 +41,7 @@ void preparePedestalFiles(const std::string_view pedestalFile, std::string outpu
     if (pedestalFile.find("cdb-test") == 0) {
       cdb.setURL("http://ccdb-test.cern.ch:8080");
     } else if (pedestalFile.find("cdb-prod") == 0) {
-      cdb.setURL("https://alice-ccdb.cern.ch");
+      cdb.setURL("http://alice-ccdb.cern.ch");
     }
     const auto timePos = pedestalFile.find("@");
     if (timePos != std::string_view::npos) {
