@@ -56,6 +56,7 @@ o2_add_library(TPCCalibration
                                      O2::DetectorsCalibration
                                      O2::GPUO2Interface
                                      O2::GPUTracking
+                                     O2::TPCFastTransformation
                                      O2::CCDB)
 
 o2_target_root_dictionary(TPCCalibration
