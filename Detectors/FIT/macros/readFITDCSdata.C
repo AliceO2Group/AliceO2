@@ -79,7 +79,7 @@ void readFITDCSdata(std::string detectorName = "FT0",
                     const std::string& dataPointAliases = "",
                     long timeStart = -1,
                     long timeEnd = -1,
-                    const std::string& ccdbUrl = "https://alice-ccdb.cern.ch",
+                    const std::string& ccdbUrl = "http://alice-ccdb.cern.ch",
                     const bool plot = true,
                     const std::string& rootOutput = "",
                     const bool print = false,
@@ -315,7 +315,7 @@ void plotFITDCSdataFromFile(const std::string& fileName)
 /// ROOT macro for printing the contents of one CCDB object. Used for debugging.
 void printCCDBObject(const std::string detectorName = "FT0",
                      long timestamp = -1,
-                     const std::string ccdbUrl = "https://alice-ccdb.cern.ch")
+                     const std::string ccdbUrl = "http://alice-ccdb.cern.ch")
 {
   // // Parse and check detector name
   // boost::to_upper(detectorName);

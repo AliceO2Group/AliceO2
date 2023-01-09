@@ -20,7 +20,7 @@
 using namespace o2::framework;
 
 // Set a start value which might correspond to a real timestamp of an object in CCDB, for example:
-// o2-testworkflows-ccdb-fetch-to-timeframe --condition-backend https://alice-ccdb.cern.ch --start-value-enumeration 1575985965925000
+// o2-testworkflows-ccdb-fetch-to-timeframe --condition-backend http://alice-ccdb.cern.ch --start-value-enumeration 1575985965925000
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
