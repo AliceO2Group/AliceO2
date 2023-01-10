@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "ClusterFinderGEMSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DigitReaderSpec.h"
@@ -19,13 +20,14 @@
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
 #include "Framework/WorkflowSpec.h"
+#include "MCHClustering/ClusterizerParam.h"
 #include "MCHDigitFiltering/DigitFilteringSpec.h"
 #include "MCHGeometryTransformer/ClusterTransformerSpec.h"
 #include "MCHPreClustering/PreClusterFinderSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
-#include "MCHWorkflow/TrackWriterSpec.h"
 #include "MCHWorkflow/ClusterWriterSpec.h"
+#include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
@@ -100,7 +102,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                       triggered ? "E-F-DIGITROFS" : (useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS")));
 
   if (!disableClustering) {
-    specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
+    if (o2::mch::ClusterizerParam::Instance().legacy) {
+      specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
+    } else {
+      specs.emplace_back(o2::mch::getClusterFinderGEMSpec("mch-cluster-finder"));
+    }
     specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
     if (!disableRootOutput) {
       specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, true));

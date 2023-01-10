@@ -18,13 +18,16 @@
 #ifndef O2_MCH_CLUSTER_H_
 #define O2_MCH_CLUSTER_H_
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_linalg.h>
+
 #include "MCHClustering/PadsPEM.h"
 
 namespace o2
 {
 namespace mch
 {
-typedef std::pair<int, const double*> DataBlock_t;
+typedef std::pair<int, double*> DataBlock_t;
 
 typedef struct {
   PadIdx_t i;
@@ -45,20 +48,32 @@ class ClusterPEM
   ~ClusterPEM();
   inline int getNbrOfPads(int c)
   {
-    return (pads[c] == nullptr ? 0 : pads[c]->getNbrOfPads());
+    return ((pads[c] == nullptr) ? 0 : pads[c]->getNbrOfPads());
+  };
+  inline int getNbrOfObsPads(int c)
+  {
+    return ((pads[c] == nullptr) ? 0 : pads[c]->getNbrOfObsPads());
   };
   inline int getNbrOfPads()
   {
     return getNbrOfPads(0) + getNbrOfPads(1);
   };
+  inline int getNbrOfObsPads()
+  {
+    return getNbrOfObsPads(0) + getNbrOfObsPads(1);
+  };
   inline double getTotalCharge(int c)
   {
     return (pads[c] == nullptr ? 0 : pads[c]->getTotalCharge());
   };
+
   inline const double* getCharges(int c)
   {
-    return (pads[c] == nullptr) ? nullptr : pads[c]->getCharges();
+    return (pads[c] == nullptr ? nullptr : pads[c]->getCharges());
   }
+
+  double getMaxCharge();
+
   inline const Pads* getPads(int c) { return pads[c]; };
   inline const Groups_t* getCathGroup(int c) { return cathGroup[c]; };
   inline Groups_t* getProjPadGroup() { return projPadToGrp; };
@@ -67,6 +82,9 @@ class ClusterPEM
   {
     return (projectedPads == nullptr ? -1 : projectedPads->getNbrOfPads());
   };
+  std::pair<double, double> computeChargeBarycenter(int plane);
+  //
+  std::pair<int, int> getNxNy(int c);
   // Unused - Old version
   // double *getProjPadsAsXYdXY( Groups_t group, const Mask_t* maskGrp, int
   // nbrProjPadsInTheGroup);
@@ -85,6 +103,8 @@ class ClusterPEM
   void addBoundaryPads();
   // Find local maximima with the PET algo
   int findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath);
+  int findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsInTheGroupCath);
+  int findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupCath);
   // Perform the fitting
   DataBlock_t fit(double* thetaInit, int K);
   // Not used in the Clustering/fitting
@@ -144,6 +164,9 @@ class ClusterPEM
   int renumberGroups(Groups_t* grpToGrp, int nGrp);
   // Remove low charged groups
   void removeLowChargedGroups(int nGroups);
+  // Remove smallCharged seeds
+  int filterFitModelOnSmallChargedSeeds(Pads& pads, double* theta, int K,
+                                        Mask_t* maskFilteredTheta);
   // Keep the seeds inside the cluster area
   // Some fitting cases provide seeds outside of the cluster area
   int filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
@@ -152,7 +175,8 @@ class ClusterPEM
   int filterFitModelOnSpaceVariations(const double* theta0, int K0,
                                       double* theta, int K,
                                       Mask_t* maskFilteredTheta);
-
+  Pads* findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheGroupCath);
+  Pads* findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInTheGroupCath);
   // ???
   int getIndexByRow(const char* matrix, PadIdx_t N, PadIdx_t M, PadIdx_t* IIdx);
   int getIndexByColumns(const char* matrix, PadIdx_t N, PadIdx_t M,
@@ -170,6 +194,8 @@ class ClusterPEM
   int laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
                   PadIdx_t* sortedLocalMax, int kMax, double* smoothQ);
 };
+
+gsl_matrix* moore_penrose_pinv(gsl_matrix* A, double rcond);
 
 } // namespace mch
 } // namespace o2
