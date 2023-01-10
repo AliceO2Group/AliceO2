@@ -247,6 +247,12 @@ foreach(t
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
 
+o2_add_test(O2DatabasePDG NAME test_Framework_test_O2DatabasePDG
+            SOURCES test/test_O2DatabasePDG.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkPhysicsSupport)
+
 o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
             SOURCES test/test_Root2ArrowTable.cxx
             COMPONENT_NAME Framework
