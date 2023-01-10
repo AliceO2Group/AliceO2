@@ -93,7 +93,7 @@ struct CommonAnalysisServices {
   static void addAnalysisService(std::vector<ServiceSpec>& specs)
   {
     std::vector<LoadableService> loadableServices = {};
-    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupport";
+    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupportOld";
     loadableServices = ServiceHelpers::parseServiceSpecString(analysisServices);
     ServiceHelpers::loadFromPlugin(loadableServices, specs);
   }

@@ -15,6 +15,7 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "Framework/O2DatabasePDGPlugin.h"
 
 #include <TDatabasePDG.h>
 #include <cmath>
@@ -29,18 +30,26 @@ using namespace o2::framework::expressions;
   }
 
 struct PdgTest {
-  Service<TDatabasePDG> pdg;
+  Service<O2DatabasePDG> pdgNew;
+  Service<TDatabasePDG> pdgOld;
   Service<o2::framework::ControlService> control;
 
   void process(Enumeration<0, 1>& e)
   {
     // Hardcoded from DataFormats/simulation/include/SimulationDataFormat/O2DatabasePDG.h
-    TParticlePDG *p = pdg->GetParticle(300553);
+    TParticlePDG* p = pdgOld->GetParticle(300553);
     ASSERT_ERROR(p != nullptr);
     ASSERT_ERROR(p->Mass() == 10.580);
     ASSERT_ERROR(p->Stable() ==  kFALSE);
     ASSERT_ERROR(p->Charge() == 0);
     ASSERT_ERROR(p->Width() == 0.000);
+
+    TParticlePDG* pNew = pdgNew->get()->GetParticle(300553);
+    ASSERT_ERROR(pNew != nullptr);
+    ASSERT_ERROR(pNew->Mass() == 10.580);
+    ASSERT_ERROR(pNew->Stable() == kFALSE);
+    ASSERT_ERROR(pNew->Charge() == 0);
+    ASSERT_ERROR(pNew->Width() == 0.000);
     control->readyToQuit(QuitRequest::Me);
   }
 };
