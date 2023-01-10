@@ -33,12 +33,16 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxTPCChi2 = 4.f;          ///< cut on TPC reduced chi2
   int minITSNCls = 4;              ///< min number of ITS clusters
   int minITSNClsNoOuterPoint = 6;  ///< min number of ITS clusters if no hit in TRD or TOF exists
+  int minTRDNTrklts = 3;           ///< min number of TRD space points
   float maxITSChi2 = 20.f;         ///< cut on ITS reduced chi2
 
   // other settings for track interpolation
   float sigYZ2TOF{.75f}; ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
   float maxSnp{.85f};    ///< max snp when propagating tracks
   float maxStep{2.f};    ///< maximum step for propagation
+
+  // steering of map creation after the residuals have already been written to file
+  bool useTrackData{false}; ///< if we have the track data available, we can redefine the above cuts for the map creation, e.g. minTPCNCls etc
 
   // parameters for outlier rejection
   bool writeUnfiltered{false};           ///< if set, all residuals and track parameters will be aggregated and dumped additionally without outlier rejection
