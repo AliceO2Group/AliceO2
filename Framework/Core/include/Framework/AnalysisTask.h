@@ -177,7 +177,8 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
-    return extractSomethingFromRecord<Grouping, 0>(record, infos, typeHash<R (C::*)(Grouping, Args...)>());
+    auto hash = typeHash<R (C::*)(Grouping, Args...)>();
+    return extractSomethingFromRecord<Grouping, 0>(record, infos, hash);
   }
 
   template <typename R, typename C>
@@ -261,7 +262,9 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, infos, typeHash<R (C::*)(Grouping, Args...)>())...);
+    constexpr auto p = pack<Args...>{};
+    auto hash = typeHash<R (C::*)(Grouping, Args...)>();
+    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at_v<Args>(p) + 1>(record, infos, hash)...);
   }
 
   template <typename R, typename C>
@@ -277,7 +280,8 @@ struct AnalysisDataProcessorBuilder {
   template <typename Task, typename... T>
   static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo>& infos)
   {
-    (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
+    pack<T...> p;
+    (invokeProcess<o2::framework::has_type_at_v<T>(p)>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
   template <typename... As>
