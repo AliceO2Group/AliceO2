@@ -45,7 +45,7 @@
 #pragma link C++ class o2::BasicXYZQHit < double, double, int> + ;
 #pragma link C++ struct o2::dataformats::MCTruthHeaderElement + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < long> + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel > -;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel> - ;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthContainer < o2::MCCompLabel>> + ;
 #pragma link C++ class std::vector < o2::MCCompLabel> + ;
 #pragma link C++ class std::vector < o2::MCEventLabel> + ;
@@ -71,6 +71,7 @@
 #pragma link C++ class o2::dataformats::IOMCTruthContainerView + ;
 
 #pragma link C++ class o2::mcutils::MCTrackNavigator + ;
+#pragma link C++ class o2::mcutils::MCGenHelper + ;
 #pragma link C++ class o2::O2DatabasePDG + ;
 
 #endif
