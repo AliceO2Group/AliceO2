@@ -50,6 +50,9 @@ void MatchITSTPCQC::deleteHistograms()
   delete mPhiPhysPrim;
   delete mPhiTPCPhysPrim;
   delete mFractionITSTPCmatchPhiPhysPrim;
+  delete mPhiVsPt;
+  delete mPhiVsPtTPC;
+  delete mFractionITSTPCmatchPhiVsPt;
   // Eta
   delete mEta;
   delete mEtaTPC;
@@ -57,6 +60,9 @@ void MatchITSTPCQC::deleteHistograms()
   delete mEtaPhysPrim;
   delete mEtaTPCPhysPrim;
   delete mFractionITSTPCmatchEtaPhysPrim;
+  delete mEtaVsPt;
+  delete mEtaVsPtTPC;
+  delete mFractionITSTPCmatchEtaVsPt;
   // Residuals
   delete mResidualPt;
   delete mResidualPhi;
@@ -81,11 +87,15 @@ void MatchITSTPCQC::reset()
   mPhiTPC->Reset();
   mPhiPhysPrim->Reset();
   mPhiTPCPhysPrim->Reset();
+  mPhiVsPt->Reset();
+  mPhiVsPtTPC->Reset();
   // Eta
   mEta->Reset();
   mEtaTPC->Reset();
   mEtaPhysPrim->Reset();
   mEtaTPCPhysPrim->Reset();
+  mEtaVsPt->Reset();
+  mEtaVsPtTPC->Reset();
   // Residuals
   mResidualPt->Reset();
   mResidualPhi->Reset();
@@ -99,14 +109,23 @@ void MatchITSTPCQC::reset()
 //__________________________________________________________
 bool MatchITSTPCQC::init()
 {
-
+  //Py
   mPtTPC = new TH1F("mPtTPC", "Pt distribution of TPC tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
   mFractionITSTPCmatch = new TEfficiency("mFractionITSTPCmatch", "Fraction of ITSTPC matched tracks vs Pt; Pt [GeV/c]; Eff", 100, 0.f, 20.f);
   mPt = new TH1F("mPt", "Pt distribution of matched tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
+  //Phi
   mPhiTPC = new TH1F("mPhiTPC", "Phi distribution of TPC tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   mFractionITSTPCmatchPhi = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
-  mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());mPhiVsPt = new TH2F("mPhiVsPt", "Phi distribution of matched tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
+  mPhiVsPtTPC = new TH2F("mPhiVsPtTPC", "Phi distribution of TPC tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
+  mFractionITSTPCmatchPhiVsPt = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; #it{p}_{T} [GeV#it{c}]; Phi [rad]; Eff", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
+  // Eta
+  mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
+  mEtaTPC = new TH1F("mEtaTPC", "Eta distribution of TPC tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mFractionITSTPCmatchEta = new TEfficiency("mFractionITSTPCmatchEta", "Fraction of ITSTPC matched tracks vs Eta; Eta; Eff", 100, -2.f, 2.f);
+  mEtaVsPt = new TH2F("mEtaVsPt", "Eta distribution of matched tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Eta; dNdEta", 20, 0.f, 20.f, 100, -2.f, 2.f);
+  mEtaVsPtTPC = new TH2F("mEtaVsPtTPC", "Eta distribution of TPC tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Eta ; dNdEta", 20, 0.f, 20.f, 100, -2.f, 2.f);
+  mFractionITSTPCmatchEtaVsPt = new TEfficiency("mFractionITSTPCmatchEtaVsPt", "Fraction of ITSTPC matched tracks vs Eta; #it{p}_{T} [GeV#it{c}]; Eta; Eff", 20, 0.f, 20.f, 100, -2.f, 2.f );
   // These will be empty in case of no MC info...
   mPhiTPCPhysPrim = new TH1F("mPhiTPCPhysPrim", "Phi distribution of TPC tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   mFractionITSTPCmatchPhiPhysPrim = new TEfficiency("mFractionITSTPCmatchPhiPhysPrim", "Fraction of ITSTPC matched tracks vs Phi (physical primary); Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
@@ -115,8 +134,6 @@ bool MatchITSTPCQC::init()
   mEtaPhysPrim = new TH1F("mEtaPhysPrim", "Eta distribution of matched tracks (physical primary); Eta; dNdEta", 100, -2.f, 2.f);
   mEtaTPCPhysPrim = new TH1F("mEtaTPCPhysPrim", "Eta distribution of TPC tracks (physical primary); Eta; dNdEta", 100, -2.f, 2.f);
   // ...till here
-  mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
-  mEtaTPC = new TH1F("mEtaTPC", "Eta distribution of TPC tracks; Eta; dNdEta", 100, -2.f, 2.f);
 
   mResidualPt = new TH2F("mResidualPt", "Residuals of ITS-TPC matching in #it{p}_{T}; #it{p}_{T}^{ITS-TPC} [GeV/c]; #it{p}_{T}^{ITS-TPC} - #it{p}_{T}^{TPC} [GeV/c]", 100, 0.f, 20.f, 100, -1.f, 1.f);
   mResidualPhi = new TH2F("mResidualPhi", "Residuals of ITS-TPC matching in #it{#phi}; #it{#phi}^{ITS-TPC} [rad]; #it{#phi}^{ITS-TPC} - #it{#phi}^{TPC} [rad]", 100, 0.f, 2 * TMath::Pi(), 100, -1.f, 1.f);
@@ -145,6 +162,9 @@ bool MatchITSTPCQC::init()
   mPt->Sumw2();
   mPhiTPC->Sumw2();
   mPhi->Sumw2();
+  mPhiVsPt->Sumw2();
+  mPhiVsPtTPC->Sumw2();
+  mFractionITSTPCmatchPhiVsPt->Sumw2();
   mPtTPCPhysPrim->Sumw2();
   mPtPhysPrim->Sumw2();
   mPhiTPCPhysPrim->Sumw2();
@@ -152,6 +172,9 @@ bool MatchITSTPCQC::init()
   mEtaTPC->Sumw2();
   mEtaPhysPrim->Sumw2();
   mEtaTPCPhysPrim->Sumw2();
+  mEtaVsPt->Sumw2();
+  mEtaVsPtTPC->Sumw2();
+  mFractionITSTPCmatchEtaVsPt->Sumw2();
 
   mPtTPC->SetOption("logy");
   mPt->SetOption("logy");
@@ -256,11 +279,15 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
       mPt->Fill(trkTpc.getPt());
       mPhi->Fill(trkTpc.getPhi());
+      mPhiVsPt->Fill(trkTpc.getPt(), trkTpc.getPhi());
       mEta->Fill(trkTpc.getEta());
+      mEtaVsPt->FIll(trkTpc.getPt(), trkTpc.getEta());
       // we fill also the denominator
       mPtTPC->Fill(trkTpc.getPt());
       mPhiTPC->Fill(trkTpc.getPhi());
+      mPhiVsPtTPC->Fill(trkTpc.getPt(), trkTpc.getPhi());
       mEtaTPC->Fill(trkTpc.getEta());
+      mEtaVsPtTPC->FIll(trkTpc.getPt(), trkTpc.getEta());
       if (el.second.mIsPhysicalPrimary) {
         mPtPhysPrim->Fill(trkTpc.getPt());
         mPhiPhysPrim->Fill(trkTpc.getPhi());
@@ -284,8 +311,10 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
       if (!mUseMC) {
         mPt->Fill(trkTpc.getPt());
-        mPhi->Fill(trkTpc.getPhi());
+        mPhi->Fill(trkTpc.getPhi());      
+        mPhiVsPt->Fill(trkTpc.getPt(), trkTpc.getPhi());
         mEta->Fill(trkTpc.getEta());
+        mEtaVsPt->FIll(trkTpc.getPt(), trkTpc.getEta());
       }
       mResidualPt->Fill(trk.getPt(), trk.getPt() - trkTpc.getPt());
       mResidualPhi->Fill(trk.getPhi(), trk.getPhi() - trkTpc.getPhi());
@@ -336,7 +365,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mTPCTracks[el.second.mIdx];
       mPtTPC->Fill(trk.getPt());
       mPhiTPC->Fill(trk.getPhi());
+      mPhiVsPtTPC->Fill(trk.getPt(), trk.getPhi());
       mEtaTPC->Fill(trk.getEta());
+      mEtaVsPtTPC->Fill(trk.getPt(), trk.getEta());
       if (el.second.mIsPhysicalPrimary) {
         mPtTPCPhysPrim->Fill(trk.getPt());
         mPhiTPCPhysPrim->Fill(trk.getPhi());
@@ -351,7 +382,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       if (isTPCTrackSelectedEntry[itrk] == true) {
         mPtTPC->Fill(trk.getPt());
         mPhiTPC->Fill(trk.getPhi());
+        mPhiVsPtTPC->Fill(trk.getPt(), trk.getPhi());
         mEtaTPC->Fill(trk.getEta());
+        mEtaVsPtTPC->Fill(trk.getPt(), trk.getEta());
         ++mNTPCSelectedTracks;
       }
     }
@@ -419,6 +452,9 @@ void MatchITSTPCQC::finalize()
   }
   mFractionITSTPCmatchPhi->SetTitle(Form("%s;%s;%s", mFractionITSTPCmatchPhi->GetTitle(), mPhi->GetXaxis()->GetTitle(), "Efficiency"));
 
+  setEfficiency(mFractionITSTPCmatchPhiVsPt, mPhiVsPtTPC, mPhiVsPt);
+  setEfficiency(mFractionITSTPCmatchEtaVsPt, mEtaVsPtTPC, mEtaVsPt);
+
   if (!mFractionITSTPCmatchEta->SetTotalHistogram(*mEtaTPC, "f") ||
       !mFractionITSTPCmatchEta->SetPassedHistogram(*mEta, "")) {
     LOG(fatal) << "Something went wrong when defining the efficiency histograms vs Eta!";
@@ -472,8 +508,10 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mFractionITSTPCmatch);
   objar.Add(mPt);
   objar.Add(mPhiTPC);
+  objar.Add(mPhiVsPtTPC);
   objar.Add(mFractionITSTPCmatchPhi);
   objar.Add(mPhi);
+  objar.Add(mPhiVsPt);
   objar.Add(mPtTPCPhysPrim);
   objar.Add(mFractionITSTPCmatchPhysPrim);
   objar.Add(mPtPhysPrim);
@@ -481,11 +519,13 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mFractionITSTPCmatchPhiPhysPrim);
   objar.Add(mPhiPhysPrim);
   objar.Add(mEta);
+  objar.Add(mEtaVsPt);
   objar.Add(mChi2Matching);
   objar.Add(mChi2Refit);
   objar.Add(mTimeResVsPt);
   objar.Add(mEtaPhysPrim);
   objar.Add(mEtaTPC);
+  objar.Add(mEtaVsPtTPC);
   objar.Add(mEtaTPCPhysPrim);
   objar.Add(mResidualPt);
   objar.Add(mResidualPhi);

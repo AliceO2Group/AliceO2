@@ -63,9 +63,17 @@ class MatchITSTPCQC
   TH1F* getHistoPhiTPC() const { return mPhiTPC; }
   TEfficiency* getFractionITSTPCmatchPhi() const { return mFractionITSTPCmatchPhi; }
 
+  TH2F* getHistoPhiVsPt() const { return mPhiVsPt; }
+  TH2F* getHistoPhiVsPtTPC() const { return mPhiVsPtTPC; }
+  TEfficiency* getFractionITSTPCmatchPhiVsPt() const { return mFractionITSTPCmatchPhiVsPt; }
+
   TH1F* getHistoEta() const { return mEta; }
   TH1F* getHistoEtaTPC() const { return mEtaTPC; }
   TEfficiency* getFractionITSTPCmatchEta() const { return mFractionITSTPCmatchEta; }
+
+  TH2F* getHistoEtaVsPt() const { return mEtaVsPt; }
+  TH2F* getHistoEtaVsPtTPC() const { return mEtaVsPtTPC; }
+  TEfficiency* getFractionITSTPCmatchEtaVsPt() const { return mFractionITSTPCmatchEtaVsPt; }
 
   TH1F* getHistoPtPhysPrim() const { return mPtPhysPrim; }
   TH1F* getHistoPtTPCPhysPrim() const { return mPtTPCPhysPrim; }
@@ -143,6 +151,9 @@ class MatchITSTPCQC
   TH1F* mPhiPhysPrim = nullptr;
   TH1F* mPhiTPCPhysPrim = nullptr;
   TEfficiency* mFractionITSTPCmatchPhiPhysPrim = nullptr;
+  TH2F* mPhiVsPt = nullptr;
+  TH2F* mPhiVsPtTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchPhiVsPt = nullptr;
   // Eta
   TH1F* mEta = nullptr;
   TH1F* mEtaTPC = nullptr;
@@ -150,6 +161,9 @@ class MatchITSTPCQC
   TH1F* mEtaPhysPrim = nullptr;
   TH1F* mEtaTPCPhysPrim = nullptr;
   TEfficiency* mFractionITSTPCmatchEtaPhysPrim = nullptr;
+  TH2F* mEtaVsPt = nullptr;
+  TH2F* mEtaVsPtTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchEtaVsPt = nullptr;
   // Residuals
   TH2F* mResidualPt = nullptr;
   TH2F* mResidualPhi = nullptr;
@@ -159,6 +173,15 @@ class MatchITSTPCQC
   TH1F* mChi2Refit = nullptr;
   TH2F* mTimeResVsPt = nullptr;
 
+  void setEfficiency(TEfficiency* eff, TH2F* hnum, TH2F* hden)
+  {
+    // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
+    if (!eff->SetTotalHistogram(*hden, "f") || !eff->SetPassedHistogram(*hnum, "")) {
+      LOG(fatal) << "Something went wrong when defining the efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
+    }
+    eff->SetTitle(Form("%s;%s;%s;%s", eff->GetTitle(), hnum->GetXaxis()->GetTitle(), hnum->GetYaxis()->GetTitle(), "Efficiency"));
+  }
+  
   int mNTPCSelectedTracks = 0;
   int mNITSTPCSelectedTracks = 0;
 
