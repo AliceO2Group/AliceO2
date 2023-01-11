@@ -238,7 +238,7 @@ struct DataRequest {
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
-  void requestStrangeTracks(bool);
+  void requestStrangeTracks(bool=false);
 
   void requestIRFramesITS();
 };
@@ -686,6 +686,7 @@ struct RecoContainer {
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
   // Strangeness track
+  auto getStrangeTracks() const { return strkPool.getSpan<o2::dataformats::StrangeTrack>(STRACK); }
   const o2::dataformats::StrangeTrack& getStrangeTrack(int i) const { return strkPool.get_as<o2::dataformats::StrangeTrack>(STRACK, i); }
 
   // Cosmic tracks

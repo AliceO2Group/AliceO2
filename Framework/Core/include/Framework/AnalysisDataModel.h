@@ -860,6 +860,79 @@ DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table
 using Decays3Body = Decays3Body; //! this defines the current default version
 using Decay3Body = Decays3Body::iterator;
 
+namespace strangenesstracking
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(CascadeIdx, cascadeIdx, int, Cascades, "");          //! Cascade index
+DECLARE_SOA_INDEX_COLUMN_FULL(V0Idx, v0Idx, int, V0s, "");                         //! V0 index
+DECLARE_SOA_INDEX_COLUMN_FULL(Decay3BodyIdx, decay3BodyIdx, int, Decays3Body, ""); //! Decay 3 body index
+
+DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
+DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
+DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
+DECLARE_SOA_COLUMN(H4Lmass, h4Lmass, float);           //! H4L mass
+DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);          //! He4L mass
+DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
+DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
+DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size
+
+} // namespace strangenesstracking
+
+/// Strangeness tracks
+DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
+                       strangenesstracking::CascadeIdxId,
+                       strangenesstracking::XiMass,
+                       strangenesstracking::OmegaMass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Rapidity<track::Signed1Pt, track::Tgl>,
+                       track::Sign<track::Signed1Pt>);
+
+DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
+                       strangenesstracking::V0IdxId,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::H4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Rapidity<track::Signed1Pt, track::Tgl>,
+                       track::Sign<track::Signed1Pt>);
+
+DECLARE_SOA_TABLE_FULL(Tracked3bodies, "Tracked3body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
+                       strangenesstracking::Decay3BodyIdxId,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::He4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Rapidity<track::Signed1Pt, track::Tgl>,
+                       track::Sign<track::Signed1Pt>);
+
+using TrackedCascades = TrackedCascades;
+using TrackedCascade = TrackedCascades::iterator;
+using TrackedV0s = TrackedV0s;
+using TrackedV0 = TrackedV0s::iterator;
+using Tracked3bodies = Tracked3bodies;
+using Tracked3body = Tracked3bodies::iterator;
+
 namespace origin
 {
 DECLARE_SOA_COLUMN(DataframeID, dataframeID, uint64_t); //! Data frame ID (what is usually found in directory name in the AO2D.root, i.e. DF_XXX)
