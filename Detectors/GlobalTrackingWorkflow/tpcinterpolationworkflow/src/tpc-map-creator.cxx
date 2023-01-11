@@ -13,9 +13,16 @@
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -24,6 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"start-from-unbinned", VariantType::Bool, false, {"Do the binning of the residuals on-the-fly (taking into account allowed track-sources)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -43,5 +51,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::tpc::getTPCResidualReaderSpec(doBinning, src));
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

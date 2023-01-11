@@ -27,6 +27,7 @@
 #include "SpacePoints/TrackInterpolation.h"
 #include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -41,10 +42,11 @@ namespace tpc
 class TPCResidualReader : public Task
 {
  public:
-  TPCResidualReader(bool doBinning, GID::mask_t src) : mDoBinning(doBinning), mSources(src) {}
+  TPCResidualReader(std::shared_ptr<o2::base::GRPGeomRequest> req, bool doBinning, GID::mask_t src) : mCCDBRequest(req), mDoBinning(doBinning), mSources(src) {}
   ~TPCResidualReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final { o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj); }
 
  private:
   void connectTree(const std::string& filename);
@@ -55,9 +57,11 @@ class TPCResidualReader : public Task
   /// \param iSec sector of the residuals
   void fillResiduals(const int iSec);
 
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
+  std::unique_ptr<TTree> mTreeRecords;
   std::unique_ptr<TTree> mTreeUnbinnedResiduals;
   std::unique_ptr<TTree> mTreeTrackData;
   const SpacePointsCalibConfParam& mParams{SpacePointsCalibConfParam::Instance()}; ///< reference to calibration parameters
@@ -74,6 +78,7 @@ class TPCResidualReader : public Task
   std::vector<UnbinnedResid> mUnbinnedResiduals, *mUnbinnedResidualsPtr = &mUnbinnedResiduals;      ///< unbinned residuals input
   std::vector<TrackDataCompact> mTrackData, *mTrackDataPtr = &mTrackData;                           ///< the track references for unbinned residuals
   std::vector<TrackData> mTrackDataExtra, *mTrackDataExtraPtr = &mTrackDataExtra;                   ///< additional track information (chi2, nClusters, track parameters)
+  std::vector<uint32_t> mTFOrbits, *mTFOrbitsPtr{&mTFOrbits};                                       ///< first orbit for each TF which contributed residuals
 };
 
 void TPCResidualReader::fillResiduals(const int iSec)
@@ -99,6 +104,7 @@ void TPCResidualReader::fillResiduals(const int iSec)
 
 void TPCResidualReader::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   const auto dontCheckFileAccess = ic.options().get<bool>("dont-check-file-access");
 
   auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("residuals-infiles"));
@@ -142,6 +148,9 @@ void TPCResidualReader::init(InitContext& ic)
 
 void TPCResidualReader::run(ProcessingContext& pc)
 {
+  LOG(info) << "Starting run method";
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  auto orbitResetTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS();
   mTrackResiduals.createOutputFile(mOutfile.data()); // FIXME remove when map output is handled properly
 
   if (mDoBinning) {
@@ -170,7 +179,16 @@ void TPCResidualReader::run(ProcessingContext& pc)
     for (const auto& file : mFileNames) {
       LOGP(info, "Processing residuals from file {}", file);
       connectTree(file);
+      mTreeRecords->GetEntry(0); // there is only a single entry in this tree
       for (int iEntry = 0; iEntry < mTreeUnbinnedResiduals->GetEntries(); ++iEntry) {
+        if (mParams.constrictTimeWindow) {
+          float tfTimeInMS = orbitResetTime + mTFOrbits[iEntry] * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+          if (tfTimeInMS < mParams.startTimeMS || tfTimeInMS > mParams.endTimeMS) {
+            LOGP(warn, "Dropping TF with time {}", tfTimeInMS);
+            continue;
+          }
+          LOGP(warn, "Keeping TF with time {}", tfTimeInMS);
+        }
         mTreeUnbinnedResiduals->GetEntry(iEntry);
         if (mParams.useTrackData) {
           mTreeTrackData->GetEntry(iEntry);
@@ -259,14 +277,17 @@ void TPCResidualReader::run(ProcessingContext& pc)
 
 void TPCResidualReader::connectTree(const std::string& filename)
 {
+  // deleting the trees before the input file is closed
+  // in case multiple files are checked at once
   if (!mDoBinning) {
     // in case we do the binning on-the-fly, we fill these trees manually
     // and don't want to delete them in between
-    mTreeResiduals.reset(nullptr); // in case it was already loaded
-    mTreeStats.reset(nullptr);     // in case it was already loaded
+    mTreeResiduals.reset(nullptr);
+    mTreeStats.reset(nullptr);
   }
-  mTreeUnbinnedResiduals.reset(nullptr); // in case it was already loaded
-  mTreeTrackData.reset(nullptr);         // in case it was already loaded
+  mTreeUnbinnedResiduals.reset(nullptr);
+  mTreeTrackData.reset(nullptr);
+  mTreeRecords.reset(nullptr);
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
   if (!mDoBinning) {
@@ -291,32 +312,69 @@ void TPCResidualReader::connectTree(const std::string& filename)
       assert(mTreeUnbinnedResiduals->GetEntries() == mTreeTrackData->GetEntries());
     }
   }
+  mTreeRecords.reset((TTree*)mFile->Get("records"));
+  mTreeRecords->SetBranchAddress("firstTForbit", &mTFOrbitsPtr);
+  LOG(info) << "Loaded the trigger information tree";
 }
 
 bool TPCResidualReader::revalidateTrack(const TrackData& trk) const
 {
+  // cuts on number of clusters
   if (trk.nClsITS < mParams.minITSNCls) {
     return false;
   }
   if (trk.nClsTPC < mParams.minTPCNCls) {
     return false;
   }
-  if (trk.nTrkltsTRD < mParams.minTRDNTrklts) {
+  if (trk.nTrkltsTRD > 0 && trk.nTrkltsTRD < mParams.minTRDNTrklts) {
+    // in case nTrkltsTRD == 0 this is an ITS-TPC-TOF track which we might not want to cut
     return false;
   }
+  // track quality cuts
+  if (trk.chi2ITS / trk.nClsITS > mParams.maxITSChi2) {
+    return false;
+  }
+  if (trk.chi2TPC / trk.nClsTPC > mParams.maxTPCChi2) {
+    return false;
+  }
+  if (trk.nTrkltsTRD > 0 && trk.chi2TRD / trk.nTrkltsTRD > mParams.maxTRDChi2) {
+    return false;
+  }
+
+  if (mParams.cutOnDCA) {
+    auto propagator = o2::base::Propagator::Instance();
+    o2::track::TrackParametrization trkParamITSout(trk.x, trk.alpha, trk.p);
+    if (!propagator->propagateToX(trkParamITSout, 0, propagator->getNominalBz())) {
+      return false;
+    }
+    if (trkParamITSout.getX() * trkParamITSout.getX() + trkParamITSout.getY() * trkParamITSout.getY() > mParams.maxDCA * mParams.maxDCA) {
+      LOGP(warn, "DCA cut not passed {}", std::sqrt(trkParamITSout.getX() * trkParamITSout.getX() + trkParamITSout.getY() * trkParamITSout.getY()));
+      return false;
+    }
+    LOGP(warn, "DCA cut OK {}", std::sqrt(trkParamITSout.getX() * trkParamITSout.getX() + trkParamITSout.getY() * trkParamITSout.getY()));
+  }
+
   return true;
 }
 
 DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src)
 {
   std::vector<InputSpec> inputs;
+
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
+                                                                true,                              // GRPECS=true
+                                                                false,                             // GRPLHCIF
+                                                                true,                              // GRPMagField
+                                                                true,                              // askMatLUT
+                                                                o2::base::GRPGeomRequest::Aligned, // geometry
+                                                                inputs);
   std::vector<OutputSpec> outputs;
   // outputs.emplace_back("GLO", "VOXELRESULTS", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "tpc-residual-reader",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCResidualReader>(doBinning, src)},
+    AlgorithmSpec{adaptFromTask<TPCResidualReader>(ccdbRequest, doBinning, src)},
     Options{
       {"residuals-infiles", VariantType::String, "o2tpc_residuals.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
