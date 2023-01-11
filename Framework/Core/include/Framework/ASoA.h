@@ -331,7 +331,7 @@ class ColumnIterator : ChunkingPolicy
     }
     if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
       // FIXME: check if shifting the masked bit to the first position is better than != 0
-      return (*(mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
+      return (*(mCurrent - (mOffset >> SCALE_FACTOR) + ((*mCurrentPos + mOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
     } else if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
       auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
       auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
