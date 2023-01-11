@@ -486,6 +486,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
+  template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
+  void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
                             const MCParticlesCursorType& mcParticlesCursor,
@@ -521,7 +524,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, bool CTPConfigPerRun);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

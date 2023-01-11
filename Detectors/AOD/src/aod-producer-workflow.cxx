@@ -51,6 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
+  bool enableST = configcontext.options().get<bool>("enable-strangeness-tracking");
   bool ctpcfgperrun = configcontext.options().get<bool>("ctpconfig-per-run");
 
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV");
@@ -62,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, ctpcfgperrun));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, enableST, useMC, ctpcfgperrun));
 
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
   auto srcMtc = src;

@@ -57,11 +57,12 @@
 #include "MCHTracking/TrackParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsVertexing/PVertexerParams.h"
+#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
-#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
@@ -1191,6 +1192,14 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
+template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
+void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
+{
+  for (auto& strangeTrack : recoData.getStrangeTracks()) {
+    (strangeTrack.mPartType == dataformats::kStrkV0 ? v0Cursor : (strangeTrack.mPartType == dataformats::kStrkCascade ? cascadeCursor : decay3BodyCursor))(0, strangeTrack.mDecayRef, strangeTrack.mMasses[0], strangeTrack.mMasses[1], strangeTrack.mMatchChi2, strangeTrack.mTopoChi2, strangeTrack.mITSClusSize, strangeTrack.mMother.getX(), strangeTrack.mMother.getAlpha(), strangeTrack.mMother.getY(), strangeTrack.mMother.getZ(), strangeTrack.mMother.getSnp(), strangeTrack.mMother.getTgl(), strangeTrack.mMother.getQ2Pt());
+  }
+}
+
 void AODProducerWorkflowDPL::countTPCClusters(const o2::globaltracking::RecoContainer& data)
 {
   const auto& tpcTracks = data.getTPCTracks();
@@ -1490,6 +1499,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION_001"});
   auto& decay3BodyBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "DECAY3BODY"});
+  auto& trackedCascadeBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEDCASCADE"});
+  auto& trackedV0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEDV0"});
+  auto& tracked3BodyBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKED3BODY"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD_001"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
@@ -1519,6 +1531,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
   auto decay3BodyCursor = decay3BodyBuilder.cursor<o2::aod::Decays3Body>();
+  auto trackedCascadeCursor = trackedCascadeBuilder.cursor<o2::aod::TrackedCascades>();
+  auto trackedV0Cursor = trackedV0Builder.cursor<o2::aod::TrackedV0s>();
+  auto tracked3BodyCursor = tracked3BodyBuilder.cursor<o2::aod::Tracked3bodies>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
@@ -1879,6 +1894,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
+  fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
@@ -2363,7 +2379,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, bool CTPConfigPerRun)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -2378,6 +2394,10 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
     LOGF(info, "requestSecondaryVertertices Finish");
+  }
+  if (enableStrangenessTracking) {
+    dataRequest->requestStrangeTracks();
+    LOGF(info, "requestStrangeTracks Finish");
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
@@ -2426,6 +2446,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2track_iu"}, "AOD", "TRACK_IU", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackcov_iu"}, "AOD", "TRACKCOV_IU", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackedcascade"}, "AOD", "TRACKEDCASCADE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackedv0"}, "AOD", "TRACKEDV0", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2tracked3body"}, "AOD", "TRACKED3BODY", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguoustrack"}, "AOD", "AMBIGUOUSTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguousMFTtrack"}, "AOD", "AMBIGUOUSMFTTR", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguousFwdtrack"}, "AOD", "AMBIGUOUSFWDTR", 0, Lifetime::Timeframe);
