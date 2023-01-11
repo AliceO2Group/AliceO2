@@ -215,6 +215,9 @@ void FileFetcher::stop()
   if (mFetcherThread.joinable()) {
     mFetcherThread.join();
   }
+  if (mFailure) {
+    LOGP(fatal, "too many failures in file fetching: {} in {} attempts for {} files in {} loops, abort", mNFilesProc - mNFilesProcOK, mNFilesProc, getNFiles(), mNLoops);
+  }
 }
 
 //____________________________________________________________
@@ -282,6 +285,19 @@ void FileFetcher::fetcher()
         fileRef.copied = true;
         mQueue.push(fileEntry);
         mNFilesProcOK++;
+      } else {
+        if (mFailThreshold < 0.f) { // cut on abs number of failures
+          if (mNFilesProc - mNFilesProcOK > -mNFilesProcOK) {
+            mFailure = true;
+          }
+        } else if (mFailThreshold > 0.f) {
+          float fracFail = mNLoops ? (mNFilesProc - mNFilesProcOK) / float(mNFilesProc) : (mNFilesProc - mNFilesProcOK) / float(getNFiles());
+          mFailure = fracFail > mFailThreshold;
+        }
+        if (mFailure) {
+          mRunning = false;
+          break;
+        }
       }
     }
   }
@@ -338,7 +354,7 @@ bool FileFetcher::copyFile(size_t id)
       }
     }
   }
-  if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName())) {
+  if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName()) || sysRet != 0) {
     LOGP(alarm, "FileFetcher: failed for copy command {}", realCmd);
     return false;
   }

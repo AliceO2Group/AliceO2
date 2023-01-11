@@ -147,6 +147,7 @@ void CTFReaderSpec::init(InitContext& ic)
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
+  mFileFetcher->setFailThreshold(ic.options().get<float>("fetch-failure-threshold"));
   mFileFetcher->start();
   if (!mInput.fileIRFrames.empty()) {
     mIRFrameSelector.loadIRFrames(mInput.fileIRFrames);
@@ -429,6 +430,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
   options.emplace_back(ConfigParamSpec{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}});
   options.emplace_back(ConfigParamSpec{"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}});
   options.emplace_back(ConfigParamSpec{"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}});
+  options.emplace_back(ConfigParamSpec{"fetch-failure-threshold", VariantType::Float, 0.f, {"Fatil if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
   if (!inp.metricChannel.empty()) {
     options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, inp.metricChannel, {"Out-of-band channel config for TF throttling"}});
   }
