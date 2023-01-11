@@ -83,6 +83,7 @@
 #include "TObjString.h"
 #include <map>
 #include <unordered_map>
+#include <set>
 #include <string>
 #include <vector>
 #include <thread>
@@ -108,96 +109,95 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   ctpcfg->printStream(std::cout);
   // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
   //  Extract inputs from recoData
-  std::map<uint64_t, uint64_t> bcsMapT0triggers;
-  std::map<uint64_t, bool> bcsMapTRDreadout;
+  uint64_t classMaskEMCAL = 0, classMaskTRD = 0, classMaskPHOSCPV = 0;
+  for (const auto& trgclass : ctpcfg->getCTPClasses()) {
+    if (trgclass.cluster->getClusterDetNames().find("EMC") != std::string::npos) {
+      classMaskEMCAL = trgclass.classMask;
+    }
+    if (trgclass.cluster->getClusterDetNames().find("PHS") != std::string::npos) {
+      classMaskPHOSCPV = trgclass.classMask;
+    }
+    if (trgclass.cluster->getClusterDetNames().find("TRD") != std::string::npos) {
+      classMaskTRD = trgclass.classMask;
+    }
+  }
+  LOG(info) << "createCTPReadout: Class Mask EMCAL -> " << classMaskEMCAL;
+  LOG(info) << "createCTPReadout: Class Mask PHOS/CPV -> " << classMaskPHOSCPV;
+  LOG(info) << "createCTPReadout: Class Mask TRD -> " << classMaskTRD;
+
   // const auto& fddRecPoints = recoData.getFDDRecPoints();
   // const auto& fv0RecPoints = recoData.getFV0RecPoints();
-  const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
-  // const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+  const auto& triggerrecordEMCAL = recoData.getEMCALTriggers();
+  const auto& triggerrecordPHOSCPV = recoData.getPHOSTriggers();
   const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
+  // For EMCAL filter remove calibration triggers
+  std::vector<o2::emcal::TriggerRecord> triggerRecordEMCALPhys;
+  for (const auto& trg : triggerrecordEMCAL) {
+    if (trg.getTriggerBits() & o2::trigger::Cal) {
+      continue;
+    }
+    triggerRecordEMCALPhys.push_back(trg);
+  }
   // const auto& triggerrecordTRD =recoData.getITSTPCTRDTriggers()
   //
+
+  // Find TVX triggers, only TRD/EMCAL/PHOS/CPV triggers in coincidence will be accepted
+  std::set<uint64_t> bcsMapT0triggers;
   const auto& ft0RecPoints = recoData.getFT0RecPoints();
   for (auto& ft0RecPoint : ft0RecPoints) {
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
-      // std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
-      bcsMapT0triggers[globalBC] = classmask;
-      // std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
+      bcsMapT0triggers.insert(globalBC);
     }
   }
-  // TRD:
-  // find trd redaout and add CTPDigit if trigger there
-  int cntwarnings = 0;
-  uint32_t orbitPrev = 0;
-  uint16_t bcPrev = 0;
-  for (auto& trdrec : triggerrecordTRD) {
-    auto orbitPrevT = orbitPrev;
-    auto bcPrevT = bcPrev;
-    bcPrev = trdrec.getBCData().bc;
-    orbitPrev = trdrec.getBCData().orbit;
-    if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
-      cntwarnings++;
-      // LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
-    } else {
-      uint64_t globalBC = trdrec.getBCData().toLong();
-      auto t0entry = bcsMapT0triggers.find(globalBC);
-      if (t0entry != bcsMapT0triggers.end()) {
-        auto& ctpdig = ctpDigits.emplace_back();
-        ctpdig.intRecord.setFromLong(globalBC);
-        ctpdig.CTPClassMask = t0entry->second;
-      } else {
-        LOG(warning) << "Found trd and no MTVX:" << globalBC;
-      }
-    }
-  }
-  LOG(info) << "# of TRD bogus triggers:" << cntwarnings;
 
-  // EMCAL:
-  cntwarnings = 0;
-  orbitPrev = 0;
-  bcPrev = 0;
-  // Get class mask for EMCAL:
-  uint64_t classMaskEMCAL = 0;
-  for (const auto& trgclass : ctpcfg->getCTPClasses()) {
-    if (trgclass.cluster->getClusterDetNames().find("EMC")) {
-      classMaskEMCAL = trgclass.classMask;
-    }
-  }
-  for (auto& emcrec : caloEMCCellsTRGR) {
-    auto orbitPrevT = orbitPrev;
-    auto bcPrevT = bcPrev;
-    bcPrev = emcrec.getBCData().bc;
-    orbitPrev = emcrec.getBCData().orbit;
-    if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
-      // for safety, should not be necessary for EMCAL
-      cntwarnings++;
-      // LOGP(warning, "Bogus EMCAL trigger at bc:{}/orbit:{} (previous was {}/{}), with {} cells", bcPrev, orbitPrev, bcPrevT, orbitPrevT, emcrec.getNumberOfObjects());
-    } else if (emcrec.getTriggerBits() & o2::trigger::Cal) {
-      // Filter also calibration triggers for EMCAL
-      LOG(debug) << "createdCTPreadout: Reject EMCAL calibration trigger with globalBC " << emcrec.getBCData().toLong() << std::endl;
-    } else {
-      uint64_t globalBC = emcrec.getBCData().toLong();
-      auto t0entry = bcsMapT0triggers.find(globalBC); // only needed to check if we have a TVX trigger for the BC
-      if (t0entry != bcsMapT0triggers.end()) {
-        auto ctpdig = std::find_if(ctpDigits.begin(), ctpDigits.end(), [globalBC](const o2::ctp::CTPDigit& dig) { return dig.intRecord.toLong() == globalBC; });
-        if (ctpdig != ctpDigits.end()) {
-          // CTP digit existing from other trigger, merge EMCAL class mask
-          ctpdig->CTPClassMask |= std::bitset<64>(classMaskEMCAL);
-        } else {
-          // New CTP digit needed
-          auto& ctpdigNew = ctpDigits.emplace_back();
-          ctpdigNew.intRecord.setFromLong(globalBC);
-          ctpdigNew.CTPClassMask = classMaskEMCAL;
-        }
+  auto genericCTPDigitizer = [&bcsMapT0triggers, &ctpDigits](auto triggerrecords, uint64_t classmask) -> int {
+    // Strategy:
+    // find detector trigger based on trigger record from readout and add CTPDigit if trigger there
+    int cntwarnings = 0;
+    uint32_t orbitPrev = 0;
+    uint16_t bcPrev = 0;
+    for (auto& trigger : triggerrecords) {
+      auto orbitPrevT = orbitPrev;
+      auto bcPrevT = bcPrev;
+      bcPrev = trigger.getBCData().bc;
+      orbitPrev = trigger.getBCData().orbit;
+      // dedicated for TRD: remove bogus triggers
+      if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
+        cntwarnings++;
+        // LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
       } else {
-        LOG(warning) << "Found EMCAL and no MTVX:" << globalBC;
+        uint64_t globalBC = trigger.getBCData().toLong();
+        auto t0entry = bcsMapT0triggers.find(globalBC);
+        if (t0entry != bcsMapT0triggers.end()) {
+          auto ctpdig = std::find_if(ctpDigits.begin(), ctpDigits.end(), [globalBC](const o2::ctp::CTPDigit& dig) { return dig.intRecord.toLong() == globalBC; });
+          if (ctpdig != ctpDigits.end()) {
+            // CTP digit existing from other trigger, merge detector class mask
+            ctpdig->CTPClassMask |= std::bitset<64>(classmask);
+            LOG(debug) << "createCTPReadout: Merging " << classmask << " CTP digits with existing digit, CTP mask " << ctpdig->CTPClassMask;
+          } else {
+            // New CTP digit needed
+            LOG(debug) << "createCTPReadout: New CTP digit needed for class " << classmask << std::endl;
+            auto& ctpdigNew = ctpDigits.emplace_back();
+            ctpdigNew.intRecord.setFromLong(globalBC);
+            ctpdigNew.CTPClassMask = classmask;
+          }
+        } else {
+          LOG(warning) << "createCTPReadout: Found " << classmask << " and no MTVX:" << globalBC;
+        }
       }
     }
-  }
-  LOG(info) << "# of EMCAL bogus triggers:" << cntwarnings;
+    return cntwarnings;
+  };
+
+  auto warningsTRD = genericCTPDigitizer(triggerrecordTRD, classMaskTRD);
+  auto warningsEMCAL = genericCTPDigitizer(triggerRecordEMCALPhys, classMaskEMCAL);
+  auto warningsPHOSCPV = genericCTPDigitizer(triggerrecordPHOSCPV, classMaskPHOSCPV);
+
+  LOG(info) << "createCTPReadout:# of TRD bogus triggers:" << warningsTRD;
+  LOG(info) << "createCTPReadout:# of EMCAL bogus triggers:" << warningsEMCAL;
+  LOG(info) << "createCTPReadout:# of PHOS/CPV bogus triggers:" << warningsPHOSCPV;
 }
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
