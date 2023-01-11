@@ -33,6 +33,7 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
   auto clusPatt = recoData.getITSClustersPatterns();
   auto pattIt = clusPatt.begin();
   mInputITSclusters.reserve(compClus.size());
+  mInputClusterSizes.resize(compClus.size());
   o2::its::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mDict);
   getClusterSizes(mInputClusterSizes, compClus, pattIt, mDict);
 
@@ -317,10 +318,9 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   }
 
   // compute mother average cluster size
-  mStrangeTrack.mITSClusSize = std::accumulate(motherClusSizes.begin(), motherClusSizes.end(), 0) / motherClusSizes.size();
+  mStrangeTrack.mITSClusSize = float(std::accumulate(motherClusSizes.begin(), motherClusSizes.end(), 0)) / motherClusSizes.size();
 
   LOG(debug) << "Inward-outward refit finished, starting final topology refit";
-
   // final Topology refit
 
   int cand = 0; // best V0 candidate

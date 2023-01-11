@@ -238,7 +238,7 @@ struct DataRequest {
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
-  void requestStrangeTracks(bool);
+  void requestStrangeTracks(bool mc);
 
   void requestIRFramesITS();
 };
@@ -291,6 +291,7 @@ struct RecoContainer {
   // slots to register strangeness tracking data
   enum STRKSlots {
     STRACK,
+    STRACK_MC,
     NSTRKSLOTS
   };
 
@@ -385,7 +386,7 @@ struct RecoContainer {
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
 
-  void addStrangeTracks(o2::framework::ProcessingContext& pc, bool);
+  void addStrangeTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
 
@@ -686,6 +687,8 @@ struct RecoContainer {
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
   // Strangeness track
+  auto getStrangeTracks() const { return strkPool.getSpan<o2::dataformats::StrangeTrack>(STRACK); }
+  auto getStrangeTracksMCLabels() const { return strkPool.getSpan<o2::MCCompLabel>(STRACK_MC); }
   const o2::dataformats::StrangeTrack& getStrangeTrack(int i) const { return strkPool.get_as<o2::dataformats::StrangeTrack>(STRACK, i); }
 
   // Cosmic tracks

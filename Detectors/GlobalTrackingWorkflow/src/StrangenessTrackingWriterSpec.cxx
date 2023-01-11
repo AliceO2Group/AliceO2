@@ -13,7 +13,7 @@
 /// \brief
 
 #include <vector>
-#include "StrangenessTrackingWorkflow/StrangenessTrackingWriterSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonDataFormat/TimeStamp.h"
