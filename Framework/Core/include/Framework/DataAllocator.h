@@ -132,6 +132,9 @@ class DataAllocator
       auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       auto& context = mRegistry.get<MessageContext>();
+      if (spec.lifetime == Lifetime::Timeframe) {
+        LOGP(warning, "{}/{}/{} is being serialised with ROOT. Consider making the message messageable.", spec.origin.str, spec.description.str, spec.subSpec);
+      }
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
