@@ -22,7 +22,7 @@ namespace o2
 namespace tpc
 {
 
-// These are configurable params for Primary Vertexer
+// These are configurable params for the TPC space point calibration
 struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<SpacePointsCalibConfParam> {
 
   int maxTracksPerCalibSlot = 3'500'000; ///< the number of tracks which is required to obtain an average correction map
