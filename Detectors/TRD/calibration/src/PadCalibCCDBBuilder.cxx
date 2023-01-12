@@ -254,7 +254,7 @@ TH2F* PadCalibCCDBBuilder::fillTheMap(TH2F* hDet, TString sNewName, int nbuffer)
     if (nEmptyPrevious == nEmptyBins) {
       break; // will break out of the loop if no more empty pads can be filled
     }
-  }          // will continue the loop till all bins are filled
+  } // will continue the loop till all bins are filled
 
   delete hDetTemp;
 
@@ -385,7 +385,7 @@ TH2F* PadCalibCCDBBuilder::getDetectorMap(TTree* tree, int nDet, float mingain, 
     }
     if (mChi < 0 || mAmp <= 0 || mSgm <= 0 || mSgm > 1000) {
       continue;
-    } 
+    }
     // TODO add setters to change cuts
     //    if (mChiMax < mChiMin && mChi > mChiMax)
     //      continue;
