@@ -51,6 +51,16 @@ enum DetectorMapEnum : uint8_t {
   TRD = 0x4,
   TOF = 0x8
 };
+enum TRDTrackPattern : uint8_t {
+  Layer0 = 0x1,
+  Layer1 = 0x2,
+  Layer2 = 0x4,
+  Layer3 = 0x8,
+  Layer4 = 0x10,
+  Layer5 = 0x20,
+  HasNeighbor = 0x40,
+  HasCrossing = 0x80,
+};
 } // namespace o2::aod::track
 
 namespace o2::aod::fwdtrack
