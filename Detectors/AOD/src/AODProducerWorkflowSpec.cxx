@@ -1379,12 +1379,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mT0Amplitude = 0xFFFFFFFF;
   }
 
-  // initialize zdc helper maps
-  for (auto& ChannelName : o2::zdc::ChannelNames) {
-    mZDCEnergyMap[(string)ChannelName] = 0;
-    mZDCTDCMap[(string)ChannelName] = 999;
-  }
-
   mTimer.Reset();
 }
 
@@ -1541,6 +1535,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   for (auto zdcRecData : zdcBCRecData) {
+    // initialize zdc helper maps
+    for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
+      mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
+    }
+    for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
+      mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
+    }
     uint64_t bc = zdcRecData.ir.toLong();
     auto item = bcsMap.find(bc);
     int bcID = -1;
@@ -1549,65 +1550,62 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     } else {
       LOG(fatal) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
     }
-    float energyZEM1 = 0;
-    float energyZEM2 = 0;
-    float energyCommonZNA = 0;
-    float energyCommonZNC = 0;
-    float energyCommonZPA = 0;
-    float energyCommonZPC = 0;
-    float energySectorZNA[4] = {0.};
-    float energySectorZNC[4] = {0.};
-    float energySectorZPA[4] = {0.};
-    float energySectorZPC[4] = {0.};
     int fe, ne, ft, nt, fi, ni;
     zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
     for (int ie = 0; ie < ne; ie++) {
       auto& zdcEnergyData = zdcEnergies[fe + ie];
+      int ch = zdcEnergyData.ch();
       float energy = zdcEnergyData.energy();
-      string chName = o2::zdc::channelName(zdcEnergyData.ch());
-      mZDCEnergyMap.at(chName) = energy;
+      if (ch >= 0 && ch < o2::zdc::NChannels) {
+        mZDCEnergyMap[ch] = energy;
+      }
     }
     for (int it = 0; it < nt; it++) {
       auto& tdc = zdcTDCData[ft + it];
+      int ch = tdc.ch();
       float tdcValue = tdc.value();
-      int channelID = o2::zdc::TDCSignal[tdc.ch()];
-      auto channelName = o2::zdc::ChannelNames[channelID];
-      mZDCTDCMap.at((string)channelName) = tdcValue;
+      if (ch >= 0 && ch < o2::zdc::NTDCChannels) {
+        mZDCTDCMap[ch] = tdcValue;
+      }
     }
-    energySectorZNA[0] = mZDCEnergyMap.at("ZNA1");
-    energySectorZNA[1] = mZDCEnergyMap.at("ZNA2");
-    energySectorZNA[2] = mZDCEnergyMap.at("ZNA3");
-    energySectorZNA[3] = mZDCEnergyMap.at("ZNA4");
-    energySectorZNC[0] = mZDCEnergyMap.at("ZNC1");
-    energySectorZNC[1] = mZDCEnergyMap.at("ZNC2");
-    energySectorZNC[2] = mZDCEnergyMap.at("ZNC3");
-    energySectorZNC[3] = mZDCEnergyMap.at("ZNC4");
-    energySectorZPA[0] = mZDCEnergyMap.at("ZPA1");
-    energySectorZPA[1] = mZDCEnergyMap.at("ZPA2");
-    energySectorZPA[2] = mZDCEnergyMap.at("ZPA3");
-    energySectorZPA[3] = mZDCEnergyMap.at("ZPA4");
-    energySectorZPC[0] = mZDCEnergyMap.at("ZPC1");
-    energySectorZPC[1] = mZDCEnergyMap.at("ZPC2");
-    energySectorZPC[2] = mZDCEnergyMap.at("ZPC3");
-    energySectorZPC[3] = mZDCEnergyMap.at("ZPC4");
+    float energySectorZNA[4];
+    float energySectorZNC[4];
+    float energySectorZPA[4];
+    float energySectorZPC[4];
+    energySectorZNA[0] = mZDCEnergyMap[o2::zdc::IdZNA1];
+    energySectorZNA[1] = mZDCEnergyMap[o2::zdc::IdZNA2];
+    energySectorZNA[2] = mZDCEnergyMap[o2::zdc::IdZNA3];
+    energySectorZNA[3] = mZDCEnergyMap[o2::zdc::IdZNA4];
+    energySectorZNC[0] = mZDCEnergyMap[o2::zdc::IdZNC1];
+    energySectorZNC[1] = mZDCEnergyMap[o2::zdc::IdZNC2];
+    energySectorZNC[2] = mZDCEnergyMap[o2::zdc::IdZNC3];
+    energySectorZNC[3] = mZDCEnergyMap[o2::zdc::IdZNC4];
+    energySectorZPA[0] = mZDCEnergyMap[o2::zdc::IdZPA1];
+    energySectorZPA[1] = mZDCEnergyMap[o2::zdc::IdZPA2];
+    energySectorZPA[2] = mZDCEnergyMap[o2::zdc::IdZPA3];
+    energySectorZPA[3] = mZDCEnergyMap[o2::zdc::IdZPA4];
+    energySectorZPC[0] = mZDCEnergyMap[o2::zdc::IdZPC1];
+    energySectorZPC[1] = mZDCEnergyMap[o2::zdc::IdZPC2];
+    energySectorZPC[2] = mZDCEnergyMap[o2::zdc::IdZPC3];
+    energySectorZPC[3] = mZDCEnergyMap[o2::zdc::IdZPC4];
     zdcCursor(0,
               bcID,
-              mZDCEnergyMap.at("ZEM1"),
-              mZDCEnergyMap.at("ZEM2"),
-              mZDCEnergyMap.at("ZNAC"),
-              mZDCEnergyMap.at("ZNCC"),
-              mZDCEnergyMap.at("ZPAC"),
-              mZDCEnergyMap.at("ZPCC"),
+              mZDCEnergyMap[o2::zdc::IdZEM1],
+              mZDCEnergyMap[o2::zdc::IdZEM2],
+              mZDCEnergyMap[o2::zdc::IdZNAC],
+              mZDCEnergyMap[o2::zdc::IdZNCC],
+              mZDCEnergyMap[o2::zdc::IdZPAC],
+              mZDCEnergyMap[o2::zdc::IdZPCC],
               energySectorZNA,
               energySectorZNC,
               energySectorZPA,
               energySectorZPC,
-              mZDCTDCMap.at("ZEM1"),
-              mZDCTDCMap.at("ZEM2"),
-              mZDCTDCMap.at("ZNAC"),
-              mZDCTDCMap.at("ZNCC"),
-              mZDCTDCMap.at("ZPAC"),
-              mZDCTDCMap.at("ZPCC"));
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZEM1],
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZEM2],
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZNAC],
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZNCC],
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPAC],
+              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPCC]);
   }
 
   // keep track event/source id for each mc-collision
