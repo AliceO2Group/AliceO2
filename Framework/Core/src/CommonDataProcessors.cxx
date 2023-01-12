@@ -339,13 +339,11 @@ DataProcessorSpec
         }
 
         // get metadata
-        if (DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AMD"))) {
-          if (ref.spec->binding == "aodmdk") {
-            aodMetaDataKeys = pc.inputs().get<std::vector<TString>>("aodmdk");
-          }
-          if (ref.spec->binding == "aodmdv") {
-            aodMetaDataVals = pc.inputs().get<std::vector<TString>>("aodmdv");
-          }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataKeys"))) {
+          aodMetaDataKeys = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
+        }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataVals"))) {
+          aodMetaDataVals = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
         }
 
         // skip non-AOD refs
