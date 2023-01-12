@@ -15,6 +15,7 @@ o2_add_library(TRDCalibration
                SOURCES src/TrackBasedCalib.cxx
                        src/CalibratorVdExB.cxx
                        src/CalibratorNoise.cxx
+                       src/PadCalibCCDBBuilder.cxx
                        src/KrClusterFinder.cxx
                        src/DCSProcessor.cxx
                        src/CalibrationParams.cxx
@@ -32,6 +33,7 @@ o2_add_library(TRDCalibration
                                    include/TRDCalibration/CalibratorVdExB.h
                                    include/TRDCalibration/CalibratorNoise.h
                                    include/TRDCalibration/CalibrationParams.h
+                                   include/TRDCalibration/PadCalibCCDBBuilder.h
                                    include/TRDCalibration/KrClusterFinder.h
                                    include/TRDCalibration/DCSProcessor.h)
 
