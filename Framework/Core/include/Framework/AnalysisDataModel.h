@@ -13,6 +13,7 @@
 
 #include "Framework/ASoA.h"
 #include <cmath>
+#include <bitset>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -289,6 +290,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                              int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdPattern, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasNeighbor; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdPattern, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasCrossing; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDNLayers, trdPattern, //! Number of TRD tracklets in a Track
+                           [](uint8_t trdPattern) -> std::size_t { return std::bitset<6>(trdPattern).count(); });
 } // namespace track
 
 DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the track parameters at collision vertex
