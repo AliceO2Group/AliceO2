@@ -111,8 +111,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrameId = 0;
-  auto nROFs = rofs.size();
-  auto rofsPerWorker = nROFs / mNThreads;
+  int nROFs = rofs.size();
+  auto rofsPerWorker = std::max(1, nROFs / mNThreads);
   LOG(debug) << "nROFs = " << nROFs << " rofsPerWorker = " << rofsPerWorker;
 
   auto loadData = [&, this](auto& trackerVec, auto& roFrameDataVec) {
