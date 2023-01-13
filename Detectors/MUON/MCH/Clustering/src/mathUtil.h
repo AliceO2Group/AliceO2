@@ -150,6 +150,15 @@ inline static void vectorMultScalar(const double* u, double cst, int N,
   return;
 }
 
+inline static double vectorDotProd(const double* u, const double* v, int N)
+{
+  double res = 0.0;
+  for (int i = 0; i < N; i++) {
+    res += u[i] * v[i];
+  }
+  return res;
+}
+
 inline static double vectorNorm(const double* u, int N)
 {
   double res = 0;
@@ -257,6 +266,20 @@ inline static short vectorMaxShort(const short* u, int N)
   }
   return res;
 }
+
+inline static void vectorMaxScalar(const double* u, double cst, int N, double* res)
+{
+  for (int i = 0; i < N; i++) {
+    res[i] = std::fmax(cst, u[i]);
+  }
+}
+
+inline static void vectorMinScalar(const double* u, double cst, int N, double* res)
+{
+  for (int i = 0; i < N; i++) {
+    res[i] = std::fmin(cst, u[i]);
+  }
+}
 //
 // Logical operations
 //
@@ -326,6 +349,15 @@ inline static void vectorBuildMaskGreater(const double* src, double value,
 {
   for (int i = 0; i < N; i++) {
     mask[i] = (src[i] > value);
+  }
+  return;
+}
+
+inline static void vectorBuildMaskLess(const double* src, double value,
+                                       int N, short* mask)
+{
+  for (int i = 0; i < N; i++) {
+    mask[i] = (src[i] < value);
   }
   return;
 }

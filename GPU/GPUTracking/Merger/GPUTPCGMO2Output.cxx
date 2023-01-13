@@ -47,9 +47,13 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   for (unsigned int i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
     unsigned int nCl = 0;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
-      if (!((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired)) {
-        nCl++;
+      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+        continue;
       }
+      if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && trackClusters[tracks[i].FirstClusterRef() + j].leg != trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].leg) {
+        continue;
+      }
+      nCl++;
     }
     if (nCl == 0) {
       continue;
@@ -146,6 +150,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
     const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
       if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+        continue;
+      }
+      if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && trackClusters[tracks[i].FirstClusterRef() + j].leg != trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].leg) {
         continue;
       }
       int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;

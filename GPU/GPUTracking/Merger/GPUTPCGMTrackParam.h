@@ -157,6 +157,7 @@ class GPUTPCGMTrackParam
   template <int I>
   GPUd() int FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int slice, int iRow, int iTrack, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2 = false);
   GPUd() void StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha);
+  GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop, int phase);
   GPUd() static void RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx);
 
   GPUdi() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)

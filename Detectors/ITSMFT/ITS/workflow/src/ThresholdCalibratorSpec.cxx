@@ -28,13 +28,13 @@ namespace its
 // Define error function for ROOT fitting
 double erf(double* xx, double* par)
 {
-  return (N_INJ / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (N_INJ / 2);
+  return (nInj / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (nInj / 2);
 }
 
 // ITHR erf is reversed
 double erf_ithr(double* xx, double* par)
 {
-  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
+  return (nInj / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -173,6 +173,12 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     }
   }
 
+  // Flag to enable the analysis of CRU_ITS data
+  isCRUITS = ic.options().get<bool>("enable-cru-its");
+
+  // Number of injections
+  nInj = ic.options().get<int>("ninj");
+
   // flag to set the url ccdb mgr
   this->mCcdbMgrUrl = ic.options().get<std::string>("ccdb-mgr-url");
   // FIXME: Temporary solution to retrieve ConfDBmap
@@ -251,7 +257,7 @@ bool ITSThresholdCalibrator::findUpperLower(
       return false;
     }
     for (int i = upper; i > 0; i--) {
-      if (data[i] >= N_INJ) {
+      if (data[i] >= nInj) {
         lower = i;
         break;
       }
@@ -260,7 +266,7 @@ bool ITSThresholdCalibrator::findUpperLower(
   } else { // not flipped
 
     for (int i = 0; i < NPoints; i++) {
-      if (data[i] >= N_INJ) {
+      if (data[i] >= nInj) {
         upper = i;
         break;
       }
@@ -415,13 +421,12 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
     numberOfHits += data[i];
-    if (!is50 && data[i] == N_INJ) {
+    if (!is50 && data[i] == nInj) {
       is50 = true;
     }
   }
 
   // If not enough counts return a failure
-  // if (numberOfHits < N_INJ) { return false; }
   if (!is50) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Calculation unsuccessful: too few hits. Skipping this pixel";
@@ -430,11 +435,11 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   }
 
   if (this->mScanType == 'T') {
-    thresh = this->mX[N_RANGE - 1] - numberOfHits / float(N_INJ);
+    thresh = this->mX[N_RANGE - 1] - numberOfHits / float(nInj);
   } else if (this->mScanType == 'V') {
-    thresh = (this->mX[N_RANGE - 1] * N_INJ - numberOfHits) / float(N_INJ);
+    thresh = (this->mX[N_RANGE - 1] * nInj - numberOfHits) / float(nInj);
   } else if (this->mScanType == 'I') {
-    thresh = (numberOfHits + N_INJ * this->mX[0]) / float(N_INJ);
+    thresh = (numberOfHits + nInj * this->mX[0]) / float(nInj);
   } else {
     LOG(error) << "Unexpected runtype encountered in findThresholdHitcounting()";
     return false;
@@ -453,9 +458,9 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
       vChipid[col_i] = chipID;
       vRow[col_i] = row;
       vThreshold[col_i] = this->mPixelHits[chipID][row][col_i][0];
-      if (vThreshold[col_i] > N_INJ) {
+      if (vThreshold[col_i] > nInj) {
         this->mNoisyPixID[chipID].push_back(col_i * 1000 + row);
-      } else if (vThreshold[col_i] > 0 && vThreshold[col_i] < N_INJ) {
+      } else if (vThreshold[col_i] > 0 && vThreshold[col_i] < nInj) {
         this->mIneffPixID[chipID].push_back(col_i * 1000 + row);
       } else if (vThreshold[col_i] == 0) {
         this->mDeadPixID[chipID].push_back(col_i * 1000 + row);
@@ -719,7 +724,7 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID, const short
   short int chg = (mScanType == 'I' || mScanType == 'D' || mScanType == 'A') ? 0 : (N_RANGE - 1);
 
   // check 2 pixels in case one of them is dead
-  return ((this->mPixelHits[chipID][row][col][chg] >= N_INJ || this->mPixelHits[chipID][row][col + 100][chg] >= N_INJ) && (!mCheckCw || cwcnt == N_INJ - 1));
+  return ((this->mPixelHits[chipID][row][col][chg] >= nInj || this->mPixelHits[chipID][row][col + 100][chg] >= nInj) && (!mCheckCw || cwcnt == nInj - 1));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -767,15 +772,19 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     short int charge = -1;
     short int row = -1;
     short int cwcnt = -1;
+    bool isAllZero = true;
     for (short int iRU = 0; iRU < this->N_RU; iRU++) {
       const auto& calib = calibs[iROF * this->N_RU + iRU];
       if (calib.calibUserField != 0) {
+
+        isAllZero = false;
+
         if (charge >= 0) {
           LOG(warning) << "More than one charge detected!";
         }
 
         if (this->mRunType == -1) {
-          short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
+          short int runtype = isCRUITS ? -2 : ((short int)(calib.calibUserField >> 24)) & 0xff;
           mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version
           this->setRunType(runtype);
           LOG(info) << "Calibrator will ship these run parameters to aggregator:";
@@ -784,11 +793,11 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           LOG(info) << "Fit type  : " << std::to_string(mFitType);
           LOG(info) << "DB version: " << mConfDBv;
         }
-        this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;
+        this->mRunTypeUp = isCRUITS ? -1 : ((short int)(calib.calibUserField >> 24)) & 0xff;
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
         if (this->mScanType == 'T') {
           // For threshold scan have to subtract from 170 to get charge value
-          charge = (short int)(170 - (calib.calibUserField >> 16) & 0xff);
+          charge = isCRUITS ? (short int)((calib.calibUserField >> 16) & 0xff) : (short int)(170 - (calib.calibUserField >> 16) & 0xff);
         } else if (this->mScanType == 'D' || this->mScanType == 'A') { // Digital scan
           charge = 0;
         } else { // VCASN or ITHR tuning
@@ -803,6 +812,23 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         break;
       }
     }
+
+    if (isCRUITS && isAllZero) {
+      if (mRunType == -1) {
+        short int runtype = -2;
+        mConfDBv = 0;
+        this->setRunType(runtype);
+        LOG(info) << "Running with CRU_ITS data - Calibrator will ship these run parameters to aggregator:";
+        LOG(info) << "Run type (non-sense) : " << mRunType;
+        LOG(info) << "Scan type : " << mScanType;
+        LOG(info) << "Fit type  : " << std::to_string(mFitType);
+        LOG(info) << "DB version (non-sense): " << mConfDBv;
+      }
+      charge = 0;
+      row = 0;
+      cwcnt = 0;
+    }
+
     if (charge > this->mMax || charge < this->mMin) {
       if (this->mVerboseOutput) {
         LOG(warning) << "CW missing - charge value " << charge << " out of range for min " << this->mMin
@@ -891,7 +917,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       }
 
       for (auto& chipID : mChips) {
-        if (mRunTypeChip[chipID] == N_INJ) {
+        if (mRunTypeChip[chipID] == nInj) {
           this->addDatabaseEntry(chipID, "", 0, 0, 0, 0, 0, true); // output for QC (mainly)
           if (mCheckEos) {
             mRunTypeChip[chipID] = 0; // to avoid to re-write the chip in the DCSConfigObject
@@ -1126,7 +1152,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "VCASN";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
@@ -1152,7 +1178,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "ITHR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
@@ -1178,7 +1204,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "THR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
@@ -1201,7 +1227,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     // Extract hits from the full matrix
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
-      if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < nInj) {
         ++itchip;
         continue;
       }
@@ -1333,7 +1359,9 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"manual-max", VariantType::Int, 50, {"Max value of the variable used for the scan: use only in manual mode"}},
             {"manual-scantype", VariantType::String, "T", {"scan type, can be D, T, I, V: use only in manual mode"}},
             {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}},
-            {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}}}};
+            {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}},
+            {"enable-cru-its", VariantType::Bool, false, {"Flag to enable the analysis of raw data on disk produced by CRU_ITS IB commissioning tools"}},
+            {"ninj", VariantType::Int, 50, {"Number of injections per change, default is 50"}}}};
 }
 } // namespace its
 } // namespace o2

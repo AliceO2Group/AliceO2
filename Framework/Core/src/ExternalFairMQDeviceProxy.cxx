@@ -453,7 +453,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
           .readPolled = false,
           .channel = nullptr,
           .id = {ChannelIndex::INVALID},
-          .channelType = ChannelAccountingType::RAW,
+          .channelType = ChannelAccountingType::RAWFMQ,
         });
       }
       numberOfEoS.resize(channels.size(), 0);

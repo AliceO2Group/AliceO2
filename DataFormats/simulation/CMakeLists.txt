@@ -19,6 +19,7 @@ o2_add_library(SimulationDataFormat
                        src/CustomStreamers.cxx
                        src/MCUtils.cxx
                        src/O2DatabasePDG.cxx
+                       src/InteractionSampler.cxx
                PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      FairRoot::Base
                                      O2::DetectorsCommonDataFormats
@@ -45,6 +46,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/IOMCTruthContainerView.h
           include/SimulationDataFormat/MCUtils.h
           include/SimulationDataFormat/O2DatabasePDG.h
+          include/SimulationDataFormat/InteractionSampler.h
   LINKDEF src/SimulationDataLinkDef.h)
 # note the explicit LINKDEF as the linkdef in src is
 #

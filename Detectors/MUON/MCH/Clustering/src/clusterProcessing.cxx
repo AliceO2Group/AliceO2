@@ -14,6 +14,7 @@
 #include <cstring>
 #include <vector>
 
+#include "MCHClustering/ClusterConfig.h"
 #include "MCHClustering/clusterProcessing.h"
 #include "mathUtil.h"
 #include "mathieson.h"
@@ -28,6 +29,14 @@
 // (No intersection with pads
 // in other plane)
 static int includeSinglePads = 1;
+
+namespace o2
+{
+namespace mch
+{
+extern ClusterConfig clusterConfig;
+}
+} // namespace o2
 
 using namespace o2::mch;
 
@@ -55,7 +64,7 @@ void cleanClusterResults()
 void o2::mch::collectGroupMapping(o2::mch::Mask_t* padToMGrp, int nPads)
 {
 
-  if (o2::mch::ClusterConfig::processingLog >= o2::mch::ClusterConfig::info) {
+  if (clusterConfig.processingLog >= ClusterConfig::info) {
     printf("collectGroupMapping nPads=%d\n", nPads);
   }
   o2::mch::vectorCopyShort(clusterResults.padToGroups, nPads, padToMGrp);
@@ -88,7 +97,7 @@ void o2::mch::collectSeeds(double* theta, o2::mch::Groups_t* thetaToGroup, int K
   // printf("collectSeeds : nbrOfGroups with clusters = %d\n", clusterResults.seedList.size());
   for (int h = 0; h < clusterResults.seedList.size(); h++) {
     int k = clusterResults.seedList[h].first;
-    // if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+    // if (clusterConfig.inspectModelLog >= ClusterConfig.info) {
     //  o2::mch::printTheta("  ",
     //                    clusterResults.seedList[h].second,
     //                    clusterResults.seedList[h].first);
@@ -99,7 +108,7 @@ void o2::mch::collectSeeds(double* theta, o2::mch::Groups_t* thetaToGroup, int K
       o2::mch::vectorSetShort(&thetaToGroup[sumK], h + 1, k);
     }
     sumK += k;
-    // if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+    // if (clusterConfig.inspectModelLog >= ClusterConfig.info) {
     //  printf("collect theta grp=%d,  grpSize=%d, adress=%p\n", h, k,
     //         clusterResults.seedList[h].second);
     //}
@@ -122,6 +131,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
   cleanClusterResults();
   // if (INSPECTMODEL) {
   cleanInspectModel();
+  InspectModelChrono(0, false);
   //}
 
   const double* xyDxyi;
@@ -136,21 +146,32 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
   Mask_t* saturated__;
   Mask_t noiseMask[nPads];
   int nNewPads = 0;
+  double qCutOff = 0.0;
 
   // Pad filter when there are a too large number of pads
-  if (nPads > 800) {
+  if (nPads > clusterConfig.nbrPadLimit) {
     // Remove noisy event
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
-      printf("WARNING: remove noisy pads nPads=%d, <z>=%f, min/max z=%f,%f\n",
+    if (clusterConfig.processingLog >= ClusterConfig::info) {
+      printf("WARNING: remove noisy pads nPads=%d, <q>=%8.1f, min/max q=%8.1f, %8.1f\n",
              nPads, vectorSum(zi_, nPads) / nPads, vectorMin(zi_, nPads),
              vectorMax(zi_, nPads));
     }
-    // Select pads which q > 2.0
-    vectorBuildMaskGreater(zi_, 2.0, nPads, noiseMask);
-    nNewPads = vectorSumShort(noiseMask, nPads);
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
-      printf("WARNING: remove noisy pads qCutOff=2.0, nbr of kept Pads=%d/%d\n",
-             nNewPads, nPads);
+    // Select pads which q > qCutOff
+    double ratioStep = clusterConfig.ratioStepForLargeCluster;
+    double ratio = 1.;
+    double qMax = vectorMax(zi_, nPads);
+    int nPadsTest = nPads;
+
+    while (nPadsTest > clusterConfig.nbrPadLimit) {
+      ratio -= ratioStep;
+      qCutOff = ratio * qMax;
+      vectorBuildMaskGreater(zi_, qCutOff, nPads, noiseMask);
+      nPadsTest = vectorSumShort(noiseMask, nPads);
+    }
+    nNewPads = nPadsTest;
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf("WARNING: remove noisy pads qCutOff=%8.1f, nbr of kept Pads=%d/%d\n",
+             qCutOff, nNewPads, nPads);
     }
     xyDxyi__ = new double[nNewPads * 4];
     zi__ = new double[nNewPads];
@@ -172,7 +193,6 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
     cathi = cathi_;
     saturated = saturated_;
   }
-
   // Build a cluster object
   ClusterPEM cluster(getConstX(xyDxyi, nPads), getConstY(xyDxyi, nPads),
                      getConstDX(xyDxyi, nPads), getConstDY(xyDxyi, nPads), zi,
@@ -195,7 +215,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
                     cluster.getNbrOfPads(0), cluster.getCathGroup(1),
                     cluster.getMapCathPadToPad(1), cluster.getNbrOfPads(1));
 
-  if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+  if (clusterConfig.inspectModel >= clusterConfig.active) {
     // Compute the charge on projected geometry
     double* qProj = cluster.projectChargeOnProjGeometry(includeSinglePads);
     // Save the projection with projected pads
@@ -221,10 +241,11 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
   // Find local maxima (seeds)
   //
   for (int g = 1; g <= nGroups; g++) {
+    InspectModelChrono(1, false);
     //
     //  Exctract the current group
     //
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
+    if (clusterConfig.processingLog >= clusterConfig.info) {
       printf("----------------\n");
       printf("Group %d/%d \n", g, nGroups);
       printf("----------------\n");
@@ -240,18 +261,22 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
     } else {
       subCluster = new ClusterPEM(cluster, g);
     }
+
+    // To do something ???
     double meanCharge = 0.5 * (subCluster->getTotalCharge(0) + subCluster->getTotalCharge(1));
 
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
-      printf("[clusterProcessing] charge-0= %8.2f charge-1= %8.2f\n", subCluster->getTotalCharge(0), subCluster->getTotalCharge(1));
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf("[clusterProcessing] charge= (%7.0f %2.0f) nPads=(%d, %d)\n",
+             subCluster->getTotalCharge(0), subCluster->getTotalCharge(1),
+             subCluster->getNbrOfPads(0), subCluster->getNbrOfPads(1));
     }
-    int nbrOfPadsInTheGroup =
-      subCluster->getNbrOfPads(0) + subCluster->getNbrOfPads(1);
+    int nbrOfPadsInTheGroup = subCluster->getNbrOfPads();
+
     // Allocation of possible nbr of seeds
     // (.i.e the nbr of Pads)
     double thetaL[nbrOfPadsInTheGroup * 5];
 
-    if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
       // Compute the local max with laplacian method
       // Used only to give insights of the cluster
       subCluster->buildProjectedGeometry(includeSinglePads);
@@ -260,11 +285,12 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       double thetaExtra[kEM * 5];
       copyTheta(thetaL, nbrOfPadsInTheGroup, thetaExtra, kEM, kEM);
       saveThetaExtraInGroupList(thetaExtra, kEM);
-      if (ClusterConfig::inspectModelLog > ClusterConfig::info) {
+      if (clusterConfig.inspectModelLog > clusterConfig.info) {
         printTheta("Theta findLocalMaxWithBothCathodes", meanCharge, thetaExtra, kEM);
       }
     }
     // Add null pads in the neighboring of the sub-cluster
+    // ???
     subCluster->addBoundaryPads();
     //
     // Search for seeds on this sub-cluster
@@ -273,7 +299,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       double thetaEM[kEM * 5];
       copyTheta(thetaL, nbrOfPadsInTheGroup, thetaEM, kEM, kEM);
 
-      if (ClusterConfig::processingLog >= ClusterConfig::info) {
+      if (clusterConfig.processingLog >= clusterConfig.info) {
         printf("[clusterProcessing] Find %2d PEM local maxima : \n", kEM);
         printTheta("ThetaEM", meanCharge, thetaEM, kEM);
       }
@@ -291,10 +317,12 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       vectorMax( projYc, nbrOfProjPadsInTheGroup));
       }
       */
-      if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+      if (clusterConfig.inspectModel >= clusterConfig.active) {
         // Save the seed founds by the EM algorithm
         saveThetaEMInGroupList(thetaEM, kEM);
       }
+      InspectModelChrono(1, true);
+
       //
       //
       //
@@ -302,6 +330,8 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       // is well separated at the 2 planes level (cath0, cath1)
       // If not the EM result is kept
       //
+      InspectModelChrono(2, false);
+
       DataBlock_t newSeeds = subCluster->fit(thetaEM, kEM);
       finalK = newSeeds.first;
       nbrOfHits += finalK;
@@ -309,9 +339,10 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       // Store result (hits/seeds)
       clusterResults.seedList.push_back(newSeeds);
       //
-      if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+      if (clusterConfig.inspectModel >= clusterConfig.active) {
         saveThetaFitInGroupList(newSeeds.second, newSeeds.first);
       }
+      InspectModelChrono(2, true);
     } else {
       // No EM seeds
       finalK = kEM;
@@ -320,7 +351,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       DataBlock_t newSeeds = std::make_pair(finalK, nullptr);
       clusterResults.seedList.push_back(newSeeds);
     }
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
+    if (clusterConfig.processingLog >= clusterConfig.info) {
       printTheta("ThetaFit:", meanCharge, clusterResults.seedList.back().second, clusterResults.seedList.back().first);
     }
     // Release pointer for group
@@ -332,9 +363,11 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
   } // next group
 
   // Finalise inspectModel
-  if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+  if (clusterConfig.inspectModel >= clusterConfig.active) {
     finalizeInspectModel();
   }
+  InspectModelChrono(0, true);
+  InspectModelChrono(-1, true);
 
   if (nNewPads) {
     delete[] xyDxyi__;
@@ -344,3 +377,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
   }
   return nbrOfHits;
 }
+/*
+} // namespace mch
+} // namespace o2
+*/

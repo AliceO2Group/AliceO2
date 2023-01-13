@@ -151,7 +151,7 @@ in the workflow defined as:
 <your_workflow> | o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" --name-extention loc  --sspec-min 1 --sspec-max 10 |
 o2-calibration-ccdb-populator-workflow --sspec-min 0 --sspec-max 1  -b
 ```
-then the `ObjA` will be uploaded only to the default server (`https://alice-ccdb.cern.ch`), `ObjB` will be uploaded to both default and `local` server and
+then the `ObjA` will be uploaded only to the default server (`http://alice-ccdb.cern.ch`), `ObjB` will be uploaded to both default and `local` server and
 `ObjC` will be uploaded to the `local` server only.
 
 By default the ccdb-populator-workflow will not produce `fatal` on failed upload. To require it an option `--fatal-on-failure` can be used.

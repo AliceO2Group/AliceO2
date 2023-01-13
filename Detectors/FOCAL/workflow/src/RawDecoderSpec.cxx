@@ -22,6 +22,8 @@
 #include "ITSMFTReconstruction/GBTWord.h"
 
 #include <iostream>
+#include <sstream>
+#include <set>
 
 using namespace o2::focal::reco_workflow;
 
@@ -39,6 +41,9 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   int currentendpoint = 0;
   bool nextHBF = true;
   o2::InteractionRecord currentIR;
+  std::unordered_map<int, int> numHBFFEE, numEventsFEE;
+  std::unordered_map<int, std::vector<int>> numEventsHBFFEE;
+  int numHBFPadsTF = 0, numEventsPadsTF = 0;
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
     if (rawData.header != nullptr && rawData.payload != nullptr) {
       const auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(rawData);
@@ -62,14 +67,42 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                 // Pad data
                 if (mUsePadData) {
                   LOG(debug) << "Processing PAD data";
-                  decodePadData(rawbuffer, currentIR);
+                  auto nEventsPads = decodePadData(rawbuffer, currentIR);
+                  auto found = mNumEventsHBFPads.find(nEventsPads);
+                  if (found != mNumEventsHBFPads.end()) {
+                    found->second += 1;
+                  } else {
+                    mNumEventsHBFPads.insert(std::pair<int, int>{nEventsPads, 1});
+                  }
+                  numEventsPadsTF += nEventsPads;
+                  numHBFPadsTF++;
                 }
               } else if (currentendpoint == 0) {
                 // Pixel data
                 if (mUsePixelData) {
                   auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
                   LOG(debug) << "Processing Pixel data from FEE " << feeID;
-                  decodePixelData(rawbuffer, currentIR, feeID);
+                  auto neventsPixels = decodePixelData(rawbuffer, currentIR, feeID);
+                  auto found = numHBFFEE.find(feeID);
+                  if (found != numHBFFEE.end()) {
+                    found->second++;
+                  } else {
+                    numHBFFEE.insert(std::pair<int, int>{feeID, 1});
+                  }
+                  auto evFound = numEventsFEE.find(feeID);
+                  if (evFound != numEventsFEE.end()) {
+                    evFound->second += neventsPixels;
+                  } else {
+                    numEventsFEE.insert(std::pair<int, int>{feeID, neventsPixels});
+                  }
+                  auto evHBFFound = numEventsHBFFEE.find(feeID);
+                  if (evHBFFound != numEventsHBFFEE.end()) {
+                    evHBFFound->second.push_back(neventsPixels);
+                  } else {
+                    std::vector<int> evbuffer;
+                    evbuffer.push_back(neventsPixels);
+                    numEventsHBFFEE.insert(std::pair<int, std::vector<int>>{feeID, evbuffer});
+                  }
                 }
               } else {
                 LOG(error) << "Unsupported endpoint " << currentendpoint;
@@ -121,13 +154,72 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     inputs++;
   }
 
-  LOG(info) << "Found " << mHBFs.size() << " HBFs in timeframe";
+  // Consistency check PixelEvents
+  if (!consistencyCheckPixelFEE(numHBFFEE)) {
+    std::cout << "Mismatch in number of HBF / TF between pixel FEEs" << std::endl;
+    printCounters(numHBFFEE);
+    mNumInconsistencyPixelHBF++;
+  }
+  int numHBFPixelsTF = maxCounter(numHBFFEE);
+  mNumHBFPixels += numHBFPixelsTF;
+  if (!consistencyCheckPixelFEE(numEventsFEE)) {
+    std::cout << "Mismatch in number of events / TF between pixel FEEs" << std::endl;
+    printCounters(numEventsFEE);
+    mNumInconsistencyPixelEvent++;
+  }
+  mNumEventsPixels += maxCounter(numEventsFEE);
+  if (!checkEventsHBFConsistency(numEventsHBFFEE)) {
+    std::cout << "Mistmatch number of events / HBF between pixel FEEs" << std::endl;
+    printEvents(numEventsHBFFEE);
+    mNumInconsistencyPixelEventHBF++;
+  }
+  fillPixelEventHBFCount(numEventsHBFFEE);
+
+  LOG(info)
+    << "Found " << mHBFs.size() << " HBFs in timeframe";
 
   buildEvents();
 
   LOG(info) << "Found " << mOutputTriggerRecords.size() << " events in timeframe";
 
   sendOutput(ctx);
+  mNumEventsPads += numEventsPadsTF;
+  mNumHBFPads += numHBFPadsTF;
+  mNumTimeframes++;
+  auto foundHBFperTFPads = mNumHBFperTFPads.find(numHBFPadsTF);
+  if (foundHBFperTFPads != mNumHBFperTFPads.end()) {
+    foundHBFperTFPads->second++;
+  } else {
+    mNumHBFperTFPads.insert(std::pair<int, int>{numHBFPadsTF, 1});
+  }
+  auto foundHBFperTFPixels = mNumHBFperTFPixels.find(numHBFPixelsTF);
+  if (foundHBFperTFPixels != mNumHBFperTFPixels.end()) {
+    foundHBFperTFPixels->second++;
+  } else {
+    mNumHBFperTFPixels.insert(std::pair<int, int>{numHBFPixelsTF, 1});
+  }
+}
+
+void RawDecoderSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
+{
+  std::cout << "Number of timeframes:             " << mNumTimeframes << std::endl;
+  std::cout << "Number of pad HBFs:               " << mNumHBFPads << std::endl;
+  std::cout << "Number of pixel HBFs:             " << mNumHBFPixels << std::endl;
+  for (auto& [hbfs, tfs] : mNumHBFperTFPads) {
+    std::cout << "Pads - Number of TFs with " << hbfs << " HBFs: " << tfs << std::endl;
+  }
+  for (auto& [hbfs, tfs] : mNumHBFperTFPixels) {
+    std::cout << "Pixels - Number of TFs with " << hbfs << " HBFs: " << tfs << std::endl;
+  }
+  std::cout << "Number of pad events:             " << mNumEventsPads << std::endl;
+  std::cout << "Number of pixel events:           " << mNumEventsPixels << std::endl;
+  for (auto& [nevents, nHBF] : mNumEventsHBFPads) {
+    std::cout << "Number of HBFs with " << nevents << " pad events:    " << nHBF << std::endl;
+  }
+  for (auto& [nevents, nHBF] : mNumEventsHBFPixels) {
+    std::cout << "Number of HBFs with " << nevents << " pixel events:    " << nHBF << std::endl;
+  }
+  std::cout << "Number of inconsistencies between pixel FEEs: " << mNumInconsistencyPixelHBF << " HBFs, " << mNumInconsistencyPixelEvent << " events, " << mNumInconsistencyPixelEventHBF << " events / HBF" << std::endl;
 }
 
 void RawDecoderSpec::sendOutput(framework::ProcessingContext& ctx)
@@ -147,7 +239,7 @@ void RawDecoderSpec::resetContainers()
   mOutputTriggerRecords.clear();
 }
 
-void RawDecoderSpec::decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& interaction)
+int RawDecoderSpec::decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& interaction)
 {
   LOG(debug) << "Decoding pad data for Orbit " << interaction.orbit << ", BC " << interaction.bc;
   constexpr std::size_t EVENTSIZEPADGBT = 1180,
@@ -156,6 +248,7 @@ void RawDecoderSpec::decodePadData(const gsl::span<const char> padWords, o2::Int
   for (int ievent = 0; ievent < nevents; ievent++) {
     decodePadEvent(padWords.subspan(EVENTSIZECHAR * ievent, EVENTSIZECHAR), interaction);
   }
+  return nevents;
 }
 
 void RawDecoderSpec::decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& interaction)
@@ -173,7 +266,7 @@ void RawDecoderSpec::decodePadEvent(const gsl::span<const char> padWords, o2::In
   foundHBF->second.mPadEvents.push_back(createPadLayerEvent(mPadDecoder.getData()));
 }
 
-void RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& interaction, int feeID)
+int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& interaction, int feeID)
 {
   LOG(debug) << "Decoding pixel data for Orbit " << interaction.orbit << ", BC " << interaction.bc;
   auto fee = feeID & 0x00FF,
@@ -186,6 +279,7 @@ void RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2:
 
   std::map<o2::InteractionRecord, HBFData>::iterator foundHBF = mHBFs.end();
 
+  int nevents = 0;
   for (auto& [trigger, chipdata] : mPixelDecoder.getChipData()) {
     LOG(debug) << "Found trigger orbit " << trigger.orbit << ", BC " << trigger.bc;
     if (foundHBF == mHBFs.end()) {
@@ -212,7 +306,9 @@ void RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2:
       auto& current = foundHBF->second.mPixelEvent.back();
       fillChipsToLayer(current[layer], chipdata);
     }
+    nevents++;
   }
+  return nevents;
 }
 
 std::array<o2::focal::PadLayerEvent, o2::focal::constants::PADS_NLAYERS> RawDecoderSpec::createPadLayerEvent(const o2::focal::PadData& data) const
@@ -316,7 +412,107 @@ void RawDecoderSpec::buildEvents()
         for (std::size_t ilayer = 0; ilayer < constants::PADS_NLAYERS; ilayer++) {
           mOutputPadLayers.push_back(hbf.mPadEvents[itrg][ilayer]);
         }
-        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startHits, 0, startHits, 0);
+        mOutputTriggerRecords.emplace_back(hbir, startPads, constants::PADS_NLAYERS, startHits, 0, startHits, 0);
+      }
+    }
+  }
+}
+
+bool RawDecoderSpec::consistencyCheckPixelFEE(const std::unordered_map<int, int>& counters) const
+{
+  bool initialized = false;
+  bool discrepancy = false;
+  int current = -1;
+  for (auto& [fee, value] : counters) {
+    if (!initialized) {
+      current = value;
+      initialized = true;
+    }
+    if (value != current) {
+      discrepancy = true;
+      break;
+    }
+  }
+
+  return !discrepancy;
+}
+
+bool RawDecoderSpec::checkEventsHBFConsistency(const std::unordered_map<int, std::vector<int>>& counters) const
+{
+  bool initialized = false;
+  bool discrepancy = false;
+  std::vector<int> current;
+  for (auto& [fee, events] : counters) {
+    if (!initialized) {
+      current = events;
+      initialized = true;
+    }
+    if (events != current) {
+      discrepancy = true;
+    }
+  }
+  return !discrepancy;
+}
+
+int RawDecoderSpec::maxCounter(const std::unordered_map<int, int>& counters) const
+{
+  int maxCounter = 0;
+  for (auto& [fee, counter] : counters) {
+    if (counter > maxCounter) {
+      maxCounter = counter;
+    }
+  }
+
+  return maxCounter;
+}
+
+void RawDecoderSpec::printCounters(const std::unordered_map<int, int>& counters) const
+{
+  for (auto& [fee, counter] : counters) {
+    std::cout << "  FEE " << fee << ": " << counter << " counts ..." << std::endl;
+  }
+}
+
+void RawDecoderSpec::printEvents(const std::unordered_map<int, std::vector<int>>& counters) const
+{
+  for (auto& [fee, events] : counters) {
+    std::stringstream stringbuilder;
+    bool first = true;
+    for (auto ev : events) {
+      if (first) {
+        first = false;
+      } else {
+        stringbuilder << ", ";
+      }
+      stringbuilder << ev;
+    }
+    std::cout << "  FEE " << fee << ": " << stringbuilder.str() << " events ..." << std::endl;
+  }
+}
+
+void RawDecoderSpec::fillPixelEventHBFCount(const std::unordered_map<int, std::vector<int>>& counters)
+{
+  // take FEE with the max number of events - expecting other FEEs might miss events
+  int maxFEE = 0;
+  int current = -1;
+  for (auto& [fee, events] : counters) {
+    int sum = 0;
+    for (auto ev : events) {
+      sum += ev;
+    }
+    if (sum > current) {
+      maxFEE = fee;
+      current = sum;
+    }
+  }
+  auto en = counters.find(maxFEE);
+  if (en != counters.end()) {
+    for (auto nEventsPixels : en->second) {
+      auto found = mNumEventsHBFPixels.find(nEventsPixels);
+      if (found != mNumEventsHBFPixels.end()) {
+        found->second += 1;
+      } else {
+        mNumEventsHBFPixels.insert(std::pair<int, int>{nEventsPixels, 1});
       }
     }
   }

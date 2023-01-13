@@ -11,6 +11,7 @@
 
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <TChain.h>
 #include <TFile.h>
@@ -29,6 +30,7 @@ void DigitizationContext::printCollisionSummary(bool withQED, int truncateOutput
   for (int p = 0; p < mSimPrefixes.size(); ++p) {
     std::cout << "Part " << p << " : " << mSimPrefixes[p] << "\n";
   }
+  std::cout << "QED information included " << isQEDProvided() << "\n";
   if (withQED) {
     std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
     std::cout << "Number of QED events " << mEventRecordsWithQED.size() - mEventRecords.size() << "\n";
@@ -213,22 +215,54 @@ DigitizationContext* DigitizationContext::loadFromFile(std::string_view filename
   return incontext;
 }
 
-void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord)
+void DigitizationContext::fillQED(std::string_view QEDprefix, int max_events, double qedrate)
+{
+  o2::steer::InteractionSampler qedInteractionSampler;
+  qedInteractionSampler.setBunchFilling(mBCFilling);
+
+  // get first and last "hadronic" interaction records and let
+  // QED events range from the first bunch crossing to the last bunch crossing
+  // in this range
+  auto first = mEventRecords.front();
+  auto last = mEventRecords.back();
+  first.bc = 0;
+  last.bc = o2::constants::lhc::LHCMaxBunches;
+  LOG(info) << "QED RATE " << qedrate;
+  qedInteractionSampler.setInteractionRate(qedrate);
+  qedInteractionSampler.setFirstIR(first);
+  qedInteractionSampler.init();
+  qedInteractionSampler.print();
+  std::vector<o2::InteractionTimeRecord> qedinteractionrecords;
+  o2::InteractionTimeRecord t;
+  LOG(info) << "GENERATING COL TIMES";
+  t = qedInteractionSampler.generateCollisionTime();
+  while ((t = qedInteractionSampler.generateCollisionTime()) < last) {
+    qedinteractionrecords.push_back(t);
+  }
+  LOG(info) << "DONE GENERATING COL TIMES";
+  fillQED(QEDprefix, qedinteractionrecords, max_events, false);
+}
+
+void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord, int max_events, bool fromKinematics)
 {
   mQEDSimPrefix = QEDprefix;
 
   std::vector<std::vector<o2::steer::EventPart>> qedEventParts;
 
-  // we need to fill the QED parts (using a simple round robin scheme)
-  auto qedKinematicsName = o2::base::NameConf::getMCKinematicsFileName(mQEDSimPrefix);
-  // find out how many events are stored
-  TFile f(qedKinematicsName.c_str(), "OPEN");
-  auto t = (TTree*)f.Get("o2sim");
-  if (!t) {
-    LOG(error) << "No QED kinematics found";
-    throw std::runtime_error("No QED kinematics found");
+  int numberQEDevents = max_events; // if this is -1 there will be no limitation
+  if (fromKinematics) {
+    // we need to fill the QED parts (using a simple round robin scheme)
+    auto qedKinematicsName = o2::base::NameConf::getMCKinematicsFileName(mQEDSimPrefix);
+    // find out how many events are stored
+    TFile f(qedKinematicsName.c_str(), "OPEN");
+    auto t = (TTree*)f.Get("o2sim");
+    if (!t) {
+      LOG(error) << "No QED kinematics found";
+      throw std::runtime_error("No QED kinematics found");
+    }
+    numberQEDevents = t->GetEntries();
   }
-  auto numberQEDevents = t->GetEntries();
+
   int eventID = 0;
   for (auto& tmp : irecord) {
     std::vector<EventPart> qedpart;

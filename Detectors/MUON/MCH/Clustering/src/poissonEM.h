@@ -40,16 +40,20 @@ namespace mch
 
 // namespace  PEM {
 // public :
-constexpr int nMacroIterations = 8;
-static constexpr int nIterations[nMacroIterations] = {5, 10, 10, 10,
-                                                      10, 10, 10, 30};
+static constexpr int nMacroIterations = 8;
+static int nIterations[nMacroIterations] = {5, 10, 10, 10,
+                                            10, 10, 10, 30};
+/*
 static constexpr double minPadResidues[nMacroIterations] = {2.0, 2.0, 1.5, 1.5,
                                                             1.0, 1.0, 0.5, 0.5};
+*/
+static constexpr double minPadResidues[nMacroIterations] = {0.8, 0.6, 0.5, 0.4,
+                                                            0.3, 0.25, 0.2, 0.15};
 
 std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
                                         const double* Cij, Mask_t* maskCij,
                                         int qCutMode, double minPadResidu,
-                                        int nItMax, int n0);
+                                        int nItMax);
 // static double computeChiSquare( const Pads &pads, const double
 // *qPredictedPads);
 //};

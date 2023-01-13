@@ -331,7 +331,7 @@ class ColumnIterator : ChunkingPolicy
     }
     if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
       // FIXME: check if shifting the masked bit to the first position is better than != 0
-      return (*(mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
+      return (*(mCurrent - (mOffset >> SCALE_FACTOR) + ((*mCurrentPos + mOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
     } else if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
       auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
       auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
@@ -1432,6 +1432,12 @@ struct TableWrap {
   using table_t = typename PackToTable<all_columns>::table;
 };
 
+template <typename... T>
+struct TableIntersect {
+  using all_columns = framework::full_intersected_pack_t<typename T::columns...>;
+  using table_t = typename PackToTable<all_columns>::table;
+};
+
 /// Template trait which allows to map a given
 /// Table type to its O2 DataModel origin and description
 template <typename INHERIT>
@@ -1445,70 +1451,17 @@ class TableMetadata
   static std::string sourceSpec() { return fmt::format("{}/{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription, INHERIT::mVersion); };
 };
 
-/// Helper template to define universal join
-template <typename Key, typename H, typename... Ts>
-struct IndexTable;
-
-template <typename... C1, typename... C2>
-constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
+/// Helper templates to define universal join and concat
+template <typename... T>
+constexpr auto join(T const&... t)
 {
-  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+  return typename o2::soa::TableWrap<T...>::table_t(ArrowHelpers::joinTables({t.asArrowTable()...}));
 }
 
-// special case for appending an index
-template <typename... C1, typename Key, typename H, typename... C2>
-constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::IndexTable<Key, H, C2...> const& t2)
+template <typename... T>
+constexpr auto concat(T const&... t)
 {
-  return joinTables(t1, o2::soa::Table<H, C2...>{t2.asArrowTable()});
-}
-
-template <typename T, typename... C, typename... O>
-constexpr auto joinLeft(T const& t1, o2::soa::Table<C...> const& t2, framework::pack<O...>)
-{
-  return typename o2::soa::TableWrap<O..., o2::soa::Table<C...>>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename T, typename... C, typename... O>
-constexpr auto joinRight(o2::soa::Table<C...> const& t1, T const& t2, framework::pack<O...>)
-{
-  return typename o2::soa::TableWrap<o2::soa::Table<C...>, O...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename T1, typename T2, typename... O1, typename... O2>
-constexpr auto joinBoth(T1 const& t1, T2 const& t2, framework::pack<O1...>, framework::pack<O2...>)
-{
-  return typename o2::soa::TableWrap<O1..., O2...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename T1, typename T2>
-constexpr auto join(T1 const& t1, T2 const& t2)
-{
-  if constexpr (soa::is_type_with_originals_v<T1>) {
-    if constexpr (soa::is_type_with_originals_v<T2>) {
-      return joinBoth(t1, t2, typename T1::originals{}, typename T2::originals{});
-    } else {
-      return joinLeft(t1, t2, typename T1::originals{});
-    }
-  } else {
-    if constexpr (soa::is_type_with_originals_v<T2>) {
-      return joinRight(t1, t2, typename T2::originals{});
-    } else {
-      return joinTables(t1, t2);
-    }
-  }
-}
-
-template <typename T1, typename T2, typename... Ts>
-constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
-{
-  return join(t1, join(t2, ts...));
-}
-
-template <typename T1, typename T2>
-constexpr auto concat(T1&& t1, T2&& t2)
-{
-  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
-  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
+  return typename o2::soa::TableIntersect<T...>::table_t(ArrowHelpers::concatTables({t.asArrowTable()...}));
 }
 
 template <typename... Ts>

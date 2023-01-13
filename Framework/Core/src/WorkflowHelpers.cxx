@@ -215,7 +215,7 @@ std::string defaultConditionBackend()
   if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
     return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
   }
-  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "https://alice-ccdb.cern.ch";
+  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
 }
 
 // get the default value for condition query rate
@@ -614,7 +614,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
+  auto isAOD = [](InputSpec const& spec) {
+    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
+  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);

@@ -68,7 +68,7 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
       processTRANS(dp);
     } else if (detectorId == HMPID_ID) {
       processHMPID(dp);
-    } else { // ef: changed to warn and "unkown DP" ==> "missing DP"
+    } else {
       LOG(warn) << "Missing data point: " << alias;
     }
   } // end for
@@ -106,7 +106,7 @@ void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
       LOG(info) << "Chamber Pressure DP: " << dp;
     }
     fillChPressure(dp);
-  } else { // ef: changed to warn and unkown DP ==> missing data DP
+  } else {
     LOG(warn) << "Missing data point: " << dp;
   }
 }
@@ -160,10 +160,10 @@ void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
       if (mVerbose) {
         LOG(info) << "FREON_REF_ID DP: " << dp;
       }
-    } else { // ef: remove mVerbose, change to warn, and "DP not found" ==> "Missing DP"
+    } else {
       LOG(warn) << "Missing Data point: " << dp;
     }
-  } else { // ef:change to warn and "DP not found" ==> "Missing DP"
+  } else {
     LOG(warn) << "Missing Data point: " << dp;
   }
 }
@@ -348,42 +348,16 @@ double HMPIDDCSProcessor::procTrans()
       return eMeanDefault;
     }
 
-    // Evaluate timestamps :
-
-    auto s1 = getMinTime(waveLenVec[i]);
-    auto s2 = getMinTime(argonRefVec[i]);
-    auto s3 = getMinTime(argonCellVec[i]);
-    auto s4 = getMinTime(freonRefVec[i]);
-    auto s5 = getMinTime(freonCellVec[i]);
-
-    auto e1 = getMaxTime(waveLenVec[i]);
-    auto e2 = getMaxTime(argonRefVec[i]);
-    auto e3 = getMaxTime(argonCellVec[i]);
-    auto e4 = getMaxTime(freonRefVec[i]);
-    auto e5 = getMaxTime(freonCellVec[i]);
-
-    auto minTime = std::max({s1, s2, s3, s4, s5});
-    auto maxTime = std::min({e1, e2, e3, e4, e5});
-
-    if (minTime < mTimeEMean.first) {
-      mTimeEMean.first = minTime;
-    }
-    if (maxTime > mTimeEMean.last) {
-      mTimeEMean.last = maxTime;
-    }
-
   } // end for
 
   // evaluate total energy --> mean photon energy
   if (sProb > 0) {
     eMean = sEnergProb / sProb;
   } else {
-    // ef: removed mVerbose and changed to warn
     LOGP(warn, " sProb < 0 --> Default E mean used! ");
     return eMeanDefault;
   }
 
-  // ef: changed to warn
   if (eMean < o2::hmpid::Param::ePhotMin() ||
       eMean > o2::hmpid::Param::ePhotMax()) {
     LOGP(warn, "eMean out of range  ({}) --> Default E mean used! ", eMean);
@@ -415,7 +389,7 @@ double HMPIDDCSProcessor::calculatePhotonEnergy(int i)
     return nm2eV / lambda;
   }
 
-  DPCOM dp = (waveLenVec[i])[0];
+  const DPCOM& dp = (waveLenVec[i])[0];
 
   // check if datatype is as expected
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
@@ -452,7 +426,7 @@ TransparencyDpInfo HMPIDDCSProcessor::dpVector2Double(const std::vector<DPCOM>& 
     return transDpInfo; // returns transDpInfo with default values
   }
 
-  DPCOM dp = dpVec[0];
+  const DPCOM& dp = dpVec[0];
 
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     transDpInfo.dpVal = o2::dcs::getValue<double>(dp);
@@ -482,8 +456,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(const double& dRefArgon, const double& dC
 
   // evaluate 15 mm of thickness C6F14 Trans
 
-  // ef: check if all are not nullpointers
-  if (dRefArgon == -999 || dCellArgon == -999 || dRefFreon == -999 || dRefFreon == -999) {
+  if (dRefArgon == -999 || dCellArgon == -999 || dRefFreon == -999 || dCellFreon == -999) {
     LOGP(warn, "One of the Phototube-currents was not assigned --> Default E mean used!");
     return false;
   }
@@ -492,7 +465,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(const double& dRefArgon, const double& dC
     aTransRad = TMath::Power((dCellFreon / dRefFreon) /
                                (dCellArgon / dRefArgon) * aCorrFactor[i],
                              aConvFactor);
-  } else { // ef: removed if mVerbose
+  } else {
     LOGP(warn, "dRefFreon*dRefArgon<0 --> Default E mean used! dRefFreon = {} | dRefArgon = {}", dRefFreon, dRefArgon);
     return false;
   }
@@ -536,7 +509,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
     std::unique_ptr<TGraph> pGrPenv;
     pGrPenv.reset(new TGraph);
 
-    for (DPCOM dp : dpVecEnv) {
+    for (const DPCOM& dp : dpVecEnv) {
       auto dpVal = o2::dcs::getValue<double>(dp);
       auto time = dp.data.get_epoch_time(); //-envPrFirstTime
       pGrPenv->SetPoint(cntEnvPressure++, time, dpVal);
@@ -575,7 +548,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
     chPrFirstTime = getMinTime(dpVecCh[iCh]);
     chPrLastTime = getMaxTime(dpVecCh[iCh]);
 
-    for (DPCOM dp : dpVecCh[iCh]) {
+    for (const DPCOM& dp : dpVecCh[iCh]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
       auto time = dp.data.get_epoch_time();
       pGrP->SetPoint(cntChPressure++, time, dpVal);
@@ -609,10 +582,15 @@ bool HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
     auto minTime = getMinTime(dpVecTempOut[3 * iCh + iRad]);
     auto maxTime = getMaxTime(dpVecTempOut[3 * iCh + iRad]);
 
+    if (iCh == 0 && iRad == 0) {  // ef: for mean-photon energy
+      mTimeEMean.first = minTime; // DPs here are forced to produce sor/eor
+      mTimeEMean.last = maxTime;  // using same timesamps for eMean
+    }
+
     std::unique_ptr<TGraph> pGrTOut;
     pGrTOut.reset(new TGraph);
 
-    for (DPCOM dp : dpVecTempOut[3 * iCh + iRad]) {
+    for (const DPCOM& dp : dpVecTempOut[3 * iCh + iRad]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
       auto time = dp.data.get_epoch_time();
       pGrTOut->SetPoint(cntTOut++, time, dpVal);
@@ -662,7 +640,7 @@ bool HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
     std::unique_ptr<TGraph> pGrTIn;
     pGrTIn.reset(new TGraph);
 
-    for (DPCOM dp : dpVecTempIn[3 * iCh + iRad]) {
+    for (const DPCOM& dp : dpVecTempIn[3 * iCh + iRad]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
       auto time = dp.data.get_epoch_time();
       pGrTIn->SetPoint(cntTin++, time, dpVal);
@@ -713,7 +691,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
     hvFirstTime = getMinTime(dpVecHV[3 * iCh + iSec]);
     hvLastTime = getMaxTime(dpVecHV[3 * iCh + iSec]);
 
-    for (DPCOM dp : dpVecHV[3 * iCh + iSec]) {
+    for (const DPCOM& dp : dpVecHV[3 * iCh + iSec]) {
       auto dpVal = o2::dcs::getValue<double>(dp);
       auto time = dp.data.get_epoch_time();
       pGrHV->SetPoint(cntHV++, time, dpVal);
@@ -742,6 +720,8 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
 // HMPIDDCSDataProcessorSpec::endOfStream() function
 void HMPIDDCSProcessor::finalize()
 {
+
+  LOG(info) << "finalize=================================== ";
   std::unique_ptr<TF1> pEnv = finalizeEnvPressure();
   for (int iCh = 0; iCh < 7; iCh++) {
 
@@ -804,7 +784,6 @@ void HMPIDDCSProcessor::finalize()
         pQthre->SetTitle(Form(
           "Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
 
-        // ef: in theory this should not be necessary,; so no need for protection here?
         if (pQthre != nullptr) {
           arQthre[6 * iCh + iSec] = *(pQthre.get());
         } else {
@@ -834,13 +813,15 @@ void HMPIDDCSProcessor::finalize()
   double eMean = procTrans();
 
   std::unique_ptr<TF1> pPhotMean;
-  pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0,
-                          mTimeEMean.last - mTimeEMean.first));
+  pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), mTimeEMean.first,
+                          mTimeEMean.last));
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
 
   if (pPhotMean != nullptr) {
     arNmean[42] = *(pPhotMean.get());
+    // const auto& timeRange = pPhotMean->GetXaxis();
+    // LOGP(info, "TimeRange {} {}", pPhotMean->GetXmin(), pPhotMean->GetXmax());
   } else {
     std::unique_ptr<TF1> pPhotMeanDefault;
     pPhotMeanDefault.reset(new TF1());
@@ -848,8 +829,15 @@ void HMPIDDCSProcessor::finalize()
     arNmean[42] = *(pPhotMeanDefault.get());
   }
 
+  /*//save canvas
+  std::unique_ptr<TCanvas> photMeanCanvas;
+  photMeanCanvas.reset(new TCanvas("c1", "Mean Photon Energy",800,800));
+  photMeanCanvas->cd();
+  arNmean[42].Draw();
+  photMeanCanvas->SaveAs(("test.png"));*/
+
   // Check entries of CCDB-objects
-  //checkEntries(arQthre, arNmean);
+  // checkEntries(arQthre, arNmean);
 
   // prepare CCDB: =============================================================
 

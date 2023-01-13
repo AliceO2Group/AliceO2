@@ -72,9 +72,9 @@ struct ChannelFilterParam : o2::conf::ConfigurableParamHelper<ChannelFilterParam
 
 struct TimeFilterParam : o2::conf::ConfigurableParamHelper<TimeFilterParam> {
   int16_t mAmpUpper = 4200;
-  int16_t mAmpLower = -4200;
-  int16_t mTimeUpper = 2050;
-  int16_t mTimeLower = -2050;
+  int16_t mAmpLower = 10;
+  int16_t mTimeUpper = 153;
+  int16_t mTimeLower = -153;
 
   uint8_t mPMbitsGood = 0;                                                                                                          // No need in checking good PM bits
   uint8_t mPMbitsBad = (1 << ChannelData::EEventDataBit::kIsTimeInfoNOTvalid) | (1 << ChannelData::EEventDataBit::kIsTimeInfoLost); // Check only two bad PM bits

@@ -14,7 +14,7 @@
 
 #include "MCHClustering/ClusterConfig.h"
 
-typedef std::pair<int, const double*> DataBlock_t;
+// ??? Inv typedef std::pair<int, double*> DataBlock_t;
 
 namespace o2
 {

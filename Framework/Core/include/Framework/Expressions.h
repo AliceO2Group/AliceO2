@@ -63,6 +63,8 @@ struct ExpressionInfo {
 
 namespace o2::framework::expressions
 {
+const char* stringType(atype::type t);
+
 template <typename... T>
 struct LiteralStorage {
   using stored_type = std::variant<T...>;

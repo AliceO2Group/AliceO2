@@ -32,6 +32,8 @@ struct ClusterizerParam : public o2::conf::ConfigurableParamHelper<ClusterizerPa
   double defaultClusterResolution = 0.2; ///< default cluster resolution (cm)
   double badClusterResolution = 10.;     ///< bad (e.g. mono-cathode) cluster resolution (cm)
 
+  bool legacy = true; ///< use original (run2) clustering
+
   O2ParamDef(ClusterizerParam, "MCHClustering");
 };
 

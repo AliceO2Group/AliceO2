@@ -338,11 +338,28 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterC(0, 15);
   auto tableC = builderC.finalize();
 
+  TableBuilder builderD;
+  auto rowWriterD = builderD.persist<int32_t, int32_t>({"x", "z"});
+  rowWriterD(0, 16, 8);
+  rowWriterD(0, 17, 9);
+  rowWriterD(0, 18, 10);
+  rowWriterD(0, 19, 11);
+  rowWriterD(0, 20, 12);
+  rowWriterD(0, 21, 13);
+  rowWriterD(0, 22, 14);
+  rowWriterD(0, 23, 15);
+  auto tableD = builderD.finalize();
+
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
   using TestC = o2::soa::Table<test::Z>;
+  using TestD = o2::soa::Table<test::X, test::Z>;
   using ConcatTest = Concat<TestA, TestB>;
   using JoinedTest = Join<TestA, TestC>;
+  using NestedJoinTest = Join<JoinedTest, TestD>;
+  using NestedConcatTest = Concat<Join<TestA, TestB>, TestD>;
+
+  static_assert(std::is_same_v<NestedJoinTest::table_t, o2::soa::Table<o2::soa::Index<>, test::Y, test::X, test::Z>>, "Bad nested join");
 
   static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
   ConcatTest tests{tableA, tableB};
@@ -350,6 +367,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(test.index(), test.x());
   }
+
+  static_assert(std::is_same_v<NestedConcatTest::table_t, o2::soa::Table<test::X>>, "Bad nested concat");
 
   // Hardcode a selection for the first 5 odd numbers
   using FilteredTest = Filtered<TestA>;
@@ -815,8 +834,8 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
   int slice[2] = {-1, -1};
   std::vector<int> pset;
-  int withSlices[] = {3, 13, 19};
-  int withSets[] = {0, 1, 13, 14};
+  std::array<int, 3> withSlices = {3, 13, 19};
+  std::array<int, 4> withSets = {0, 1, 13, 14};
   int sizes[] = {3, 1, 5, 4};
   int c1 = 0;
   int c2 = 0;
@@ -824,12 +843,12 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     pset.clear();
     slice[0] = -1;
     slice[1] = -1;
-    if (i == withSlices[c1]) {
+    if (c1 < withSlices.size() && i == withSlices[c1]) {
       slice[0] = i - 2;
       slice[1] = i - 1;
       ++c1;
     }
-    if (i == withSets[c2]) {
+    if (c2 < withSets.size() && i == withSets[c2]) {
       for (auto z = 0; z < sizes[c2]; ++z) {
         pset.push_back(i + 1 + z);
       }
@@ -862,7 +881,7 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     }
     auto opss = p.pointSet_as<PointsSelfIndex>();
     auto opss_ids = p.pointSetIds();
-    if (i == withSets[c2]) {
+    if (c2 < withSets.size() && i == withSets[c2]) {
       BOOST_CHECK_EQUAL(opss.size(), sizes[c2]);
       BOOST_CHECK_EQUAL(opss.begin()->globalIndex(), i + 1);
       BOOST_CHECK_EQUAL(opss.back().globalIndex(), i + sizes[c2]);

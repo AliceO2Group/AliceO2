@@ -141,16 +141,25 @@ struct ExpirationHandlerHelpers {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int64_t>(startName.c_str());
-      auto stop = options.get<int64_t>(endName.c_str());
-      auto step = options.get<int64_t>(stepName.c_str());
-      auto repetitions = 1;
+      int64_t defaultStart = 0;
+      int64_t defaultStop = std::numeric_limits<int64_t>::max();
+      int64_t defaultStep = 1;
+      int defaultRepetitions = 1;
       for (auto& meta : matcher.metadata) {
         if (meta.name == "repetitions") {
-          repetitions = meta.defaultValue.get<int64_t>();
-          break;
+          defaultRepetitions = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "start-value") {
+          defaultStart = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "end-value") {
+          defaultStop = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "step-value") {
+          defaultStep = meta.defaultValue.get<int64_t>();
         }
       }
+      auto start = options.hasOption(startName.c_str()) ? options.get<int64_t>(startName.c_str()) : defaultStart;
+      auto stop = options.hasOption(endName.c_str()) ? options.get<int64_t>(endName.c_str()) : defaultStop;
+      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStop;
+      auto repetitions = defaultRepetitions;
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
@@ -294,9 +303,18 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
-      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
-      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+    return [matcher = *m, &spec, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      int defaultOrbitOffset = 0;
+      int defaultOrbitMultiplier = 1;
+      for (auto& meta : spec.metadata) {
+        if (meta.name == "orbit-offset") {
+          defaultOrbitOffset = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "orbit-multiplier") {
+          defaultOrbitMultiplier = meta.defaultValue.get<int64_t>();
+        }
+      }
+      size_t orbitOffset = config.hasOption("orbit-offset-enumeration") ? config.get<int64_t>("orbit-offset-enumeration") : defaultOrbitOffset;
+      size_t orbitMultiplier = config.hasOption("orbit-multiplier-enumeration") ? config.get<int64_t>("orbit-multiplier-enumeration") : defaultOrbitMultiplier;
       return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }

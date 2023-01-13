@@ -25,6 +25,8 @@
 #include <vector>
 #include <utility>
 
+#include <gsl/span>
+
 #include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
@@ -49,7 +51,7 @@ class TrackFinder
   void init();
   void initField(float l3Current, float dipoleCurrent);
 
-  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
+  const std::list<Track>& findTracks(gsl::span<const Cluster> clusters);
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -58,6 +60,8 @@ class TrackFinder
   void printTimers() const;
 
  private:
+  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
+
   void findTrackCandidates();
   void findTrackCandidatesInSt5();
   void findTrackCandidatesInSt4();

@@ -25,6 +25,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "SpacePoints/TrackInterpolation.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
@@ -48,6 +49,8 @@ class TPCResidualReader : public Task
  private:
   void connectTree(const std::string& filename);
 
+  bool revalidateTrack(const TrackData& trk) const;
+
   /// fill residuals for one sector
   /// \param iSec sector of the residuals
   void fillResiduals(const int iSec);
@@ -56,6 +59,8 @@ class TPCResidualReader : public Task
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
   std::unique_ptr<TTree> mTreeUnbinnedResiduals;
+  std::unique_ptr<TTree> mTreeTrackData;
+  const SpacePointsCalibConfParam& mParams{SpacePointsCalibConfParam::Instance()}; ///< reference to calibration parameters
   bool mDoBinning{false};
   bool mStoreBinnedResiduals{false};
   GID::mask_t mSources;
@@ -68,6 +73,7 @@ class TPCResidualReader : public Task
   std::array<std::vector<TrackResiduals::VoxStats>, SECTORSPERSIDE * SIDES> mVoxStatsSector;        ///< voxel statistics generated on-the-fly
   std::vector<UnbinnedResid> mUnbinnedResiduals, *mUnbinnedResidualsPtr = &mUnbinnedResiduals;      ///< unbinned residuals input
   std::vector<TrackDataCompact> mTrackData, *mTrackDataPtr = &mTrackData;                           ///< the track references for unbinned residuals
+  std::vector<TrackData> mTrackDataExtra, *mTrackDataExtraPtr = &mTrackDataExtra;                   ///< additional track information (chi2, nClusters, track parameters)
 };
 
 void TPCResidualReader::fillResiduals(const int iSec)
@@ -166,9 +172,20 @@ void TPCResidualReader::run(ProcessingContext& pc)
       connectTree(file);
       for (int iEntry = 0; iEntry < mTreeUnbinnedResiduals->GetEntries(); ++iEntry) {
         mTreeUnbinnedResiduals->GetEntry(iEntry);
-        for (const auto& trkInfo : mTrackData) {
+        if (mParams.useTrackData) {
+          mTreeTrackData->GetEntry(iEntry);
+        }
+        auto nTracks = mTrackData.size();
+        for (size_t iTrack = 0; iTrack < nTracks; ++iTrack) {
+          const auto& trkInfo = mTrackData[iTrack];
           if (!GID::includesSource(trkInfo.sourceId, mSources)) {
             continue;
+          }
+          if (mParams.useTrackData) {
+            const auto& trkInfoExtra = mTrackDataExtra[iTrack];
+            if (!revalidateTrack(trkInfoExtra)) {
+              continue;
+            }
           }
           for (int i = trkInfo.idxFirstResidual; i < trkInfo.idxFirstResidual + trkInfo.nResiduals; ++i) {
             const auto& residIn = mUnbinnedResiduals[i];
@@ -249,6 +266,7 @@ void TPCResidualReader::connectTree(const std::string& filename)
     mTreeStats.reset(nullptr);     // in case it was already loaded
   }
   mTreeUnbinnedResiduals.reset(nullptr); // in case it was already loaded
+  mTreeTrackData.reset(nullptr);         // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
   if (!mDoBinning) {
@@ -266,7 +284,27 @@ void TPCResidualReader::connectTree(const std::string& filename)
     mTreeUnbinnedResiduals->SetBranchAddress("res", &mUnbinnedResidualsPtr);
     mTreeUnbinnedResiduals->SetBranchAddress("trackInfo", &mTrackDataPtr);
     LOG(info) << "Loaded tree from " << filename << " with " << mTreeUnbinnedResiduals->GetEntries() << " entries";
+    if (mParams.useTrackData) {
+      mTreeTrackData.reset((TTree*)mFile->Get("trackData"));
+      mTreeTrackData->SetBranchAddress("trk", &mTrackDataExtraPtr);
+      LOG(info) << "Loaded the trackData tree in addition with " << mTreeTrackData->GetEntries() << " entries";
+      assert(mTreeUnbinnedResiduals->GetEntries() == mTreeTrackData->GetEntries());
+    }
   }
+}
+
+bool TPCResidualReader::revalidateTrack(const TrackData& trk) const
+{
+  if (trk.nClsITS < mParams.minITSNCls) {
+    return false;
+  }
+  if (trk.nClsTPC < mParams.minTPCNCls) {
+    return false;
+  }
+  if (trk.nTrkltsTRD < mParams.minTRDNTrklts) {
+    return false;
+  }
+  return true;
 }
 
 DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src)

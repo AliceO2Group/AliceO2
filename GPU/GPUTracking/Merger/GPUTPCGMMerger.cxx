@@ -1368,7 +1368,8 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       if (!trk[1]->OK() || trk[1]->CCE()) {
         continue;
       }
-      bool looper = trk[0]->Looper() || trk[1]->Looper() || (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      bool celooper = (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      bool looper = trk[0]->Looper() || trk[1]->Looper() || celooper;
       if (!looper && trk[0]->GetParam().GetPar(3) * trk[1]->GetParam().GetPar(3) < 0) {
         continue;
       }
@@ -1437,21 +1438,29 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       }
 
       int pos = newRef;
+      int leg = -1;
+      int lastLeg = -1;
+#pragma unroll
       for (int k = 1; k >= 0; k--) {
-        if (reverse[k]) {
-          for (int j = trk[k]->NClusters() - 1; j >= 0; j--) {
-            if (Param().par.earlyTpcTransform) {
-              mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
-            }
-            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
+        int loopstart = reverse[k] ? (trk[k]->NClusters() - 1) : 0;
+        int loopend = reverse[k] ? -1 : (int)trk[k]->NClusters();
+        int loopinc = reverse[k] ? -1 : 1;
+        for (int j = loopstart; j != loopend; j += loopinc) {
+          if (Param().par.earlyTpcTransform) {
+            mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
           }
-        } else {
-          for (unsigned int j = 0; j < trk[k]->NClusters(); j++) {
-            if (Param().par.earlyTpcTransform) {
-              mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
+          mClusters[pos] = mClusters[trk[k]->FirstClusterRef() + j];
+          if (looper) {
+            if (mClusters[trk[k]->FirstClusterRef() + j].leg != lastLeg) {
+              leg++;
+              lastLeg = mClusters[trk[k]->FirstClusterRef() + j].leg;
             }
-            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
+            mClusters[pos].leg = leg;
           }
+          pos++;
+        }
+        if (celooper) {
+          lastLeg = -1;
         }
       }
       trk[1]->SetFirstClusterRef(newRef);
@@ -1463,8 +1472,8 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       trk[1]->SetCCE(true);
       if (looper) {
         trk[1]->SetLooper(true);
+        trk[1]->SetLegs(leg + 1);
       }
-      trk[1]->SetLegs(trk[1]->Legs() + trk[0]->Legs());
       trk[0]->SetNClusters(0);
       trk[0]->SetOK(false);
     }
