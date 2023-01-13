@@ -44,7 +44,7 @@ struct PdgTest {
     ASSERT_ERROR(p->Charge() == 0);
     ASSERT_ERROR(p->Width() == 0.000);
 
-    TParticlePDG* pNew = pdgNew->get()->GetParticle(300553);
+    TParticlePDG* pNew = pdgNew->GetParticle(300553);
     ASSERT_ERROR(pNew != nullptr);
     ASSERT_ERROR(pNew->Mass() == 10.580);
     ASSERT_ERROR(pNew->Stable() == kFALSE);

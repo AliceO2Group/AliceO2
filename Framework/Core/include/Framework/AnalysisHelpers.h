@@ -21,6 +21,8 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
 #include "Framework/IndexBuilderHelpers.h"
+#include "Framework/Plugins.h"
+
 #include <string>
 namespace o2::framework
 {
@@ -462,9 +464,13 @@ template <typename T>
 struct Service {
   T* service;
 
-  T* operator->() const
+  decltype(auto) operator->() const
   {
-    return service;
+    if constexpr (is_base_of_template_v<LoadableServicePlugin, T>) {
+      return service->get();
+    } else {
+      return service;
+    }
   }
 };
 
