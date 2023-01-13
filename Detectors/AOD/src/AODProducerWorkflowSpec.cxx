@@ -1378,6 +1378,13 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
+  // Initialize ZDC helper maps
+  for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
+    mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
+  }
+  for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
+    mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
+  }
 
   mTimer.Reset();
 }
