@@ -74,7 +74,7 @@ class Compressor
     mDecoderCONET = val;
     mDecoderNextWordStep = val ? 0 : 2;
   };
- 
+
   void setDecoderCRUZEROES(bool val)
   {
     mDecoderNextWordStep = val ? 2 : 0;
