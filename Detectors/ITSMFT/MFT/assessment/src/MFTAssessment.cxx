@@ -26,6 +26,7 @@ o2::itsmft::ChipMappingMFT mMFTMapping;
 //__________________________________________________________
 void MFTAssessment::init(bool finalizeAnalysis)
 {
+  mLastTrackType = mUseMC ? kNumberOfTrackTypes : kReco + 1;
   mFinalizeAnalysis = finalizeAnalysis;
   createHistos();
   mUnusedChips.fill(true);
@@ -54,6 +55,7 @@ void MFTAssessment::reset()
 
   for (auto nMFTLayer = 0; nMFTLayer < 10; nMFTLayer++) {
     mMFTClsXYinLayer[nMFTLayer]->Reset();
+    mMFTClsRinLayer[nMFTLayer]->Reset();
     mMFTClsOfTracksXYinLayer[nMFTLayer]->Reset();
   }
 
@@ -78,22 +80,30 @@ void MFTAssessment::reset()
   mClusterSensorIndex->Reset();
   mClusterPatternIndex->Reset();
 
+  for (int trackType = 0; trackType < mLastTrackType; trackType++) {
+    mHistPhiVsEta[trackType]->Reset();
+    mHistPtVsEta[trackType]->Reset();
+    mHistPhiVsPt[trackType]->Reset();
+    if (trackType != kGen || trackType != kTrackable || trackType != kRecoTrueMC) {
+      mHistTrackChi2[trackType]->Reset();
+    }
+    if (trackType != kReco || trackType != kRecoFake) {
+      mHistZvtxVsEta[trackType]->Reset();
+    }
+    if (trackType == kGen || trackType == kTrackable || trackType == kRecoTrueMC) {
+      mHistRVsZ[trackType]->Reset();
+      mHistIsPrimary[trackType]->Reset();
+    }
+  }
+
   if (mUseMC) {
     mMFTTrackables.clear();
     mTrueTracksMap.clear();
+    mFakeTracksVec.clear();
     mTrackableTracksMap.clear();
 
     mHistPhiRecVsPhiGen->Reset();
     mHistEtaRecVsEtaGen->Reset();
-    for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
-      mHistPhiVsEta[trackType]->Reset();
-      mHistPtVsEta[trackType]->Reset();
-      mHistPhiVsPt[trackType]->Reset();
-      mHistZvtxVsEta[trackType]->Reset();
-      if (trackType == kGen || trackType == kTrackable) {
-        mHistRVsZ[trackType]->Reset();
-      }
-    }
 
     auto h = mChargeMatchEff->GetCopyTotalHisto();
     h->Reset();
@@ -149,6 +159,7 @@ void MFTAssessment::createHistos()
 
   for (auto nMFTLayer = 0; nMFTLayer < 10; nMFTLayer++) {
     mMFTClsXYinLayer[nMFTLayer] = std::make_unique<TH2F>(Form("mMFTClsXYinLayer%d", nMFTLayer), Form("Cluster Position in Layer %d; x (cm); y (cm)", nMFTLayer), 400, -20, 20, 400, -20, 20);
+    mMFTClsRinLayer[nMFTLayer] = std::make_unique<TH1F>(Form("mMFTClsRinLayer%d", nMFTLayer), Form("Cluster Radial Position in Layer %d; r (cm); # entries", nMFTLayer), 400, 0, 20);
     mMFTClsOfTracksXYinLayer[nMFTLayer] = std::make_unique<TH2F>(Form("mMFTClsOfTracksXYinLayer%d", nMFTLayer), Form("Cluster (of MFT tracks) Position in Layer %d; x (cm); y (cm)", nMFTLayer), 400, -20, 20, 400, -20, 20);
   }
 
@@ -192,6 +203,59 @@ void MFTAssessment::createHistos()
 
   mClusterPatternIndex = std::make_unique<TH1F>("mMFTClusterPatternIndex", "Cluster Pattern ID;Pattern ID;#Entries", 300, -0.5, 299.5);
 
+  for (int trackType = 0; trackType < mLastTrackType; trackType++) {
+    // mHistPhiVsEta
+    mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 24, 0, 2 * TMath::Pi());
+    mHistPhiVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPhiVsEta[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPhiVsEta[trackType]->Sumw2();
+    mHistPhiVsEta[trackType]->SetOption("COLZ");
+
+    // mHistPtVsEta
+    mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 40, 0., 10.);
+    mHistPtVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPtVsEta[trackType]->SetYTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPtVsEta[trackType]->Sumw2();
+    mHistPtVsEta[trackType]->SetOption("COLZ");
+
+    // mHistPhiVsPt
+    mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, 0, 2 * TMath::Pi());
+    mHistPhiVsPt[trackType]->SetXTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPhiVsPt[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
+    mHistPhiVsPt[trackType]->Sumw2();
+    mHistPhiVsPt[trackType]->SetOption("COLZ");
+
+    if (trackType != kGen || trackType != kTrackable || trackType != kRecoTrueMC) {
+      // mHistTrackChi2
+      mHistTrackChi2[trackType] = std::make_unique<TH1F>((std::string("mHistTrackChi2") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Track #chi^{2}/NDF of ") + mNameOfTrackTypes[trackType]).c_str(), 210, -0.5, 20.5);
+      mHistTrackChi2[trackType]->SetXTitle("#chi^{2}/NDF");
+      mHistTrackChi2[trackType]->SetYTitle("Entries");
+    }
+
+    if (trackType == kGen || trackType == kTrackable || trackType == kRecoTrue || trackType == kRecoTrueMC) {
+      // mHistZvtxVsEta
+      mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 60, -15, 15, 70, -4.5, -1);
+      mHistZvtxVsEta[trackType]->SetXTitle((std::string("z_{vtx} (cm) of ") + mNameOfTrackTypes[trackType]).c_str());
+      mHistZvtxVsEta[trackType]->SetYTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
+      mHistZvtxVsEta[trackType]->Sumw2();
+      mHistZvtxVsEta[trackType]->SetOption("COLZ");
+    }
+    // mHistRVsZ
+    if (trackType != kReco || trackType != kRecoFake) {
+      mHistRVsZ[trackType] = std::make_unique<TH2F>((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str(), (std::string("R Vs Z of ") + mNameOfTrackTypes[trackType]).c_str(), 400, -80., 20., 400, 0., 80.);
+      mHistRVsZ[trackType]->SetXTitle((std::string("z (cm) origin of ") + mNameOfTrackTypes[trackType]).c_str());
+      mHistRVsZ[trackType]->SetYTitle((std::string("R (cm) radius of origin of ") + mNameOfTrackTypes[trackType]).c_str());
+      mHistRVsZ[trackType]->Sumw2();
+      mHistRVsZ[trackType]->SetOption("COLZ");
+
+      mHistIsPrimary[trackType] = std::make_unique<TH1F>((std::string("mHistIsPrimary") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Is Primary - ") + mNameOfTrackTypes[trackType]).c_str(), 2, -.5, 1.5);
+      mHistIsPrimary[trackType]->SetXTitle((mNameOfTrackTypes[trackType] + std::string(" primaries")).c_str());
+      mHistIsPrimary[trackType]->SetYTitle("Entries");
+      mHistIsPrimary[trackType]->Sumw2();
+      mHistIsPrimary[trackType]->SetOption("COLZ");
+    }
+  }
+
   // Creating MC-based histos
   if (mUseMC) {
 
@@ -213,46 +277,6 @@ void MFTAssessment::createHistos()
     mHistEtaRecVsEtaGen->SetYTitle((std::string("#eta of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistEtaRecVsEtaGen->Sumw2();
     mHistEtaRecVsEtaGen->SetOption("COLZ");
-
-    for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
-      // mHistPhiVsEta
-      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 24, 0, 2 * TMath::Pi());
-      mHistPhiVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPhiVsEta[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPhiVsEta[trackType]->Sumw2();
-      mHistPhiVsEta[trackType]->SetOption("COLZ");
-
-      // mHistPtVsEta
-      mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 40, 0., 10.);
-      mHistPtVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPtVsEta[trackType]->SetYTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPtVsEta[trackType]->Sumw2();
-      mHistPtVsEta[trackType]->SetOption("COLZ");
-
-      // mHistPhiVsPt
-      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, 0, 2 * TMath::Pi());
-      mHistPhiVsPt[trackType]->SetXTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPhiVsPt[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
-      mHistPhiVsPt[trackType]->Sumw2();
-      mHistPhiVsPt[trackType]->SetOption("COLZ");
-
-      if (trackType != kReco) {
-        // mHistZvtxVsEta
-        mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 15, -15, 15);
-        mHistZvtxVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
-        mHistZvtxVsEta[trackType]->SetYTitle((std::string("z_{vtx} (cm) of ") + mNameOfTrackTypes[trackType]).c_str());
-        mHistZvtxVsEta[trackType]->Sumw2();
-        mHistZvtxVsEta[trackType]->SetOption("COLZ");
-      }
-      // mHistRVsZ]
-      if (trackType == kGen || trackType == kTrackable) {
-        mHistRVsZ[trackType] = std::make_unique<TH2F>((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str(), (std::string("R Vs Z of ") + mNameOfTrackTypes[trackType]).c_str(), 400, -80., 20., 400, 0., 80.);
-        mHistRVsZ[trackType]->SetXTitle((std::string("z (cm) origin of ") + mNameOfTrackTypes[trackType]).c_str());
-        mHistRVsZ[trackType]->SetYTitle((std::string("R (cm) radius of origin of ") + mNameOfTrackTypes[trackType]).c_str());
-        mHistRVsZ[trackType]->Sumw2();
-        mHistRVsZ[trackType]->SetOption("COLZ");
-      }
-    }
 
     // Histos for Reconstruction assessment
 
@@ -322,7 +346,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 
     auto clsLayer = mMFTChipMapper.chip2Layer(oneCluster.getChipID());
     mMFTClsXYinLayer[clsLayer]->Fill(globalCluster.getX(), globalCluster.getY());
-
+    mMFTClsRinLayer[clsLayer]->Fill(std::sqrt(std::pow(globalCluster.getX(), 2) + std::pow(globalCluster.getY(), 2)));
     mUnusedChips[oneCluster.getChipID()] = false; // this chipID is used
   }
 
@@ -483,7 +507,7 @@ void MFTAssessment::processTrackables()
 }
 
 //__________________________________________________________
-void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH)
+void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int trackType, const o2::dataformats::MCEventHeader& evH)
 {
   auto zVtx = evH.GetZ();
 
@@ -494,13 +518,12 @@ void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int TrackTy
   auto z = mcTr->GetStartVertexCoordinatesZ();
   auto R = sqrt(pow(mcTr->GetStartVertexCoordinatesX(), 2) + pow(mcTr->GetStartVertexCoordinatesY(), 2));
 
-  mHistPtVsEta[TrackType]->Fill(eta, pt);
-  mHistPhiVsEta[TrackType]->Fill(eta, phi);
-  mHistPhiVsPt[TrackType]->Fill(pt, phi);
-  mHistZvtxVsEta[TrackType]->Fill(eta, zVtx);
-  if (TrackType == kGen || TrackType == kTrackable) {
-    mHistRVsZ[TrackType]->Fill(z, R);
-  }
+  mHistPtVsEta[trackType]->Fill(eta, pt);
+  mHistPhiVsEta[trackType]->Fill(eta, phi);
+  mHistPhiVsPt[trackType]->Fill(pt, phi);
+  mHistZvtxVsEta[trackType]->Fill(zVtx, eta);
+  mHistRVsZ[trackType]->Fill(z, R);
+  mHistIsPrimary[trackType]->Fill(mcTr->isPrimary());
 }
 
 //__________________________________________________________
@@ -509,25 +532,37 @@ void MFTAssessment::processRecoTracks()
   // For this moment this is used for MC-based assessment, but could be merged into runASyncQC(...)
   for (auto mftTrack : mMFTTracks) {
     const auto& pt_Rec = mftTrack.getPt();
-    const auto& invQPt_Rec = mftTrack.getInvQPt();
-    const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
     const auto& eta_Rec = mftTrack.getEta();
     float phi_Rec = mftTrack.getPhi();
     o2::math_utils::bringTo02Pi(phi_Rec);
-    const auto& nClusters = mftTrack.getNumberOfPoints();
     const auto& Chi2_Rec = mftTrack.getChi2OverNDF();
-    int Q_Rec = mftTrack.getCharge();
 
     mHistPtVsEta[kReco]->Fill(eta_Rec, pt_Rec);
     mHistPhiVsEta[kReco]->Fill(eta_Rec, phi_Rec);
     mHistPhiVsPt[kReco]->Fill(pt_Rec, phi_Rec);
+    mHistTrackChi2[kReco]->Fill(Chi2_Rec);
   }
 }
 
 //__________________________________________________________
-void MFTAssessment::processTrueTracks()
+void MFTAssessment::processTrueAndFakeTracks()
 {
   fillTrueRecoTracksMap();
+
+  for (const auto& fakeMFTTrackID : mFakeTracksVec) {
+    auto mftTrack = mMFTTracks[fakeMFTTrackID];
+    const auto& pt_Rec = mftTrack.getPt();
+    const auto& eta_Rec = mftTrack.getEta();
+    float phi_Rec = mftTrack.getPhi();
+    o2::math_utils::bringTo02Pi(phi_Rec);
+    const auto& Chi2_Rec = mftTrack.getChi2OverNDF();
+
+    mHistPtVsEta[kRecoFake]->Fill(eta_Rec, pt_Rec);
+    mHistPhiVsEta[kRecoFake]->Fill(eta_Rec, phi_Rec);
+    mHistPhiVsPt[kRecoFake]->Fill(pt_Rec, phi_Rec);
+    mHistTrackChi2[kRecoFake]->Fill(Chi2_Rec);
+  }
+
   for (auto src = 0; src < mMCReader.getNSources(); src++) {
     for (Int_t event = 0; event < mMCReader.getNEvents(src); event++) {
       auto evH = mMCReader.getMCEventHeader(src, event);
@@ -553,6 +588,7 @@ void MFTAssessment::processTrueTracks()
           auto vxGen = mcParticle->GetStartVertexCoordinatesX();
           auto vyGen = mcParticle->GetStartVertexCoordinatesY();
           auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
+          auto R = sqrt(pow(vxGen, 2) + pow(vyGen, 2));
           auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
           auto invQPtGen = 1.0 * Q_Gen / ptGen;
 
@@ -581,12 +617,14 @@ void MFTAssessment::processTrueTracks()
           mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
           mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
           mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
-          mHistZvtxVsEta[kRecoTrue]->Fill(eta_Rec, zVtx);
-
+          mHistTrackChi2[kRecoTrue]->Fill(Chi2_Rec);
+          mHistZvtxVsEta[kRecoTrue]->Fill(zVtx, eta_Rec);
+          mHistRVsZ[kRecoTrueMC]->Fill(vzGen, R);
+          mHistIsPrimary[kRecoTrueMC]->Fill(mcParticle->isPrimary());
           mHistPtVsEta[kRecoTrueMC]->Fill(etaGen, ptGen);
           mHistPhiVsEta[kRecoTrueMC]->Fill(etaGen, phiGen);
           mHistPhiVsPt[kRecoTrueMC]->Fill(ptGen, phiGen);
-          mHistZvtxVsEta[kRecoTrueMC]->Fill(eta_Rec, zVtx);
+          mHistZvtxVsEta[kRecoTrueMC]->Fill(zVtx, etaGen);
 
           mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
           mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
@@ -646,6 +684,7 @@ void MFTAssessment::getHistos(TObjArray& objar)
   objar.Add(mTFsCounter);
   for (auto nMFTLayer = 0; nMFTLayer < 10; nMFTLayer++) {
     objar.Add(mMFTClsXYinLayer[nMFTLayer].get());
+    objar.Add(mMFTClsRinLayer[nMFTLayer].get());
     objar.Add(mMFTClsOfTracksXYinLayer[nMFTLayer].get());
   }
 
@@ -674,18 +713,25 @@ void MFTAssessment::getHistos(TObjArray& objar)
   objar.Add(mClusterSensorIndex.get());
   objar.Add(mClusterPatternIndex.get());
 
+  for (int trackType = 0; trackType < mLastTrackType; trackType++) {
+    objar.Add(mHistPhiVsEta[trackType].get());
+    objar.Add(mHistPtVsEta[trackType].get());
+    objar.Add(mHistPhiVsPt[trackType].get());
+    if (trackType != kGen || trackType != kTrackable || trackType != kRecoTrueMC) {
+      objar.Add(mHistTrackChi2[trackType].get());
+    }
+    if (trackType != kReco || trackType != kRecoFake) {
+      objar.Add(mHistZvtxVsEta[trackType].get());
+    }
+    if (trackType == kGen || trackType == kTrackable || trackType == kRecoTrueMC) {
+      objar.Add(mHistRVsZ[trackType].get());
+      objar.Add(mHistIsPrimary[trackType].get());
+    }
+  }
+
   if (mUseMC) {
     objar.Add(mHistPhiRecVsPhiGen.get());
     objar.Add(mHistEtaRecVsEtaGen.get());
-    for (int TrackType = 0; TrackType < kNumberOfTrackTypes; TrackType++) {
-      objar.Add(mHistPhiVsEta[TrackType].get());
-      objar.Add(mHistPtVsEta[TrackType].get());
-      objar.Add(mHistPhiVsPt[TrackType].get());
-      objar.Add(mHistZvtxVsEta[TrackType].get());
-      if (TrackType == kGen || TrackType == kTrackable) {
-        objar.Add(mHistRVsZ[TrackType].get());
-      }
-    }
 
     // Histos for Reconstruction assessment
 
@@ -832,6 +878,7 @@ bool MFTAssessment::loadHistos()
 
   for (auto nMFTLayer = 0; nMFTLayer < 10; nMFTLayer++) {
     mMFTClsXYinLayer[nMFTLayer] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTClsXYinLayer%d", nMFTLayer)));
+    mMFTClsRinLayer[nMFTLayer] = std::unique_ptr<TH1F>((TH1F*)f->Get(Form("mMFTClsRinLayer%d", nMFTLayer)));
     mMFTClsOfTracksXYinLayer[nMFTLayer] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTClsOfTracksXYinLayer%d", nMFTLayer)));
   }
 
@@ -870,27 +917,32 @@ bool MFTAssessment::loadHistos()
 
   mClusterPatternIndex = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClusterPatternIndex"));
 
+  for (int trackType = 0; trackType < mLastTrackType; trackType++) {
+    mHistPhiVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+
+    mHistPtVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+
+    mHistPhiVsPt[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str()));
+
+    if (trackType != kGen || trackType != kTrackable || trackType != kRecoTrueMC) {
+      mHistTrackChi2[trackType] = std::unique_ptr<TH1F>((TH1F*)f->Get((std::string("mHistTrackChi2") + mNameOfTrackTypes[trackType]).c_str()));
+    }
+
+    if (trackType != kReco || trackType != kRecoFake) {
+      mHistZvtxVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+    }
+    if (trackType == kGen || trackType == kTrackable || trackType == kRecoTrueMC) {
+      mHistRVsZ[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str()));
+      mHistIsPrimary[trackType] = std::unique_ptr<TH1F>((TH1F*)f->Get((std::string("mHistIsPrimary") + mNameOfTrackTypes[trackType]).c_str()));
+    }
+  }
+
   // Creating MC-based histos
   if (mUseMC) {
 
     mHistPhiRecVsPhiGen = std::unique_ptr<TH2F>((TH2F*)f->Get("mHistPhiRecVsPhiGen"));
 
     mHistEtaRecVsEtaGen = std::unique_ptr<TH2F>((TH2F*)f->Get("mHistEtaRecVsEtaGen"));
-
-    for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
-      mHistPhiVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str()));
-
-      mHistPtVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str()));
-
-      mHistPhiVsPt[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str()));
-
-      if (trackType != kReco) {
-        mHistZvtxVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str()));
-      }
-      if (trackType == kGen || trackType == kTrackable) {
-        mHistRVsZ[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str()));
-      }
-    }
 
     // Histos for Reconstruction assessment
     mChargeMatchEff = std::unique_ptr<TEfficiency>((TEfficiency*)f->Get("QMatchEff"));
