@@ -167,8 +167,9 @@ class CTPConfiguration
   uint64_t getClassMaskForInputMask(uint64_t inputMask) const;
   void printConfigString() { std::cout << mConfigString << std::endl; };
   std::string getConfigString() { return mConfigString; };
-  CTPDescriptor* getDescriptor(int index) {return &mDescriptors[index];};
+  CTPDescriptor* getDescriptor(int index) { return &mDescriptors[index]; };
   int assignDescriptors();
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;

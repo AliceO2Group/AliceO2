@@ -264,8 +264,8 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
     LOG(debug) << "ir ir ori:" << ir;
-    if((int32_t)ir.bc < BCShiftCorrection) {
-      //LOG(warning) << "Loosing ir:" << ir;
+    if ((int32_t)ir.bc < BCShiftCorrection) {
+      // LOG(warning) << "Loosing ir:" << ir;
       mIRRejected++;
       return 0;
     }
@@ -289,9 +289,9 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
-    //if(0) {
-    if((int32_t)ir.bc < offset) {
-      //LOG(warning) << "Loosing tclass:" << ir;
+    // if(0) {
+    if ((int32_t)ir.bc < offset) {
+      // LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
     }

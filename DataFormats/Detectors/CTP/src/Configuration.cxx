@@ -595,7 +595,7 @@ uint64_t CTPConfiguration::getClassMaskForInputMask(uint64_t inputMask) const
 }
 int CTPConfiguration::assignDescriptors()
 {
-  for (auto & cls : mCTPClasses) {
+  for (auto& cls : mCTPClasses) {
     cls.descriptor = &mDescriptors[cls.descriptorIndex];
   }
   return 0;
@@ -872,7 +872,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
   } else {
-    //ctpconfigdb->printStream(std::cout);
+    // ctpconfigdb->printStream(std::cout);
     LOG(info) << "CTP config found. Run:" << run;
   }
   return *ctpconfigdb;
