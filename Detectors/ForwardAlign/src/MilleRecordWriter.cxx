@@ -16,11 +16,11 @@
 
 #include "Framework/Logger.h"
 
-#include "MFTAlignment/MilleRecordWriter.h"
+#include "ForwardAlign/MilleRecordWriter.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
-ClassImp(o2::mft::MilleRecordWriter);
+ClassImp(o2::fwdalign::MilleRecordWriter);
 
 //__________________________________________________________________________
 MilleRecordWriter::MilleRecordWriter()

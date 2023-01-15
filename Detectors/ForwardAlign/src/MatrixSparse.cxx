@@ -15,9 +15,9 @@
 #include <TStopwatch.h>
 
 #include "Framework/Logger.h"
-#include "MFTAlignment/MatrixSparse.h"
+#include "ForwardAlign/MatrixSparse.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(MatrixSparse);
 

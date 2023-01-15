@@ -13,8 +13,8 @@
 /// \brief General class (from AliROOT) for solving large system of linear equations
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_MINRESSOLVE_H
-#define ALICEO2_MFT_MINRESSOLVE_H
+#ifndef ALICEO2_FWDALIGN_MINRESSOLVE_H
+#define ALICEO2_FWDALIGN_MINRESSOLVE_H
 
 #include <TObject.h>
 #include <TVectorD.h>
@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 class MatrixSq;
@@ -135,7 +135,7 @@ class MinResSolve : public TObject
   ClassDefOverride(MinResSolve, 0);
 };
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

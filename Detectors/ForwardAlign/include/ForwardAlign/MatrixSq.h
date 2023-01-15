@@ -13,15 +13,15 @@
 /// \brief Abstract class (from AliROOT) for square matrix used for millepede2 operation
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_MATRIXSQ_H
-#define ALICEO2_MFT_MATRIXSQ_H
+#ifndef ALICEO2_FWDALIGN_MATRIXSQ_H
+#define ALICEO2_FWDALIGN_MATRIXSQ_H
 
 #include <TMatrixDBase.h>
 #include <TVectorD.h>
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \class MatrixSq
@@ -153,7 +153,7 @@ inline void MatrixSq::MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) con
   MultiplyByVec(vecIn.GetMatrixArray(), vecOut.GetMatrixArray());
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

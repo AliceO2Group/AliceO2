@@ -13,11 +13,11 @@
 
 #include "Framework/Logger.h"
 
-#include "MFTAlignment/MilleRecordReader.h"
+#include "ForwardAlign/MilleRecordReader.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
-ClassImp(o2::mft::MilleRecordReader);
+ClassImp(o2::fwdalign::MilleRecordReader);
 
 //__________________________________________________________________________
 MilleRecordReader::MilleRecordReader()

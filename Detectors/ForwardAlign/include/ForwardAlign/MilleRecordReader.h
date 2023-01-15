@@ -13,8 +13,8 @@
 /// \author arakotoz@cern.ch
 /// \brief Class dedicated to read MillePedeRecords from ROOT files
 
-#ifndef ALICEO2_MFT_MILLERECORD_READER_H
-#define ALICEO2_MFT_MILLERECORD_READER_H
+#ifndef ALICEO2_FWDALIGN_MILLERECORD_READER_H
+#define ALICEO2_FWDALIGN_MILLERECORD_READER_H
 
 #include <Rtypes.h>
 #include <TString.h>
@@ -22,11 +22,11 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#include "MFTAlignment/MillePedeRecord.h"
+#include "ForwardAlign/MillePedeRecord.h"
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 class MilleRecordReader
@@ -51,7 +51,7 @@ class MilleRecordReader
   bool isReadEntryOk() const { return mIsReadEntryOk; }
 
   /// \brief return the record
-  o2::mft::MillePedeRecord* getRecord() { return mRecord; };
+  o2::fwdalign::MillePedeRecord* getRecord() { return mRecord; };
 
   /// \brief return the ID of the current record in the TTree
   long getCurrentDataID() const { return mCurrentDataID; }
@@ -65,20 +65,23 @@ class MilleRecordReader
   /// \brief return the number of entries
   Long64_t getNEntries() const { return mNEntries; }
 
+  /// \brief return the name of record data tree
+  TString getDataTreeName() const { return mDataTreeName; }
+
  protected:
-  TChain* mDataTree;                 ///< TChain container that stores the records
-  bool mIsSuccessfulInit;            ///< boolean to monitor the success of the initialization
-  bool mIsConstraintsRec;            ///< boolean to know if these are data records or constraints records
-  bool mIsReadEntryOk;               ///< boolean to know if the last operation readNextEntry() was ok
-  TString mDataTreeName;             ///< name of the record TTree/TChain
-  TString mDataBranchName;           ///< name of the branch where records will be stored
-  o2::mft::MillePedeRecord* mRecord; ///< the running record
-  Long64_t mCurrentDataID;           ///< counter indicating the ID of the current record in the tree
-  Long64_t mNEntries;                ///< number of entries in the read TChain
+  TChain* mDataTree;                      ///< TChain container that stores the records
+  bool mIsSuccessfulInit;                 ///< boolean to monitor the success of the initialization
+  bool mIsConstraintsRec;                 ///< boolean to know if these are data records or constraints records
+  bool mIsReadEntryOk;                    ///< boolean to know if the last operation readNextEntry() was ok
+  TString mDataTreeName;                  ///< name of the record TTree/TChain
+  TString mDataBranchName;                ///< name of the branch where records will be stored
+  o2::fwdalign::MillePedeRecord* mRecord; ///< the running record
+  Long64_t mCurrentDataID;                ///< counter indicating the ID of the current record in the tree
+  Long64_t mNEntries;                     ///< number of entries in the read TChain
 
   ClassDef(MilleRecordReader, 0);
 };
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

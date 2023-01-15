@@ -13,15 +13,15 @@
 /// \brief Sparse matrix class (from AliROOT), used as a global matrix for MillePede2
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_MATRIXSPARSE_H
-#define ALICEO2_MFT_MATRIXSPARSE_H
+#ifndef ALICEO2_FWDALIGN_MATRIXSPARSE_H
+#define ALICEO2_FWDALIGN_MATRIXSPARSE_H
 
-#include "MFTAlignment/MatrixSq.h"
-#include "MFTAlignment/VectorSparse.h"
+#include "ForwardAlign/MatrixSq.h"
+#include "ForwardAlign/VectorSparse.h"
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \class MatrixSparse
@@ -157,7 +157,7 @@ inline Double_t& MatrixSparse::DiagElem(Int_t row)
   }
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

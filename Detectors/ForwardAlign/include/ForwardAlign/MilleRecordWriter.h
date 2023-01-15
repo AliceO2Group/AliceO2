@@ -11,21 +11,21 @@
 
 /// \file MilleRecordWriter.h
 /// \author arakotoz@cern.ch
-/// \brief Class dedicated to write MillePedeRecords to output file for MFT
+/// \brief Class dedicated to write MillePedeRecords to output file for FWDALIGN
 
-#ifndef ALICEO2_MFT_MILLERECORD_WRITER_H
-#define ALICEO2_MFT_MILLERECORD_WRITER_H
+#ifndef ALICEO2_FWDALIGN_MILLERECORD_WRITER_H
+#define ALICEO2_FWDALIGN_MILLERECORD_WRITER_H
 
 #include <Rtypes.h>
 #include <TString.h>
 
-#include "MFTAlignment/MillePedeRecord.h"
+#include "ForwardAlign/MillePedeRecord.h"
 
 class TFile;
 class TTree;
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 class MilleRecordWriter
@@ -53,7 +53,7 @@ class MilleRecordWriter
   bool isInitOk() const { return mIsSuccessfulInit; }
 
   /// \brief return the record
-  o2::mft::MillePedeRecord* getRecord() { return mRecord; };
+  o2::fwdalign::MillePedeRecord* getRecord() { return mRecord; };
 
   /// \brief return the ID of the current record in the TTree
   Long64_t getCurrentDataID() const { return mCurrentDataID; }
@@ -71,20 +71,20 @@ class MilleRecordWriter
   void setRecordWeight(double wgh);
 
  protected:
-  TTree* mDataTree;                  ///< TTree container that stores the records
-  TFile* mDataFile;                  ///< output file where the records are written
-  bool mIsSuccessfulInit;            ///< boolean to monitor the success of the initialization
-  bool mIsConstraintsRec;            ///< boolean to know if these are data records or constraints records
-  long mNEntriesAutoSave;            ///< max entries in the buffer after which TTree::AutoSave() is automatically used
-  TString mDataFileName;             ///< name of the output file that will store the record TTree
-  TString mDataTreeName;             ///< name of the record TTree
-  TString mDataBranchName;           ///< name of the branch where records will be stored
-  o2::mft::MillePedeRecord* mRecord; ///< the running record
-  Long64_t mCurrentDataID;           ///< counter increasing when adding a record to the tree
+  TTree* mDataTree;                       ///< TTree container that stores the records
+  TFile* mDataFile;                       ///< output file where the records are written
+  bool mIsSuccessfulInit;                 ///< boolean to monitor the success of the initialization
+  bool mIsConstraintsRec;                 ///< boolean to know if these are data records or constraints records
+  long mNEntriesAutoSave;                 ///< max entries in the buffer after which TTree::AutoSave() is automatically used
+  TString mDataFileName;                  ///< name of the output file that will store the record TTree
+  TString mDataTreeName;                  ///< name of the record TTree
+  TString mDataBranchName;                ///< name of the branch where records will be stored
+  o2::fwdalign::MillePedeRecord* mRecord; ///< the running record
+  Long64_t mCurrentDataID;                ///< counter increasing when adding a record to the tree
 
   ClassDef(MilleRecordWriter, 0);
 };
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

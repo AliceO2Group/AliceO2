@@ -15,9 +15,9 @@
 
 #include "TClass.h"
 #include "TMath.h"
-#include "MFTAlignment/SymBDMatrix.h"
+#include "ForwardAlign/SymBDMatrix.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(SymBDMatrix);
 

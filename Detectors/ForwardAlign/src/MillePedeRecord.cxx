@@ -11,11 +11,11 @@
 
 /// @file MillePedeRecord.cxx
 
-#include "MFTAlignment/MillePedeRecord.h"
+#include "ForwardAlign/MillePedeRecord.h"
 #include <TMath.h>
 #include "Framework/Logger.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(MillePedeRecord);
 

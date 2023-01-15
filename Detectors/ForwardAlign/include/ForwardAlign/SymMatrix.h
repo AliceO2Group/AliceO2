@@ -13,17 +13,17 @@
 /// \brief Fast symmetric matrix (from AliROOT) with dynamically expandable size
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_SYMMATRIX_H
-#define ALICEO2_MFT_SYMMATRIX_H
+#ifndef ALICEO2_FWDALIGN_SYMMATRIX_H
+#define ALICEO2_FWDALIGN_SYMMATRIX_H
 
 #include <TVectorD.h>
 #include <TString.h>
 
-#include "MFTAlignment/MatrixSq.h"
+#include "ForwardAlign/MatrixSq.h"
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \class SymMatrix
@@ -277,7 +277,7 @@ inline void SymMatrix::AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n)
   }
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif
