@@ -24,7 +24,7 @@ o2_add_library(MCHTracking
            O2::MCHBase
            O2::Framework
            O2::CommonUtils
-           O2::DataFormatsParameters)
+           O2::DataFormatsParameters)          
 
 o2_add_executable(
         clusters-to-tracks-workflow

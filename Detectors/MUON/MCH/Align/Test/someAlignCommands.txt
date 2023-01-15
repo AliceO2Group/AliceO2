@@ -1,0 +1,113 @@
+// Generate a full geometry
+o2-sim-serial --field 0 -n 1 -g fwmugen >& sim.log &
+
+// Generate an o2sim-geometry-aligned.root using specific CCDB for MCH alignment or initial geometry
+o2-create-aligned-geometry-workflow --condition-remap http://localhost:8080=MCH/Calib/Align,GLO/Config/Geometry --configKeyValues HBFUtils.startTime=1657548725000
+// or
+o2-create-aligned-geometry-workflow --condition-remap file://locCCDB=MFT/Calib/Align --configKeyValues HBFUtils.startTime=1657548725000
+
+// Generate MisAlignment
+root
+.L misAlign.C
+misAlign()
+.q
+
+// Copy misalignment to local snapshot ccdb
+root
+o2::ccdb::CcdbApi api;
+map<string, string> metadata;
+const std::string &ccdbHost = "http://localhost:8080";
+api.init(ccdbHost.c_str());
+api.snapshot("MCH/Calib/Align",".ccdb/", 1657530725000);
+.q
+//api.snapshot("MCH/Calib/Align",".ccdb/",o2::ccdb::getFutureTimestamp(60*60*24*0.5));
+
+// run simulation 
+export ALICEO2_CCDB_LOCALCACHE=$PWD/.ccdb
+o2-sim-serial -m MCH --field 0 -n 50000 -g fwmugen >& sim.log &
+
+// run digitizer 
+o2-sim-digitizer-workflow >& digit.log &
+
+// use ideal geometry for reconstruction
+cp o2sim_geometry-aligned.root o2sim_geometry-misaligned.root
+cp o2sim_geometry.root o2sim_geometry-aligned.root
+
+// run reconstruction
+o2-mch-reco-workflow >& rec.log &
+
+// run alignment
+root
+gSystem->Load("libO2MCHMappingImpl4");
+.L test_Alignement.cxx++g
+.> align.log
+test_Alignement(“.”,”mchtracks.root”,”mchmillerecs.root”,”mchmilleconstrs.root”);
+.>
+
+root
+gSystem->Load("libO2MCHMappingImpl4");
+.L test_Alignement.cxx++g
+.> align_apass1.log 
+test_Alignement("/Volumes/JeccSSD1T/alice/data/2022/LHC22h/apass1","mchtracks.root","muontracks.root","mchmillerecs1.root","mchmilleconstrs1.root");
+.> 
+.q
+//test_Alignement(".","mchtracks.root","muontracks.root","mchmillerecs1.root","mchmilleconstrs1.root");
+
+
+TFile *_file0 = TFile::Open("AlignmentFixSt3.root");
+TFile *_file1 = TFile::Open("Alignment.root");
+_file0->cd();
+new TCanvas("cvn1","cvn1",1200,400); 
+TreeE->SetMarkerStyle(20);
+TreeE->SetMarkerColor(kBlue);
+TreeE->SetLineColor(kBlue);
+TreeE->Draw("fClusterX-fTrackX:fClDetElemNumber","abs(fClusterX-fTrackX)<5","profs");
+htemp->SetXTitle("Det. Elem. Number");
+htemp->SetYTitle("TrackX #minus ClusterX (cm)");
+TLine limLine(4,-5,4,5);
+limLine.DrawLine(4,-5,4,5);
+limLine.DrawLine(8,-5,8,5);
+limLine.DrawLine(12,-5,12,5);
+limLine.DrawLine(16,-5,16,5);
+limLine.DrawLine(16+18,-5,16+18,5);
+limLine.DrawLine(16+2*18,-5,16+2*18,5);
+limLine.DrawLine(16+2*18+26,-5,16+2*18+26,5);
+limLine.DrawLine(16+2*18+2*26,-5,16+2*18+2*26,5);
+limLine.DrawLine(16+2*18+3*26,-5,16+2*18+3*26,5);
+htemp->GetYaxis()->SetRangeUser(-5,5);
+htemp->GetXaxis()->SetRangeUser(-4,160);
+gPad->Update();
+_file1->cd();
+TreeE->SetMarkerStyle(24);
+TreeE->SetMarkerColor(kRed);
+TreeE->SetLineColor(kRed);
+TreeE->SetLineStyle(2);
+TreeE->Draw("fClusterX-fTrackX:fClDetElemNumber","abs(fClusterX-fTrackX)<5","sameprofs");
+
+_file0->cd();
+new TCanvas("cvn2","cvn2",1200,400); 
+TreeE->Draw("fClusterY-fTrackY:fClDetElemNumber","abs(fClusterY-fTrackY)<5","profs");
+htemp->SetMarkerStyle(20);
+htemp->SetXTitle("Det. Elem. Number");
+htemp->SetYTitle("TrackY #minus ClusterY (cm)");
+TLine limLine(4,-5,4,5);
+limLine.DrawLine(4,-5,4,5);
+limLine.DrawLine(8,-5,8,5);
+limLine.DrawLine(12,-5,12,5);
+limLine.DrawLine(16,-5,16,5);
+limLine.DrawLine(16+18,-5,16+18,5);
+limLine.DrawLine(16+2*18,-5,16+2*18,5);
+limLine.DrawLine(16+2*18+26,-5,16+2*18+26,5);
+limLine.DrawLine(16+2*18+2*26,-5,16+2*18+2*26,5);
+limLine.DrawLine(16+2*18+3*26,-5,16+2*18+3*26,5);
+htemp->GetYaxis()->SetRangeUser(-5,5);
+htemp->GetXaxis()->SetRangeUser(-4,160);
+_file1->cd();
+TreeE->Draw("fClusterY-fTrackY:fClDetElemNumber","abs(fClusterY-fTrackY)<5","sameprofs");
+
+
+
+Fill 7963
+ 11/07/2022, 04:27:26 -> 1657513646000
+11/07/2022, 14:12:05 -> 1657548725000
+1657530725000
