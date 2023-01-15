@@ -92,6 +92,7 @@ inline int TrackingParameters::CellMinimumLevel()
 }
 
 struct VertexingParameters {
+  bool allowSingleContribClusters = false;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{256};
@@ -103,6 +104,7 @@ struct VertexingParameters {
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
+  float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
   int phiSpan = -1;

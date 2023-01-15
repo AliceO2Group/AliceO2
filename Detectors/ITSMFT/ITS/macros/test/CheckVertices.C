@@ -61,7 +61,7 @@ struct RofInfo {
   std::vector<std::vector<o2::MCCompLabel>> vertLabels;                            // Labels associated to contributors to vertex
   std::unordered_map<int, std::array<double, 3>> simVerts;                         // Simulated vertices of events that can be spot in current rof <evtId, pos[3]>
   std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> recoVerts; // Vertices found in current ROF
-  float recoeff;                                                                   // Vertexing efficiency
+  float recoeff = 0.f;                                                             // Vertexing efficiency
 };
 
 void RofInfo::print()
@@ -85,7 +85,9 @@ void RofInfo::print()
 
   // Reconstructed vertices
   for (size_t iV{0}; iV < recoVerts.size(); ++iV) {
-    std::cout << "\tReconstructed vertex for event: " << getMainLabel(vertLabels[iV]).getEventID() << ":"
+    auto l = getMainLabel(vertLabels[iV]);
+    auto eventID = l.isSet() ? l.getEventID() : -1;
+    std::cout << "\tReconstructed vertex for event: " << eventID << " (-1: fake):"
               << " x= " << recoVerts[iV].getX()
               << " y= " << recoVerts[iV].getY()
               << " z= " << recoVerts[iV].getZ()
@@ -129,6 +131,38 @@ void RofInfo::uniqeff()
 
 #pragma link C++ class ParticleInfo + ;
 #pragma link C++ class RofInfo + ;
+
+o2::MCCompLabel getMainLabel(std::vector<o2::MCCompLabel>& labs)
+{
+  o2::MCCompLabel lab;
+  size_t max_count = 0;
+  for (size_t i = 0; i < labs.size(); i++) {
+    size_t count = 1;
+    for (size_t j = i + 1; j < labs.size(); j++) {
+      if (labs[i] == labs[j] && (labs[i].isSet() && labs[j].isSet()))
+        count++;
+    }
+    if (count > max_count)
+      max_count = count;
+  }
+
+  if (max_count == 1) { // pick first valid label in case of no majority
+    for (size_t i = 0; i < labs.size(); i++) {
+      if (labs[i].isSet())
+        return labs[i];
+    }
+  }
+
+  for (size_t i = 0; i < labs.size(); i++) {
+    size_t count = 1;
+    for (size_t j = i + 1; j < labs.size(); j++)
+      if (labs[i] == labs[j])
+        count++;
+    if (count == max_count)
+      lab = labs[i];
+  }
+  return lab;
+}
 
 void CheckVertices(const int dumprof = -1, std::string path = "tf1/", std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "sgn_1_Kine.root")
 {
@@ -277,45 +311,28 @@ void CheckVertices(const int dumprof = -1, std::string path = "tf1/", std::strin
   }
   // Epilog
   LOGP(info, "ROF inspection summary");
-  size_t nvt{0}, nevts{0};
+  size_t nvt{0}, nevts{0}, nroffilled{0};
+  float addeff{0};
   if (dumprof < 0) {
     for (size_t iROF{0}; iROF < rofinfo.size(); ++iROF) {
       auto& rof = rofinfo[iROF];
       nvt += rof.recoVerts.size();
       nevts += rof.simVerts.size();
       rof.uniqeff();
+      if (rof.eventIds.size()) {
+        addeff += rof.recoeff;
+        nroffilled++;
+      }
       rof.print();
     }
   } else {
-    rofinfo[dumprof].print();
     rofinfo[dumprof].uniqeff();
+    rofinfo[dumprof].print();
+    addeff += rofinfo[dumprof].recoeff;
     nvt += rofinfo[dumprof].recoVerts.size();
     nevts += rofinfo[dumprof].simVerts.size();
   }
   LOGP(info, "Summary:");
-  LOGP(info, "\nFound {} vertices in {} usable events out of {}", nvt, nevts, simVerts.size());
-}
-
-o2::MCCompLabel getMainLabel(std::vector<o2::MCCompLabel>& labs)
-{
-  o2::MCCompLabel lab;
-  size_t max_count = 0;
-  for (size_t i = 0; i < labs.size(); i++) {
-    size_t count = 1;
-    for (size_t j = i + 1; j < labs.size(); j++)
-      if (labs[i] == labs[j])
-        count++;
-    if (count > max_count)
-      max_count = count;
-  }
-
-  for (size_t i = 0; i < labs.size(); i++) {
-    size_t count = 1;
-    for (size_t j = i + 1; j < labs.size(); j++)
-      if (labs[i] == labs[j])
-        count++;
-    if (count == max_count)
-      lab = labs[i];
-  }
-  return lab;
+  LOGP(info, "Found {} vertices in {} usable out of {} simulated", nvt, nevts, simVerts.size());
+  LOGP(info, "Average good vertexing efficiency: {}%", (addeff / (float)nroffilled) * 100);
 }
