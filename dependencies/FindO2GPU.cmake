@@ -209,7 +209,7 @@ if(ENABLE_HIP)
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
     endif()
     if(NOT DEFINED GPUCA_NO_FAST_MATH OR NOT ${GPUCA_NO_FAST_MATH})
-      set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-flush-denormals-to-zero -ffast-math")
+      set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-flush-denormals-to-zero") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel
     endif()
   else()
     set(HIP_ENABLED OFF)
