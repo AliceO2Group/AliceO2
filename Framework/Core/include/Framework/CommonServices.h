@@ -15,8 +15,6 @@
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/TypeIdHelpers.h"
 
-class TDatabasePDG;
-
 namespace o2::framework
 {
 
@@ -86,17 +84,6 @@ struct CommonServices {
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();
-};
-
-struct CommonAnalysisServices {
-  template <typename T>
-  static void addAnalysisService(std::vector<ServiceSpec>& specs)
-  {
-    std::vector<LoadableService> loadableServices = {};
-    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupportOld";
-    loadableServices = ServiceHelpers::parseServiceSpecString(analysisServices);
-    ServiceHelpers::loadFromPlugin(loadableServices, specs);
-  }
 };
 
 } // namespace o2::framework
