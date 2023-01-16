@@ -359,7 +359,7 @@ void displayDeviceMetrics(const char* label,
   size_t minDomain = std::numeric_limits<size_t>::max();
   size_t gmi = 0;
 
-  int axisFlags = 0;
+  ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
@@ -381,8 +381,8 @@ void displayDeviceMetrics(const char* label,
         maxValue[data.axis] = std::max(maxValue[data.axis], metricsInfos[di].max[mi]);
         minDomain = std::min(minDomain, metricsInfos[di].minDomain[mi]);
         maxDomain = std::max(maxDomain, metricsInfos[di].maxDomain[mi]);
-        axisFlags |= data.axis == 1 ? (int)ImPlotFlags_YAxis2 : (int)ImPlotFlags_None;
-        axisFlags |= data.axis == 2 ? (int)ImPlotFlags_YAxis3 : (int)ImPlotFlags_None;
+        axisFlags |= data.axis == 1 ? (ImPlotFlags_)ImPlotFlags_YAxis2 : ImPlotFlags_None;
+        axisFlags |= data.axis == 2 ? (ImPlotFlags_)ImPlotFlags_YAxis3 : ImPlotFlags_None;
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
