@@ -16,6 +16,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCUtils.h"
 #include "TFile.h"
 #include "TParticle.h"
 
@@ -75,4 +76,19 @@ BOOST_AUTO_TEST_CASE(MCGenStatus_test)
   // both must now be -1 since not encoced and hence only number is returned
   BOOST_CHECK(getHepMCStatusCode(track3.getStatusCode()) == -1);
   BOOST_CHECK(getGenStatusCode(track3.getStatusCode()) == -1);
+
+  // do tests to check utility functionality
+  int thisHepMCCode{4};
+  TParticle part3(22, thisHepMCCode, 1, 2, 3, 4, 0.1, 0.1, 0.1, 0.1, 0, 0, 0, 0);
+  std::vector<bool> trueFalse{true, false};
+  for (auto value : trueFalse) {
+    auto status3 = part3.GetStatusCode();
+    BOOST_CHECK(mcgenstatus::isEncoded(status3) != value);
+    mcutils::MCGenHelper::encodeParticleStatusAndTracking(part3, value);
+    status3 = part3.GetStatusCode();
+    BOOST_CHECK(mcgenstatus::isEncoded(status3));
+    BOOST_CHECK(getHepMCStatusCode(status3) == thisHepMCCode);
+    BOOST_CHECK(getGenStatusCode(status3) == 0);
+    BOOST_CHECK(part3.TestBit(ParticleStatus::kToBeDone) == value);
+  }
 }

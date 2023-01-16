@@ -208,4 +208,19 @@ bool MCTrackNavigator::isKeepPhysics(o2::MCTrack const& p, std::vector<o2::MCTra
   return p.isPrimary() || isFromPrimaryPairProduction(p) || isFromPrimaryDecayChain(p, pcontainer);
 }
 
+void MCGenHelper::encodeParticleStatusAndTracking(TParticle& particle, bool wanttracking)
+{
+  auto status = particle.GetStatusCode();
+  if (!mcgenstatus::isEncoded(status)) {
+    particle.SetStatusCode(mcgenstatus::MCGenStatusEncoding(status, 0).fullEncoding);
+  }
+  particle.SetBit(ParticleStatus::kToBeDone, wanttracking);
+}
+
+void MCGenHelper::encodeParticleStatusAndTracking(TParticle& particle, int hepmcStatus, int genStatus, bool wanttracking)
+{
+  particle.SetStatusCode(mcgenstatus::MCGenStatusEncoding(hepmcStatus, genStatus).fullEncoding);
+  particle.SetBit(ParticleStatus::kToBeDone, wanttracking);
+}
+
 } // namespace o2::mcutils

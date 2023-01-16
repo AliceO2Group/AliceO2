@@ -19,14 +19,14 @@ namespace mcgenstatus
 
 // Value to check MCGenStatusEncoding::isEncoded against to decide whether or not the stored value is encoded or basically only the HepMC status code
 // as it used to be
-constexpr int isEncodedValue{5};
+constexpr unsigned int isEncodedValue{5};
 
 // internal structure to allow convenient manipulation of properties as bits on an int to (dis)entangle HepMC and specific generator status codes
 union MCGenStatusEncoding {
   MCGenStatusEncoding() : fullEncoding(0) {}
   MCGenStatusEncoding(int enc) : fullEncoding(enc) {}
   // To be backward-compatible, only set transport to 1 if hepmc status is 1
-  MCGenStatusEncoding(int hepmcIn, int genIn) : isEncoded(5), hepmc(hepmcIn), gen(genIn), reserved(0) {}
+  MCGenStatusEncoding(int hepmcIn, int genIn) : isEncoded(isEncodedValue), hepmc(hepmcIn), gen(genIn), reserved(0) {}
   int fullEncoding;
   struct {
     int hepmc : 9;              // HepMC status code
@@ -36,29 +36,19 @@ union MCGenStatusEncoding {
   };
 };
 
-inline int getHepMCStatusCode(int encoded)
+inline bool isEncoded(MCGenStatusEncoding statusCode)
 {
-  MCGenStatusEncoding enc(encoded);
-  if (enc.isEncoded != isEncodedValue) {
-    // in this case simply set hepmc code to what was given
-    return encoded;
-  }
-  return enc.hepmc;
+  return (statusCode.isEncoded == isEncodedValue);
 }
 
-inline int getGenStatusCode(int encoded)
+inline bool isEncoded(int statusCode)
 {
-  MCGenStatusEncoding enc(encoded);
-  if (enc.isEncoded != isEncodedValue) {
-    // in this case simply set hepmc code to what was given
-    return encoded;
-  }
-  return enc.gen;
+  return isEncoded(MCGenStatusEncoding(statusCode));
 }
 
 inline int getHepMCStatusCode(MCGenStatusEncoding enc)
 {
-  if (enc.isEncoded != isEncodedValue) {
+  if (!isEncoded(enc)) {
     // in this case simply set hepmc code to what was given
     return enc.fullEncoding;
   }
@@ -67,11 +57,21 @@ inline int getHepMCStatusCode(MCGenStatusEncoding enc)
 
 inline int getGenStatusCode(MCGenStatusEncoding enc)
 {
-  if (enc.isEncoded != isEncodedValue) {
+  if (!isEncoded(enc)) {
     // in this case simply set hepmc code to what was given
     return enc.fullEncoding;
   }
   return enc.gen;
+}
+
+inline int getHepMCStatusCode(int encoded)
+{
+  return getHepMCStatusCode(MCGenStatusEncoding(encoded));
+}
+
+inline int getGenStatusCode(int encoded)
+{
+  return getGenStatusCode(MCGenStatusEncoding(encoded));
 }
 
 } // namespace mcgenstatus

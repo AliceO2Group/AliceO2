@@ -19,6 +19,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 namespace o2
 {
@@ -72,6 +73,8 @@ class RawDecoderSpec : public framework::Task
   uint32_t mNTFToIntegrate = 1;
   uint32_t mNHBIntegratedT = 0;
   uint32_t mNHBIntegratedV = 0;
+  uint32_t mIRRejected = 0;
+  uint32_t mTCRRejected = 0;
   std::deque<size_t> mHistoryT;
   std::deque<size_t> mHistoryV;
 };
