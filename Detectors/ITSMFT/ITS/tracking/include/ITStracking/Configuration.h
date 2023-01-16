@@ -105,6 +105,7 @@ struct VertexingParameters {
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
+  float baseBeamError = 0.005f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
   int phiSpan = -1;

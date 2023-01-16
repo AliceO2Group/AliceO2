@@ -30,6 +30,7 @@ o2_add_library(ITSWorkflow
                                O2::DataFormatsITS
                                O2::DataFormatsDCS
                                O2::DataFormatsTRD
+                               O2::DataFormatsGlobalTracking
                                O2::SimulationDataFormat
                                O2::ITStracking
                                O2::ITSReconstruction

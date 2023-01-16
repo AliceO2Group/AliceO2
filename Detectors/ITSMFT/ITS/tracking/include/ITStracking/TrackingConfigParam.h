@@ -32,6 +32,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   float lowMultXYcut2 = 0.25f; // XY cut for low-multiplicity pile up
+  float baseBeamError = 0.005f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;

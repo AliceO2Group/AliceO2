@@ -25,6 +25,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
@@ -43,6 +44,8 @@
 #include "ITSReconstruction/FastMultEst.h"
 #include <fmt/format.h>
 
+using DataRequest = o2::globaltracking::DataRequest;
+
 namespace o2
 {
 using namespace framework;
@@ -50,7 +53,17 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr), mIsMC{isMC}, mUseTriggers{trgType}, mMode{trModeS}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                       bool isMC,
+                       int trgType,
+                       const std::string& trModeS,
+                       const bool overrBeamEst,
+                       o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
+                                                                  mIsMC{isMC},
+                                                                  mUseTriggers{trgType},
+                                                                  mMode{trModeS},
+                                                                  mOverrideBeamEstimation{overrBeamEst},
+                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
 {
   std::transform(mMode.begin(), mMode.end(), mMode.begin(), [](unsigned char c) { return std::tolower(c); });
 }
@@ -188,6 +201,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+  if (mOverrideBeamEstimation) {
+    timeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mVertexer->getVertParameters().baseBeamError, mTracker->getParameters()[0].LayerResolution[0] * mTracker->getParameters()[0].LayerResolution[0]);
+  }
   mTracker->adoptTimeFrame(*timeFrame);
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
@@ -321,6 +337,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
+    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
   }
 }
 
@@ -342,6 +359,11 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     par.printKeyValues();
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    LOGP(info, "mean vertex updated");
+    setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
+    return;
+  }
 }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
@@ -350,9 +372,10 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
+
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
@@ -371,6 +394,11 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
+
+  if (overrBeamEst) {
+    inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+  }
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
