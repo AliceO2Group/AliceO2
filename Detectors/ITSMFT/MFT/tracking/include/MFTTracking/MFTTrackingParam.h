@@ -53,13 +53,13 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   /// maximum distance for a cluster to be attached to a seed line (CA road)
   Float_t ROADclsRCut = 0.0400;
   /// number of bins in r-direction
-  Int_t RBins = 50;
+  Int_t RBins = 30;
   /// number of bins in phi-direction
-  Int_t PhiBins = 50;
+  Int_t PhiBins = 120;
   /// Minimum z vertex position for conical search bin optimization
-  Float_t ZVtxMin = -15.f; // cm
+  Float_t ZVtxMin = -13.f; // cm
   /// Maximum z vertex position for conical search bin optimization
-  Float_t ZVtxMax = 15.f; // cm
+  Float_t ZVtxMax = 13.f; // cm
   /// Radial vertex position cut at ZVtxMin
   Float_t rCutAtZmin = 0.1; // cm
   /// Special version for TED shots and cosmics, with full scan of the clusters
