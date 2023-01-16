@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "StrangenessTrackingWorkflow/StrangenessTrackingSpec.h"
-#include "StrangenessTrackingWorkflow/StrangenessTrackingWriterSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"

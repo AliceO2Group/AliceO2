@@ -16,7 +16,7 @@
 #include "Field/MagneticField.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
-#include "StrangenessTrackingWorkflow/StrangenessTrackingSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
