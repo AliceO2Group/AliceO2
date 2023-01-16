@@ -155,7 +155,13 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         gids.push_back(_origID);
         trkCounters[_origID.getSource()] += 1;
       }
-      return true;
+      if (gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet()) {
+        // for ITS-TPC-TRD-TOF tracks we are interested also in the ITS-TPC-TRD part
+        // we want to have both available, so return false for the full barrell tracks
+        return false;
+      } else {
+        return true;
+      }
     } else {
       return false;
     }

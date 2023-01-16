@@ -334,6 +334,7 @@ void TrackResiduals::fillStats(int iSec)
 //______________________________________________________________________________
 void TrackResiduals::processSectorResiduals(int iSec)
 {
+  LOGP(info, "Processing {} voxel residuals for sector {}", mLocalResidualsIn.size(), iSec);
   initResultsContainer(iSec);
   std::vector<unsigned short> binData;
   for (const auto& res : mLocalResidualsIn) {
@@ -451,7 +452,7 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
     LOG(info) << "voxel " << getGlbVoxBin(resVox.bvox) << " is skipped due to too few entries (" << nPoints << " < " << mParams->minEntriesPerVoxel << ")";
     return;
   } else {
-    LOGF(info, "Processing voxel %i with %i entries", getGlbVoxBin(resVox.bvox), nPoints);
+    LOGF(debug, "Processing voxel %i with %i entries", getGlbVoxBin(resVox.bvox), nPoints);
   }
   std::array<float, 7> zResults;
   resVox.flags = 0;
