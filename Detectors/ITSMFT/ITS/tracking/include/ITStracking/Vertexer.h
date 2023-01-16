@@ -54,8 +54,8 @@ class Vertexer
 
   void adoptTimeFrame(TimeFrame& tf);
   void setParameters(const VertexingParameters& verPar);
+  VertexingParameters& getVertParameters() const;
   void getGlobalConfiguration();
-  VertexingParameters getVertParameters() const;
 
   std::vector<Vertex> exportVertices();
   VertexerTraits* getTraits() const { return mTraits; };
@@ -106,14 +106,14 @@ void Vertexer::findTracklets(T&&... args)
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
 
-inline VertexingParameters Vertexer::getVertParameters() const
-{
-  return mTraits->getVertexingParameters();
-}
-
 inline void Vertexer::setParameters(const VertexingParameters& verPar)
 {
   mTraits->updateVertexingParameters(verPar);
+}
+
+inline VertexingParameters& Vertexer::getVertParameters() const
+{
+  return mTraits->getVertexingParameters();
 }
 
 inline void Vertexer::dumpTraits()

@@ -81,10 +81,12 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
@@ -93,10 +95,12 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
