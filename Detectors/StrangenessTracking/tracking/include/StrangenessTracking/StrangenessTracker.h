@@ -181,7 +181,6 @@ class StrangenessTracker
 
   void getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
   {
-    clusSizeVec.resize(ITSclus.size());
     for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
       auto& clus = ITSclus[iClus];
       auto pattID = clus.getPatternID();
@@ -196,8 +195,7 @@ class StrangenessTracker
         npix = mdict->getNpixels(pattID);
         patt = mdict->getPattern(pattID);
       }
-      // LOG(info) << "npix: " << npix << " Patt Npixel: " << patt.getNPixels();
-      clusSizeVec.push_back(npix);
+      clusSizeVec[iClus] = npix;
     }
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
