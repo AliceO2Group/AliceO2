@@ -1196,7 +1196,20 @@ template <typename V0CursorType, typename CascadeCursorType, typename Decay3Body
 void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
   for (auto& strangeTrack : recoData.getStrangeTracks()) {
-    (strangeTrack.mPartType == dataformats::kStrkV0 ? v0Cursor : (strangeTrack.mPartType == dataformats::kStrkCascade ? cascadeCursor : decay3BodyCursor))(0, strangeTrack.mDecayRef, strangeTrack.mMasses[0], strangeTrack.mMasses[1], strangeTrack.mMatchChi2, strangeTrack.mTopoChi2, strangeTrack.mITSClusSize, strangeTrack.mMother.getX(), strangeTrack.mMother.getAlpha(), strangeTrack.mMother.getY(), strangeTrack.mMother.getZ(), strangeTrack.mMother.getSnp(), strangeTrack.mMother.getTgl(), strangeTrack.mMother.getQ2Pt());
+    (strangeTrack.mPartType == dataformats::kStrkV0 ? v0Cursor : (strangeTrack.mPartType == dataformats::kStrkCascade ? cascadeCursor : decay3BodyCursor))(0,
+                                                                                                                                                           strangeTrack.mDecayRef,
+                                                                                                                                                           strangeTrack.mMasses[0],
+                                                                                                                                                           strangeTrack.mMasses[1],
+                                                                                                                                                           strangeTrack.mMatchChi2,
+                                                                                                                                                           strangeTrack.mTopoChi2,
+                                                                                                                                                           strangeTrack.mITSClusSize,
+                                                                                                                                                           strangeTrack.mMother.getX(),
+                                                                                                                                                           strangeTrack.mMother.getAlpha(),
+                                                                                                                                                           strangeTrack.mMother.getY(),
+                                                                                                                                                           strangeTrack.mMother.getZ(),
+                                                                                                                                                           strangeTrack.mMother.getSnp(),
+                                                                                                                                                           strangeTrack.mMother.getTgl(),
+                                                                                                                                                           strangeTrack.mMother.getQ2Pt());
   }
 }
 

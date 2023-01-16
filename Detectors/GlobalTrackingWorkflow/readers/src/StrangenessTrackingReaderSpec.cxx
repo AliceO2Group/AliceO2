@@ -62,7 +62,7 @@ class StrangenessTrackingReader : public o2::framework::Task
 void StrangenessTrackingReader::init(InitContext& ic)
 {
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                            ic.options().get<std::string>("secondary-vertex-infile"));
+                                            ic.options().get<std::string>("strange-tracks-infile"));
   connectTree();
 }
 
@@ -101,7 +101,7 @@ void StrangenessTrackingReader::connectTree()
 DataProcessorSpec getStrangenessTrackingReaderSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe);           // found strange tracks
+  outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe); // found strange tracks
   // outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
 
   return DataProcessorSpec{
@@ -114,5 +114,5 @@ DataProcessorSpec getStrangenessTrackingReaderSpec()
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-} // namespace vertexing
+} // namespace strangeness_tracking
 } // namespace o2
