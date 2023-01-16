@@ -129,6 +129,8 @@ void TPCTrackStudySpec::updateTimeDependentParams(ProcessingContext& pc)
 
 void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 {
+  static long counter = -1;
+  counter++;
   if (mUseMC) { // extract MC tracks
     auto prop = o2::base::Propagator::Instance();
 
@@ -160,7 +162,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       // impose MC time in TPC timebin and refit inward after resetted covariance
       int retVal = mTPCRefitter->RefitTrackAsTrackParCov(trf, mTPCTracksArray[itr].getClusterRef(), tr.getTime0(), &chi2Out, false, true);
       if (retVal < 0) {
-        LOGP(warn, "Refit failed ({}) with originaltime0: {} : {}", retVal, tr.getTime0(), ((const o2::track::TrackPar&)tr.getOuterParam()).asString());
+        LOGP(warn, "Refit failed ({}) with originaltime0: {} : track#{}[{}]", retVal, tr.getTime0(), counter, ((const o2::track::TrackPar&)tr.getOuterParam()).asString());
         continue;
       }
       // propagate original track
@@ -222,12 +224,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       // impose MC time in TPC timebin and refit inward after resetted covariance
       retVal = mTPCRefitter->RefitTrackAsTrackParCov(trackRefit, mTPCTracksArray[itr].getClusterRef(), bcTB, &chi2Out, false, true);
       if (retVal < 0) {
-        LOGP(warn, "Refit failed ({}), imposed time0: {} conventional time0: \n{}", retVal, bcTB, tr.getTime0(), ((o2::track::TrackPar&)trackRefit).asString());
+        LOGP(warn, "Refit failed for #{} ({}), imposed time0: {} conventional time0: {} [{}]", counter, retVal, bcTB, tr.getTime0(), ((o2::track::TrackPar&)trackRefit).asString());
         continue;
       }
       // propagate the refitted track to the same X/alpha as original track
       if (!trackRefit.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(trackRefit, tr.getX())) {
-        LOGP(warn, "Failed to propagate refitted track [{}] to X/alpha of original track [{}]", trackRefit.asString(), tr.asString());
+        LOGP(warn, "Failed to propagate refitted track#{} [{}] to X/alpha of original track [{}]", counter, trackRefit.asString(), tr.asString());
         continue;
       }
       // estimate Z shift in case of no-distortions
