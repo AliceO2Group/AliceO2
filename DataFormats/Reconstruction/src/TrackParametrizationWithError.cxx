@@ -1141,6 +1141,17 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
+#else
+  TrackParametrization<value_T>::printParam();
+  printf(
+    "\n%7s %+.3e\n"
+    "%7s %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e",
+    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
+    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+    mC[kSigQ2Pt2]);
 #endif
 }
 
