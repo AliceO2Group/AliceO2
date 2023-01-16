@@ -870,7 +870,7 @@ DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
 DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
 DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
 DECLARE_SOA_COLUMN(H4Lmass, h4Lmass, float);           //! H4L mass
-DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);          //! He4L mass
+DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);         //! He4L mass
 DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
 DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
 DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size
@@ -879,6 +879,7 @@ DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster s
 
 /// Strangeness tracks
 DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
+                       o2::soa::Index<>,
                        strangenesstracking::CascadeIdxId,
                        strangenesstracking::XiMass,
                        strangenesstracking::OmegaMass,
@@ -895,6 +896,7 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
                        track::Sign<track::Signed1Pt>);
 
 DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
+                       o2::soa::Index<>,
                        strangenesstracking::V0IdxId,
                        strangenesstracking::H3Lmass,
                        strangenesstracking::H4Lmass,
@@ -911,6 +913,7 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        track::Sign<track::Signed1Pt>);
 
 DECLARE_SOA_TABLE_FULL(Tracked3bodies, "Tracked3body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
+                       o2::soa::Index<>,
                        strangenesstracking::Decay3BodyIdxId,
                        strangenesstracking::H3Lmass,
                        strangenesstracking::He4Lmass,
