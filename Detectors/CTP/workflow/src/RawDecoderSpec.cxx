@@ -183,7 +183,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     for (auto const digmap : digits) {
       mOutputDigits.push_back(digmap.second);
     }
-    LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+    LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mIRRejected << " TCR rejected:" << mTCRRejected;
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   }
   if (mDoLumi) {
@@ -257,14 +257,21 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   pld >>= 12;
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
-  uint32_t bcid = (diglet & bcidmask).to_ulong();
+  uint16_t bcid = (diglet & bcidmask).to_ulong();
   // LOG(info) << bcid << "    pld:" << pld;
-  o2::InteractionRecord ir;
-  ir.orbit = triggerOrbit;
-  ir.bc = bcid;
-  digit.intRecord = ir;
+  o2::InteractionRecord ir = {bcid, triggerOrbit};
+  int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
+    LOG(debug) << "ir ir ori:" << ir;
+    if ((int32_t)ir.bc < BCShiftCorrection) {
+      // LOG(warning) << "Loosing ir:" << ir;
+      mIRRejected++;
+      return 0;
+    }
+    ir -= BCShiftCorrection;
+    LOG(debug) << "ir ir corrected:" << ir;
+    digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setInputMask(pld);
       digits[ir] = digit;
@@ -280,6 +287,17 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+    int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
+    LOG(debug) << "tcr ir ori:" << ir;
+    // if(0) {
+    if ((int32_t)ir.bc < offset) {
+      // LOG(warning) << "Loosing tclass:" << ir;
+      mTCRRejected++;
+      return 0;
+    }
+    ir -= offset;
+    LOG(debug) << "tcr ir corrected:" << ir;
+    digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
       digits[ir] = digit;
