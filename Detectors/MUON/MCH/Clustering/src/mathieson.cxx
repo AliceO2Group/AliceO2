@@ -689,7 +689,7 @@ void computeFastCij(const Pads& pads, const Pads& pixel, double Cij[])
     printf(
       "[computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",
-      pads.mode, pixel.mode);
+      (int)pads.mode, (int)pixel.mode);
     throw std::overflow_error("Bad mode");
     return;
   }
@@ -782,7 +782,7 @@ void computeFastCijV0(const Pads& pads, const Pads& pixel, double Cij[])
     printf(
       "[computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",
-      pads.mode, pixel.mode);
+      (int)pads.mode, (int)pixel.mode);
     throw std::overflow_error("Bad mode");
     return;
   }
@@ -906,7 +906,7 @@ void computeCij(const Pads& pads, const Pads& pixel, double Cij[])
     printf(
       "computeFastCij] exception: bad representation (mode) of pads in "
       "computeCij (padMode=%d, pixelMode=%d)\n",
-      pads.mode, pixel.mode);
+      (int)pads.mode, (int)pixel.mode);
     throw std::overflow_error("Bad mode");
     return;
   }
