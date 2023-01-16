@@ -11,7 +11,7 @@
 
 /// @file   StrangenessTrackingReaderSpec.cxx
 
-#include "StrangenessTrackingWorkflow/StrangenessTrackingReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/StrangenessTrackingReaderSpec.h"
 
 #include <vector>
 

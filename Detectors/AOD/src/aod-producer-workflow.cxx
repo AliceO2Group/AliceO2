@@ -75,6 +75,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
   }
+    if (enableST) {
+    o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs);
+  }
   if (configcontext.options().get<bool>("combine-source-devices")) {
     std::vector<DataProcessorSpec> unmerged;
     specs.push_back(specCombiner("AOD-input-reader", inputspecs, unmerged));

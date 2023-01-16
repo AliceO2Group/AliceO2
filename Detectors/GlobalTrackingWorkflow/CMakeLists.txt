@@ -18,8 +18,10 @@ o2_add_library(GlobalTrackingWorkflow
                        src/PrimaryVertexWriterSpec.cxx
                        src/VertexTrackMatcherSpec.cxx
                        src/SecondaryVertexingSpec.cxx
+                       src/StrangenessTrackingSpec.cxx
                        src/GlobalFwdMatchingSpec.cxx
                        src/SecondaryVertexWriterSpec.cxx
+                       src/StrangenessTrackingWriterSpec.cxx
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
@@ -40,7 +42,8 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow
                                      O2::SimulationDataFormat
-                                     O2::DetectorsVertexing)
+                                     O2::DetectorsVertexing
+                                     O2::StrangenessTracking)
 
 o2_add_executable(match-workflow
                   COMPONENT_NAME tpcits
@@ -71,6 +74,10 @@ o2_add_executable(vertexing-workflow
                   COMPONENT_NAME secondary
                   SOURCES src/secondary-vertexing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflowIO)
+
+o2_add_executable(strangeness-tracking-workflow
+                  SOURCES src/strangeness-tracking-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
 o2_add_executable(matcher-workflow
                   COMPONENT_NAME tof
