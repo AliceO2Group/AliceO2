@@ -82,6 +82,17 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   mTrackData.reserve(nSeeds);
   mClRes.reserve(nSeeds * param::NPadRows);
 
+  // to obtain ITS-TPC-TRD-TOF track from ITS-TPC-TRD track we fill the trkMap
+  std::unordered_map<GTrackID, int> trkMap;
+  for (int iTrk = 0; iTrk < nSeeds; ++iTrk) {
+    const auto& gidTable = (*mGIDtables)[iTrk];
+    if (!(gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet())) {
+      // no more ITS-TPC-TRD-TOF tracks
+      break;
+    }
+    trkMap.emplace(std::make_pair(gidTable[GTrackID::ITSTPCTRD], iTrk));
+  }
+
   // In case we have more input tracks available than are required per TF
   // we want to sample them. But we still prefer global ITS-TPC-TRD-TOF tracks
   // over ITS-TPC-TRD tracks and so on. So we have to shuffle the indices
@@ -92,6 +103,7 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   std::mt19937 g(rd());
   std::vector<int> trackIndices(nSeeds);
   std::iota(trackIndices.begin(), trackIndices.end(), 0);
+
   std::shuffle(trackIndices.begin(), trackIndices.begin() + trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), g);
   int nTracks = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF);
   std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTRD), g);
@@ -100,16 +112,29 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   nTracks += trkCounters.at(GTrackID::Source::ITSTPCTOF);
   std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
 
-  for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
+  std::vector<int> globalTracksToCheck;
+  for (int iSeed = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF); iSeed < nSeeds; ++iSeed) {
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
+    }
+    if (auto search = trkMap.find((*mGIDs)[iSeed]); search != trkMap.end()) {
+      globalTracksToCheck.push_back(search->second);
     }
     if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
       interpolateTrack(trackIndices[iSeed]);
     } else {
       extrapolateTrack(trackIndices[iSeed]);
     }
+  }
+  // irrespective of the number of tracks already processed, interpolate the ITS-TPC-TRD-TOF tracks
+  // which belong to the ITS-TPC-TRD tracks that were already processed, to allow their analysis
+  // offline
+  // Q: Or should we for these tracks just skip the ITS-TPC-TRD part and do only ITS-TPC-TRD-TOF?
+  // might still be interesting to compare the two?
+  LOGP(info, "Processing {} ITS-TPC-TRD-TOF tracks for which the ITS-TPC-TRD track was already done", globalTracksToCheck.size());
+  for (auto iTrk : globalTracksToCheck) {
+    interpolateTrack(iTrk);
   }
 
   LOG(info) << "Could process " << mTrackData.size() << " tracks successfully";
@@ -284,11 +309,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   }
 
   trackData.gid = (*mGIDs)[iSeed];
-  trackData.x = (*mSeeds)[iSeed].getX();
-  trackData.alpha = (*mSeeds)[iSeed].getAlpha();
-  for (int i = 0; i < o2::track::kNParams; ++i) {
-    trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
-  }
+  trackData.par = (*mSeeds)[iSeed];
   trackData.chi2TRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getChi2() : 0;
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
@@ -365,11 +386,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     ++nMeasurements;
   }
   trackData.gid = (*mGIDs)[iSeed];
-  trackData.x = (*mSeeds)[iSeed].getX();
-  trackData.alpha = (*mSeeds)[iSeed].getAlpha();
-  for (int i = 0; i < o2::track::kNParams; ++i) {
-    trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
-  }
+  trackData.par = (*mSeeds)[iSeed];
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
@@ -437,7 +454,7 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
   std::array<float, param::NPadRows> yLab;
   std::array<float, param::NPadRows> sPath;
 
-  float curvature = fabsf(trk.p[o2::track::ParLabels::kQ2Pt] * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
+  float curvature = fabsf(trk.par.getQ2Pt() * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
   int secFirst = clsRes[0].sec;
   float phiSect = (secFirst + .5f) * o2::constants::math::SectorSpanRad;
   float snPhi = sin(phiSect);
