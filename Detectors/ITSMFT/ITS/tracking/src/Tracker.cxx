@@ -329,7 +329,8 @@ void Tracker::getGlobalConfiguration()
   for (auto& params : mTrkParams) {
     if (params.NLayers == 7) {
       for (int i{0}; i < 7; ++i) {
-        params.LayerMisalignment[i] = tc.sysErrZ2[i] > 0 ? std::sqrt(tc.sysErrZ2[i]) : params.LayerMisalignment[i];
+        params.SystErrorY2[i] = tc.sysErrY2[i] > 0 ? tc.sysErrY2[i] : params.SystErrorY2[i];
+        params.SystErrorZ2[i] = tc.sysErrZ2[i] > 0 ? tc.sysErrZ2[i] : params.SystErrorZ2[i];
       }
     }
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;
