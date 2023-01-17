@@ -140,9 +140,10 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
         tParam.SetY(y);
         r.mLastY = y;
         if (tracker.Param().par.continuousTracking) {
-          tParam.SetZ(0.f);
-          r.mLastZ = 0.f;
-          tParam.SetZOffset(z);
+          float refZ = ((z > 0) ? tracker.Param().rec.tpc.defaultZOffsetOverR : -tracker.Param().rec.tpc.defaultZOffsetOverR) * x;
+          tParam.SetZ(refZ);
+          r.mLastZ = refZ;
+          tParam.SetZOffset(z - refZ);
         } else {
           tParam.SetZ(z);
           r.mLastZ = z;
