@@ -191,12 +191,12 @@ int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& config
 }
 
 // attach strangeness tracking reader
-int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs)
+int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc)
 {
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
   }
-  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec());
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc));
   return 0;
 }
 

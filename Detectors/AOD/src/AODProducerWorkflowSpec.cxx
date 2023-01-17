@@ -1195,8 +1195,19 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
 template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
 void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
+  int itsTableIdx = -1;
   for (auto& strangeTrack : recoData.getStrangeTracks()) {
+    auto ITSIndex = GIndex{strangeTrack.mITSRef, GIndex::ITS};
+    auto item = mGIDToTableID.find(ITSIndex);
+    if (item != mGIDToTableID.end()) {
+      itsTableIdx = item->second;
+    } else {
+      LOG(warn) << "Could not find a ITS strange track index";
+      continue;
+    }
+
     (strangeTrack.mPartType == dataformats::kStrkV0 ? v0Cursor : (strangeTrack.mPartType == dataformats::kStrkCascade ? cascadeCursor : decay3BodyCursor))(0,
+                                                                                                                                                           itsTableIdx,
                                                                                                                                                            strangeTrack.mDecayRef,
                                                                                                                                                            strangeTrack.mMasses[0],
                                                                                                                                                            strangeTrack.mMasses[1],
@@ -2502,7 +2513,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     dataRequest->requestSecondaryVertertices(useMC);
   }
   if (enableStrangenessTracking) {
-    dataRequest->requestStrangeTracks();
+    dataRequest->requestStrangeTracks(useMC);
     LOGF(info, "requestStrangeTracks Finish");
   }
   if (src[GID::TPC]) {
