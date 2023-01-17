@@ -176,6 +176,7 @@ class TPCFastTransform : public FlatObject
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
+  GPUd() void TransformInTimeFrame(int slice, float time, float& z, float maxTimeBin) const;
 
   /// Inverse transformation
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
@@ -188,9 +189,11 @@ class TPCFastTransform : public FlatObject
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
+  GPUd() void TransformIdealZ(int slice, float time, float& z, float vertexTime) const;
 
   GPUd() void convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
   GPUd() void convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const;
+  GPUd() void convTimeToVinTimeFrame(int slice, float time, float& v, float maxTimeBin) const;
 
   GPUd() void convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time, float vertexTime) const;
   GPUd() void convUVtoPadTimeInTimeFrame(int slice, int row, float u, float v, float& pad, float& time, float maxTimeBin) const;
@@ -354,16 +357,21 @@ GPUdi() void TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, fl
   v = (time - mT0 - vertexTime) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
 }
 
-GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(int slice, float time, float& v, float maxTimeBin) const
 {
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
   v = (time - mT0 - maxTimeBin) * mVdrift + mLdriftCorr; // drift length cm
   if (slice < getGeometry().getNumberOfSlicesA()) {
     v += getGeometry().getTPCzLengthA();
   } else {
     v += getGeometry().getTPCzLengthC();
   }
+}
+
+GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
+{
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  convTimeToVinTimeFrame(slice, time, v, maxTimeBin);
 }
 
 GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const
@@ -489,6 +497,13 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
   z += dzTOF;
 }
 
+GPUdi() void TPCFastTransform::TransformInTimeFrame(int slice, float time, float& z, float maxTimeBin) const
+{
+  float v = 0;
+  convTimeToVinTimeFrame(slice, time, v, maxTimeBin);
+  getGeometry().convVtoLocal(slice, v, z);
+}
+
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
 {
   /// _______________ Special cluster transformation for a time frame _______________________
@@ -510,6 +525,19 @@ GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int slice, int row, f
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
   convUVtoPadTimeInTimeFrame(slice, row, u, v, pad, time, maxTimeBin);
+}
+
+GPUdi() void TPCFastTransform::TransformIdealZ(int slice, float time, float& z, float vertexTime) const
+{
+  /// _______________ The main method: cluster transformation _______________________
+  ///
+  /// Transforms time TPC coordinates to local Z withing a slice
+  /// Ideal transformation: only Vdrift from DCS.
+  /// No space charge corrections, no time of flight correction
+  ///
+
+  float v = (time - mT0 - vertexTime) * mVdrift; // drift length cm
+  getGeometry().convVtoLocal(slice, v, z);
 }
 
 GPUdi() void TPCFastTransform::TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
