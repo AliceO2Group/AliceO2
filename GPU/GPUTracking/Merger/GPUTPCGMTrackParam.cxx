@@ -850,21 +850,26 @@ GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPU
 GPUd() void GPUTPCGMTrackParam::ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, int N)
 {
   float tzInner, tzOuter;
+  float xInner, xOuter;
   if (N == 0) {
     N = 1;
   }
   if (merger->Param().par.earlyTpcTransform) {
     tzInner = clustersXYZ[N - 1].z;
     tzOuter = clustersXYZ[0].z;
+    xInner = clustersXYZ[N - 1].x;
+    xOuter = clustersXYZ[0].x;
   } else {
     const auto& GPUrestrict() cls = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
     tzInner = cls[clusters[N - 1].num].getTime();
     tzOuter = cls[clusters[0].num].getTime();
+    xInner = merger->Param().tpcGeometry.Row2X(clusters[N - 1].row);
+    xOuter = merger->Param().tpcGeometry.Row2X(clusters[0].row);
   }
-  ShiftZ(merger, clusters[0].slice, tzInner, tzOuter);
+  ShiftZ(merger, clusters[0].slice, tzInner, tzOuter, xInner, xOuter);
 }
 
-GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tz1, float tz2)
+GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tz1, float tz2, float x1, float x2)
 {
   if (!merger->Param().par.continuousTracking) {
     return;
@@ -881,16 +886,45 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   xp = mX + dxf * r2;
   yp = mP[0] + dyf * r2;
   // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r2, xp, yp);
-  float atana = CAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
-  float atanb = CAMath::ATan2(CAMath::Abs(mX - xp), CAMath::Abs(mP[0] - yp));
-  // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
-  const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
-  float z0 = dS * mP[3];
-  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - TZ span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
-  if (CAMath::Abs(z0) > 250.f) {
-    z0 = z0 > 0 ? 250.f : -250.f;
+  float deltaZ;
+  if (CAMath::Abs(r - r2) < 15) {
+    float atana = CAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
+    float atanb = CAMath::ATan2(CAMath::Abs(mX - xp), CAMath::Abs(mP[0] - yp));
+    // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
+    const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
+    float z0 = dS * mP[3];
+    if (CAMath::Abs(z0) > 250.f) {
+      z0 = z0 > 0 ? 250.f : -250.f;
+    }
+    // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - TZ span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
+    deltaZ = mP[1] - z0;
+  } else {
+    if (merger->Param().par.earlyTpcTransform) {
+      float basez, basex;
+      if (CAMath::Abs(tz1) < CAMath::Abs(tz2)) {
+        basez = tz1;
+        basex = x1;
+      } else {
+        basez = tz2;
+        basex = x2;
+      }
+      float refZ = ((basez > 0) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * basex;
+      deltaZ = basez - refZ - mTZOffset;
+    } else {
+      float baset, basex;
+      if (CAMath::Abs(tz1) > CAMath::Abs(tz2)) {
+        baset = tz1;
+        basex = x1;
+      } else {
+        baset = tz2;
+        basex = x2;
+      }
+      float refZ = ((slice < GPUCA_NSLICES / 2) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * basex;
+      float basez;
+      merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->TransformIdealZ(slice, baset, basez, mTZOffset);
+      deltaZ = basez - refZ;
+    }
   }
-  float deltaZ = mP[1] - z0;
   if (merger->Param().par.earlyTpcTransform) {
     mTZOffset += deltaZ;
     mP[1] -= deltaZ;
