@@ -21,6 +21,7 @@
 #include "CommonUtils/NameConf.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -37,7 +38,7 @@ class StrangenessTrackingReader : public o2::framework::Task
   using StrangeTrack = dataformats::StrangeTrack;
 
  public:
-  StrangenessTrackingReader() = default;
+  StrangenessTrackingReader(bool useMC) : mUseMC(useMC) {}
   ~StrangenessTrackingReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -45,9 +46,11 @@ class StrangenessTrackingReader : public o2::framework::Task
  protected:
   void connectTree();
 
+  bool mUseMC = false;
   bool mVerbose = false;
 
   std::vector<StrangeTrack> mStrangeTrack, *mStrangeTrackPtr = &mStrangeTrack;
+  std::vector<o2::MCCompLabel> mStrangeTrackMC, *mStrangeTrackMCPtr = &mStrangeTrackMC;
   // std::vector<RRef> mPV2V0Ref, *mPV2V0RefPtr = &mPV2V0Ref;
 
   std::unique_ptr<TFile> mFile;
@@ -56,6 +59,7 @@ class StrangenessTrackingReader : public o2::framework::Task
   std::string mFileNameMatches = "";
   std::string mSTrackingTreeName = "o2sim";
   std::string mStrackBranchName = "StrangeTracks";
+  std::string mStrackMCBranchName = "StrangeTrackMCLab";
   // std::string mPVertex2V0RefBranchName = "PV2V0Refs";
 };
 
@@ -72,8 +76,13 @@ void StrangenessTrackingReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mStrangeTrack.size() << " strange tracks at entry " << ent;
-
   pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0, Lifetime::Timeframe}, mStrangeTrack);
+
+  if (mUseMC) {
+    LOG(info) << "Pushing " << mStrangeTrackMC.size() << " strange tracks MC labels at entry " << ent;
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mStrangeTrack);
+  }
+
   // pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -94,21 +103,28 @@ void StrangenessTrackingReader::connectTree()
 
   mTree->SetBranchAddress(mStrackBranchName.c_str(), &mStrangeTrackPtr);
   // mTree->SetBranchAddress(mPVertex2V0RefBranchName.c_str(), &mPV2V0RefPtr);
+  if (mUseMC) {
+    assert(mTree->GetBranch(mStrackMCBranchName.c_str()));
+    mTree->SetBranchAddress(mStrackMCBranchName.c_str(), &mStrangeTrackMCPtr);
+  }
 
   LOG(info) << "Loaded " << mSTrackingTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getStrangenessTrackingReaderSpec()
+DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe); // found strange tracks
+  if (useMC) {
+    outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe); // MC labels
+  }
   // outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
 
   return DataProcessorSpec{
     "strangeness-tracking-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<StrangenessTrackingReader>()},
+    AlgorithmSpec{adaptFromTask<StrangenessTrackingReader>(useMC)},
     Options{
       {"strange-tracks-infile", VariantType::String, "o2_strange_tracks.root", {"Name of the input strange tracks file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

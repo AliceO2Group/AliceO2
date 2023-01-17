@@ -401,9 +401,13 @@ void DataRequest::requestSecondaryVertertices(bool)
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
-void DataRequest::requestStrangeTracks(bool) {
+void DataRequest::requestStrangeTracks(bool mc)
+{
   addInput({"strangetracks", "GLO", "STRANGETRACKS", 0, Lifetime::Timeframe});
-  requestMap["STracker"] = false; // no MC for the time being
+  if (mc) {
+    addInput({"strack_mc", "GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["STracker"] = mc; // no MC for the time being
 }
 
 void DataRequest::requestCTPDigits(bool mc)
@@ -795,16 +799,16 @@ void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
 }
 
 //____________________________________________________________
-void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool)
+void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool mc)
 {
   strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("strangetracks"), STRACK);
   // pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref"), PVTX_TRMTCREFS);
 
-  // if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVerticesTMP
-  //   pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
-  // }
+  if (mc && !strkPool.isLoaded(STRACK_MC)) { // in case was loaded via addPVerticesTMP
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("strack_mc"), STRACK_MC);
+    // }
+  }
 }
-
 
 //____________________________________________________________
 void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)

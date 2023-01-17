@@ -76,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
   }
     if (enableST) {
-    o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs);
+    o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs, useMC);
   }
   if (configcontext.options().get<bool>("combine-source-devices")) {
     std::vector<DataProcessorSpec> unmerged;
