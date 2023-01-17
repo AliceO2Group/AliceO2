@@ -37,6 +37,8 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
+#include "MCHBase/Error.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHBase/PreCluster.h"
 #include "DataFormatsMCH/Cluster.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
@@ -70,6 +72,9 @@ class ClusterFinderOriginalTask
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
       LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
+      mErrorMap.forEach([](Error error) {
+        LOGP(warning, error.asString());
+      });
       this->mClusterFinder.deinit();
     });
   }
@@ -90,6 +95,8 @@ class ClusterFinderOriginalTask
     auto& usedDigits = pc.outputs().make<std::vector<Digit>>(OutputRef{"clusterdigits"});
 
     clusterROFs.reserve(preClusterROFs.size());
+    auto& errorMap = mClusterFinder.getErrorMap();
+    errorMap.clear();
     for (const auto& preClusterROF : preClusterROFs) {
 
       // prepare to clusterize the current ROF
@@ -122,6 +129,13 @@ class ClusterFinderOriginalTask
       clusterROFs.emplace_back(preClusterROF.getBCData(), clusterOffset, clusters.size() - clusterOffset,
                                preClusterROF.getBCWidth());
     }
+
+    // create the output message for clustering errors
+    auto& clusterErrors = pc.outputs().make<std::vector<Error>>(OutputRef{"clustererrors"});
+    errorMap.forEach([&clusterErrors](Error error) {
+      clusterErrors.emplace_back(error);
+    });
+    mErrorMap.add(errorMap);
 
     LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
          clusters.size(), preClusters.size(), preClusterROFs.size());
@@ -172,6 +186,7 @@ class ClusterFinderOriginalTask
 
   bool mAttachInitalPrecluster = false;               ///< attach all digits of initial precluster to cluster
   ClusterFinderOriginal mClusterFinder{};             ///< clusterizer
+  ErrorMap mErrorMap{};                               ///< counting of encountered errors
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
 
@@ -185,7 +200,8 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec(const char* specNa
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"clusterrofs"}, "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
+            OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{{"clustererrors"}, "MCH", "CLUSTERERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
     Options{{"mch-config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
             {"run2-config", VariantType::Bool, false, {"setup for run2 data"}},
