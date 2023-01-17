@@ -24,6 +24,7 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
+#include "MCHBase/Error.h"
 #include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackExtrap.h"
 
@@ -119,7 +120,7 @@ const std::list<Track>& TrackFinderOriginal::findTracks(gsl::span<const Cluster>
     mTimeFollowTracks += tEnd - tStart;
 
   } catch (exception const& e) {
-    LOG(error) << e.what() << " --> abort";
+    LOG(warning) << e.what() << " --> abort";
     mTracks.clear();
     return mTracks;
   }
@@ -410,6 +411,7 @@ void TrackFinderOriginal::createTrack(const Cluster& cl1, const Cluster& cl2)
   /// Throw an exception if the maximum number of tracks is exceeded
 
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
 
@@ -499,6 +501,7 @@ std::list<Track>::iterator TrackFinderOriginal::addTrack(const std::list<Track>:
   /// Add the given track at the requested position in the list of tracks
   /// Throw an exception if the maximum number of tracks is exceeded
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
   return mTracks.emplace(pos, track);
