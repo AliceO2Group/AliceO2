@@ -383,6 +383,12 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       // skip tracks which have another hypothesis close to the best one or which do are above strict chi2 threshold
       continue;
     }
+    if (trdTrack.getNtracklets() < mTracker->Param().rec.trd.nTrackletsMin) {
+      continue;
+    }
+    if (trdTrack.getChi2() / trdTrack.getNtracklets() > mTracker->Param().rec.trd.maxChi2Red) {
+      continue;
+    }
     nTrackletsAttached += trdTrack.getNtracklets();
     auto trackGID = trdTrack.getRefGlobalTrackId();
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
@@ -750,7 +756,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    Options{}};
 }
 
 } // namespace trd
