@@ -92,7 +92,8 @@ class DEDigitizer
     Signal(const InteractionRecord& ir, uint8_t bc, float q, const MCCompLabel& label)
       : rofIR{ir}, bcInROF{bc}, charge{q}, labels{label} {}
   };
-
+  /// add angle effect in y due to non-perpendicular incidence and B-field
+  //void addAngleEffect( Vector3D diffvectorentranceexit, float @ydev);
   /// add a physical signal to the given pad at the given IR
   void addSignal(int padid, const InteractionRecord& collisionTime, float charge, const MCCompLabel& label);
   /// add a noise-only signal to the given pad at the given IR
