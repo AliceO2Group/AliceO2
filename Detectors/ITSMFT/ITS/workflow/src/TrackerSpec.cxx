@@ -25,7 +25,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
@@ -43,8 +42,6 @@
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
 #include <fmt/format.h>
-
-using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
@@ -202,7 +199,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   if (mOverrideBeamEstimation) {
-    timeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mVertexer->getVertParameters().baseBeamError, mTracker->getParameters()[0].LayerResolution[0] * mTracker->getParameters()[0].LayerResolution[0]);
+    timeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mTracker->getParameters()[0].LayerResolution[0], mTracker->getParameters()[0].SystErrorY2[0]);
   }
   mTracker->adoptTimeFrame(*timeFrame);
 
@@ -337,7 +334,9 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
-    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
+    if (mOverrideBeamEstimation) {
+      pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
+    }
   }
 }
 
@@ -360,7 +359,7 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
-    LOGP(info, "mean vertex updated");
+    LOGP(info, "mean vertex acquired");
     setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
     return;
   }
@@ -420,7 +419,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, trgType, trModeS, dType)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, trgType, trModeS, overrBeamEst, dType)},
     Options{}};
 }
 

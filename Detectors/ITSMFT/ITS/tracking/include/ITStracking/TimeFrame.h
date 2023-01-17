@@ -27,7 +27,6 @@
 #include <algorithm>
 
 #include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsCalibration/MeanVertexObject.h"
 
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
@@ -105,7 +104,7 @@ class TimeFrame
   void setBeamPosition(const float x, const float y, const float s2, const float base = 50.f, const float systematic = 0.f)
   {
     isBeamPositionOverridden = true;
-    resetBeamXY(x, y, s2 / std::hypot(50.f, systematic));
+    resetBeamXY(x, y, s2 / std::sqrt(base * base + systematic));
   }
 
   float getBeamX() const;
