@@ -874,31 +874,34 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   if (!merger->Param().par.continuousTracking) {
     return;
   }
-  const float cosPhi = CAMath::Abs(mP[2]) < 1.f ? CAMath::Sqrt(1 - mP[2] * mP[2]) : 0.f;
-  const float dxf = -CAMath::Abs(mP[2]);
-  const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
-  const float r1 = CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
-  const float r = r1 > 0.0001 ? (1.f / r1) : 10000;
-  float xp = mX + dxf * r;
-  float yp = mP[0] + dyf * r;
-  // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r, xp, yp);
-  const float r2 = (r + CAMath::Sqrt(xp * xp + yp * yp)) / 2.f; // Improve the radius by taking into acount both points we know (00 and xy).
-  xp = mX + dxf * r2;
-  yp = mP[0] + dyf * r2;
-  // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r2, xp, yp);
-  float deltaZ;
-  if (CAMath::Abs(r - r2) < 15) {
-    float atana = CAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
-    float atanb = CAMath::ATan2(CAMath::Abs(mX - xp), CAMath::Abs(mP[0] - yp));
-    // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
-    const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
-    float z0 = dS * mP[3];
-    if (CAMath::Abs(z0) > 250.f) {
-      z0 = z0 > 0 ? 250.f : -250.f;
+  const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz()));
+
+  const float dist2 = mX * mX + mP[0] * mP[0];
+  const float dist1r2 = dist2 * r1 * r1;
+  float deltaZ = 0.f;
+  bool beamlineReached = false;
+  if (dist1r2 < 4) {
+    const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
+    const float beta = CAMath::ATan2(mP[0], mX);
+    const int comp = mP[2] > CAMath::Sin(beta);
+    const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
+    const float res = CAMath::Abs(sinab - mP[2]);
+
+    if (res < 0.2) {
+      const float r = 1.f / r1;
+      const float dS = alpha * r;
+      float z0 = dS * mP[3];
+      if (CAMath::Abs(z0) > 250.f) {
+        z0 = z0 > 0 ? 250.f : -250.f;
+      }
+      deltaZ = mP[1] - z0;
+      beamlineReached = true;
+
+      printf("X %9.3f Y %9.3f QPt %9.3f R %9.3f --> Alpha %9.3f Snp %9.3f Snab %9.3f Res %9.3f dS %9.3f z0 %9.3f\n", mX, mP[0], mP[4], r, alpha / 3.1415 * 180, mP[2], sinab, res, dS, z0);
     }
-    // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - TZ span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
-    deltaZ = mP[1] - z0;
-  } else {
+  }
+
+  if (!beamlineReached) {
     if (merger->Param().par.earlyTpcTransform) {
       float basez, basex;
       if (CAMath::Abs(tz1) < CAMath::Abs(tz2)) {
