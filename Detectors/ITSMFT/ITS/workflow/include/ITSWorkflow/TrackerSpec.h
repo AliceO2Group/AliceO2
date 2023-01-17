@@ -57,10 +57,8 @@ class TrackerDPL : public framework::Task
   void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
   {
     if (!v) {
-      LOGP(info, "No mean vertex provided");
       return;
     }
-    LOGP(info, "mean vertex provided, x: {} y: {}, sY2: {}", v->getX(), v->getY(), v->getSigmaY2());
     mMeanVertex = v;
   }
 
