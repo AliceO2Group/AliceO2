@@ -40,8 +40,8 @@ DECLARE_SOA_TABLE(ZD, "AOD", "ZD", col::Z, col::D);
 BOOST_AUTO_TEST_CASE(TestJoinedTables)
 {
   TableBuilder XYBuilder;
-  //FIXME: using full tracks, instead of stored because of unbound dynamic
-  //       column (normalized phi)
+  // FIXME: using full tracks, instead of stored because of unbound dynamic
+  //        column (normalized phi)
   auto xyWriter = XYBuilder.cursor<XY>();
   xyWriter(0, 0, 0);
   auto tXY = XYBuilder.finalize();
@@ -60,4 +60,8 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   auto tests2 = join(XY{tXY}, ZD{tZD});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
                 "Joined tables should have the same type, regardless how we construct them");
+
+  using FullTracks = o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov>;
+  BOOST_CHECK(FullTracks::contains<o2::aod::Tracks>());
+  BOOST_CHECK(!FullTracks::contains<o2::aod::Collisions>());
 }
