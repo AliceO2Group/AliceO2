@@ -34,7 +34,7 @@
 
 #include "HMPIDReconstruction/HmpidEquipment.h"
 
-#define MAXDESCRIPTIONLENGHT 50
+#define MAXDESCRIPTIONLENGHT 70
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
