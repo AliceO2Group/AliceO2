@@ -2271,7 +2271,6 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 namespace o2::soa
 {
 
-
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0);
@@ -2326,7 +2325,7 @@ struct Join : JoinBase<Ts...> {
     if constexpr (is_type_with_originals_v<T>) {
       return contains(typename T::originals{});
     } else {
-      return framework::has_type_v<T,originals>;
+      return framework::has_type_v<T, originals>;
     }
   }
 
