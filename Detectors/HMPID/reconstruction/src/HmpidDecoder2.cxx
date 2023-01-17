@@ -46,12 +46,11 @@ char HmpidDecoder2::sErrorDescription[MAXERRORS][MAXDESCRIPTIONLENGHT] = {"Word 
 
 /// HMPID Firmware Error Messages Definitions
 char HmpidDecoder2::sHmpidErrorDescription[MAXHMPIDERRORS][MAXDESCRIPTIONLENGHT] = {
-  "L0 Missing",
-  "L1 is received without L0",
-  "L1A signal arrived before the L1 Latency",
-  "L1A signal arrived after the L1 Latency",
-  "L1A is missing or L1 timeout",
-  "L1A Message is missing or L1 Message"};
+  "L1-Trigger received without L0",
+  "L1-Trigger received before the L1-Latency",
+  "L1-Trigger received after the L1-Time-Latency-Window",
+  "L1-Trigger after L1-Message or after timeout (12.8us)",
+  "L1-Message before L1-Trigger or after timeout (12.8us)"};
 
 /// Constructor : accepts the number of equipments to define
 ///               The mapping is the default at P2
