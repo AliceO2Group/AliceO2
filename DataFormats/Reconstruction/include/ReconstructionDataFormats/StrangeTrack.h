@@ -31,8 +31,8 @@ enum kPartType { kStrkV0,
 struct StrangeTrack {
   kPartType mPartType;
   o2::track::TrackParCovF mMother;
-  int mITSRef = -1;
-  int mDecayRef = -1;
+  unsigned int mITSRef = -1;
+  unsigned int mDecayRef = -1;
   std::array<float, 3> mDecayVtx;
   std::array<float, 3> mDecayMom;
   std::array<float, 2> mMasses; // V0: hypertriton and hyperhydrongen4, cascade: Xi and Omega.
