@@ -532,14 +532,14 @@ void TrackerTraits::findTracks()
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
     if (!fitSuccess) {
       continue;
     }
@@ -621,14 +621,14 @@ void TrackerTraits::extendTracks(const int iteration)
       if (success) {
         /// We have to refit the track
         track.resetCovariance();
-        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
         if (!fitSuccess) {
           track = backup;
           continue;
         }
         track.getParamOut() = track;
         track.resetCovariance();
-        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
         if (!fitSuccess) {
           track = backup;
           continue;
@@ -717,13 +717,13 @@ void TrackerTraits::findShortPrimaries()
     }
 
     bestTrack.resetCovariance();
-    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
     if (!fitSuccess) {
       continue;
     }
     bestTrack.getParamOut() = bestTrack;
     bestTrack.resetCovariance();
-    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
     if (!fitSuccess) {
       continue;
     }
@@ -734,7 +734,7 @@ void TrackerTraits::findShortPrimaries()
   }
 }
 
-bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
+bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2clcut, const float chi2ndfcut, const float maxQoverPt)
 {
   auto propInstance = o2::base::Propagator::Instance();
   track.setChi2(0);
@@ -765,7 +765,7 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, c
     cov[0] += mTrkParams[0].SystErrorY2[iLayer];
     cov[2] += mTrkParams[0].SystErrorZ2[iLayer];
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
-    if ((nCl >= 3 && predChi2 > chi2cut * (nCl * 2 - 5)) || predChi2 < 0.f) {
+    if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
@@ -774,7 +774,7 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, c
     }
     nCl++;
   }
-  return std::abs(track.getQ2Pt()) < maxQoverPt;
+  return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
 }
 
 void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
