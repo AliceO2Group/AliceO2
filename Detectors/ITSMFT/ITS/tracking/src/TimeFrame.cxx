@@ -247,7 +247,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
-      mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+      mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
@@ -327,7 +327,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
   float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
   for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
     mMSangles[iLayer] = MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
-    mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+    mPositionResolution[iLayer] = std::sqrt(0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
 
     if (iLayer < mClusters.size() - 1) {
       const float& r1 = trkParam.LayerRadii[iLayer];
