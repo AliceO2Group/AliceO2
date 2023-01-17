@@ -867,6 +867,9 @@ DECLARE_SOA_INDEX_COLUMN_FULL(CascadeIdx, cascadeIdx, int, Cascades, "");       
 DECLARE_SOA_INDEX_COLUMN_FULL(V0Idx, v0Idx, int, V0s, "");                         //! V0 index
 DECLARE_SOA_INDEX_COLUMN_FULL(Decay3BodyIdx, decay3BodyIdx, int, Decays3Body, ""); //! Decay 3 body index
 
+DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayZ, decayZ, float);             //! Z coordinate of decay vertex
 DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
 DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
 DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
@@ -883,6 +886,9 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
                        strangenesstracking::CascadeIdxId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
                        strangenesstracking::XiMass,
                        strangenesstracking::OmegaMass,
                        strangenesstracking::MatchingChi2,
@@ -901,6 +907,9 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
                        strangenesstracking::V0IdxId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
                        strangenesstracking::H3Lmass,
                        strangenesstracking::H4Lmass,
                        strangenesstracking::MatchingChi2,
@@ -919,6 +928,9 @@ DECLARE_SOA_TABLE_FULL(Tracked3bodies, "Tracked3body", "AOD", "TRACKED3BODY", //
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
                        strangenesstracking::Decay3BodyIdxId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
                        strangenesstracking::H3Lmass,
                        strangenesstracking::He4Lmass,
                        strangenesstracking::MatchingChi2,
