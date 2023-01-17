@@ -94,7 +94,7 @@ float Response::eLossRatio(float logbetagamma) const
 {
   // Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
   /// copied from aliroot AliMUONv1.cxx
-  float eLossRatioParam[5] = {0,1.02138, -9.54149e-02, +7.83433e-02, -9.98208e-03, +3.83279e-04};
+  float eLossRatioParam[5] = {1.02318, -9.54149e-02, +7.83433e-02, -9.98208e-03, +3.83279e-04};
   return eLossRatioParam[0] + eLossRatioParam[1] * logbetagamma + eLossRatioParam[2] * std::pow(logbetagamma, 2) + eLossRatioParam[3] * std::pow(logbetagamma, 3) + eLossRatioParam[4] * std::pow(logbetagamma, 4);
 }
 //_____________________________________________________________________
@@ -112,7 +112,7 @@ float Response::angleEffectNorma(float elossratio) const
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   /// copied from aliroot AliMUONv1.cxx 
   float angleEffectParam[4] = {4.148, -6.809e-01, 5.151e-02, -1.490e-03};
-  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2) + angleEffectParam[3] * std::pw(elossratio, 3);
+  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2) + angleEffectParam[3] * std::pow(elossratio, 3);
 }
 //_____________________________________________________________________
 float Response::magAngleEffectNorma(float angle, float bfield) const
@@ -120,6 +120,6 @@ float Response::magAngleEffectNorma(float angle, float bfield) const
   /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis. 
   /// copied from aliroot AliMUONv1.cxx
-  float angleEffectParam[4] = {8.6995, 25.4022, 13.8822, 2.4717, 1.1551, -0.0624, 0.0012};
+  float angleEffectParam[7] = {8.6995, 25.4022, 13.8822, 2.4717, 1.1551, -0.0624, 0.0012};
   return 121.24 / (angleEffectParam[1] + angleEffectParam[2] * std::abs(bfield)) + angleEffectParam[3] * std::abs(angle - angleEffectParam[0] * bfield) + angleEffectParam[4] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 2) + angleEffectParam[5] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 3) + angleEffectParam[6] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 4);
 }
