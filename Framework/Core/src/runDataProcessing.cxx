@@ -688,7 +688,7 @@ void handle_crash(int sig)
   int size = backtrace(array, 1024);
 
   {
-    char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL)\nBacktrace by DPL:\n";
+    char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL, Unhandled Exception, ...)\nBacktrace by DPL:\n";
     auto retVal = write(STDERR_FILENO, msg, strlen(msg));
     msg = "UNKNOWN SIGNAL\n";
     if (sig == SIGSEGV) {
