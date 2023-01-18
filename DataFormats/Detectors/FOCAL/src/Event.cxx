@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <DataFormatsFOCAL/ErrorHandling.h>
 #include <DataFormatsFOCAL/Event.h>
+#include <iostream>
+
 using namespace o2::focal;
 
 PadLayerEvent& Event::getPadLayer(unsigned int index)
@@ -69,7 +71,21 @@ void Event::construct(const o2::InteractionRecord& interaction, gsl::span<const 
   }
 
   for (auto& chip : eventPixels) {
-    mPixelLayers[chip.getLayerID()].addChip(chip.getLaneID(), chip.getChipID(), pixelHits.subspan(chip.getFirstHit(), chip.getNumberOfHits()));
+    if (chip.getLayerID() > 1) {
+      std::cerr << "Invalid layer ID chip " << chip.getChipID() << ": " << chip.getLayerID() << std::endl;
+      continue;
+    }
+    if (chip.getNumberOfHits()) {
+      if (chip.getFirstHit() >= pixelHits.size()) {
+        std::cerr << "First hit index " << chip.getFirstHit() << " exceeding hit contiainer " << pixelHits.size() << std::endl;
+        continue;
+      }
+      if (chip.getFirstHit() + chip.getNumberOfHits() - 1 >= pixelHits.size()) {
+        std::cerr << "First hit index " << chip.getFirstHit() + chip.getNumberOfHits() - 1 << " exceeding hit contiainer " << pixelHits.size() << std::endl;
+        continue;
+      }
+      mPixelLayers[chip.getLayerID()].addChip(chip.getLaneID(), chip.getChipID(), pixelHits.subspan(chip.getFirstHit(), chip.getNumberOfHits()));
+    }
   }
 }
 
