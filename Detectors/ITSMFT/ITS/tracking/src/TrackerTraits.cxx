@@ -522,7 +522,7 @@ void TrackerTraits::findTracks()
     const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 2].at(clusters[lastCellLevel + 2]);
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
 
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTrkParams[0].SystErrorY2[lastCellLevel + 2], mTrkParams[0].SystErrorZ2[lastCellLevel + 2])};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -680,7 +680,7 @@ void TrackerTraits::findShortPrimaries()
     auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
 
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(2).at(cluster3_glo.clusterId);
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTrkParams[0].SystErrorY2[2], mTrkParams[0].SystErrorZ2[2])};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
     temporaryTrack.setExternalClusterIndex(0, cluster1_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(2, cluster3_glo.clusterId, true);
@@ -761,15 +761,12 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, c
       }
     }
 
-    GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
-    cov[0] += mTrkParams[0].SystErrorY2[iLayer];
-    cov[2] += mTrkParams[0].SystErrorZ2[iLayer];
-    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
+    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
-    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
+    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
     nCl++;
@@ -872,15 +869,12 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
             continue;
           }
 
-          GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
-          cov[0] += mTrkParams[iteration].SystErrorY2[iLayer];
-          cov[2] += mTrkParams[iteration].SystErrorZ2[iLayer];
-          auto predChi2{tbuParams.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
+          auto predChi2{tbuParams.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
           if (predChi2 >= track->getChi2() * mTrkParams[iteration].NSigmaCut) {
             continue;
           }
 
-          if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
+          if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
             continue;
           }
           tbupdated.setChi2(tbupdated.getChi2() + predChi2); /// This is wrong for outward propagation as the chi2 refers to inward parameters
@@ -910,7 +904,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
 
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
-track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float misalignmentY, float misalignmentZ)
+track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
@@ -934,8 +928,8 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
                             {y3, z3, snp, 0.5f * (tgl12 + tgl23),
                              zeroField ? 1.f / o2::track::kMostProbablePt
                                        : crv / (getBz() * o2::constants::math::B2C)},
-                            {tf3.covarianceTrackingFrame[0] + misalignmentY,
-                             tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2] + misalignmentZ,
+                            {tf3.covarianceTrackingFrame[0],
+                             tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2],
                              0.f, 0.f, track::kCSnp2max,
                              0.f, 0.f, 0.f, track::kCTgl2max,
                              0.f, 0.f, 0.f, 0.f, track::kC1Pt2max});
