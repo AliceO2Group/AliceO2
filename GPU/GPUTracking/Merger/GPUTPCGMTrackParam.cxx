@@ -940,9 +940,9 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     } else if (zMax > 0 && zMax - mTZOffset > 250) {
       deltaZ = zMax - mTZOffset - 250;
     }
-    if (zMin < 0 && zMax - mTZOffset > 0) {
+    if (zMin < 0 && zMax - (mTZOffset + deltaZ) > 0) {
       deltaZ = zMax - mTZOffset;
-    } else if (zMax > 0 && zMin - mTZOffset < 0) {
+    } else if (zMax > 0 && zMin - (mTZOffset + deltaZ) < 0) {
       deltaZ = zMin - mTZOffset;
     }
     // if (deltaZ != 0) printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in Z\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaZ, tz1 - mTZOffset - deltaZ);
@@ -959,7 +959,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     if (mTZOffset < minT) {
       deltaT = minT - mTZOffset;
     }
-    if (mTZOffset > maxT) {
+    if (mTZOffset + deltaT > maxT) {
       deltaT = maxT - mTZOffset;
     }
     if (deltaT != 0.f) {
