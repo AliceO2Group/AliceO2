@@ -84,12 +84,8 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
 
   // to obtain ITS-TPC-TRD-TOF track from ITS-TPC-TRD track we fill the trkMap
   std::unordered_map<GTrackID, int> trkMap;
-  for (int iTrk = 0; iTrk < nSeeds; ++iTrk) {
+  for (int iTrk = 0; iTrk < trkCounters.at(GTrackID::Source::ITSTPCTRDTOF); ++iTrk) {
     const auto& gidTable = (*mGIDtables)[iTrk];
-    if (!(gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet())) {
-      // no more ITS-TPC-TRD-TOF tracks
-      break;
-    }
     trkMap.emplace(std::make_pair(gidTable[GTrackID::ITSTPCTRD], iTrk));
   }
 
@@ -119,7 +115,14 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
       break;
     }
     if (auto search = trkMap.find((*mGIDs)[iSeed]); search != trkMap.end()) {
-      globalTracksToCheck.push_back(search->second);
+      // for this ITS-TPC-TRD track we also have a match in TOF
+      if (mParams->debugTRDTOF) {
+        // process the ITS-TPC-TRD-TOF track later, in addition to the ITS-TPC-TRD track
+        globalTracksToCheck.push_back(search->second);
+      } else {
+        interpolateTrack(search->second);
+        continue;
+      }
     }
     if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
       interpolateTrack(trackIndices[iSeed]);
@@ -130,8 +133,7 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   // irrespective of the number of tracks already processed, interpolate the ITS-TPC-TRD-TOF tracks
   // which belong to the ITS-TPC-TRD tracks that were already processed, to allow their analysis
   // offline
-  // Q: Or should we for these tracks just skip the ITS-TPC-TRD part and do only ITS-TPC-TRD-TOF?
-  // might still be interesting to compare the two?
+  // the globalTracksToCheck vector is only filled in case mParams->debugTRDTOF == true
   LOGP(info, "Processing {} ITS-TPC-TRD-TOF tracks for which the ITS-TPC-TRD track was already done", globalTracksToCheck.size());
   for (auto iTrk : globalTracksToCheck) {
     interpolateTrack(iTrk);
@@ -375,7 +377,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
     TPCClusterResiduals res;
     res.setDY(y - trkWork.getY());
-    res.setDY(z - trkWork.getZ());
+    res.setDZ(z - trkWork.getZ());
     res.setY(trkWork.getY());
     res.setZ(trkWork.getZ());
     res.setSnp(trkWork.getSnp());
@@ -594,7 +596,7 @@ bool TrackInterpolation::outlierFiltering(const TrackData& trk, TrackParams& par
   }
   float rmsLong = checkResiduals(trk, params, clsRes);
   if (static_cast<float>(params.flagRej.count()) / clsRes.size() > mParams->maxRejFrac) {
-    LOG(debug) << "Skipping track with too many clusters rejected: " << static_cast<float>(params.flagRej.count()) / clsRes.size();
+    LOGP(debug, "Skipping track with too many clusters rejected: {} out of {}", params.flagRej.count(), clsRes.size());
     return false;
   }
   if (rmsLong > mParams->maxRMSLong) {
@@ -647,6 +649,7 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   }
   if (nAccY < mParams->minNumberOfAcceptedResiduals || nAccZ < mParams->minNumberOfAcceptedResiduals) {
     // mask all clusters
+    LOGP(debug, "Accepted {} clusters for dY {} clusters for dZ, but required at least {} for both", nAccY, nAccZ, mParams->minNumberOfAcceptedResiduals);
     params.flagRej.set();
     return 0.f;
   }

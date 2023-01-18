@@ -141,6 +141,10 @@ class TrackResiduals
   /// \param scZ Scale factor to increase smoothing bandwidth at sector edges in Z
   void setKernelType(KernelType kernel = KernelType::Epanechnikov, float bwX = 2.1f, float bwP = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
 
+  /// Setting the flag to true for a given dimension will enable smoothing with a 2nd order polynomial.
+  /// Otherwise a first order polynomial will be used (default along z/x, since the bins are large)
+  void setSmoothPol2(int dim, bool flag) { mSmoothPol2[dim] = flag; }
+
   // -------------------------------------- I/O --------------------------------------------------
 
   std::vector<LocalResid>& getLocalResVec() { return mLocalResidualsIn; }

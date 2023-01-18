@@ -36,11 +36,13 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   int minTRDNTrklts = 3;           ///< min number of TRD space points
   float maxITSChi2 = 20.f;         ///< cut on ITS reduced chi2
   float maxTRDChi2 = 10.f;         ///< cut on TRD reduced chi2
+  float minPtNoOuterPoint = 0.8f;  ///< minimum pt for ITS-TPC tracks to be considered for extrapolation
 
   // other settings for track interpolation
   float sigYZ2TOF{.75f}; ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
   float maxSnp{.85f};    ///< max snp when propagating tracks
   float maxStep{2.f};    ///< maximum step for propagation
+  bool debugTRDTOF{false}; ///< if true, ITS-TPC-TRD-TOF tracks and their seeding ITS-TPC-TRD track will both be interpolated and their residuals stored
 
   // steering of map creation after the residuals have already been written to file
   bool writeBinnedResiduals{false}; ///< when creating the map from unbinned residuals store the binned residuals together with the voxel results
