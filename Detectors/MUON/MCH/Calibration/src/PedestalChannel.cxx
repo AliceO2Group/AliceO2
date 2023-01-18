@@ -27,7 +27,6 @@ bool PedestalChannel::isValid() const
   return dsChannelId.isValid();
 }
 
-
 std::string PedestalChannel::asString() const
 {
   return fmt::format("{} entries {:8d} mean {:7.2f} mVariance {:7.2f} rms {:7.2f}",

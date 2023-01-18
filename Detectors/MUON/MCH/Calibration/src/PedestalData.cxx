@@ -88,7 +88,6 @@ void PedestalData::fill(gsl::span<const PedestalDigit> digits)
     }
 
     auto& ped = iPedestal->second[dsId][channel];
-    //ped.dsChannelId = DsChannelId{solarId, dsId, channel};
 
     for (uint16_t i = 0; i < d.nofSamples(); i++) {
       auto s = d.getSample(i);
