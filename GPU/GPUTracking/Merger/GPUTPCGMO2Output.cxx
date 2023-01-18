@@ -166,8 +166,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         t1 = clusters->clustersLinear[clusterIdGlobal].getTime();
         sector1 = sector;
       }
-      nOutCl2++;
-      if (nOutCl2 == nOutCl) {
+      if (++nOutCl2 == nOutCl) {
         t2 = clusters->clustersLinear[clusterIdGlobal].getTime();
         sector2 = sector;
       }
@@ -196,10 +195,11 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         tFwd = tBwd = delta;
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
-        float tmin = CAMath::Min(t1, t2);
-        float tmax = CAMath::Max(t1, t2);
+        const float tmin = CAMath::Min(t1, t2);
+        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        const float tmax = CAMath::Min(tmin + maxDriftTime, CAMath::Max(t1, t2));
         tFwd = tmin - time0;
-        tBwd = time0 - tmax + merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        tBwd = time0 - tmax + maxDriftTime;
       }
     }
     oTrack.setTime0(time0);
