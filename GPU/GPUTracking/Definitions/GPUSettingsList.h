@@ -317,7 +317,6 @@ AddOption(filterCharge, int, 0, "", 0, "Filter for positive (+1) or negative (-1
 AddOption(filterPID, int, -1, "", 0, "Filter for Particle Type (0 Electron, 1 Muon, 2 Pion, 3 Kaon, 4 Proton)")
 AddOption(nativeFitResolutions, bool, false, "", 0, "Create resolution histograms in the native fit units (sin(phi), tan(lambda), Q/Pt)")
 AddOption(enableLocalOutput, bool, true, "", 0, "Enable normal output to local PDF files / console")
-AddOption(csvDump, bool, false, "", 0, "Dump all clusters and Pt information into csv file")
 AddOption(writeMCLabels, bool, false, "", 0, "Store mc labels to file for later matching")
 AddOption(writeRootFiles, bool, false, "", 0, "Create ROOT canvas files")
 AddOptionVec(matchMCLabels, std::string, "", 0, "Read labels from files and match them, only process tracks where labels differ")
