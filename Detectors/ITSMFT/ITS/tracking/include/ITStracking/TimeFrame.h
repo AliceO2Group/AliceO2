@@ -149,6 +149,7 @@ class TimeFrame
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
   int getNumberOfTracklets() const;
+  int getNumberOfTracks() const;
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
@@ -533,6 +534,15 @@ inline int TimeFrame::getNumberOfTracklets() const
     nTracklets += layer.size();
   }
   return nTracklets;
+}
+
+inline int TimeFrame::getNumberOfTracks() const
+{
+  int nTracks = 0;
+  for (auto& t : mTracks) {
+    nTracks += t.size();
+  }
+  return nTracks;
 }
 
 } // namespace its
