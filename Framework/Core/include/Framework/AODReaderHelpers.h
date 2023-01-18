@@ -15,6 +15,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/RootMessageContext.h"
 #include <uv.h>
 
 namespace o2::framework::readers

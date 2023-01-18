@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/RootSerializationSupport.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
