@@ -254,6 +254,12 @@ void MaterialManager::Cut(ESpecial special, int globalindex, ECut cut, Float_t v
   if (val < 0.) {
     return;
   }
+  // if low energy neutron transport is requested setting kCUTNEU will set to 0.005eV
+  if (mLowNeut && cut == ECut::kCUTNEU) {
+    LOG(info) << "Due to low energy neutrons, neutron cut value " << val << " discarded and reset to 5e-12";
+    val = 5.e-12;
+  }
+
   auto it = mCutIDToName.find(cut);
   if (it == mCutIDToName.end()) {
     return;
