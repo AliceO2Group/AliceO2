@@ -89,7 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                    "F-DIGITS", "E-F-DIGITS",
                                                    "F-DIGITROFS", "E-F-DIGITROFS",
                                                    "F-DIGITLABELS", "E-F-DIGITLABELS"));
-  } else if (!useMC) {
+  } else {
     specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
                                                          "F-DIGITS",
                                                          "F-DIGITROFS",
@@ -98,7 +98,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",
                                                       triggered ? "E-F-DIGITS" : "F-DIGITS",
-                                                      triggered ? "E-F-DIGITROFS" : (useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS")));
+                                                      triggered ? "E-F-DIGITROFS" : "TC-F-DIGITROFS"));
 
   if (!disableClustering) {
     if (o2::mch::ClusterizerParam::Instance().legacy) {
@@ -114,7 +114,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", true, digits, false, false));
       if (useMC) {
         specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
-                                                              triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
+                                                              triggered ? "E-F-DIGITROFS" : "TC-F-DIGITROFS",
                                                               triggered ? "E-F-DIGITLABELS" : "F-DIGITLABELS"));
       }
 

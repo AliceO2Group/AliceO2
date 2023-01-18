@@ -24,7 +24,7 @@ struct DigitizerParam : public o2::conf::ConfigurableParamHelper<DigitizerParam>
 
   int seed = 0; ///< seed for random number generators used for time, noise and threshold (0 means no seed given)
 
-  float timeSigma = 0.f; ///< time dispersion added to digit times (in bc unit)
+  float timeSigma = 2.f; ///< time dispersion added to digit times (in bc unit)
 
   float noiseSigma = 0.5f; ///< dispersion of noise added to physical signal per ADC sample (in ADC counts)
 
