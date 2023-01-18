@@ -79,8 +79,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
     }
   }
 
-  int nWays = param.rec.tpc.nWays;
-  int maxN = N;
+  const int nWays = param.rec.tpc.nWays;
+  const int maxN = N;
   int ihitStart = 0;
   float covYYUpd = 0.f;
   float lastUpdateX = -1.f;
@@ -362,7 +362,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       }
     }
     if (((nWays - iWay) & 1) && (clusters[0].slice < 18) == (clusters[maxN - 1].slice < 18)) {
-      ShiftZ2(clusters, clustersXYZ, merger, N);
+      ShiftZ2(clusters, clustersXYZ, merger, maxN);
     }
   }
   ConstrainSinPhi();
