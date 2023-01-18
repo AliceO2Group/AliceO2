@@ -58,6 +58,8 @@ using o2::its::TrackingParameters;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
+/// THIS MACRO IS NOT SUPPORTED ANYMORE, just kept for reference, use it at your own risk
+
 void run_trac_ca_its(bool cosmics = false,
                      bool useLUT = true,
                      std::string path = "./",
@@ -185,8 +187,6 @@ void run_trac_ca_its(bool cosmics = false,
     trackParams[0].PhiBins = 4;
     trackParams[0].ZBins = 16;
     trackParams[0].PVres = 1.e5f;
-    trackParams[0].FitIterationMaxChi2[0] = 1.e28;
-    trackParams[0].FitIterationMaxChi2[1] = 1.e28;
   } else {
     // PbPb tracking params
     // ----
