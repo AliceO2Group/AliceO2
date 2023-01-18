@@ -34,7 +34,7 @@ class Response
   ~Response() = default;
 
   float getChargeSpread() const { return mChargeSpread; }
-  float getPitch() const {return mPitch; }
+  float getPitch() const { return mPitch; }
   float getSigmaIntegration() const { return mSigmaIntegration; }
   bool isAboveThreshold(float charge) const { return charge > mChargeThreshold; }
 
@@ -79,8 +79,7 @@ class Response
   /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   float magAngleEffectNorma(float angle, float bfield) const;
-  
-  
+
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function
   float mPitch = 0.f;             ///< anode-cathode pitch (cm)
@@ -90,12 +89,7 @@ class Response
   float mChargeCorr = 0.f;        ///< amplitude of charge correlation between cathodes
   float mChargeThreshold = 0.f;   ///< minimum fraction of charge considered
   bool mAngleEffect = true;       ///< switch for angle effect influencing charge deposition
-  bool mMagnetEffect = true;         ///< switch for magnetic field influencing charge deposition
-
-        
-
-         
-
+  bool mMagnetEffect = true;      ///< switch for magnetic field influencing charge deposition
 };
 } // namespace mch
 } // namespace o2

@@ -105,12 +105,12 @@ float Response::angleEffect10(float elossratio) const
   float angleEffectParam[3] = {1.90691e+02, -6.62258e+01, -6.62258e+01};
   return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2);
 }
-//_____________________________________________________________________                                                                                      
+//_____________________________________________________________________
 float Response::angleEffectNorma(float elossratio) const
 {
   /// Angle effect: Normalisation form theta=10 degres to theta between 0 and 10 (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis)
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
-  /// copied from aliroot AliMUONv1.cxx 
+  /// copied from aliroot AliMUONv1.cxx
   float angleEffectParam[4] = {4.148, -6.809e-01, 5.151e-02, -1.490e-03};
   return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2) + angleEffectParam[3] * std::pow(elossratio, 3);
 }
@@ -118,7 +118,7 @@ float Response::angleEffectNorma(float elossratio) const
 float Response::magAngleEffectNorma(float angle, float bfield) const
 {
   /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
-  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis. 
+  /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   /// copied from aliroot AliMUONv1.cxx
   float angleEffectParam[7] = {8.6995, 25.4022, 13.8822, 2.4717, 1.1551, -0.0624, 0.0012};
   return 121.24 / (angleEffectParam[1] + angleEffectParam[2] * std::abs(bfield)) + angleEffectParam[3] * std::abs(angle - angleEffectParam[0] * bfield) + angleEffectParam[4] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 2) + angleEffectParam[5] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 3) + angleEffectParam[6] * std::pow(std::abs(angle - angleEffectParam[0] * bfield), 4);
