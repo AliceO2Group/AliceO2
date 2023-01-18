@@ -63,6 +63,8 @@ class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
   bool readyToSend(std::string& reason) const;
 
+  void finalize();
+
   const BadChannelsVector& getBadChannelsVector() const { return mBadChannelsVector; }
   const PedestalsVector& getPedestalsVector() const { return mPedestalsVector; }
 

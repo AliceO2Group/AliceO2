@@ -34,14 +34,12 @@ void BadChannelCalibrator::initOutput()
 bool BadChannelCalibrator::readyToSend(std::string& reason) const
 {
   reason = "";
-  if (BadChannelCalibratorParam::Instance().onlyAtEndOfStream) {
-    return false;
-  }
 
   // let's check our hypothesis about this object (nslots=1) is actually true
   auto nslots = getNSlots();
   if (nslots != 1) {
-    LOGP(fatal, "nslots={} while it is expected to be 1", nslots);
+    LOGP(error, "nslots={} while it is expected to be 1", nslots);
+    return false;
   }
 
   auto& slot = getFirstSlot();
@@ -53,6 +51,18 @@ bool BadChannelCalibrator::readyToSend(std::string& reason) const
   return statIsEnough;
 }
 
+void BadChannelCalibrator::finalize()
+{
+  // let's check our hypothesis about this object (nslots=1) is actually true
+  auto nslots = getNSlots();
+  if (nslots != 1) {
+    LOGP(fatal, "nslots={} while it is expected to be 1", nslots);
+  }
+
+  auto& slot = getSlot(0);
+  finalizeSlot(slot);
+}
+
 bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
 {
   const int minNofEntries = BadChannelCalibratorParam::Instance().minRequiredNofEntriesPerChannel;
@@ -61,14 +71,13 @@ bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
   const int requiredChannels = static_cast<int>(BadChannelCalibratorParam::Instance().minRequiredCalibratedFraction * nofChannels);
 
   auto nofCalibrated = std::count_if(pedData->cbegin(), pedData->cend(),
-                                     [&](const PedestalChannel& c) { return c.mEntries > minNofEntries; });
+                                     [&](const PedestalChannel& c) { return (c.isValid() && (c.mEntries > minNofEntries)); });
 
   bool hasEnough = nofCalibrated > requiredChannels;
 
   LOGP(info,
-       "nofChannelWithEnoughStat(>{})={} nofChannels={} "
-       "requiredChannels={} calibrated={} hasEnough={}",
-       minNofEntries, nofCalibrated, nofChannels, requiredChannels, nofCalibrated, hasEnough);
+       "nofChannelWithEnoughStat(>{})={} nofChannels={} requiredChannels={} hasEnough={}",
+       minNofEntries, nofCalibrated, nofChannels, requiredChannels, hasEnough);
 
   return hasEnough;
 }
@@ -91,7 +100,7 @@ void BadChannelCalibrator::finalizeSlot(Slot& slot)
   }
 
   for (const auto& ped : *pedestalData) {
-    if (ped.mEntries == 0) {
+    if (!ped.isValid() || ped.mEntries == 0) {
       continue;
     }
     mPedestalsVector.emplace_back(ped);
