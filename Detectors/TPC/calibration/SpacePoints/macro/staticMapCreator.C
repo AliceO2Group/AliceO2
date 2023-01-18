@@ -105,8 +105,8 @@ bool revalidateTrack(const TrackData& trk, const SpacePointsCalibConfParam& para
 
   if (params.cutOnDCA) {
     auto propagator = o2::base::Propagator::Instance();
-    o2::track::TrackPar trkPar(trk.x, trk.alpha, trk.p);
-    // o2::track::TrackPar trkPar = trk.par; // for the next version of o2::tpc::TrackData where its stored as TrackPar directly
+    // o2::track::TrackPar trkPar(trk.x, trk.alpha, trk.p); // use this line, in case ClassDef version of TrackData < 4
+    o2::track::TrackPar trkPar = trk.par;
     if (!propagator->propagateToX(trkPar, 0, propagator->getNominalBz())) {
       return false;
     }
