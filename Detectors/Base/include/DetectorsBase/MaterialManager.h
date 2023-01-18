@@ -132,8 +132,8 @@ class MaterialManager
   void SpecialCut(const char* modname, int localindex, ECut parID, Float_t val);
 
   /// Set flag fro low energy neutron transport
-  void SetLowEnergyNeutronTransport(bool flag) {mLowNeut = flag;}
-  
+  void SetLowEnergyNeutronTransport(bool flag) { mLowNeut = flag; }
+
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
   void loadCutsAndProcessesFromJSON(ESpecial special = ESpecial::kFALSE, std::string const& filename = "");
@@ -269,6 +269,7 @@ class MaterialManager
   bool mApplySpecialCuts = true;
   /// Flag for low energy neutron transport
   bool mLowNeut = false;
+
  public:
   ClassDefNV(MaterialManager, 0);
 };
