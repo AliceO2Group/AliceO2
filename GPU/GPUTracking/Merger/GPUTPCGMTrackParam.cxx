@@ -964,7 +964,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     }
     if (deltaT != 0.f) {
       deltaZ = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(slice, deltaT);
-      // printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in T\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
+      // printf("Moving clusters to TPC Range: QPt %f, New mTZOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTZOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
       mTZOffset += deltaT;
       mP[1] -= deltaZ;
     }
