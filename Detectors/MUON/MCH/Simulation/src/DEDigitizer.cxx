@@ -72,18 +72,17 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   //could get from mResponse info about z-depth of detection Element, check if different between exit and entrance point is smaller to make the case.
   auto pitch = mResponse.getPitch();
 
-  math_utils::Point3D<float> pos{};
+  math_utils::Point3D<float> lpos{};
 
   if (hitlengthZ > pitch * 1.99) {
-    pos.SetXYZ((lexit.X() + lentrance.X()) / 2., (lexit.Y() + lentrance.Y()) / 2., (lexit.Z() + lentrance.Z()) / 2.);
+    lpos.SetXYZ((lexit.X() + lentrance.X()) / 2., (lexit.Y() + lentrance.Y()) / 2., (lexit.Z() + lentrance.Z()) / 2.);
     //one possibility: compare exitPoint-z with z of end of detector-element...: complicated
   } else {
-    pos.SetXYZ(lexit.X(),              //take Bragg peak coordinates assuming electron drift parallel to z
-               lexit.Y(),              //take Bragg peak coordinates assuming electron drift parallel to z
-               lentrance.Z() - pitch); //take wire position global coordinate negative
+    lpos.SetXYZ(lexit.X(),              //take Bragg peak coordinates assuming electron drift parallel to z
+                lexit.Y(),              //take Bragg peak coordinates assuming electron drift parallel to z
+                lentrance.Z() - pitch); //take wire position global coordinate negative
   }
-  math_utils::Point3D<float> lpos{};
-  mTransformation.MasterToLocal(pos, lpos);
+
   auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
 
@@ -124,6 +123,7 @@ void DEDigitizer::addNoise(const InteractionRecord& firstIR, const InteractionRe
   }
 }
 
+
 size_t DEDigitizer::digitize(std::map<InteractionRecord, DigitsAndLabels>& irDigitsAndLabels)
 {
   size_t nPileup = 0;
@@ -145,6 +145,7 @@ size_t DEDigitizer::digitize(std::map<InteractionRecord, DigitsAndLabels>& irDig
         return s1.rofIR < s2.rofIR || (s1.rofIR == s2.rofIR && s1.bcInROF < s2.bcInROF);
       });
     }
+
 
     DigitsAndLabels* previousDigitsAndLabels = nullptr;
     auto previousDigitBCStart = std::numeric_limits<int64_t>::min();
@@ -193,7 +194,10 @@ void DEDigitizer::clear()
   for (auto& signals : mSignals) {
     signals.clear();
   }
+
+  return nPileup;
 }
+
 
 void DEDigitizer::addSignal(int padid, const InteractionRecord& collisionTime, float charge, const MCCompLabel& label)
 {

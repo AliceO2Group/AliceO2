@@ -80,6 +80,7 @@ class Response
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   float magAngleEffectNorma(float angle, float bfield) const;
 
+
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function
   float mPitch = 0.f;             ///< anode-cathode pitch (cm)

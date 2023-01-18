@@ -206,28 +206,39 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   transSemicircle[1] = new TGeoTranslation("transSemicircleFoam1", 0, 0, -(mZLen - mLengthSemiCircleFoam) / 2);
   transSemicircle[1]->RegisterYourself();
 
-  TGeoTubeSeg* subGluedFoam[4];
-  subGluedFoam[0] = new TGeoTubeSeg(Form("subgluedfoam0layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoam[1] = new TGeoTubeSeg(Form("subgluedfoam1layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoam[2] = new TGeoTubeSeg(Form("subgluedfoam2layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
-  subGluedFoam[3] = new TGeoTubeSeg(Form("subgluedfoam3layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  TGeoTubeSeg* subGluedFoamBottom[4];
+  subGluedFoamBottom[0] = new TGeoTubeSeg(Form("subgluedfoambottom0layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamBottom[1] = new TGeoTubeSeg(Form("subgluedfoambottom1layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamBottom[2] = new TGeoTubeSeg(Form("subgluedfoambottom2layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
+  subGluedFoamBottom[3] = new TGeoTubeSeg(Form("subgluedfoambottom3layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  TGeoTubeSeg* subGluedFoamTop[4];
+  subGluedFoamTop[0] = new TGeoTubeSeg(Form("subgluedfoamtop0layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamTop[1] = new TGeoTubeSeg(Form("subgluedfoamtop1layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamTop[2] = new TGeoTubeSeg(Form("subgluedfoamtop2layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
+  subGluedFoamTop[3] = new TGeoTubeSeg(Form("subgluedfoamtop3layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
 
   std::string subGluedFoamsNames = "";
   for (int iObj{0}; iObj < 2; ++iObj) {
-    subGluedFoamsNames += Form("(subgluedfoam%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
+    subGluedFoamsNames += Form("(subgluedfoambottom%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
   }
-  subGluedFoamsNames += Form("subgluedfoam2layer%d+", mLayerNumber);
-  subGluedFoamsNames += Form("subgluedfoam3layer%d", mLayerNumber);
+  subGluedFoamsNames += Form("subgluedfoambottom2layer%d+", mLayerNumber);
+  subGluedFoamsNames += Form("subgluedfoambottom3layer%d+", mLayerNumber);
+
+  for (int iObj{0}; iObj < 2; ++iObj) {
+    subGluedFoamsNames += Form("(subgluedfoamtop%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
+  }
+  subGluedFoamsNames += Form("subgluedfoamtop2layer%d+", mLayerNumber);
+  subGluedFoamsNames += Form("subgluedfoamtop3layer%d", mLayerNumber);
 
   TGeoCompositeShape* gluedfoam = new TGeoCompositeShape(subGluedFoamsNames.data());
   TGeoVolume* volGlue = new TGeoVolume(Form("Glue%d", mLayerNumber), gluedfoam, medGlue);
   motherVolume->AddNode(volGlue, 1, nullptr);
 
   TGeoTubeSeg* subFoam[4];
-  subFoam[0] = new TGeoTubeSeg(Form("subfoam0layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subFoam[1] = new TGeoTubeSeg(Form("subfoam1layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subFoam[2] = new TGeoTubeSeg(Form("subfoam2layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
-  subFoam[3] = new TGeoTubeSeg(Form("subfoam3layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  subFoam[0] = new TGeoTubeSeg(Form("subfoam0layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subFoam[1] = new TGeoTubeSeg(Form("subfoam1layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subFoam[2] = new TGeoTubeSeg(Form("subfoam2layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
+  subFoam[3] = new TGeoTubeSeg(Form("subfoam3layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
 
   std::string subFoamNames = "";
   for (int iObj{0}; iObj < 2; ++iObj) {

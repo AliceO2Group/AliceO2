@@ -129,6 +129,7 @@ class TPCFastTransformGeo
 
   /// convert UV -> Local c.s.
   GPUd() void convUVtoLocal(int slice, float u, float v, float& y, float& z) const;
+  GPUd() void convVtoLocal(int slice, float v, float& z) const;
 
   /// convert Local-> UV c.s.
   GPUd() void convLocalToUV(int slice, float y, float z, float& u, float& v) const;
@@ -230,6 +231,17 @@ GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int slice, float gx, float g
   lx = gx * sliceInfo.cosAlpha + gy * sliceInfo.sinAlpha;
   ly = -gx * sliceInfo.sinAlpha + gy * sliceInfo.cosAlpha;
   lz = gz;
+}
+
+GPUdi() void TPCFastTransformGeo::convVtoLocal(int slice, float v, float& lz) const
+{
+  /// convert UV -> Local c.s.
+  if (slice < NumberOfSlicesA) { // TPC side A
+    lz = mTPCzLengthA - v;
+  } else {                 // TPC side C
+    lz = v - mTPCzLengthC; // drift direction is mirrored on C-side
+  }
+  lz += mTPCalignmentZ; // global TPC alignment
 }
 
 GPUdi() void TPCFastTransformGeo::convUVtoLocal(int slice, float u, float v, float& ly, float& lz) const

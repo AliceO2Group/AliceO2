@@ -56,7 +56,6 @@ class DEDigitizer
    * @see o2::steer::EventPart
    */
   void processHit(const Hit& hit, const InteractionRecord& collisionTime, int evID, int srcID);
-
   /** Add noise-only signals.
    *
    * Noise will be generated for all IR between `firstIR` and `lastIR`.
@@ -94,6 +93,7 @@ class DEDigitizer
   };
   /// add angle effect in y due to non-perpendicular incidence and B-field
   //void addAngleEffect( Vector3D diffvectorentranceexit, float @ydev);
+
   /// add a physical signal to the given pad at the given IR
   void addSignal(int padid, const InteractionRecord& collisionTime, float charge, const MCCompLabel& label);
   /// add a noise-only signal to the given pad at the given IR

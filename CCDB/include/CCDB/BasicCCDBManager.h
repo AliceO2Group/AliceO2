@@ -23,6 +23,7 @@
 #include <map>
 #include <unordered_map>
 #include <memory>
+#include <cstdlib>
 
 class TGeoManager; // we need to forward-declare those classes which should not be cleaned up
 
@@ -265,6 +266,17 @@ class BasicCCDBManager : public CCDBManagerInstance
 
  private:
   using CCDBManagerInstance::CCDBManagerInstance;
+  BasicCCDBManager(std::string const& url) : CCDBManagerInstance(url)
+  {
+    const char* t = getenv("ALICEO2_CCDB_CONDITION_NOT_AFTER");
+    if (t) {
+      auto timeaslong = strtol(t, nullptr, 10);
+      if (timeaslong != 0L) {
+        LOG(info) << "CCDB Time-machine constrained detected. Setting condition-not-after constrained to timestamp " << timeaslong;
+        setCreatedNotAfter(timeaslong);
+      }
+    }
+  }
 };
 
 } // namespace o2::ccdb
