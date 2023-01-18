@@ -37,7 +37,7 @@ class PixelChipRecord
   int getLaneID() const { return mLaneID; }
   int getChipID() const { return mChipID; }
   int getFirstHit() const { return mHitIndexRange.getFirstEntry(); }
-  int getNumberOfHits() const { return mHitIndexRange.getFirstEntry(); }
+  int getNumberOfHits() const { return mHitIndexRange.getEntries(); }
 
   void printStream(std::ostream& stream) const;
 
