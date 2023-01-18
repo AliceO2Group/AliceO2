@@ -29,6 +29,7 @@
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
 #include "Framework/Plugins.h"
+#include "Framework/RootMessageContext.h"
 
 namespace o2::framework
 {

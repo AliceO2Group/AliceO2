@@ -13,6 +13,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/DataRefUtils.h"

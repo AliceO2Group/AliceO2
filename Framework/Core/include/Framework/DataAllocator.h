@@ -12,6 +12,7 @@
 #define FRAMEWORK_DATAALLOCATOR_H
 
 #include "Framework/MessageContext.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/RawBufferContext.h"
 #include "Framework/Output.h"
@@ -20,7 +21,6 @@
 #include "Framework/DataChunk.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TimingInfo.h"
-#include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
@@ -132,10 +132,14 @@ class DataAllocator
       auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       auto& context = mRegistry.get<MessageContext>();
+      if constexpr (enable_root_serialization<T>::value) {
+        fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
 
+        return context.add<typename enable_root_serialization<T>::object_type>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
+      } else {
+        static_assert(enable_root_serialization<T>::value, "Please make sure you include RootMessageContext.h");
+      }
       // Note: initial payload size is 0 and will be set by the context before sending
-      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
-      return context.add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
       auto* s = new std::string(args...);
       adopt(spec, s);
@@ -317,9 +321,9 @@ class DataAllocator
                                   typeid(WrappedType).name());
           }
         }
-        TMessageSerializer().Serialize(*payloadMessage, &object(), cl);
+        typename root_serializer<T>::serializer().Serialize(*payloadMessage, &object(), cl);
       } else {
-        TMessageSerializer().Serialize(*payloadMessage, &object, TClass::GetClass(typeid(T)));
+        typename root_serializer<T>::serializer().Serialize(*payloadMessage, &object, TClass::GetClass(typeid(T)));
       }
       serializationType = o2::header::gSerializationMethodROOT;
     } else {
