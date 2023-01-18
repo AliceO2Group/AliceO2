@@ -35,6 +35,7 @@
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayVulkan + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsQA + ;
 #endif
+#pragma link C++ class o2::gpu::GPUTPCGMMergedTrackHit + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologyPol + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologySpline + ;
 #pragma link C++ struct o2::tpc::CalibdEdxTrackTopologyPolContainer + ;

@@ -83,7 +83,7 @@ set(SRCS_O2_DATATYPES
     ${SRCS_DATATYPES}
     Interface/GPUO2InterfaceConfigurableParam.cxx)
 set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h)
-set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h)
+set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h DataTypes/GPUTPCGMMergedTrackHit.h)
 set(HDRS_CIND_O2_CONFIGURABLEPARAM Interface/GPUO2InterfaceConfigurableParam.h)
 set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
