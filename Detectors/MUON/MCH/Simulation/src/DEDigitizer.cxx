@@ -123,7 +123,6 @@ void DEDigitizer::addNoise(const InteractionRecord& firstIR, const InteractionRe
   }
 }
 
-
 size_t DEDigitizer::digitize(std::map<InteractionRecord, DigitsAndLabels>& irDigitsAndLabels)
 {
   size_t nPileup = 0;
@@ -145,7 +144,6 @@ size_t DEDigitizer::digitize(std::map<InteractionRecord, DigitsAndLabels>& irDig
         return s1.rofIR < s2.rofIR || (s1.rofIR == s2.rofIR && s1.bcInROF < s2.bcInROF);
       });
     }
-
 
     DigitsAndLabels* previousDigitsAndLabels = nullptr;
     auto previousDigitBCStart = std::numeric_limits<int64_t>::min();
@@ -195,7 +193,6 @@ void DEDigitizer::clear()
     signals.clear();
   }
 }
-
 
 void DEDigitizer::addSignal(int padid, const InteractionRecord& collisionTime, float charge, const MCCompLabel& label)
 {

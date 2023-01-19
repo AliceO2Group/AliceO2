@@ -44,12 +44,12 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
 
   // steering of map creation after the residuals have already been written to file
   bool writeBinnedResiduals{false}; ///< when creating the map from unbinned residuals store the binned residuals together with the voxel results
-  bool useTrackData{false}; ///< if we have the track data available, we can redefine the above cuts for the map creation, e.g. minTPCNCls etc
-  bool timeFilter{false};   ///< consider only residuals as input from TFs with a specific time range specified via startTimeMS and endTimeMS
-  long startTimeMS{0L};     ///< the start of the time range in MS
-  long endTimeMS{1999999999999L}; ///< the end of the time range in MS
-  bool cutOnDCA{true};            ///< when creating the map from unbinned residuals cut on DCA estimated from ITS outer parameter
-  float maxDCA = 10.f;            ///< DCA cut value in cm
+  bool useTrackData{false};         ///< if we have the track data available, we can redefine the above cuts for the map creation, e.g. minTPCNCls etc
+  bool timeFilter{false};           ///< consider only residuals as input from TFs with a specific time range specified via startTimeMS and endTimeMS
+  long startTimeMS{0L};             ///< the start of the time range in MS
+  long endTimeMS{1999999999999L};   ///< the end of the time range in MS
+  bool cutOnDCA{true};              ///< when creating the map from unbinned residuals cut on DCA estimated from ITS outer parameter
+  float maxDCA = 10.f;              ///< DCA cut value in cm
 
   // parameters for outlier rejection
   bool writeUnfiltered{false};           ///< if set, all residuals and track parameters will be aggregated and dumped additionally without outlier rejection
