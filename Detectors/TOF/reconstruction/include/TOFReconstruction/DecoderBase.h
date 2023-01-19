@@ -103,6 +103,7 @@ class DecoderBaseT
 
 typedef DecoderBaseT<o2::header::RAWDataHeaderV4> DecoderBaseV4;
 typedef DecoderBaseT<o2::header::RAWDataHeaderV6> DecoderBaseV6;
+typedef DecoderBaseT<o2::header::RAWDataHeaderV7> DecoderBaseV7;
 using DecoderBase = DecoderBaseT<o2::header::RAWDataHeader>;
 
 } // namespace compressed

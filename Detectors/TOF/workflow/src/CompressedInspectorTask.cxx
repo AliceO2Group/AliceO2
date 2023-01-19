@@ -181,6 +181,7 @@ void CompressedInspectorTask<RDH>::trailerHandler(const CrateHeader_t* crateHead
 
 template class CompressedInspectorTask<o2::header::RAWDataHeaderV4>;
 template class CompressedInspectorTask<o2::header::RAWDataHeaderV6>;
+template class CompressedInspectorTask<o2::header::RAWDataHeaderV7>;
 
 } // namespace tof
 } // namespace o2

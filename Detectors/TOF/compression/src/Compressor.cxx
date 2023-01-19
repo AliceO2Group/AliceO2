@@ -114,6 +114,9 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
               << std::endl;
   }
 
+  uint8_t rdhFormat = o2::raw::RDHUtils::getDataFormat(mDecoderPointer);
+  setDecoderCRUZEROES(!rdhFormat);
+
   mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
@@ -436,7 +439,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
       decoderNext();
 
       /** filler detected **/
-      if ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
+      while ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
@@ -1437,10 +1440,10 @@ void Compressor<RDH, verbose, paranoid>::checkSummary()
   printf("\n");
 }
 
-template class Compressor<o2::header::RAWDataHeaderV6, false, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, false, true>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, true>;
+template class Compressor<o2::header::RAWDataHeader, false, false>;
+template class Compressor<o2::header::RAWDataHeader, false, true>;
+template class Compressor<o2::header::RAWDataHeader, true, false>;
+template class Compressor<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2

@@ -61,18 +61,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
   AlgorithmSpec algoSpec;
-  if (rdhVersion == 6) {
+  if (rdhVersion == o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>()) {
     if (!verbose && !paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, false>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, false>>()};
     }
     if (!verbose && paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, true>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, true>>()};
     }
     if (verbose && !paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, false>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, false>>()};
     }
     if (verbose && paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, true>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, true>>()};
     }
   }
 

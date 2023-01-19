@@ -52,6 +52,8 @@ class Encoder
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
 
+  void setEncoderCRUZEROES(bool val = true) { mOldFormat = val; }
+
   int getSize(void* first, void* last);
 
   void nextWord(int icrate);
@@ -92,6 +94,8 @@ class Encoder
 
   bool mStartRun = true;
   int mFirstBC = 0;
+
+  bool mOldFormat = false;
 
   // temporary variable for encoding
   int mEventCounter;         //!
