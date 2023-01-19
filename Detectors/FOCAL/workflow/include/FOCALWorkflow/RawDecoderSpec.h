@@ -73,6 +73,7 @@ class RawDecoderSpec : public framework::Task
   void fillPixelEventHBFCount(const std::unordered_map<int, std::vector<int>>& counters);
 
   bool mDebugMode = false;
+  bool mDisplayInconsistent = false;
   bool mUsePadData = true;
   bool mUsePixelData = true;
   bool mFilterIncomplete = false;

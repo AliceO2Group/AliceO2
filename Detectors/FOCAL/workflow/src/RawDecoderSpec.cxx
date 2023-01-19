@@ -33,6 +33,10 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
     LOG(info) << "Enabling filtering of incomplete events in the pixel data";
     mFilterIncomplete = true;
   }
+  if (ctx.options().get<bool>("displayInconsistent")) {
+    LOG(info) << "Display additional information in case of inconsistency between pixel links";
+    mDisplayInconsistent = true;
+  }
 }
 
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
@@ -68,56 +72,61 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           if (o2::raw::RDHUtils::getStop(rdh)) {
             LOG(debug) << "Stop bit received - processing payload";
             // Data ready
-            if (currentendpoint == 1) {
-              // Pad data
-              if (mUsePadData) {
-                LOG(debug) << "Processing PAD data";
-                auto nEventsPads = decodePadData(rawbuffer, currentIR);
-                auto found = mNumEventsHBFPads.find(nEventsPads);
-                if (found != mNumEventsHBFPads.end()) {
-                  found->second += 1;
-                } else {
-                  mNumEventsHBFPads.insert(std::pair<int, int>{nEventsPads, 1});
-                }
-                numEventsPadsTF += nEventsPads;
-                numHBFPadsTF++;
-              }
-            } else if (currentendpoint == 0) {
-              // Pixel data
-              if (mUsePixelData) {
-                auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
-                if (firstHBF) {
-                  auto found = std::find(expectFEEs.begin(), expectFEEs.end(), feeID);
-                  if (found == expectFEEs.end()) {
-                    expectFEEs.emplace_back(feeID);
+            if (rawbuffer.size()) {
+              // Only process if we actually have payload (skip empty HBF)
+              if (currentendpoint == 1) {
+                // Pad data
+                if (mUsePadData) {
+                  LOG(debug) << "Processing PAD data";
+                  auto nEventsPads = decodePadData(rawbuffer, currentIR);
+                  auto found = mNumEventsHBFPads.find(nEventsPads);
+                  if (found != mNumEventsHBFPads.end()) {
+                    found->second += 1;
+                  } else {
+                    mNumEventsHBFPads.insert(std::pair<int, int>{nEventsPads, 1});
                   }
-                  firstHBF = false;
+                  numEventsPadsTF += nEventsPads;
+                  numHBFPadsTF++;
                 }
-                LOG(debug) << "Processing Pixel data from FEE " << feeID;
-                auto neventsPixels = decodePixelData(rawbuffer, currentIR, feeID);
-                auto found = numHBFFEE.find(feeID);
-                if (found != numHBFFEE.end()) {
-                  found->second++;
-                } else {
-                  numHBFFEE.insert(std::pair<int, int>{feeID, 1});
+              } else if (currentendpoint == 0) {
+                // Pixel data
+                if (mUsePixelData) {
+                  auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
+                  if (firstHBF) {
+                    auto found = std::find(expectFEEs.begin(), expectFEEs.end(), feeID);
+                    if (found == expectFEEs.end()) {
+                      expectFEEs.emplace_back(feeID);
+                    }
+                    firstHBF = false;
+                  }
+                  LOG(debug) << "Processing Pixel data from FEE " << feeID;
+                  auto neventsPixels = decodePixelData(rawbuffer, currentIR, feeID);
+                  auto found = numHBFFEE.find(feeID);
+                  if (found != numHBFFEE.end()) {
+                    found->second++;
+                  } else {
+                    numHBFFEE.insert(std::pair<int, int>{feeID, 1});
+                  }
+                  auto evFound = numEventsFEE.find(feeID);
+                  if (evFound != numEventsFEE.end()) {
+                    evFound->second += neventsPixels;
+                  } else {
+                    numEventsFEE.insert(std::pair<int, int>{feeID, neventsPixels});
+                  }
+                  auto evHBFFound = numEventsHBFFEE.find(feeID);
+                  if (evHBFFound != numEventsHBFFEE.end()) {
+                    evHBFFound->second.push_back(neventsPixels);
+                  } else {
+                    std::vector<int> evbuffer;
+                    evbuffer.push_back(neventsPixels);
+                    numEventsHBFFEE.insert(std::pair<int, std::vector<int>>{feeID, evbuffer});
+                  }
                 }
-                auto evFound = numEventsFEE.find(feeID);
-                if (evFound != numEventsFEE.end()) {
-                  evFound->second += neventsPixels;
-                } else {
-                  numEventsFEE.insert(std::pair<int, int>{feeID, neventsPixels});
-                }
-                auto evHBFFound = numEventsHBFFEE.find(feeID);
-                if (evHBFFound != numEventsHBFFEE.end()) {
-                  evHBFFound->second.push_back(neventsPixels);
-                } else {
-                  std::vector<int> evbuffer;
-                  evbuffer.push_back(neventsPixels);
-                  numEventsHBFFEE.insert(std::pair<int, std::vector<int>>{feeID, evbuffer});
-                }
+              } else {
+                LOG(error) << "Unsupported endpoint " << currentendpoint;
               }
             } else {
-              LOG(error) << "Unsupported endpoint " << currentendpoint;
+              LOG(debug) << "Payload size 0 - skip empty HBF";
             }
           } else {
             rawbuffer.clear();
@@ -158,27 +167,33 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
   // Consistency check PixelEvents
   if (!consistencyCheckPixelFEE(numHBFFEE)) {
-    std::cout << "Mismatch in number of HBF / TF between pixel FEEs" << std::endl;
-    printCounters(numHBFFEE);
+    LOG(alarm) << "Mismatch in number of HBF / TF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printCounters(numHBFFEE);
+    }
     mNumInconsistencyPixelHBF++;
   }
   int numHBFPixelsTF = maxCounter(numHBFFEE);
   mNumHBFPixels += numHBFPixelsTF;
   if (!consistencyCheckPixelFEE(numEventsFEE)) {
-    std::cout << "Mismatch in number of events / TF between pixel FEEs" << std::endl;
-    printCounters(numEventsFEE);
+    LOG(alarm) << "Mismatch in number of events / TF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printCounters(numEventsFEE);
+    }
     mNumInconsistencyPixelEvent++;
   }
   mNumEventsPixels += maxCounter(numEventsFEE);
   if (!checkEventsHBFConsistency(numEventsHBFFEE)) {
-    std::cout << "Mistmatch number of events / HBF between pixel FEEs" << std::endl;
-    printEvents(numEventsHBFFEE);
+    LOG(alarm) << "Mistmatch number of events / HBF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printEvents(numEventsHBFFEE);
+    }
     mNumInconsistencyPixelEventHBF++;
   }
   fillPixelEventHBFCount(numEventsHBFFEE);
 
   if (mUsePixelData && mFilterIncomplete) {
-    std::cout << "Filtering incomplete pixel events" << std::endl;
+    LOG(debug) << "Filtering incomplete pixel events";
     for (auto& hbf : mHBFs) {
       auto numErased = filterIncompletePixelsEventsHBF(hbf.second, expectFEEs);
       mNumEventsPixels -= numErased;
@@ -529,7 +544,7 @@ int RawDecoderSpec::maxCounter(const std::unordered_map<int, int>& counters) con
 void RawDecoderSpec::printCounters(const std::unordered_map<int, int>& counters) const
 {
   for (auto& [fee, counter] : counters) {
-    std::cout << "  FEE 0x" << std::hex << fee << std::dec << ": " << counter << " counts ..." << std::endl;
+    LOG(info) << "  FEE 0x" << std::hex << fee << std::dec << ": " << counter << " counts ...";
   }
 }
 
@@ -546,7 +561,7 @@ void RawDecoderSpec::printEvents(const std::unordered_map<int, std::vector<int>>
       }
       stringbuilder << ev;
     }
-    std::cout << "  FEE 0x" << std::hex << fee << std::dec << ": " << stringbuilder.str() << " events ..." << std::endl;
+    LOG(info) << "  FEE 0x" << std::hex << fee << std::dec << ": " << stringbuilder.str() << " events ...";
   }
 }
 
@@ -598,5 +613,6 @@ o2::framework::DataProcessorSpec o2::focal::reco_workflow::getRawDecoderSpec(boo
                                           outputs,
                                           o2::framework::adaptFromTask<o2::focal::reco_workflow::RawDecoderSpec>(outputSubspec, usePadData, usePixelData, debugMode),
                                           o2::framework::Options{
-                                            {"filterIncomplete", o2::framework::VariantType::Bool, false, {"Filter incomplete pixel events"}}}};
+                                            {"filterIncomplete", o2::framework::VariantType::Bool, false, {"Filter incomplete pixel events"}},
+                                            {"displayInconsistent", o2::framework::VariantType::Bool, false, {"Display information about inconsistent timeframes"}}}};
 }
