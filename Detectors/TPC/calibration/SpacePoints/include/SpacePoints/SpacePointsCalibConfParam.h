@@ -35,6 +35,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   int minITSNClsNoOuterPoint = 6;  ///< min number of ITS clusters if no hit in TRD or TOF exists
   int minTRDNTrklts = 3;           ///< min number of TRD space points
   float maxITSChi2 = 20.f;         ///< cut on ITS reduced chi2
+  float maxTRDChi2 = 10.f;         ///< cut on TRD reduced chi2
 
   // other settings for track interpolation
   float sigYZ2TOF{.75f}; ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
@@ -42,7 +43,13 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxStep{2.f};    ///< maximum step for propagation
 
   // steering of map creation after the residuals have already been written to file
+  bool writeBinnedResiduals{false}; ///< when creating the map from unbinned residuals store the binned residuals together with the voxel results
   bool useTrackData{false}; ///< if we have the track data available, we can redefine the above cuts for the map creation, e.g. minTPCNCls etc
+  bool timeFilter{false};   ///< consider only residuals as input from TFs with a specific time range specified via startTimeMS and endTimeMS
+  long startTimeMS{0L};     ///< the start of the time range in MS
+  long endTimeMS{1999999999999L}; ///< the end of the time range in MS
+  bool cutOnDCA{true};            ///< when creating the map from unbinned residuals cut on DCA estimated from ITS outer parameter
+  float maxDCA = 10.f;            ///< DCA cut value in cm
 
   // parameters for outlier rejection
   bool writeUnfiltered{false};           ///< if set, all residuals and track parameters will be aggregated and dumped additionally without outlier rejection

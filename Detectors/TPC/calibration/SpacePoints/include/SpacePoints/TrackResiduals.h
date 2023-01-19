@@ -420,6 +420,9 @@ class TrackResiduals
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+  /// Allow to access the output file from outside
+  TFile* getOutputFilePtr() { return mFileOut.get(); }
+
   /// Set the voxel statistics directly from outside
   void setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec);
 

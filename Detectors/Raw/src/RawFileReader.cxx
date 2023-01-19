@@ -378,7 +378,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         reader->imposeFirstTF(irOfSOX.orbit);
       }
     }
-    auto newTFCalc = blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir);
+    auto newTFCalc = reader->getTFAutodetect() != FirstTFDetection::Pending && (blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir));
     if (cruDetector) {
       newTF = (triggerType & o2::trigger::TF);
       newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
@@ -475,20 +475,27 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     openHB = false;
   }
 
+  if (cruDetector &&
+      ((reader->getTFAutodetect() == FirstTFDetection::Pending && !newTF) ||
+       (reader->getTFAutodetect() == FirstTFDetection::Done && ir.orbit < HBU.orbitFirst))) { // skip data until TF start is seen or orbit is less than determined 1st TF orbit
+    LOG(error) << "skipping RDH w/o newTF flag until TF start is found";
+    ok = false;
+    newTF = newSPage = newHB = false;
+  }
+
   if (newTF || newSPage || newHB) {
+    if (newTF && reader->getTFAutodetect() == FirstTFDetection::Pending) {
+      if (cruDetector) {
+        reader->imposeFirstTF(hbIR.orbit);
+      } else {
+        throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
+      }
+    }
     int nbl = blocks.size();
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
     bl.ir = hbIR;
     bl.tfID = HBU.getTF(hbIR); // nTimeFrames - 1;
     if (newTF) {
-      if (reader->getTFAutodetect() == FirstTFDetection::Pending) { // impose first TF
-        if (cruDetector) {
-          reader->imposeFirstTF(hbIR.orbit);
-          bl.tfID = HBU.getTF(hbIR); // update
-        } else {
-          throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
-        }
-      }
       tfStartBlock.emplace_back(nbl, bl.tfID);
       nTimeFrames++;
       bl.setFlag(LinkBlock::StartTF);
@@ -509,10 +516,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       bl.setFlag(LinkBlock::StartHB);
     }
   }
-  blocks.back().setFlag(LinkBlock::EndHB, stop); // last processed RDH defines this flag
-  blocks.back().size += RDHUtils::getOffsetToNext(rdh);
-  rdhl = rdh;
-  nCRUPages++;
+  if (blocks.size()) {
+    blocks.back().setFlag(LinkBlock::EndHB, stop); // last processed RDH defines this flag
+    blocks.back().size += RDHUtils::getOffsetToNext(rdh);
+    rdhl = rdh;
+    nCRUPages++;
+  }
   if (!ok) {
     LOG(error) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
     RDHUtils::printRDH(rdh);
