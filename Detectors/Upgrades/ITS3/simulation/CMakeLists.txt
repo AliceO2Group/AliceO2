@@ -12,13 +12,16 @@
 o2_add_library(ITS3Simulation
                SOURCES src/ITS3Layer.cxx
                        src/DescriptorInnerBarrelITS3.cxx
+                       src/DescriptorInnerBarrelITS3Param.cxx
                        src/Digitizer.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITSBase O2::ITSMFTSimulation
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                     O2::ITSBase O2::ITSMFTSimulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(ITS3Simulation
                           HEADERS include/ITS3Simulation/ITS3Layer.h
                                   include/ITS3Simulation/DescriptorInnerBarrelITS3.h
+                                  include/ITS3Simulation/DescriptorInnerBarrelITS3Param.h
                                   include/ITS3Simulation/Digitizer.h
                                   )
 

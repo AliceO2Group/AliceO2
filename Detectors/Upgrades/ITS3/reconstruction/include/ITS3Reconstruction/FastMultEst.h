@@ -16,7 +16,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS3/CompCluster.h"
 #include <DataFormatsITSMFT/PhysTrigger.h>
-#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITS3Reconstruction/FastMultEstConfig.h"
 #include <gsl/span>
 #include <array>
 

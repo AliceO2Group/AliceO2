@@ -388,8 +388,8 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
   // RSS
-  //  printf("%d/%d/%d %s\n",lay,stav,detInSta,path.Data());
-  //  mat->Print();
+  // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
+  matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
