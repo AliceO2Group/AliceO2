@@ -52,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
+    {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -78,7 +79,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOGP(warning, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
     srcTRD = GTrackID::getSourcesMask("TPC");
   }
-
+  if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
+    srcTRD |= GTrackID::getSourcesMask("FT0");
+  }
   // Parse PID policy string
   o2::trd::PIDPolicy policy{o2::trd::PIDPolicy::DEFAULT};
   if (pid) {

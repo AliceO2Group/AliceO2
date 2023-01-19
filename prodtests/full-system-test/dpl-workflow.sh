@@ -136,6 +136,7 @@ fi
 
 
 workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-trackbased-calib"
+! has_detector FT0 && TRD_CONFIG+=" --disable-ft0-pileup-tagging"
 
 workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
 

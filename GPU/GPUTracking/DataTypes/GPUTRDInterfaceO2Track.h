@@ -36,6 +36,7 @@ struct GPUTPCOuterParam;
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
+#include "CommonConstants/LHCConstants.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -73,6 +74,15 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
   GPUdi() const float* getPar() const { return getParams(); }
 
   GPUdi() bool CheckNumericalQuality() const { return true; }
+
+  GPUdi() void setPileUpDistance(unsigned char bwd, unsigned char fwd) { setUserField((((unsigned short)bwd) << 8) | fwd); }
+  GPUdi() bool hasPileUpInfo() const { return getUserField() != 0; }
+  GPUdi() unsigned char getPileUpDistanceBwd() const { return ((unsigned char)getUserField()) >> 8; }
+  GPUdi() unsigned char getPileUpDistanceFwd() const { return ((unsigned char)getUserField()) & 255; }
+  GPUdi() unsigned short getPileUpSpan() const { return ((unsigned short)getPileUpDistanceBwd()) + getPileUpDistanceFwd(); }
+  GPUdi() float getPileUpMean() const { return 0.5 * ((float)getPileUpDistanceFwd()) - ((float)getPileUpDistanceBwd()); }
+  GPUdi() float getPileUpTimeShiftMUS() const { return getPileUpMean() * o2::constants::lhc::LHCBunchSpacingMUS; }
+  GPUdi() float getPileUpTimeErrorMUS() const { return getPileUpSpan() * o2::constants::lhc::LHCBunchSpacingMUS / 3.4641016; }
 
   typedef o2::track::TrackParCov baseClass;
 
