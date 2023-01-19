@@ -101,6 +101,8 @@ AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track follow
 AddOptionRTC(nTrackletsMin, unsigned char, 3, "", 0, "Tracks with less attached tracklets are discarded after the tracking")
 AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
 AddOptionRTC(matCorrType, unsigned char, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")
+AddOptionRTC(pileupFwdNBC, unsigned char, 60, "", 0, "Post-trigger Pile-up integration time in BCs")
+AddOptionRTC(pileupBwdNBC, unsigned char, 80, "", 0, "Pre-trigger Pile-up integration time in BCs")
 AddHelp("help", 'h')
 EndConfig()
 
