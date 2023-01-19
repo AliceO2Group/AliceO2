@@ -133,25 +133,36 @@ class PedestalDataIterator
     return &mMapIt->second[mRow][mCol];
   }
 
-  PedestalDataIterator& operator++()
+  bool advance()
   {
     if (mMapIt != mData->mPedestals.end()) {
       if (mCol < PedestalData::MAXCHANNEL - 1) {
         mCol++;
-        return *this;
+        return true;
       }
       if (mRow < PedestalData::MAXDS - 1) {
         mCol = 0;
         mRow++;
-        return *this;
+        return true;
       }
       ++mMapIt;
       mCol = 0;
       mRow = 0;
       if (mMapIt != mData->mPedestals.end()) {
-        return *this;
+        return true;
       }
       mData = nullptr;
+    }
+    // undefined behavior here (should not increment an end iterator)
+    return false;
+  }
+
+  PedestalDataIterator& operator++()
+  {
+    while (advance()) {
+      if ((*this)->isValid()) {
+        break;
+      }
     }
     // undefined behavior here (should not increment an end iterator)
     return *this;

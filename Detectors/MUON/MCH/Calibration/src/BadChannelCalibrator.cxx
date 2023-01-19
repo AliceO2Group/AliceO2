@@ -71,7 +71,7 @@ bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
   const int requiredChannels = static_cast<int>(BadChannelCalibratorParam::Instance().minRequiredCalibratedFraction * nofChannels);
 
   auto nofCalibrated = std::count_if(pedData->cbegin(), pedData->cend(),
-                                     [&](const PedestalChannel& c) { return (c.isValid() && (c.mEntries > minNofEntries)); });
+                                     [&](const PedestalChannel& c) { return c.mEntries > minNofEntries; });
 
   bool hasEnough = nofCalibrated > requiredChannels;
 
@@ -100,7 +100,7 @@ void BadChannelCalibrator::finalizeSlot(Slot& slot)
   }
 
   for (const auto& ped : *pedestalData) {
-    if (!ped.isValid() || ped.mEntries == 0) {
+    if (ped.mEntries == 0) {
       continue;
     }
     mPedestalsVector.emplace_back(ped);
