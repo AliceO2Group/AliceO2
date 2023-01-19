@@ -1,100 +1,61 @@
+---
 name: Clean PR checks
-on:
+
+'on':
   workflow_dispatch:
     inputs:
       pr:
-        description: PR to be cleaned
+        description: PR number in this repo to be cleaned
+        type: string   # can't use number here
         required: true
-      check_o2_cc7:
+      message:
+        description: Human-readable message displayed on the new pending status
+        type: string
+        required: false
+        default: ''
+
+      # Warning: GitHub limits the total number of inputs to 10, so a maximum of
+      # 8 checks is allowed here!
+      # Warning: the check_* keys are magic and must consist of the string
+      # "check_" followed by the applicable check name exactly. The
+      # "description" field is only the human-readable label for the input.
+      'check_build/O2/o2':
         description: build/O2/o2
         type: boolean
-        required: false
         default: true
-      check_o2_macos:
+      'check_build/AliceO2/O2/o2/macOS':
         description: build/AliceO2/O2/o2/macOS
         type: boolean
-        required: false
         default: true
-      check_o2_fullci:
+      'check_build/O2/fullCI':
         description: build/O2/fullCI
         type: boolean
-        required: false
         default: true
-      check_o2_cs8:
+      'check_build/O2/o2-cs8':
         description: build/O2/o2-cs8
         type: boolean
-        required: false
         default: true
-      check_o2_dataflow:
+      'check_build/O2/o2-dataflow':
         description: build/O2/o2-dataflow
         type: boolean
-        required: false
         default: true
-      check_o2_dataflow_cs8:
+      'check_build/O2/o2-dataflow-cs8':
         description: build/O2/o2-dataflow-cs8
         type: boolean
-        required: false
         default: true
-      owner:
-        description: Organization
-        required: true
-        default: 'AliceO2Group'
-      repo:
-        description: Repository
-        required: true
-        default: 'AliceO2'
+
+permissions: {}
 
 jobs:
-  cleanup_pr_checks:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-      - name: Install ali-bot
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libsasl2-dev python-dev libldap2-dev libssl-dev
-          python -m pip install --upgrade pip
-          pip install git+https://github.com/alisw/ali-bot@master
-      - uses: octokit/graphql-action@v2.x
-        id: get_last_commit_for_pr
-        with:
-          query: |
-              {
-                repository(owner: "${{ github.event.inputs.owner }}", name: "${{ github.event.inputs.repo }}") {
-                  url
-                  pullRequest(number:${{ github.event.inputs.pr }}) {
-                    commits(last: 1) {
-                      nodes {
-                        commit {
-                          oid
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cleanup tests
-        run: |-
-          set -x
-          cat <<\EOF > results.json
-          ${{ steps.get_last_commit_for_pr.outputs.data }}
-          EOF
-          COMMIT=$(jq -r '.repository.pullRequest.commits.nodes[].commit.oid' results.json)
-          echo $COMMIT
-          echo ${{ github.event.inputs.check_o2_macos }}
-          CHECKS="${{github.event.inputs.check_o2_cc7 && 'build/O2/o2' || ''}}"
-          CHECKS="${CHECKS},${{github.event.inputs.check_o2_macos == 'true' && 'build/AliceO2/O2/o2/macOS' || ''}}"
-          CHECKS="${CHECKS},${{github.event.inputs.check_o2_fullci == 'true' && 'build/O2/fullCI' || ''}}"
-          CHECKS="${CHECKS},${{github.event.inputs.check_o2_cs8 == 'true' && 'build/O2/o2-cs8' || ''}}"
-          CHECKS="${CHECKS},${{github.event.inputs.check_o2_dataflow == 'true' && 'build/O2/o2-dataflow' || ''}}"
-          CHECKS="${CHECKS},${{github.event.inputs.check_o2_dataflow_cs8 == 'true' && 'build/O2/o2-dataflow-cs8' || ''}}"
-          for check in `echo $CHECKS | sed -e "s/,\+/,/g;s/,$//;s/^,//" | tr , \\\\n`; do
-            set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  clean:
+    name: Clean PR checks
+    uses: alisw/ali-bot/.github/workflows/clean-pr-checks.yml@master
+    with:
+      owner: ${{ github.event.repository.owner.login }}
+      repo: ${{ github.event.repository.name }}
+      pr: ${{ github.event.inputs.pr }}
+      message: ${{ github.event.inputs.message }}
+      checks: ${{ toJSON(github.event.inputs) }}
+    permissions:
+      pull-requests: read  # to get last commit for pr (octokit/graphql-action)
+      statuses: write      # for set-github-status
