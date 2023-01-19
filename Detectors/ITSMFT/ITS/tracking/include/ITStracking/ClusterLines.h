@@ -216,13 +216,13 @@ class ClusterLines final
   bool operator==(const ClusterLines&) const;
 
  protected:
-  std::array<float, 6> mAMatrix;      // AX=B
-  std::array<float, 3> mBMatrix;      // AX=B
-  std::vector<int> mLabels;           // labels
-  std::array<float, 9> mWeightMatrix; // weight matrix
-  std::array<float, 3> mVertex;       // cluster centroid position
-  std::array<float, 6> mRMS2;         // symmetric matrix: diagonal is RMS2
-  float mAvgDistance2;                // substitute for chi2
+  std::array<float, 6> mAMatrix;              // AX=B
+  std::array<float, 3> mBMatrix;              // AX=B
+  std::vector<int> mLabels;                   // labels
+  std::array<float, 9> mWeightMatrix = {0.f}; // weight matrix
+  std::array<float, 3> mVertex = {0.f};       // cluster centroid position
+  std::array<float, 6> mRMS2 = {0.f};         // symmetric matrix: diagonal is RMS2
+  float mAvgDistance2 = 0.f;                  // substitute for chi2
 };
 
 } // namespace its
