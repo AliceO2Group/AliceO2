@@ -64,23 +64,23 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   mTransformation.MasterToLocal(entrancePoint, lentrance);
 
   auto hitlengthZ = lentrance.Z() - lexit.Z(); //
-  //ToDO: check check sign convention of local coordinate system
-  //global coordinate: muon arm at negative z
-  //ToDo: only working if track crossing and straight line within gas volume of detector
-  //most general: take crossing of trajectory with plane at z of anode wire as the relevant point.
-  //no exception treatment, straight-line approximation: ok, need treatment for stopped tracks
-  //could get from mResponse info about z-depth of detection Element, check if different between exit and entrance point is smaller to make the case.
+  // ToDO: check check sign convention of local coordinate system
+  // global coordinate: muon arm at negative z
+  // ToDo: only working if track crossing and straight line within gas volume of detector
+  // most general: take crossing of trajectory with plane at z of anode wire as the relevant point.
+  // no exception treatment, straight-line approximation: ok, need treatment for stopped tracks
+  // could get from mResponse info about z-depth of detection Element, check if different between exit and entrance point is smaller to make the case.
   auto pitch = mResponse.getPitch();
 
   math_utils::Point3D<float> lpos{};
 
   if (hitlengthZ > pitch * 1.99) {
     lpos.SetXYZ((lexit.X() + lentrance.X()) / 2., (lexit.Y() + lentrance.Y()) / 2., (lexit.Z() + lentrance.Z()) / 2.);
-    //one possibility: compare exitPoint-z with z of end of detector-element...: complicated
+    // one possibility: compare exitPoint-z with z of end of detector-element...: complicated
   } else {
-    lpos.SetXYZ(lexit.X(),              //take Bragg peak coordinates assuming electron drift parallel to z
-                lexit.Y(),              //take Bragg peak coordinates assuming electron drift parallel to z
-                lentrance.Z() - pitch); //take wire position global coordinate negative
+    lpos.SetXYZ(lexit.X(),              // take Bragg peak coordinates assuming electron drift parallel to z
+                lexit.Y(),              // take Bragg peak coordinates assuming electron drift parallel to z
+                lentrance.Z() - pitch); // take wire position global coordinate negative
   }
 
   auto localX = mResponse.getAnod(lpos.X());

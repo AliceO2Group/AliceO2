@@ -101,7 +101,7 @@ float Response::eLossRatio(float logbetagamma) const
 float Response::angleEffect10(float elossratio) const
 {
   /// Angle effect in tracking chambers at theta =10 degres as a function of ElossRatio (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis) (in micrometers)
-  ///copied from aliroot AliMUONv1.cxx
+  /// copied from aliroot AliMUONv1.cxx
   float angleEffectParam[3] = {1.90691e+02, -6.62258e+01, -6.62258e+01};
   return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * std::pow(elossratio, 2);
 }
