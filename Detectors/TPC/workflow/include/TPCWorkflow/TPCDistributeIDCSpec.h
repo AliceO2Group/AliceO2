@@ -69,10 +69,10 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       const auto sides = IDCFactorization::getSides(mCRUs);
       for (auto side : sides) {
         const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
-        mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Timeframe});
+        mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
       }
     } else {
-      mFilter.emplace_back(InputSpec{"iccs", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCIntegrateClustersDevice::getDataDescription()}, Lifetime::Timeframe});
+      mFilter.emplace_back(InputSpec{"iccs", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCIntegrateClustersDevice::getDataDescription()}, Lifetime::Sporadic});
     }
   };
 

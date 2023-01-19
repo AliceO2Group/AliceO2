@@ -149,7 +149,7 @@ namespace framework
 DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const std::string& nameExt)
 {
   using clbUtils = o2::calibration::Utils;
-  std::vector<InputSpec> inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}};
+  std::vector<InputSpec> inputs = {{"clbPayload", "CLP", Lifetime::Sporadic}, {"clbWrapper", "CLW", Lifetime::Sporadic}};
   std::string devName = "ccdb-populator";
   devName += nameExt;
   return DataProcessorSpec{
