@@ -46,7 +46,7 @@ Encoder::Encoder()
 
 void Encoder::nextWord(int icrate)
 {
-  if (mNextWordStatus[icrate]) {
+  if (mOldFormat && mNextWordStatus[icrate]) {
     mUnion[icrate]++;
     mUnion[icrate]->data = 0;
     mUnion[icrate]++;
@@ -60,10 +60,18 @@ void Encoder::nextWord(int icrate)
 bool Encoder::open(const std::string& name, const std::string& path, const std::string& fileFor)
 {
   bool status = false;
+  static const uint8_t nopadding = 1;
+  static const uint8_t padding = 0;
+  uint8_t dataformat = mOldFormat ? padding : nopadding;
 
   // register links
   o2::header::RAWDataHeader rdh;
   mFileWriter.useRDHVersion(RDHUtils::getVersion<o2::header::RAWDataHeader>());
+  if (o2::raw::RDHUtils::getVersion(&rdh) > 6) {
+    mFileWriter.useRDHDataFormat(dataformat);
+  } else {
+    mFileWriter.useRDHDataFormat(padding);
+  }
   for (int crateid = 0; crateid < 72; crateid++) {
     // cru=0 --> FLP 1, ... defined in Geo
     // cru=1 --> FLP 1, ... defined in Geo
@@ -356,6 +364,20 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       nextWord(i);
       mUnion[i]->data = 0x70000000;
       nextWord(i);
+
+      // check if the numer of paylod words  is divisible by 4 (16 bytes), otherwise fill with two words
+      int nbytes = getSize(mTOFDataHeader[i], mUnion[i]);
+      if (nbytes % 4) {
+        LOG(error) << "Nbytes not divisible by 4? Something went wrong with the word (32 bits) length";
+      } else if (nbytes % 8) {
+        LOG(error) << "Odd number of nwords in TOF payload, this should not happen";
+      } else if (nbytes % 16) {
+        //        LOG(info) << "Nwords not divisible by 4, let's fill with 2 more words";
+        mUnion[i]->data = 0x70000000;
+        nextWord(i);
+        mUnion[i]->data = 0x70000000;
+        nextWord(i);
+      }
 
       mTOFDataHeader[i]->bytePayload = getSize(mTOFDataHeader[i], mUnion[i]);
     }

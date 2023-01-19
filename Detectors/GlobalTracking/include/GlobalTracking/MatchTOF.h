@@ -248,7 +248,7 @@ class MatchTOF
   float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
   float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 10;           ///< tolerance in cm for track-TOF time bracket matching
-  int mSigmaTimeCut = 30.;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  float mSigmaTimeCut = 3;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   bool mIsFIT = false;
   bool mIsITSTPCused = false;
