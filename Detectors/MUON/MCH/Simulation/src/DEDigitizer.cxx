@@ -194,8 +194,6 @@ void DEDigitizer::clear()
   for (auto& signals : mSignals) {
     signals.clear();
   }
-
-  return nPileup;
 }
 
 
