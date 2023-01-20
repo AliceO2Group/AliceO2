@@ -59,6 +59,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 {
   if (!mMatchParams) {
     mMatchParams = &o2::globaltracking::MatchTOFParams::Instance();
+    mSigmaTimeCut = mMatchParams->nsigmaTimeCut;
   }
 
   ///< running the matching
