@@ -309,9 +309,6 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
     }
   }
   compClusPtr->emplace_back(row, col, pattID, bbox.chipID);
-  if (row > 1024 || col > 1024) {
-    LOGP(info, "row {} col {}", row, col); 
-  }
 }
 
 } // namespace its3

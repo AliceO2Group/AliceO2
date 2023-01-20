@@ -33,11 +33,6 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
 {
   gROOT->SetBatch(batch);
 
-  // we assume that we have 2 chips per layer
-  const int nChipsPerLayer = 2;
-
-  const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
-
   using namespace o2::base;
   using namespace o2::its;
 
@@ -52,6 +47,17 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
 
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
+
+  // we assume that we have 2 chips per layer
+  const int nChipsPerLayer = 2;
+  std::vector<SegmentationSuperAlpide> segs{};
+  for (int iLayer{0}; iLayer < nITS3layers; ++iLayer) {
+    for (int iChip{0}; iChip < nChipsPerLayer; ++iChip) {
+      segs.push_back(SegmentationSuperAlpide(iLayer));
+    }
+  }
+
+  const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
   TFile fout("CheckClusters.root", "recreate");
   TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:tx:tz:cgx:cgy:cgz:dx:dy:dz:ex:ez:patid:rof:npx:id");
@@ -175,16 +181,14 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
         npix = dict.getNpixels(pattID);
         LOGP(info, "I am invalid and I am on chip {}", chipID);
       }
-      // Transformation to the local --> global
-      auto gloC = gman->getMatrixL2G(chipID)(locC);
       if (chipID / nChipsPerLayer < nITS3layers) {
-        double radius = SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer];
-
-        bool isTop = !(chipID % nChipsPerLayer);
-        double phi = locC.X() / radius + (isTop ? -0.5 : +0.5) * (float)TMath::Pi();
-        gloC.SetXYZ(-radius * std::cos(phi), -(isTop ? radius * std::sin(phi) - 0.1 / 2 : radius * std::sin(phi) + 0.1 / 2), locC.Z());
+        float xCurved{0.f}, yCurved{0.f};
+        segs[chipID].flatToCurved(locC.X(), locC.Y(), xCurved, yCurved);
+        locC.SetXYZ(xCurved, yCurved, locC.Z());
       }
 
+      // Transformation to the local --> global
+      auto gloC = gman->getMatrixL2G(chipID)(locC);
       const auto& lab = (clusLabArr->getLabels(clEntry))[0];
 
       if (!lab.isValid() || lab.getSourceID() == QEDSourceID)
@@ -211,16 +215,6 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
 
-      if (chipID / nChipsPerLayer < nITS3layers) {
-        bool isTop = !(chipID % nChipsPerLayer);
-        float reShiftedY = isTop ? hit.GetPosStart().Y() - 0.1 / 2 : hit.GetPosStart().Y() + 0.1 / 2;
-        float startPhi{std::atan2(-reShiftedY, -hit.GetPosStart().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-        float reShiftedEndY = isTop ? hit.GetPos().Y() - 0.1 / 2 : hit.GetPos().Y() + 0.1 / 2;
-        float endPhi{std::atan2(-reShiftedEndY, -hit.GetPos().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-        float deltaY = reShiftedEndY - reShiftedY;
-        locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * endPhi, 0.f, hit.GetPos().Z());
-        locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, deltaY, hit.GetPosStart().Z());
-      }
       auto x0 = locHsta.X(), dltx = locH.X() - x0;
       auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
       auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
@@ -258,9 +252,9 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id < 6", "colz");
+  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id < 6", "colz");
   canvdXdZ->cd(2);
-  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id >= 6", "colz");
+  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id >= 6", "colz");
   canvdXdZ->SaveAs("it3clusters_dx_vs_dz.pdf");
 
   // auto c1 = new TCanvas("p1", "pullX");

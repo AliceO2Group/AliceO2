@@ -41,10 +41,10 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
     specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
   }
 
-  specs.emplace_back(o2::its::getTrackerSpec(useMC, useTrig, trmode, dtype));
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
-  }
+  // specs.emplace_back(o2::its::getTrackerSpec(useMC, useTrig, trmode, dtype));
+  // if (!disableRootOutput) {
+  //   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
+  // }
 
   return specs;
 }

@@ -156,21 +156,21 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
     // LOOP on : digits array
     for (unsigned int iDigit = rofIndex; iDigit < rofIndex + rofNEntries; iDigit++) {
 
-      Int_t ix = (*digArr)[iDigit].getRow(), iz = (*digArr)[iDigit].getColumn();
-      Float_t x = 0.f, z = 0.f;
+      int ix = (*digArr)[iDigit].getRow(), iz = (*digArr)[iDigit].getColumn();
+      float x{0.f}, y{0.f}, z{0.f};
 
-      Int_t chipID = (*digArr)[iDigit].getChipIndex();
+      int chipID = (*digArr)[iDigit].getChipIndex();
 
       if (chipID / nChipsPerLayer < nITS3layers) {
-        segs[chipID].detectorToLocal(ix, iz, x, z);
+        float xFlat{0.f};
+        segs[chipID].detectorToLocal(ix, iz, xFlat, z);
+        segs[chipID].flatToCurved(xFlat, 0., x, y);
       } else {
         SegmentationAlpide::detectorToLocal(ix, iz, x, z);
       }
 
-      const o2::math_utils::Point3D<float> locD(x, 0., z);
-
+      const o2::math_utils::Point3D<float> locD(x, y, z);
       auto lab = (labels.getLabels(iDigit))[0];
-
       int trID = lab.getTrackID();
 
       if (lab.isValid()) { // not a noise
@@ -178,16 +178,6 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
         nDigitRead++;
 
         auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
-        if (chipID / nChipsPerLayer < nITS3layers) {
-          //
-          // invert transformation in Digitiser.cxx
-          //
-          double radius = SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer];
-
-          bool isTop = !(chipID % nChipsPerLayer);
-          double phi = locD.X() / radius + (isTop ? -0.5 : +0.5) * (float)TMath::Pi();
-          gloD.SetXYZ(-radius * std::cos(phi), -(isTop ? radius * std::sin(phi) - 0.1 / 2 : radius * std::sin(phi) + 0.1 / 2), locD.Z());
-        }
         float dx = 0., dz = 0.;
 
         std::unordered_map<uint64_t, int>* mc2hit = &mc2hitVec[lab.getEventID()];
@@ -205,20 +195,8 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
         ////// HITS
         Hit& hit = (*hitArray[lab.getEventID()])[hitEntry->second];
 
-        // FIXME FOR INNER BARREL
         auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
         auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-
-        if (chipID / nChipsPerLayer < nITS3layers) {
-          bool isTop = !(chipID % nChipsPerLayer);
-          float reShiftedY = isTop ? hit.GetPosStart().Y() - 0.1 / 2 : hit.GetPosStart().Y() + 0.1 / 2;
-          float startPhi{std::atan2(-reShiftedY, -hit.GetPosStart().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-          float reShiftedEndY = isTop ? hit.GetPos().Y() - 0.1 / 2 : hit.GetPos().Y() + 0.1 / 2;
-          float endPhi{std::atan2(-reShiftedEndY, -hit.GetPos().X()) + (isTop ? (float)TMath::Pi() / 2 : -(float)TMath::Pi() / 2)};
-          float deltaY = reShiftedEndY - reShiftedY;
-          locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * endPhi, 0.f, hit.GetPos().Z());
-          locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID / nChipsPerLayer] * startPhi, deltaY, hit.GetPosStart().Z());
-        }
 
         locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
 

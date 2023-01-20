@@ -29,8 +29,9 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer = 0) : NPixels{NRows * NCols},
-                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::PI) / double(PitchRow) + 1)},
+  SegmentationSuperAlpide(int layer = 0) : Layer{layer},
+                                           NPixels{NRows * NCols},
+                                           NRows{static_cast<int>(double(Radii[layer] + SensorLayerThickness / 2) * double(constants::math::PI) / double(PitchRow) + 1)},
                                            ActiveMatrixSizeRows{PitchRow * NRows},
                                            SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
   {
@@ -44,6 +45,7 @@ class SegmentationSuperAlpide
   static constexpr int NCols = Length / PitchCol;
   int NRows;
   int NPixels;
+  int Layer;
   static constexpr float PassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
   static constexpr float PassiveEdgeTop = 0.;                     // Passive area on top
   static constexpr float PassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
@@ -57,6 +59,30 @@ class SegmentationSuperAlpide
   float SensorSizeRows;                                                                             // SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
+
+  /// Transformation from the curved surface to a flat surface
+  /// It works only if the detector is not rototraslated
+  /// \param xCurved Detector local curved coordinate x in cm with respect to
+  /// the center of the sensitive volume.
+  /// \param yCurved Detector local curved coordinate y in cm with respect to
+  /// the center of the sensitive volulme.
+  /// \param xFlat Detector local flat coordinate x in cm with respect to
+  /// the center of the sensitive volume.
+  /// \param yFlat Detector local flat coordinate y in cm with respect to
+  /// the center of the sensitive volulme.
+  void curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat);
+
+  /// Transformation from the flat surface to a curved surface
+  /// It works only if the detector is not rototraslated
+  /// \param xFlat Detector local flat coordinate x in cm with respect to
+  /// the center of the sensitive volume.
+  /// \param yFlat Detector local flat coordinate y in cm with respect to
+  /// the center of the sensitive volulme.
+  /// \param xCurved Detector local curved coordinate x in cm with respect to
+  /// the center of the sensitive volume.
+  /// \param yCurved Detector local curved coordinate y in cm with respect to
+  /// the center of the sensitive volulme.
+  void flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved);
 
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers iRow and iCol.
@@ -102,6 +128,23 @@ class SegmentationSuperAlpide
 
   ClassDefNV(SegmentationSuperAlpide, 1); // Segmentation class upgrade pixels
 };
+
+inline void SegmentationSuperAlpide::curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat)
+{
+  float dist = std::sqrt(xCurved * xCurved + yCurved * yCurved);
+  float phi = (double)constants::math::PI / 2 - std::atan2((double)yCurved, (double)xCurved);
+  xFlat = (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2) * phi;
+  yFlat = dist - (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
+}
+
+inline void SegmentationSuperAlpide::flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved)
+{
+  float phi = xFlat / (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
+  float dist = yFlat + (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
+  float tang = std::tan((double)constants::math::PI / 2 - (double)phi);
+  xCurved = (xFlat > 0 ? 1.f : -1.f) * dist / std::sqrt(1 + tang * tang);
+  yCurved = xCurved * tang;
+}
 
 inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol)
 {

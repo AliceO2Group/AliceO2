@@ -48,13 +48,13 @@ void Digitizer::init()
     }
   }
 
-  const Int_t numOfChips = mGeometry->getNumberOfChips();
+  const int numOfChips = mGeometry->getNumberOfChips();
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
   }
   if (!mParams.getAlpSimResponse()) {
-    std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/AlpideResponseData.root";
+    std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
     auto file = TFile::Open(responseFile.data());
     mAlpSimResp = (o2::itsmft::AlpideSimResponse*)file->Get("response1");
     mParams.setAlpSimResponse(mAlpSimResp);
@@ -68,9 +68,9 @@ void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcI
   // digitize single event, the time must have been set beforehand
 
   LOG(info) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
-            << srcID << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
-            << " cont.mode: " << isContinuous()
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
+             << srcID << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
+             << " cont.mode: " << isContinuous()
+             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -234,29 +234,17 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   short detID{hit.GetDetectorID()};
   const auto& matrix = mGeometry->getMatrixL2G(detID); // <<<< ?????
   bool innerBarrel{detID < mSuperSegmentations.size()};
-  float gap = 0.1; // FIXME: get this properly!
-  auto startPos = hit.GetPosStart();
-  // LOGP(info,  "StartPos: {} {} {}", startPos.X(), startPos.Y(), startPos.Z());
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
+  xyzLocS = matrix ^ (hit.GetPosStart());
+  xyzLocE = matrix ^ (hit.GetPos());
   if (innerBarrel) {
-    bool isTop = startPos.Y() > 0;
-    float reShiftedStartY = isTop ? startPos.Y() - gap / 2 : startPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-    float startPhi{std::atan2(-reShiftedStartY, -startPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
-    if (innerBarrel) {
-      // LOGP(info, "X: {}, Y: {}, startPhi: {}", startPos.X(), reShiftedStartY, startPhi);
-    }
-    auto endPos = hit.GetPos();
-    float reShiftedEndY = isTop ? endPos.Y() - gap / 2 : endPos.Y() + gap / 2; // This is due to the gap between the ITS3 emispheres
-    float endPhi{std::atan2(-reShiftedEndY, -endPos.X()) + (isTop ? constants::math::PI / 2 : -constants::math::PI / 2)};
-    if (innerBarrel) {
-      // LOGP(info, "X: {}, Y: {}, endPhi: {}", endPos.X(), reShiftedEndY, endPhi);
-    }
-    float deltaY = reShiftedEndY - reShiftedEndY;
-    xyzLocS = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (startPhi), 0.f, startPos.Z()};
-    xyzLocE = {SegmentationSuperAlpide::Radii[mLayerID[detID]] * (endPhi), deltaY, endPos.Z()};
-  } else {
-    xyzLocS = matrix ^ (hit.GetPosStart());
-    xyzLocE = matrix ^ (hit.GetPos());
+    // transform the point on the curved surface to a flat one
+    float xFlatE{0.f}, yFlatE{0.f}, xFlatS{0.f}, yFlatS{0.f};
+    mSuperSegmentations[detID].curvedToFlat(xyzLocS.X(), xyzLocS.Y(), xFlatS, yFlatS);
+    mSuperSegmentations[detID].curvedToFlat(xyzLocE.X(), xyzLocE.Y(), xFlatE, yFlatE);
+    // update the local coordinates with the flattened ones
+    xyzLocS.SetXYZ(xFlatS, yFlatS, xyzLocS.Z());
+    xyzLocE.SetXYZ(xFlatE, yFlatE, xyzLocE.Z());
   }
 
   math_utils::Vector3D<float> step(xyzLocE);

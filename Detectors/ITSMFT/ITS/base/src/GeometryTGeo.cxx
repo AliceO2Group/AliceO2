@@ -374,8 +374,11 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   if (mNumberOfModules[lay] > 0) {
     path += Form("%s%d_%d/", mIsLayerITS3[lay] ? getITS3ModulePattern() : getITSModulePattern(), lay, mod);
   }
-  path +=
-    Form("%s%d_%d/%s%d_1", mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), lay, chipInMod, mIsLayerITS3[lay] ? getITS3SensorPattern() : getITSSensorPattern(), lay);
+  if (!mIsLayerITS3[lay]) {
+    path += Form("%s%d_%d/%s%d_1", getITSChipPattern(), lay, chipInMod, getITSSensorPattern(), lay);
+  } else {
+    path += Form("%s%d_%d", getITS3ChipPattern(), lay, chipInMod); // for ITS3 currently we might have more sensors than chips, so we have to take the chip to avoid mismatches with chipId
+  }
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -389,7 +392,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
   // RSS
   // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
-  matTmp.Print();
+  // matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
