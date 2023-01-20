@@ -737,7 +737,7 @@ DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information, Run 2 format, to be p
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
 using Zdc = Zdcs::iterator;
 
-DECLARE_SOA_TABLE(ZdcsRun3, "AOD", "ZDCRUN3", //! ZDC information, Run 3 format, to be preprocessed via ZDC converter
+DECLARE_SOA_TABLE(ZdcsRun3, "AOD", "ZDCRUN3",                                                                         //! ZDC information, Run 3 format, to be preprocessed via ZDC converter
                   o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT); //
 using ZdcRun3 = ZdcsRun3::iterator;
 

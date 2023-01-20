@@ -1378,6 +1378,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
+#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
   // Initialize ZDC helper maps
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
     mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
@@ -1385,6 +1386,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
     mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
   }
+#endif
 
   mTimer.Reset();
 }
@@ -1486,7 +1488,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ambigMFTTracksCursor = ambigMFTTracksBuilder.cursor<o2::aod::AmbiguousMFTTracks>();
   auto ambigFwdTracksCursor = ambigFwdTracksBuilder.cursor<o2::aod::AmbiguousFwdTracks>();
   auto v0sCursor = v0sBuilder.cursor<o2::aod::V0s>();
+#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
+#else
+  auto zdcCursor = zdcBuilder.cursor<o2::aod::ZdcsRun3>();
+#endif
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto cpvClustersCursor = cpvClustersBuilder.cursor<o2::aod::CPVClusters>();
@@ -1541,14 +1547,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                fv0RecPoint.getTrigger().getTriggersignals());
   }
 
+#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
   for (auto zdcRecData : zdcBCRecData) {
-    // initialize zdc helper maps
-    for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
-      mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
-    }
-    for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
-      mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
-    }
     uint64_t bc = zdcRecData.ir.toLong();
     auto item = bcsMap.find(bc);
     int bcID = -1;
@@ -1559,6 +1559,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
     int fe, ne, ft, nt, fi, ni;
     zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
+    // initialize zdc helper maps
+    for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
+      mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
+    }
+    for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
+      mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
+    }
     for (int ie = 0; ie < ne; ie++) {
       auto& zdcEnergyData = zdcEnergies[fe + ie];
       int ch = zdcEnergyData.ch();
@@ -1614,6 +1621,45 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPAC],
               mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPCC]);
   }
+#else
+  std::vector<float> zdcEnergy, zdcAmplitudes, zdcTime;
+  std::vector<uint8_t> zdcChannelsE, zdcChannelsT;
+  for (auto zdcRecData : zdcBCRecData) {
+    uint64_t bc = zdcRecData.ir.toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(fatal) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
+    }
+    int fe, ne, ft, nt, fi, ni;
+    zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
+    zdcEnergy.clear();
+    zdcChannelsE.clear();
+    zdcAmplitudes.clear();
+    zdcTime.clear();
+    zdcChannelsT.clear();
+    for (int ie = 0; ie < ne; ie++) {
+      auto& zdcEnergyData = zdcEnergies[fe + ie];
+      zdcEnergy.emplace_back(zdcEnergyData.energy());
+      zdcChannelsE.emplace_back(zdcEnergyData.ch());
+    }
+    for (int it = 0; it < nt; it++) {
+      auto& tdc = zdcTDCData[ft + it];
+      zdcAmplitudes.emplace_back(tdc.amplitude());
+      zdcTime.emplace_back(tdc.value());
+      zdcChannelsT.emplace_back(o2::zdc::TDCSignal[tdc.ch()]);
+    }
+    zdcCursor(0,
+              bcID,
+              zdcEnergy,
+              zdcChannelsE,
+              zdcAmplitudes,
+              zdcTime,
+              zdcChannelsT);
+  }
+#endif
 
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
