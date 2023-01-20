@@ -507,8 +507,8 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   int nCl = -1, clEntry = -1, nClRefit = 0, clRefs[14];
   float chi2Out = 0, timeZErr = 0.;
-  int pileUpDist = trk.getPileUpDistance(); // distance to farthest collision within the pileup integration time
-  if (pileUpDist) {
+  bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
+  if (pileUpOn) {
     timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
   }
   auto geom = o2::its::GeometryTGeo::Instance();
@@ -623,8 +623,8 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   outerParam = trk;
   float chi2Out = 0, timeZErr = 0.;
-  int pileUpDist = trk.getPileUpDistance(); // distance to farthest collision within the pileup integration time
-  if (pileUpDist) {
+  bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
+  if (pileUpOn) {
     timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
   }
   int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
@@ -632,7 +632,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     LOG(debug) << "TPC refit outwards failed";
     return false;
   }
-  if (pileUpDist) { // account pileup time uncertainty in Z errors
+  if (pileUpOn) { // account pileup time uncertainty in Z errors
     timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
     outerParam.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
   }
@@ -653,7 +653,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     LOG(debug) << "TPC refit inwards failed";
     return false;
   }
-  if (pileUpDist) { // account pileup time uncertainty in Z errors
+  if (pileUpOn) { // account pileup time uncertainty in Z errors
     trk.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
   }
 

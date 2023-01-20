@@ -195,8 +195,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
             continue;
           }
-          float t0 = t0Trig, t0Err = 1.e-3; // 1ns nominal error
-          if (trc.getPileUpDistance()) {    // distance to farthest collision within the pileup integration time
+          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
+          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
             t0 += trc.getPileUpTimeShiftMUS();
             t0Err += trc.getPileUpTimeErrorMUS();
           }
@@ -242,15 +242,14 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
         const auto& trig = trigTPCTRD[itr];
         auto bcdiff = getBCDiff(trig.getBCData());
         float t0Trig = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
-        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3, t0Err = 1.e-3;
         for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
           const auto& trc = tracksTPCTRD[i];
           if (isUsed2(i, currentSource)) {
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
             continue;
           }
-          float t0 = t0Trig, t0Err = 1.e-3; // 1ns nominal error
-          if (trc.getPileUpDistance()) {    // distance to farthest collision within the pileup integration time
+          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
+          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
             t0 += trc.getPileUpTimeShiftMUS();
             t0Err += trc.getPileUpTimeErrorMUS();
           }
