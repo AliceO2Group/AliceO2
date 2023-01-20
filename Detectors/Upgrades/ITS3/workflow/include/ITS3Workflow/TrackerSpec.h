@@ -11,7 +11,7 @@
 
 /// @file   TrackerSpec.h
 
-#ifndef O2_ITS_TRACKERDPL
+#ifndef O2_ITS3_TRACKERDPL
 #define O2_ITS_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
