@@ -12,7 +12,7 @@
 /// @file   TrackerSpec.h
 
 #ifndef O2_ITS3_TRACKERDPL
-#define O2_ITS_TRACKERDPL
+#define O2_ITS3_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
