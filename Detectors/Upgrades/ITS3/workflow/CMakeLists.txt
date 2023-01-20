@@ -59,4 +59,3 @@ o2_add_executable(reco-workflow
 #                   SOURCES src/its-cluster-reader-workflow.cxx
 #                   COMPONENT_NAME its
 #                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
-

@@ -19,7 +19,7 @@ o2_add_library(ITS3Reconstruction
                                      O2::ITS3Base
                                      O2::CommonDataFormat
                                      O2::DetectorsRaw
-                                     O2::SimulationDataFormat 
+                                     O2::SimulationDataFormat
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsITS3
                                      O2::DPLUtils
@@ -36,4 +36,3 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-  
