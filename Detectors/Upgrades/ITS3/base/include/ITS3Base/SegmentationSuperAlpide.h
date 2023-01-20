@@ -46,11 +46,11 @@ class SegmentationSuperAlpide
   int mNRows;
   int mNPixels;
   int mLayer;
-  static constexpr float mPassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
-  static constexpr float mPassiveEdgeTop = 0.;                     // Passive area on top
-  static constexpr float mPassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
+  static constexpr float mPassiveEdgeReadOut = 0.;                   // width of the readout edge (Passive bottom)
+  static constexpr float mPassiveEdgeTop = 0.;                       // Passive area on top
+  static constexpr float mPassiveEdgeSide = 0.;                      // width of Passive area on left/right of the sensor
   static constexpr float mActiveMatrixSizeCols = mPitchCol * mNCols; // Active size along columns
-  float mActiveMatrixSizeRows;                                     // Active size along rows
+  float mActiveMatrixSizeRows;                                       // Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
   static constexpr float mSensorLayerThicknessEff = 28.e-4;
