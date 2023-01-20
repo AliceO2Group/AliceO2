@@ -24,6 +24,7 @@ namespace globaltracking
 
 struct MatchTOFParams : public o2::conf::ConfigurableParamHelper<MatchTOFParams> {
   float calibMaxChi2 = 3.0;
+  float nsigmaTimeCut = 4.; // number of sigmas for non-TPC track time resolution to consider
 
   O2ParamDef(MatchTOFParams, "MatchTOF");
 };
