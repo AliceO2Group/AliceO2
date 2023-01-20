@@ -16,4 +16,5 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::focal::EventReader + ;
+#pragma link C++ class o2::focal::TestbeamAnalysis + ;
 #endif
