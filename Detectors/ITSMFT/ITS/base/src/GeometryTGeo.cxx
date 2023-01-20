@@ -400,7 +400,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   double delta = 0.;
   if (mIsLayerITS3[lay]) {
 #ifdef ENABLE_UPGRADES
-    delta = SegmentationITS3::SensorLayerThickness - SegmentationITS3::SensorLayerThicknessEff;
+    delta = SegmentationITS3::mSensorLayerThickness - SegmentationITS3::mSensorLayerThicknessEff;
 #endif
   } else {
     delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;

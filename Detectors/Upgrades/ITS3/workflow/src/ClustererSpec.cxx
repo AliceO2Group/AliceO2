@@ -18,7 +18,6 @@
 #include "ITS3Workflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITS3/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"

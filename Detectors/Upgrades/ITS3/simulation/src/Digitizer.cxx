@@ -151,7 +151,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     for (int iChip{0}; iChip < mChips.size(); ++iChip) {
       auto& chip = mChips[iChip];
       if (iChip < mSuperSegmentations.size()) { // Check if this is a chip of ITS3
-        chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mSuperSegmentations[iChip].NRows, mSuperSegmentations[iChip].NCols);
+        chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mSuperSegmentations[iChip].mNRows, mSuperSegmentations[iChip].mNCols);
       } else {
         chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
       }
@@ -303,8 +303,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     rowS = 0;
   }
 
-  int maxNrows{innerBarrel ? mSuperSegmentations[detID].NRows : Segmentation::NRows};
-  int maxNcols{innerBarrel ? mSuperSegmentations[detID].NCols : Segmentation::NCols};
+  int maxNrows{innerBarrel ? mSuperSegmentations[detID].mNRows : Segmentation::NRows};
+  int maxNcols{innerBarrel ? mSuperSegmentations[detID].mNCols : Segmentation::NCols};
   if (rowE >= maxNrows) {
     rowE = maxNrows - 1;
   }
@@ -358,8 +358,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     }
     bool flipCol, flipRow;
     // note that response needs coordinates along column row (locX) (locZ) then depth (locY)
-    float rowMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].PitchRow : Segmentation::PitchRow)};
-    float colMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].PitchCol : Segmentation::PitchCol)};
+    float rowMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].mPitchRow : Segmentation::PitchRow)};
+    float colMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].mPitchCol : Segmentation::PitchCol)};
     auto rspmat = resp->getResponse(xyzLocS.X() - cRowPix, xyzLocS.Z() - cColPix, xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
 
     xyzLocS += step;

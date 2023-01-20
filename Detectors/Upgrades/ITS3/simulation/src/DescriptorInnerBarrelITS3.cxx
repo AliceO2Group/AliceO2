@@ -60,7 +60,7 @@ void DescriptorInnerBarrelITS3::configure()
     mNumLayers = 5;
   }
 
-  mSensorLayerThickness = SegmentationSuperAlpide::SensorLayerThickness;
+  mSensorLayerThickness = SegmentationSuperAlpide::mSensorLayerThickness;
 
   // build ITS3 upgrade detector
   mLayer.resize(mNumLayers);

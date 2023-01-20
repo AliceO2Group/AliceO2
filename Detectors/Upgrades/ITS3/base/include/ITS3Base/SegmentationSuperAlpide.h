@@ -29,34 +29,34 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer = 0) : Layer{layer},
-                                           NPixels{NRows * NCols},
-                                           NRows{static_cast<int>(double(Radii[layer] + SensorLayerThickness / 2) * double(constants::math::PI) / double(PitchRow) + 1)},
-                                           ActiveMatrixSizeRows{PitchRow * NRows},
-                                           SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
+  SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
+                                           mNPixels{mNRows * mNCols},
+                                           mNRows{static_cast<int>(double(mRadii[layer] + mSensorLayerThickness / 2) * double(constants::math::PI) / double(mPitchRow) + 1)},
+                                           mActiveMatrixSizeRows{mPitchRow * mNRows},
+                                           mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}
   {
-    LOGP(info, "rows: {} cols: {} npixels: {}", NRows, NCols, NPixels);
-    LOGP(info, "SegmentationSuperAlpide: layer {} ActiveMatrixSizeRows: {} ActiveMatrixSizeCols: {}", layer, ActiveMatrixSizeCols, ActiveMatrixSizeRows);
+    LOGP(info, "rows: {} cols: {} npixels: {}", mNRows, mNCols, mNPixels);
+    LOGP(info, "SegmentationSuperAlpide: layer {} ActiveMatrixSizeRows: {} ActiveMatrixSizeCols: {}", mLayer, mActiveMatrixSizeCols, mActiveMatrixSizeRows);
   }
-  static constexpr std::array<float, 10> Radii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
-  static constexpr float Length = 27.15f;
-  static constexpr float PitchCol = 20.e-4;
-  static constexpr float PitchRow = 20.e-4;
-  static constexpr int NCols = Length / PitchCol;
-  int NRows;
-  int NPixels;
-  int Layer;
-  static constexpr float PassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
-  static constexpr float PassiveEdgeTop = 0.;                     // Passive area on top
-  static constexpr float PassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
-  static constexpr float ActiveMatrixSizeCols = PitchCol * NCols; // Active size along columns
-  float ActiveMatrixSizeRows;                                     // Active size along rows
+  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
+  static constexpr float mLength = 27.15f;
+  static constexpr float mPitchCol = 20.e-4;
+  static constexpr float mPitchRow = 20.e-4;
+  static constexpr int mNCols = mLength / mPitchCol;
+  int mNRows;
+  int mNPixels;
+  int mLayer;
+  static constexpr float mPassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
+  static constexpr float mPassiveEdgeTop = 0.;                     // Passive area on top
+  static constexpr float mPassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
+  static constexpr float mActiveMatrixSizeCols = mPitchCol * mNCols; // Active size along columns
+  float mActiveMatrixSizeRows;                                     // Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float SensorLayerThicknessEff = 28.e-4;
-  static constexpr float SensorLayerThickness = 30.e-4;                                             // physical thickness of sensitive part
-  static constexpr float SensorSizeCols = ActiveMatrixSizeCols + PassiveEdgeSide + PassiveEdgeSide; // SensorSize along columns
-  float SensorSizeRows;                                                                             // SensorSize along rows
+  static constexpr float mSensorLayerThicknessEff = 28.e-4;
+  static constexpr float mSensorLayerThickness = 30.e-4;                                                // physical thickness of sensitive part
+  static constexpr float mSensorSizeCols = mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide; // SensorSize along columns
+  float mSensorSizeRows;                                                                                // SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
 
@@ -120,9 +120,9 @@ class SegmentationSuperAlpide
 
   float getFirstRowCoordinate()
   {
-    return 0.5 * ((ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - PitchRow);
+    return 0.5 * ((mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - mPitchRow);
   }
-  static constexpr float getFirstColCoordinate() { return 0.5 * (PitchCol - ActiveMatrixSizeCols); }
+  static constexpr float getFirstColCoordinate() { return 0.5 * (mPitchCol - mActiveMatrixSizeCols); }
 
   void print();
 
@@ -133,14 +133,14 @@ inline void SegmentationSuperAlpide::curvedToFlat(float xCurved, float yCurved, 
 {
   float dist = std::sqrt(xCurved * xCurved + yCurved * yCurved);
   float phi = (double)constants::math::PI / 2 - std::atan2((double)yCurved, (double)xCurved);
-  xFlat = (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2) * phi;
-  yFlat = dist - (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
+  xFlat = (mRadii[mLayer] + SegmentationSuperAlpide::mSensorLayerThickness / 2) * phi;
+  yFlat = dist - (mRadii[mLayer] + SegmentationSuperAlpide::mSensorLayerThickness / 2);
 }
 
 inline void SegmentationSuperAlpide::flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved)
 {
-  float phi = xFlat / (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
-  float dist = yFlat + (Radii[Layer] + SegmentationSuperAlpide::SensorLayerThickness / 2);
+  float phi = xFlat / (mRadii[mLayer] + SegmentationSuperAlpide::mSensorLayerThickness / 2);
+  float dist = yFlat + (mRadii[mLayer] + SegmentationSuperAlpide::mSensorLayerThickness / 2);
   float tang = std::tan((double)constants::math::PI / 2 - (double)phi);
   xCurved = (xFlat > 0 ? 1.f : -1.f) * dist / std::sqrt(1 + tang * tang);
   yCurved = xCurved * tang;
@@ -149,10 +149,10 @@ inline void SegmentationSuperAlpide::flatToCurved(float xFlat, float yFlat, floa
 inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol)
 {
   // convert to row/col w/o over/underflow check
-  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
-  zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt left edge of Active matrix
-  iRow = int(xRow / PitchRow);
-  iCol = int(zCol / PitchCol);
+  xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
+  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt left edge of Active matrix
+  iRow = int(xRow / mPitchRow);
+  iCol = int(zCol / mPitchCol);
   if (xRow < 0) {
     iRow -= 1;
   }
@@ -164,37 +164,37 @@ inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float 
 inline bool SegmentationSuperAlpide::localToDetector(float xRow, float zCol, int& iRow, int& iCol)
 {
   // convert to row/col
-  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
-  zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt bottom edge of Active matrix
-  if (xRow < 0 || xRow >= ActiveMatrixSizeRows || zCol < 0 || zCol >= ActiveMatrixSizeCols) {
+  xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
+  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt bottom edge of Active matrix
+  if (xRow < 0 || xRow >= mActiveMatrixSizeRows || zCol < 0 || zCol >= mActiveMatrixSizeCols) {
     iRow = iCol = -1;
     return false;
   }
-  iRow = int(xRow / PitchRow);
-  iCol = int(zCol / PitchCol);
+  iRow = int(xRow / mPitchRow);
+  iCol = int(zCol / mPitchCol);
   return true;
 }
 
 inline void SegmentationSuperAlpide::detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol)
 {
-  xRow = getFirstRowCoordinate() - iRow * PitchRow;
-  zCol = iCol * PitchCol + getFirstColCoordinate();
+  xRow = getFirstRowCoordinate() - iRow * mPitchRow;
+  zCol = iCol * mPitchCol + getFirstColCoordinate();
 }
 
 inline void SegmentationSuperAlpide::detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol)
 {
-  xRow = getFirstRowCoordinate() - row * PitchRow;
-  zCol = col * PitchCol + getFirstColCoordinate();
+  xRow = getFirstRowCoordinate() - row * mPitchRow;
+  zCol = col * mPitchCol + getFirstColCoordinate();
 }
 
 inline void SegmentationSuperAlpide::detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc)
 {
-  loc.SetCoordinates(getFirstRowCoordinate() - row * PitchRow, 0.f, col * PitchCol + getFirstColCoordinate());
+  loc.SetCoordinates(getFirstRowCoordinate() - row * mPitchRow, 0.f, col * mPitchCol + getFirstColCoordinate());
 }
 
 inline bool SegmentationSuperAlpide::detectorToLocal(int iRow, int iCol, float& xRow, float& zCol)
 {
-  if (iRow < 0 || iRow >= NRows || iCol < 0 || iCol >= NCols) {
+  if (iRow < 0 || iRow >= mNRows || iCol < 0 || iCol >= mNCols) {
     return false;
   }
   detectorToLocalUnchecked(iRow, iCol, xRow, zCol);
@@ -203,7 +203,7 @@ inline bool SegmentationSuperAlpide::detectorToLocal(int iRow, int iCol, float& 
 
 inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, float& xRow, float& zCol)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
+  if (row < 0 || row >= mNRows || col < 0 || col >= mNCols) {
     return false;
   }
   detectorToLocalUnchecked(row, col, xRow, zCol);
@@ -212,7 +212,7 @@ inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, float
 
 inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
+  if (row < 0 || row >= mNRows || col < 0 || col >= mNCols) {
     return false;
   }
   detectorToLocalUnchecked(row, col, loc);

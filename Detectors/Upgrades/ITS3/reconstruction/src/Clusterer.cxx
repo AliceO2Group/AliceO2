@@ -336,7 +336,7 @@ void Clusterer::ClustererThread::initChip(const ChipPixelData* curChipData, uint
   size = itsmft::SegmentationAlpide::NRows + 2;
   if (curChipData->getChipID() < 6) { // TODO Fix for mutable layouts
     SegmentationSuperAlpide seg(curChipData->getChipID() / 2);
-    size = seg.NRows + 2;
+    size = seg.mNRows + 2;
   }
   if (column1) {
     delete[] column1;
