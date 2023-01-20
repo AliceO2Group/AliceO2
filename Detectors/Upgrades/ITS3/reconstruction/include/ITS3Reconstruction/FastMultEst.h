@@ -29,12 +29,12 @@ struct FastMultEst {
 
   static constexpr int NLayers = o2::itsmft::ChipMappingITS::NLayers;
 
-  float mult = 0.;                         /// estimated signal clusters multipliciy at reference (1st?) layer
-  float noisePerChip = 0.;                 /// estimated or imposed noise per chip
-  float cov[3] = {0.};                     /// covariance matrix of estimation
-  float chi2 = 0.;                         /// chi2
-  int nLayersUsed = 0;                     /// number of layers actually used
-  uint32_t lastRandomSeed = 0;             /// state of the gRandom before
+  float mult = 0.;             /// estimated signal clusters multipliciy at reference (1st?) layer
+  float noisePerChip = 0.;     /// estimated or imposed noise per chip
+  float cov[3] = {0.};         /// covariance matrix of estimation
+  float chi2 = 0.;             /// chi2
+  int nLayersUsed = 0;         /// number of layers actually used
+  uint32_t lastRandomSeed = 0; /// state of the gRandom before
 
   std::array<int, NLayers> nClPerLayer{0}; // measured N Cl per layer selectROFs
   FastMultEst();
@@ -60,7 +60,7 @@ struct FastMultEst {
   ClassDefNV(FastMultEst, 1);
 };
 
-} // namespace its
+} // namespace its3
 } // namespace o2
 
 #endif
