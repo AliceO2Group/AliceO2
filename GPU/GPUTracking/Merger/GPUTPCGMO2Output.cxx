@@ -199,8 +199,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
         const float tmax = CAMath::Min(tmin + maxDriftTime, CAMath::Max(t1, t2));
         float delta = 0.f;
-        if (time0 < tmax + maxDriftTime) {
-          delta = tmax + maxDriftTime - time0;
+        if (time0 + maxDriftTime < tmax) {
+          delta = tmax - time0 - maxDriftTime;
         }
         if (tmin < time0 + delta) {
           delta = tmin - time0;
