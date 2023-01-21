@@ -16,8 +16,8 @@ o2_add_library(TOFWorkflowUtils
                        src/CompressedAnalysisTask.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-			src/TOFIntegrateClusterSpec.cxx
-			src/TOFMergeIntegrateClusterSpec.cxx
+                       src/TOFIntegrateClusterSpec.cxx
+                       src/TOFMergeIntegrateClusterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction O2::TOFWorkflowIO O2::Steer O2::TOFCalibration)
 
 o2_add_executable(make-parameter-collection
