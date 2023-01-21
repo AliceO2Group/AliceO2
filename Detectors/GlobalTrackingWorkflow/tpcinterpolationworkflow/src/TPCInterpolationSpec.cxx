@@ -124,7 +124,16 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         // ITS and TPC track is always needed. At this stage ITS afterburner tracks are also rejected
         return true;
       }
-      if (gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet()) {
+      if (gidTable[GTrackID::TRD].isIndexSet()) {
+        // TRD specific cuts
+        const auto& trdTrk = recoData.getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+        if (trdTrk.getNtracklets() < param.minTRDNTrklts) {
+          trackGood = false;
+        }
+        hasOuterPoint = true;
+      }
+      if (gidTable[GTrackID::TOF].isIndexSet()) {
+        // TOF specific cuts (if any)
         hasOuterPoint = true;
       }
       const auto itstpcTrk = &recoData.getTPCITSTrack(gidTable[GTrackID::ITSTPC]);
@@ -143,6 +152,9 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         if (itsTrk->getNumberOfClusters() < param.minITSNClsNoOuterPoint || tpcTrk->getNClusterReferences() < param.minTPCNClsNoOuterPoint) {
           trackGood = false;
         }
+        if (itsTrk->getPt() < param.minPtNoOuterPoint) {
+          trackGood = false;
+        }
       } else {
         if (itsTrk->getNumberOfClusters() < param.minITSNCls || tpcTrk->getNClusterReferences() < param.minTPCNCls) {
           trackGood = false;
@@ -155,7 +167,13 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         gids.push_back(_origID);
         trkCounters[_origID.getSource()] += 1;
       }
-      return true;
+      if (gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet()) {
+        // for ITS-TPC-TRD-TOF tracks we are interested also in the ITS-TPC-TRD part
+        // we want to have both available, so return false for the full barrell tracks
+        return false;
+      } else {
+        return true;
+      }
     } else {
       return false;
     }

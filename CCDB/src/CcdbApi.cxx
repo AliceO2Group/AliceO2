@@ -138,8 +138,7 @@ void CcdbApi::init(std::string const& host)
     snapshotReport += ')';
   }
 
-  const std::string httpsprefix = "https://";
-  mNeedAlienToken = host.substr(0, httpsprefix.size()) == httpsprefix || host == "http://alice-ccdb.cern.ch";
+  mNeedAlienToken = (host.find("https://") != std::string::npos) || (host.find("alice-ccdb.cern.ch") != std::string::npos);
 
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());

@@ -22,6 +22,8 @@ namespace its
 
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
+  bool allowSingleContribClusters = false;
+
   // geometrical cuts
   float zCut = 0.002f;   // 0.002f
   float phiCut = 0.005f; // 0.005f
@@ -29,6 +31,8 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
+  float lowMultXYcut2 = 0.25f; // XY cut for low-multiplicity pile up
+  float baseBeamError = 0.005f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;

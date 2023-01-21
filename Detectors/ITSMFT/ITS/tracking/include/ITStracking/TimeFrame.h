@@ -101,6 +101,12 @@ class TimeFrame
   int getNrof() const;
 
   void resetBeamXY(const float x, const float y, const float w = 0);
+  void setBeamPosition(const float x, const float y, const float s2, const float base = 50.f, const float systematic = 0.f)
+  {
+    isBeamPositionOverridden = true;
+    resetBeamXY(x, y, s2 / std::sqrt(base * base + systematic));
+  }
+
   float getBeamX() const;
   float getBeamY() const;
 
@@ -212,6 +218,7 @@ class TimeFrame
   float mBz = 5.;
   int mBeamPosWeight = 0;
   float mBeamPos[2] = {0.f, 0.f};
+  bool isBeamPositionOverridden = false;
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
   std::vector<float> mMSangles;

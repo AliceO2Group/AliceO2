@@ -275,7 +275,16 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   using TestZ = o2::soa::Table<test::Z>;
   using Test = Join<TestX, TestY>;
 
+  BOOST_CHECK(Test::contains<TestX>());
+  BOOST_CHECK(Test::contains<TestY>());
+  BOOST_CHECK(!Test::contains<TestZ>());
+
   Test tests{0, tableX, tableY};
+
+  BOOST_CHECK(tests.contains<TestX>());
+  BOOST_CHECK(tests.contains<TestY>());
+  BOOST_CHECK(!tests.contains<TestZ>());
+
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
   }

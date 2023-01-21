@@ -374,6 +374,19 @@ void VertexerTraits::computeVertices()
         }
       }
     }
+    if (mVrtParams.allowSingleContribClusters) {
+      auto beamLine = Line{{mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), -50.f}, {mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), 50.f}}; // use beam position as contributor
+      for (size_t iLine{0}; iLine < numTracklets; ++iLine) {
+        if (!usedTracklets[iLine]) {
+          auto dca = Line::getDCA(mTimeFrame->getLines(rofId)[iLine], beamLine);
+          if (dca < mVrtParams.pairCut) {
+            mTimeFrame->getTrackletClusters(rofId).emplace_back(iLine, mTimeFrame->getLines(rofId)[iLine], -1, beamLine); // beamline must be passed as second line argument
+          }
+        }
+      }
+    }
+
+    // Cluster merging
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
               [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
     noClustersVec[rofId] = static_cast<int>(mTimeFrame->getTrackletClusters(rofId).size());
@@ -391,30 +404,39 @@ void VertexerTraits::computeVertices()
               mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
               vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
             }
+            mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
+            --iCluster2;
+            --noClustersVec[rofId];
           }
-          mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
-          --iCluster2;
-          --noClustersVec[rofId];
         }
       }
     }
   }
 
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
+              [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); }); // ensure clusters are ordered by contributors, so that we can cat after the first.
 #ifdef VTX_DEBUG
     for (auto& cl : mTimeFrame->getTrackletClusters(rofId)) {
       dbg_clusLines[rofId].push_back(cl);
     }
 #endif
+    bool atLeastOneFound{false};
     for (int iCluster{0}; iCluster < noClustersVec[rofId]; ++iCluster) {
-      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClustersVec[rofId] > 1) {
-        mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
-        noClustersVec[rofId]--;
-        continue;
+      bool lowMultCandidate{false};
+      if (atLeastOneFound && (lowMultCandidate = mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut)) { // We might have pile up with nContr > cut.
+        float beamDistance2{(mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) +
+                            (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
+        lowMultCandidate &= beamDistance2 < mVrtParams.lowMultXYcut2;
+        if (!lowMultCandidate) { // Not the first cluster and not a low multiplicity candidate, we can remove it
+          mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
+          noClustersVec[rofId]--;
+          continue;
+        }
       }
-      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] +
-            mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] <
-          1.98 * 1.98) {
+      float rXY{std::hypot(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0], mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
+      if (rXY < 1.98) {
+        atLeastOneFound = true;
         mVertices.emplace_back(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
                                mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
                                mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2],

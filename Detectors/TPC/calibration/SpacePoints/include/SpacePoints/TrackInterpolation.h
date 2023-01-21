@@ -100,10 +100,7 @@ struct TrackDataCompact {
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
   o2::dataformats::GlobalTrackID gid{}; ///< global track ID for seeding track
-  // the track parameters are taken from the ITS track
-  float x{};                                  ///< track X position
-  float alpha{};                              ///< track alpha angle
-  std::array<float, o2::track::kNParams> p{}; ///< track parameters
+  o2::track::TrackPar par{};            ///< ITS track at inner TPC radius
   float chi2TPC{};             ///< chi2 of TPC track
   float chi2ITS{};             ///< chi2 of ITS track
   float chi2TRD{};             ///< chi2 of TRD track
@@ -112,7 +109,7 @@ struct TrackData {
   unsigned short nTrkltsTRD{}; ///< number of attached TRD tracklets
   unsigned short clAvailTOF{}; ///< whether or not track seed has a matched TOF cluster
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of cluster residuals of this track
-  ClassDefNV(TrackData, 3);
+  ClassDefNV(TrackData, 5);
 };
 
 /// \class TrackInterpolation

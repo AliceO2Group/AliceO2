@@ -93,7 +93,7 @@ class TPCFactorizeSACSpec : public o2::framework::Task
   const bool mDebug{false};                                                                                                                                                ///< dump SACs to tree for debugging
   const int mLaneId{0};                                                                                                                                                    ///< the id of the current process within the parallel pipeline
   uint64_t mCCDBTimeStamp{0};                                                                                                                                              ///< time stamp of first SACs which are received for the current aggreagtion interval, which is used for setting the time when writing to the CCDB
-  const std::vector<InputSpec> mFilter = {{"sac", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(mLaneId)}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<InputSpec> mFilter = {{"sac", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(mLaneId)}, Lifetime::Sporadic}};  ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output)
   {

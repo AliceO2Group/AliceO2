@@ -50,6 +50,7 @@
 #include "GPUTPCConvertImpl.h"
 #include "TPCFastTransform.h"
 #include "CorrectionMapsHelper.h"
+#include "GPUROOTDump.h"
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -602,6 +603,9 @@ int GPUQA::ReadO2MCData(const char* filename)
     fclose(fp);
     return 1;
   }
+  if (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2) {
+    printf("Read %ld MC Infos\n", ftell(fp));
+  }
   fclose(fp);
   if (mTracking) {
     CopyO2MCtoIOPtr(&mTracking->mIOPtrs);
@@ -800,6 +804,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
   if (!mQAInitialized) {
     throw std::runtime_error("QA not initialized");
   }
+  if (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2) {
+    printf("Running QA\n");
+  }
   if (!clNative && mTracking) {
     clNative = mTracking->mIOPtrs.clustersNative;
   }
@@ -917,7 +924,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING) {
+    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
       GPUInfo("QA Time: Assign Track Labels:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1057,7 +1064,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING) {
+    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
       GPUInfo("QA Time: Cluster attach status:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1084,7 +1091,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING) {
+    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
       GPUInfo("QA Time: Compute cluster label weights:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1109,7 +1116,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (QA_TIMING) {
+    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
       GPUInfo("QA Time: Compute track mc parameters:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
 
@@ -1193,7 +1200,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING) {
+      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
         GPUInfo("QA Time: Fill efficiency histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1366,7 +1373,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           }
         }
       }
-      if (QA_TIMING) {
+      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
         GPUInfo("QA Time: Fill resolution histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1593,7 +1600,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
 
-      if (QA_TIMING) {
+      if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
         GPUInfo("QA Time: Fill cluster histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
@@ -1625,7 +1632,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       }
     }
 
-    if (QA_TIMING) {
+    if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
       GPUInfo("QA Time: Fill track statistics:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
     }
   }
@@ -1698,122 +1705,56 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mClusterCounts = counts_t();
   }
 
-  if (QA_TIMING) {
+  if (QA_TIMING || (mTracking && mTracking->GetProcessingSettings().debugLevel >= 3)) {
     GPUInfo("QA Time: Cluster Counts:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
-  // Create CSV DumpTrackHits
-  if (mConfig.csvDump) {
-    if (!mTracking->GetParam().par.earlyTpcTransform) {
-      GPUError("Unsupported settings for csv dump\n");
-      return;
+  if (mConfig.dumpToROOT) {
+    if (!clNative || !mTracking || !mTracking->mIOPtrs.mergedTrackHitAttachment || !mTracking->mIOPtrs.mergedTracks) {
+      throw std::runtime_error("Cannot dump non o2::tpc::clusterNative clusters, need also hit attachmend and GPU tracks");
     }
-    int totalNCls = GetNMCLabels();
-    if (totalNCls == 0) {
-      for (unsigned int iSlice = 0; iSlice < GPUChainTracking::NSLICES; iSlice++) {
-        totalNCls += mTracking->mIOPtrs.nClusterData[iSlice];
-      }
-    }
-
-    std::vector<float> clusterInfo(totalNCls);
-    memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
-    for (unsigned int i = 0; i < nReconstructedTracks; i++) {
-      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
-      if (!track.OK()) {
-        continue;
-      }
-      for (unsigned int k = 0; k < track.NClusters(); k++) {
-        if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
-          continue;
-        }
-        int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
-        float pt = fabsf(1.f / track.GetParam().GetQPt());
-        if (pt > clusterInfo[hitId]) {
-          clusterInfo[hitId] = pt;
-        }
-      }
-    }
-    static int csvNum = 0;
-    char fname[256];
-    sprintf(fname, "dump.%d.csv", csvNum);
-    FILE* fp = fopen(fname, "w+");
-    fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
-    int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
-    for (unsigned int iSlice = 0; iSlice < GPUChainTracking::NSLICES; iSlice++) {
-      for (unsigned int i = 0; i < mTracking->mIOPtrs.nClusterData[iSlice]; i++) {
-        const auto& cl = mTracking->mIOPtrs.clusterData[iSlice][i];
-        float x, y, z;
-        const int cid = cl.id;
-        mTracking->GetParam().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
-
-        float totalWeight = 0.f;
-        if (mcPresent()) {
-          for (int j = 0; j < GetMCLabelNID(cid); j++) {
-            if (GetMCLabelID(cid, j) >= 0) {
-              totalWeight += GetMCLabelWeight(cid, j);
-            }
-          }
-        }
-
-        float maxPt = 0.;
-        float p = 0.;
-
-        if (totalWeight > 0) {
-          for (int j = 0; j < GetMCLabelNID(cid); j++) {
-            const mcLabelI_t label = GetMCLabel(cid, j);
-            if (!label.isFake() && GetMCLabelWeight(cid, j) > 0.3 * totalWeight) {
-              const mcInfo_t& info = GetMCTrack(label);
-              const additionalMCParameters& mc2 = GetMCTrackObj(mMCParam, label);
-              const float pt = fabsf(mc2.pt);
-              if (pt > maxPt) {
-                maxPt = pt;
-                p = std::sqrt(info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ);
+    static auto cldump = GPUROOTDump<o2::tpc::ClusterNative, GPUTPCGMMergedTrack, GPUTPCGMMergedTrackHit, unsigned int, unsigned int, float, float, float, unsigned int, unsigned int, unsigned int>::getNew("cluster", "track", "trackHit", "attach", "extState", "x", "y", "z", "sector", "row", "nEv", "clusterTree");
+    unsigned int clid = 0;
+    for (unsigned int i = 0; i < GPUChainTracking::NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        for (unsigned int k = 0; k < mClNative->nClusters[i][j]; k++) {
+          const auto& cl = mClNative->clusters[i][j][k];
+          unsigned int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[clid];
+          GPUTPCGMMergedTrack trk;
+          GPUTPCGMMergedTrackHit trkHit;
+          memset((void*)&trk, 0, sizeof(trk));
+          memset((void*)&trkHit, 0, sizeof(trkHit));
+          float x = 0, y = 0, z = 0;
+          if (attach & gputpcgmmergertypes::attachFlagMask) {
+            unsigned int track = attach & gputpcgmmergertypes::attachTrackMask;
+            trk = mTracking->mIOPtrs.mergedTracks[track];
+            for (unsigned int l = 0; l < trk.NClusters(); l++) {
+              const auto& tmp = mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + l];
+              if (tmp.num == clid) {
+                trkHit = tmp;
+                break;
               }
             }
+            mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTZOffset());
+            mTracking->GetParam().Slice2Global(i, x, y, z, &x, &y, &z);
           }
-        }
-        int labels[3] = {};
-        if (mcPresent()) {
-          for (int j = 0; j < GetMCLabelNID(cid); j++) {
-            labels[j] = GetMCLabelID(cid, j);
-          }
-        }
 
-        dumpClTot++;
-        int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[cid];
-        CHECK_CLUSTER_STATE();
-        if (protect || physics) {
-          continue;
-        }
-        if (attach && qpt < 50) {
-          continue;
-        }
-        dumpClLeft++;
-        if (attach) {
-          dumpClRem++;
-        }
+          unsigned int extState = mTracking->mIOPtrs.mergedTrackHitStates ? mTracking->mIOPtrs.mergedTrackHitStates[clid] : 0;
 
-        fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d;%d\n", x, y, z, attach ? 1.f / qpt : 0.f, p, maxPt, labels[0], labels[1], labels[2], attach ? 1 : 0);
+          cldump.Fill(cl, trk, trkHit, attach, extState, x, y, z, i, j, mNEvents - 1);
+          clid++;
+        }
       }
     }
-    fclose(fp);
-    if (mcPresent()) {
-      sprintf(fname, "dump_event.%d.csv", csvNum++);
-      fp = fopen(fname, "w+");
-      fprintf(fp, "trackLabel;trackMomentum;trackMomentumTransverse;trackMomentumZ\n\n");
-      for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
-        for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
-          const mcInfo_t& info = GetMCTrack(i, iCol);
-          additionalMCParameters& mc2 = mMCParam[iCol][i];
-          if (mc2.nWeightCls > 0) {
-            fprintf(fp, "%u;%f;%f;%f\n", i, std::sqrt(info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ), mc2.pt, info.pZ);
-          }
-        }
-      }
-      fclose(fp);
-    }
-    GPUInfo("Wrote %s,%d clusters in total, %d left, %d to be removed", fname, dumpClTot, dumpClLeft, dumpClRem);
   }
+
+  static auto trkdump = GPUROOTDump<unsigned int, GPUTPCGMMergedTrack>::getNew("nEv", "tracks");
+  for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+    if (mTracking->mIOPtrs.mergedTracks[i].OK()) {
+      trkdump.Fill(mNEvents - 1, mTracking->mIOPtrs.mergedTracks[i]);
+    }
+  }
+
   mTrackingScratchBuffer.clear();
 }
 
@@ -1878,6 +1819,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 {
   if (!mQAInitialized) {
     throw std::runtime_error("QA not initialized");
+  }
+
+  if (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2) {
+    printf("Creating QA Histograms\n");
   }
 
   std::vector<Color_t> colorNums(COLORCOUNT);

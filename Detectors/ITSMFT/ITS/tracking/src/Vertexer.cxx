@@ -58,12 +58,14 @@ void Vertexer::getGlobalConfiguration()
   auto& vc = o2::its::VertexerParamConfig::Instance();
 
   VertexingParameters verPar;
+  verPar.allowSingleContribClusters = vc.allowSingleContribClusters;
   verPar.zCut = vc.zCut;
   verPar.phiCut = vc.phiCut;
   verPar.pairCut = vc.pairCut;
   verPar.clusterCut = vc.clusterCut;
   verPar.histPairCut = vc.histPairCut;
   verPar.tanLambdaCut = vc.tanLambdaCut;
+  verPar.lowMultXYcut2 = vc.lowMultXYcut2;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;

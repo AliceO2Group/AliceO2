@@ -19,5 +19,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::gpu::GPUTPCGMMergedTrack + ;
+#pragma link C++ class o2::gpu::GPUTPCGMTrackParam + ;
+#pragma link C++ class o2::gpu::gputpcgmmergertypes::GPUTPCOuterParam + ;
 
 #endif

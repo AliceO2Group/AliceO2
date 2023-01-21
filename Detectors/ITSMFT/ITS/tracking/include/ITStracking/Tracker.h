@@ -65,6 +65,7 @@ class Tracker
   std::vector<TrackITSExt>& getTracks();
 
   void setParameters(const std::vector<TrackingParameters>&);
+  std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
   void getGlobalConfiguration();
   void setBz(float);
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type);

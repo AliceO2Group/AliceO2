@@ -8,31 +8,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-///
-/// \file ROframe.cxx
-///
 
-#include "MFTTracking/ROframe.h"
+/// \file GPUTrackingLinkDef_Standalone.h
+/// \author David Rohr
 
-#include <iostream>
+#ifdef __CLING__
 
-namespace o2
-{
-namespace mft
-{
+#include "GPUTrackingLinkDef_O2.h"
+#include "GPUTrackingLinkDef_O2_DataTypes.h"
 
-template <typename T>
-Int_t ROframe<T>::getTotalClusters() const
-{
-  size_t totalClusters{0};
-  for (auto& clusters : mClusters) {
-    totalClusters += clusters.size();
-  }
-  return Int_t(totalClusters);
-}
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-template class ROframe<o2::mft::TrackLTF>;
-template class ROframe<o2::mft::TrackLTFL>;
+#pragma link C++ class o2::tpc::ClusterNative + ;
 
-} // namespace mft
-} // namespace o2
+#endif

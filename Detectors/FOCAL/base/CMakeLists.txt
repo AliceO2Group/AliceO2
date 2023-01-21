@@ -11,10 +11,12 @@
 
 o2_add_library(FOCALBase
     SOURCES src/EventReader.cxx
+    src/TestbeamAnalysis.cxx
     PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL ROOT::RIO ROOT::Tree ROOT::TreePlayer
     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
     FOCALBase
     HEADERS include/FOCALBase/EventReader.h
+    include/FOCALBase/TestbeamAnalysis.h
 )

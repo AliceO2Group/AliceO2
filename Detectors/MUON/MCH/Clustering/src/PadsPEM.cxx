@@ -2244,7 +2244,7 @@ void Pads::printNeighbors(const PadIdx_t* neigh, int N)
 void Pads::printPads(const char* title, const Pads& pads)
 {
   printf("%s\n", title);
-  printf("print pads nPads=%4d nObsPads=%4d mode=%1d\n", pads.nPads, pads.nObsPads, pads.mode);
+  printf("print pads nPads=%4d nObsPads=%4d mode=%1d\n", pads.nPads, pads.nObsPads, (int)pads.mode);
   if (pads.mode == PadMode::xydxdyMode) {
     printf("    i       x       y      dx      dy         q\n");
     for (int i = 0; i < pads.nPads; i++) {

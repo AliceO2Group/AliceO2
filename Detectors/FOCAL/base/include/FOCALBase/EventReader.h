@@ -44,6 +44,8 @@ class EventReader
   std::unique_ptr<TTreeReaderValue<std::vector<PixelHit>>> mPixelHitBranch;
   std::unique_ptr<TTreeReaderValue<std::vector<PixelChipRecord>>> mPixelChipBranch;
   std::unique_ptr<TTreeReaderValue<std::vector<TriggerRecord>>> mTriggerBranch;
+
+  ClassDefNV(EventReader, 1);
 };
 
 } // namespace o2::focal

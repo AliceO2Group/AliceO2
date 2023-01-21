@@ -30,10 +30,6 @@
 #include "Framework/CommonServices.h"
 #include "Framework/Plugins.h"
 
-// FIXME: remove when we migrate to the Service<O2DatabasePDG> interface
-// everywhere
-#include <TDatabasePDG.h>
-
 namespace o2::framework
 {
 
@@ -465,8 +461,6 @@ struct ServiceManager<Service<T>> {
       T p = T{};
       auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
       ServiceHelpers::loadFromPlugin(loadableServices, specs);
-    } else if constexpr (std::is_same_v<T, TDatabasePDG>) {
-      CommonAnalysisServices::addAnalysisService<T>(specs);
     }
     return true;
   }

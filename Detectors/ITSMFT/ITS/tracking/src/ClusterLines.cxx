@@ -85,7 +85,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
 
 {
   mLabels.push_back(firstLabel);
-  mLabels.push_back(secondLabel);
+  if (secondLabel > 0) {
+    mLabels.push_back(secondLabel); // don't add info in case of beamline used
+  }
 
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};

@@ -29,6 +29,14 @@ using namespace o2::focal::reco_workflow;
 
 void RawDecoderSpec::init(framework::InitContext& ctx)
 {
+  if (ctx.options().get<bool>("filterIncomplete")) {
+    LOG(info) << "Enabling filtering of incomplete events in the pixel data";
+    mFilterIncomplete = true;
+  }
+  if (ctx.options().get<bool>("displayInconsistent")) {
+    LOG(info) << "Display additional information in case of inconsistency between pixel links";
+    mDisplayInconsistent = true;
+  }
 }
 
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
@@ -39,11 +47,11 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   int inputs = 0;
   std::vector<char> rawbuffer;
   int currentendpoint = 0;
-  bool nextHBF = true;
   o2::InteractionRecord currentIR;
   std::unordered_map<int, int> numHBFFEE, numEventsFEE;
   std::unordered_map<int, std::vector<int>> numEventsHBFFEE;
   int numHBFPadsTF = 0, numEventsPadsTF = 0;
+  std::vector<int> expectFEEs;
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
     if (rawData.header != nullptr && rawData.payload != nullptr) {
       const auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(rawData);
@@ -52,17 +60,20 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
       gsl::span<const char> databuffer(rawData.payload, payloadSize);
       int currentpos = 0;
+      bool firstHBF = true;
       while (currentpos < databuffer.size()) {
         auto rdh = reinterpret_cast<const o2::header::RDHAny*>(databuffer.data() + currentpos);
         if (mDebugMode) {
           o2::raw::RDHUtils::printRDH(rdh);
         }
-        if (o2::raw::RDHUtils::getMemorySize(rdh) == o2::raw::RDHUtils::getHeaderSize(rdh)) {
-          auto trigger = o2::raw::RDHUtils::getTriggerType(rdh);
-          if (trigger & o2::trigger::SOT || trigger & o2::trigger::HB) {
-            if (o2::raw::RDHUtils::getStop(rdh)) {
-              LOG(debug) << "Stop bit received - processing payload";
-              // Data ready
+        auto trigger = o2::raw::RDHUtils::getTriggerType(rdh);
+        if (trigger & o2::trigger::HB) {
+          // HB trigger received
+          if (o2::raw::RDHUtils::getStop(rdh)) {
+            LOG(debug) << "Stop bit received - processing payload";
+            // Data ready
+            if (rawbuffer.size()) {
+              // Only process if we actually have payload (skip empty HBF)
               if (currentendpoint == 1) {
                 // Pad data
                 if (mUsePadData) {
@@ -81,6 +92,13 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                 // Pixel data
                 if (mUsePixelData) {
                   auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
+                  if (firstHBF) {
+                    auto found = std::find(expectFEEs.begin(), expectFEEs.end(), feeID);
+                    if (found == expectFEEs.end()) {
+                      expectFEEs.emplace_back(feeID);
+                    }
+                    firstHBF = false;
+                  }
                   LOG(debug) << "Processing Pixel data from FEE " << feeID;
                   auto neventsPixels = decodePixelData(rawbuffer, currentIR, feeID);
                   auto found = numHBFFEE.find(feeID);
@@ -107,30 +125,23 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
               } else {
                 LOG(error) << "Unsupported endpoint " << currentendpoint;
               }
-              nextHBF = true;
             } else {
-              LOG(debug) << "New HBF or Timeframe";
-              nextHBF = true;
+              LOG(debug) << "Payload size 0 - skip empty HBF";
             }
+          } else {
+            rawbuffer.clear();
+            // Get interaction record for HBF
+            currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
+            currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+            currentendpoint = o2::raw::RDHUtils::getEndPointID(rdh);
+            LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", endpoint " << currentendpoint;
           }
+        }
+
+        if (o2::raw::RDHUtils::getMemorySize(rdh) == o2::raw::RDHUtils::getHeaderSize(rdh)) {
+          // Skip page if emtpy
           currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
           continue;
-        }
-
-        auto trigger = o2::raw::RDHUtils::getTriggerType(rdh);
-        if (trigger & o2::trigger::SOT || trigger & o2::trigger::HB) {
-          // HBF trigger could be part of regular payoad RDH (pixels)
-          nextHBF = true;
-        }
-
-        if (nextHBF) {
-          rawbuffer.clear();
-          // Get interaction record for HBF
-          currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
-          currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-          currentendpoint = o2::raw::RDHUtils::getEndPointID(rdh);
-          LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", endpoint " << currentendpoint;
-          nextHBF = false;
         }
 
         // non-0 payload size:
@@ -156,27 +167,40 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
   // Consistency check PixelEvents
   if (!consistencyCheckPixelFEE(numHBFFEE)) {
-    std::cout << "Mismatch in number of HBF / TF between pixel FEEs" << std::endl;
-    printCounters(numHBFFEE);
+    LOG(alarm) << "Mismatch in number of HBF / TF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printCounters(numHBFFEE);
+    }
     mNumInconsistencyPixelHBF++;
   }
   int numHBFPixelsTF = maxCounter(numHBFFEE);
   mNumHBFPixels += numHBFPixelsTF;
   if (!consistencyCheckPixelFEE(numEventsFEE)) {
-    std::cout << "Mismatch in number of events / TF between pixel FEEs" << std::endl;
-    printCounters(numEventsFEE);
+    LOG(alarm) << "Mismatch in number of events / TF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printCounters(numEventsFEE);
+    }
     mNumInconsistencyPixelEvent++;
   }
   mNumEventsPixels += maxCounter(numEventsFEE);
   if (!checkEventsHBFConsistency(numEventsHBFFEE)) {
-    std::cout << "Mistmatch number of events / HBF between pixel FEEs" << std::endl;
-    printEvents(numEventsHBFFEE);
+    LOG(alarm) << "Mistmatch number of events / HBF between pixel FEEs";
+    if (mDisplayInconsistent) {
+      printEvents(numEventsHBFFEE);
+    }
     mNumInconsistencyPixelEventHBF++;
   }
   fillPixelEventHBFCount(numEventsHBFFEE);
 
-  LOG(info)
-    << "Found " << mHBFs.size() << " HBFs in timeframe";
+  if (mUsePixelData && mFilterIncomplete) {
+    LOG(debug) << "Filtering incomplete pixel events";
+    for (auto& hbf : mHBFs) {
+      auto numErased = filterIncompletePixelsEventsHBF(hbf.second, expectFEEs);
+      mNumEventsPixels -= numErased;
+    }
+  }
+
+  LOG(info) << "Found " << mHBFs.size() << " HBFs in timeframe";
 
   buildEvents();
 
@@ -239,36 +263,36 @@ void RawDecoderSpec::resetContainers()
   mOutputTriggerRecords.clear();
 }
 
-int RawDecoderSpec::decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& interaction)
+int RawDecoderSpec::decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& hbIR)
 {
-  LOG(debug) << "Decoding pad data for Orbit " << interaction.orbit << ", BC " << interaction.bc;
+  LOG(debug) << "Decoding pad data for Orbit " << hbIR.orbit << ", BC " << hbIR.bc;
   constexpr std::size_t EVENTSIZEPADGBT = 1180,
                         EVENTSIZECHAR = EVENTSIZEPADGBT * sizeof(PadGBTWord) / sizeof(char);
   auto nevents = padWords.size() / (EVENTSIZECHAR);
   for (int ievent = 0; ievent < nevents; ievent++) {
-    decodePadEvent(padWords.subspan(EVENTSIZECHAR * ievent, EVENTSIZECHAR), interaction);
+    decodePadEvent(padWords.subspan(EVENTSIZECHAR * ievent, EVENTSIZECHAR), hbIR);
   }
   return nevents;
 }
 
-void RawDecoderSpec::decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& interaction)
+void RawDecoderSpec::decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& hbIR)
 {
   gsl::span<const PadGBTWord> padWordsGBT(reinterpret_cast<const PadGBTWord*>(padWords.data()), padWords.size() / sizeof(PadGBTWord));
   mPadDecoder.reset();
   mPadDecoder.decodeEvent(padWordsGBT);
-  std::map<o2::InteractionRecord, HBFData>::iterator foundHBF = mHBFs.find(interaction);
+  std::map<o2::InteractionRecord, HBFData>::iterator foundHBF = mHBFs.find(hbIR);
   if (foundHBF == mHBFs.end()) {
     // New event, create new entry
     HBFData nexthbf;
-    auto res = mHBFs.insert({interaction, nexthbf});
+    auto res = mHBFs.insert({hbIR, nexthbf});
     foundHBF = res.first;
   }
   foundHBF->second.mPadEvents.push_back(createPadLayerEvent(mPadDecoder.getData()));
 }
 
-int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& interaction, int feeID)
+int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& hbIR, int feeID)
 {
-  LOG(debug) << "Decoding pixel data for Orbit " << interaction.orbit << ", BC " << interaction.bc;
+  LOG(debug) << "Decoding pixel data for Orbit " << hbIR.orbit << ", BC " << hbIR.bc;
   auto fee = feeID & 0x00FF,
        branch = (feeID & 0x0F00) >> 8;
   int layer = fee < 2 ? 0 : 1;
@@ -282,13 +306,17 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
   int nevents = 0;
   for (auto& [trigger, chipdata] : mPixelDecoder.getChipData()) {
     LOG(debug) << "Found trigger orbit " << trigger.orbit << ", BC " << trigger.bc;
+    if (trigger.orbit != hbIR.orbit) {
+      LOG(debug) << "FEE 0x" << std::hex << feeID << std::dec << ": Discarding spurious trigger with Orbit " << trigger.orbit << " (HB " << hbIR.orbit << ")";
+      continue;
+    }
     if (foundHBF == mHBFs.end()) {
       // take HBF from the first trigger as BC in RDH for pixel data is unreliable
-      foundHBF = mHBFs.find(interaction);
+      foundHBF = mHBFs.find(hbIR);
       if (foundHBF == mHBFs.end()) {
         // New event, create new entry
         HBFData nexthbf;
-        auto res = mHBFs.insert({trigger, nexthbf});
+        auto res = mHBFs.insert({hbIR, nexthbf});
         foundHBF = res.first;
       }
     }
@@ -298,6 +326,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
       //
       auto index = triggerfound - foundHBF->second.mPixelTriggers.begin();
       fillChipsToLayer(foundHBF->second.mPixelEvent[index][layer], chipdata);
+      foundHBF->second.mFEEs[index].push_back(feeID);
     } else {
       // new trigger
       std::array<PixelLayerEvent, constants::PIXELS_NLAYERS> nextevent;
@@ -305,6 +334,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
       foundHBF->second.mPixelTriggers.push_back(trigger);
       auto& current = foundHBF->second.mPixelEvent.back();
       fillChipsToLayer(current[layer], chipdata);
+      foundHBF->second.mFEEs.push_back({feeID});
     }
     nevents++;
   }
@@ -360,7 +390,7 @@ void RawDecoderSpec::buildEvents()
       LOG(debug) << "Processing HBF with IR: " << hbir.orbit << " / " << hbir.bc << std::endl;
       // check consistency in number of events between triggers, pixels and pads
       // in case all events are in the stream
-      if (!(hbf.mPadEvents.size() == hbf.mPixelEvent.size() == hbf.mPixelTriggers.size())) {
+      if ((hbf.mPadEvents.size() != hbf.mPixelEvent.size()) || (hbf.mPadEvents.size() != hbf.mPixelTriggers.size()) || (hbf.mPixelEvent.size() != hbf.mPixelTriggers.size())) {
         LOG(error) << "Inconsistent number of events in HBF for pads (" << hbf.mPadEvents.size() << ") and pixels (" << hbf.mPixelEvent.size() << ") - " << hbf.mPixelTriggers.size() << " triggers";
         continue;
       }
@@ -379,7 +409,7 @@ void RawDecoderSpec::buildEvents()
         }
         std::copy(eventHits.begin(), eventHits.end(), std::back_inserter(mOutputPixelHits));
         std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
-        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startHits, eventPixels.size(), startHits, eventHits.size());
+        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startChips, eventPixels.size(), startHits, eventHits.size());
       }
     } else if (mUsePixelData) {
       // only pixel data available, merge pixel layers and interaction record
@@ -416,6 +446,51 @@ void RawDecoderSpec::buildEvents()
       }
     }
   }
+}
+
+int RawDecoderSpec::filterIncompletePixelsEventsHBF(HBFData& data, const std::vector<int>& expectFEEs)
+{
+  auto same = [](const std::vector<int>& lhs, const std::vector<int>& rhs) -> bool {
+    bool missing = false;
+    for (auto entry : lhs) {
+      if (std::find(rhs.begin(), rhs.end(), entry) == rhs.end()) {
+        missing = true;
+        break;
+      }
+    }
+    if (!missing) {
+      for (auto entry : rhs) {
+        if (std::find(lhs.begin(), lhs.end(), entry) == lhs.end()) {
+          missing = true;
+          break;
+        }
+      }
+    }
+    return missing;
+  };
+  std::vector<int> indexIncomplete;
+  for (auto index = 0; index < data.mFEEs.size(); index++) {
+    if (data.mFEEs[index].size() != expectFEEs.size()) {
+      indexIncomplete.emplace_back(index);
+      continue;
+    }
+    if (!same(data.mFEEs[index], expectFEEs)) {
+      indexIncomplete.emplace_back(index);
+    }
+  }
+  if (indexIncomplete.size()) {
+    std::sort(indexIncomplete.begin(), indexIncomplete.end(), std::less<>());
+    // start removing from the end, since erase will impact the indexing
+    for (auto indexIter = indexIncomplete.rbegin(); indexIter != indexIncomplete.rend(); indexIter++) {
+      auto iterPixelEvent = data.mPixelEvent.begin() + *indexIter;
+      auto iterTrigger = data.mPixelTriggers.begin() + *indexIter;
+      auto iterFEEs = data.mFEEs.begin() + *indexIter;
+      data.mPixelEvent.erase(iterPixelEvent);
+      data.mPixelTriggers.erase(iterTrigger);
+      data.mFEEs.erase(iterFEEs);
+    }
+  }
+  return indexIncomplete.size();
 }
 
 bool RawDecoderSpec::consistencyCheckPixelFEE(const std::unordered_map<int, int>& counters) const
@@ -469,7 +544,7 @@ int RawDecoderSpec::maxCounter(const std::unordered_map<int, int>& counters) con
 void RawDecoderSpec::printCounters(const std::unordered_map<int, int>& counters) const
 {
   for (auto& [fee, counter] : counters) {
-    std::cout << "  FEE " << fee << ": " << counter << " counts ..." << std::endl;
+    LOG(info) << "  FEE 0x" << std::hex << fee << std::dec << ": " << counter << " counts ...";
   }
 }
 
@@ -486,7 +561,7 @@ void RawDecoderSpec::printEvents(const std::unordered_map<int, std::vector<int>>
       }
       stringbuilder << ev;
     }
-    std::cout << "  FEE " << fee << ": " << stringbuilder.str() << " events ..." << std::endl;
+    LOG(info) << "  FEE 0x" << std::hex << fee << std::dec << ": " << stringbuilder.str() << " events ...";
   }
 }
 
@@ -537,5 +612,7 @@ o2::framework::DataProcessorSpec o2::focal::reco_workflow::getRawDecoderSpec(boo
                                           inputs,
                                           outputs,
                                           o2::framework::adaptFromTask<o2::focal::reco_workflow::RawDecoderSpec>(outputSubspec, usePadData, usePixelData, debugMode),
-                                          o2::framework::Options{}};
+                                          o2::framework::Options{
+                                            {"filterIncomplete", o2::framework::VariantType::Bool, false, {"Filter incomplete pixel events"}},
+                                            {"displayInconsistent", o2::framework::VariantType::Bool, false, {"Display information about inconsistent timeframes"}}}};
 }
