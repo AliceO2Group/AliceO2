@@ -47,7 +47,10 @@ class TOFIntegrateClusters : public Task
     const double orbitLength = o2::tof::Geo::BC_TIME_INPS * o2::constants::lhc::LHCMaxBunches;
     const double maxTimeTF = orbitLength * nHBFPerTF;   // maximum time if a TF in PS
     const double sliceWidthPS = maxTimeTF / mNSlicesTF; // integration time
-    const int nSlices = maxTimeTF / sliceWidthPS;       // number of slices a TF is divided into
+    const double sliceWidthMS = sliceWidthPS * 1.E-9;
+    const int nSlices = maxTimeTF / sliceWidthPS; // number of slices a TF is divided into
+    const double sliceWidthPSinv = 1. / sliceWidthPS;
+    const float sliceWidthMSinv = 1. / float(sliceWidthMS);
 
     // storage for integrated currents
     o2::pmr::vector<float> iTOFCNCl(nSlices);
@@ -56,7 +59,7 @@ class TOFIntegrateClusters : public Task
     const auto clusters = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
     for (size_t iCl = 0; iCl < clusters.size(); ++iCl) {
       const double timePS = clusters[iCl].getTime();
-      const unsigned int sliceInTF = timePS / sliceWidthPS;
+      const unsigned int sliceInTF = timePS * sliceWidthPSinv;
       if (sliceInTF < mNSlicesTF) {
         ++iTOFCNCl[sliceInTF];                          // count number of cluster
         iTOFCqTot[sliceInTF] += clusters[iCl].getTot(); // integrated charge
@@ -66,10 +69,8 @@ class TOFIntegrateClusters : public Task
     }
 
     // normalize currents to integration time
-    const double sliceWidthMS = sliceWidthPS * std::pow(10, -9);
-    const float norm = 1. / float(sliceWidthMS);
-    std::transform(iTOFCNCl.begin(), iTOFCNCl.end(), iTOFCNCl.begin(), [norm](float& val) { return val * norm; });
-    std::transform(iTOFCqTot.begin(), iTOFCqTot.end(), iTOFCqTot.begin(), [norm](float& val) { return val * norm; });
+    std::transform(iTOFCNCl.begin(), iTOFCNCl.end(), iTOFCNCl.begin(), [sliceWidthMSinv](float& val) { return val * sliceWidthMSinv; });
+    std::transform(iTOFCqTot.begin(), iTOFCqTot.end(), iTOFCqTot.begin(), [sliceWidthMSinv](float& val) { return val * sliceWidthMSinv; });
 
     sendOutput(pc.outputs(), std::move(iTOFCNCl), std::move(iTOFCqTot));
   }
