@@ -54,6 +54,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxDCA = 10.f;            ///< DCA cut value in cm
 
   // parameters for outlier rejection
+  bool skipOutlierFiltering{false};      ///< if set, the outlier filtering will not be applied at all
   bool writeUnfiltered{false};           ///< if set, all residuals and track parameters will be aggregated and dumped additionally without outlier rejection
   int nMALong{15};                       ///< number of points to be used for moving average (long range)
   int nMAShort{3};                       ///< number of points to be used for estimation of distance from local line (short range)
