@@ -79,6 +79,9 @@ enum class CDBType {
   CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   CalSACFourier,       ///< Fourier coefficients of CalSAC1
                        ///
+  CalITPC0,            ///< 2D average TPC clusters for longer time interval
+  CalITPC1,            ///< 1D integrated TPC clusters
+                       ///
   CalCorrMap,          ///< Cluster correction map
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
 };
@@ -132,6 +135,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalSAC1, "TPC/Calib/SAC_1"},
   {CDBType::CalSACDelta, "TPC/Calib/SAC_DELTA"},
   {CDBType::CalSACFourier, "TPC/Calib/SAC_FOURIER"},
+  // ITPCCs
+  {CDBType::CalITPC0, "TPC/Calib/ITPCC_0"},
+  {CDBType::CalITPC1, "TPC/Calib/ITPCC_1"},
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},

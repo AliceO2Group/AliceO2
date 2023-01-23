@@ -35,12 +35,17 @@ o2_add_library(TPCWorkflow
                        src/FileWriterSpec.cxx
                        src/TPCVDriftTglCalibSpec.cxx
                        src/ClusterQCSpec.cxx
+                       src/TPCIntegrateClusterReaderSpec.cxx
+                       src/TPCIntegrateClusterSpec.cxx
+                       src/TPCIntegrateClusterWriterSpec.cxx
+                       src/TPCMergeIntegrateClusterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::TPCQC O2::DetectorsCalibration
                                      O2::TPCReaderWorkflow
+                                     O2::TOFWorkflowUtils # for the integrated cluster workflow
                PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
                                       O2::GPUWorkflow
            )
@@ -201,9 +206,19 @@ o2_add_executable(calib-gainmap-tracks
                   SOURCES src/tpc-calib-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
 
-o2_add_executable(integrate-clusters
+o2_add_executable(integrate-cluster-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-integrate-cluster-currents.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(integrate-cluster-reader-workflow
+                  SOURCES src/cluster-integrator-reader.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(merge-integrate-cluster-workflow
+                  SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow

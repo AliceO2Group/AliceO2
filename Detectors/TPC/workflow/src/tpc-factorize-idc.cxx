@@ -51,8 +51,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"use-precise-timestamp", VariantType::Bool, false, {"Use precise timestamp from distribute when writing to CCDB"}},
     {"enable-CCDB-output", VariantType::Bool, false, {"send output for ccdb populator"}},
     {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPIDCSpec."}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}},
-    {"processClusters", VariantType::Bool, false, {"Processing clusters as input instead of IDCs"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -67,7 +66,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const std::string sgroupRows = config.options().get<std::string>("groupRows");
   const std::string sgroupLastRowsThreshold = config.options().get<std::string>("groupLastRowsThreshold");
   const std::string sgroupLastPadsThreshold = config.options().get<std::string>("groupLastPadsThreshold");
-  const bool processClusters = config.options().get<bool>("processClusters");
   ParameterIDCGroup::setGroupingParameterFromString(sgroupPads, sgroupRows, sgroupLastRowsThreshold, sgroupLastPadsThreshold);
 
   // set up configuration
@@ -116,7 +114,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec workflow;
   workflow.reserve(nLanes);
   for (int ilane = 0; ilane < nLanes; ++ilane) {
-    workflow.emplace_back(getTPCFactorizeIDCSpec(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, nTFsBuffer, processClusters));
+    workflow.emplace_back(getTPCFactorizeIDCSpec(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, nTFsBuffer));
   }
   return workflow;
 }
