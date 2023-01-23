@@ -321,7 +321,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
-  if (validateTrack(trackData, params, clusterResiduals)) {
+  if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
     // track is good
     int nClValidated = 0;
     int iRow = 0;
@@ -396,7 +396,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   trackData.clIdx.setEntries(nMeasurements);
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
-  if (validateTrack(trackData, params, clusterResiduals)) {
+  if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
     // track is good
     int nClValidated = 0;
     int iRow = 0;
@@ -437,7 +437,7 @@ bool TrackInterpolation::validateTrack(const TrackData& trk, TrackParams& params
     LOG(debug) << "Skipping track too far from helix approximation";
     return false;
   }
-  if (fabsf(params.qpt) > mParams->maxQ2Pt) {
+  if (fabsf(mBz) > 0.01 && fabsf(params.qpt) > mParams->maxQ2Pt) {
     LOG(debug) << "Skipping track with too high q/pT: " << params.qpt;
     return false;
   }
@@ -499,6 +499,10 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
       }
       sPath[iP] = sPath[iP - 1] + ds;
     }
+  }
+  if (fabsf(mBz) < 0.01) {
+    // for B=0 we don't need to try a circular fit...
+    return true;
   }
   float xcSec = 0.f;
   float ycSec = 0.f;

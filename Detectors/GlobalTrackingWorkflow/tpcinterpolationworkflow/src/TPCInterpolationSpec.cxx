@@ -179,7 +179,9 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     }
   };
   recoData.createTracksVariadic(creator); // create track sample considered for interpolation
-  LOG(info) << "Created " << seeds.size() << " seeds.";
+  LOGP(info, "Created {} seeds. {} ITS-TPC-TRD-TOF, {} ITS-TPC-TRD, {} ITS-TPC-TOF, {} ITS-TPC",
+       seeds.size(), trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), trkCounters.at(GTrackID::Source::ITSTPCTRD),
+       trkCounters.at(GTrackID::Source::ITSTPCTOF), trkCounters.at(GTrackID::Source::ITSTPC));
 
   if (mUseMC) {
     // possibly MC labels will be used to check filtering procedure performance before interpolation
