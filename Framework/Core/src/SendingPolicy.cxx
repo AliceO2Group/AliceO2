@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Framework/Logger.h"
 #include "Headers/STFHeader.h"
 #include "DeviceSpecHelpers.h"
@@ -47,6 +48,31 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
                 state.droppedMessages = 0;
               } else if (state.droppedMessages < std::numeric_limits<decltype(state.droppedMessages)>::max()) {
                 state.droppedMessages++;
+              } }},
+          SendingPolicy{
+            .name = "profiling",
+            .matcher = [](DeviceSpec const&, ConfigContext const&) { return getenv("DPL_DEBUG_MESSAGE_SIZE"); },
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              auto timeout = 1000;
+              int count = 0;
+              for (auto& part : parts) {
+                auto* dh = o2::header::get<o2::header::DataHeader*>(part->GetData());
+                if (dh == nullptr) {
+                  // This is a payload.
+                  continue;
+                }
+                LOGP(info, "Sent {}/{}/{} for a total of {} bytes", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dh->payloadSize);
+                count+= dh->payloadSize;
+              }
+              LOGP(info, "Sent {} parts for a total of {} bytes", parts.Size(), count);
+              auto res = channel->Send(parts, timeout);
+              if (res == (size_t)fair::mq::TransferCode::timeout) {
+                LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout/1000, channel->GetName());
+                channel->Send(parts);
+                LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+              } else if (res == (size_t) fair::mq::TransferCode::error) {
+                LOGP(fatal, "Error while sending on channel {}", channel->GetName());
               } }},
           SendingPolicy{
             .name = "default",
