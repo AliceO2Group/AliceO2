@@ -81,7 +81,8 @@ struct TrackingParameters {
   /// Fitter parameters
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
-  std::array<float, 2> FitIterationMaxChi2 = {50, 20};
+  float MaxChi2ClusterAttachment = 60.f;
+  float MaxChi2NDF = 30.f;
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
 };

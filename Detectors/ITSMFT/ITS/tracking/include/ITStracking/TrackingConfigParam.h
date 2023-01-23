@@ -51,6 +51,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool useFastMaterial = false;
   float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
   float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
+  float maxChi2ClusterAttachment = -1.f;
+  float maxChi2NDF = -1.f;
   float nSigmaCut = -1.f;
   float deltaTanLres = -1.f;
   float minPt = -1.f;

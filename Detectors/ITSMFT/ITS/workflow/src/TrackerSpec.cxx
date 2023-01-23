@@ -101,8 +101,8 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].SystErrorZ2[5] = 9.e-4;
     trackParams[0].SystErrorZ2[6] = 9.e-4;
     std::copy(trackParams[0].SystErrorZ2.begin(), trackParams[0].SystErrorZ2.end(), trackParams[0].SystErrorY2.begin());
-    trackParams[0].FitIterationMaxChi2[0] = 50.;
-    trackParams[0].FitIterationMaxChi2[1] = 25.;
+    trackParams[0].MaxChi2ClusterAttachment = 60.;
+    trackParams[0].MaxChi2NDF = 40.;
     trackParams[1] = trackParams[0];
     trackParams[2] = trackParams[0];
     trackParams[1].MinTrackLength = 6;
@@ -121,8 +121,8 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].PhiBins = 4;
     trackParams[0].ZBins = 16;
     trackParams[0].PVres = 1.e5f;
-    trackParams[0].FitIterationMaxChi2[0] = 50.;
-    trackParams[0].FitIterationMaxChi2[1] = 25.;
+    trackParams[0].MaxChi2ClusterAttachment = 60.;
+    trackParams[0].MaxChi2NDF = 40.;
     trackParams[0].TrackletsPerClusterLimit = 100.;
     trackParams[0].CellsPerClusterLimit = 100.;
     LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";

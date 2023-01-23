@@ -79,6 +79,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
+    logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
 
@@ -333,6 +334,8 @@ void Tracker::getGlobalConfiguration()
         params.SystErrorZ2[i] = tc.sysErrZ2[i] > 0 ? tc.sysErrZ2[i] : params.SystErrorZ2[i];
       }
     }
+    params.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : params.MaxChi2ClusterAttachment;
+    params.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : params.MaxChi2NDF;
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;
     params.ZBins = tc.LUTbinsZ > 0 ? tc.LUTbinsZ : params.ZBins;
     params.PVres = tc.pvRes > 0 ? tc.pvRes : params.PVres;
