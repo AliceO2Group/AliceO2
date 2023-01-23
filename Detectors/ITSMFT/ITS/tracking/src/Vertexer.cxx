@@ -66,6 +66,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.histPairCut = vc.histPairCut;
   verPar.tanLambdaCut = vc.tanLambdaCut;
   verPar.lowMultXYcut2 = vc.lowMultXYcut2;
+  verPar.maxZPositionAllowed = vc.maxZPositionAllowed;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;

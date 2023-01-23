@@ -435,7 +435,7 @@ void VertexerTraits::computeVertices()
         }
       }
       float rXY{std::hypot(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0], mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
-      if (rXY < 1.98) {
+      if (rXY < 1.98 && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
         atLeastOneFound = true;
         mVertices.emplace_back(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
                                mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
