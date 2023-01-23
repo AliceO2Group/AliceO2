@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFWorkflowUtils/TOFIntegrateClusterSpec.h"
+#include "TOFWorkflowUtils/TOFIntegrateClusterWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -23,7 +24,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-  };
+    {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -38,5 +39,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   wf.emplace_back(o2::tof::getTOFIntegrateClusterSpec());
+  if (!cfgc.options().get<bool>("disable-root-output")) {
+    wf.emplace_back(o2::tof::getTOFIntegrateClusterWriterSpec());
+  }
+
   return wf;
 }
