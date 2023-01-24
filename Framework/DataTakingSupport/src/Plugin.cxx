@@ -93,18 +93,21 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
       severity = InfoLogger::Severity::Debug;
       level = 14;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::detail)) {
       severity = InfoLogger::Severity::Debug;
       level = 15;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
       severity = InfoLogger::Severity::Debug;
       level = 16;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
       severity = InfoLogger::Severity::Debug;
       level = 17;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
       severity = InfoLogger::Severity::Debug;
       level = 18;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 19;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
       severity = InfoLogger::Severity::Debug;
       level = 21;
