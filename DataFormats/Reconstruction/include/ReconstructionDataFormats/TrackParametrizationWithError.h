@@ -122,6 +122,15 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() void updateCov(value_t delta, size_t i, size_t j);
   GPUd() void updateCov(value_t delta, size_t i);
 
+  GPUd() void updateCov(const params_t delta2, bool preserveCorrelations);
+  GPUd() void updateCov(const value_t* delta2, bool preserveCorrelations);
+
+  GPUd() void updateCovCorr(const params_t delta2);
+  GPUd() void updateCovCorr(const value_t* delta2);
+
+  GPUd() void updateCov(const params_t delta2);
+  GPUd() void updateCov(const value_t* delta2);
+
  protected:
   covMat_t mC{0.f}; // 15 covariance matrix elements
 
@@ -363,6 +372,68 @@ GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const covMat_t& d
 {
   for (size_t i = 0; i < kCovMatSize; ++i) {
     mC[i] += delta[i];
+  }
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const params_t delta2)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas
+  updateCov(delta2.data());
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const value_t* delta2)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas
+  for (int i = 0; i < kNParams; i++) {
+    mC[DiagMap[i]] += delta2[i];
+  }
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCovCorr(const params_t delta2)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas, modify non-diagonal elements to preserve correlations
+  updateCovCorr(delta2.data());
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCovCorr(const value_t* delta2)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas, modify non-diagonal elements to preserve correlations
+  value_t oldDiag[kNParams];
+  for (int i = 0; i < kNParams; i++) {
+    auto diagI = DiagMap[i];
+    oldDiag[i] = mC[diagI];
+    mC[diagI] += delta2[i];
+    for (int j = 0; j < i; i++) {
+      mC[CovarMap[i][j]] *= gpu::CAMath::Sqrt(mC[diagI] * mC[DiagMap[j]] / (oldDiag[i] * oldDiag[j]));
+    }
+  }
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const params_t delta2, bool preserveCorrelations)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas. If requested, modify non-diagonal elements to preserve correlations
+  updateCov(delta2.data(), preserveCorrelations);
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const value_t* delta2, bool preserveCorrelations)
+{
+  // Increment cov.matrix diagonal elements by the vector of squared deltas. If requested, modify non-diagonal elements to preserve correlations
+  if (preserveCorrelations) {
+    updateCovCorr(delta2);
+  } else {
+    updateCov(delta2);
   }
 }
 
