@@ -122,6 +122,7 @@ bool revalidateTrack(const TrackData& trk, const SpacePointsCalibConfParam& para
 void staticMapCreator(std::string fileInput = "files.txt",
                       int runNumber = 527976,
                       std::string fileOutput = "voxRes.root",
+                      std::string voxMapInput = "",
                       std::string trackSources = static_cast<std::string>(GID::ALL))
 {
 
@@ -169,8 +170,26 @@ void staticMapCreator(std::string fileInput = "files.txt",
 
   TrackResiduals trackResiduals;
   trackResiduals.init();
-  trackResiduals.createOutputFile(fileOutput.c_str());
 
+  // Do we have a correction map available that we should apply to the clusters before the map extraction?
+  std::array<std::vector<TrackResiduals::VoxRes>, SECTORSPERSIDE * SIDES> voxelResults{};
+  if (voxMapInput.size()) {
+    LOG(info) << "A correction map has been provided. Will apply the corrections to the cluster residuals";
+    for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+      voxelResults[iSec].resize(trackResiduals.getNVoxelsPerSector());
+    }
+    TrackResiduals::VoxRes voxRes, *voxResPtr = &voxRes;
+    std::unique_ptr<TFile> fIn = std::make_unique<TFile>(voxMapInput.c_str());
+    std::unique_ptr<TTree> treeIn;
+    treeIn.reset((TTree*)fIn->Get("voxResTree"));
+    treeIn->SetBranchAddress("voxRes", &voxResPtr);
+    for (int iEntry = 0; iEntry < treeIn->GetEntries(); ++iEntry) {
+      treeIn->GetEntry(iEntry);
+      voxelResults[voxRes.bsec][trackResiduals.getGlbVoxBin(voxRes.bvox)] = voxRes;
+    }
+  }
+
+  trackResiduals.createOutputFile(fileOutput.c_str());
   std::unique_ptr<TTree> treeBinnedResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
   if (!params.writeBinnedResiduals) {
     treeBinnedResiduals->SetDirectory(nullptr);
@@ -261,7 +280,22 @@ void staticMapCreator(std::string fileInput = "files.txt",
             LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
             continue;
           }
-          residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
+          if (voxMapInput.size()) {
+            // we already have a correction map available which we want to apply as consistency check
+            const auto& voxRes = voxelResults[sec][trackResiduals.getGlbVoxBin(bvox)];
+            float dy = residIn.dy * param::MaxResid / 0x7fff;
+            float tgSlp = residIn.tgSlp * param::MaxTgSlp / 0x7fff;
+            dy -= voxRes.D[TrackResiduals::ResY] - voxRes.D[TrackResiduals::ResX] * tgSlp;
+            float dz = residIn.dz * param::MaxResid / 0x7fff;
+            dz -= voxRes.D[TrackResiduals::ResZ] - voxRes.D[TrackResiduals::ResX] * voxRes.stat[TrackResiduals::VoxZ];
+            dy = fabs(dy) < param::MaxResid ? dy : std::copysign(param::MaxResid, dy);
+            dz = fabs(dz) < param::MaxResid ? dz : std::copysign(param::MaxResid, dz);
+            short dYcorr = static_cast<short>(dy * 0x7fff / param::MaxResid);
+            short dZcorr = static_cast<short>(dz * 0x7fff / param::MaxResid);
+            residVecOut.emplace_back(dYcorr, dZcorr, residIn.tgSlp, bvox);
+          } else {
+            residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
+          }
           auto& stat = statVecOut[trackResiduals.getGlbVoxBin(bvox)];
           float& binEntries = stat.nEntries;
           float oldEntries = binEntries++;
