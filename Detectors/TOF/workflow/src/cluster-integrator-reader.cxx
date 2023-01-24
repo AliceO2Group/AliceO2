@@ -9,19 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TOF_TOFINTEGRATECLUSTERSPEC_SPEC
-#define O2_TOF_TOFINTEGRATECLUSTERSPEC_SPEC
+#include "TOFWorkflowIO/TOFIntegrateClusterReaderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/ConfigParamSpec.h"
 
-#include "Framework/DataProcessorSpec.h"
+using namespace o2::framework;
 
-namespace o2
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-namespace tof
-{
-
-o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec(const bool disableWriter);
-
-} // end namespace tof
-} // end namespace o2
-
-#endif
+  WorkflowSpec wf;
+  wf.emplace_back(o2::tof::getTOFIntegrateClusterReaderSpec());
+  return wf;
+}

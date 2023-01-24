@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TOFBase/Geo.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 
@@ -32,7 +33,7 @@ class TOFIntegrateClusters : public Task
 {
  public:
   /// \constructor
-  TOFIntegrateClusters(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req){};
+  TOFIntegrateClusters(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter) : mCCDBRequest(req), mDisableWriter(disableWriter){};
 
   void init(framework::InitContext& ic) final
   {
@@ -72,7 +73,7 @@ class TOFIntegrateClusters : public Task
     std::transform(iTOFCNCl.begin(), iTOFCNCl.end(), iTOFCNCl.begin(), [sliceWidthMSinv](float& val) { return val * sliceWidthMSinv; });
     std::transform(iTOFCqTot.begin(), iTOFCqTot.end(), iTOFCqTot.begin(), [sliceWidthMSinv](float& val) { return val * sliceWidthMSinv; });
 
-    sendOutput(pc.outputs(), std::move(iTOFCNCl), std::move(iTOFCqTot));
+    sendOutput(pc, std::move(iTOFCNCl), std::move(iTOFCqTot));
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -84,16 +85,23 @@ class TOFIntegrateClusters : public Task
 
  private:
   int mNSlicesTF = 11;                                    ///< number of slices a TF is divided into
+  const bool mDisableWriter{false};                       ///< flag if no ROOT output will be written
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< info for CCDB request
 
-  void sendOutput(DataAllocator& output, o2::pmr::vector<float> iTOFCNCl, o2::pmr::vector<float> iTOFCqTot)
+  void sendOutput(ProcessingContext& pc, o2::pmr::vector<float> iTOFCNCl, o2::pmr::vector<float> iTOFCqTot)
   {
-    output.adoptContainer(Output{header::gDataOriginTOF, "ITOFCN"}, std::move(iTOFCNCl));
-    output.adoptContainer(Output{header::gDataOriginTOF, "ITOFCQ"}, std::move(iTOFCqTot));
+    pc.outputs().adoptContainer(Output{header::gDataOriginTOF, "ITOFCN"}, std::move(iTOFCNCl));
+    pc.outputs().adoptContainer(Output{header::gDataOriginTOF, "ITOFCQ"}, std::move(iTOFCqTot));
+    // in case of ROOT output also store the TFinfo in the TTree
+    if (!mDisableWriter) {
+      o2::dataformats::TFIDInfo tfinfo;
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+      pc.outputs().snapshot(Output{header::gDataOriginTOF, "ITOFTFID"}, tfinfo);
+    }
   }
 };
 
-o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec()
+o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec(const bool disableWriter)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofcluster", o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
@@ -109,12 +117,15 @@ o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCN", 0, Lifetime::Sporadic);
   outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Sporadic);
+  if (!disableWriter) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFTFID", 0, Lifetime::Sporadic);
+  }
 
   return DataProcessorSpec{
     "TOFIntegrateClusters",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFIntegrateClusters>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<TOFIntegrateClusters>(ccdbRequest, disableWriter)},
     Options{{"nSlicesTF", VariantType::Int, 11, {"number of slices into which a TF is divided"}}}};
 }
 

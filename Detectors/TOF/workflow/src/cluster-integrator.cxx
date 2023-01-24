@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFWorkflowUtils/TOFIntegrateClusterSpec.h"
-#include "TOFWorkflowUtils/TOFIntegrateClusterWriterSpec.h"
+#include "TOFWorkflowIO/TOFIntegrateClusterWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -38,8 +38,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::tof::getTOFIntegrateClusterSpec());
-  if (!cfgc.options().get<bool>("disable-root-output")) {
+  const bool disableWriter = cfgc.options().get<bool>("disable-root-output");
+  wf.emplace_back(o2::tof::getTOFIntegrateClusterSpec(disableWriter));
+  if (!disableWriter) {
     wf.emplace_back(o2::tof::getTOFIntegrateClusterWriterSpec());
   }
 

@@ -12,8 +12,9 @@
 /// @file  TOFIntegrateClusterWriterSpec.cxx
 
 #include <vector>
-#include "TOFWorkflowUtils/TOFIntegrateClusterWriterSpec.h"
+#include "TOFWorkflowIO/TOFIntegrateClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 using namespace o2::framework;
 
@@ -28,9 +29,10 @@ DataProcessorSpec getTOFIntegrateClusterWriterSpec()
 {
   return MakeRootTreeWriterSpec("tof-currents-writer",
                                 "o2currents_tof.root",
-                                "ITOFC",
+                                "itofc",
                                 BranchDefinition<std::vector<float>>{InputSpec{"itofcn", o2::header::gDataOriginTOF, "ITOFCN", 0}, "ITOFCN", 1},
-                                BranchDefinition<std::vector<float>>{InputSpec{"itofcq", o2::header::gDataOriginTOF, "ITOFCQ", 0}, "ITOFCQ", 1})();
+                                BranchDefinition<std::vector<float>>{InputSpec{"itofcq", o2::header::gDataOriginTOF, "ITOFCQ", 0}, "ITOFCQ", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itoftfid", o2::header::gDataOriginTOF, "ITOFTFID", 0}, "tfID", 1})();
 }
 
 } // namespace tof

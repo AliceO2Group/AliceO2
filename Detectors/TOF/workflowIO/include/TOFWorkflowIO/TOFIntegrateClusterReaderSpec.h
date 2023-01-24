@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TOF_TOFINTEGRATECLUSTERSPEC_SPEC
-#define O2_TOF_TOFINTEGRATECLUSTERSPEC_SPEC
+#ifndef O2_TOF_TOFINTEGRATECLUSTERREADERSPEC_SPEC
+#define O2_TOF_TOFINTEGRATECLUSTERREADERSPEC_SPEC
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -19,7 +19,7 @@ namespace o2
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec(const bool disableWriter);
+o2::framework::DataProcessorSpec getTOFIntegrateClusterReaderSpec();
 
 } // end namespace tof
 } // end namespace o2
