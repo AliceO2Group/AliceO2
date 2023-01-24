@@ -55,6 +55,7 @@ void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMe
   if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     for (size_t i = 0; i < index.indexes.size(); ++i) {
       if (metrics.metrics.size() <= index.indexes.at(i)) {
+        ImGui::Text("Missing data_queries/%zu metric", i);
         continue;
       }
       auto& metric = metrics.metrics.at(index.indexes.at(i));

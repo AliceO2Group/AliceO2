@@ -32,6 +32,7 @@
 #include "Framework/LifetimeHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
+#include "Framework/Formatters.h"
 
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
@@ -90,7 +91,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    // mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
