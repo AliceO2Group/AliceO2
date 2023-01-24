@@ -75,7 +75,7 @@ bool CcdbApi::checkAlienToken()
   if (getenv("JALIEN_TOKEN_CERT")) {
     return true;
   }
-  auto returncode = system("alien-token-info &> /dev/null");
+  auto returncode = system("LD_PRELOAD= alien-token-info &> /dev/null");
   if (returncode == -1) {
     LOG(error) << "...";
   }
