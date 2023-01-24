@@ -161,7 +161,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTS"}; }
   static constexpr header::DataDescription getDataDescriptionIntervals() { return header::DataDescription{"INTERVALS"}; }
   static constexpr header::DataDescription getDataDescriptionIDCDelta() { return header::DataDescription{"IDCDELTA"}; }
-  static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
   static constexpr header::DataDescription getDataDescriptionLane() { return header::DataDescription{"IDCLANE"}; }
 
   // for CCDB

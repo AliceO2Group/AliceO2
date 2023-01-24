@@ -79,7 +79,6 @@ class TPCFactorizeSACSpec : public o2::framework::Task
 
   static constexpr header::DataDescription getDataDescriptionSAC1() { return header::DataDescription{"SAC1"}; }
   static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTSSAC"}; }
-  static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
   static constexpr header::DataDescription getDataDescriptionLane() { return header::DataDescription{"SACLANE"}; }
 
   // for CCDB
