@@ -22,6 +22,7 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/Formatters.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -460,24 +461,9 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
   return f;
 }
 
-// Life is too short. LISP rules.
-#define STREAM_ENUM(x) \
-  case Lifetime::x:    \
-    oss << #x;         \
-    break;
 std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
 {
-  switch (val) {
-    STREAM_ENUM(Timeframe)
-    STREAM_ENUM(Condition)
-    STREAM_ENUM(QA)
-    STREAM_ENUM(Transient)
-    STREAM_ENUM(Timer)
-    STREAM_ENUM(Enumeration)
-    STREAM_ENUM(Signal)
-    STREAM_ENUM(Optional)
-    STREAM_ENUM(OutOfBand)
-  };
+  oss << fmt::format("{}", val);
   return oss;
 }
 
