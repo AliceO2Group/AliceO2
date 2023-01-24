@@ -254,8 +254,8 @@ void staticMapCreator(std::string fileInput = "files.txt",
           auto& statVecOut = voxStatsSec[sec];
           std::array<unsigned char, TrackResiduals::VoxDim> bvox;
           float xPos = param::RowX[residIn.row];
-          float yPos = residIn.y * param::MaxY / 0x7fff;
-          float zPos = residIn.z * param::MaxZ / 0x7fff;
+          float yPos = residIn.y * param::MaxY / 0x7fff + residIn.dy * param::MaxResid / 0x7fff;
+          float zPos = residIn.z * param::MaxZ / 0x7fff + residIn.dz * param::MaxResid / 0x7fff;
           if (!trackResiduals.findVoxelBin(sec, xPos, yPos, zPos, bvox)) {
             // we are not inside any voxel
             LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
