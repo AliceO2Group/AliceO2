@@ -72,16 +72,24 @@ void BadChannelCalibrationDevice::logStats(size_t dataSize)
 
 void BadChannelCalibrationDevice::run(o2::framework::ProcessingContext& pc)
 {
+  if (mSkipData) {
+    return;
+  }
+
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
   mTimeStamp = std::min(mTimeStamp, mCalibrator->getCurrentTFInfo().creation);
   auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("digits");
   mCalibrator->process(data);
 
-  std::string reason;
-  if (mCalibrator->readyToSend(reason)) {
-    LOGP(info, "We're ready to send output to CCDB ({})", reason);
-    sendOutput(pc.outputs(), reason);
+  if (!BadChannelCalibratorParam::Instance().onlyAtEndOfStream) {
+    std::string reason;
+    if (mCalibrator->readyToSend(reason)) {
+      mHasEnoughStat = true;
+      LOGP(info, "We're ready to send output to CCDB ({})", reason);
+      sendOutput(pc.outputs(), reason);
+      mSkipData = true;
+    }
   }
   logStats(data.size());
 }
@@ -100,6 +108,10 @@ ccdb::CcdbObjectInfo createCcdbInfo(const T& object, uint64_t timeStamp, std::st
 void BadChannelCalibrationDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
   if (BadChannelCalibratorParam::Instance().onlyAtEndOfStream) {
+    std::string reason;
+    if (mCalibrator->readyToSend(reason)) {
+      mHasEnoughStat = true;
+    }
     sendOutput(ec.outputs(), "End Of Stream");
   }
 }
@@ -157,28 +169,35 @@ void BadChannelCalibrationDevice::sendOutput(o2::framework::DataAllocator& outpu
   }
 
   LOGP(info, "sendOutput: {}", reason_with_entries);
-  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+  mCalibrator->finalize();
 
-  // send regular bad channel object to subspec 0. This regular object
-  // is meant for O2 consumption (in reconstruction and/or simulation)
-  const auto& badChannels = mCalibrator->getBadChannelsVector();
-  auto info = createCcdbInfo(badChannels, mTimeStamp, reason_with_entries);
+  // the bad channels table is only updated if there is enough statistics
+  if (mHasEnoughStat) {
+    // send regular bad channel object to subspec 0. This regular object
+    // is meant for O2 consumption (in reconstruction and/or simulation)
+    const auto& badChannels = mCalibrator->getBadChannelsVector();
+    auto info = createCcdbInfo(badChannels, mTimeStamp, reason_with_entries);
 
-  sendCalibrationOutput(output, 0, &badChannels, &info);
+    sendCalibrationOutput(output, 0, &badChannels, &info);
 
-  // send also a simplified (in comma-separated values format) version
-  // of the bad channel list to subspec 1.
-  // This simplified version is meant for DCS usage
-  // (to populate the Oracle online DB for electronics configuration)
+    // send also a simplified (in comma-separated values format) version
+    // of the bad channel list to subspec 1.
+    // This simplified version is meant for DCS usage
+    // (to populate the Oracle online DB for electronics configuration)
 
-  TObjString badChannelsPOD(toCSV(badChannels).c_str());
-  auto infoPOD = createCcdbInfo(badChannelsPOD, mTimeStamp, reason_with_entries);
+    TObjString badChannelsPOD(toCSV(badChannels).c_str());
+    auto infoPOD = createCcdbInfo(badChannelsPOD, mTimeStamp, reason_with_entries);
 
-  sendCalibrationOutput(output, 1, &badChannelsPOD, &infoPOD);
+    sendCalibrationOutput(output, 1, &badChannelsPOD, &infoPOD);
 
-  LOGP(info, "csv={}", badChannelsPOD.String().Data());
+    LOGP(info, "csv={}", badChannelsPOD.String().Data());
+  } else {
+    LOGP(error, "CCDB not updated: {}", reason_with_entries);
+  }
+
   // and finally send also the data used to compute the bad channel map
   // on a separate channel (for QC mainly)
+  // this is sent also if statistics is too low, for diagnostics purposes
   output.snapshot(o2::framework::Output{"MCH", "PEDESTALS", 0},
                   mCalibrator->getPedestalsVector());
 }
