@@ -58,26 +58,31 @@ Event EventReader::readNextEvent()
   if (!mHasEntryLoaded) {
     nextTimeframe();
   }
-  if (mEntryInTF == (*mTriggerBranch)->size()) {
+  // 2 conditions
+  // - end of timeframe
+  // - skip empty timeframes
+  while (mEntryInTF == (*mTriggerBranch)->size() && mTreeReaderHasNext) {
     nextTimeframe();
   }
 
-  auto& triggerrecord = (*mTriggerBranch)->at(mEntryInTF);
-  gsl::span<const PadLayerEvent> eventPadData;
-  if (triggerrecord.getNumberOfPadObjects()) {
-    eventPadData = gsl::span<const PadLayerEvent>((*mPadBranch)->data() + triggerrecord.getFirstPadEntry(), triggerrecord.getNumberOfPadObjects());
-  }
-  gsl::span<const PixelHit> eventPixelHits;
-  if (triggerrecord.getNumberOfPixelHitObjects()) {
-    eventPixelHits = gsl::span<const PixelHit>((*mPixelHitBranch)->data() + triggerrecord.getFirstPixelHitEntry(), triggerrecord.getNumberOfPixelHitObjects());
-  }
-  gsl::span<const PixelChipRecord> eventPixelChip;
-  if (triggerrecord.getNumberOfPixelChipObjects()) {
-    eventPixelChip = gsl::span<const PixelChipRecord>((*mPixelChipBranch)->data() + triggerrecord.getFirstPixelChipEntry(), triggerrecord.getNumberOfPixelChipObjects());
-  }
-
   Event nextevent;
-  nextevent.construct(triggerrecord.getBCData(), eventPadData, eventPixelChip, eventPixelHits);
+  if (mEntryInTF < (*mTriggerBranch)->size()) { // Additional protection if we are closing with empty timeframe
+    auto& triggerrecord = (*mTriggerBranch)->at(mEntryInTF);
+    gsl::span<const PadLayerEvent> eventPadData;
+    if (triggerrecord.getNumberOfPadObjects()) {
+      eventPadData = gsl::span<const PadLayerEvent>((*mPadBranch)->data() + triggerrecord.getFirstPadEntry(), triggerrecord.getNumberOfPadObjects());
+    }
+    gsl::span<const PixelHit> eventPixelHits;
+    if (triggerrecord.getNumberOfPixelHitObjects()) {
+      eventPixelHits = gsl::span<const PixelHit>((*mPixelHitBranch)->data() + triggerrecord.getFirstPixelHitEntry(), triggerrecord.getNumberOfPixelHitObjects());
+    }
+    gsl::span<const PixelChipRecord> eventPixelChip;
+    if (triggerrecord.getNumberOfPixelChipObjects()) {
+      eventPixelChip = gsl::span<const PixelChipRecord>((*mPixelChipBranch)->data() + triggerrecord.getFirstPixelChipEntry(), triggerrecord.getNumberOfPixelChipObjects());
+    }
+
+    nextevent.construct(triggerrecord.getBCData(), eventPadData, eventPixelChip, eventPixelHits);
+  }
   mEntryInTF++;
   return nextevent;
 }

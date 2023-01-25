@@ -104,6 +104,8 @@ class Event
 
   void construct(const o2::InteractionRecord& interaction, gsl::span<const PadLayerEvent> pads, gsl::span<const PixelChipRecord> eventPixels, gsl::span<const PixelHit> pixelHits);
 
+  bool isInitialized() const { return mInitialized; }
+
  private:
   void check_pad_layers(unsigned int index) const;
   void check_pixel_layers(unsigned int index) const;
@@ -111,6 +113,7 @@ class Event
   InteractionRecord mInteractionRecord;
   std::array<PadLayerEvent, constants::PADS_NLAYERS> mPadLayers;
   std::array<PixelLayerEvent, constants::PIXELS_NLAYERS> mPixelLayers;
+  bool mInitialized = false;
 
   ClassDefNV(Event, 1);
 };
