@@ -13,10 +13,8 @@ o2_add_library(FrameworkRootAnalysisHelpers
                SOURCES src/RCombinedDS.cxx
                        src/AnalysisHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES 
-                                     O2::Framework
-                                     ROOT::ROOTDataFrame
-                                     )
+               PUBLIC_LINK_LIBRARIES O2::Framework
+                                     ROOT::ROOTDataFrame)
 
 o2_add_test(RDataFrameSupport NAME test_Framework_test_RDataFrameSupport
              SOURCES test/test_RDataFrameSupport.cxx
@@ -29,3 +27,9 @@ o2_add_test(SimpleRDataFrameProcessing NAME test_Framework_test_SimpleRDataFrame
              COMPONENT_NAME Framework
              PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
              LABELS framework)
+
+o2_add_test(RDataFrameAnalysis NAME test_Framework_test_RDataFrameAnalysis
+            SOURCES test/test_RDataFrameAnalysis.cxx
+            COMPONENT_NAME Framework
+            PUBLIC_LINK_LIBRARIES O2::FrameworkRootAnalysisHelpers
+            LABELS framework)
