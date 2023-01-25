@@ -987,7 +987,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   this->mp.expandChipInfoHW(chipID, lay, sta, ssta, mod, chipInMod);
 
   char stave[6];
-  sprintf(stave, "L%d_%02d", lay, sta);
+  snprintf(stave, 6, "L%d_%02d", lay, sta);
 
   if (isQC) {
     o2::dcs::addConfigItem(this->mChipDoneQc, "O2ChipID", std::to_string(chipID));
