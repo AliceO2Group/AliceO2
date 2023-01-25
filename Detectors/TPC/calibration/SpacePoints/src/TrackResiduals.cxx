@@ -1421,8 +1421,36 @@ bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, st
 
 void TrackResiduals::createOutputFile(const char* filename)
 {
+  if (getNVoxelsPerSector() == 0) {
+    LOG(warn) << "For the tree aliases to work must initialize the binning before calling createOutputFile()";
+  }
   mFileOut = std::make_unique<TFile>(filename, "recreate");
   mTreeOut = std::make_unique<TTree>("voxResTree", "Voxel results and statistics");
+  mTreeOut->SetAlias("z2xBin", "bvox[0]");
+  mTreeOut->SetAlias("y2xBin", "bvox[1]");
+  mTreeOut->SetAlias("xBin", "bvox[2]");
+  mTreeOut->SetAlias("z2xAV", "stat[0]");
+  mTreeOut->SetAlias("y2xAV", "stat[1]");
+  mTreeOut->SetAlias("xAV", "stat[2]");
+  mTreeOut->SetAlias("fsector", "bsec+0.5+9.*(y2xAV)/pi");
+  mTreeOut->SetAlias("phi", "(bsec%18+0.5+9.*(stat[1])/pi)/9*pi");
+  mTreeOut->SetAlias("r", "stat[2]");
+  mTreeOut->SetAlias("z", "z2xAV*xAV");
+  mTreeOut->SetAlias("dX", "D[0]");
+  mTreeOut->SetAlias("dY", "D[1]");
+  mTreeOut->SetAlias("dZ", "D[2]");
+  mTreeOut->SetAlias("dXS", "DS[0]");
+  mTreeOut->SetAlias("dYS", "DS[1]");
+  mTreeOut->SetAlias("dZS", "DS[2]");
+  mTreeOut->SetAlias("dXE", "E[0]");
+  mTreeOut->SetAlias("dYE", "E[1]");
+  mTreeOut->SetAlias("dZE", "E[2]");
+  mTreeOut->SetAlias("voxelIndex", Form("xBin + %i * (y2xBin + %i * z2xBin) + %i * bsec", getNXBins(), getNY2XBins(), getNVoxelsPerSector()));
+  mTreeOut->SetAlias("entries", "stat[3]");
+  mTreeOut->SetAlias("fitOK", Form("(flags & %u) == %u", DistDone, DistDone));
+  mTreeOut->SetAlias("dispOK", Form("(flags & %u) == %u", DispDone, DispDone));
+  mTreeOut->SetAlias("smtOK", Form("(flags & %u) == %u", SmoothDone, SmoothDone));
+  mTreeOut->SetAlias("masked", Form("(flags & %u) == %u", Masked, Masked));
   mTreeOut->Branch("voxRes", &mVoxelResultsOutPtr);
 }
 
