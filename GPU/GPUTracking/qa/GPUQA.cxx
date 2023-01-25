@@ -430,7 +430,7 @@ int GPUQA::InitQACreateHistograms()
         for (int k = 0; k < 2; k++) {
           for (int l = 0; l < 5; l++) {
             for (int m = 0; m < 2; m++) {
-              sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
+              snprintf(name, 2048, "%s%s%s%sVs%s", m ? "eff" : "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
               if (l == 4) {
                 std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
                 createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], binsPt.get());
@@ -451,8 +451,8 @@ int GPUQA::InitQACreateHistograms()
   if (mQATasks & taskTrackingRes) {
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
-        sprintf(name, "rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
-        sprintf(fname, "mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(name, 2048, "rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(fname, 1024, "mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
         if (j == 4) {
           std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
           createHist(mRes[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
@@ -461,7 +461,7 @@ int GPUQA::InitQACreateHistograms()
           createHist(mRes[i][j][0], name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
           createHist(mRes[i][j][1], fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
         }
-        sprintf(name, "res_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(name, 2048, "res_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
         const float* axis = mConfig.nativeFitResolutions ? RES_AXES_NATIVE : RES_AXES;
         const int nbins = i == 4 && mConfig.nativeFitResolutions ? (10 * RES_AXIS_BINS[0]) : RES_AXIS_BINS[0];
         if (j == 4) {
@@ -478,8 +478,8 @@ int GPUQA::InitQACreateHistograms()
   if (mQATasks & taskTrackingResPull) {
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
-        sprintf(name, "pull_rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
-        sprintf(fname, "pull_mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(name, 2048, "pull_rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(fname, 1024, "pull_mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
         if (j == 4) {
           std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
           createHist(mPull[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
@@ -488,7 +488,7 @@ int GPUQA::InitQACreateHistograms()
           createHist(mPull[i][j][0], name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
           createHist(mPull[i][j][1], fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
         }
-        sprintf(name, "pull_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
+        snprintf(name, 2048, "pull_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
         if (j == 4) {
           std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
           createHist(mPull2[i][j], name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], binsPt.get());
@@ -504,7 +504,7 @@ int GPUQA::InitQACreateHistograms()
     for (int i = 0; i < N_CLS_TYPE * N_CLS_HIST - 1; i++) {
       int ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
       int itype = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
-      sprintf(name, "clusters%s%s", CLUSTER_NAMES_SHORT[i - ioffset], CLUSTER_TYPES[itype]);
+      snprintf(name, 2048, "clusters%s%s", CLUSTER_NAMES_SHORT[i - ioffset], CLUSTER_TYPES[itype]);
       std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
       createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
     }
@@ -512,9 +512,9 @@ int GPUQA::InitQACreateHistograms()
 
   if (mQATasks & taskTrackStatistics) {
     // Create Tracks Histograms
-    sprintf(name, "nclusters");
+    snprintf(name, 2048, "nclusters");
     createHist(mNCl, name, name, 160, 0, 159);
-    sprintf(name, "tracks");
+    snprintf(name, 2048, "tracks");
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
     createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250);
@@ -1858,8 +1858,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     if (mQATasks & taskTrackingEff) {
       for (int ii = 0; ii < 6; ii++) {
         int i = ii == 5 ? 4 : ii;
-        sprintf(fname, "eff_vs_%s_layout", VSPARAMETER_NAMES[ii]);
-        sprintf(name, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
+        snprintf(fname, 1024, "eff_vs_%s_layout", VSPARAMETER_NAMES[ii]);
+        snprintf(name, 2048, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
         mCEff[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
         mCEff[ii]->cd();
         float dy = 1. / 2.;
@@ -1885,11 +1885,11 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       for (int ii = 0; ii < 7; ii++) {
         int i = ii == 5 ? 4 : ii;
         if (ii == 6) {
-          sprintf(fname, "res_integral_layout");
-          sprintf(name, "Integral Resolution");
+          snprintf(fname, 1024, "res_integral_layout");
+          snprintf(name, 2048, "Integral Resolution");
         } else {
-          sprintf(fname, "res_vs_%s_layout", VSPARAMETER_NAMES[ii]);
-          sprintf(name, "Resolution versus %s", VSPARAMETER_NAMES[i]);
+          snprintf(fname, 1024, "res_vs_%s_layout", VSPARAMETER_NAMES[ii]);
+          snprintf(name, 2048, "Resolution versus %s", VSPARAMETER_NAMES[i]);
         }
         mCRes[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
         mCRes[ii]->cd();
@@ -1927,11 +1927,11 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         int i = ii == 5 ? 4 : ii;
 
         if (ii == 6) {
-          sprintf(fname, "pull_integral_layout");
-          sprintf(name, "Integral Pull");
+          snprintf(fname, 1024, "pull_integral_layout");
+          snprintf(name, 2048, "Integral Pull");
         } else {
-          sprintf(fname, "pull_vs_%s_layout", VSPARAMETER_NAMES[ii]);
-          sprintf(name, "Pull versus %s", VSPARAMETER_NAMES[i]);
+          snprintf(fname, 1024, "pull_vs_%s_layout", VSPARAMETER_NAMES[ii]);
+          snprintf(name, 2048, "Pull versus %s", VSPARAMETER_NAMES[i]);
         }
         mCPull[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
         mCPull[ii]->cd();
@@ -1966,7 +1966,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Create Canvas for Cluster Histos
     if (mQATasks & taskClusterAttach) {
       for (int i = 0; i < 3; i++) {
-        sprintf(fname, "clusters_%s_layout", CLUSTER_TYPES[i]);
+        snprintf(fname, 1024, "clusters_%s_layout", CLUSTER_TYPES[i]);
         mCClust[i] = createGarbageCollected<TCanvas>(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
         mCClust[i]->cd();
         mPClust[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
@@ -2067,7 +2067,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             e->Draw(k || l ? "same" : "");
             if (j == 0) {
               GetName(fname, k);
-              sprintf(name, "%s%s", fname, EFF_NAMES[l]);
+              snprintf(name, 2048, "%s%s", fname, EFF_NAMES[l]);
               mLEff[ii]->AddEntry(e, name, "l");
             }
             if (ii == 5) {
@@ -2203,8 +2203,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             if (mConfig.inputHistogramsOnly) {
               dstIntegral = createGarbageCollected<TH1D>();
             }
-            sprintf(fname, p ? "IntPull%s" : "IntRes%s", VSPARAMETER_NAMES[j]);
-            sprintf(name, p ? "%s Pull" : "%s Resolution", p || mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j]);
+            snprintf(fname, 1024, p ? "IntPull%s" : "IntRes%s", VSPARAMETER_NAMES[j]);
+            snprintf(name, 2048, p ? "%s Pull" : "%s Resolution", p || mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j]);
             dstIntegral->SetName(fname);
             dstIntegral->SetTitle(name);
           }
@@ -2257,7 +2257,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             for (int l = 0; l < 2; l++) {
               TH1F* e = dst[l];
               if (!mConfig.inputHistogramsOnly && k == 0) {
-                sprintf(name, p ? "%s Pull" : "%s Resolution", p || mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j]);
+                snprintf(name, 2048, p ? "%s Pull" : "%s Resolution", p || mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j]);
                 e->SetTitle(name);
                 e->SetStats(kFALSE);
                 if (tout) {
@@ -2299,9 +2299,9 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
               if (j == 0) {
                 GetName(fname, k);
                 if (p) {
-                  sprintf(name, "%s%s", fname, l ? "Mean" : "Pull");
+                  snprintf(name, 2048, "%s%s", fname, l ? "Mean" : "Pull");
                 } else {
-                  sprintf(name, "%s%s", fname, l ? "Mean" : "Resolution");
+                  snprintf(name, 2048, "%s%s", fname, l ? "Mean" : "Resolution");
                 }
                 leg->AddEntry(e, name, "l");
               }
@@ -2520,7 +2520,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
           e->Draw(j == end - 1 && k == 0 ? "" : "same");
           GetName(fname, k);
-          sprintf(name, "%s%s", fname, CLUSTER_NAMES[j - begin]);
+          snprintf(name, 2048, "%s%s", fname, CLUSTER_NAMES[j - begin]);
           mLClust[i]->AddEntry(e, name, "l");
         }
       }
@@ -2610,7 +2610,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
-      sprintf(name, "%sTrack Pt", fname);
+      snprintf(name, 2048, "%sTrack Pt", fname);
       mLTracks->AddEntry(e, name, "l");
     }
     mLTracks->Draw();
@@ -2653,7 +2653,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
-      sprintf(name, "%sNClusters", fname);
+      snprintf(name, 2048, "%sNClusters", fname);
       mLNCl->AddEntry(e, name, "l");
     }
     mLNCl->Draw();
@@ -2701,7 +2701,7 @@ void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned lon
     // do nothing, just count num
   } else if (mode == 1) {
     char name2[128];
-    sprintf(name2, "clusterCount%d_", num);
+    snprintf(name2, 128, "clusterCount%d_", num);
     char* ptr = name2 + strlen(name2);
     for (unsigned int i = 0; i < strlen(name); i++) {
       if ((name[i] >= 'a' && name[i] <= 'z') || (name[i] >= 'A' && name[i] <= 'Z') || (name[i] >= '0' && name[i] <= '9')) {
