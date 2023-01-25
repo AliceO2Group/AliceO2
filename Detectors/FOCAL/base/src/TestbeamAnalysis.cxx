@@ -34,8 +34,10 @@ void TestbeamAnalysis::run()
     if (mVerbose) {
       LOG(info) << "Processing event " << mCurrentEventNumber;
     }
-    process(currentevent);
-    mCurrentEventNumber++;
+    if (currentevent.isInitialized()) {
+      process(currentevent);
+      mCurrentEventNumber++;
+    }
   }
 
   terminate();

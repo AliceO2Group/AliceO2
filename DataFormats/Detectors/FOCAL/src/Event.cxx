@@ -52,6 +52,7 @@ void Event::setPixelLayerEvent(unsigned int layer, const PixelLayerEvent& event)
 
 void Event::reset()
 {
+  mInitialized = false;
   for (auto& padlayer : mPadLayers) {
     padlayer.reset();
   }
@@ -87,6 +88,7 @@ void Event::construct(const o2::InteractionRecord& interaction, gsl::span<const 
       mPixelLayers[chip.getLayerID()].addChip(chip.getLaneID(), chip.getChipID(), pixelHits.subspan(chip.getFirstHit(), chip.getNumberOfHits()));
     }
   }
+  mInitialized = true;
 }
 
 void Event::check_pad_layers(unsigned int index) const
