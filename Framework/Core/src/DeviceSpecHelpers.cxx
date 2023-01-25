@@ -92,7 +92,8 @@ struct ExpirationHandlerHelpers {
       auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
-      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      constexpr size_t resolution = 100;
+      uv_timer_start(timer, detail::timer_callback, period / 1000 / resolution, period / 1000 / resolution);
       state.activeTimers.push_back(timer);
 
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
