@@ -2188,10 +2188,14 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   constexpr float ETAPHOSMARGIN = 0.17946979;                       // etat of the PHOS acceptance with 20 cm margin (at XPHOS): -log(tan((TMath::Pi()/2 + atan2(63+20., 460))/2)), not used, for the ref only
   constexpr float ETADCALPHOSSWITCH = (ETADCALINNER + ETAPHOS) / 2; // switch to DCAL to PHOS check if eta < this value
   constexpr short SNONE = 0, SEMCAL = 0x1, SPHOS = 0x2;
-  constexpr short SECTORTYPE[18] = {SNONE, SNONE, SNONE, SNONE,
-                                    SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL,
-                                    SNONE, SNONE,
-                                    SEMCAL, SPHOS, SPHOS, SPHOS, SPHOS, SNONE};
+  constexpr short SECTORTYPE[18] = {
+    SNONE, SNONE, SNONE, SNONE,                     // 0:3
+    SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, // 3:9 EMCAL only
+    SNONE, SNONE,                                   // 10:11
+    SPHOS,                                          // 12 PHOS only
+    SPHOS | SEMCAL, SPHOS | SEMCAL, SPHOS | SEMCAL, // 13:15 PHOS & DCAL
+    SEMCAL,                                         // 16 DCAL only
+    SNONE};                                         // 17
 
   o2::track::TrackPar outTr{track};
   auto prop = o2::base::Propagator::Instance();
@@ -2252,13 +2256,15 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
     return;
   }
   // are we in the PHOS hole (with margin)?
-  if (SECTORTYPE[sector] == SPHOS && etaAbs < ETADCALPHOSSWITCH) { // propatate to PHOS radius
+  if ((SECTORTYPE[sector] & SPHOS) && etaAbs < ETADCALPHOSSWITCH) { // propagate to PHOS radius
     if (!propExactSector(XPHOS)) {
       return;
     }
     r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY());
     tg = std::atan2(r, outTr.getZ());
     eta = std::log(std::tan(0.5f * tg));
+  } else if (!(SECTORTYPE[sector] & SEMCAL)) { // are in the sector with PHOS only
+    return;
   }
   extraInfoHolder.trackPhiEMCAL = outTr.getPhiPos();
   extraInfoHolder.trackEtaEMCAL = eta;
