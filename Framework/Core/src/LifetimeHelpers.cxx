@@ -110,7 +110,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // the future.
     // We do it here because if we do it in configure, long delays
     // between configure and run will cause this to behave
-    // incorrrectly.
+    // incorrectly.
     if (*last == 0ULL || index.didReceiveData() == false) {
       std::random_device r;
       std::default_random_engine e1(r());
@@ -140,9 +140,12 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
+    // If we are less than 2 cycles ahead, we try to compensate the jitter,
+    // so the average cycle duration is still equal to `period`. Otherwise,
+    // we avoid performing a lot of very short cycles.
+    *last = current > *last + 2 * period.count() ? current : *last + period.count();
     // If we are here the timer has expired and a new slice needs
     // to be created.
-    *last = current;
     data_matcher::VariableContext newContext;
     newContext.put({0, static_cast<uint64_t>(current)});
     newContext.commit();
