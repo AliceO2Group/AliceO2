@@ -22,6 +22,11 @@ namespace mid
 
 void DigitsMerger::process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup)
 {
+  process(inDigitStore, inROFRecords, &inMCContainer, mergeInBunchPileup);
+}
+
+void DigitsMerger::process(gsl::span<const ColumnData> inDigitStore, gsl::span<const ROFRecord> inROFRecords, const o2::dataformats::MCTruthContainer<MCLabel>* inMCContainer, bool mergeInBunchPileup)
+{
   mDigitStore.clear();
   mMCContainer.clear();
   mROFRecords.clear();
@@ -41,12 +46,14 @@ void DigitsMerger::process(const std::vector<ColumnData>& inDigitStore, const o2
     auto firstEntry = mDigitStore.size();
     auto digits = mHandler.getMerged();
     mROFRecords.emplace_back(rofIt->interactionRecord, rofIt->eventType, firstEntry, digits.size());
+    mDigitStore.insert(mDigitStore.end(), digits.begin(), digits.end());
 
-    for (auto& dig : digits) {
-      auto indexes = mHandler.getMergedIndexes(dig);
-      mDigitStore.emplace_back(dig);
-      for (auto labelIdx : indexes) {
-        mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer.getLabels(labelIdx));
+    if (inMCContainer) {
+      for (auto& dig : digits) {
+        auto indexes = mHandler.getMergedIndexes(dig);
+        for (auto labelIdx : indexes) {
+          mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer->getLabels(labelIdx));
+        }
       }
     }
     mHandler.clear();
