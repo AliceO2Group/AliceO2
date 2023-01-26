@@ -28,12 +28,15 @@
 #include <TTree.h>
 #include <TGeoManager.h>
 #include <TGrid.h>
+#include <TH2.h>
+#include <TF1.h>
 
 #include <fstream>
 #include <string>
 #include <vector>
 #include <memory>
 #include <array>
+#include <random>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -126,6 +129,11 @@ void staticMapCreator(std::string fileInput = "files.txt",
                       std::string trackSources = static_cast<std::string>(GID::ALL))
 {
 
+  constexpr int nSectors = SECTORSPERSIDE * SIDES;
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::uniform_real_distribution<double> zeroToOne(0., 1.);
+
   // Obtain configuration
   const SpacePointsCalibConfParam& params = SpacePointsCalibConfParam::Instance();
   if (!boost::filesystem::exists("scdconfig.ini")) {
@@ -153,6 +161,7 @@ void staticMapCreator(std::string fileInput = "files.txt",
   int64_t orbitResetTimeMS = (*orbitResetTimeNS)[0] * 1e-3;
   LOGP(info, "Orbit reset time in MS is {}", orbitResetTimeMS);
 
+  // geometry, material budget and B-field
   auto geoAligned = ccdbmgr.get<TGeoManager>("GLO/Config/GeometryAligned");
   auto magField = ccdbmgr.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
   const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(ccdbmgr.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
@@ -163,19 +172,19 @@ void staticMapCreator(std::string fileInput = "files.txt",
   // Input
   auto fileList = getInputFileList(fileInput);
 
-  std::array<std::vector<TrackResiduals::LocalResid>, SECTORSPERSIDE * SIDES> binnedResidualsSec;     // binned residuals generated on-the-fly
-  std::array<std::vector<TrackResiduals::LocalResid>*, SECTORSPERSIDE * SIDES> binnedResidualsSecPtr; // for setting branch addresses
-  std::array<std::vector<TrackResiduals::VoxStats>, SECTORSPERSIDE * SIDES> voxStatsSec;              // voxel statistics generated on-the-fly
+  std::array<std::vector<TrackResiduals::LocalResid>, nSectors> binnedResidualsSec;                   // binned residuals generated on-the-fly
+  std::array<std::vector<TrackResiduals::LocalResid>*, nSectors> binnedResidualsSecPtr;               // for setting branch addresses
+  std::array<std::vector<TrackResiduals::VoxStats>, nSectors> voxStatsSec;                            // voxel statistics generated on-the-fly
   std::vector<TrackResiduals::LocalResid> binnedResiduals, *binnedResidualsPtr = &binnedResiduals;    // binned residuals
 
   TrackResiduals trackResiduals;
   trackResiduals.init();
 
   // Do we have a correction map available that we should apply to the clusters before the map extraction?
-  std::array<std::vector<TrackResiduals::VoxRes>, SECTORSPERSIDE * SIDES> voxelResults{};
+  std::array<std::vector<TrackResiduals::VoxRes>, nSectors> voxelResults{};
   if (voxMapInput.size()) {
     LOG(info) << "A correction map has been provided. Will apply the corrections to the cluster residuals";
-    for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+    for (int iSec = 0; iSec < nSectors; ++iSec) {
       voxelResults[iSec].resize(trackResiduals.getNVoxelsPerSector());
     }
     TrackResiduals::VoxRes voxRes, *voxResPtr = &voxRes;
@@ -194,7 +203,7 @@ void staticMapCreator(std::string fileInput = "files.txt",
   if (!params.writeBinnedResiduals) {
     treeBinnedResiduals->SetDirectory(nullptr);
   }
-  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+  for (int iSec = 0; iSec < nSectors; ++iSec) {
     binnedResidualsSecPtr[iSec] = &binnedResidualsSec[iSec];
     voxStatsSec[iSec].resize(trackResiduals.getNVoxelsPerSector());
     for (int ix = 0; ix < trackResiduals.getNXBins(); ++ix) {
@@ -217,6 +226,10 @@ void staticMapCreator(std::string fileInput = "files.txt",
   std::vector<TrackDataCompact> trackRefs, *trackRefsPtr = &trackRefs;                      // the track references for unbinned residuals
   std::vector<TrackData> trackData, *trackDataPtr = &trackData;                             // additional track information (chi2, nClusters, track parameters)
   std::vector<uint32_t> orbits, *orbitsPtr = &orbits;                                       // first orbit for each TF in the input data
+  std::array<float, nSectors> downscalingSector{};                                          // rough downsampling for unbinned residuals used for vDrift estimate
+  std::vector<UnbinnedResid> residualsVd;                                                   // collect here the residuals used for the vDrift estimate
+
+  bool haveSectorScalingEstimate = false;
 
   for (const auto& fileName : fileList) {
     LOGP(info, "Processing input file {}", fileName);
@@ -231,6 +244,21 @@ void staticMapCreator(std::string fileInput = "files.txt",
     treeUnbinnedResiduals.reset((TTree*)inputFile->Get("unbinnedResid"));
     treeUnbinnedResiduals->SetBranchAddress("res", &unbinnedResidualsPtr);
     treeUnbinnedResiduals->SetBranchAddress("trackInfo", &trackRefsPtr);
+    if (!haveSectorScalingEstimate && params.fitVdrift) {
+      auto hSector = std::make_unique<TH1F>("sector", "Residuals per sector;sector;counts", nSectors, 0, nSectors);
+      for (int iEntry = 0; iEntry < treeUnbinnedResiduals->GetEntries(); ++iEntry) {
+        treeUnbinnedResiduals->GetEntry(iEntry);
+        for (const auto& res : unbinnedResiduals) {
+          hSector->Fill(res.sec);
+        }
+      }
+      int minBin = hSector->GetMinimumBin();
+      for (int iSec = 0; iSec < nSectors; ++iSec) {
+        downscalingSector[iSec] = hSector->GetBinContent(minBin) / hSector->GetBinContent(iSec + 1);
+        LOGP(info, "For sector {} we keep a fraction of {} of the residuals", iSec, downscalingSector[iSec]);
+      }
+      haveSectorScalingEstimate = true;
+    }
     if (params.useTrackData) {
       treeTrackData.reset((TTree*)inputFile->Get("trackData"));
       treeTrackData->SetBranchAddress("trk", &trackDataPtr);
@@ -266,8 +294,18 @@ void staticMapCreator(std::string fileInput = "files.txt",
             continue;
           }
         }
+        bool useResidualsForVd = params.fitVdrift;
+        if (params.fitVdrift) {
+          auto random = zeroToOne(g);
+          if (random > downscalingSector[unbinnedResiduals[trkInfo.idxFirstResidual].sec]) {
+            useResidualsForVd = false;
+          }
+        }
         for (unsigned int i = trkInfo.idxFirstResidual; i < trkInfo.idxFirstResidual + trkInfo.nResiduals; ++i) {
           const auto& residIn = unbinnedResiduals[i];
+          if (useResidualsForVd && residualsVd.size() < 10'000'000UL) {
+            residualsVd.push_back(residIn);
+          }
           int sec = residIn.sec;
           auto& residVecOut = binnedResidualsSec[sec];
           auto& statVecOut = voxStatsSec[sec];
@@ -314,7 +352,50 @@ void staticMapCreator(std::string fileInput = "files.txt",
     }
   }
 
-  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+  // perform vDrift calibration on sample of unbinned residuals
+  if (params.fitVdrift) {
+    LOGP(info, "Performing fits for vDrift");
+    auto hVdrift = std::make_unique<TH2F>("vdrift", ";z (cm);dz (cm)", 100, -250, 250, 100, -5, 5);
+    std::vector<float> dzNeg{}, zNeg{}, dzPos{}, zPos{};
+    for (const auto& res : residualsVd) {
+      float dz = res.dz * param::MaxResid / 0x7fff;
+      float z = res.z * param::MaxZ / 0x7fff + res.dz * param::MaxResid / 0x7fff;
+      hVdrift->Fill(z, dz);
+      if (res.z > 0) {
+        dzPos.push_back(dz);
+        zPos.push_back(z);
+      } else {
+        dzNeg.push_back(dz);
+        zNeg.push_back(z);
+      }
+    }
+    std::array<std::array<float, 2>, 2> fitResults{};
+    std::array<std::array<float, 3>, 2> fitErrors{};
+    std::array<float, 2> sigMAD{};
+    float fracToKeep = 0.7;
+    sigMAD[0] = trackResiduals.fitPoly1Robust(zPos, dzPos, fitResults[0], fitErrors[0], fracToKeep);
+    sigMAD[1] = trackResiduals.fitPoly1Robust(zNeg, dzNeg, fitResults[1], fitErrors[1], fracToKeep);
+    LOGP(info, "For z>0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[0][0], fitResults[0][1], sigMAD[0]);
+    LOGP(info, "For z<0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[1][0], fitResults[1][1], sigMAD[1]);
+    if (sigMAD[0] < 0 || sigMAD[1] < 0) {
+      LOG(error) << "Failed linear fit for vDrift";
+    }
+    float vDriftCorr = 0.5f * (fitResults[0][1] + fitResults[1][1]);
+    LOGP(info, "Setting vDrift correction factor to {}", vDriftCorr);
+    trackResiduals.getOutputFilePtr()->cd();
+    hVdrift->Write();
+    hVdrift.reset();
+    auto fPos = std::make_unique<TF1>("fpos", Form("%f+%f*x", fitResults[0][0], fitResults[0][1]), 0, 250);
+    auto fNeg = std::make_unique<TF1>("fneg", Form("%f+%f*x", fitResults[1][0], fitResults[1][1]), -250, 0);
+    fPos->Write();
+    fNeg->Write();
+    fPos.reset();
+    fNeg.reset();
+    residualsVd.clear();
+    trackResiduals.setVdriftCorr(vDriftCorr);
+  }
+
+  for (int iSec = 0; iSec < nSectors; ++iSec) {
     // for each sector fill the vector of local residuals from the respective branch
     auto brResid = treeBinnedResiduals->GetBranch(Form("sec%d", iSec));
     brResid->SetAddress(&binnedResidualsPtr);

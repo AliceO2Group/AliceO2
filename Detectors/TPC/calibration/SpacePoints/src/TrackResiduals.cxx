@@ -372,7 +372,8 @@ void TrackResiduals::processSectorResiduals(int iSec)
       tgVec.clear();
     }
     dyVec.push_back(mLocalResidualsIn[idx].dy * param::MaxResid / 0x7fff);
-    dzVec.push_back(mLocalResidualsIn[idx].dz * param::MaxResid / 0x7fff);
+    dzVec.push_back(mLocalResidualsIn[idx].dz * param::MaxResid / 0x7fff -
+                    mEffVdriftCorr * secData[currVoxBin].stat[VoxZ] * secData[currVoxBin].stat[VoxX]);
     tgVec.push_back(mLocalResidualsIn[idx].tgSlp * param::MaxTgSlp / 0x7fff);
 
     ++nPointsInVox;
@@ -1422,7 +1423,7 @@ bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, st
 void TrackResiduals::createOutputFile(const char* filename)
 {
   if (getNVoxelsPerSector() == 0) {
-    LOG(warn) << "For the tree aliases to work must initialize the binning before calling createOutputFile()";
+    LOG(warn) << "For the tree aliases to work you must initialize the binning before calling createOutputFile()";
   }
   mFileOut = std::make_unique<TFile>(filename, "recreate");
   mTreeOut = std::make_unique<TTree>("voxResTree", "Voxel results and statistics");

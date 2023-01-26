@@ -145,6 +145,8 @@ class TrackResiduals
   /// Otherwise a first order polynomial will be used (default along z/x, since the bins are large)
   void setSmoothPol2(int dim, bool flag) { mSmoothPol2[dim] = flag; }
 
+  void setVdriftCorr(float corr) { mEffVdriftCorr = corr; }
+
   // -------------------------------------- I/O --------------------------------------------------
 
   std::vector<LocalResid>& getLocalResVec() { return mLocalResidualsIn; }
@@ -487,6 +489,8 @@ class TrackResiduals
   std::array<float, VoxDim> mKernelScaleEdge{};                    ///< optional scaling factors for kernel width on the edge
   std::array<float, VoxDim> mKernelWInv{};                         ///< inverse kernel width in bins
   std::array<double, ResDim * sMaxSmtDim> mLastSmoothingRes{};     ///< results of last smoothing operation
+  // calibrated parameters
+  float mEffVdriftCorr{0.f}; ///< global correction factor for vDrift based on d(delta(z))/dz fit
   // (intermediate) results
   std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
   std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
