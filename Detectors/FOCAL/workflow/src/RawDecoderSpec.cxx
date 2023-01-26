@@ -297,7 +297,8 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
        branch = (feeID & 0x0F00) >> 8;
   int layer = fee < 2 ? 0 : 1;
 
-  gsl::span<const o2::itsmft::GBTWord> pixelpayload(reinterpret_cast<const o2::itsmft::GBTWord*>(pixelWords.data()), sizeof(o2::itsmft::GBTWord) / sizeof(char));
+  gsl::span<const o2::itsmft::GBTWord> pixelpayload(reinterpret_cast<const o2::itsmft::GBTWord*>(pixelWords.data()), pixelWords.size() / sizeof(o2::itsmft::GBTWord));
+  LOG(debug) << pixelWords.size() << " Bytes -> " << pixelpayload.size() << " GBT words";
   mPixelDecoder.reset();
   mPixelDecoder.decodeEvent(pixelpayload);
 
@@ -310,6 +311,16 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
       LOG(debug) << "FEE 0x" << std::hex << feeID << std::dec << ": Discarding spurious trigger with Orbit " << trigger.orbit << " (HB " << hbIR.orbit << ")";
       continue;
     }
+    int nhits = 0;
+    // set fee for all chips
+    for (auto& chip : chipdata) {
+      nhits += chip.mHits.size();
+    }
+    // std::cout << "FEE 0x" << std::hex << feeID << std::dec << " (fee " << fee << ", branch " << branch << ", layer " << layer << "): Found " << chipdata.size() << " chips with " << nhits << " hits (total) for Orbit " << trigger.orbit << ", BC " << trigger.bc << std::endl;
+    // for (const auto& chip : chipdata) {
+    //  std::cout << "Chip " << static_cast<int>(chip.mChipID) << ", lane " << static_cast<int>(chip.mLaneID) << ": " << chip.mHits.size() << " hits ... (Dataframe "
+    //            << (chip.isDataframe() ? "yes" : "no") << ", Emptyframe " << (chip.isEmptyframe() ? "yes" : "no") << ", Busy on " << (chip.isBusyOn() ? "yes" : "no") << ", Busy off " << (chip.isBusyOff() ? "yes" : "no") << ")" << std::endl;
+    // }
     if (foundHBF == mHBFs.end()) {
       // take HBF from the first trigger as BC in RDH for pixel data is unreliable
       foundHBF = mHBFs.find(hbIR);
@@ -325,7 +336,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
     if (triggerfound != foundHBF->second.mPixelTriggers.end()) {
       //
       auto index = triggerfound - foundHBF->second.mPixelTriggers.begin();
-      fillChipsToLayer(foundHBF->second.mPixelEvent[index][layer], chipdata);
+      fillChipsToLayer(foundHBF->second.mPixelEvent[index][layer], chipdata, fee);
       foundHBF->second.mFEEs[index].push_back(feeID);
     } else {
       // new trigger
@@ -333,7 +344,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
       foundHBF->second.mPixelEvent.push_back(nextevent);
       foundHBF->second.mPixelTriggers.push_back(trigger);
       auto& current = foundHBF->second.mPixelEvent.back();
-      fillChipsToLayer(current[layer], chipdata);
+      fillChipsToLayer(current[layer], chipdata, fee);
       foundHBF->second.mFEEs.push_back({feeID});
     }
     nevents++;
@@ -365,11 +376,22 @@ std::array<o2::focal::PadLayerEvent, o2::focal::constants::PADS_NLAYERS> RawDeco
   return result;
 }
 
-void RawDecoderSpec::fillChipsToLayer(o2::focal::PixelLayerEvent& pixellayer, const gsl::span<const o2::focal::PixelChip>& chipData)
+void RawDecoderSpec::fillChipsToLayer(o2::focal::PixelLayerEvent& pixellayer, const gsl::span<const o2::focal::PixelChip>& chipData, int feeID)
 {
-  for (const auto& chip : chipData) {
-    pixellayer.addChip(chip);
+  int nhitsBefore = 0;
+  int nchipsBefore = pixellayer.getChips().size();
+  for (auto& chip : pixellayer.getChips()) {
+    nhitsBefore += chip.mHits.size();
   }
+  for (const auto& chip : chipData) {
+    pixellayer.addChip(feeID, chip.mLaneID, chip.mChipID, chip.mStatusCode, chip.mHits);
+  }
+  int nhitsAfter = 0;
+  int nchipsAfter = pixellayer.getChips().size();
+  for (auto& chip : pixellayer.getChips()) {
+    nhitsAfter += chip.mHits.size();
+  }
+  // std::cout << "Adding to pixel layer: Chips before " << nchipsBefore << " / after " << nchipsAfter << ", hits before " << nhitsBefore << " / after " << nhitsAfter << std::endl;
 }
 
 void RawDecoderSpec::fillEventPixeHitContainer(std::vector<PixelHit>& eventHits, std::vector<PixelChipRecord>& eventChips, const PixelLayerEvent& pixelLayer, int layerIndex)
@@ -378,7 +400,7 @@ void RawDecoderSpec::fillEventPixeHitContainer(std::vector<PixelHit>& eventHits,
     auto starthits = eventHits.size();
     auto& chipHits = chip.mHits;
     std::copy(chipHits.begin(), chipHits.end(), std::back_inserter(eventHits));
-    eventChips.emplace_back(layerIndex, chip.mLaneID, chip.mChipID, starthits, chipHits.size());
+    eventChips.emplace_back(layerIndex, chip.mFeeID, chip.mLaneID, chip.mChipID, chip.mStatusCode, starthits, chipHits.size());
   }
 }
 
@@ -409,6 +431,7 @@ void RawDecoderSpec::buildEvents()
         }
         std::copy(eventHits.begin(), eventHits.end(), std::back_inserter(mOutputPixelHits));
         std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
+        // std::cout << "Orbit " << hbf.mPixelTriggers[itrg].orbit << ", BC " << hbf.mPixelTriggers[itrg].bc << ": " << eventPixels.size() << " chips with " << eventHits.size() << " hits ..." << std::endl;
         mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startChips, eventPixels.size(), startHits, eventHits.size());
       }
     } else if (mUsePixelData) {
