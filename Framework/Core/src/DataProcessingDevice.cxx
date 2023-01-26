@@ -1087,6 +1087,7 @@ void DataProcessingDevice::Run()
       //   shouldNotWait |= info.readPolled;
       // }
       state.loopReason = DeviceState::NO_REASON;
+      state.firedTimers.clear();
       if ((state.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
         state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
