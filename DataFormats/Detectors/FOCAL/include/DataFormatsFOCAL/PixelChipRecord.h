@@ -24,18 +24,22 @@ class PixelChipRecord
 
  public:
   PixelChipRecord() = default;
-  PixelChipRecord(int layerID, int laneID, int chipID, int firsthit, int nhits) : mLayerID(layerID), mLaneID(laneID), mChipID(chipID), mHitIndexRange(firsthit, nhits) {}
+  PixelChipRecord(int layerID, int feeID, int laneID, int chipID, uint32_t statusCode, int firsthit, int nhits) : mLayerID(layerID), mLaneID(laneID), mChipID(chipID), mFeeID(feeID), mStatusCode(statusCode), mHitIndexRange(firsthit, nhits) {}
   ~PixelChipRecord() = default;
 
   void setLayerID(int layerID) { mLayerID = layerID; }
   void setLaneID(int laneID) { mLaneID = laneID; }
   void setChipID(int chipID) { mChipID = chipID; }
+  void setFeeID(int feeID) { mFeeID = feeID; }
+  void setStatusCode(uint16_t statusCode) { mStatusCode = statusCode; }
   void setIndexFirstHit(int firsthit) { mHitIndexRange.setFirstEntry(firsthit); }
   void setNumberOfHits(int nhits) { mHitIndexRange.setEntries(nhits); }
 
   int getLayerID() const { return mLayerID; }
   int getLaneID() const { return mLaneID; }
   int getChipID() const { return mChipID; }
+  int getFeeID() const { return mFeeID; }
+  uint16_t getStatusCode() const { return mStatusCode; }
   int getFirstHit() const { return mHitIndexRange.getFirstEntry(); }
   int getNumberOfHits() const { return mHitIndexRange.getEntries(); }
 
@@ -45,6 +49,8 @@ class PixelChipRecord
   int mLayerID = -1;        /// Layer index
   int mLaneID = -1;         /// Lane index
   int mChipID = -1;         /// Chip index
+  int mFeeID = -1;          /// FEE ID
+  uint16_t mStatusCode = 0; /// status codes
   DataRange mHitIndexRange; /// Index range of hits belonging to theh chip
 
   ClassDefNV(PixelChipRecord, 1);

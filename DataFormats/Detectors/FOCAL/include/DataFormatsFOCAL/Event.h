@@ -73,7 +73,7 @@ class PixelLayerEvent
   ~PixelLayerEvent() = default;
 
   void addChip(const PixelChip& chip);
-  void addChip(int laneID, int chipID, gsl::span<const PixelHit> hits);
+  void addChip(int feeID, int laneID, int chipID, uint16_t statusCode, gsl::span<const PixelHit> hits);
   const std::vector<PixelChip>& getChips() const { return mChips; }
 
   void reset();
