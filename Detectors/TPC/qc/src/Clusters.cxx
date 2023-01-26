@@ -22,8 +22,10 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/KrCluster.h"
+#include "CommonConstants/LHCConstants.h"
 
 ClassImp(o2::tpc::qc::Clusters);
 
@@ -107,7 +109,7 @@ void Clusters::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin,
 }
 
 //______________________________________________________________________________
-void Clusters::normalize()
+void Clusters::normalize(const float nHBFPerTF)
 {
   if (mIsNormalized) {
     return;
@@ -119,7 +121,11 @@ void Clusters::normalize()
   mSigmaPad /= mNClusters;
   mTimeBin /= mNClusters;
 
+  mOccupancy = mNClusters;
+  mOccupancy /= float(mProcessedTFs * (o2::constants::lhc::LHCMaxBunches * nHBFPerTF) / float(o2::tpc::ParameterElectronics::TIMEBININBC));
+
   mIsNormalized = true;
+  mOccupancy.setName("Occupancy");
 }
 
 //______________________________________________________________________________
@@ -134,6 +140,7 @@ void Clusters::denormalize()
   mSigmaTime *= mNClusters;
   mSigmaPad *= mNClusters;
   mTimeBin *= mNClusters;
+  mOccupancy = mNClusters;
 
   mIsNormalized = false;
 }
@@ -171,6 +178,7 @@ void Clusters::merge(Clusters& clusters)
   mSigmaTime += clusters.mSigmaTime;
   mSigmaPad += clusters.mSigmaPad;
   mTimeBin += clusters.mTimeBin;
+  mProcessedTFs += clusters.mProcessedTFs;
 
   if (isThisNormalized) {
     normalize();
@@ -196,6 +204,7 @@ void Clusters::dumpToFile(std::string filename, int type)
     f->WriteObject(o2::tpc::painter::draw(mSigmaTime), mSigmaTime.getName().data());
     f->WriteObject(o2::tpc::painter::draw(mSigmaPad), mSigmaPad.getName().data());
     f->WriteObject(o2::tpc::painter::draw(mTimeBin), mTimeBin.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mOccupancy), mOccupancy.getName().data());
     f->Close();
   }
 
@@ -209,6 +218,7 @@ void Clusters::dumpToFile(std::string filename, int type)
     f->WriteObject(&mSigmaTime, mSigmaTime.getName().data());
     f->WriteObject(&mSigmaPad, mSigmaPad.getName().data());
     f->WriteObject(&mTimeBin, mTimeBin.getName().data());
+    f->WriteObject(&mOccupancy, mOccupancy.getName().data());
     nTFs.Write();
     f->Close();
   }
