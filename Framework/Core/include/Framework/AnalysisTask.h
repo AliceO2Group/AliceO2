@@ -647,6 +647,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
                              *task.get());
       eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
+
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     /// update configurables in filters

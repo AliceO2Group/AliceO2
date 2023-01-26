@@ -961,12 +961,30 @@ void DataProcessingDevice::PreRun()
   mServiceRegistry.preStartCallbacks();
   ref.get<CallbackService>()(CallbackService::Id::Start);
   startPollers();
+
+  // Raise to 1 when we are ready to start processing
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
+  auto& monitoring = ref.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)1, "device_state"}.addTag(Key::Subsystem, Value::DPL));
 }
 
 void DataProcessingDevice::PostRun()
 {
-  stopPollers();
   ServiceRegistryRef ref{mServiceRegistry};
+  // Raise to 1 when we are ready to start processing
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
+  auto& monitoring = ref.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)0, "device_state"}.addTag(Key::Subsystem, Value::DPL));
+
+  stopPollers();
   ref.get<CallbackService>()(CallbackService::Id::Stop);
   mServiceRegistry.postStopCallbacks();
 }
