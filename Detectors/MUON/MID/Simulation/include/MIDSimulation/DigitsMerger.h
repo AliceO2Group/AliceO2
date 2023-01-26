@@ -17,6 +17,7 @@
 #define O2_MID_DIGITSMERGER_H
 
 #include <vector>
+#include <gsl/span>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/ColumnData.h"
@@ -36,6 +37,13 @@ class DigitsMerger
   /// @param inROFRecords Vector with RO frame records
   /// @param mergeInBunchPileup Merge the digits coming from in-bunch pileup
   void process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
+
+  /// @brief Merges the MC digits that are provided per hit into the format that we expect from data
+  /// @param inDigitStore Vector of input MC digits
+  /// @param inROFRecords Vector with RO frame records
+  /// @param inMCContainer Pointer to a container with MC labels for input MC digits (can be null)
+  /// @param mergeInBunchPileup Merge the digits coming from in-bunch pileup
+  void process(gsl::span<const ColumnData> inDigitStore, gsl::span<const ROFRecord> inROFRecords, const o2::dataformats::MCTruthContainer<MCLabel>* inMCContainer = nullptr, bool mergeInBunchPileup = true);
 
   /// @brief Gets the merged column data
   const std::vector<ColumnData>& getColumnData() const { return mDigitStore; }
