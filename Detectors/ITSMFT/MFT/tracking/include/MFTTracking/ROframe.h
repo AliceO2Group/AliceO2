@@ -56,6 +56,8 @@ class ROframe
 
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
 
+  const std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
+
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
   std::vector<T>& getTracks() { return mTracks; }
@@ -78,6 +80,8 @@ class ROframe
 
   void addRoad() { mRoads.emplace_back(); }
 
+  void initialize(bool fullClusterScan = false);
+
   void sortClusters();
 
   void clear()
@@ -87,6 +91,9 @@ class ROframe
       mClusters[iLayer].clear();
       mClusterLabels[iLayer].clear();
       mClusterExternalIndices[iLayer].clear();
+      for (Int_t iBin = 0; iBin < constants::index_table::MaxRPhiBins; ++iBin) {
+        mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
+      }
     }
     mTracks.clear();
     mRoads.clear();
@@ -98,6 +105,7 @@ class ROframe
   std::array<std::vector<Cluster>, constants::mft::LayersNumber> mClusters;
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
+  std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
   std::vector<T> mTracks;
   std::vector<Road> mRoads;
 };

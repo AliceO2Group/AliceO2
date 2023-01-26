@@ -125,16 +125,21 @@ void TrackerDPL::run(ProcessingContext& pc)
       int worker = std::min(int(iROF / rofsPerWorker), mNThreads - 1);
       auto& roFrameData = roFrameDataVec[worker].emplace_back();
       int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get(), filter);
+      roFrameData.initialize(trackingParam.FullClusterScan);
       LOG(debug) << "ROframeId: " << iROF << ", clusters loaded : " << nclUsed << " on worker " << worker;
       iROF++;
     }
   };
 
-  auto launchTrackFinder = [](auto* tracker, auto* workerROFs) {
+  auto launchLTF = [](auto* tracker, auto* workerROFs) {
     for (auto& rofData : *workerROFs) {
-      {
-        tracker->findTracks(rofData);
-      }
+      tracker->findLTFTracks(rofData);
+    }
+  };
+
+  auto launchCA = [](auto* tracker, auto* workerROFs) {
+    for (auto& rofData : *workerROFs) {
+      tracker->findCATracks(rofData);
     }
   };
 
@@ -144,12 +149,26 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   };
 
-  auto runMFTTrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
+  auto runLTFTrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
     std::vector<std::future<void>> finder;
     for (int i = 0; i < mNThreads; i++) {
       auto& tracker = trackerVec[i];
       auto& workerData = roFrameDataVec[i];
-      auto f = std::async(std::launch::async, launchTrackFinder, tracker.get(), &workerData);
+      auto f = std::async(std::launch::async, launchLTF, tracker.get(), &workerData);
+      finder.push_back(std::move(f));
+    }
+
+    for (int i = 0; i < mNThreads; i++) {
+      finder[i].wait();
+    }
+  };
+
+  auto runCATrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
+    std::vector<std::future<void>> finder;
+    for (int i = 0; i < mNThreads; i++) {
+      auto& tracker = trackerVec[i];
+      auto& workerData = roFrameDataVec[i];
+      auto f = std::async(std::launch::async, launchCA, tracker.get(), &workerData);
       finder.push_back(std::move(f));
     }
 
@@ -199,11 +218,17 @@ void TrackerDPL::run(ProcessingContext& pc)
     loadData(mTrackerVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
-    LOG(debug) << "Running MFT Track finder.";
+    LOG(debug) << "Running LTF Finder.";
 
-    mTimer[SWFindMFTTracks].Start(false);
-    runMFTTrackFinder(mTrackerVec, roFrameVec);
-    mTimer[SWFindMFTTracks].Stop();
+    mTimer[SWFindLTFTracks].Start(false);
+    runLTFTrackFinder(mTrackerVec, roFrameVec);
+    mTimer[SWFindLTFTracks].Stop();
+
+    LOG(debug) << "Running CA finder.";
+
+    mTimer[SWFindCATracks].Start(false);
+    runCATrackFinder(mTrackerVec, roFrameVec);
+    mTimer[SWFindCATracks].Stop();
 
     LOG(debug) << "Runnig track fitter.";
 
@@ -254,9 +279,13 @@ void TrackerDPL::run(ProcessingContext& pc)
     loadData(mTrackerLVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
-    mTimer[SWFindMFTTracks].Start(false);
-    runMFTTrackFinder(mTrackerLVec, roFrameVec);
-    mTimer[SWFindMFTTracks].Stop();
+    mTimer[SWFindLTFTracks].Start(false);
+    runLTFTrackFinder(mTrackerLVec, roFrameVec);
+    mTimer[SWFindLTFTracks].Stop();
+
+    mTimer[SWFindCATracks].Start(false);
+    runCATrackFinder(mTrackerLVec, roFrameVec);
+    mTimer[SWFindCATracks].Stop();
 
     mTimer[SWFitTracks].Start(false);
     runTrackFitter(mTrackerLVec, roFrameVec);
