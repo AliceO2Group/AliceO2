@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-message(STATUS "Building detectors for upgrades")
-add_subdirectory(ITS3)
-add_subdirectory(ALICE3)
+add_subdirectory(macros)
+add_subdirectory(simulation)
+add_subdirectory(base)
+add_subdirectory(workflow)
+add_subdirectory(reconstruction)
