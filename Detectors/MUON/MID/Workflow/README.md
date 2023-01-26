@@ -117,6 +117,32 @@ o2-mid-reco-workflow --change-local-to-BC <value>
 
 where `<value>` is the chosen offset in number of BCs (can be negative).
 
+## MID BC filtering
+
+The MID time resolution is better than 25 ns, allowing it to distinguish between different BCs.
+However, a spread of the signal was observed, probably due an insufficient equalization of the delays across the various detection element.
+In order to study and possibly correct for any inefficiency arising from this spread, it is possible to select the BCs corresponding to a collision and merge the digits in a configurable window around this BC.
+To this aim, it is enough to run the reconstruction with the option:
+
+```bash
+o2-mid-reco-workflow --enable-filter-BC
+```
+
+The time window can be tuned with:
+
+```bash
+--configKeyValues="MIDFiltererBC.maxBCDiffLow=-1;MIDFiltererBC.maxBCDiffHigh=1"
+```
+
+Notice that the `maxBCDiffLow` has to be a negative value.
+
+It is also possible to only select the collision BC, without merging the digits in the corresponding window.
+This can be done adding the option:
+
+```bash
+--configKeyValues="MIDFiltererBC.selectOnly=1"
+```
+
 ### Reconstruction options
 
 By default, the reconstruction produces clusters and tracks that are written on file.
