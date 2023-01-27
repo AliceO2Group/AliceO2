@@ -162,7 +162,7 @@ class HmpidDecoder2
 
  public:
   bool decodeHmpidError(int ErrorField, char* outbuf);
-  void dumpHmpidError(int ErrorField);
+  void dumpHmpidError(HmpidEquipment* eq, int ErrorField, int mHeBCDI, int mHeORBIT);
   bool isPadWord(uint32_t wp, int* Err, int* Col, int* Dilogic, int* Channel, int* Charge);
   int decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex);
   HmpidEquipment* evaluateHeaderContents(int EquipmentIndex);
