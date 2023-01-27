@@ -82,7 +82,7 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
     strToFloatsSplit(mSigmaCutPar, ",", mSigmaCut, 7);
   }
 
-  mDigitsReceived, mClustersReceived = 0;
+  mDigitsReceived = 0, mClustersReceived = 0;
 
   mRec.reset(new o2::hmpid::Clusterer()); // ef: changed to smart-pointer
 
