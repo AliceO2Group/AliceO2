@@ -18,7 +18,6 @@
 #include <string>
 #include <map>
 #include <utility>
-#include <set>
 
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_timer_s uv_timer_t;
@@ -91,7 +90,7 @@ struct DeviceState {
   // The list of active timers which notify this device.
   std::vector<uv_timer_t*> activeTimers;
   // The list of timers fired in this loop
-  std::set<uv_timer_t*> firedTimers;
+  std::vector<uv_timer_t*> firedTimers;
   // The list of pollers for active input channels
   std::vector<uv_poll_t*> activeInputPollers;
   // The list of pollers for active output channels
