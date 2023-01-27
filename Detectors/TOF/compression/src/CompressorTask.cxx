@@ -63,6 +63,10 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
+  if (outputRoutes.size() != 1) {
+    LOG(error) << "Compressor output routes size != 1";
+    return;
+  }
   auto fairMQChannel = outputRoutes.at(0).channel;
   fair::mq::Parts partsOut;
 
