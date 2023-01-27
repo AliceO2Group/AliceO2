@@ -64,14 +64,16 @@ void timer_callback(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
-  state->firedTimers.insert(handle);
+  if (std::find(state->firedTimers.begin(), state->firedTimers.end(), handle) == state->firedTimers.end()) {
+    state->firedTimers.push_back(handle);
+  }
 }
 
 auto timer_fired(uv_timer_t* timer)
 {
   return [timer]() -> bool {
     auto* state = (DeviceState*)timer->data;
-    return state->firedTimers.find(timer) != state->firedTimers.end();
+    return std::find(state->firedTimers.begin(), state->firedTimers.end(), timer) != state->firedTimers.end();
   };
 }
 
