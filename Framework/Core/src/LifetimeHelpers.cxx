@@ -100,8 +100,9 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
 {
   std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
+  std::shared_ptr<bool> stablePeriods = std::make_shared<bool>(false);
   // FIXME: should create timeslices when period expires....
-  return [last, period, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [last, stablePeriods, period, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // We start with a random offset to avoid all the devices
     // send their first message at the same time, bring down
     // the QC machine.
@@ -119,10 +120,12 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + period.count() * 0.1);
       *last = getCurrentTime() - randomizedPeriodUs;
       updateTimerPeriod(randomizedPeriodUs / 1000, randomizedPeriodUs / 1000);
-      LOG(debug) << "updated timer to randomized period " << randomizedPeriodUs << "us";
-    } else if (timerHasFired) {
+      *stablePeriods = false;
+      LOG(debug) << "Timer updated to a randomized period of " << randomizedPeriodUs << "us";
+    } else if (timerHasFired && *stablePeriods == false) {
       updateTimerPeriod(period.count() / 1000, period.count() / 1000);
-      LOG(debug) << "updated timer to period " << period.count() << "us";
+      *stablePeriods = true;
+      LOG(debug) << "Timer updated to a stable period of " << period.count() << "us";
     }
     // Nothing to do if the time has not expired yet.
     if (timerHasFired == false) {
