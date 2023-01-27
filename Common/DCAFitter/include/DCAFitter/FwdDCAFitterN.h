@@ -719,8 +719,8 @@ float FwdDCAFitterN<N, Args...>::findZatXY(int mCurHyp) // Between 2 tracks
   double z[2] = {startPoint, startPoint};
   double newX[2], newY[2];
 
-  double X = mPCA[mCurHyp][0]; //X seed
-  double Y = mPCA[mCurHyp][1]; //Y seed
+  double X = mPCA[mCurHyp][0]; // X seed
+  double Y = mPCA[mCurHyp][1]; // Y seed
 
   mCandTr[mCurHyp][0] = *mOrigTrPtr[0];
   mCandTr[mCurHyp][1] = *mOrigTrPtr[1];
@@ -780,15 +780,15 @@ void FwdDCAFitterN<N, Args...>::findZatXY_mid(int mCurHyp)
 
   double epsilon = 0.0001;
 
-  double X = mPCA[mCurHyp][0]; //X seed
-  double Y = mPCA[mCurHyp][1]; //Y seed
+  double X = mPCA[mCurHyp][0]; // X seed
+  double Y = mPCA[mCurHyp][1]; // Y seed
 
   mCandTr[mCurHyp][0] = *mOrigTrPtr[0];
   mCandTr[mCurHyp][1] = *mOrigTrPtr[1];
 
   double finalZ;
 
-  double dstXY[2]; //0 -> distance btwn both tracks at startPoint
+  double dstXY[2]; // 0 -> distance btwn both tracks at startPoint
 
   while (DeltaZ > epsilon) {
 
@@ -837,13 +837,13 @@ void FwdDCAFitterN<N, Args...>::findZatXY_lineApprox(int mCurHyp)
   double startPoint = 1.;
   double endPoint = 50.; // first disk
 
-  double X = mPCA[mCurHyp][0]; //X seed
-  double Y = mPCA[mCurHyp][1]; //Y seed
+  double X = mPCA[mCurHyp][0]; // X seed
+  double Y = mPCA[mCurHyp][1]; // Y seed
 
   mCandTr[mCurHyp][0] = *mOrigTrPtr[0];
   mCandTr[mCurHyp][1] = *mOrigTrPtr[1];
 
-  double y[2][2]; //Y00: y track 0 at point 0; Y01: y track 0 at point 1
+  double y[2][2]; // Y00: y track 0 at point 0; Y01: y track 0 at point 1
   double z[2][2];
   double x[2][2];
 
@@ -877,7 +877,7 @@ void FwdDCAFitterN<N, Args...>::findZatXY_lineApprox(int mCurHyp)
     aXZ[i] = (x[i][0] - bXZ[i]) / z[i][0];
   }
 
-  //z seed: equ. for intersection of these lines
+  // z seed: equ. for intersection of these lines
   finalZ = 0.5 * ((bYZ[0] - bYZ[1]) / (aYZ[1] - aYZ[0]) + (bXZ[0] - bXZ[1]) / (aXZ[1] - aXZ[0]));
 
   mPCA[mCurHyp][2] = finalZ;
@@ -890,8 +890,8 @@ void FwdDCAFitterN<N, Args...>::findZatXY_quad(int mCurHyp)
   double startPoint = 0.;
   double endPoint = 40.; // first disk
 
-  double X = mPCA[mCurHyp][0]; //X seed
-  double Y = mPCA[mCurHyp][1]; //Y seed
+  double X = mPCA[mCurHyp][0]; // X seed
+  double Y = mPCA[mCurHyp][1]; // Y seed
 
   mCandTr[mCurHyp][0] = *mOrigTrPtr[0];
   mCandTr[mCurHyp][1] = *mOrigTrPtr[1];
@@ -920,8 +920,8 @@ void FwdDCAFitterN<N, Args...>::findZatXY_quad(int mCurHyp)
   double finalZ[2];
 
   // find all variables for 2 tracks at z0 = startPoint
-  //set A, B, C variables for x/y equation for 2 tracks
-  //calculate Deltax/y for both and roots
+  // set A, B, C variables for x/y equation for 2 tracks
+  // calculate Deltax/y for both and roots
 
   for (int i = 0; i < 2; i++) {
     mCandTr[mCurHyp][i].propagateToZquadratic(startPoint, mBz);
@@ -955,7 +955,7 @@ void FwdDCAFitterN<N, Args...>::findZatXY_quad(int mCurHyp)
     } else {
       negX[i] = true;
       z12X[i] = 0;
-    } //discard
+    } // discard
 
     if (deltaY[i] > 0) {
       posY[i] = true;
@@ -999,8 +999,8 @@ void FwdDCAFitterN<N, Args...>::findZatXY_linear(int mCurHyp)
 
   double startPoint = 0.;
 
-  double X = mPCA[mCurHyp][0]; //X seed
-  double Y = mPCA[mCurHyp][1]; //Y seed
+  double X = mPCA[mCurHyp][0]; // X seed
+  double Y = mPCA[mCurHyp][1]; // Y seed
 
   mCandTr[mCurHyp][0] = *mOrigTrPtr[0];
   mCandTr[mCurHyp][1] = *mOrigTrPtr[1];
@@ -1019,9 +1019,9 @@ void FwdDCAFitterN<N, Args...>::findZatXY_linear(int mCurHyp)
 
   double finalZ[2];
 
-  //find all variables for 2 tracks at z0 = startPoint
-  //set A, B variables for x/y equation for 2 tracks
-  //calculate root
+  // find all variables for 2 tracks at z0 = startPoint
+  // set A, B variables for x/y equation for 2 tracks
+  // calculate root
 
   for (int i = 0; i < 2; i++) {
     mCandTr[mCurHyp][i].propagateToZlinear(startPoint);
@@ -1125,7 +1125,7 @@ bool FwdDCAFitterN<N, Args...>::minimizeChi2()
 
     VecND dz = mD2Chi2Dz2 * mDChi2Dz;
 
-    if (!FwdcorrectTracks(dz)) { //calculate new Pi (mTrPos) following Newton-Rapson iteration
+    if (!FwdcorrectTracks(dz)) { // calculate new Pi (mTrPos) following Newton-Rapson iteration
       return false;
     }
 

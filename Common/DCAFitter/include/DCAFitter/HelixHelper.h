@@ -236,7 +236,7 @@ struct CrossInfo {
     } else {
       // there is no crossing, find the point of the closest approach on the line which is closest to the circle center
       float t = -dk * cspi2;
-      float xL = traxL.xC + kx * t, yL = traxL.yC + ky * t;                                               // point on the line, need to average with point on the circle
+      float xL = traxL.xC + kx * t, yL = traxL.yC + ky * t; // point on the line, need to average with point on the circle
       float dxc = xL - traxH.xC, dyc = yL - traxH.yC, dist = std::sqrt(dxc * dxc + dyc * dyc);
       if (dist - traxH.rC > maxDistXY) { // too large distance
         return nDCA;
