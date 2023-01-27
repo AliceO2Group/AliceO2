@@ -49,6 +49,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
+  mProcessSeeds = ic.options().get<bool>("process-seeds");
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -113,9 +114,11 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTOF, 0));
   trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPC, 0));
 
-  bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
+  // so that the flags can be used inside the lambda
+  bool processITSTPConly = mProcessITSTPConly;
+  bool processSeeds = mProcessSeeds;
   // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
-  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
+  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &processSeeds, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
     if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
       bool trackGood = true;
       bool hasOuterPoint = false;
@@ -167,7 +170,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         gids.push_back(_origID);
         trkCounters[_origID.getSource()] += 1;
       }
-      if (gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet()) {
+      if (processSeeds || (gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet())) {
         // for ITS-TPC-TRD-TOF tracks we are interested also in the ITS-TPC-TRD part
         // we want to have both available, so return false for the full barrell tracks
         return false;
@@ -253,7 +256,8 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     outputs,
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData)},
     Options{
-      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}}}};
+      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
 
 } // namespace tpc
