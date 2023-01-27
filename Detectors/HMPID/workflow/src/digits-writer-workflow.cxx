@@ -35,12 +35,10 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
 }
 
-// customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  using o2::framework::CompletionPolicy;
-  using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("digits-hmpid-root", CompletionPolicy::CompletionOp::Consume));
+  // ordered policies for the writers
+  policies.push_back(o2::framework::CompletionPolicyHelpers::consumeWhenAllOrdered(".*HMP-DigitsToRoot.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -52,7 +50,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/DigitsToRootSpec.h"
+#include "HMPIDWorkflow/DigitsWriterSpec.h"
 
 using namespace o2;
 using namespace o2::framework;

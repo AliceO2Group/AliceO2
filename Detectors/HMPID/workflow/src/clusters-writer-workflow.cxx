@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file digits-to-clusters-workflow.h
-/// \brief Workflow for clusterization for HMPID; read upstream/from file write upstream/to file
+/// \brief Workflow for clusterization for HMPID; read upstream/from file write upstream/to file.
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
@@ -44,20 +44,17 @@ using o2::framework::VariantType;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
-
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
-
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"configKeyValues",
+                    VariantType::String,
+                    "",
+                    {keyvaluehelp}});
 
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/DigitsToClustersSpec.h"
 #include "HMPIDWorkflow/ClustersWriterSpec.h"
-#include "HMPIDWorkflow/DigitsReaderSpec.h"
-// #include "HMPIDWorkflow/HMPIDDigitizerSpec.h"ss
 
 using namespace o2;
 using namespace o2::framework;
@@ -68,24 +65,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   o2::conf::ConfigurableParam::updateFromString(
     configcontext.options().get<std::string>("configKeyValues"));
 
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");  // read upstream by default
-  auto disableRootOut = configcontext.options().get<bool>("disable-root-output"); // write upstream by default
-
-  DataProcessorSpec consumer = hmpid::getDigitsToClustersSpec();
-
-  specs.push_back(consumer);
-
-  // Read to File; input file and dir can be specified using
-  // --hmpid-digit-infile and --input-dir (from DigitsReaderSpec Class)
-  if (!disableRootInp) {
-    specs.emplace_back(hmpid::getDigitsReaderSpec());
-  }
-
-  // Write to Cluster-File; output file and dir can be specified using
-  // --outfile and --output-dir (from MakeTreeRootWriter Class)
-  if (!disableRootOut) {
-    specs.push_back(hmpid::getClusterWriterSpec());
-  }
+  specs.push_back(hmpid::getClusterWriterSpec());
 
   return specs;
 }
