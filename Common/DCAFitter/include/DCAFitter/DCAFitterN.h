@@ -307,25 +307,25 @@ class DCAFitterN
   int mCurHyp = 0;
   int mCrossIDCur = 0;
   int mCrossIDAlt = -1;
-  bool mAllowAltPreference = true;  // if the fit converges to alternative PCA seed, abandon the current one
-  bool mUseAbsDCA = false;          // use abs. distance minimization rather than chi2
-  bool mWeightedFinalPCA = false;   // recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
-  bool mPropagateToPCA = true;      // create tracks version propagated to PCA
-  bool mUsePropagator = false;      // use propagator with 3D B-field, set automatically if material correction is requested
-  bool mRefitWithMatCorr = false;   // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
+  bool mAllowAltPreference = true;                                                                // if the fit converges to alternative PCA seed, abandon the current one
+  bool mUseAbsDCA = false;                                                                        // use abs. distance minimization rather than chi2
+  bool mWeightedFinalPCA = false;                                                                 // recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
+  bool mPropagateToPCA = true;                                                                    // create tracks version propagated to PCA
+  bool mUsePropagator = false;                                                                    // use propagator with 3D B-field, set automatically if material correction is requested
+  bool mRefitWithMatCorr = false;                                                                 // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
   o2::base::Propagator::MatCorrType mMatCorr = o2::base::Propagator::MatCorrType::USEMatCorrNONE; // material corrections type
-  int mMaxIter = 20;                // max number of iterations
-  float mBz = 0;                    // bz field, to be set by user
-  float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
-  float mMinXSeed = -50.;           // reject seed if it corresponds to X-param < mMinXSeed for one of candidates (e.g. X becomes strongly negative)
-  float mMaxDZIni = 4.;             // reject (if>0) PCA candidate if tracks DZ exceeds threshold
-  float mMaxDXYIni = 4.;            // reject (if>0) PCA candidate if tracks dXY exceeds threshold
-  float mMinParamChange = 1e-3;     // stop iterations if largest change of any X is smaller than this
-  float mMinRelChi2Change = 0.9;    // stop iterations is chi2/chi2old > this
-  float mMaxChi2 = 100;             // abs cut on chi2 or abs distance
-  float mMaxDist2ToMergeSeeds = 1.; // merge 2 seeds to their average if their distance^2 is below the threshold
-  float mMaxSnp = 0.95;             // Max snp for propagation with Propagator
-  float mMaxStep = 2.0;             // Max step for propagation with Propagator
+  int mMaxIter = 20;                                                                              // max number of iterations
+  float mBz = 0;                                                                                  // bz field, to be set by user
+  float mMaxR2 = 200. * 200.;                                                                     // reject PCA's above this radius
+  float mMinXSeed = -50.;                                                                         // reject seed if it corresponds to X-param < mMinXSeed for one of candidates (e.g. X becomes strongly negative)
+  float mMaxDZIni = 4.;                                                                           // reject (if>0) PCA candidate if tracks DZ exceeds threshold
+  float mMaxDXYIni = 4.;                                                                          // reject (if>0) PCA candidate if tracks dXY exceeds threshold
+  float mMinParamChange = 1e-3;                                                                   // stop iterations if largest change of any X is smaller than this
+  float mMinRelChi2Change = 0.9;                                                                  // stop iterations is chi2/chi2old > this
+  float mMaxChi2 = 100;                                                                           // abs cut on chi2 or abs distance
+  float mMaxDist2ToMergeSeeds = 1.;                                                               // merge 2 seeds to their average if their distance^2 is below the threshold
+  float mMaxSnp = 0.95;                                                                           // Max snp for propagation with Propagator
+  float mMaxStep = 2.0;                                                                           // Max step for propagation with Propagator
 
   ClassDefNV(DCAFitterN, 1);
 };
@@ -343,7 +343,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
     mTrAux[i].set(*mOrigTrPtr[i], mBz);
   }
   if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1], mMaxDXYIni)) { // even for N>2 it should be enough to test just 1 loop
-    return 0;                                                                  // no crossing
+    return 0;                                                                              // no crossing
   }
   if (mUseAbsDCA) {
     calcRMatrices(); // needed for fast residuals derivatives calculation in case of abs. distance minimization
@@ -414,7 +414,7 @@ bool DCAFitterN<N, Args...>::calcPCACoefs()
     miei[1][0] = taux.s * tcov.sxx;
     miei[1][1] = taux.c * tcov.syy;
     miei[1][2] = taux.c * tcov.syz;
-    //miei[2][0] = 0;
+    // miei[2][0] = 0;
     miei[2][1] = tcov.syz;
     miei[2][2] = tcov.szz;
     mTrCFVT[mCurHyp][i] = mWeightInv * miei;
@@ -670,12 +670,12 @@ void DCAFitterN<N, Args...>::calcPCANoErr()
   // calculate point of closest approach for N prongs w/o errors
   auto& pca = mPCA[mCurHyp];
   o2::math_utils::rotateZd(mTrPos[mCurHyp][N - 1][0], mTrPos[mCurHyp][N - 1][1], pca[0], pca[1], mTrAux[N - 1].s, mTrAux[N - 1].c);
-  //RRRR    mTrAux[N-1].loc2glo(mTrPos[mCurHyp][N-1][0], mTrPos[mCurHyp][N-1][1], pca[0], pca[1] );
+  // RRRR    mTrAux[N-1].loc2glo(mTrPos[mCurHyp][N-1][0], mTrPos[mCurHyp][N-1][1], pca[0], pca[1] );
   pca[2] = mTrPos[mCurHyp][N - 1][2];
   for (int i = N - 1; i--;) {
     double x, y;
     o2::math_utils::rotateZd(mTrPos[mCurHyp][i][0], mTrPos[mCurHyp][i][1], x, y, mTrAux[i].s, mTrAux[i].c);
-    //RRRR mTrAux[i].loc2glo(mTrPos[mCurHyp][i][0], mTrPos[mCurHyp][i][1], x, y );
+    // RRRR mTrAux[i].loc2glo(mTrPos[mCurHyp][i][0], mTrPos[mCurHyp][i][1], x, y );
     pca[0] += x;
     pca[1] += y;
     pca[2] += mTrPos[mCurHyp][i][2];
