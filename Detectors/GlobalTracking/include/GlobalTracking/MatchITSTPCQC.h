@@ -181,7 +181,6 @@ class MatchITSTPCQC
     }
     eff->SetTitle(Form("%s;%s;%s;%s", eff->GetTitle(), hnum->GetXaxis()->GetTitle(), hnum->GetYaxis()->GetTitle(), "Efficiency"));
   }
-  
   int mNTPCSelectedTracks = 0;
   int mNITSTPCSelectedTracks = 0;
 

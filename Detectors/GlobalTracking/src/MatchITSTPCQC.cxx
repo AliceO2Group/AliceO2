@@ -109,7 +109,7 @@ void MatchITSTPCQC::reset()
 //__________________________________________________________
 bool MatchITSTPCQC::init()
 {
-  //Py
+  //Pt
   mPtTPC = new TH1F("mPtTPC", "Pt distribution of TPC tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
   mFractionITSTPCmatch = new TEfficiency("mFractionITSTPCmatch", "Fraction of ITSTPC matched tracks vs Pt; Pt [GeV/c]; Eff", 100, 0.f, 20.f);
   mPt = new TH1F("mPt", "Pt distribution of matched tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
@@ -119,7 +119,7 @@ bool MatchITSTPCQC::init()
   mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());mPhiVsPt = new TH2F("mPhiVsPt", "Phi distribution of matched tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
   mPhiVsPtTPC = new TH2F("mPhiVsPtTPC", "Phi distribution of TPC tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
   mFractionITSTPCmatchPhiVsPt = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; #it{p}_{T} [GeV#it{c}]; Phi [rad]; Eff", 20, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
-  // Eta
+  //Eta
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mEtaTPC = new TH1F("mEtaTPC", "Eta distribution of TPC tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mFractionITSTPCmatchEta = new TEfficiency("mFractionITSTPCmatchEta", "Fraction of ITSTPC matched tracks vs Eta; Eta; Eff", 100, -2.f, 2.f);
@@ -138,7 +138,7 @@ bool MatchITSTPCQC::init()
   mResidualPt = new TH2F("mResidualPt", "Residuals of ITS-TPC matching in #it{p}_{T}; #it{p}_{T}^{ITS-TPC} [GeV/c]; #it{p}_{T}^{ITS-TPC} - #it{p}_{T}^{TPC} [GeV/c]", 100, 0.f, 20.f, 100, -1.f, 1.f);
   mResidualPhi = new TH2F("mResidualPhi", "Residuals of ITS-TPC matching in #it{#phi}; #it{#phi}^{ITS-TPC} [rad]; #it{#phi}^{ITS-TPC} - #it{#phi}^{TPC} [rad]", 100, 0.f, 2 * TMath::Pi(), 100, -1.f, 1.f);
   mResidualEta = new TH2F("mResidualEta", "Residuals of ITS-TPC matching in #it{#eta}; #it{#eta}^{ITS-TPC}; #it{#eta}^{ITS-TPC} - #it{#eta}^{TPC}", 100, -2.f, 2.f, 100, -1.f, 1.f);
-  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 100, 0, 30);
+  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 200, 0, 200);
   mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 100);
 
   // log binning for pT
@@ -311,7 +311,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
       if (!mUseMC) {
         mPt->Fill(trkTpc.getPt());
-        mPhi->Fill(trkTpc.getPhi());      
+        mPhi->Fill(trkTpc.getPhi());
         mPhiVsPt->Fill(trkTpc.getPt(), trkTpc.getPhi());
         mEta->Fill(trkTpc.getEta());
         mEtaVsPt->FIll(trkTpc.getPt(), trkTpc.getEta());
