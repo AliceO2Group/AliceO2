@@ -50,7 +50,7 @@ class RawPixelDecoder final : public PixelReader
  public:
   RawPixelDecoder();
   ~RawPixelDecoder() final = default;
-
+  void setFormat(GBTLink::Format f) {}
   void init() final {}
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;

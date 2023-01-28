@@ -55,6 +55,10 @@ struct GBTTrigger;
 /// support for the GBT single link data
 struct GBTLink {
 
+  enum Format : int8_t { OldFormat,
+                         NewFormat,
+                         NFormats };
+
   enum RawDataDumps : int { DUMP_NONE, // no raw data dumps on error
                             DUMP_HBF,  // dump HBF for FEEID with error
                             DUMP_TF,   // dump whole TF at error
