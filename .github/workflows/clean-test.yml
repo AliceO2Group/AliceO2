@@ -27,6 +27,10 @@ name: Clean PR checks
         description: build/AliceO2/O2/o2/macOS
         type: boolean
         default: true
+      'check_build/AliceO2/O2/o2/macOS-arm':
+        description: build/AliceO2/O2/o2/macOS-arm
+        type: boolean
+        default: true
       'check_build/O2/fullCI':
         description: build/O2/fullCI
         type: boolean
