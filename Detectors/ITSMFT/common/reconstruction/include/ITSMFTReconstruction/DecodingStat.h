@@ -209,10 +209,11 @@ struct GBTLinkDecodingStat {
     ErrMissingDiagnosticWord,    // missing diagnostic word after RDH with stop
     ErrGBTWordNotRecognized,     // GBT word not recognized
     ErrWrongeCableID,            // Invalid cable ID
+    ErrWrongAlignmentWord,       // unexpected alignment word
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
-    "Page data not start with expected RDH",                             // ErrNoRDHAtStart
+    "Page data does not start with expected RDH",                        // ErrNoRDHAtStart
     "RDH is stopped, but the time is not matching the stop packet",      // ErrPageNotStopped
     "Page with RDH.stop does not contain diagnostic word only",          // ErrStopPageNotEmpty
     "RDH page counters for the same RU/trigger are not continuous",      // ErrPageCounterDiscontinuity
@@ -229,9 +230,10 @@ struct GBTLinkDecodingStat {
     "Active lanes pattern conflicts with expected for given RU type",    // ErrInvalidActiveLanes
     "Jump in RDH_packetCounter",                                         // ErrPacketCounterJump
     "Packet done is missing in the trailer while CRU page is not over",  // ErrPacketDoneMissing
-    "Missing diagnostic GBT word after RDH with stop",                   // ErrMissingDiagnosticWord
+    "Wrong/missing diagnostic GBT word after RDH with stop",             // ErrMissingDiagnosticWord
     "GBT word not recognized",                                           // ErrGBTWordNotRecognized
-    "Wrong cable ID"                                                     // ErrWrongeCableID
+    "Wrong cable ID",                                                    // ErrWrongeCableID
+    "Unexpected CRU page alignment padding word",                        // ErrWrongAlignmentWord
   };
 
   uint16_t feeID = 0; // FeeID
