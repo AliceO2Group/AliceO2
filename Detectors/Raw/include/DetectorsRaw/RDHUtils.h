@@ -46,10 +46,11 @@ struct RDHUtils {
   using RDHAny = o2::header::RDHAny;
   using RDHv4 = o2::header::RAWDataHeaderV4; // V3 == V4
   using RDHv5 = o2::header::RAWDataHeaderV5;
-  using RDHv6 = o2::header::RAWDataHeaderV6; // update this for every new version
+  using RDHv6 = o2::header::RAWDataHeaderV6;
+  using RDHv7 = o2::header::RAWDataHeaderV7; // update this for every new version
 
-  static constexpr int GBTWord = 16; // length of GBT word
-  static constexpr int MAXCRUPage = 512 * GBTWord;
+  static constexpr int GBTWord128 = 16; // length of GBT word
+  static constexpr int MAXCRUPage = 512 * GBTWord128;
   /// get numeric version of the RDH
 
   ///_______________________________
@@ -58,6 +59,9 @@ struct RDHUtils {
   {
 #ifndef GPUCA_GPUCODE_DEVICE
     RDHAny::sanityCheckStrict<H>();
+    if (std::is_same<H, RDHv7>::value) {
+      return 7;
+    }
     if (std::is_same<H, RDHv6>::value) {
       return 6;
     }
@@ -182,6 +186,7 @@ struct RDHUtils {
     processError(getVersion(rdh), "sourceID");
     return 0xff;
   }
+  GPUhdi() static uint8_t getSourceID(const RDHv7& rdh) { return rdh.sourceID; }
   GPUhdi() static uint8_t getSourceID(const RDHv6& rdh) { return rdh.sourceID; }
   GPUhdi() static uint8_t getSourceID(const RDHAny& rdh) { return getSourceID(rdh.voidify()); }
   GPUhdi() static uint8_t getSourceID(const void* rdhP)
@@ -194,6 +199,7 @@ struct RDHUtils {
       return 0xff;
     }
   }
+  static void setSourceID(RDHv7& rdh, uint8_t s) { rdh.sourceID = s; }
   static void setSourceID(RDHv6& rdh, uint8_t s) { rdh.sourceID = s; }
   static void setSourceID(RDHAny& rdh, uint8_t s) { setSourceID(rdh.voidify(), s); }
   static void setSourceID(void* rdhP, uint8_t s)
@@ -477,6 +483,27 @@ struct RDHUtils {
 
   ///_______________________________
   template <typename H>
+  GPUhdi() static uint8_t getDataFormat(const H& rdh, NOTPTR(H))
+  { // does not exist before V7 (Jan. 2023), but <V7 headers are backward compatible to DataFormat=0 (padding)
+    return 0xff;
+  }
+  GPUhdi() static uint8_t getDataFormat(const RDHv7& rdh) { return rdh.dataFormat; }
+  GPUhdi() static uint8_t getDataFormat(const RDHAny& rdh) { return getDataFormat(rdh.voidify()); }
+  GPUhdi() static uint8_t getDataFormat(const void* rdhP) { return (getVersion(rdhP) > 6) ? getDataFormat(TOCREF(RDHv7, rdhP)) : 0; }
+  static void setDataFormat(RDHv7& rdh, uint8_t s) { rdh.dataFormat = s; }
+  static void setDataFormat(RDHAny& rdh, uint8_t s) { setDataFormat(rdh.voidify(), s); }
+  static void setDataFormat(void* rdhP, uint8_t s)
+  {
+    int version = getVersion(rdhP);
+    if (version > 6) {
+      setDataFormat(TOREF(RDHv7, rdhP), s);
+    } else {
+      processError(version, "dataFormat");
+    }
+  }
+
+  ///_______________________________
+  template <typename H>
   GPUhdi() static uint32_t getTriggerType(const H& rdh, NOTPTR(H))
   {
     return rdh.triggerType;
@@ -633,6 +660,7 @@ struct RDHUtils {
   static void printRDH(const RDHv4& rdh);
   static void printRDH(const RDHv5& rdh);
   static void printRDH(const RDHv6& rdh);
+  static void printRDH(const RDHv7& rdh);
   static void printRDH(const RDHAny& rdh) { printRDH(rdh.voidify()); }
   static void printRDH(const void* rdhP);
 
@@ -648,6 +676,7 @@ struct RDHUtils {
   static bool checkRDH(const RDHv4& rdh, bool verbose = true);
   static bool checkRDH(const RDHv5& rdh, bool verbose = true);
   static bool checkRDH(const RDHv6& rdh, bool verbose = true);
+  static bool checkRDH(const RDHv7& rdh, bool verbose = true);
   static bool checkRDH(const RDHAny rdh, bool verbose = true) { return checkRDH(rdh.voidify(), verbose); }
   static bool checkRDH(const void* rdhP, bool verbose = true);
 
@@ -674,10 +703,9 @@ struct RDHUtils {
   {
     return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId, o2::header::DAQID::INVALID);
   }
-  GPUhdi() static LinkSubSpec_t getSubSpec(const RDHv6& rdh)
-  {
-    return getFEEID(rdh);
-  } // starting from V6 use FEEID only
+
+  GPUhdi() static LinkSubSpec_t getSubSpec(const RDHv7& rdh) { return getFEEID(rdh); }
+  GPUhdi() static LinkSubSpec_t getSubSpec(const RDHv6& rdh) { return getFEEID(rdh); }
   GPUhdi() static LinkSubSpec_t getSubSpec(const RDHAny& rdh) { return getSubSpec(rdh.voidify()); }
   GPUhdi() static LinkSubSpec_t getSubSpec(const void* rdhP)
   {

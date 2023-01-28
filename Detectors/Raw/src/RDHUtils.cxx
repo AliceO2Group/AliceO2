@@ -47,6 +47,18 @@ void RDHUtils::printRDH(const RAWDataHeaderV5& rdh)
 }
 
 //_________________________________________________
+void RDHUtils::printRDH(const RAWDataHeaderV7& rdh)
+{
+  std::bitset<32> trb(rdh.triggerType);
+  LOGF(info, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), int(rdh.packetCounter),
+       int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
+  LOGF(info, "Orbit:%-9u BC:%-4d DataFormat:%-2d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
+       rdh.orbit, int(rdh.bunchCrossing), int(rdh.dataFormat), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
+       int(rdh.detectorPAR), int(rdh.detectorField));
+}
+
+//_________________________________________________
 void RDHUtils::printRDH(const RAWDataHeaderV6& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
@@ -73,6 +85,9 @@ void RDHUtils::printRDH(const void* rdhP)
     case 6:
       printRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP));
       break;
+    case 7:
+      printRDH(*reinterpret_cast<const RAWDataHeaderV7*>(rdhP));
+      break;
     default:
       LOG(error) << "Unexpected RDH version " << version << " from";
       dumpRDH(rdhP);
@@ -97,15 +112,18 @@ bool RDHUtils::checkRDH(const void* rdhP, bool verbose)
   int version = getVersion(rdhP);
   bool ok = true;
   switch (version) {
+    case 7:
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV7*>(rdhP), verbose);
+      break;
+    case 6:
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP), verbose);
+      break;
     case 3:
     case 4:
       ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV4*>(rdhP), verbose);
       break;
     case 5:
       ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV5*>(rdhP), verbose);
-      break;
-    case 6:
-      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP), verbose);
       break;
     default:
       ok = false;
@@ -195,11 +213,11 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose)
 //_____________________________________________________________________
 bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
 {
-  // check if rdh conforms with RDH5 fields
+  // check if rdh conforms with RDH6 fields
   bool ok = true;
   if (rdh.version != 6) {
     if (verbose) {
-      LOG(alarm) << "RDH version 5 is expected instead of " << int(rdh.version);
+      LOG(alarm) << "RDH version 6 is expected instead of " << int(rdh.version);
     }
     ok = false;
   }
@@ -217,6 +235,42 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
     ok = false;
   }
   if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
+    if (verbose) {
+      LOG(alarm) << "Some reserved fields of RDH v6 are not empty";
+    }
+    ok = false;
+  }
+  if (!ok && verbose) {
+    dumpRDH(rdh);
+  }
+  return ok;
+}
+
+//_____________________________________________________________________
+bool RDHUtils::checkRDH(const RAWDataHeaderV7& rdh, bool verbose)
+{
+  // check if rdh conforms with RDH7 fields
+  bool ok = true;
+  if (rdh.version != 7) {
+    if (verbose) {
+      LOG(alarm) << "RDH version 7 is expected instead of " << int(rdh.version);
+    }
+    ok = false;
+  }
+  if (rdh.headerSize != 64) {
+    if (verbose) {
+      LOG(alarm) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
+    }
+    ok = false;
+  }
+  if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
+    if (verbose) {
+      LOG(alarm) << "RDH expected to have memory size and offset to next >= 64 B instead of "
+                 << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
+    }
+    ok = false;
+  }
+  if (rdh.zero0 || rdh.zero3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
     if (verbose) {
       LOG(alarm) << "Some reserved fields of RDH v6 are not empty";
     }
