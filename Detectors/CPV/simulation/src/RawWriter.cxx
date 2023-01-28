@@ -125,8 +125,8 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
 // prepare preformatted data for one orbit and send it to RawFileWriter
 bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs)
 {
-  static int nMaxGbtWordsPerPage = o2::raw::RDHUtils::MAXCRUPage / o2::raw::RDHUtils::GBTWord - 4; // 512*16/16 - 4 = 508;
-                                                                                                   // 4 gbt words are reserved for RDH
+  static int nMaxGbtWordsPerPage = o2::raw::RDHUtils::MAXCRUPage / o2::raw::RDHUtils::GBTWord128 - 4; // 512*16/16 - 4 = 508;
+                                                                                                      // 4 gbt words are reserved for RDH
 
   // clear payloads of all links
   for (auto& payload : mPayload) {
