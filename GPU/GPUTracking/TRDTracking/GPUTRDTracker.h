@@ -141,6 +141,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
   GPUd() void SetTPCVdrift(float vDrift) { mTPCVdrift = vDrift; }
+  GPUd() void SetTPCTDriftOffset(float t) { mTPCTDriftOffset = t; }
 
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
   GPUd() float GetMaxEta() const { return mMaxEta; }
@@ -200,6 +201,7 @@ class GPUTRDTracker_t : public GPUProcessor
   float mRoadZ;                       // in z, a constant search road is used
   float mZCorrCoefNRC;                // tracklet z-position depends linearly on track dip angle
   float mTPCVdrift;                   // TPC drift velocity used for shifting TPC tracks along Z
+  float mTPCTDriftOffset;             // TPC drift time additive offset
   GPUTRDTrackerDebug<TRDTRK>* mDebug; // debug output
 };
 } // namespace gpu

@@ -232,6 +232,8 @@ class TrackInterpolation
   float mTPCTimeBinMUS{.2f};    ///< TPC time bin duration in us
   float mTPCVDriftRef = -1.;    ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0.;                    ///< TPC drift time bias in cm/mus
+  float mTPCDriftTimeOffsetRef = 0.;                 ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
 

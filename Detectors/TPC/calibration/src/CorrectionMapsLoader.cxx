@@ -24,11 +24,11 @@ using namespace o2::framework;
 #ifndef GPUCA_GPUCODE_DEVICE
 
 //________________________________________________________
-void CorrectionMapsLoader::updateVDrift(float vdriftCorr, float vdrifRef)
+void CorrectionMapsLoader::updateVDrift(float vdriftCorr, float vdrifRef, float driftTimeOffset)
 {
-  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMap, 0, vdriftCorr, vdrifRef);
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMap, 0, vdriftCorr, vdrifRef, driftTimeOffset);
   if (mCorrMapRef) {
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMapRef, 0, vdriftCorr, vdrifRef);
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMapRef, 0, vdriftCorr, vdrifRef, driftTimeOffset);
   }
 }
 

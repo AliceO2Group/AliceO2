@@ -46,7 +46,7 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs);
   static void extractCCDBInputs(o2::framework::ProcessingContext& pc);
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
-  void updateVDrift(float vdriftCorr, float vdrifRef);
+  void updateVDrift(float vdriftCorr, float vdrifRef, float driftTimeOffset = 0);
 #endif
 };
 

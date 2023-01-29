@@ -398,9 +398,10 @@ int CalibPadGainTracks::getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber,
 //______________________________________________
 void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDrift = v.getVDrift();
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________

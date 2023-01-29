@@ -803,11 +803,13 @@ void TrackInterpolation::reset()
 //______________________________________________
 void TrackInterpolation::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.refVDrift * v.corrFact;
-  // Attention! For the refit we are using reference VDrift rather than high-rate calibrated, since we want to have fixed reference over the run
+  mTPCVDrift = v.getVDrift();
+  mTPCDriftTimeOffset = v.getTimeOffset();
+  // Attention! For the refit we are using reference VDrift and TDriftOffest rather than high-rate calibrated, since we want to have fixed reference over the run
   if (v.refVDrift != mTPCVDriftRef) {
     mTPCVDriftRef = v.refVDrift;
-    LOGP(info, "Imposing reference VDrift={} for TPC residuals extraction", mTPCVDriftRef);
-    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, 1.0, mTPCVDriftRef);
+    mTPCDriftTimeOffsetRef = v.refTimeOffset;
+    LOGP(info, "Imposing reference VDrift={}/TDrift={} for TPC residuals extraction", mTPCVDriftRef, mTPCDriftTimeOffsetRef);
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, 1.0, mTPCVDriftRef, mTPCDriftTimeOffsetRef);
   }
 }

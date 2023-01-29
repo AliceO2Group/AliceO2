@@ -105,7 +105,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
     mTPCVDriftHelper->extractCCDBInputs(pc);
     if (mTPCVDriftHelper->isUpdated()) {
-      TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+      TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getVDriftObject().getTimeOffset());
     }
   }
 
