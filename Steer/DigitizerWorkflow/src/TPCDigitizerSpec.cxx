@@ -248,8 +248,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     //    mTPCVDriftHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
-      LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
-      mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
+      mDigitizer.setVDrift(vd.getVDrift());
+      mDigitizer.setTDriftOffset(vd.getTimeOffset());
       mTPCVDriftHelper.acknowledgeUpdate();
     }
 

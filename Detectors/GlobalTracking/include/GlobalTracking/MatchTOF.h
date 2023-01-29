@@ -235,6 +235,7 @@ class MatchTOF
   float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0; ///< drift time offset in mus
 
   float mBz = 0;          ///< nominal Bz
   float mMaxInvPt = 999.; ///< derived from nominal Bz

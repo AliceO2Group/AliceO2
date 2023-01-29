@@ -108,8 +108,9 @@ void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     mMatcher.setTPCBin2MUS(elParam.ZbinWidth);
     auto& vd = mTPCVDriftHelper.getVDriftObject();
     mMatcher.setMaxTPCDriftTimeMUS(detParam.TPClength / (vd.refVDrift * vd.corrFact));
-    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mMatcher.setTPCTDriftOffset(vd.getTimeOffset());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
     mTPCVDriftHelper.acknowledgeUpdate();
   }
 }

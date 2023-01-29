@@ -198,6 +198,7 @@ void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
   mTPCBin2Z = mTPCVDrift / mMUS2TPCBin;
 }
 //______________________________________________
@@ -876,7 +877,7 @@ float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::Tra
   // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
   // need to do corrections on TPC cluster level and refit
   // This is a clone of MatchTPCITS::correctTPCTrack
-  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
+  float dDrift = ((tmus + mTPCDriftTimeOffset) * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
   float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));

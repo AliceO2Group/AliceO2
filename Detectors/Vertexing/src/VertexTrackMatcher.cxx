@@ -148,6 +148,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     if constexpr (isTPCTrack<decltype(_tr)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       t0 *= this->mTPCBin2MUS;
+      t0 -= this->mTPCTDriftOffset;
       terr *= this->mTPCBin2MUS;
     } else if constexpr (isITSTrack<decltype(_tr)>()) {
       t0 += itsBias;

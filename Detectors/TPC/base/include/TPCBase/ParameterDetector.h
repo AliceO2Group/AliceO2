@@ -31,6 +31,7 @@ struct ParameterDetector : public o2::conf::ConfigurableParamHelper<ParameterDet
   float TPClength = 250.f;     ///< Length of the TPC [cm]
   float PadCapacitance = 0.1f; ///< Capacitance of a single pad [pF]
   TimeBin TmaxTriggered = 550; ///< Maximum time bin in case of triggered readout mode
+  float DriftTimeOffset = 0.;  ///< drift time offset in time bins
 
   O2ParamDef(ParameterDetector, "TPCDetParam");
 };
