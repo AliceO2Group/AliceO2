@@ -319,7 +319,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 
     while (!gbtD->isDataTrailer() && (expectPadding || !(cruPageAlignmentPaddingSeen = (currRawPiece->data[dataOffset] == 0xff)))) { // start reading real payload
       if (verbosity >= VerboseData) {
-        gbtD->printX();
+        gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
       if (errRes != uint8_t(GBTLink::Skip)) {
@@ -356,7 +356,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
       // we finished the GBT page, but there might be continuation on the next CRU page
       if (!gbtT->packetDone) {
-        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, dataOffset < currRawPiece->size));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && (!expectPadding && currRawPiece->data[dataOffset] != 0xff))));
         continue; // keep reading next CRU page
       }
       // accumulate packet states
