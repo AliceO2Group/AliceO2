@@ -15,8 +15,6 @@ o2_add_library(HMPIDWorkflow
                        src/DigitsToRawSpec.cxx
                        src/DigitsToClustersSpec.cxx
                        src/DigitsToRootSpec.cxx
-                       src/DigitsReaderSpec.cxx
-                       src/ClustersReaderSpec.cxx 
                        src/ClustersWriterSpec.cxx
                        src/DumpDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
