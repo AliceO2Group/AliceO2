@@ -81,6 +81,9 @@ class TOFDPLClustererTask
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
     mClusterer.setCalibStored(mForCalib);
+
+    mMultPerLongBC.resize(o2::base::GRPGeomHelper::instance().getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches);
+    std::fill(mMultPerLongBC.begin(), mMultPerLongBC.end(), 0);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher matcher, void* obj)
@@ -105,6 +108,9 @@ class TOFDPLClustererTask
   void run(framework::ProcessingContext& pc)
   {
     mTimer.Start(false);
+    // reset multiplicity counters
+    std::fill(mMultPerLongBC.begin(), mMultPerLongBC.end(), 0);
+
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
@@ -200,8 +206,26 @@ class TOFDPLClustererTask
     LOG(debug) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
                << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
+    // fill multiplicty counters
+    int det[5];
+    float pos[3];
+    for (const auto& cls : mClustersArray) {
+      double timeCl = cls.getTime();
+      int channel = cls.getMainContributingChannel();                                          // channel index
+      o2::tof::Geo::getVolumeIndices(channel, det);                                            // detector index
+      o2::tof::Geo::getPos(det, pos);                                                          // detector position
+      timeCl -= sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]) * 33.3564095 - 3000; // subtract minimal arrival time (keeping 3 ns of margin)
+
+      int longBC = int(timeCl * o2::tof::Geo::BC_TIME_INPS_INV);
+      if (longBC < 0 || longBC >= mMultPerLongBC.size()) {
+        continue;
+      }
+      mMultPerLongBC[longBC]++;
+    }
+
     // send clusters
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClustersArray);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe}, mMultPerLongBC);
     // send labels
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
@@ -282,6 +306,8 @@ class TOFDPLClustererTask
   MCLabelContainer mClsLabels;
   std::vector<CalibInfoCluster> mClusterCalInfo; ///< Array of clusters
   bool mForCalib = false;
+
+  std::vector<int> mMultPerLongBC; ///< MultiplicityPerLongBC
 };
 
 o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url, bool isForCalib)
@@ -305,6 +331,7 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
   }
