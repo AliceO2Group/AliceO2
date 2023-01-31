@@ -23,6 +23,8 @@
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DevicesManager.h"
+#include "Framework/DeviceConfig.h"
+#include "Framework/ServiceMetricsInfo.h"
 #include "WorkflowHelpers.h"
 #include "Framework/WorkflowSpecNode.h"
 
@@ -111,10 +113,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
     .preEOS = CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
     .metricHandling = [](ServiceRegistryRef registry,
-                         std::vector<DeviceMetricsInfo>& allDeviceMetrics,
-                         std::vector<DeviceSpec>& specs,
-                         std::vector<DeviceInfo>& infos,
-                         DeviceMetricsInfo& driverMetrics,
+                         ServiceMetricsInfo const& sm,
                          size_t timestamp) {
                        int64_t totalBytesCreated = 0;
                        int64_t shmOfferConsumed = 0;
@@ -124,6 +123,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalMessagesDestroyed = 0;
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
+                       auto &driverMetrics = sm.driverMetricsInfo;
+                       auto &allDeviceMetrics = sm.deviceMetricsInfos;
+                       auto &specs = sm.deviceSpecs;
+                       auto &infos = sm.deviceInfos;
+                       
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
@@ -329,7 +333,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        offeredSharedMemoryMetric(driverMetrics, offeredSharedMemory, timestamp); },
     .postDispatching = [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;
-                       ArrowContext* arrow = reinterpret_cast<ArrowContext*>(service);
+                       auto* arrow = reinterpret_cast<ArrowContext*>(service);
                        auto totalBytes = 0;
                        auto totalMessages = 0;
                        for (auto& input : ctx.inputs()) {
@@ -364,18 +368,18 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.flushBuffer(); },
-    .driverInit = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vm) {
+    .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
-                       int readers = std::stoll(vm["readers"].as<std::string>());
-                       if (vm.count("aod-memory-rate-limit") && vm["aod-memory-rate-limit"].defaulted() == false) {
-                         config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
+                       int readers = std::stoll(dc.options["readers"].as<std::string>());
+                       if (dc.options.count("aod-memory-rate-limit") && dc.options["aod-memory-rate-limit"].defaulted() == false) {
+                         config->maxMemory = std::stoll(dc.options["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
                          config->maxMemory = readers * 500;
                        }
-                       if (vm.count("timeframes-rate-limit") && vm["timeframes-rate-limit"].as<std::string>() == "readers") {
+                       if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].as<std::string>() == "readers") {
                          config->maxTimeframes = readers;
                        } else {
-                         config->maxTimeframes = std::stoll(vm["timeframes-rate-limit"].as<std::string>());
+                         config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...

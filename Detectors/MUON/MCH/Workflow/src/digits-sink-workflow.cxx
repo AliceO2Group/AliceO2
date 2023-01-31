@@ -26,6 +26,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <set>
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"

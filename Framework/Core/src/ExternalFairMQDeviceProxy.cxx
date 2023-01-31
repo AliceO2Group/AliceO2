@@ -25,6 +25,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RateLimiter.h"
 #include "Framework/TimingInfo.h"
+#include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"

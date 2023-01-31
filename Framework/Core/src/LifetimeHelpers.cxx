@@ -23,6 +23,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/Formatters.h"
+#include "Framework/DeviceState.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"

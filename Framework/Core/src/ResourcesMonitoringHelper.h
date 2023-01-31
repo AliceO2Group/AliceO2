@@ -14,7 +14,6 @@
 
 #include "Framework/DeviceMetricsInfo.h"
 #include "Monitoring/ProcessMonitor.h"
-#include <boost/property_tree/ptree.hpp>
 #include "Framework/DeviceSpec.h"
 
 #include <vector>
