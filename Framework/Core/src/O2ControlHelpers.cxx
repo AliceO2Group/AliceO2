@@ -17,6 +17,7 @@
 #include <cstring>
 #include <string>
 #include <filesystem>
+#include <set>
 
 namespace bfs = std::filesystem;
 
