@@ -61,7 +61,7 @@ constexpr std::array<Float_t, o2::mft::constants::mft::LayersNumber> RMax{12.5, 
 constexpr Float_t PhiMin{0.};
 constexpr Float_t PhiMax{o2::constants::math::TwoPI}; // [rad]
 
-constexpr Int_t MaxRPhiBins{200 * 200 + 1};
+constexpr Int_t MaxRPhiBins{120 * 30 + 1};
 } // namespace index_table
 
 } // namespace constants
