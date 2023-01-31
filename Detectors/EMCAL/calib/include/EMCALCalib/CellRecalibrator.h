@@ -163,21 +163,26 @@ class CellRecalibrator
   /// are available are applied.
   ///
   /// \param inputcells Collection of input cells
-  /// \return vector of calibrated cells.
+  /// \return Tuple with vector of calibrated cells and vector of kept indices.
   template <typename T>
-  std::vector<T> getCalibratedCells(const gsl::span<const T> inputcells)
+  std::tuple<std::vector<T>, std::vector<int>> getCalibratedCells(const gsl::span<const T> inputcells)
   {
     std::vector<T> result;
+    std::vector<int> indices;
+    int currentindex = 0;
     for (const auto& cellToCalibrate : inputcells) {
       if (!(cellToCalibrate.getHighGain() || cellToCalibrate.getLowGain())) {
+        currentindex++;
         continue;
       }
       auto calibrated = getCalibratedCell(cellToCalibrate);
       if (calibrated) {
         result.push_back(calibrated.value());
+        indices.emplace_back(currentindex);
       }
+      currentindex++;
     }
-    return result;
+    return std::make_tuple(result, indices);
   }
 
   /// \brief Print settings to the stream

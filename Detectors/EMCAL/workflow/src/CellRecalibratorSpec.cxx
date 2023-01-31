@@ -23,7 +23,7 @@
 
 using namespace o2::emcal;
 
-CellRecalibratorSpec::CellRecalibratorSpec(uint32_t outputspec, LEDEventSettings ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib, std::shared_ptr<o2::emcal::CalibLoader> calibHandler) : mOutputSubspec(outputspec), mLEDsettings(ledsettings), mCalibrationHandler(calibHandler)
+CellRecalibratorSpec::CellRecalibratorSpec(uint32_t outputspec, LEDEventSettings ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib, bool isMC, std::shared_ptr<o2::emcal::CalibLoader> calibHandler) : mOutputSubspec(outputspec), mIsMC(isMC), mLEDsettings(ledsettings), mCalibrationHandler(calibHandler)
 {
   setRunBadChannelCalibration(badChannelCalib);
   setRunTimeCalibration(timeCalib);
@@ -49,6 +49,9 @@ void CellRecalibratorSpec::init(framework::InitContext& ctx)
       break;
   };
   LOG(info) << "Handling of LED events: " << ledsettingstitle;
+  if (mIsMC) {
+    LOG(info) << "MC mode - removing labels for masked cells from MC label container";
+  }
 }
 
 void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
@@ -56,6 +59,13 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
   auto inputcells = ctx.inputs().get<gsl::span<o2::emcal::Cell>>("cells");
   auto intputtriggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecords");
   LOG(info) << "Received " << inputcells.size() << " cells from " << intputtriggers.size() << " triggers";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> inputMCLabels = nullptr;
+  std::optional<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> outputMCLabels;
+  if (mIsMC) {
+    inputMCLabels = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>*>("cellmclabels");
+    outputMCLabels = std::optional<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>>(o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>());
+    LOG(info) << "Received " << inputMCLabels->getIndexedSize() << " MC Label entries";
+  }
 
   mCalibrationHandler->checkUpdates(ctx);
   updateCalibObjects();
@@ -90,8 +100,11 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
       outputtriggers.emplace_back(trg.getBCData(), outputcells.size(), trg.getNumberOfObjects()).setTriggerBits(trg.getTriggerBits());
       continue;
     }
-    auto calibratedCells = mCellRecalibrator.getCalibratedCells(gsl::span<const o2::emcal::Cell>(inputcells.data() + trg.getFirstEntry(), trg.getNumberOfObjects()));
+    auto [calibratedCells, cellIndices] = mCellRecalibrator.getCalibratedCells(gsl::span<const o2::emcal::Cell>(inputcells.data() + trg.getFirstEntry(), trg.getNumberOfObjects()));
     writeTrigger(calibratedCells, trg, outputcells, outputtriggers);
+    if (mIsMC) {
+      writeMCLabels(*inputMCLabels, outputMCLabels.value(), cellIndices, trg.getFirstEntry());
+    }
   }
 
   LOG(info) << "Timeframe: " << inputcells.size() << " cells read, " << outputcells.size() << " cells kept";
@@ -102,6 +115,10 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
   // send recalibrated objects
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputcells);
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputtriggers);
+  if (outputMCLabels.has_value()) {
+    LOG(info) << "Timeframe: " << inputMCLabels->getIndexedSize() << " label entries read, " << outputMCLabels->getIndexedSize() << " label entries kept";
+    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSMCTR", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputMCLabels.value());
+  }
   if (mLEDsettings == LEDEventSettings::REDIRECT) {
     ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", 10, o2::framework::Lifetime::Timeframe}, ledcells);
     ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", 10, o2::framework::Lifetime::Timeframe}, ledtriggers);
@@ -115,6 +132,15 @@ void CellRecalibratorSpec::writeTrigger(const gsl::span<const o2::emcal::Cell> s
     std::copy(selectedCells.begin(), selectedCells.end(), std::back_inserter(outputcontainer));
   }
   outputtriggers.emplace_back(currenttrigger.getBCData(), currentfirst, selectedCells.size()).setTriggerBits(currenttrigger.getTriggerBits());
+}
+
+void CellRecalibratorSpec::writeMCLabels(const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& inputlabels, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& outputContainer, const std::vector<int>& keptIndices, int firstindex)
+{
+  for (auto keptindex : keptIndices) {
+    int globalInputIndex = firstindex + keptindex;
+    auto labelsToKeep = inputlabels.getLabels(globalInputIndex);
+    outputContainer.addElements(outputContainer.getIndexedSize(), labelsToKeep);
+  }
 }
 
 void CellRecalibratorSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -147,7 +173,7 @@ void CellRecalibratorSpec::updateCalibObjects()
   }
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, uint32_t ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib)
+o2::framework::DataProcessorSpec o2::emcal::getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, uint32_t ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib, bool isMC)
 {
   auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
   calibhandler->enableBadChannelMap(badChannelCalib);
@@ -176,10 +202,14 @@ o2::framework::DataProcessorSpec o2::emcal::getCellRecalibratorSpec(uint32_t inp
     outputs.push_back({o2::header::gDataOriginEMC, "CELLS", 10, o2::framework::Lifetime::Timeframe});
     outputs.push_back({o2::header::gDataOriginEMC, "CELLSTRGR", 10, o2::framework::Lifetime::Timeframe});
   }
+  if (isMC) {
+    inputs.push_back({"cellmclabels", o2::header::gDataOriginEMC, "CELLSMCTR", inputSubspec, o2::framework::Lifetime::Timeframe});
+    outputs.push_back({o2::header::gDataOriginEMC, "CELLSMCTR", outputSubspec, o2::framework::Lifetime::Timeframe});
+  }
   calibhandler->defineInputSpecs(inputs);
 
   return o2::framework::DataProcessorSpec{"EMCALCellRecalibrator",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::CellRecalibratorSpec>(outputSubspec, taskledsettings, badChannelCalib, timeCalib, gainCalib, calibhandler)};
+                                          o2::framework::adaptFromTask<o2::emcal::CellRecalibratorSpec>(outputSubspec, taskledsettings, badChannelCalib, timeCalib, gainCalib, isMC, calibhandler)};
 }
