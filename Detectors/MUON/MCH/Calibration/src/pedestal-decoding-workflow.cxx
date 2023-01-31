@@ -191,7 +191,8 @@ class PedestalsTask
       auto solarId = dsElecId.solarId();
       auto dsId = dsElecId.elinkId();
       if (mDebug) {
-        std::cout << "New digit: SOLAR " << (int)solarId << "  DS " << (int)dsId << "  CH " << (int)channel << std::endl;
+        auto s = asString(dsElecId);
+        LOGP(info, "Digit: {}-CH{}", s, (int)channel);
       }
 
       mDigits.emplace_back(o2::mch::calibration::PedestalDigit(solarId, dsId, channel, sc.bunchCrossing, 0, sc.samples));
@@ -210,7 +211,7 @@ class PedestalsTask
     if (mDebug) {
       auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
       Nrdhs += 1;
-      std::cout << Nrdhs << "--\n";
+      LOGP(info, "{}--", Nrdhs);
       o2::raw::RDHUtils::printRDH(rdhAny);
     }
 
@@ -225,7 +226,7 @@ class PedestalsTask
     try {
       mDecoder(page);
     } catch (std::exception& e) {
-      std::cout << e.what() << '\n';
+      LOGP(error, "{}", e.what());
     }
   }
 
@@ -233,7 +234,7 @@ class PedestalsTask
   void decodeBuffer(gsl::span<const std::byte> buf)
   {
     if (mDebug) {
-      std::cout << "\n\n============================\nStart of new buffer\n";
+      LOGP(info, "\n\n============================\nStart of new buffer");
     }
     size_t bufSize = buf.size();
     size_t pageStart = 0;
@@ -321,7 +322,7 @@ class PedestalsTask
     loggerEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
     if (loggerElapsed.count() > mLoggingInterval) {
-      LOG(info) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      LOGP(info, "Processed {} digits in {} time frames", nDigits, nTF);
       nDigits = 0;
       nTF = 0;
       loggerStart = std::chrono::high_resolution_clock::now();
