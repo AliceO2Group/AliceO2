@@ -38,6 +38,9 @@
 #include "Framework/DeviceContext.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/StreamContext.h"
+#include "Framework/DeviceState.h"
+#include "Framework/DeviceConfig.h"
+
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -226,12 +229,12 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
-      if (vmap.count("configuration") == 0) {
+    .driverStartup = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
+      if (dc.options.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;
       }
-      auto backend = vmap["configuration"].as<std::string>();
+      auto backend = dc.options["configuration"].as<std::string>();
       registry.registerService(ServiceHandle{TypeIdHelpers::uniqueId<ConfigurationInterface>(),
                                              ConfigurationFactory::getConfiguration(backend).release()}); },
     .kind = ServiceKind::Global};

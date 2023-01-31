@@ -32,6 +32,8 @@
 namespace o2::framework
 {
 
+struct DeviceState;
+
 struct ServiceMeta {
   ServiceKind kind = ServiceKind::Serial;
   uint64_t threadId = 0;
