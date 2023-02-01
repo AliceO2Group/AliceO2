@@ -118,8 +118,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ $EPNSYNCMODE != 1 ]]; then
-      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-      exit 2
+      echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
