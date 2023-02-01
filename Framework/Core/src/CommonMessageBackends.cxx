@@ -12,7 +12,6 @@
 #include "Framework/MessageContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RawDeviceService.h"
@@ -112,20 +111,6 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
     .postProcessing = CommonMessageBackendsHelpers<StringContext>::sendCallback(),
     .preEOS = CommonMessageBackendsHelpers<StringContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<StringContext>::sendCallbackEOS(),
-    .kind = ServiceKind::Stream};
-}
-
-o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
-{
-  return ServiceSpec{
-    .name = "raw-backend",
-    .uniqueId = CommonServices::simpleServiceId<RawBufferContext>(),
-    .init = CommonMessageBackendsHelpers<RawBufferContext>::createCallback(),
-    .configure = CommonServices::noConfiguration(),
-    .preProcessing = CommonMessageBackendsHelpers<RawBufferContext>::clearContext(),
-    .postProcessing = CommonMessageBackendsHelpers<RawBufferContext>::sendCallback(),
-    .preEOS = CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
-    .postEOS = CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
     .kind = ServiceKind::Stream};
 }
 

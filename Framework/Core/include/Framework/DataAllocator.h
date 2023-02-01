@@ -14,7 +14,6 @@
 #include "Framework/MessageContext.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -443,8 +442,7 @@ class DataAllocator
 
   int countDeviceOutputs(bool excludeDPLOrigin = false)
   {
-    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
-           mRegistry.get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
+    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin);
   }
 
  private:
