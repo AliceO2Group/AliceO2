@@ -65,8 +65,6 @@ class TrackerConfig
 
   static Float_t mPhiBinSize;
   static Float_t mInversePhiBinSize;
-  static std::array<Int_t, constants::mft::LayersNumber> mPhiBinWin;
-  static std::array<Float_t, constants::mft::LayersNumber> mRBinSize;
   static std::array<Float_t, constants::mft::LayersNumber> mInverseRBinSize;
 
   std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
@@ -76,8 +74,6 @@ class TrackerConfig
 
 inline Float_t TrackerConfig::mPhiBinSize;
 inline Float_t TrackerConfig::mInversePhiBinSize;
-inline std::array<Int_t, constants::mft::LayersNumber> TrackerConfig::mPhiBinWin;
-inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mRBinSize;
 inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mInverseRBinSize;
 
 inline const Int_t TrackerConfig::getRBinIndex(const Float_t r, const Int_t layer) const
