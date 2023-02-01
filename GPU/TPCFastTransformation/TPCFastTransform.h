@@ -245,7 +245,7 @@ class TPCFastTransform : public FlatObject
   /// Return map user defined lumi scale factor
   GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
-  /// maximal possible drift timre of the active area
+  /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
 
   /// maximal possible drift time of the active area
