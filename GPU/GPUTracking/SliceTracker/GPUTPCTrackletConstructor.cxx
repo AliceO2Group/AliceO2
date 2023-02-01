@@ -279,18 +279,13 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 
       { // search for the closest hit
         tracker.GetErrors2Seeding(iRow, *((MEM_LG2(GPUTPCTrackParam)*)&tParam), err2Y, err2Z);
-        const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f;
-        float sy2 = kFactor * (tParam.Err2Y() + err2Y);
-        float sz2 = kFactor * (tParam.Err2Z() + err2Z);
-        if (sy2 > 2.f) {
-          sy2 = 2.f;
-        }
-        if (sz2 > 2.f) {
-          sz2 = 2.f;
-        }
+        const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 7.0f * 7.0f;
+        const float maxWindow2 = tracker.Param().rec.tpc.hitSearchArea2;
+        const float sy2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Y() + err2Y));
+        const float sz2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Z() + err2Z));
 
         int bin, ny, nz;
-        row.Grid().GetBinArea(fY, fZ + tParam.ZOffset(), 1.5f, 1.5f, bin, ny, nz);
+        row.Grid().GetBinArea(fY, fZ + tParam.ZOffset(), CAMath::Sqrt(sy2), CAMath::Sqrt(sz2), bin, ny, nz);
         float ds = 1e6f;
 
 #ifdef __HIPCC__ // Todo: fixme!
