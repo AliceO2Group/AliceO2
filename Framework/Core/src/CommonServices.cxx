@@ -849,8 +849,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
-    decongestionSpec(),
-    CommonMessageBackends::rawBufferBackendSpec()};
+    decongestionSpec()};
 
   std::string loadableServicesStr;
   // Do not load InfoLogger by default if we are not at P2.
