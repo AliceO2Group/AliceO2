@@ -149,7 +149,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     const auto firstIR = o2::InteractionRecord(0, tinfo.firstTForbit);
-    const float totalT = mFastTransform->convDeltaZtoDeltaTimeInTimeFrameAbs(250);
+    const float totalT = mFastTransform->convDeltaZtoDeltaTimeInTimeFrameAbs(250); // TODO: Use getMaxDriftTime!
 
     unsigned int offset = 0, lasti = 0;
     const unsigned int maxTime = (mParam->par.continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
