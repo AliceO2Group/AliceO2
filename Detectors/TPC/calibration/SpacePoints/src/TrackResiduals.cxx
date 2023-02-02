@@ -461,25 +461,45 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
     LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
   }
-  std::array<float, 2> res{0.f};
-  std::array<float, 3> err{0.f};
-  float sigMAD = fitPoly1Robust(tg, dy, res, err, mParams->LTMCut);
-  if (sigMAD < 0) {
-    LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
-    return;
+  if (!mParams->isBfieldZero) {
+    std::array<float, 2> res{0.f};
+    std::array<float, 3> err{0.f};
+    float sigMAD = fitPoly1Robust(tg, dy, res, err, mParams->LTMCut);
+    if (sigMAD < 0) {
+      LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
+      return;
+    }
+    float corrErr = err[0] * err[2];
+    corrErr = corrErr > 0 ? err[1] / std::sqrt(corrErr) : -999;
+    //
+    resVox.D[ResX] = -res[1];
+    resVox.D[ResY] = res[0];
+    resVox.D[ResZ] = zResults[1];
+    resVox.E[ResX] = std::sqrt(err[2]);
+    resVox.E[ResY] = std::sqrt(err[0]);
+    resVox.E[ResZ] = zResults[4];
+    resVox.EXYCorr = corrErr;
+    resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
+    resVox.dZSigLTM = zResults[2];
+  } else {
+    // for B=0 we cannot disentangle radial distortions from distortions in y,
+    // so simply use average for dy as well and set distortion in X to zero
+    std::array<float, 7> yResults;
+    std::vector<size_t> indicesY(dy.size());
+    if (!o2::math_utils::LTMUnbinned(dy, indicesY, yResults, mParams->LTMCut)) {
+      LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
+      return;
+    }
+    resVox.D[ResX] = 0; // force to zero
+    resVox.D[ResY] = yResults[1];
+    resVox.D[ResZ] = zResults[1];
+    resVox.E[ResX] = 0;
+    resVox.E[ResY] = yResults[4];
+    resVox.E[ResZ] = zResults[4];
+    resVox.EXYCorr = 0;
+    resVox.D[ResD] = resVox.dYSigMAD = yResults[2];
+    resVox.dZSigLTM = zResults[2];
   }
-  float corrErr = err[0] * err[2];
-  corrErr = corrErr > 0 ? err[1] / std::sqrt(corrErr) : -999;
-  //
-  resVox.D[ResX] = -res[1];
-  resVox.D[ResY] = res[0];
-  resVox.D[ResZ] = zResults[1];
-  resVox.E[ResX] = std::sqrt(err[2]);
-  resVox.E[ResY] = std::sqrt(err[0]);
-  resVox.E[ResZ] = zResults[4];
-  resVox.EXYCorr = corrErr;
-  resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
-  resVox.dZSigLTM = zResults[2];
 
   LOGF(debug, "D[0]=%.2f, D[1]=%.2f, D[2]=%.2f, E[0]=%.2f, E[1]=%.2f, E[2]=%.2f, EXYCorr=%.4f, dYSigMAD=%.3f, dZSigLTM=%.3f",
        resVox.D[0], resVox.D[1], resVox.D[2], resVox.E[0], resVox.E[1], resVox.E[2], resVox.EXYCorr, resVox.dYSigMAD, resVox.dZSigLTM);
