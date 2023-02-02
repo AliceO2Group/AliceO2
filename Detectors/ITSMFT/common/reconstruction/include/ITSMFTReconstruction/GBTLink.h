@@ -256,6 +256,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     }
 
     ruPtr->nCables = ruPtr->ruInfo->nCables; // RSTODO is this needed? TOREMOVE
+    bool cruPageAlignmentPaddingSeen = false;
 
     // then we expect GBT trigger word
     {
@@ -306,7 +307,11 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           return status;
         }
       }
-      if (dataOffset >= currRawPiece->size) { // end of CRU page was reached while scanning triggers
+      if (dataOffset >= currRawPiece->size || (!expectPadding && (cruPageAlignmentPaddingSeen = (currRawPiece->data[dataOffset] == 0xff)))) { // end of CRU page was reached while scanning triggers
+        if (cruPageAlignmentPaddingSeen) {
+          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsAlignmentPadding());
+          dataOffset = lastPageSize;
+        }
         if (verbosity >= VerboseHeaders) {
           LOGP(info, "Offs {} End of the CRU page reached while scanning triggers, continue to next page, {}", dataOffset, int(status), describe());
         }
@@ -315,7 +320,6 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     expectPacketDone = true;
-    bool cruPageAlignmentPaddingSeen = false;
 
     while (!gbtD->isDataTrailer() && (expectPadding || !(cruPageAlignmentPaddingSeen = (currRawPiece->data[dataOffset] == 0xff)))) { // start reading real payload
       if (verbosity >= VerboseData) {
