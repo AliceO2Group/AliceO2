@@ -2229,6 +2229,9 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
@@ -2441,6 +2444,9 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
@@ -2835,6 +2841,9 @@ int ClusterPEM::findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsI
   }
   while (goon) {
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
@@ -3196,6 +3205,9 @@ int ClusterPEM::findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupC
   }
   while (goon) {
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;

@@ -1663,6 +1663,9 @@ Pads* Pads::extractLocalMaxOnCoarsePads_Remanent(std::vector<PadIdx_t>& localMax
     localMax = newPixels->selectPads(index, k0);
     nNewPixels = k0;
   } else {
+    if (localMax != nullptr) {
+      delete localMax;
+    }
     localMax = new Pads(*newPixels, PadMode::xydxdyMode);
     k0 = nNewPixels;
   }
