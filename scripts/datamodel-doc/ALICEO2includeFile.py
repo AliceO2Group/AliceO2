@@ -1110,6 +1110,9 @@ class CERelations:
     with open(fileName, 'r') as file:
       # read the file
       lines_in_file = file.readlines()
+      # skip commented lines (starting with #)
+      lines_in_file = [i for i in lines_in_file if not i.startswith("#")]
+      # extract content
       content = O2DMT.pickContent(lines_in_file)
 
       # parse CMakeLists file

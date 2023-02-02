@@ -155,6 +155,8 @@ def setProducers(O2Physicsdir, cerelations, dm, subDM, todo=0):
     codefile = codefile.rstrip("\n")
   
     CErelation = cerelations.getExecutable(codefile)
+    if (len(CErelation) != 5):
+      continue
     codeFile = O2CF.codeFile(codefile)
     for tableName in codeFile.tableNames:
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -74,7 +74,7 @@ def main(initCard):
   if len(sys.argv) < 4:
     print ("Wrong number of arguments!")
     print ("Usage:")
-    print ("  purger.py cc fn2u fnold fnnew")
+    print ("  mdUpdate.py cc fn2u fnold fnnew")
     print ("")
     print ("    cc: 1: AO2D, 2: Helpers, 3: PWGs, 4: Joins")
     print ("    fn2u: file with new text")
