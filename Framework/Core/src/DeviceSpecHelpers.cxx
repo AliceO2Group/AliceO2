@@ -102,18 +102,39 @@ struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
-      std::string rateName = std::string{"period-"} + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
+      // A vector of all the available timer periods
+      std::vector<std::chrono::microseconds> periods;
+      // How long a ginven period should be active
+      std::vector<std::chrono::seconds> durations;
+      auto prefix = std::string{"period-"};
+      for (auto& meta : matcher.metadata) {
+        if (strncmp(meta.name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+          // Parse the number after the prefix and consider it the duration
+          std::string_view duration(meta.name.c_str() + prefix.size(), meta.name.size() - prefix.size());
+          durations.emplace_back(std::chrono::seconds(std::stoi(std::string(duration))));
+          periods.emplace_back(std::chrono::microseconds(meta.defaultValue.get<uint64_t>() / 1000));
+        }
+      }
+      if (periods.empty()) {
+        std::string defaultRateName = std::string{"period-"} + matcher.binding;
+        auto defaultRate = std::chrono::milliseconds(options.get<int>(defaultRateName.c_str()));
+        LOGP(detail, "Using default rate of {} ms as specified by option period-{}", defaultRate.count(), matcher.binding);
+        periods.emplace_back(defaultRate.count());
+        durations.emplace_back(std::chrono::seconds((std::size_t)-1));
+      } else {
+        // If we have multiple periods, the last one gets the remaining interval
+        durations.back() = std::chrono::seconds((std::size_t)-1);
+      }
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
-      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      uv_timer_start(timer, detail::timer_callback, periods.front().count(), periods.front().count());
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period), detail::timer_fired(timer), detail::timer_set_period(timer));
+      return LifetimeHelpers::timeDrivenCreation(periods, durations, detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
