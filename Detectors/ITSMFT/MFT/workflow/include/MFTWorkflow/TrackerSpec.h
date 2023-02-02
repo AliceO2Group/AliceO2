@@ -36,7 +36,7 @@ class TrackerDPL : public o2::framework::Task
 
  public:
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int nThreads = 1) : mGGCCDBRequest(gr), mUseMC(useMC), mNThreads(nThreads) {}
-  ~TrackerDPL() override = default;
+  ~TrackerDPL() override;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;

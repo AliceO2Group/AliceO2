@@ -147,16 +147,6 @@ class Tracker : public TrackerConfig
   std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
 
-  // tracking configuration parameters
-  const auto& getBinsS() { return mBinsS; }
-  const auto& getBins() { return mBins; }
-
-  inline static std::array<Int_t, constants::mft::LayersNumber> mPhiBinWin;
-  inline static std::array<Float_t, constants::mft::LayersNumber> mRBinSize;
-
-  inline static std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
-  inline static std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
-
   Int_t mMaxCellLevel = 0;
 
   bool mUseMC = false;

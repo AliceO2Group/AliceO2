@@ -25,6 +25,8 @@ namespace o2
 namespace mft
 {
 
+std::mutex o2::mft::TrackerConfig::sTCMutex;
+
 //_________________________________________________________________________________________________
 template <typename T>
 Tracker<T>::Tracker(bool useMC) : mUseMC{useMC}
@@ -113,6 +115,8 @@ void Tracker<T>::initializeFinder()
     return;
   }
 
+  std::lock_guard<std::mutex> guard(o2::mft::TrackerConfig::sTCMutex);
+
   /// calculate Look-Up-Table of the R-Phi bins projection from one layer to another
   /// layer1 + global R-Phi bin index ---> layer2 + R bin index + Phi bin index
   /// To be executed by the first tracker in case of multiple threads
@@ -195,7 +199,7 @@ void Tracker<T>::initializeFinder()
               }
 
               binIndex2S = getBinIndex(binR, binPhiS);
-              mBinsS[layer1][layer2 - 1][binIndex1].emplace_back(binIndex2S);
+              mBinsS.get()[0][layer1][layer2 - 1][binIndex1].emplace_back(binIndex2S);
             }
           }
 
@@ -211,7 +215,7 @@ void Tracker<T>::initializeFinder()
               }
 
               binIndex2 = getBinIndex(binR, binPhi);
-              mBins[layer1][layer2 - 1][binIndex1].emplace_back(binIndex2);
+              mBins.get()[0][layer1][layer2 - 1][binIndex1].emplace_back(binIndex2);
             }
           }
 
@@ -288,7 +292,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
       clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
 
       // loop over the bins in the search window
-      for (const auto& binS : getBinsS()[layer1][layer2 - 1][cluster1.indexTableBin]) {
+      for (const auto& binS : mBinsS.get()[0][layer1][layer2 - 1][cluster1.indexTableBin]) {
 
         getBinClusterRange(event, layer2, binS, clsMinIndexS, clsMaxIndexS);
 
@@ -318,7 +322,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
 
             // loop over the bins in the search window
             dR2min = mLTFConeRadius ? dR2cut * dRCone * dRCone : dR2cut;
-            for (const auto& bin : getBins()[layer1][layer - 1][cluster1.indexTableBin]) {
+            for (const auto& bin : mBins.get()[0][layer1][layer - 1][cluster1.indexTableBin]) {
 
               getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex);
 
@@ -567,7 +571,7 @@ void Tracker<T>::findTracksCA(ROframe<T>& event)
         clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
 
         // loop over the bins in the search window
-        for (const auto& binS : getBinsS()[layer1][layer2 - 1][cluster1.indexTableBin]) {
+        for (const auto& binS : mBinsS.get()[0][layer1][layer2 - 1][cluster1.indexTableBin]) {
 
           getBinClusterRange(event, layer2, binS, clsMinIndexS, clsMaxIndexS);
 
@@ -593,7 +597,7 @@ void Tracker<T>::findTracksCA(ROframe<T>& event)
               dR2min = mLTFConeRadius ? dR2cut * dRCone * dRCone : dR2cut;
 
               // loop over the bins in the search window
-              for (const auto& bin : getBins()[layer1][layer - 1][cluster1.indexTableBin]) {
+              for (const auto& bin : mBins.get()[0][layer1][layer - 1][cluster1.indexTableBin]) {
 
                 getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex);
 

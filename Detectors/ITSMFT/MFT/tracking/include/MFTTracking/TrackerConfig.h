@@ -25,6 +25,7 @@ namespace mft
 {
 
 using namespace constants::mft;
+using BinContainer = std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)>;
 
 class TrackerConfig
 {
@@ -39,7 +40,13 @@ class TrackerConfig
   const Int_t getPhiBinIndex(const Float_t phi) const;
   const Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex) const;
 
+  static void initBins(const BinContainer* mBinContainer);
+  static void initBinContainers();
+
   const std::pair<Int_t, Int_t>& getClusterBinIndexRange(Int_t layerId, Int_t bin) const { return mClusterBinIndexRange[layerId][bin]; }
+
+  static std::unique_ptr<BinContainer> mBins;
+  static std::unique_ptr<BinContainer> mBinsS;
 
  protected:
   // tracking configuration parameters
@@ -63,10 +70,13 @@ class TrackerConfig
   bool mFullClusterScan = false;
   Float_t mTrueTrackMCThreshold; // Minimum fraction of correct MC labels to tag True tracks
 
+  static std::mutex sTCMutex;
+
   static Float_t mPhiBinSize;
   static Float_t mInversePhiBinSize;
   static std::array<Float_t, constants::mft::LayersNumber> mInverseRBinSize;
-
+  static std::array<Int_t, constants::mft::LayersNumber> mPhiBinWin;
+  static std::array<Float_t, constants::mft::LayersNumber> mRBinSize;
   std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
 
   ClassDefNV(TrackerConfig, 3);
@@ -75,6 +85,10 @@ class TrackerConfig
 inline Float_t TrackerConfig::mPhiBinSize;
 inline Float_t TrackerConfig::mInversePhiBinSize;
 inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mInverseRBinSize;
+inline std::array<Int_t, constants::mft::LayersNumber> TrackerConfig::mPhiBinWin;
+inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mRBinSize;
+inline std::unique_ptr<BinContainer> TrackerConfig::mBins;
+inline std::unique_ptr<BinContainer> TrackerConfig::mBinsS;
 
 inline const Int_t TrackerConfig::getRBinIndex(const Float_t r, const Int_t layer) const
 {
