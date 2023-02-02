@@ -49,6 +49,8 @@ using GID = o2::dataformats::GlobalTrackID;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using DataRequest = o2::globaltracking::DataRequest;
 
+//#define O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
+
 namespace o2::aodproducer
 {
 
