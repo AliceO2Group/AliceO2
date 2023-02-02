@@ -1660,6 +1660,7 @@ Pads* Pads::extractLocalMaxOnCoarsePads_Remanent(std::vector<PadIdx_t>& localMax
       }
     }
     // Clean the local Max - Remove definitely remanent local max
+    delete localMax;
     localMax = newPixels->selectPads(index, k0);
     nNewPixels = k0;
   } else {
