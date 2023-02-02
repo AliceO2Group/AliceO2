@@ -42,6 +42,7 @@
 
 #include "MCHBase/DecoderError.h"
 #include "MCHCalibration/PedestalDigit.h"
+#include "MCHBase/HeartBeatPacket.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 
@@ -160,6 +161,7 @@ class PedestalsTask
   void reset()
   {
     mDigits.clear();
+    mHBPackets.clear();
     mErrors.clear();
   }
 
@@ -173,11 +175,24 @@ class PedestalsTask
 
     auto tStart = std::chrono::high_resolution_clock::now();
 
+    auto heartBeatHandler = [&](DsElecId dsElecId, uint8_t chip, uint32_t bunchCrossing) {
+      auto ds = dsElecId.elinkId();
+      auto solar = dsElecId.solarId();
+
+      if (mDebug) {
+        auto s = asString(dsElecId);
+        LOGP(info, "HeartBeat: {}-CHIP{}", s, chip);
+      }
+
+      mHBPackets.emplace_back(solar, ds, chip, bunchCrossing);
+    };
+
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto solarId = dsElecId.solarId();
       auto dsId = dsElecId.elinkId();
       if (mDebug) {
-        std::cout << "New digit: SOLAR " << (int)solarId << "  DS " << (int)dsId << "  CH " << (int)channel << std::endl;
+        auto s = asString(dsElecId);
+        LOGP(info, "Digit: {}-CH{}", s, (int)channel);
       }
 
       mDigits.emplace_back(o2::mch::calibration::PedestalDigit(solarId, dsId, channel, sc.bunchCrossing, 0, sc.samples));
@@ -196,13 +211,14 @@ class PedestalsTask
     if (mDebug) {
       auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
       Nrdhs += 1;
-      std::cout << Nrdhs << "--\n";
+      LOGP(info, "{}--", Nrdhs);
       o2::raw::RDHUtils::printRDH(rdhAny);
     }
 
     if (!mDecoder) {
       DecodedDataHandlers handlers;
       handlers.sampaChannelHandler = channelHandler;
+      handlers.sampaHeartBeatHandler = heartBeatHandler;
       handlers.sampaErrorHandler = errorHandler;
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, handlers, mFee2Solar)
                             : o2::mch::raw::createPageDecoder(page, handlers);
@@ -210,7 +226,7 @@ class PedestalsTask
     try {
       mDecoder(page);
     } catch (std::exception& e) {
-      std::cout << e.what() << '\n';
+      LOGP(error, "{}", e.what());
     }
   }
 
@@ -218,7 +234,7 @@ class PedestalsTask
   void decodeBuffer(gsl::span<const std::byte> buf)
   {
     if (mDebug) {
-      std::cout << "\n\n============================\nStart of new buffer\n";
+      LOGP(info, "\n\n============================\nStart of new buffer");
     }
     size_t bufSize = buf.size();
     size_t pageStart = 0;
@@ -306,7 +322,7 @@ class PedestalsTask
     loggerEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
     if (loggerElapsed.count() > mLoggingInterval) {
-      LOG(info) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      LOGP(info, "Processed {} digits in {} time frames", nDigits, nTF);
       nDigits = 0;
       nTF = 0;
       loggerStart = std::chrono::high_resolution_clock::now();
@@ -346,12 +362,16 @@ class PedestalsTask
     size_t digitsSize;
     char* digitsBuffer = createBuffer(mDigits, digitsSize);
 
+    size_t hbSize;
+    char* hbBuffer = createBuffer(mHBPackets, hbSize);
+
     size_t errorsSize;
     char* errorsBuffer = createBuffer(mErrors, errorsSize);
 
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "HBPACKETS", 0}, hbBuffer, hbSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
 
     logStats();
@@ -361,6 +381,7 @@ class PedestalsTask
   o2::mch::raw::PageDecoder mDecoder;
   SampaChannelHandler mChannelHandler;
   std::vector<o2::mch::calibration::PedestalDigit> mDigits;
+  std::vector<o2::mch::HeartBeatPacket> mHBPackets;
   std::vector<o2::mch::DecoderError> mErrors;
 
   Elec2DetMapper mElec2Det{nullptr};
@@ -400,11 +421,11 @@ using namespace o2::framework;
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(const char* specName, std::string inputSpec)
 {
-  // o2::mch::raw::PedestalsTask task();
   return DataProcessorSpec{
     specName,
     o2::framework::select(inputSpec.c_str()),
     Outputs{OutputSpec{header::gDataOriginMCH, "PDIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{header::gDataOriginMCH, "HBPACKETS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
