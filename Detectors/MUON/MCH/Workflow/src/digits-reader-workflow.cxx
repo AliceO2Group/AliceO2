@@ -15,7 +15,6 @@
 /// \author Philippe Pillot, Subatech
 /// \author Andrea Ferrero, CEA
 
-#include "Framework/runDataProcessing.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
