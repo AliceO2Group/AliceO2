@@ -155,7 +155,7 @@ class codeFile:
 
     # update restLine
     restLine += fullLine[sob:]
-      
+
     # find struct outside of template - in restLine
     restWords = O2DMT.split(restLine)
     istructs = [i for i, x in enumerate(restWords) if x == 'struct']
