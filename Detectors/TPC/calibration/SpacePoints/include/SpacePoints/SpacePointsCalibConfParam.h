@@ -69,6 +69,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxStdDevMA = 25.f;              ///< max cluster std. deviation (Y^2 + Z^2) wrt moving average to accept
 
   // settings for voxel residuals extraction
+  bool isBfieldZero = false;           ///< for B=0 we set the radial distortions to zero and don't fit dy vs tgSlp
   int minEntriesPerVoxel = 15;         ///< minimum number of points in voxel for processing
   float LTMCut = .75f;                 ///< fraction op points to keep when trimming input data
   float minFracLTM = .5f;              ///< minimum fraction of points to keep when trimming data to fit expected sigma
