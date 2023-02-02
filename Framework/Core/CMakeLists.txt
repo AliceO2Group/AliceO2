@@ -138,6 +138,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/TimerParamSpec.cxx
                        test/TestClasses.cxx
                TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
@@ -229,6 +230,7 @@ foreach(t
         TMessageSerializer
         TableBuilder
         TimeParallelPipelining
+        Timers
         TimesliceIndex
         TypeTraits
         Variants

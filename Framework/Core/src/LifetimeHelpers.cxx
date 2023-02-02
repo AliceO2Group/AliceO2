@@ -98,12 +98,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
+ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::chrono::microseconds> periods, std::vector<std::chrono::seconds> intervals, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
 {
   std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
   std::shared_ptr<bool> stablePeriods = std::make_shared<bool>(false);
   // FIXME: should create timeslices when period expires....
-  return [last, stablePeriods, period, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [last, stablePeriods, periods, intervals, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) mutable -> TimesliceSlot {
     // We start with a random offset to avoid all the devices
     // send their first message at the same time, bring down
     // the QC machine.
@@ -117,16 +117,16 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     if (*last == 0ULL || (index.didReceiveData() == false && timerHasFired)) {
       std::random_device r;
       std::default_random_engine e1(r());
-      std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
-      auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + period.count() * 0.1);
+      std::uniform_int_distribution<uint64_t> dist(0, periods.front().count() * 0.9);
+      auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + periods.front().count() * 0.1);
       *last = getCurrentTime() - randomizedPeriodUs;
       updateTimerPeriod(randomizedPeriodUs / 1000, randomizedPeriodUs / 1000);
       *stablePeriods = false;
       LOG(debug) << "Timer updated to a randomized period of " << randomizedPeriodUs << "us";
     } else if (timerHasFired && *stablePeriods == false) {
-      updateTimerPeriod(period.count() / 1000, period.count() / 1000);
+      updateTimerPeriod(periods.front().count() / 1000, periods.front().count() / 1000);
       *stablePeriods = true;
-      LOG(debug) << "Timer updated to a stable period of " << period.count() << "us";
+      LOG(debug) << "Timer updated to a stable period of " << periods.front().count() << "us";
     }
     // Nothing to do if the time has not expired yet.
     if (timerHasFired == false) {
@@ -134,7 +134,17 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
+    // Get the first time we were invoked.
+    static auto firstTime = getCurrentTime();
     auto current = getCurrentTime();
+    if ((current - firstTime) / 1000000 > intervals.front().count() && periods.size() > 1) {
+      LOGP(detail, "First {} seconds with period {} elapsed, switching to new interval.", intervals.front().count(), periods.front().count());
+      // Remove the first period and the first interval
+      periods.erase(periods.begin());
+      intervals.erase(intervals.begin());
+      LOGP(detail, "New period for timer is {}.", periods.front().count());
+      updateTimerPeriod(periods.front().count() / 1000, periods.front().count() / 1000);
+    }
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
     //        for now to avoid duplicate entries.

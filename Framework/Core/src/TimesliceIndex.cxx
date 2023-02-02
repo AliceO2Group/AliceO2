@@ -144,6 +144,8 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
   mOldestPossibleInput = result;
   if (changed) {
     LOG(debug) << "Success: Oldest possible input is " << mOldestPossibleInput.timeslice.value << " due to channel " << mOldestPossibleInput.channel.value;
+  } else {
+    LOG(debug) << "No change in oldest possible input";
   }
   return mOldestPossibleInput;
 }
