@@ -225,7 +225,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       r.mNMissed = 0;
     } while (0);
 
-    /*QQQQprintf("Extrapolate Row %d X %f Y %f Z %f SinPhi %f DzDs %f QPt %f", iRow, tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt());
+    /*printf("Extrapolate Row %d X %f Y %f Z %f SinPhi %f DzDs %f QPt %f", iRow, tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt());
             for (int i = 0;i < 15;i++) printf(" C%d=%6.2f", i, tParam.GetCov(i));
             printf("\n");*/
 
