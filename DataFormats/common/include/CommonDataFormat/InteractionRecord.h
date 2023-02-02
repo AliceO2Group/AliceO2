@@ -46,6 +46,7 @@ struct InteractionRecord {
   }
 
   InteractionRecord(const InteractionRecord& src) = default;
+  InteractionRecord& operator=(const InteractionRecord& src) = default;
 
   void clear()
   {
