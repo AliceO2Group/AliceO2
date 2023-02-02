@@ -1,17 +1,20 @@
-#!/ usr / bin / env python3
+#!/usr/bin/env python3
 
-import sys import xml.etree.ElementTree as ET
+import sys
+import xml.etree.ElementTree as ET
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-#replace the text between two lines starting with 'delimiter' in file 'fold'
-#by the text between two lines starting with 'delimiter' in file 'ftouse'.
-#Write new content into 'fnew' and keep the lines with the 'delimiter'.
+# -----------------------------------------------------------------------------
+# replace the text between two lines starting with 'delimiter' in file 'fold'
+# by the text between two lines starting with 'delimiter' in file 'ftouse'.
+# Write new content into 'fnew' and keep the lines with the 'delimiter'.
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-#get text in file 'fn' beteween the lines starting with 'delimiter'
-  def blockbtwdelims(fn, delimiter) : blck =[]
+# -----------------------------------------------------------------------------
+# get text in file 'fn' beteween the lines starting with 'delimiter'
+def blockbtwdelims (fn, delimiter):
+  blck = []
 
-                     cnt = 0 with open(fn) as f:
+  cnt = 0
+  with open(fn) as f:
     for line in f:
       if line.startswith(delimiter):
         blck.append(line.rstrip())
@@ -24,11 +27,11 @@ import sys import xml.etree.ElementTree as ET
 
   return blck
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-#get text in file 'fn' before any line starting with 'delimiter'
+# -----------------------------------------------------------------------------
+# get text in file 'fn' before any line starting with 'delimiter'
 def blockbefdelims (fn, delimiter):
   blck = []
-  
+
   with open(fn) as f:
     for line in f:
       if line.startswith(delimiter):
@@ -37,9 +40,9 @@ def blockbefdelims (fn, delimiter):
 
   return blck
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-#get text in file 'fn' after the text block delimited by lines starting with
-#'delimiter'
+# -----------------------------------------------------------------------------
+# get text in file 'fn' after the text block delimited by lines starting with
+# 'delimiter'
 def blockaftdelims (fn, delimiter):
   blck = []
 
@@ -56,22 +59,22 @@ def blockaftdelims (fn, delimiter):
 
   return blck
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-#concatenate two blocks of text
+# -----------------------------------------------------------------------------
+# concatenate two blocks of text
 def addblocks(b0, b1):
   b2 = b0
   for l in b1:
     b2.append(l.rstrip())
-    
+
   return b2
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+# -----------------------------------------------------------------------------
 def main(initCard):
 
   if len(sys.argv) < 4:
     print ("Wrong number of arguments!")
     print ("Usage:")
-    print ("  mdUpdate.py cc fn2u fnold fnnew")
+    print ("  purger.py cc fn2u fnold fnnew")
     print ("")
     print ("    cc: 1: AO2D, 2: Helpers, 3: PWGs, 4: Joins")
     print ("    fn2u: file with new text")
@@ -79,13 +82,13 @@ def main(initCard):
     print ("    fnnew: file with replaced text")
     print ("")
     exit()
-    
+
   cc = int(sys.argv[1])
   fntouse = sys.argv[2]
   fnold = sys.argv[3]
   fnnew = sys.argv[4]
 
-#get the 'delimiter' from initCard
+  # get the 'delimiter' from initCard
   tmp = None
   if cc == 1:
     tmp = initCard.find("O2general/delimAO2D")
@@ -100,25 +103,25 @@ def main(initCard):
   delimiter = tmp.text.strip()
   print("Replacing ",delimiter)
 
-#get replacement
+  # get replacement
   b2u = blockbtwdelims(fntouse, delimiter)
   if len(b2u) == 0:
     exit()
 
-#entire new text
+  # entire new text
   bnew = addblocks(blockbefdelims(fnold, delimiter), b2u)
   bnew = addblocks(bnew, blockaftdelims(fnold, delimiter))
 
-#write new text to fnnew
+  # write new text to fnnew
   with open(fnnew, 'w') as f:
     for l in bnew:
       print(l, file=f)
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
 
   initCard = ET.parse("inputCard.xml")
 
   main(initCard)
 
-#-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+# -----------------------------------------------------------------------------
