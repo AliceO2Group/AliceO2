@@ -103,7 +103,7 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   }
 }
 
-// static functions
+// static functions:
 inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
 {
   float DCASquared{0};
