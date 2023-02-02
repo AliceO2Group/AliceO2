@@ -15,6 +15,7 @@
 #include <iosfwd>
 #include <optional>
 #include <vector>
+#include <tuple>
 #include <gsl/span>
 
 #include "Rtypes.h"
