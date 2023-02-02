@@ -112,7 +112,7 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   double rmax = rmin + mSensorThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
-  double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 2) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
+  double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
   double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
 
   const int nElements = 7;
