@@ -261,6 +261,8 @@ if [[ ! -z $WORKFLOW_DETECTORS_USE_GLOBAL_READER ]]; then
   GLOBAL_READER_OPTIONS=
   has_detector ITS && SYNCMODE==1 && GLOBAL_READER_OPTIONS+=" --ir-frames-its"
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER $GLOBAL_READER_OPTIONS $DISABLE_MC --hbfutils-config o2_tfidinfo.root"
+  has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --fv0-digit-infile o2_fv0digits.root"
+  has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --mid-digit-infile mid-digits-decoded.root"
 fi
 
 if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
@@ -404,6 +406,8 @@ has_detector_reco CPV && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 CTFINPUT==1 && has_detector CTP && ! has_detector_from_global_reader CTP && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-ctp-digit-writer ) && add_W o2-ctp-digit-writer "$DISABLE_ROOT_OUTPUT"
 has_detector_reco EMC && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && add_W o2-emcal-cell-writer-workflow "$DISABLE_MC"
 has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-phos-cell-writer-workflow ) && add_W o2-phos-cell-writer-workflow "$DISABLE_MC"
+has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
+has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
