@@ -1029,6 +1029,8 @@ namespace soa
 DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
 } // namespace soa
 
 namespace aod
@@ -1200,6 +1202,8 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
 } // namespace aod
 namespace soa
 {
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::McTrackLabels);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
 extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa
