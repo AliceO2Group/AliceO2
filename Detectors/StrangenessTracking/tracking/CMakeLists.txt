@@ -20,7 +20,7 @@ o2_add_library(StrangenessTracking
                                              O2::DataFormatsITS
                                              O2::SimulationDataFormat
                                              O2::DetectorsVertexing
-					     O2::ReconstructionDataFormats
+                                             O2::ReconstructionDataFormats
                                              O2::DCAFitter
                )
 
