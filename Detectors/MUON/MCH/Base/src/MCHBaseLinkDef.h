@@ -24,4 +24,7 @@
 #pragma link C++ class o2::mch::ResponseParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::ResponseParam> + ;
 
+#pragma link C++ class o2::mch::PreCluster + ;
+#pragma link C++ class std::vector < o2::mch::PreCluster> + ;
+
 #endif
