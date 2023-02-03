@@ -56,8 +56,6 @@ void TrackerDPL::init(InitContext& ic)
 
   // tracking configuration parameters
   auto& trackingParam = MFTTrackingParam::Instance(); // to avoid loading interpreter during the run
-
-  TrackerConfig::initBinContainers();
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
@@ -428,14 +426,6 @@ DataProcessorSpec getTrackerSpec(bool useMC, int nThreads)
     outputs,
     AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, nThreads)},
     Options{}};
-}
-
-///_______________________________________
-TrackerDPL::~TrackerDPL()
-{
-  // Deallocate the memory that was previously reserved for these arrays.
-  TrackerConfig::mBins.reset();
-  TrackerConfig::mBinsS.reset();
 }
 
 } // namespace mft

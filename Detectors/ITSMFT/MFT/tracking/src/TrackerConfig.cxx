@@ -45,26 +45,21 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
 }
 
 //__________________________________________________________________________
-void o2::mft::TrackerConfig::initBins(const BinContainer* mBinContainer)
-{
-  // if it's a non-static method: mutex could be used here
-  // also to protect a BinContainer shared between multiple threads
-
-  // TODO: do nothing at this moment
-  // init the BinContainer
-  // the function initializeFinnder in tracker.cxx is doing this job
-}
-
-//__________________________________________________________________________
 void o2::mft::TrackerConfig::initBinContainers()
 {
   if (!mBins) {
     mBins = std::make_unique<BinContainer>();
-    // init bins with static method. If not possible to do using static method, then make this method non-static and lock the code by mutex.
-    initBins(mBins.get());
   }
   if (!mBinsS) {
     mBinsS = std::make_unique<BinContainer>();
-    initBins(mBinsS.get());
+  }
+  if (!mRBinSize) {
+    mRBinSize = std::make_unique<RArray>();
+  }
+  if (!mPhiBinWin) {
+    mPhiBinWin = std::make_unique<PhiArray>();
+  }
+  if (!mInverseRBinSize) {
+    mInverseRBinSize = std::make_unique<InverseRArray>();
   }
 }

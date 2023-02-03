@@ -25,7 +25,7 @@ namespace o2
 namespace mft
 {
 
-std::mutex o2::mft::TrackerConfig::sTCMutex;
+std::mutex TrackerConfig::sTCMutex;
 
 //_________________________________________________________________________________________________
 template <typename T>
@@ -115,7 +115,12 @@ void Tracker<T>::initializeFinder()
     return;
   }
 
-  std::lock_guard<std::mutex> guard(o2::mft::TrackerConfig::sTCMutex);
+  // The lock will prevent executing the code below at the same time for different tracker copes (one will wait for other)
+  std::lock_guard<std::mutex> guard(TrackerConfig::sTCMutex);
+  if (mBins) {
+    return;
+  }
+  TrackerConfig::initBinContainers();
 
   /// calculate Look-Up-Table of the R-Phi bins projection from one layer to another
   /// layer1 + global R-Phi bin index ---> layer2 + R bin index + Phi bin index
@@ -126,14 +131,14 @@ void Tracker<T>::initializeFinder()
     // Needs to be executed only once since it is filling static data members used by all tracker threads
     mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
     mInversePhiBinSize = 1.0 / mPhiBinSize;
-    mRBinSize[layer] = (constants::index_table::RMax[layer] - constants::index_table::RMin[layer]) / mRBins;
-    mInverseRBinSize[layer] = 1.0 / mRBinSize[layer];
+    (*mRBinSize)[layer] = (constants::index_table::RMax[layer] - constants::index_table::RMin[layer]) / mRBins;
+    (*mInverseRBinSize)[layer] = 1.0 / (*mRBinSize)[layer];
     auto ZL0 = LayerZCoordinate()[0];
     auto deltaZ = (abs(LayerZCoordinate()[layer]) - abs(ZL0));
     auto binArcLenght = constants::index_table::RMin[layer] * o2::constants::math::TwoPI / mPhiBins;
     Float_t NconicalBins = 2.0 * deltaZ * mRCutAtZmin / (abs(ZL0) + mZVtxMin) / binArcLenght;
-    mPhiBinWin[layer] = std::max(3, int(ceil(NconicalBins)));
-    LOG(debug) << "mPhiBinWin[" << layer << "] = " << mPhiBinWin[layer] << std::endl;
+    (*mPhiBinWin)[layer] = std::max(3, int(ceil(NconicalBins)));
+    LOG(debug) << "mPhiBinWin[" << layer << "] = " << (*mPhiBinWin)[layer] << std::endl;
   }
 
   Float_t dz, x, y, r, phi, x_proj, y_proj, r_proj, phi_proj, zLayer1, zLayer2;
@@ -145,7 +150,7 @@ void Tracker<T>::initializeFinder()
     for (Int_t iRBin = 0; iRBin < mRBins; ++iRBin) {
       bool isFirstPhiBin = true;
 
-      r = (iRBin + 0.5) * mRBinSize[layer1] + constants::index_table::RMin[layer1];
+      r = (iRBin + 0.5) * (*mRBinSize)[layer1] + constants::index_table::RMin[layer1];
 
       for (Int_t iPhiBin = 0; iPhiBin < mPhiBins; ++iPhiBin) {
         isFirstPhiBin = !iPhiBin;
@@ -171,7 +176,7 @@ void Tracker<T>::initializeFinder()
           binR_proj = getRBinIndex(r_proj, layer2);
           binPhi_proj = getPhiBinIndex(phi_proj);
 
-          int binwPhiS = mPhiBinWin[layer2];
+          int binwPhiS = (*mPhiBinWin)[layer2];
           int binhwPhiS = binwPhiS / 2;
 
           float rMin = r * (mZVtxMax + abs(zLayer2)) / (mZVtxMax + abs(zLayer1));
@@ -199,11 +204,11 @@ void Tracker<T>::initializeFinder()
               }
 
               binIndex2S = getBinIndex(binR, binPhiS);
-              mBinsS.get()[0][layer1][layer2 - 1][binIndex1].emplace_back(binIndex2S);
+              (*mBinsS.get())[layer1][layer2 - 1][binIndex1].emplace_back(binIndex2S);
             }
           }
 
-          int binwPhi = mPhiBinWin[layer2];
+          int binwPhi = (*mPhiBinWin)[layer2];
           int binhwPhi = binwPhi / 2;
 
           for (Int_t binR = rBinMin; binR <= rBinMax; ++binR) {
@@ -215,7 +220,7 @@ void Tracker<T>::initializeFinder()
               }
 
               binIndex2 = getBinIndex(binR, binPhi);
-              mBins.get()[0][layer1][layer2 - 1][binIndex1].emplace_back(binIndex2);
+              (*mBins.get())[layer1][layer2 - 1][binIndex1].emplace_back(binIndex2);
             }
           }
 
@@ -292,7 +297,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
       clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
 
       // loop over the bins in the search window
-      for (const auto& binS : mBinsS.get()[0][layer1][layer2 - 1][cluster1.indexTableBin]) {
+      for (const auto& binS : (*mBinsS.get())[layer1][layer2 - 1][cluster1.indexTableBin]) {
 
         getBinClusterRange(event, layer2, binS, clsMinIndexS, clsMaxIndexS);
 
@@ -322,7 +327,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
 
             // loop over the bins in the search window
             dR2min = mLTFConeRadius ? dR2cut * dRCone * dRCone : dR2cut;
-            for (const auto& bin : mBins.get()[0][layer1][layer - 1][cluster1.indexTableBin]) {
+            for (const auto& bin : (*mBins.get())[layer1][layer - 1][cluster1.indexTableBin]) {
 
               getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex);
 
@@ -571,7 +576,7 @@ void Tracker<T>::findTracksCA(ROframe<T>& event)
         clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
 
         // loop over the bins in the search window
-        for (const auto& binS : mBinsS.get()[0][layer1][layer2 - 1][cluster1.indexTableBin]) {
+        for (const auto& binS : (*mBinsS.get())[layer1][layer2 - 1][cluster1.indexTableBin]) {
 
           getBinClusterRange(event, layer2, binS, clsMinIndexS, clsMaxIndexS);
 
@@ -597,7 +602,7 @@ void Tracker<T>::findTracksCA(ROframe<T>& event)
               dR2min = mLTFConeRadius ? dR2cut * dRCone * dRCone : dR2cut;
 
               // loop over the bins in the search window
-              for (const auto& bin : mBins.get()[0][layer1][layer - 1][cluster1.indexTableBin]) {
+              for (const auto& bin : (*mBins.get())[layer1][layer - 1][cluster1.indexTableBin]) {
 
                 getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex);
 
@@ -1082,6 +1087,21 @@ bool Tracker<T>::fitTracks(ROframe<T>& event)
     track.setOutParam(outParam);
   }
   return true;
+}
+
+//_________________________________________________________________________________________________
+template <typename T>
+Tracker<T>::~Tracker()
+{
+  // Mutex used here to avoid race condition
+  std::lock_guard<std::mutex> guard(TrackerConfig::sTCMutex);
+  // Deallocate the memory that was previously reserved for these arrays
+  TrackerConfig::mBins.reset();
+  TrackerConfig::mBinsS.reset();
+
+  TrackerConfig::mRBinSize.reset();
+  TrackerConfig::mPhiBinWin.reset();
+  TrackerConfig::mInverseRBinSize.reset();
 }
 
 template class Tracker<o2::mft::TrackLTF>;
