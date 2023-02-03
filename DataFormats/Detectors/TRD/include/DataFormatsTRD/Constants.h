@@ -70,11 +70,6 @@ constexpr int NBINSANGLEDIFF = 25;      ///< the number of bins for the track an
 constexpr double VDRIFTDEFAULT = 1.546; ///< default value for vDrift
 constexpr double EXBDEFAULT = 0.0;      ///< default value for LorentzAngle
 
-// Trigger parameters
-constexpr double READOUT_TIME = 3000;                  ///< the time the readout takes, as 30 TB = 3 micro-s.
-constexpr double DEAD_TIME = 200;                      ///< trigger deadtime, 2 micro-s
-constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; ///< the time for which no new trigger can be received in nanoseconds
-
 // array size to store incoming half cru payload.
 constexpr int HBFBUFFERMAX = 1048576;                 ///< max buffer size for data read from a half cru, (all events)
 constexpr unsigned int CRUPADDING32 = 0xeeeeeeee;     ///< padding word used in the cru.
