@@ -409,7 +409,7 @@ has_detector_reco EMC && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-phos-cell-writer-workflow ) && add_W o2-phos-cell-writer-workflow "$DISABLE_MC"
 has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
 has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
-has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "--outfile mchdigits.root" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "--enable-root-output" "" 0
 has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-preclusters-sink-workflow ) && add_W o2-mch-preclusters-sink-workflow "--outfile mchpreclusters.out" "" 0
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
