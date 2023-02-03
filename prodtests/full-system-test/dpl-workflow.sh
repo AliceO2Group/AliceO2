@@ -348,7 +348,6 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
-    
   fi
   has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
@@ -410,7 +409,7 @@ has_detector_reco EMC && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-phos-cell-writer-workflow ) && add_W o2-phos-cell-writer-workflow "$DISABLE_MC"
 has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
 has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
-has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "--outfile mchdigits.root" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "--enable-root-output" "" 0
 has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-preclusters-sink-workflow ) && add_W o2-mch-preclusters-sink-workflow "--outfile mchpreclusters.out" "" 0
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
