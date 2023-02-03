@@ -24,7 +24,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "DetectorsVertexing/DCAFitterN.h"
+#include "DCAFitter/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
 #include "DataFormatsTPC/TrackTPC.h"
