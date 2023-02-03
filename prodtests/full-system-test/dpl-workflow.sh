@@ -333,7 +333,7 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
   else
     if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
     [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
-    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "HBFUtils.nHBFPerTF=$NHBPERTF"
+    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "HBFUtils.nHBFPerTF=$NHBPERTF"
   fi
 fi
 
@@ -348,7 +348,6 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
-    
   fi
   has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
