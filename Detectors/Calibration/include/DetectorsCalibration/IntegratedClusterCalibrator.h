@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TOFIntegratedClusterCalibrator.h
+/// \file IntegratedClusterCalibrator.h
 /// \brief calibrator class for accumulating integrated clusters
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 /// \date Jan 21, 2023
 
-#ifndef TOF_INTEGRATEDCLUSTERCALIBRATOR_H_
-#define TOF_INTEGRATEDCLUSTERCALIBRATOR_H_
+#ifndef INTEGRATEDCLUSTERCALIBRATOR_H_
+#define INTEGRATEDCLUSTERCALIBRATOR_H_
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
@@ -267,21 +267,21 @@ struct IFV0C {
 
 namespace o2
 {
-namespace tof
+namespace calibration
 {
 
-/// class for accumulating integrated TOF currents
+/// class for accumulating integrated currents
 template <typename DataT>
-class TOFIntegratedClusters
+class IntegratedClusters
 {
  public:
   /// \constructor
   /// \param tFirst first TF of the stored currents
   /// \param tLast last TF of the stored currents
-  TOFIntegratedClusters(o2::calibration::TFType tFirst, o2::calibration::TFType tLast) : mTFFirst{tFirst}, mTFLast{tLast} {};
+  IntegratedClusters(o2::calibration::TFType tFirst, o2::calibration::TFType tLast) : mTFFirst{tFirst}, mTFLast{tLast} {};
 
   /// \default constructor for ROOT I/O
-  TOFIntegratedClusters() = default;
+  IntegratedClusters() = default;
 
   /// print summary informations
   void print() const { LOGP(info, "TF Range from {} to {} with {} of remaining data", mTFFirst, mTFLast, mRemainingData); }
@@ -292,7 +292,7 @@ class TOFIntegratedClusters
   void fill(const o2::calibration::TFType tfID, const DataT& currentsContainer);
 
   /// merging TOF currents with previous interval
-  void merge(const TOFIntegratedClusters* prev);
+  void merge(const IntegratedClusters* prev);
 
   /// \return returns if already all expected TFs are received
   bool hasEnoughData() const { return mRemainingData ? false : true; }
@@ -309,11 +309,11 @@ class TOFIntegratedClusters
   /// dump object to disc
   /// \param outFileName name of the output file
   /// \param outName name of the object in the output file
-  void dumpToFile(const char* outFileName = "TOFIntegratedClusters.root", const char* outName = "ITOFC") const;
+  void dumpToFile(const char* outFileName = "IntegratedClusters.root", const char* outName = "IC") const;
 
   /// dump object to TTree for visualisation
   /// \param outFileName name of the output file
-  void dumpToTree(const char* outFileName = "ITOFCTree.root");
+  void dumpToTree(const char* outFileName = "ICTree.root");
 
  private:
   DataT mCurrents;                          ///< buffer for integrated currents
@@ -327,24 +327,24 @@ class TOFIntegratedClusters
   /// \param valuesPerTF number of expected values per TF
   void initData(const unsigned int valuesPerTF);
 
-  ClassDefNV(TOFIntegratedClusters, 1);
+  ClassDefNV(IntegratedClusters, 1);
 };
 
 template <typename DataT>
-class TOFIntegratedClusterCalibrator : public o2::calibration::TimeSlotCalibration<o2::tof::TOFIntegratedClusters<DataT>>
+class IntegratedClusterCalibrator : public o2::calibration::TimeSlotCalibration<IntegratedClusters<DataT>>
 {
   using TFType = o2::calibration::TFType;
-  using Slot = o2::calibration::TimeSlot<o2::tof::TOFIntegratedClusters<DataT>>;
+  using Slot = o2::calibration::TimeSlot<IntegratedClusters<DataT>>;
   using CalibVector = std::vector<DataT>;
   using TFinterval = std::vector<std::pair<TFType, TFType>>;
   using TimeInterval = std::vector<std::pair<long, long>>;
 
  public:
   /// default constructor
-  TOFIntegratedClusterCalibrator() = default;
+  IntegratedClusterCalibrator() = default;
 
   /// default destructor
-  ~TOFIntegratedClusterCalibrator() final = default;
+  ~IntegratedClusterCalibrator() final = default;
 
   /// check if given slot has already enough data
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->hasEnoughData(); }
@@ -379,10 +379,10 @@ class TOFIntegratedClusterCalibrator : public o2::calibration::TimeSlotCalibrati
   CalibVector mCalibs;         ///< Calibration object containing for each pad a histogram with normalized charge
   bool mDebug{false};          ///< write debug output objects
 
-  ClassDefOverride(TOFIntegratedClusterCalibrator, 1);
+  ClassDefOverride(IntegratedClusterCalibrator, 1);
 };
 
-} // end namespace tof
+} // end namespace calibration
 } // end namespace o2
 
-#endif /* TOF_CHANNEL_CALIBRATOR_H_ */
+#endif

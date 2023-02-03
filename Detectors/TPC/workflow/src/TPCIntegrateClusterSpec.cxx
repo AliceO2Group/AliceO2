@@ -26,7 +26,7 @@
 #include "TPCWorkflow/TPCIntegrateClusterSpec.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
 
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 
 #include <algorithm>
 #include <numeric>

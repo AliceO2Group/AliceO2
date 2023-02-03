@@ -15,7 +15,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "TPCWorkflow/TPCIntegrateClusterReaderSpec.h"
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "TPCWorkflow/TPCIntegrateClusterSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"

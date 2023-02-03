@@ -9,21 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TOFIntegratedClusterCalibrator.cxx
+/// \file IntegratedClusterCalibrator.cxx
 ///
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 /// \date Jan 21, 2023
 
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 namespace o2
 {
-namespace tof
+namespace calibration
 {
 
 template <typename DataT>
-void TOFIntegratedClusters<DataT>::dumpToFile(const char* outFileName, const char* outName) const
+void IntegratedClusters<DataT>::dumpToFile(const char* outFileName, const char* outName) const
 {
   TFile fOut(outFileName, "RECREATE");
   fOut.WriteObject(this, outName);
@@ -31,7 +31,7 @@ void TOFIntegratedClusters<DataT>::dumpToFile(const char* outFileName, const cha
 }
 
 template <typename DataT>
-void TOFIntegratedClusters<DataT>::fill(const o2::calibration::TFType tfID, const DataT& currentsContainer)
+void IntegratedClusters<DataT>::fill(const o2::calibration::TFType tfID, const DataT& currentsContainer)
 {
   // check if size is same
   if (!currentsContainer.areSameSize()) {
@@ -74,7 +74,7 @@ void TOFIntegratedClusters<DataT>::fill(const o2::calibration::TFType tfID, cons
 }
 
 template <typename DataT>
-void TOFIntegratedClusters<DataT>::merge(const TOFIntegratedClusters* prev)
+void IntegratedClusters<DataT>::merge(const IntegratedClusters* prev)
 {
   LOGP(info, "Printing last object...");
   prev->print();
@@ -108,7 +108,7 @@ void TOFIntegratedClusters<DataT>::merge(const TOFIntegratedClusters* prev)
   // creating new temporary object with the range of current and last object
   const unsigned int totalTFs = (tfMax - tfMin) + 1; // add 1 since first<= t <=last
   const unsigned int nTotal = mNValuesPerTF * totalTFs;
-  TOFIntegratedClusters dataTmp(tfMin, tfMax);
+  IntegratedClusters dataTmp(tfMin, tfMax);
   dataTmp.mInitialize = false; // do no initialization as it is done manually
   dataTmp.mNValuesPerTF = mNValuesPerTF;
   dataTmp.mRemainingData = -1;
@@ -125,7 +125,7 @@ void TOFIntegratedClusters<DataT>::merge(const TOFIntegratedClusters* prev)
 }
 
 template <typename DataT>
-void TOFIntegratedClusters<DataT>::initData(const unsigned int valuesPerTF)
+void IntegratedClusters<DataT>::initData(const unsigned int valuesPerTF)
 {
   mInitialize = false;
   const unsigned int totalTFs = (mTFLast - mTFFirst) + 1; // add 1 since first<= t <=last
@@ -137,7 +137,7 @@ void TOFIntegratedClusters<DataT>::initData(const unsigned int valuesPerTF)
 }
 
 template <typename DataT>
-void TOFIntegratedClusters<DataT>::dumpToTree(const char* outFileName)
+void IntegratedClusters<DataT>::dumpToTree(const char* outFileName)
 {
   o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
   pcstream << "tree"
@@ -150,7 +150,7 @@ void TOFIntegratedClusters<DataT>::dumpToTree(const char* outFileName)
 }
 
 template <typename DataT>
-void TOFIntegratedClusterCalibrator<DataT>::initOutput()
+void IntegratedClusterCalibrator<DataT>::initOutput()
 {
   mIntervals.clear();
   mCalibs.clear();
@@ -158,7 +158,7 @@ void TOFIntegratedClusterCalibrator<DataT>::initOutput()
 }
 
 template <typename DataT>
-void TOFIntegratedClusterCalibrator<DataT>::finalizeSlot(o2::calibration::TimeSlot<o2::tof::TOFIntegratedClusters<DataT>>& slot)
+void IntegratedClusterCalibrator<DataT>::finalizeSlot(o2::calibration::TimeSlot<o2::calibration::IntegratedClusters<DataT>>& slot)
 {
   const TFType startTF = slot.getTFStart();
   const TFType endTF = slot.getTFEnd();
@@ -176,25 +176,25 @@ void TOFIntegratedClusterCalibrator<DataT>::finalizeSlot(o2::calibration::TimeSl
 
 /// Creates new time slot
 template <typename DataT>
-o2::calibration::TimeSlot<o2::tof::TOFIntegratedClusters<DataT>>& TOFIntegratedClusterCalibrator<DataT>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
+o2::calibration::TimeSlot<o2::calibration::IntegratedClusters<DataT>>& IntegratedClusterCalibrator<DataT>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = this->getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<TOFIntegratedClusters<DataT>>(tstart, tend));
+  slot.setContainer(std::make_unique<IntegratedClusters<DataT>>(tstart, tend));
   return slot;
 }
 
-template class TOFIntegratedClusters<ITOFC>;
-template class TOFIntegratedClusterCalibrator<ITOFC>;
+template class IntegratedClusters<o2::tof::ITOFC>;
+template class IntegratedClusterCalibrator<o2::tof::ITOFC>;
 
-template class TOFIntegratedClusters<o2::fit::IFT0C>;
-template class TOFIntegratedClusterCalibrator<o2::fit::IFT0C>;
+template class IntegratedClusters<o2::fit::IFT0C>;
+template class IntegratedClusterCalibrator<o2::fit::IFT0C>;
 
-template class TOFIntegratedClusters<o2::fit::IFV0C>;
-template class TOFIntegratedClusterCalibrator<o2::fit::IFV0C>;
+template class IntegratedClusters<o2::fit::IFV0C>;
+template class IntegratedClusterCalibrator<o2::fit::IFV0C>;
 
-template class TOFIntegratedClusters<o2::tpc::ITPCC>;
-template class TOFIntegratedClusterCalibrator<o2::tpc::ITPCC>;
+template class IntegratedClusters<o2::tpc::ITPCC>;
+template class IntegratedClusterCalibrator<o2::tpc::ITPCC>;
 
-} // end namespace tof
+} // end namespace calibration
 } // end namespace o2

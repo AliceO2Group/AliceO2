@@ -17,7 +17,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonDataFormat/TFIDInfo.h"
 
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 
 using namespace o2::framework;
 

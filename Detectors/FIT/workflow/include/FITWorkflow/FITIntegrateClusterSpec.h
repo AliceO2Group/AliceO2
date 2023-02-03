@@ -18,7 +18,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
 #include "Framework/DataProcessorSpec.h"
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 
 using namespace o2::framework;
 

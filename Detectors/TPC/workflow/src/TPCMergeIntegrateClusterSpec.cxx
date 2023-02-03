@@ -16,7 +16,7 @@
 
 #include "TPCWorkflow/TPCMergeIntegrateClusterSpec.h"
 #include "TPCWorkflow/TPCIntegrateClusterSpec.h"
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -46,7 +46,7 @@ class TPCMergeIntegrateClusters : public Task
   void init(framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    mCalibrator = std::make_unique<o2::tof::TOFIntegratedClusterCalibrator<ITPCC>>();
+    mCalibrator = std::make_unique<o2::calibration::IntegratedClusterCalibrator<ITPCC>>();
     mEnableWritingPadStatusMap = ic.options().get<bool>("enableWritingPadStatusMap");
     const auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
     const auto maxDelay = ic.options().get<uint32_t>("max-delay");
@@ -115,18 +115,18 @@ class TPCMergeIntegrateClusters : public Task
   static constexpr header::DataDescription getDataDescriptionCCDBITPC0() { return header::DataDescription{"ITPC0Calib"}; }
 
  private:
-  std::unique_ptr<o2::tof::TOFIntegratedClusterCalibrator<ITPCC>> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                      ///< info for CCDB request
-  std::string mMetaFileDir{};                                                  ///< output dir for meta data
-  std::string mCalibFileDir{};                                                 ///< output dir for calib objects
-  o2::framework::DataTakingContext mDataTakingContext{};                       ///< run information for meta data
-  bool mSetDataTakingCont{true};                                               ///< flag for setting data taking context only once
-  bool mDumpCalibData{false};                                                  ///< dump the calibration data as a calibration file
-  bool mProcess3D{false};                                                      ///< flag if the 3D TPC currents are expected as input
-  bool mDump3D{false};                                                         ///< flag if 3D debug object will be dumped
-  int mNthreads{1};                                                            ///< number of threads used for the factorization
-  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                              ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
-  bool mEnableWritingPadStatusMap{false};                                      ///< do not store the pad status map in the CCDB
+  std::unique_ptr<o2::calibration::IntegratedClusterCalibrator<ITPCC>> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                           ///< info for CCDB request
+  std::string mMetaFileDir{};                                                       ///< output dir for meta data
+  std::string mCalibFileDir{};                                                      ///< output dir for calib objects
+  o2::framework::DataTakingContext mDataTakingContext{};                            ///< run information for meta data
+  bool mSetDataTakingCont{true};                                                    ///< flag for setting data taking context only once
+  bool mDumpCalibData{false};                                                       ///< dump the calibration data as a calibration file
+  bool mProcess3D{false};                                                           ///< flag if the 3D TPC currents are expected as input
+  bool mDump3D{false};                                                              ///< flag if 3D debug object will be dumped
+  int mNthreads{1};                                                                 ///< number of threads used for the factorization
+  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                   ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
+  bool mEnableWritingPadStatusMap{false};                                           ///< do not store the pad status map in the CCDB
 
   void sendOutput(DataAllocator& output)
   {

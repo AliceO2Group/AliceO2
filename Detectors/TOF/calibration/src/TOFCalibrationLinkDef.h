@@ -50,29 +50,4 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::tof::Diagnostic> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::Diagnostic> + ;
 #pragma link C++ class o2::tof::TOFDiagnosticCalibrator + ;
-
-#pragma link C++ struct o2::tof::ITOFC + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusters < ITOFC> + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusterCalibrator < ITOFC> + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFIntegratedClusters < ITOFC>> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::TOFIntegratedClusters < ITOFC>> + ;
-
-#pragma link C++ struct o2::fit::IFT0C + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusters < o2::fit::IFT0C> + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusterCalibrator < o2::fit::IFT0C> + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFIntegratedClusters < o2::fit::IFT0C>> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::TOFIntegratedClusters < o2::fit::IFT0C>> + ;
-
-#pragma link C++ struct o2::fit::IFV0C + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusters < o2::fit::IFV0C> + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusterCalibrator < o2::fit::IFV0C> + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFIntegratedClusters < o2::fit::IFV0C>> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::TOFIntegratedClusters < o2::fit::IFV0C>> + ;
-
-#pragma link C++ struct o2::tpc::ITPCC + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusters < o2::tpc::ITPCC> + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusterCalibrator < o2::tpc::ITPCC> + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFIntegratedClusters < o2::tpc::ITPCC>> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::TOFIntegratedClusters < o2::tpc::ITPCC>> + ;
-
 #endif

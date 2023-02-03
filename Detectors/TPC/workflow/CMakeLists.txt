@@ -45,7 +45,6 @@ o2_add_library(TPCWorkflow
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::TPCQC O2::DetectorsCalibration
                                      O2::TPCReaderWorkflow
-                                     O2::TOFWorkflowUtils # for the integrated cluster workflow
                PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
                                       O2::GPUWorkflow
            )

@@ -23,4 +23,4 @@ o2_add_library(FITWorkflow
                                      O2::FITRaw
                                      O2::DetectorsBase
                                      O2::Algorithm
-                                     O2::TOFWorkflowUtils)
+                                     O2::DetectorsCalibration)

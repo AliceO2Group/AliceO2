@@ -15,7 +15,7 @@
 /// \date Jan 21, 2023
 
 #include "TOFWorkflowUtils/TOFMergeIntegrateClusterSpec.h"
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -40,7 +40,7 @@ class TOFMergeIntegrateClusters : public Task
   void init(framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    mCalibrator = std::make_unique<TOFIntegratedClusterCalibrator<ITOFC>>();
+    mCalibrator = std::make_unique<o2::calibration::IntegratedClusterCalibrator<ITOFC>>();
     const auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
     const auto maxDelay = ic.options().get<uint32_t>("max-delay");
     const auto debug = ic.options().get<bool>("debug");
@@ -98,13 +98,13 @@ class TOFMergeIntegrateClusters : public Task
   static constexpr header::DataDescription getDataDescriptionCCDB() { return header::DataDescription{"ITOFC"}; }
 
  private:
-  std::unique_ptr<TOFIntegratedClusterCalibrator<ITOFC>> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;             ///< info for CCDB request
-  std::string mMetaFileDir{};                                         ///< output dir for meta data
-  std::string mCalibFileDir{};                                        ///< output dir for calib objects
-  o2::framework::DataTakingContext mDataTakingContext{};              ///< run information for meta data
-  bool mSetDataTakingCont{true};                                      ///< flag for setting data taking context only once
-  bool mDumpCalibData{false};                                         ///< dump the ITOFC as a calibration file
+  std::unique_ptr<o2::calibration::IntegratedClusterCalibrator<ITOFC>> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                           ///< info for CCDB request
+  std::string mMetaFileDir{};                                                       ///< output dir for meta data
+  std::string mCalibFileDir{};                                                      ///< output dir for calib objects
+  o2::framework::DataTakingContext mDataTakingContext{};                            ///< run information for meta data
+  bool mSetDataTakingCont{true};                                                    ///< flag for setting data taking context only once
+  bool mDumpCalibData{false};                                                       ///< dump the ITOFC as a calibration file
 
   void sendOutput(DataAllocator& output)
   {
