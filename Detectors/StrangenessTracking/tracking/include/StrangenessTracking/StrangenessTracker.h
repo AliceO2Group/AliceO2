@@ -34,7 +34,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
-#include "DetectorsVertexing/DCAFitterN.h"
+#include "DCAFitter/DCAFitterN.h"
 #include "DetectorsBase/Propagator.h"
 
 namespace o2
