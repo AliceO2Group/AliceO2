@@ -160,29 +160,61 @@ void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
   // request input just to trigger finaliseCCDB if there was an update
   static bool initOnceDone = false;
   if (mRequest->askGRPMagField) {
-    pc.inputs().get<o2::parameters::GRPMagField*>("grpfield");
+    if (pc.inputs().isValid("grpfield")) {
+      pc.inputs().get<o2::parameters::GRPMagField*>("grpfield");
+    } else {
+      return;
+    }
   }
   if (mRequest->askGRPLHCIF && !initOnceDone) {
-    pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
+    if (pc.inputs().isValid("grplhcif")) {
+      pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
+    } else {
+      return;
+    }
   }
   if (mRequest->askGRPECS && !initOnceDone) {
-    pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
+    if (pc.inputs().isValid("grpecs")) {
+      pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
+    } else {
+      return;
+    }
   }
   if (mRequest->askTime && !initOnceDone) {
-    pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
+    if (pc.inputs().isValid("orbitReset")) {
+      pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
+    } else {
+      return;
+    }
   }
   if (mRequest->askMatLUT && !initOnceDone) {
-    pc.inputs().get<o2::base::MatLayerCylSet*>("matLUT");
+    if (pc.inputs().isValid("matLUT")) {
+      pc.inputs().get<o2::base::MatLayerCylSet*>("matLUT");
+    } else {
+      return;
+    }
   }
   if (mRequest->askGeomAlign && !initOnceDone) {
-    pc.inputs().get<TGeoManager*>("geomAlp");
+    if (pc.inputs().isValid("geomAlp")) {
+      pc.inputs().get<TGeoManager*>("geomAlp");
+    } else {
+      return;
+    }
   } else if (mRequest->askGeomIdeal) {
-    pc.inputs().get<TGeoManager*>("geomIdeal");
+    if (pc.inputs().isValid("geomIdeal")) {
+      pc.inputs().get<TGeoManager*>("geomIdeal");
+    } else {
+      return;
+    }
   }
   if (mRequest->askAlignments && !initOnceDone) {
     for (auto id = DetID::First; id <= DetID::Last; id++) {
       std::string binding = fmt::format("align{}", DetID::getName(id));
-      pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
+      if (pc.inputs().isValid(binding.c_str())) {
+        pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
+      } else {
+        return;
+      }
     }
   }
   if (!initOnceDone) {
