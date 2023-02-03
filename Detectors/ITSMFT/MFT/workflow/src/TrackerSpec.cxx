@@ -18,7 +18,6 @@
 #include "MFTTracking/Tracker.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTBase/GeometryTGeo.h"
-#include "MFTTracking/TrackerConfig.h"
 
 #include <vector>
 #include <future>
