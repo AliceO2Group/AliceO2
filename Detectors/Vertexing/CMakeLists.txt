@@ -30,14 +30,14 @@ o2_add_library(DetectorsVertexing
                                      O2::FT0Reconstruction
                                      O2::DataFormatsFT0
                                      O2::GlobalTracking
-				     O2::DCAFitter
+                                     O2::DCAFitter
                                      Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DetectorsVertexing
                           HEADERS include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/PVertexerParams.h
                                   include/DetectorsVertexing/SVertexerParams.h
-				  include/DetectorsVertexing/SVertexHypothesis.h)
+                                  include/DetectorsVertexing/SVertexHypothesis.h)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

@@ -30,8 +30,8 @@ o2_add_library(StrangenessTrackingWorkflow
                                      O2::ITSMFTWorkflow
                                      O2::DetectorsCalibration
                                      O2::GlobalTrackingWorkflowWriters
-				     O2::DCAFitter
-				     O2::CCDB)
+                                     O2::DCAFitter
+                                     O2::CCDB)
 
 o2_add_executable(strangeness-tracking-workflow
                   SOURCES src/strangeness-tracking-workflow.cxx
