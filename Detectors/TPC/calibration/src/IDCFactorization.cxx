@@ -82,76 +82,92 @@ void o2::tpc::IDCFactorization::dumpToFile(const char* outFileName, const char* 
 
 void o2::tpc::IDCFactorization::dumpLargeObjectToFile(const char* outFileName, const char* outName) const
 {
-  TFile fOut(outFileName, "RECREATE");
+  LOGP(info, "Writing object to file using {} threads", sNThreads);
+  ROOT::EnableThreadSafety();
+  std::vector<std::unique_ptr<TFile>> fOutPar;
+  fOutPar.reserve(sNThreads);
+  for (int i = 0; i < sNThreads; ++i) {
+    const std::string outFile = fmt::format("{}_{}", outFileName, i);
+    fOutPar.emplace_back(TFile::Open(outFile.data(), "RECREATE"));
+  }
+
+#pragma omp parallel for num_threads(sNThreads)
   for (int iTF = 0; iTF < mTimeFrames; ++iTF) {
     IDCFactorizeSplit idcTmp;
     idcTmp.relTF = iTF;
     for (int icru = 0; icru < CRU::MaxCRU; ++icru) {
       idcTmp.idcs[icru] = mIDCs[icru][iTF];
     }
-    fOut.WriteObject(&idcTmp, fmt::format("IDCs_TF{}", iTF).data());
-  }
-
-  // write empty dummy object to file which can be filled with the previously written IDCs
-  IDCFactorization idcFacTmp(mTimeFrames, mTimeFramesDeltaIDC, mCRUs);
-  idcFacTmp.setRun(getRun());
-  idcFacTmp.setTimeStamp(getTimeStamp());
-  fOut.WriteObject(&idcFacTmp, outName);
-  fOut.Close();
-}
-
-std::unique_ptr<o2::tpc::IDCFactorization> o2::tpc::IDCFactorization::getLargeObjectFromFile(const char* inpFileName, const char* inName)
-{
-  std::vector<std::unique_ptr<TFile>> fInp;
-  fInp.reserve(sNThreads);
-  for (int i = 0; i < sNThreads; ++i) {
-    fInp.emplace_back(TFile::Open(inpFileName));
-  }
-
-  std::unique_ptr<IDCFactorization> idc;
-  if (fInp.front() == nullptr) {
-    LOGP(warning, "Input file {} not found!", inpFileName);
-    return idc;
-  }
-
-  o2::tpc::IDCFactorization* idcTmp = (o2::tpc::IDCFactorization*)fInp.front()->Get(inName);
-  idc = std::make_unique<IDCFactorization>(idcTmp->getNTimeframes(), idcTmp->getTimeFramesDeltaIDC(), idcTmp->getCRUs());
-  idc->setRun(idcTmp->getRun());
-  idc->setTimeStamp(idcTmp->getTimeStamp());
-  delete idcTmp;
-
-  ROOT::EnableThreadSafety();
-  const auto* keys = fInp.front()->GetListOfKeys();
-  const auto nKeys = keys->GetEntries();
-#pragma omp parallel for num_threads(sNThreads)
-  for (int iKey = 0; iKey < nKeys; ++iKey) {
 #ifdef WITH_OPENMP
     const int ithread = omp_get_thread_num();
 #else
     const int ithread = 0;
 #endif
+    fOutPar[ithread]->WriteObject(&idcTmp, fmt::format("IDCs_TF{}", iTF).data());
+  }
 
-    const auto key = dynamic_cast<TKey*>(keys->At(iKey));
-    if (std::strcmp(o2::tpc::IDCFactorizeSplit::Class()->GetName(), key->GetClassName()) != 0) {
-      if (std::strcmp(o2::tpc::IDCFactorization::Class()->GetName(), key->GetClassName()) != 0) {
-        LOGP(info, "skipping object. wrong class.");
+  // write empty dummy object to file which can be filled with the previously written IDCs
+  TFile fOut(outFileName, "RECREATE");
+  IDCFactorization idcFacTmp(mTimeFrames, mTimeFramesDeltaIDC, mCRUs);
+  idcFacTmp.setRun(getRun());
+  idcFacTmp.setTimeStamp(getTimeStamp());
+  fOut.WriteObject(&idcFacTmp, outName);
+  std::vector<int> nFiles{sNThreads};
+  fOut.WriteObject(&nFiles, "out_files");
+  fOut.Close();
+}
+
+std::unique_ptr<o2::tpc::IDCFactorization> o2::tpc::IDCFactorization::getLargeObjectFromFile(const char* inpFileName, const char* inName)
+{
+  LOGP(info, "Reading object from file using {} threads", sNThreads);
+  TFile fMeta(inpFileName, "READ");
+  if (fMeta.IsZombie()) {
+    LOGP(warning, "Input file {} not found! Returning", inpFileName);
+  }
+
+  o2::tpc::IDCFactorization* idcTmp = (o2::tpc::IDCFactorization*)fMeta.Get(inName);
+  std::unique_ptr<IDCFactorization> idc;
+  idc = std::make_unique<IDCFactorization>(idcTmp->getNTimeframes(), idcTmp->getTimeFramesDeltaIDC(), idcTmp->getCRUs());
+  idc->setRun(idcTmp->getRun());
+  idc->setTimeStamp(idcTmp->getTimeStamp());
+  std::vector<int>* out_files = (std::vector<int>*)fMeta.Get("out_files");
+  const int nFiles = out_files->front();
+  delete idcTmp;
+  delete out_files;
+
+  std::vector<std::unique_ptr<TFile>> fInp;
+  fInp.reserve(nFiles);
+  for (int i = 0; i < nFiles; ++i) {
+    const std::string inpFile = fmt::format("{}_{}", inpFileName, i);
+    fInp.emplace_back(TFile::Open(inpFile.data()));
+    if (fInp.front() == nullptr) {
+      LOGP(warning, "Input file {} not found!", inpFile.data());
+    }
+  }
+
+  ROOT::EnableThreadSafety();
+
+// loop over files
+#pragma omp parallel for num_threads(sNThreads)
+  for (int iFile = 0; iFile < nFiles; ++iFile) {
+    const auto* keys = fInp[iFile]->GetListOfKeys();
+    const auto nKeys = keys->GetEntries();
+    for (int iKey = 0; iKey < nKeys; ++iKey) {
+      const auto key = dynamic_cast<TKey*>(keys->At(iKey));
+      IDCFactorizeSplit* idcTmp = nullptr;
+      fInp[iFile]->GetObject(key->GetName(), idcTmp);
+
+      const int relTF = idcTmp->relTF;
+      if (relTF >= idc->getNTimeframes()) {
+        LOGP(warning, "stored TF {} is larger than max TF {}", relTF, idc->getNTimeframes());
+        continue;
       }
-      continue;
+      for (int icru = 0; icru < CRU::MaxCRU; ++icru) {
+        auto idcVec = idcTmp->idcs[icru];
+        idc->setIDCs(std::move(idcVec), icru, relTF);
+      }
+      delete idcTmp;
     }
-
-    IDCFactorizeSplit* idcTmp = nullptr;
-    fInp[ithread]->GetObject(key->GetName(), idcTmp);
-
-    const int relTF = idcTmp->relTF;
-    if (relTF >= idc->getNTimeframes()) {
-      LOGP(warning, "stored TF {} is larger than max TF {}", relTF, idc->getNTimeframes());
-      continue;
-    }
-    for (int icru = 0; icru < CRU::MaxCRU; ++icru) {
-      auto idcVec = idcTmp->idcs[icru];
-      idc->setIDCs(std::move(idcVec), icru, relTF);
-    }
-    delete idcTmp;
   }
   for (auto& file : fInp) {
     file->Close();
@@ -236,7 +252,7 @@ void o2::tpc::IDCFactorization::calcIDCZero(const bool norm)
     const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
     for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
       for (unsigned int idcs = 0; idcs < mIDCs[cru][timeframe].size(); ++idcs) {
-        if (mIDCs[cru][timeframe][idcs] == -1) {
+        if ((mIDCs[cru][timeframe][idcs] == -1) || (mIDCs[cru][timeframe][idcs] == 0)) {
           continue;
         }
         if (norm) {
@@ -382,7 +398,7 @@ template <typename DataVec>
 void o2::tpc::IDCFactorization::calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap, const bool usePadStatusMap)
 {
   for (unsigned int idcs = 0; idcs < idcsData.size(); ++idcs) {
-    if (idcsData[idcs] == -1) {
+    if ((idcsData[idcs] == -1) || (idcsData[idcs] == 0)) {
       continue;
     }
 
@@ -433,7 +449,7 @@ void o2::tpc::IDCFactorization::calcIDCDelta()
       }
 
       for (unsigned int idcs = 0; idcs < mIDCs[cru][timeframe].size(); ++idcs) {
-        if (mIDCs[cru][timeframe][idcs] == -1) {
+        if ((mIDCs[cru][timeframe][idcs] == -1) || (mIDCs[cru][timeframe][idcs] == 0)) {
           continue;
         }
         const unsigned int intervallocal = idcs / mNIDCsPerCRU[region];

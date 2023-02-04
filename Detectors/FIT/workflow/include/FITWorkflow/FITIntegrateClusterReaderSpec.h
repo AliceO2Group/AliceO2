@@ -9,12 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFIntegrateClusterReaderSpec.cxx
+#ifndef O2_FIT_FITINTEGRATECLUSTERREADER_SPEC
+#define O2_FIT_FITINTEGRATECLUSTERREADER_SPEC
 
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "TOFWorkflowIO/TOFIntegrateClusterReaderSpec.h"
+#include "FITWorkflow/FITIntegrateClusterSpec.h"
+#include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -28,9 +30,10 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace tof
+namespace fit
 {
 
+template <typename DataT>
 class IntegratedClusterReader : public Task
 {
  public:
@@ -42,19 +45,19 @@ class IntegratedClusterReader : public Task
  private:
   void connectTrees();
 
-  int mChainEntry = 0;                                       ///< processed entries in the chain
-  std::unique_ptr<TChain> mChain;                            ///< input TChain
-  std::vector<std::string> mFileNames;                       ///< input files
-  std::vector<float> mTOFCNCl, *mTOFCNClPtr = &mTOFCNCl;     ///< branch integrated number of cluster TOF currents
-  std::vector<float> mTOFCqTot, *mTOFCqTotPtr = &mTOFCqTot;  ///< branch integrated q TOF currents
-  o2::dataformats::TFIDInfo mTFinfo, *mTFinfoPtr = &mTFinfo; ///< branch TFIDInfo for injecting correct time
-  std::vector<std::pair<unsigned long, int>> mIndices;       ///< firstTfOrbit, file, index
+  int mChainEntry = 0;                                                               ///< processed entries in the chain
+  std::unique_ptr<TChain> mChain;                                                    ///< input TChain
+  std::vector<std::string> mFileNames;                                               ///< input files
+  typename DataDescriptionFITCurrents<DataT>::DataTStruct mFITC, *mFITCPtr = &mFITC; ///< branch integrated number of cluster FV0 currents
+  o2::dataformats::TFIDInfo mTFinfo, *mTFinfoPtr = &mTFinfo;                         ///< branch TFIDInfo for injecting correct time
+  std::vector<std::pair<unsigned long, int>> mIndices;                               ///< firstTfOrbit, file, index
 };
 
-void IntegratedClusterReader::init(InitContext& ic)
+template <typename DataT>
+void IntegratedClusterReader<DataT>::init(InitContext& ic)
 {
   const auto dontCheckFileAccess = ic.options().get<bool>("dont-check-file-access");
-  auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("tof-currents-infiles"));
+  auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>(fmt::format("{}-currents-infiles", DataDescriptionFITCurrents<DataT>::getName()).data()));
 
   // check if only one input file (a txt file contaning a list of files is provided)
   if (fileList.size() == 1) {
@@ -90,7 +93,8 @@ void IntegratedClusterReader::init(InitContext& ic)
   connectTrees();
 }
 
-void IntegratedClusterReader::run(ProcessingContext& pc)
+template <typename DataT>
+void IntegratedClusterReader<DataT>::run(ProcessingContext& pc)
 {
   // check time order inside the TChain
   if (mChainEntry == 0) {
@@ -113,8 +117,8 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
   timingInfo.runNumber = mTFinfo.runNumber;
   timingInfo.creation = mTFinfo.creation;
 
-  pc.outputs().snapshot(Output{header::gDataOriginTOF, "ITOFCN"}, mTOFCNCl);
-  pc.outputs().snapshot(Output{header::gDataOriginTOF, "ITOFCQ"}, mTOFCqTot);
+  using FitType = DataDescriptionFITCurrents<DataT>;
+  pc.outputs().snapshot(Output{FitType::getDataOrigin(), FitType::getDataDescriptionFITC()}, mFITC);
   usleep(100);
 
   if (mChainEntry >= mChain->GetEntries()) {
@@ -123,36 +127,40 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
   }
 }
 
-void IntegratedClusterReader::connectTrees()
+template <typename DataT>
+void IntegratedClusterReader<DataT>::connectTrees()
 {
-  mChain.reset(new TChain("itofc"));
+  const std::string treeName = DataDescriptionFITCurrents<DataT>::getName();
+  mChain.reset(new TChain(treeName.data()));
   for (const auto& file : mFileNames) {
     LOGP(info, "Adding file to chain: {}", file);
     mChain->AddFile(file.data());
   }
   assert(mChain->GetEntries());
-  mChain->SetBranchAddress("ITOFCN", &mTOFCNClPtr);
-  mChain->SetBranchAddress("ITOFCQ", &mTOFCqTotPtr);
+  mChain->SetBranchAddress("IFITC", &mFITCPtr);
   mChain->SetBranchAddress("tfID", &mTFinfoPtr);
 }
 
-DataProcessorSpec getTOFIntegrateClusterReaderSpec()
+template <typename DataT>
+DataProcessorSpec getFITIntegrateClusterReaderSpec()
 {
+  using FitType = DataDescriptionFITCurrents<DataT>;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCN", 0, Lifetime::Sporadic);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Sporadic);
+  outputs.emplace_back(FitType::getDataOrigin(), FitType::getDataDescriptionFITC(), 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
-    "tof-integrated-cluster-reader",
+    fmt::format("{}-integrated-cluster-reader", FitType::getName()),
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<IntegratedClusterReader>()},
+    AlgorithmSpec{adaptFromTask<IntegratedClusterReader<DataT>>()},
     Options{
-      {"tof-currents-infiles", VariantType::String, "o2currents_tof.root", {"comma-separated list of input files or .txt file containing list of input files"}},
+      {fmt::format("{}-currents-infiles", FitType::getName()), VariantType::String, fmt::format("o2currents_{}.root", FitType::getName()), {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"dont-check-file-access", VariantType::Bool, false, {"Deactivate check if all files are accessible before adding them to the list of files"}},
     }};
 }
 
-} // namespace tof
-} // namespace o2
+} // end namespace fit
+} // end namespace o2
+
+#endif
