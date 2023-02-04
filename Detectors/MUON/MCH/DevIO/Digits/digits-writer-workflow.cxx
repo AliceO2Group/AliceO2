@@ -198,8 +198,8 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
     DataProcessorSpec producer = MakeRootTreeWriterSpec(specName,
                                                         "mchdigits.root",
                                                         MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Digits"},
-                                                        BranchDefinition<std::vector<ROFRecord>>{InputSpec{*rofs}, "rofs"},
-                                                        BranchDefinition<std::vector<Digit>>{InputSpec{*digits}, "digits"})();
+                                                        BranchDefinition<std::vector<ROFRecord>>{InputSpec{*rofs}, "MCHROFRecords"},
+                                                        BranchDefinition<std::vector<Digit>>{InputSpec{*digits}, "MCHDigit"})();
     specs.push_back(producer);
   }
 
