@@ -266,6 +266,8 @@ if [[ ! -z $WORKFLOW_DETECTORS_USE_GLOBAL_READER ]]; then
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --mid-digit-infile mid-digits-decoded.root"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "--hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "--hbfutils-config o2_tfidinfo.root"
   has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "--input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
 fi
