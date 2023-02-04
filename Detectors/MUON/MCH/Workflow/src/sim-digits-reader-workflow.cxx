@@ -31,7 +31,8 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}}};
+    {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
