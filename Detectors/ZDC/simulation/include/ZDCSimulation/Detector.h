@@ -241,11 +241,13 @@ class Detector : public o2::base::DetImpl<Detector>
 // fastsim model wrapper
 #ifdef ZDC_FASTSIM_ONNX
   fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr; //! no ROOT serialization
-  fastsim::NeuralFastSimulation* mFastSimModel = nullptr;      //!
+  fastsim::NeuralFastSimulation* mFastSimModelNeutron = nullptr; //!
+  fastsim::NeuralFastSimulation* mFastSimModelProton = nullptr;  //!
 
   // Scalers for models inputs
   fastsim::processors::StandardScaler* mClassifierScaler = nullptr; //!
-  fastsim::processors::StandardScaler* mModelScaler = nullptr;      //!
+  fastsim::processors::StandardScaler* mModelScalerNeutron = nullptr; //!
+  fastsim::processors::StandardScaler* mModelScalerProton = nullptr;  //!
 
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<long, 5>>; //!
