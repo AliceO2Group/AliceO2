@@ -364,7 +364,8 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   if (mTmpMVobjDqTime.size() > params.nSlots4SMA) {
     mTmpMVobjDqTime.pop_front();
   }
-  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2;
+  long offset = (slot.getEndTimeMS() - slot.getStartTimeMS()) / 2;
+  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2 - offset;
   LOG(info) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
