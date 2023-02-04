@@ -76,8 +76,11 @@ Detector::Detector(Bool_t active)
     if (!mClassifierScaler) {
       mClassifierScaler = new fastsim::processors::StandardScaler;
     }
-    if (!mModelScaler) {
-      mModelScaler = new fastsim::processors::StandardScaler;
+    if (!mModelScalerNeutron) {
+      mModelScalerNeutron = new fastsim::processors::StandardScaler;
+    }
+    if (!mModelScalerProton) {
+      mModelScalerProton = new fastsim::processors::StandardScaler;
     }
     auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
     if (!eonScales.has_value()) {
@@ -88,17 +91,30 @@ Detector::Detector(Bool_t active)
       mClassifierScaler->setScales(eonScales->first, eonScales->second);
       mFastSimClassifier = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath, 1);
 
-      if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
-        auto modelScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
+      if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPathNeutron.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesNeutron.empty()) {
+        auto modelScalesNeutron = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesNeutron);
 
-        if (!modelScales.has_value()) {
+        if (!modelScalesNeutron.has_value()) {
           LOG(error) << "Error while reading model scales from: "
-                     << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
+                     << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesNeutron << "'";
           LOG(error) << "FastSim module disabled";
         } else {
-          mModelScaler->setScales(modelScales->first, modelScales->second);
-          mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, 1);
-          LOG(info) << "FastSim module enabled";
+          mModelScalerNeutron->setScales(modelScalesNeutron->first, modelScalesNeutron->second);
+          mFastSimModelNeutron = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPathNeutron, 1);
+          LOG(info) << "FastSim neutron module enabled";
+        }
+      }
+      if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPathProton.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesProton.empty()) {
+        auto modelScalesProton = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesProton);
+
+        if (!modelScalesProton.has_value()) {
+          LOG(error) << "Error while reading model scales from: "
+                     << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScalesProton << "'";
+          LOG(error) << "FastSim module disabled";
+        } else {
+          mModelScalerProton->setScales(modelScalesProton->first, modelScalesProton->second);
+          mFastSimModelProton = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPathProton, 1);
+          LOG(info) << "FastSim proton module enabled";
         }
       }
     }
@@ -118,9 +134,11 @@ Detector::Detector(const Detector& rhs)
 Detector::~Detector()
 {
   delete (mFastSimClassifier);
-  delete (mFastSimModel);
+  delete (mFastSimModelNeutron);
+  delete (mFastSimModelProton);
   delete (mClassifierScaler);
-  delete (mModelScaler);
+  delete (mModelScalerNeutron);
+  delete (mModelScalerProton);
 }
 #endif
 
@@ -2470,7 +2488,7 @@ void Detector::FinishPrimary()
 
 #ifdef ZDC_FASTSIM_ONNX
   // dump to file only if debugZDCFastSim is set to true
-  if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim && o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+  if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim && o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModelNeutron != nullptr && mFastSimModelProton != nullptr && mFastSimClassifier != nullptr) {
     std::fstream output("o2sim-FastSimResult", std::fstream::out | std::fstream::app);
     if (!output.is_open()) {
       LOG(error) << "Could not open file.";
@@ -2498,7 +2516,7 @@ void Detector::BeginPrimary()
   mCurrentPrincipalParticle = *stack->GetCurrentTrack();
 
 #ifdef ZDC_FASTSIM_ONNX
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModelNeutron != nullptr && mFastSimModelProton != nullptr && mFastSimClassifier != nullptr) {
     const std::vector<float> rawInput = {static_cast<float>(mCurrentPrincipalParticle.Energy()),
                                          static_cast<float>(mCurrentPrincipalParticle.Vx()),
                                          static_cast<float>(mCurrentPrincipalParticle.Vy()),
@@ -2517,22 +2535,27 @@ void Detector::BeginPrimary()
       mFastSimClassifier->setInput(classifierInput);
       mFastSimClassifier->run();
       if (fastsim::processors::readClassifier(mFastSimClassifier->getResult()[0], 1)[0]) {
-        auto scaledModelParticle = mModelScaler->scale(rawInput);
-        if (!scaledModelParticle.has_value()) {
+        auto scaledModelParticleNeutron = mModelScalerNeutron->scale(rawInput);
+        auto scaledModelParticleProton = mModelScalerProton->scale(rawInput);
+        if (!scaledModelParticleNeutron.has_value() || !scaledModelParticleProton.has_value()) {
           LOG(error) << "FastSimModule: error occurred on scaling";
         } else {
-          std::vector<std::vector<float>> modelInput = {fastsim::normal_distribution(0.0, 1.0, 10), std::move(*scaledModelParticle)};
-          mFastSimModel->setInput(modelInput);
-          mFastSimModel->run();
+          std::vector<std::vector<float>> modelInputNeutron = {fastsim::normal_distribution(0.0, 1.0, 10), std::move(*scaledModelParticleNeutron)};
+          mFastSimModelNeutron->setInput(modelInputNeutron);
+          mFastSimModelNeutron->run();
+          std::vector<std::vector<float>> modelInputProton = {fastsim::normal_distribution(0.0, 1.0, 10), std::move(*scaledModelParticleProton)};
+          mFastSimModelProton->setInput(modelInputProton);
+          mFastSimModelProton->run();
 
           if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
-            mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0], 1)[0]);
+            mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModelNeutron->getResult()[0], 1)[0]);
+            // TODO: same for protons
           }
 
           // produce hits from fast sim result
           bool forward = mCurrentPrincipalParticle.Pz() > 0.;
-          FastSimToHits(mFastSimModel->getResult()[0], mCurrentPrincipalParticle, forward ? ZNA : ZNC);
-          // TODO: call models for all detectors ZNA + ZPA
+          FastSimToHits(mFastSimModelNeutron->getResult()[0], mCurrentPrincipalParticle, forward ? ZNA : ZNC);
+          FastSimToHits(mFastSimModelProton->getResult()[0], mCurrentPrincipalParticle, forward ? ZPA : ZPC);
         }
       } else if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
         mFastSimResults.push_back({0, 0, 0, 0, 0});
