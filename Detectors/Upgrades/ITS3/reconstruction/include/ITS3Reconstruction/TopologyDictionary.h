@@ -30,9 +30,9 @@ class TopologyDictionary : public itsmft::TopologyDictionary
   TopologyDictionary(itsmft::TopologyDictionary top) : itsmft::TopologyDictionary{top} {}
 
   /// Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(int detID, const its3::CompCluster& cl) const;
+  math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl) const;
   /// Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(int detID, const its3::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
+  static math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
 };
 } // namespace its3
 } // namespace o2

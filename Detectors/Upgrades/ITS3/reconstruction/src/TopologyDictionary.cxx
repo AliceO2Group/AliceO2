@@ -18,7 +18,7 @@
 namespace o2::its3
 {
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const its3::CompCluster& cl) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl) const
 {
 
   static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
@@ -28,17 +28,22 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
                                                   SegmentationSuperAlpide(2),
                                                   SegmentationSuperAlpide(2)}; // TODO: fix NLayers
   math_utils::Point3D<float> locCl;
-  if (detID >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
   } else {
-    segmentations[detID].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    segmentations[cl.getSensorID()].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
+    float xCurved{0.f}, yCurved{0.f};
+    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
   }
-  locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
-  locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const its3::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
 {
   static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
                                                   SegmentationSuperAlpide(0),
@@ -56,10 +61,13 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
     refCol -= round(zCOG);
   }
   math_utils::Point3D<float> locCl;
-  if (detID >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
-    segmentations[detID].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
+    segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
+    float xCurved{0.f}, yCurved{0.f};
+    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
   }
   return locCl;
 }
