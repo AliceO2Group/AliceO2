@@ -16,7 +16,7 @@ o2_add_library(ITS3Workflow
                        src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
-                      #  src/TrackerSpec.cxx
+                       src/TrackerSpec.cxx
                       #  src/CookedTrackerSpec.cxx
                       #  src/TrackWriterSpec.cxx
                       #  src/TrackReaderSpec.cxx
