@@ -42,6 +42,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
 
       auto sensorID = c.getSensorID();
       int layer = layer = geom->getLayer(sensorID);
+
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)

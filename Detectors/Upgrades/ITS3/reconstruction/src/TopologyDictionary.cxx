@@ -20,7 +20,11 @@ namespace o2::its3
 
 math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl) const
 {
+<<<<<<< HEAD
   LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
+=======
+  LOGP(info, "Getting cluster coordinates from TopologyDictionaryITS3");
+>>>>>>> cp
   static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
                                                   SegmentationSuperAlpide(0),
                                                   SegmentationSuperAlpide(1),
