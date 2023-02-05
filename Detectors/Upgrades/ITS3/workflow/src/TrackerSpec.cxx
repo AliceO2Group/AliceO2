@@ -40,8 +40,8 @@
 // #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include <ITS3Reconstruction/IOUtils.h>
-// #include "ITSReconstruction/FastMultEstConfig.h"
-// #include "ITSReconstruction/FastMultEst.h"
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
 // #include <fmt/format.h>
 
 namespace o2
@@ -208,110 +208,112 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto logger = [&](std::string s) { LOG(info) << s; };
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
-  //   FastMultEst multEst; // mult estimator
-  //   std::vector<bool> processingMask;
-  //   int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
-  //   timeFrame->setMultiplicityCutMask(processingMask);
-  //   float vertexerElapsedTime{0.f};
-  //   if (mRunVertexer) {
-  //     // Run seeding vertexer
-  //     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
-  //   }
+  // o2::its::FastMultEst multEst; // mult estimator
+  std::vector<bool> processingMask(rofs.size(), true); // Override mult estimator
+  int cutVertexMult{0};
+  //  cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  timeFrame->setMultiplicityCutMask(processingMask);
+  float vertexerElapsedTime{0.f};
+  if (mRunVertexer) {
+    // Run seeding vertexer
+    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+  }
   //   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  //   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
-  //     std::vector<Vertex> vtxVecLoc;
-  //     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
-  //     vtxROF.setFirstEntry(vertices.size());
-  //     if (mRunVertexer) {
-  //       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
-  //       vtxROF.setNEntries(vtxSpan.size());
-  //       bool selROF = vtxSpan.size() == 0;
-  //       for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
-  //         auto& v = vtxSpan[iV];
-  //         if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-  //           continue; // skip vertex of unwanted multiplicity
-  //         }
-  //         selROF = true;
-  //         vertices.push_back(v);
-  //         if (mIsMC) {
-  //           auto vLabels = timeFrame->getPrimaryVerticesLabels(iRof)[iV];
-  //           std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
-  //         }
-  //       }
-  //       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-  //         LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-  //                                   iRof,
-  //                                   multEstConf.cutMultVtxLow,
-  //                                   multEstConf.cutMultVtxHigh);
-  //         processingMask[iRof] = selROF;
-  //         cutVertexMult++;
-  //       }
-  //     } else { // cosmics
-  //       vtxVecLoc.emplace_back(Vertex());
-  //       vtxVecLoc.back().setNContributors(1);
-  //       vtxROF.setNEntries(vtxVecLoc.size());
-  //       for (auto& v : vtxVecLoc) {
-  //         vertices.push_back(v);
-  //       }
-  //       timeFrame->addPrimaryVertices(vtxVecLoc);
-  //     }
-  //   }
-  //   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
-  //   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
-  //   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
+  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+    std::vector<Vertex> vtxVecLoc;
+    auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
+    vtxROF.setFirstEntry(vertices.size());
+    if (mRunVertexer) {
+      LOGP(info, "here: {}", timeFrame->getPrimaryVertices(iRof).size());
+      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      vtxROF.setNEntries(vtxSpan.size());
+      bool selROF = vtxSpan.size() == 0;
+      for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
+        auto& v = vtxSpan[iV];
+        // if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
+        //           continue; // skip vertex of unwanted multiplicity
+        //         }
+        selROF = true;
+        vertices.push_back(v);
+        if (mIsMC) {
+          auto vLabels = timeFrame->getPrimaryVerticesLabels(iRof)[iV];
+          std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
+        }
+      }
+      if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
+                                             //         LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                             //                                   iRof,
+                                             //                                   multEstConf.cutMultVtxLow,
+                                             //                                   multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = selROF;
+        cutVertexMult++;
+      }
+    } else { // cosmics
+      vtxVecLoc.emplace_back(Vertex());
+      vtxVecLoc.back().setNContributors(1);
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (auto& v : vtxVecLoc) {
+        vertices.push_back(v);
+      }
+      timeFrame->addPrimaryVertices(vtxVecLoc);
+    }
+  }
+  // LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
+  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
-  //   if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
-  //     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
-  //   } else {
+  if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
+    LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
+  } else {
 
-  //     timeFrame->setMultiplicityCutMask(processingMask);
-  //     // Run CA tracker
-  //     mTracker->clustersToTracks(logger, errorLogger);
-  //     if (timeFrame->hasBogusClusters()) {
-  //       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
-  //     }
+    timeFrame->setMultiplicityCutMask(processingMask);
+    //     // Run CA tracker
+    //     mTracker->clustersToTracks(logger, errorLogger);
+    //     if (timeFrame->hasBogusClusters()) {
+    //       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
+    //     }
 
-  //     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-  //       auto& rof{rofs[iROF]};
-  //       tracks = timeFrame->getTracks(iROF);
-  //       trackLabels = timeFrame->getTracksLabel(iROF);
-  //       auto number{tracks.size()};
-  //       auto first{allTracks.size()};
-  //       int offset = -rof.getFirstEntry(); // cluster entry!!!
-  //       rof.setFirstEntry(first);
-  //       rof.setNEntries(number);
+    //     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+    //       auto& rof{rofs[iROF]};
+    //       tracks = timeFrame->getTracks(iROF);
+    //       trackLabels = timeFrame->getTracksLabel(iROF);
+    //       auto number{tracks.size()};
+    //       auto first{allTracks.size()};
+    //       int offset = -rof.getFirstEntry(); // cluster entry!!!
+    //       rof.setFirstEntry(first);
+    //       rof.setNEntries(number);
 
-  //       if (processingMask[iROF]) {
-  //         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
-  //       }
+    //       if (processingMask[iROF]) {
+    //         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
+    //       }
 
-  //       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-  //       // Some conversions that needs to be moved in the tracker internals
-  //       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-  //         auto& trc{tracks[iTrk]};
-  //         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-  //         int ncl = trc.getNumberOfClusters(), nclf = 0;
-  //         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-  //           auto clid = trc.getClusterIndex(ic);
-  //           if (clid >= 0) {
-  //             allClusIdx.push_back(clid);
-  //             nclf++;
-  //           }
-  //         }
-  //         assert(ncl == nclf);
-  //         allTracks.emplace_back(trc);
-  //       }
-  //     }
-  //     LOGP(info, "ITS3Tracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
-  //     if (mIsMC) {
-  //       LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
-  //       LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
+    //       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+    //       // Some conversions that needs to be moved in the tracker internals
+    //       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+    //         auto& trc{tracks[iTrk]};
+    //         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+    //         int ncl = trc.getNumberOfClusters(), nclf = 0;
+    //         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+    //           auto clid = trc.getClusterIndex(ic);
+    //           if (clid >= 0) {
+    //             allClusIdx.push_back(clid);
+    //             nclf++;
+    //           }
+    //         }
+    //         assert(ncl == nclf);
+    //         allTracks.emplace_back(trc);
+    //       }
+    //     }
+    LOGP(info, "ITS3Tracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
+    if (mIsMC) {
+      LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
+      LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
 
-  //       pc.outputs().snapshot(Output{"ITS3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-  //       pc.outputs().snapshot(Output{"ITS3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
-  //       pc.outputs().snapshot(Output{"ITS3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
-  //     }
-  //   }
+      pc.outputs().snapshot(Output{"ITS3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+      pc.outputs().snapshot(Output{"ITS3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
+      pc.outputs().snapshot(Output{"ITS3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    }
+  }
   mTimer.Stop();
 }
 
