@@ -39,7 +39,7 @@
 #include "TTree.h"
 #include "TLegend.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "DetectorsVertexing/DCAFitterN.h"
+#include "DCAFitter/DCAFitterN.h"
 #include "StrangenessTracking/StrangenessTracker.h"
 
 #endif

@@ -211,6 +211,10 @@ if(ENABLE_HIP)
     if(NOT DEFINED GPUCA_NO_FAST_MATH OR NOT ${GPUCA_NO_FAST_MATH})
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-flush-denormals-to-zero") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel
     endif()
+    if (CMAKE_CXX_COMPILER MATCHES "bin/c\\+\\+\$" AND NOT CMAKE_CXX_COMPILER MATCHES "^/usr/bin")
+      string(REGEX REPLACE "(.*)bin/c\\+\\+\$" "\\1" HIP_GCC_TOOLCHAIN_PATH "${CMAKE_CXX_COMPILER}")
+      set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --gcc-toolchain=${HIP_GCC_TOOLCHAIN_PATH}") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel
+    endif()
   else()
     set(HIP_ENABLED OFF)
   endif()

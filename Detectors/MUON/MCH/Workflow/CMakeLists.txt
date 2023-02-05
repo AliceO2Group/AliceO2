@@ -18,6 +18,8 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
+                   src/PreClusterReaderSpec.cxx
+                   src/PreClusterWriterSpec.cxx
                    src/TrackReaderSpec.cxx
                    src/TrackTreeReader.cxx
                    src/TrackWriterSpec.cxx
@@ -96,6 +98,18 @@ o2_add_executable(
         SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-writer-workflow
+        SOURCES src/preclusters-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        preclusters-reader-workflow
+        SOURCES src/preclusters-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
         preclusters-to-clusters-original-workflow

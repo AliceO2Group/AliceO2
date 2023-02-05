@@ -134,16 +134,18 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mTPCTBinMUS = elParam.ZbinWidth;
     mTPCTBinMUSInv = 1. / mTPCTBinMUS;
     auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCVdrift = vd.refVDrift * vd.corrFact;
-    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mTPCVdrift = vd.getVDrift();
+    mTPCTDriftOffset = vd.getTimeOffset();
+    LOGP(info, "Updating TPC VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
     mTracker->SetTPCVdrift(mTPCVdrift);
+    mTracker->SetTPCTDriftOffset(mTPCTDriftOffset);
     mTPCVDriftHelper.acknowledgeUpdate();
     updateCalib = true;
   }
   if (updateCalib) {
     auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift, vd.getTimeOffset());
   }
 }
 
@@ -338,7 +340,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTracker::HelperTrackAttributes trkAttribs;
-    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS;
+    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS - mTPCTDriftOffset; // account for the eventual time bias for TPC tracks time
     trkAttribs.mTimeAddMax = trkTpc.getDeltaTFwd() * mTPCTBinMUS;
     trkAttribs.mTimeSubMax = trkTpc.getDeltaTBwd() * mTPCTBinMUS;
     if (trkTpc.hasASideClustersOnly()) {
@@ -547,7 +549,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     }
   }
 
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
@@ -565,7 +567,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;
@@ -627,7 +629,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   if (pileUpOn) {
     timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
   }
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
@@ -648,7 +650,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;

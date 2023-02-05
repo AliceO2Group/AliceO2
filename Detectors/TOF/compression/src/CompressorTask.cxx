@@ -194,10 +194,10 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeaderV6, false, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, false, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true, true>;
+template class CompressorTask<o2::header::RAWDataHeader, false, false>;
+template class CompressorTask<o2::header::RAWDataHeader, false, true>;
+template class CompressorTask<o2::header::RAWDataHeader, true, false>;
+template class CompressorTask<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2

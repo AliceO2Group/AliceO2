@@ -118,8 +118,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ $EPNSYNCMODE != 1 ]]; then
-      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-      exit 2
+      echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
@@ -148,7 +147,7 @@ if workflow_has_parameter CALIB_PROXIES; then
       if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then

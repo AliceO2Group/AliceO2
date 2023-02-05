@@ -197,7 +197,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return std::move(fastTransformPtr);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef)
+int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
 {
   // Update the calibration with the new time stamp
   LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
@@ -214,7 +214,6 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   auto& detParam = ParameterDetector::Instance();
   auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
-
   // start the initialization
 
   fastTransform.setTimeStamp(TimeStamp);
@@ -229,7 +228,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // spline corrections for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  const double t0 = elParam.getAverageShapingTime() / elParam.ZbinWidth;
+  const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
 
   const double vdCorrY = 0.;
   const double ldCorr = 0.;

@@ -195,6 +195,17 @@ struct IDCZero {
   ClassDefNV(IDCZero, 2)
 };
 
+///< struct containing the ITPC0 values (integrated TPC clusters)
+struct ITPCZero {
+  IDCZero mIQMaxA; ///< integrated QMax cluster for A-side
+  IDCZero mIQMaxC; ///< integrated QMax cluster for C-side
+  IDCZero mIQTotA; ///< integrated QTot cluster for A-side
+  IDCZero mIQTotC; ///< integrated QTot cluster for C-side
+  IDCZero mINClA;  ///< integrated NCl cluster for A-side
+  IDCZero mINClC;  ///< integrated NCl cluster for C-side
+  ClassDefNV(ITPCZero, 1)
+};
+
 ///< struct containing the IDC1
 struct IDCOne {
 

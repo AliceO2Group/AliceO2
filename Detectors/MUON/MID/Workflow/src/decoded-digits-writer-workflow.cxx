@@ -27,7 +27,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec>
     options{
-      {"output-filename", VariantType::String, "mid-digits-decoded.root", {"Decoded digits output file"}}};
+      {"output-filename", VariantType::String, "mid-digits-decoded.root", {"Decoded digits output file"}},
+      {"mid-digits-tree-name", VariantType::String, "middigits", {"Name of tree in digits file"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -45,13 +46,14 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto outputFilename = cfgc.options().get<std::string>("output-filename");
+  auto treeFilename = cfgc.options().get<std::string>("mid-digits-tree-name");
   WorkflowSpec specs;
   specs.emplace_back(MakeRootTreeWriterSpec("MIDDigitWriter",
                                             outputFilename.c_str(),
-                                            "middigits",
+                                            treeFilename.c_str(),
                                             -1,
                                             MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ColumnData>>{InputSpec{"mid_data", o2::header::gDataOriginMID, "DATA"}, "MIDDigit"},
-                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof", o2::header::gDataOriginMID, "DATAROF"}, "MIDDigitROF"})());
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof", o2::header::gDataOriginMID, "DATAROF"}, "MIDROFRecords"})());
 
   return specs;
 }

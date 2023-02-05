@@ -7,4 +7,5 @@ o2_add_test_root_macro(XiTrackingStudy.C
                                              O2::DataFormatsITS
                                              O2::SimulationDataFormat
                                              O2::StrangenessTracking
+                                             O2::DCAFitter
                        LABELS strangeness-tracking)

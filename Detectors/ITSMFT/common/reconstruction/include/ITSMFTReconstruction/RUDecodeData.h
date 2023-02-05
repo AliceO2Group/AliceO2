@@ -61,7 +61,7 @@ struct RUDecodeData {
   template <class Mapping>
   int decodeROF(const Mapping& mp);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
-
+  void dumpcabledata(int icab);
   ClassDefNV(RUDecodeData, 2);
 };
 
@@ -86,6 +86,8 @@ int RUDecodeData::decodeROF(const Mapping& mp)
       return chip;
     };
     int ret = 0;
+    // dumpcabledata(icab);
+
     while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
       auto nhits = chipData->getData().size();

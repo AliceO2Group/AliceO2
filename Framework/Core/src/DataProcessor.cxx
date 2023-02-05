@@ -13,7 +13,6 @@
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/FairMQResizableBuffer.h"
@@ -144,28 +143,6 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.flushBuffer();
-}
-
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistryRef registry)
-{
-  auto& proxy = registry.get<FairMQDeviceProxy>();
-  for (auto& messageRef : context) {
-    fair::mq::Parts parts;
-    fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
-    auto buffer = messageRef.serializeMsg().str();
-    // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
-    size_t size = buffer.length();
-    payload->Rebuild(size);
-    std::memcpy(payload->GetData(), buffer.c_str(), size);
-    const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
-    // sigh... See if we can avoid having it const by not
-    // exposing it to the user in the first place.
-    auto* dh = const_cast<DataHeader*>(cdh);
-    dh->payloadSize = size;
-    parts.AddPart(std::move(messageRef.header));
-    parts.AddPart(std::move(payload));
-    sender.send(parts, proxy.getOutputChannelIndex(messageRef.routeIndex));
-  }
 }
 
 } // namespace o2::framework

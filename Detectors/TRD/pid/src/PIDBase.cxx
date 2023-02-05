@@ -14,7 +14,9 @@
 
 #include "TRDPID/PIDBase.h"
 #include "DataFormatsTRD/PID.h"
+#ifdef TRDPID_WITH_ONNX
 #include "TRDPID/ML.h"
+#endif
 #include "TRDPID/Dummy.h"
 #include "Framework/Logger.h"
 #include "fmt/format.h"
@@ -29,8 +31,10 @@ std::unique_ptr<PIDBase> getTRDPIDBase(PIDPolicy policy)
   auto policyInt = static_cast<unsigned int>(policy);
   LOG(info) << "Creating PID policy. Loading model " << PIDPolicyEnum[policyInt];
   switch (policy) {
+#ifdef TRDPID_WITH_ONNX
     case PIDPolicy::Test:
       return std::make_unique<XGB>(PIDPolicy::Test);
+#endif
     case PIDPolicy::Dummy:
       return std::make_unique<Dummy>(PIDPolicy::Dummy);
     default:

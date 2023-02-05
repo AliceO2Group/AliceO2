@@ -62,15 +62,25 @@ class Tracker : public TrackerConfig
     mTrackLabels.clear();
   }
 
+  void findTracks(ROframe<T>& rofData)
+  {
+    if (!mFullClusterScan) {
+      clearSorting();
+      sortClusters(rofData);
+    }
+    findLTFTracks(rofData);
+    findCATracks(rofData);
+  };
+
   void findLTFTracks(ROframe<T>&);
   void findCATracks(ROframe<T>&);
   bool fitTracks(ROframe<T>&);
   void computeTracksMClabels(const std::vector<T>&);
 
-  void configure(const MFTTrackingParam& trkParam, bool printConfig = false);
+  void configure(const MFTTrackingParam& trkParam, bool firstTracker);
+  void initializeFinder();
 
  private:
-  void initializeFinder();
   void findTracksLTF(ROframe<T>&);
   void findTracksCA(ROframe<T>&);
   void findTracksLTFfcs(ROframe<T>&);
@@ -80,6 +90,51 @@ class Tracker : public TrackerConfig
   void runBackwardInRoad(ROframe<T>&);
   void updateCellStatusInRoad();
 
+  void sortClusters(ROframe<T>& rof)
+  {
+    Int_t nClsInLayer, binPrevIndex, clsMinIndex, clsMaxIndex, jClsLayer;
+    // sort the clusters in R-Phi
+    for (Int_t iLayer = 0; iLayer < constants::mft::LayersNumber; ++iLayer) {
+      if (rof.getClustersInLayer(iLayer).size() == 0) {
+        continue;
+      }
+      // sort clusters in layer according to the bin index
+      sort(rof.getClustersInLayer(iLayer).begin(), rof.getClustersInLayer(iLayer).end(),
+           [](Cluster& c1, Cluster& c2) { return c1.indexTableBin < c2.indexTableBin; });
+      // find the cluster local index range in each bin
+      // index = element position in the vector
+      nClsInLayer = rof.getClustersInLayer(iLayer).size();
+      binPrevIndex = rof.getClustersInLayer(iLayer).at(0).indexTableBin;
+      clsMinIndex = 0;
+      for (jClsLayer = 1; jClsLayer < nClsInLayer; ++jClsLayer) {
+        if (rof.getClustersInLayer(iLayer).at(jClsLayer).indexTableBin == binPrevIndex) {
+          continue;
+        }
+
+        clsMaxIndex = jClsLayer - 1;
+
+        mClusterBinIndexRange[iLayer][binPrevIndex] = std::pair<Int_t, Int_t>(clsMinIndex, clsMaxIndex);
+
+        binPrevIndex = rof.getClustersInLayer(iLayer).at(jClsLayer).indexTableBin;
+        clsMinIndex = jClsLayer;
+      } // clusters
+
+      // last cluster
+      clsMaxIndex = jClsLayer - 1;
+
+      mClusterBinIndexRange[iLayer][binPrevIndex] = std::pair<Int_t, Int_t>(clsMinIndex, clsMaxIndex);
+    } // layers
+  }
+
+  void clearSorting()
+  {
+    for (Int_t iLayer = 0; iLayer < constants::mft::LayersNumber; ++iLayer) {
+      for (Int_t iBin = 0; iBin <= mRPhiBins + 1; ++iBin) {
+        mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
+      }
+    }
+  }
+
   const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
   void getBinClusterRange(const ROframe<T>&, const Int_t, const Int_t, Int_t&, Int_t&) const;
@@ -88,16 +143,13 @@ class Tracker : public TrackerConfig
   void addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe<T>&);
   void addCellToCurrentRoad(ROframe<T>&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
-  Float_t mBz = 5.f;
+  Float_t mBz;
   std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
 
   Int_t mMaxCellLevel = 0;
 
   bool mUseMC = false;
-
-  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
-  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
 
   /// helper to store points of a track candidate
   struct TrackElement {
@@ -137,7 +189,7 @@ inline const Float_t Tracker<T>::getDistanceToSeed(const Cluster& cluster1, cons
 template <typename T>
 inline void Tracker<T>::getBinClusterRange(const ROframe<T>& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
-  const auto& pair = event.getClusterBinIndexRange(layer)[bin];
+  const auto& pair = getClusterBinIndexRange(layer, bin);
   clsMinIndex = pair.first;
   clsMaxIndex = pair.second;
 }
@@ -212,8 +264,7 @@ inline void Tracker<T>::computeTracksMClabels(const std::vector<T>& tracks)
     }
 
     auto labelratio = 1.0 * count / nClusters;
-    if (labelratio >= 0.8) {
-    } else {
+    if (labelratio < mTrueTrackMCThreshold) {
       isFakeTrack = true;
       maxOccurrencesValue.setFakeFlag();
     }

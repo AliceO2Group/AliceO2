@@ -22,7 +22,6 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
 
-  mFullClusterScan = trkParam.FullClusterScan;
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
@@ -31,20 +30,16 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
   mLTFclsR2Cut = mLTFclsRCut * mLTFclsRCut;
   mROADclsRCut = trkParam.ROADclsRCut;
   mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
-  mLTFseed2BinWin = trkParam.LTFseed2BinWin;
-  mLTFinterBinWin = trkParam.LTFinterBinWin;
-  mLTFConeRadius = trkParam.LTFConeRadius;
-  mCAConeRadius = trkParam.CAConeRadius;
-
   mRBins = trkParam.RBins;
   mPhiBins = trkParam.PhiBins;
   mRPhiBins = trkParam.RBins * trkParam.PhiBins;
+  mZVtxMin = trkParam.ZVtxMin;
+  mZVtxMax = trkParam.ZVtxMax;
+  mRCutAtZmin = trkParam.rCutAtZmin;
+  mLTFConeRadius = trkParam.LTFConeRadius;
+  mCAConeRadius = trkParam.CAConeRadius;
+  mFullClusterScan = trkParam.FullClusterScan;
+  mTrueTrackMCThreshold = trkParam.TrueTrackMCThreshold;
 
-  assert(mRPhiBins < constants::index_table::MaxRPhiBins);
-
-  mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
-  mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
-
-  mInverseRBinSize = 1.0 / mRBinSize;
-  mInversePhiBinSize = 1.0 / mPhiBinSize;
+  assert(mRPhiBins < constants::index_table::MaxRPhiBins && "Track finder binning overflow");
 }

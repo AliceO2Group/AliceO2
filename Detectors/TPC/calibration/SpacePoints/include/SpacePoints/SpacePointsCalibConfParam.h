@@ -45,6 +45,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   bool debugTRDTOF{false}; ///< if true, ITS-TPC-TRD-TOF tracks and their seeding ITS-TPC-TRD track will both be interpolated and their residuals stored
 
   // steering of map creation after the residuals have already been written to file
+  bool fitVdrift{false};            ///< if vDrift should be extracted (TODO: currently from unbinned residuals in macro mode only)
   bool writeBinnedResiduals{false}; ///< when creating the map from unbinned residuals store the binned residuals together with the voxel results
   bool useTrackData{false}; ///< if we have the track data available, we can redefine the above cuts for the map creation, e.g. minTPCNCls etc
   bool timeFilter{false};   ///< consider only residuals as input from TFs with a specific time range specified via startTimeMS and endTimeMS
@@ -68,6 +69,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxStdDevMA = 25.f;              ///< max cluster std. deviation (Y^2 + Z^2) wrt moving average to accept
 
   // settings for voxel residuals extraction
+  bool isBfieldZero = false;           ///< for B=0 we set the radial distortions to zero and don't fit dy vs tgSlp
   int minEntriesPerVoxel = 15;         ///< minimum number of points in voxel for processing
   float LTMCut = .75f;                 ///< fraction op points to keep when trimming input data
   float minFracLTM = .5f;              ///< minimum fraction of points to keep when trimming data to fit expected sigma

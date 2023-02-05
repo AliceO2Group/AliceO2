@@ -65,6 +65,7 @@ class NoiseCalibratorSpec : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  unsigned int mStrobeCounter = 0;
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;
   int mValidityDays = 3;

@@ -36,13 +36,13 @@ class LtrCalibData;
 class VDriftHelper
 {
  public:
-  enum Source : int { GasParam,
+  enum Source : int { Param,
                       Laser,
                       ITSTPCTgl,
                       NSources
   };
   static constexpr std::array<std::string_view, NSources> SourceNames = {
-    "GasParam",
+    "Param",
     "Laser",
     "TPCITSTgl"};
 
@@ -54,6 +54,7 @@ class VDriftHelper
 
   const VDriftCorrFact& getVDriftObject() const { return mVD; }
   Source getSource() const { return mSource; }
+  static std::string_view getSourceName(Source s) { return SourceNames[s]; }
   std::string_view getSourceName() const { return SourceNames[mSource]; }
 
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
@@ -65,9 +66,10 @@ class VDriftHelper
   VDriftCorrFact mVDLaser{};
   VDriftCorrFact mVDTPCITSTgl{};
   VDriftCorrFact mVD{};
-  Source mSource{Source::GasParam}; // update source
+  Source mSource{Source::Param}; // update source
   bool mUpdated = false;  // signal update, must be reset once new value is fetched
-  bool mForceGasParam = false;         // enforce vdrift from gasParam
+  bool mForceParamDrift = false;       // enforce vdrift from gasParam
+  bool mForceParamOffset = false;      // enforce offset from DetectorParam
   uint32_t mMayRenormSrc = 0xffffffff; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0, flag per source
 
   ClassDefNV(VDriftHelper, 1);

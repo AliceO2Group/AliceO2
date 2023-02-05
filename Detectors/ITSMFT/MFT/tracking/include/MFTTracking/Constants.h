@@ -55,13 +55,13 @@ constexpr Int_t MaxCellsInRoad{100};
 
 namespace index_table
 {
-constexpr Float_t RMin{1.0}; // [cm]
-constexpr Float_t RMax{20.0};
+constexpr std::array<Float_t, o2::mft::constants::mft::LayersNumber> RMin{2.1, 2.1, 2.1, 2.1, 2.1, 2.1, 3.1, 3.1, 3.5, 3.5}; // [cm]
+constexpr std::array<Float_t, o2::mft::constants::mft::LayersNumber> RMax{12.5, 12.5, 12.5, 12.5, 14.0, 14.0, 17.0, 17.0, 17.5, 17.5};
 
 constexpr Float_t PhiMin{0.};
 constexpr Float_t PhiMax{o2::constants::math::TwoPI}; // [rad]
 
-constexpr Int_t MaxRPhiBins{100 * 100};
+constexpr Int_t MaxRPhiBins{120 * 30 + 1};
 } // namespace index_table
 
 } // namespace constants

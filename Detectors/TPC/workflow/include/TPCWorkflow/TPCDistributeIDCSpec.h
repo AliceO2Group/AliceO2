@@ -26,7 +26,6 @@
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TPCFLPIDCSpec.h"
-#include "TPCWorkflow/TPCIntegrateClusterCurrent.h"
 #include "TPCBase/CRU.h"
 #include "MemoryResources/MemoryResources.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
@@ -43,13 +42,13 @@ namespace o2::tpc
 class TPCDistributeIDCSpec : public o2::framework::Task
 {
  public:
-  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req, const bool processClusters)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutputOrbitReset(outlanes), mSendCCDBOutputGRPECS(outlanes), mProcessClusters{processClusters}
+  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const int nTFsBuffer, const unsigned int outlanes, const int firstTF, std::shared_ptr<o2::base::GRPGeomRequest> req)
+    : mCRUs{crus}, mTimeFrames{timeframes}, mNTFsBuffer{nTFsBuffer}, mOutLanes{outlanes}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mCCDBRequest(req), mSendCCDBOutputOrbitReset(outlanes), mSendCCDBOutputGRPECS(outlanes)
   {
     // pre calculate data description for output
     mDataDescrOut.reserve(mOutLanes);
     for (unsigned int i = 0; i < mOutLanes; ++i) {
-      mDataDescrOut.emplace_back(getDataDescriptionIDC(i, mProcessClusters));
+      mDataDescrOut.emplace_back(getDataDescriptionIDC(i));
     }
 
     // sort vector for binary_search
@@ -65,14 +64,10 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       }
     }
 
-    if (!mProcessClusters) {
-      const auto sides = IDCFactorization::getSides(mCRUs);
-      for (auto side : sides) {
-        const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
-        mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
-      }
-    } else {
-      mFilter.emplace_back(InputSpec{"iccs", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCIntegrateClustersDevice::getDataDescription()}, Lifetime::Sporadic});
+    const auto sides = IDCFactorization::getSides(mCRUs);
+    for (auto side : sides) {
+      const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
+      mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
     }
   };
 
@@ -212,9 +207,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<ControlService>().readyToQuit(QuitRequest::Me); }
 
   /// return data description for aggregated IDCs for given lane
-  static header::DataDescription getDataDescriptionIDC(const unsigned int lane, const bool icc)
+  static header::DataDescription getDataDescriptionIDC(const unsigned int lane)
   {
-    const std::string name = icc ? fmt::format("ICCAGG{}", lane).data() : fmt::format("IDCAGG{}", lane).data();
+    const std::string name = fmt::format("IDCAGG{}", lane).data();
     header::DataDescription description;
     description.runtimeInit(name.substr(0, 16).c_str());
     return description;
@@ -237,7 +232,6 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                              ///< info for CCDB request
   std::vector<bool> mSendCCDBOutputOrbitReset{};                                       ///< flag for received orbit reset time from CCDB
   std::vector<bool> mSendCCDBOutputGRPECS{};                                           ///< flag for received orbit GRPECS from CCDB
-  const bool mProcessClusters{false};                                                  ///< processing ICCs instead of IDCs
   unsigned int mCurrentOutLane{0};                                                     ///< index for keeping track of the current output lane
   bool mBuffer{false};                                                                 ///< buffer index
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
@@ -342,23 +336,19 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false, const int nTFsBuffer = 1, const bool processClusters = false)
+DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool sendPrecisetimeStamp = false, const int nTFsBuffer = 1)
 {
   std::vector<InputSpec> inputSpecs;
-  if (!processClusters) {
-    const auto sides = IDCFactorization::getSides(crus);
-    for (auto side : sides) {
-      const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
-      inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
-    }
-  } else {
-    inputSpecs.emplace_back(InputSpec{"iccs", ConcreteDataTypeMatcher{gDataOriginTPC, TPCIntegrateClustersDevice::getDataDescription()}, Lifetime::Sporadic});
+  const auto sides = IDCFactorization::getSides(crus);
+  for (auto side : sides) {
+    const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
+    inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side)}, Lifetime::Sporadic});
   }
 
   std::vector<OutputSpec> outputSpecs;
   outputSpecs.reserve(outlanes);
   for (unsigned int lane = 0; lane < outlanes; ++lane) {
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane, processClusters)}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic);
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCFirstTF(), header::DataHeader::SubSpecificationType{lane}}, Lifetime::Sporadic);
   }
 
@@ -378,13 +368,13 @@ DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uin
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputSpecs);
 
-  const std::string type = processClusters ? "icc" : "idc";
+  const std::string type = "idc";
   const auto id = fmt::format("tpc-distribute-{}-{:02}", type, ilane);
   DataProcessorSpec spec{
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, nTFsBuffer, outlanes, firstTF, ccdbRequest, processClusters)},
+    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, nTFsBuffer, outlanes, firstTF, ccdbRequest)},
     Options{{"drop-data-after-nTFs", VariantType::Int, 0, {"Number of TFs after which to drop the data."}},
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)."}},
             {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF."}}}}; // end DataProcessorSpec

@@ -1133,20 +1133,21 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
         o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
       }
       if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {
-        LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} from source {}",
+        const auto& vd = mTPCVDriftHelper->getVDriftObject();
+        LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} and TDrift offset {} wrt reference {} from source {}",
              mFastTransformHelper->isUpdated() ? " new " : " old ",
-             mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
+             vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper->getSourceName());
 
         if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMap()) {
           mFastTransformNew.reset(new TPCFastTransform);
           mFastTransformNew->cloneFromObject(*mFastTransformHelper->getCorrMap(), nullptr);
-          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
           newCalibObjects.fastTransform = mFastTransformNew.get();
         }
         if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMapRef()) {
           mFastTransformRefNew.reset(new TPCFastTransform);
           mFastTransformRefNew->cloneFromObject(*mFastTransformHelper->getCorrMapRef(), nullptr);
-          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
           newCalibObjects.fastTransformRef = mFastTransformRefNew.get();
         }
         if (mFastTransformNew || mFastTransformRefNew || mFastTransformHelper->isUpdatedLumi()) {
