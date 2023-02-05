@@ -332,25 +332,25 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-///_______________________________________
-void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-{
-  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-    return;
-  }
-  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
-    LOG(info) << "cluster dictionary updated";
-    setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
-    return;
-  }
-  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
-  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
-    LOG(info) << "Alpide param updated";
-    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    par.printKeyValues();
-    return;
-  }
-}
+// ///_______________________________________
+// void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+// {
+//   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+//     return;
+//   }
+//   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+//     LOG(info) << "cluster dictionary updated";
+//     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+//     return;
+//   }
+//   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+//   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+//     LOG(info) << "Alpide param updated";
+//     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+//     par.printKeyValues();
+//     return;
+//   }
+// }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {

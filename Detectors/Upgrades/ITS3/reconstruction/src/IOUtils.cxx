@@ -58,7 +58,6 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
-
       // Inverse transformation to the local --> tracking
       auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
       // Transformation to the local --> global
