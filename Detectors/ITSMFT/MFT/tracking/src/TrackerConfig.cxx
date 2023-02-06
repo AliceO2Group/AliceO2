@@ -43,3 +43,23 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
 
   assert(mRPhiBins < constants::index_table::MaxRPhiBins && "Track finder binning overflow");
 }
+
+//__________________________________________________________________________
+void o2::mft::TrackerConfig::initBinContainers()
+{
+  if (!mBins) {
+    mBins = std::make_unique<BinContainer>();
+  }
+  if (!mBinsS) {
+    mBinsS = std::make_unique<BinContainer>();
+  }
+  if (!mRBinSize) {
+    mRBinSize = std::make_unique<RArray>();
+  }
+  if (!mPhiBinWin) {
+    mPhiBinWin = std::make_unique<PhiArray>();
+  }
+  if (!mInverseRBinSize) {
+    mInverseRBinSize = std::make_unique<InverseRArray>();
+  }
+}
