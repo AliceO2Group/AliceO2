@@ -80,6 +80,10 @@ void TrackerDPL::init(InitContext& ic)
   if (mMode == "async") {
 
     trackParams.resize(3);
+    for (auto& param : trackParams) {
+      param.ZBins = 64;
+      param.PhiBins = 32;
+    }
     trackParams[1].TrackletMinPt = 0.2f;
     trackParams[1].CellDeltaTanLambdaSigma *= 2.;
     trackParams[2].TrackletMinPt = 0.1f;
