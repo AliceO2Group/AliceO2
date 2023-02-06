@@ -127,7 +127,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   helper.setITSROFs();
   helper.selectTracks(&(mData.mConfig.configCalib), mClMask, mTrkMask, mTrkMask);
-  helper.selectTowers();  // this crashes in vertex mode --> needs investigation
+  helper.selectTowers(); // this crashes in vertex mode --> needs investigation
 
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
