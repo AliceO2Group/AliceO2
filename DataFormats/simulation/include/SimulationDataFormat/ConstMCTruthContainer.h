@@ -21,6 +21,8 @@
 #include <Framework/Traits.h>
 #endif
 
+class TTree;
+
 namespace o2
 {
 namespace dataformats
@@ -210,6 +212,14 @@ class ConstMCTruthContainerView
 
 using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
 using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+
+class MCLabelIOHelper
+{
+ public:
+  /// Convenience function to loads MC labels for some entry from a TTree and TBranch.
+  /// Labels can be stored as either MCTruthContainer or IOMCTruthContainer. The caller takes ownership of the returned pointer.
+  static ConstMCTruthContainer<o2::MCCompLabel>* loadFromTTree(TTree* tree, std::string const& brname, int entry);
+};
 
 } // namespace dataformats
 } // namespace o2
