@@ -14,8 +14,8 @@
 /// @since  2019-12-18
 /// @brief  TOF raw data compressor task
 
-#ifndef O2_TOF_COMPRESSORTASK
-#define O2_TOF_COMPRESSORTASK
+#ifndef O2_TOF_COMPRESSORTASK_OLD
+#define O2_TOF_COMPRESSORTASK_OLD
 
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
@@ -30,11 +30,11 @@ namespace tof
 {
 
 template <typename RDH, bool verbose, bool paranoid>
-class CompressorTask : public Task
+class CompressorTaskOld : public Task
 {
  public:
-  CompressorTask() = default;
-  ~CompressorTask() override = default;
+  CompressorTaskOld() = default;
+  ~CompressorTaskOld() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
@@ -46,4 +46,4 @@ class CompressorTask : public Task
 } // namespace tof
 } // namespace o2
 
-#endif /** O2_TOF_COMPRESSORTASK **/
+#endif /** O2_TOF_COMPRESSORTASK_OLD **/

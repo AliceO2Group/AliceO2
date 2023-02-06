@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CompressorTask.cxx
+/// @file   CompressorTaskOld.cxx
 /// @author Roberto Preghenella
 /// @since  2019-12-18
 /// @brief  TOF raw data compressor task
 
-#include "TOFCompression/CompressorTask.h"
+#include "TOFCompression/CompressorTaskOld.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RawDeviceService.h"
@@ -34,7 +34,7 @@ namespace tof
 {
 
 template <typename RDH, bool verbose, bool paranoid>
-void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
+void CompressorTaskOld<RDH, verbose, paranoid>::init(InitContext& ic)
 {
   LOG(info) << "Compressor init";
 
@@ -57,7 +57,7 @@ void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 }
 
 template <typename RDH, bool verbose, bool paranoid>
-void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
+void CompressorTaskOld<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 {
   LOG(debug) << "Compressor run";
 
@@ -194,10 +194,10 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeader, false, false>;
-template class CompressorTask<o2::header::RAWDataHeader, false, true>;
-template class CompressorTask<o2::header::RAWDataHeader, true, false>;
-template class CompressorTask<o2::header::RAWDataHeader, true, true>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, false, false>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, false, true>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, true, false>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2
