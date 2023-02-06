@@ -19,7 +19,6 @@ namespace o2::framework
 class MessageContext;
 class StringContext;
 class ArrowContext;
-class RawBufferContext;
 class ServiceRegistry;
 class DeviceState;
 class DataSender;
@@ -30,7 +29,6 @@ struct DataProcessor {
   static void doSend(DataSender&, MessageContext&, ServiceRegistryRef);
   static void doSend(DataSender&, StringContext&, ServiceRegistryRef);
   static void doSend(DataSender&, ArrowContext&, ServiceRegistryRef);
-  static void doSend(DataSender&, RawBufferContext&, ServiceRegistryRef);
 };
 
 } // namespace o2::framework

@@ -54,6 +54,8 @@ class DsChannelId
 
   uint32_t value() const { return mChannelId; }
 
+  bool isValid() const { return (mChannelId != 0); }
+
  private:
   uint32_t mChannelId{0};
 

@@ -126,6 +126,11 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 {
   /** add track **/
 
+  // check the status encoding
+  if (!mcgenstatus::isEncoded(generatorStatus)) {
+    LOG(fatal) << "Generatror status " << generatorStatus << " of particle is not encoded properly.";
+  }
+
   /** add event vertex to track vertex **/
   vx += fVertex.X();
   vy += fVertex.Y();
@@ -147,7 +152,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   Double_t polx = 0.;     // Polarisation
   Double_t poly = 0.;
   Double_t polz = 0.;
-  Int_t ntr = 0;    // Track number; to be filled by the stack
+  Int_t ntr = 0;                  // Track number; to be filled by the stack
   Int_t status = generatorStatus; // Generation status
 
   // correct for tracks which are in list before generator is called
@@ -165,7 +170,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   }
 
   /** if it is a K0/antiK0 to be tracked, convert it into K0s/K0L.
-      
+
       NOTE: we could think of pushing the K0/antiK0 without tracking first
       and then push she K0s/K0L for tracking.
       In this way we would properly keep track of this conversion,
@@ -194,6 +199,20 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
                    weight, status, mother2, daughter1, daughter2, proc);
 
   fNTracks++;
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py,
+                                Double_t pz, Double_t vx, Double_t vy,
+                                Double_t vz, Int_t parent, Bool_t wanttracking,
+                                Double_t e, Double_t tof, Double_t weight, TMCProcess proc)
+{
+  // Do this to encode status code correctly. In FairRoot's PrimaryGenerator, this is simply one number that is set to 0.
+  // So we basically do the same.
+  // Assuming that this is treated as the HepMC status code down the line (as it used to be).
+  AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, -1, -1, -1, wanttracking,
+           e, tof, weight, proc, mcgenstatus::MCGenStatusEncoding(0, 0).fullEncoding);
 }
 
 /*****************************************************************/

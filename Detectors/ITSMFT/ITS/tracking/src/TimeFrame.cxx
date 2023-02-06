@@ -81,10 +81,12 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
@@ -93,10 +95,12 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
@@ -247,7 +251,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
-      mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+      mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
@@ -256,6 +260,17 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
 
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
+
+    for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
+      if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
+        for (auto& tfInfo : mTrackingFrameInfo[iLayer]) {
+          /// Account for alignment systematics in the cluster covariance matrix
+          tfInfo.covarianceTrackingFrame[0] += trkParam.SystErrorY2[iLayer];
+          tfInfo.covarianceTrackingFrame[2] += trkParam.SystErrorZ2[iLayer];
+        }
+      }
+    }
+
     for (int rof{0}; rof < mNrof; ++rof) {
       if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
         continue;
@@ -269,6 +284,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
         cHelper.resize(clustersNum);
 
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+
           const Cluster& c = unsortedClusters[iCluster];
           ClusterHelper& h = cHelper[iCluster];
           float x = c.xCoordinate - mBeamPos[0];
@@ -327,7 +343,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
   float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
   for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
     mMSangles[iLayer] = MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
-    mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+    mPositionResolution[iLayer] = std::sqrt(0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
 
     if (iLayer < mClusters.size() - 1) {
       const float& r1 = trkParam.LayerRadii[iLayer];

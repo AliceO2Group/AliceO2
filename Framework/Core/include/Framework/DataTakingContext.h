@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DATATAKINGCONTEXT_H_
 #define O2_FRAMEWORK_DATATAKINGCONTEXT_H_
 
+#include "Framework/ServiceHandle.h"
 #include <string>
 #include <cstdint>
 
@@ -18,6 +19,7 @@ namespace o2::framework
 {
 
 struct DataTakingContext {
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
   static constexpr const char* UNKNOWN = "unknown";
   /// The current run number
   std::string runNumber{UNKNOWN};

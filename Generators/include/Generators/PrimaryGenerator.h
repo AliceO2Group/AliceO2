@@ -33,7 +33,7 @@ namespace o2
 namespace eventgen
 {
 
-/** 
+/**
  ** custom primary generator in order to be able to deal with
  ** specific O2 matters, like initialisation, generation, ...
  **/
@@ -64,6 +64,13 @@ class PrimaryGenerator : public FairPrimaryGenerator
                 Bool_t wanttracking = true,
                 Double_t e = -9e9, Double_t tof = 0.,
                 Double_t weight = 0., TMCProcess proc = kPPrimary, Int_t generatorStatus = 0);
+
+  /** override, to set encoded status code correctly **/
+  void AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t pz,
+                Double_t vx, Double_t vy, Double_t vz,
+                Int_t parent = -1, Bool_t wanttracking = true,
+                Double_t e = -9e9, Double_t tof = 0.,
+                Double_t weight = 0., TMCProcess proc = kPPrimary) override;
 
   /** initialize the generator **/
   Bool_t Init() override;

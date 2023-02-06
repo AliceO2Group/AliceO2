@@ -28,6 +28,8 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
+#include "Framework/Plugins.h"
+#include "Framework/RootMessageContext.h"
 
 namespace o2::framework
 {
@@ -397,7 +399,7 @@ struct OutputManager<Builds<T>> {
 template <typename T>
 class has_instance
 {
-  typedef char one;
+  using one = char;
   struct two {
     char x[2];
   };
@@ -414,7 +416,7 @@ class has_instance
 template <typename T>
 class has_end_of_stream
 {
-  typedef char one;
+  using one = char;
   struct two {
     char x[2];
   };
@@ -434,7 +436,7 @@ inline constexpr bool has_end_of_stream_v = has_end_of_stream<T>::value;
 template <typename T>
 struct ServiceManager {
   template <typename ANY>
-  static bool add(std::vector<ServiceSpec>&, ANY&)
+  static bool add(std::vector<ServiceSpec>& specs, ANY& any)
   {
     return false;
   }
@@ -454,9 +456,13 @@ struct ServiceManager {
 
 template <typename T>
 struct ServiceManager<Service<T>> {
-  static bool add(std::vector<ServiceSpec>& specs, Service<T>&)
+  static bool add(std::vector<ServiceSpec>& specs, Service<T>& service)
   {
-    CommonAnalysisServices::addAnalysisService<T>(specs);
+    if constexpr (o2::framework::is_base_of_template_v<LoadableServicePlugin, T>) {
+      T p = T{};
+      auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
+      ServiceHelpers::loadFromPlugin(loadableServices, specs);
+    }
     return true;
   }
 

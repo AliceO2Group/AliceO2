@@ -65,8 +65,10 @@ class MCCompLabel
   bool isSet() const { return mLabel != NotSet; }
   // check if label was not assigned
   bool isEmpty() const { return mLabel == NotSet; }
-  // check if label corresponds to real particle
-  bool isNoise() const { return mLabel == Noise; }
+  // check if label comes from QED contrib
+  bool isQED() const { return getSourceID() == 99; }
+  // check if label corresponds to real particle (for the moment QED is not included)
+  bool isNoise() const { return mLabel == Noise || isQED(); }
   // check if label was assigned as for correctly identified particle
   bool isValid() const { return isSet() && !isNoise(); }
 

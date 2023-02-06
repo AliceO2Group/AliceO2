@@ -21,3 +21,8 @@ o2_add_test_root_macro(CheckDigits.C
 o2_add_test_root_macro(CheckHits.C
                        PUBLIC_LINK_LIBRARIES O2::TRDBase O2::TRDSimulation
                        LABELS trd)
+
+
+o2_add_test_root_macro(CreateCCDBLocalGainFactor.C
+                       PUBLIC_LINK_LIBRARIES O2::TRDBase O2::TRDCalibration
+                       LABELS trd)

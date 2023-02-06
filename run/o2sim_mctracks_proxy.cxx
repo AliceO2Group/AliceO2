@@ -104,7 +104,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // use given pid
   // TODO: this could go away with a proper pipeline implementation
   std::string channelspec;
-  std::string channelbase = "type=sub,method=connect,address=ipc:/";
+  std::string channelbase = "type=sub,method=connect,address=ipc://";
   if (configcontext.options().get<int>("o2sim-pid") != -1) {
     std::stringstream channelstr;
     channelstr << channelbase << "/tmp/o2sim-hitmerger-kineforward-" << configcontext.options().get<int>("o2sim-pid") << ",rateLogging=100";

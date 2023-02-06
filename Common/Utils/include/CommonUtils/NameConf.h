@@ -140,7 +140,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   std::string mDirMatLUT = "none";                        // directory for material LUT
   std::string mDirCollContext = "none";                   // directory for collision context
   std::string mDirTFIDINFO = "none";                      // directory for TFIDInfo vector
-  std::string mCCDBServer = "https://alice-ccdb.cern.ch/"; // default CCDB server
+  std::string mCCDBServer = "http://alice-ccdb.cern.ch/"; // default CCDB server
 
   O2ParamDef(NameConf, "NameConf");
 };

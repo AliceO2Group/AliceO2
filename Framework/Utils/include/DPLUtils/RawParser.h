@@ -241,6 +241,7 @@ class ConcreteRawParser
   size_t mSize;
 };
 
+using V7 = header::RAWDataHeaderV6;
 using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
@@ -248,6 +249,8 @@ using V4 = header::RAWDataHeaderV4;
 // needs to be defined in the header, have to check if we need to support this
 //using V3 = header::RAWDataHeaderV3;
 
+template <size_t N>
+using V7Parser = ConcreteRawParser<header::RAWDataHeaderV7, N>;
 template <size_t N>
 using V6Parser = ConcreteRawParser<header::RAWDataHeaderV6, N>;
 template <size_t N>
@@ -274,6 +277,8 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
   V5 const* v5 = reinterpret_cast<V5 const*>(buffer);
   if (v5->version == 5) {
     return ConcreteRawParser<V5, PageSize>(buffer, size);
+  } else if (v5->version == 7) {
+    return ConcreteRawParser<V7, PageSize>(buffer, size);
   } else if (v5->version == 6) {
     return ConcreteRawParser<V6, PageSize>(buffer, size);
   } else if (v5->version == 4) {

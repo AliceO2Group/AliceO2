@@ -249,18 +249,31 @@ void displaySparks(
     data.legend = state.legend.c_str();
 
     if (!locked) {
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+      ImPlot::SetNextAxisLimits(ImAxis_X1, (startTime + ImGui::GetTime() - 100) * 1000, (startTime + ImGui::GetTime()) * 1000, ImGuiCond_Always);
+      ImPlot::SetNextAxisLimits(ImAxis_Y1, metricsInfo.min[index.metricIndex], metricsInfo.max[index.metricIndex] * 1.1, ImGuiCond_Always);
+#else
       ImPlot::SetNextPlotLimitsX((startTime + ImGui::GetTime() - 100) * 1000, (startTime + ImGui::GetTime()) * 1000, ImGuiCond_Always);
       ImPlot::SetNextPlotLimitsY(metricsInfo.min[index.metricIndex], metricsInfo.max[index.metricIndex] * 1.1, ImGuiCond_Always);
+#endif
       rty_axis |= ImPlotAxisFlags_LockMin;
     }
     if (ImPlot::BeginPlot("##sparks", "time", "value", ImVec2(700, 100), 0, rtx_axis, rty_axis)) {
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+      ImPlot::SetAxis(state.axis);
+#else
       ImPlot::SetPlotYAxis(state.axis);
+#endif
       switch (metric.type) {
         case MetricType::Enum: {
           data.points = (void*)metricsInfo.enumMetrics[metric.storeIdx].data();
           data.time = metricsInfo.enumTimestamps[metric.storeIdx].data();
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+          auto getter = [](int idx, void* hData) -> ImPlotPoint {
+#else
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
+#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Enum));
@@ -272,7 +285,11 @@ void displaySparks(
           data.points = (void*)metricsInfo.intMetrics[metric.storeIdx].data();
           data.time = metricsInfo.intTimestamps[metric.storeIdx].data();
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+          auto getter = [](int idx, void* hData) -> ImPlotPoint {
+#else
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
+#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Int));
@@ -284,7 +301,11 @@ void displaySparks(
           data.points = (void*)metricsInfo.uint64Metrics[metric.storeIdx].data();
           data.time = metricsInfo.uint64Timestamps[metric.storeIdx].data();
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+          auto getter = [](int idx, void* hData) -> ImPlotPoint {
+#else
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
+#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Uint64));
@@ -296,7 +317,11 @@ void displaySparks(
           data.points = (void*)metricsInfo.floatMetrics[metric.storeIdx].data();
           data.time = metricsInfo.floatTimestamps[metric.storeIdx].data();
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+          auto getter = [](int idx, void* hData) -> ImPlotPoint {
+#else
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
+#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Float));
@@ -334,7 +359,7 @@ void displayDeviceMetrics(const char* label,
   size_t minDomain = std::numeric_limits<size_t>::max();
   size_t gmi = 0;
 
-  ImPlotFlags axisFlags = 0;
+  ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
@@ -356,8 +381,8 @@ void displayDeviceMetrics(const char* label,
         maxValue[data.axis] = std::max(maxValue[data.axis], metricsInfos[di].max[mi]);
         minDomain = std::min(minDomain, metricsInfos[di].minDomain[mi]);
         maxDomain = std::max(maxDomain, metricsInfos[di].maxDomain[mi]);
-        axisFlags |= data.axis == 1 ? ImPlotFlags_YAxis2 : ImPlotFlags_None;
-        axisFlags |= data.axis == 2 ? ImPlotFlags_YAxis3 : ImPlotFlags_None;
+        axisFlags |= data.axis == 1 ? (ImPlotFlags_)ImPlotFlags_YAxis2 : ImPlotFlags_None;
+        axisFlags |= data.axis == 2 ? (ImPlotFlags_)ImPlotFlags_YAxis3 : ImPlotFlags_None;
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
@@ -413,7 +438,11 @@ void displayDeviceMetrics(const char* label,
     metricsToDisplay.push_back(&(userData[ui]));
   }
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+  auto getterXY = [](int idx, void* hData) -> ImPlotPoint {
+#else
   auto getterXY = [](void* hData, int idx) -> ImPlotPoint {
+#endif
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
     size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
     double x = static_cast<const size_t*>(histoData->X)[pos];
@@ -433,17 +462,31 @@ void displayDeviceMetrics(const char* label,
   static bool logScale = false;
   ImGui::Checkbox("Log scale", &logScale);
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+  ImPlot::SetNextAxisLimits(ImAxis_X1, minDomain, maxDomain, ImGuiCond_Once);
+#else
   ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
   ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
+#endif
+
   auto axisPadding = 0.;
   if (displayType == MetricsDisplayStyle::Lines) {
     axisPadding = 0.2;
   }
 
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[0] - (maxValue[0] - minValue[0]) * axisPadding,
+                            maxValue[0] * (1. + axisPadding), ImGuiCond_Always);
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[1] - (maxValue[1] - minValue[1]) * axisPadding,
+                            maxValue[1] * (1. + axisPadding), ImGuiCond_Always);
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[2] - (maxValue[2] - minValue[2]) * axisPadding,
+                            maxValue[2] * (1. + axisPadding), ImGuiCond_Always);
+#else
   for (size_t ai = 0; ai < 3; ++ai) {
     ImPlot::SetNextPlotLimitsY(minValue[ai] - (maxValue[ai] - minValue[ai]) * axisPadding,
                                maxValue[ai] * (1. + axisPadding), ImGuiCond_Always, ai);
   }
+#endif
 
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
@@ -467,7 +510,11 @@ void displayDeviceMetrics(const char* label,
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
+#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
+          ImPlot::SetAxis(data->axis);
+#else
           ImPlot::SetPlotYAxis(data->axis);
+#endif
           ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->mod, 0);
           ImGui::PopID();
         }

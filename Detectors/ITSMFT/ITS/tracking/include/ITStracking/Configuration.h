@@ -60,7 +60,8 @@ struct TrackingParameters {
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   std::vector<float> LayerxX0 = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f};
   std::vector<float> LayerResolution = {5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f};
-  std::vector<float> LayerMisalignment = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  std::vector<float> SystErrorY2 = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  std::vector<float> SystErrorZ2 = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   int ZBins{256};
   int PhiBins{128};
   bool UseDiamond = false;
@@ -80,7 +81,8 @@ struct TrackingParameters {
   /// Fitter parameters
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
-  std::array<float, 2> FitIterationMaxChi2 = {50, 20};
+  float MaxChi2ClusterAttachment = 60.f;
+  float MaxChi2NDF = 30.f;
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
 };
@@ -91,6 +93,7 @@ inline int TrackingParameters::CellMinimumLevel()
 }
 
 struct VertexingParameters {
+  bool allowSingleContribClusters = false;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{256};
@@ -102,6 +105,9 @@ struct VertexingParameters {
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
+  float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
+  float baseBeamError = 0.005f;
+  float maxZPositionAllowed = 25.f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
   int phiSpan = -1;

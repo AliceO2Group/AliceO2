@@ -17,7 +17,7 @@ o2_add_library(MCHCalibration
            src/PedestalChannel.cxx
            src/PedestalData.cxx
            src/PedestalDigit.cxx
-           PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH)
+           PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH O2::MCHMappingImpl4)
 
 o2_target_root_dictionary(MCHCalibration HEADERS include/MCHCalibration/BadChannelCalibrator.h
                                                  include/MCHCalibration/BadChannelCalibratorParam.h

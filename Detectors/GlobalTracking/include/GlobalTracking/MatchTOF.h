@@ -235,6 +235,7 @@ class MatchTOF
   float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0; ///< drift time offset in mus
 
   float mBz = 0;          ///< nominal Bz
   float mMaxInvPt = 999.; ///< derived from nominal Bz
@@ -248,7 +249,7 @@ class MatchTOF
   float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
   float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 10;           ///< tolerance in cm for track-TOF time bracket matching
-  int mSigmaTimeCut = 30.;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  float mSigmaTimeCut = 3;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   bool mIsFIT = false;
   bool mIsITSTPCused = false;

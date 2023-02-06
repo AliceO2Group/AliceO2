@@ -8,6 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CallbacksPolicy.h"
@@ -19,6 +20,7 @@
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "CommonDriverServices.h"
 #include "Framework/DataProcessingDevice.h"
+#include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Plugins.h"
 #include "Framework/DeviceControl.h"
@@ -688,7 +690,7 @@ void handle_crash(int sig)
   int size = backtrace(array, 1024);
 
   {
-    char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL)\nBacktrace by DPL:\n";
+    char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL, Unhandled Exception, ...)\nBacktrace by DPL:\n";
     auto retVal = write(STDERR_FILENO, msg, strlen(msg));
     msg = "UNKNOWN SIGNAL\n";
     if (sig == SIGSEGV) {
@@ -1149,7 +1151,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
 
   auto result = runner.Run();
-  serviceRegistry.preExitCallbacks();
+  ServiceRegistryRef serviceRef = {serviceRegistry};
+  auto& context = serviceRef.get<DataProcessorContext>();
+  DataProcessorContext::preExitCallbacks(context.preExitHandles, serviceRef);
   return result;
 }
 
@@ -1216,6 +1220,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^aod-file-read-info$");
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
+  dumpableMetrics.emplace_back("^device_state.*");
   return dumpableMetrics;
 }
 

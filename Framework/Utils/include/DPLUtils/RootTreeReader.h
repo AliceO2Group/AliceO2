@@ -20,6 +20,7 @@
 #include "Framework/Output.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include <TChain.h>

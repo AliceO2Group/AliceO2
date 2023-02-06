@@ -104,7 +104,6 @@ std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLR
 
 bool TimesliceIndex::didReceiveData() const
 {
-  bool didGetData = false;
   bool expectsData = false;
   for (int ci = 0; ci < mChannels.size(); ci++) {
     auto& channel = mChannels[ci];
@@ -120,7 +119,7 @@ bool TimesliceIndex::didReceiveData() const
       return true;
     }
   }
-  return didGetData || expectsData == false;
+  return expectsData == false;
 }
 
 TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(TimesliceId timestamp, ChannelIndex channel)

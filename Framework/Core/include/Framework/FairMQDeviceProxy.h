@@ -41,54 +41,54 @@ class FairMQDeviceProxy
             std::vector<ForwardRoute> const& forwards, fair::mq::Device& device);
 
   /// Retrieve the transport associated to a given route.
-  fair::mq::TransportFactory* getOutputTransport(RouteIndex routeIndex) const;
+  [[nodiscard]] fair::mq::TransportFactory* getOutputTransport(RouteIndex routeIndex) const;
   /// Retrieve the transport associated to a given route.
-  fair::mq::TransportFactory* getInputTransport(RouteIndex routeIndex) const;
+  [[nodiscard]] fair::mq::TransportFactory* getInputTransport(RouteIndex routeIndex) const;
   /// Retrieve the transport associated to a given route.
-  fair::mq::TransportFactory* getForwardTransport(RouteIndex routeIndex) const;
+  [[nodiscard]] fair::mq::TransportFactory* getForwardTransport(RouteIndex routeIndex) const;
   /// ChannelIndex from a given channel name
-  ChannelIndex getOutputChannelIndexByName(std::string const& channelName) const;
+  [[nodiscard]] ChannelIndex getOutputChannelIndexByName(std::string const& channelName) const;
   /// ChannelIndex from a given channel name
-  ChannelIndex getInputChannelIndexByName(std::string const& channelName) const;
+  [[nodiscard]] ChannelIndex getInputChannelIndexByName(std::string const& channelName) const;
   /// ChannelIndex from a given channel name
-  ChannelIndex getForwardChannelIndexByName(std::string const& channelName) const;
+  [[nodiscard]] ChannelIndex getForwardChannelIndexByName(std::string const& channelName) const;
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
-  ChannelIndex getOutputChannelIndex(OutputSpec const& spec, size_t timeslice) const;
+  [[nodiscard]] ChannelIndex getOutputChannelIndex(OutputSpec const& spec, size_t timeslice) const;
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
-  ChannelIndex getForwardChannelIndex(header::DataHeader const& header, size_t timeslice) const;
+  [[nodiscard]] ChannelIndex getForwardChannelIndex(header::DataHeader const& header, size_t timeslice) const;
   /// ChannelIndex from a RouteIndex
-  ChannelIndex getOutputChannelIndex(RouteIndex routeIndex) const;
-  ChannelIndex getInputChannelIndex(RouteIndex routeIndex) const;
-  ChannelIndex getForwardChannelIndex(RouteIndex routeIndex) const;
+  [[nodiscard]] ChannelIndex getOutputChannelIndex(RouteIndex routeIndex) const;
+  [[nodiscard]] ChannelIndex getInputChannelIndex(RouteIndex routeIndex) const;
+  [[nodiscard]] ChannelIndex getForwardChannelIndex(RouteIndex routeIndex) const;
   /// Retrieve the channel associated to a given output route.
-  fair::mq::Channel* getInputChannel(ChannelIndex channelIndex) const;
-  fair::mq::Channel* getOutputChannel(ChannelIndex channelIndex) const;
-  fair::mq::Channel* getForwardChannel(ChannelIndex channelIndex) const;
+  [[nodiscard]] fair::mq::Channel* getInputChannel(ChannelIndex channelIndex) const;
+  [[nodiscard]] fair::mq::Channel* getOutputChannel(ChannelIndex channelIndex) const;
+  [[nodiscard]] fair::mq::Channel* getForwardChannel(ChannelIndex channelIndex) const;
 
   /// Retrieve information associated to a given forward by ChannelIndex
-  OutputChannelInfo const& getOutputChannelInfo(ChannelIndex channelIndex) const;
+  [[nodiscard]] OutputChannelInfo const& getOutputChannelInfo(ChannelIndex channelIndex) const;
   /// Retrieve information associated to a given forward by ChannelIndex
-  ForwardChannelInfo const& getForwardChannelInfo(ChannelIndex channelIndex) const;
+  [[nodiscard]] ForwardChannelInfo const& getForwardChannelInfo(ChannelIndex channelIndex) const;
 
   /// Retrieve information associated to a given forward by ChannelIndex
   OutputChannelState& getOutputChannelState(ChannelIndex channelIndex);
   /// Retrieve information associated to a given forward by ChannelIndex
   ForwardChannelState& getForwardChannelState(ChannelIndex channelIndex);
 
-  std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex) const;
-  std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
 
-  std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex) const;
-  std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex, const size_t size) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex, const size_t size) const;
 
-  std::unique_ptr<fair::mq::Message> createForwardMessage(RouteIndex routeIndex) const;
+  [[nodiscard]] std::unique_ptr<fair::mq::Message> createForwardMessage(RouteIndex routeIndex) const;
 
-  size_t getNumOutputChannels() const { return mOutputChannelInfos.size(); }
-  size_t getNumInputChannels() const { return mInputChannels.size(); }
-  size_t getNumForwardChannels() const { return mForwardChannelInfos.size(); }
-  size_t getNumForwards() const { return mForwards.size(); }
+  [[nodiscard]] size_t getNumOutputChannels() const { return mOutputChannelInfos.size(); }
+  [[nodiscard]] size_t getNumInputChannels() const { return mInputChannels.size(); }
+  [[nodiscard]] size_t getNumForwardChannels() const { return mForwardChannelInfos.size(); }
+  [[nodiscard]] size_t getNumForwards() const { return mForwards.size(); }
 
-  bool newStateRequested() const { return mStateChangeCallback(); }
+  [[nodiscard]] bool newStateRequested() const { return mStateChangeCallback(); }
 
  private:
   std::vector<OutputRoute> mOutputs;

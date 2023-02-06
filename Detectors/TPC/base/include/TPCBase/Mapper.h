@@ -405,7 +405,7 @@ class Mapper
   static constexpr unsigned short getPadsInOROC() { return mPadsInOROC; }
   static constexpr unsigned short getPadsInSector() { return mPadsInSector; }
 
-  unsigned short getNumberOfPads(const GEMstack gemStack) const
+  static constexpr unsigned short getNumberOfPads(const GEMstack gemStack)
   {
     switch (gemStack) {
       case IROCgem: {

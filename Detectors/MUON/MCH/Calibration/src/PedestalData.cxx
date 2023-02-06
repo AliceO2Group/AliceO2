@@ -13,6 +13,7 @@
 #include "DataFormatsMCH/DsChannelId.h"
 #include "MCHCalibration/PedestalData.h"
 #include "MCHCalibration/PedestalDigit.h"
+#include "MCHMappingInterface/Segmentation.h"
 #include "fairlogger/Logger.h"
 #include <cmath>
 #include <iostream>
@@ -22,17 +23,44 @@
 namespace o2::mch::calibration
 {
 
+PedestalData::PedestalData()
+{
+  mSolar2FeeLinkMapper = o2::mch::raw::createSolar2FeeLinkMapper<o2::mch::raw::ElectronicMapperGenerated>();
+  mElec2DetMapper = o2::mch::raw::createElec2DetMapper<o2::mch::raw::ElectronicMapperGenerated>();
+}
+
 void PedestalData::reset()
 {
   mPedestals.clear();
 }
 
-PedestalData::PedestalMatrix initPedestalMatrix(uint16_t solarId)
+PedestalData::PedestalMatrix PedestalData::initPedestalMatrix(uint16_t solarId)
 {
   PedestalData::PedestalMatrix m;
-  for (uint8_t c = 0; c < PedestalData::MAXCHANNEL; c++) {
-    for (uint8_t d = 0; d < PedestalData::MAXDS; d++) {
-      m[d][c].dsChannelId = DsChannelId{solarId, d, c};
+  for (uint8_t d = 0; d < PedestalData::MAXDS; d++) {
+    // apply the mapping from SOLAR to detector
+    int deId = -1;
+    int dsIddet = -1;
+
+    o2::mch::raw::DsElecId dsElecId(solarId, d / 5, d % 5);
+    std::optional<o2::mch::raw::DsDetId> dsDetId = mElec2DetMapper(dsElecId);
+    if (dsDetId) {
+      deId = dsDetId->deId();
+      dsIddet = dsDetId->dsId();
+    }
+
+    for (uint8_t c = 0; c < PedestalData::MAXCHANNEL; c++) {
+
+      // check if the channel is associated to a detector pad
+      int padId = -1;
+      if (deId >= 0 && dsIddet >= 0) {
+        const o2::mch::mapping::Segmentation& segment = o2::mch::mapping::segmentation(deId);
+        padId = segment.findPadByFEE(dsIddet, int(c));
+      }
+      if (padId >= 0) {
+        m[d][c].dsChannelId = DsChannelId{solarId, d, c};
+        mSize += 1;
+      }
     }
   }
   return m;
@@ -55,13 +83,11 @@ void PedestalData::fill(gsl::span<const PedestalDigit> digits)
     }
 
     if (iPedestal == mPedestals.end()) {
-      std::cout << "[PedestalData::process] failed to insert new element\n";
+      LOGP(fatal, "failed to insert new element in padestals map");
       break;
     }
 
     auto& ped = iPedestal->second[dsId][channel];
-
-    ped.dsChannelId = DsChannelId{solarId, dsId, channel};
 
     for (uint16_t i = 0; i < d.nofSamples(); i++) {
       auto s = d.getSample(i);
@@ -79,8 +105,8 @@ void PedestalData::fill(gsl::span<const PedestalDigit> digits)
     }
 
     if (mDebug) {
-      std::cout << "solarId " << (int)solarId << "  dsId " << (int)dsId << "  ch " << (int)channel << "  nsamples " << d.nofSamples()
-                << "  entries " << ped.mEntries << "  ped " << ped.mPedestal << "  mVariance " << ped.mVariance << std::endl;
+      LOGP(info, "solarId {}  dsId {}  ch {}  nsamples {}  entries{}  mean {}  variance {}",
+           (int)solarId, (int)dsId, (int)channel, d.nofSamples(), ped.mEntries, ped.mPedestal, ped.mVariance);
     }
   }
 }
@@ -100,7 +126,7 @@ void PedestalData::print() const
 
 uint32_t PedestalData::size() const
 {
-  return mPedestals.size() * MAXCHANNEL * MAXDS;
+  return mSize;
 }
 
 PedestalData::iterator PedestalData::begin()

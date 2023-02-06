@@ -21,18 +21,6 @@
 
 namespace o2::trackstudy
 {
-
-using TBracket = o2::math_utils::Bracketf_t;
-using GTrackID = o2::dataformats::GlobalTrackID;
-
-struct TrackTB {
-  TBracket tBracket{}; ///< bracketing time in \mus
-  float time0{};
-  GTrackID origID{}; ///< track origin id
-  o2::track::TrackParCov trc;
-  ClassDefNV(TrackTB, 1);
-};
-
 /// create a processor spec
 o2::framework::DataProcessorSpec getTPCTrackStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC);
 

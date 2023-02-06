@@ -64,6 +64,24 @@ void timer_callback(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
+  if (std::find(state->firedTimers.begin(), state->firedTimers.end(), handle) == state->firedTimers.end()) {
+    state->firedTimers.push_back(handle);
+  }
+}
+
+auto timer_fired(uv_timer_t* timer)
+{
+  return [timer]() -> bool {
+    auto* state = (DeviceState*)timer->data;
+    return std::find(state->firedTimers.begin(), state->firedTimers.end(), timer) != state->firedTimers.end();
+  };
+}
+
+auto timer_set_period(uv_timer_t* timer)
+{
+  return [timer](uint64_t timeout_ms, uint64_t repeat_ms) -> void {
+    uv_timer_start(timer, detail::timer_callback, timeout_ms, repeat_ms);
+  };
 }
 
 void signal_callback(uv_signal_t* handle, int)
@@ -95,7 +113,7 @@ struct ExpirationHandlerHelpers {
       uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period), detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
@@ -141,16 +159,25 @@ struct ExpirationHandlerHelpers {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int64_t>(startName.c_str());
-      auto stop = options.get<int64_t>(endName.c_str());
-      auto step = options.get<int64_t>(stepName.c_str());
-      auto repetitions = 1;
+      int64_t defaultStart = 0;
+      int64_t defaultStop = std::numeric_limits<int64_t>::max();
+      int64_t defaultStep = 1;
+      int defaultRepetitions = 1;
       for (auto& meta : matcher.metadata) {
         if (meta.name == "repetitions") {
-          repetitions = meta.defaultValue.get<int64_t>();
-          break;
+          defaultRepetitions = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "start-value") {
+          defaultStart = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "end-value") {
+          defaultStop = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "step-value") {
+          defaultStep = meta.defaultValue.get<int64_t>();
         }
       }
+      auto start = options.hasOption(startName.c_str()) ? options.get<int64_t>(startName.c_str()) : defaultStart;
+      auto stop = options.hasOption(endName.c_str()) ? options.get<int64_t>(endName.c_str()) : defaultStop;
+      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStep;
+      auto repetitions = defaultRepetitions;
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
@@ -294,9 +321,18 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
-      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
-      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+    return [matcher = *m, &spec, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      int defaultOrbitOffset = 0;
+      int defaultOrbitMultiplier = 1;
+      for (auto& meta : spec.metadata) {
+        if (meta.name == "orbit-offset") {
+          defaultOrbitOffset = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "orbit-multiplier") {
+          defaultOrbitMultiplier = meta.defaultValue.get<int64_t>();
+        }
+      }
+      size_t orbitOffset = config.hasOption("orbit-offset-enumeration") ? config.get<int64_t>("orbit-offset-enumeration") : defaultOrbitOffset;
+      size_t orbitMultiplier = config.hasOption("orbit-multiplier-enumeration") ? config.get<int64_t>("orbit-multiplier-enumeration") : defaultOrbitMultiplier;
       return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }

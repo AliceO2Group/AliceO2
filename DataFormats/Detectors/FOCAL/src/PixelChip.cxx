@@ -16,6 +16,6 @@ using namespace o2::focal;
 
 std::ostream& o2::focal::operator<<(std::ostream& stream, const PixelChip& chip)
 {
-  stream << "Chip " << static_cast<int>(chip.mChipID) << " (lane " << static_cast<uint8_t>(chip.mLaneID) << "), found " << chip.mHits.size() << " hits";
+  stream << "Chip " << static_cast<int>(chip.mChipID) << " (lane " << static_cast<uint8_t>(chip.mLaneID) << ", fee " << chip.mFeeID << "), found " << chip.mHits.size() << " hits";
   return stream;
 }

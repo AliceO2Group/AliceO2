@@ -281,9 +281,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)
 {
-  int size = event.getCaloCount();
-  if (size > 0) {
-    const std::string detector = detectorName == "EMC" ? "emcal" : "phos";
+  if (event.getCaloCount() > 0) {
     struct CaloInfo {
       std::string name;
       std::string configColor;
@@ -333,9 +331,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     };
     std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
-      auto key = std::make_pair(calo.getEta(), calo.getPhi());
-      map.try_emplace(key, 0);
-      map[key] = map[key] + calo.getEnergy();
+      map[std::make_pair(calo.getEta(), calo.getPhi())] += calo.getEnergy();
     }
 
     for (const auto& entry : map) {

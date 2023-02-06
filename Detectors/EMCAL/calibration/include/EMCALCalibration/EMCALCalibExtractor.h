@@ -94,7 +94,7 @@ class EMCALCalibExtractor
   o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist, const boost::histogram::histogram<axes...>& histTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>{0., 1.}, boost::histogram::axis::variable<>{0., 1.}))
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-    std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}};
+    std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 39.0}}};
 
     if (mBCMScaleFactors) {
       LOG(info) << "Rescaling BCM histo";
@@ -134,6 +134,7 @@ class EMCALCalibExtractor
 #endif
 
     for (int cellID = 0; cellID < mNcells; cellID++) {
+      LOG(debug) << "analysing cell " << cellID;
       if (calibrationInformation.energyPerHitMap[0][cellID] == 0) {
         LOG(debug) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
@@ -146,8 +147,15 @@ class EMCALCalibExtractor
           auto meanPerCellNHits = calibrationInformation.nHitsMap[sliceIndex][cellID];
           LOG(debug) << "Energy Per Hit: Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
           LOG(debug) << "NHits: Mean per cell is " << meanPerCellNHits << " Good Cell Window: [ " << rangesNHits.first << " , " << rangesNHits.second << " ]";
-          if (meanPerCell < ranges.first || meanPerCell > ranges.second || meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
-            LOG(debug) << "********* FAILED **********";
+          // for the cut on the mean energy per hit we require at least 100 hits, as otherwise the distribution is very instable
+          double meanNHits = 0.5 * (ranges.first + ranges.second);
+          if (meanNHits > EMCALCalibParams::Instance().minNHitsForMeanEnergyCut && (meanPerCell < ranges.first || meanPerCell > ranges.second)) {
+            LOG(debug) << "********* FAILED for mean energy **********";
+            failed = true;
+            break;
+          }
+          if (meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
+            LOG(debug) << "********* FAILED for mean NHits **********";
             failed = true;
             break;
           }

@@ -85,8 +85,16 @@ Bool_t
   auto nparticles = mCloneParticles->GetEntries();
   for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {
     auto particle = (TParticle*)mCloneParticles->At(iparticle);
+    // Some particle comes in from somewhere.
+    // To support the user and in case the status code is found to be not encoded, do it here,
+    // assuming that the current code is the HepMC status (like it used to be before).
+    auto statusCode = particle->GetStatusCode();
+    if (!mcgenstatus::isEncoded(statusCode)) {
+      particle->SetStatusCode(mcgenstatus::MCGenStatusEncoding(statusCode, 0).fullEncoding);
+    }
     mParticles.push_back(*particle);
-    mParticles.back().SetBit(ParticleStatus::kToBeDone, ((o2::mcgenstatus::MCGenStatusEncoding)particle->GetStatusCode()).hepmc == 1);
+    // Set the transport bit according to the HepMC status code as it always used to be
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, mcgenstatus::getHepMCStatusCode(particle->GetStatusCode()) == 1);
   }
 
   /** success **/

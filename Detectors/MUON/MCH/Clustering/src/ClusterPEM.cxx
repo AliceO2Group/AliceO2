@@ -17,11 +17,12 @@
 
 #include <cstdio>
 #include <stdexcept>
+#include <cmath>
 
-#include "InspectModel.h"
-#include "MCHClustering/ClusterPEM.h"
 #include "MCHClustering/ClusterConfig.h"
+#include "MCHClustering/ClusterPEM.h"
 #include "MCHClustering/PadsPEM.h"
+#include "InspectModel.h"
 #include "mathUtil.h"
 #include "mathieson.h"
 #include "mathiesonFit.h"
@@ -31,12 +32,178 @@ namespace o2
 {
 namespace mch
 {
+
+extern ClusterConfig clusterConfig;
+
 // Fit parameters
 // doProcess = verbose + (doJacobian << 2) + ( doKhi << 3) + (doStdErr << 4)
 static const int processFitVerbose = 1 + (0 << 2) + (1 << 3) + (1 << 4);
 static const int processFit = 0 + (0 << 2) + (1 << 3) + (1 << 4);
 
 double epsilonGeometry = 1.0e-4;
+
+/**
+ * Compute the (Moore-Penrose) pseudo-inverse of a libgsl matrix in plain C.
+ *
+ * Compile uding:
+ *
+ *     gcc moore_penrose_pseudoinverse.c -lgsl -lblas
+ *
+ * Dependencies:
+ * - libgsl (GNU Scientific Library)
+ * - libblas (Basic Linear Algebra Subprograms)
+ *
+ * Charl Linssen <charl@itfromb.it>
+ * Feb 2016
+ * PUBLIC DOMAIN
+ **/
+
+typedef double realtype;
+
+void print_matrix(const gsl_matrix* m)
+{
+  size_t i, j;
+
+  for (i = 0; i < m->size1; i++) {
+    for (j = 0; j < m->size2; j++) {
+      printf("%f\t", gsl_matrix_get(m, i, j));
+    }
+    printf("\n");
+  }
+}
+
+void printGSLVector(const char* str, const gsl_vector* v)
+{
+  int N = v->size;
+  int nPackets = N / 10 + 1;
+  printf("%s dim=%d nPackets=%d\n  ", str, N, nPackets);
+  for (int i = 0; i < nPackets; i++) {
+    for (int k = 0; (k < 10) && ((i * 10 + k) < N); k++) {
+      printf("%f ", gsl_vector_get(v, i * 10 + k));
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+/**
+ * Compute the (Moore-Penrose) pseudo-inverse of a matrix.
+ *
+ * If the singular value decomposition (SVD) of A = U?V? then the pseudoinverse A?? = V???U?, where ? indicates transpose and ??? is obtained by taking the reciprocal of each nonzero element on the diagonal, leaving zeros in place. Elements on the diagonal smaller than ``rcond`` times the largest singular value are considered zero.
+ *
+ * @parameter A Input matrix. **WARNING**: the input matrix ``A`` is destroyed. However, it is still the responsibility of the caller to free it.
+ * @parameter rcond A real number specifying the singular value threshold for inclusion. NumPy default for ``rcond`` is 1E-15.
+ *
+ * @returns A_pinv Matrix containing the result. ``A_pinv`` is allocated in this function and it is the responsibility of the caller to free it.
+ **/
+gsl_matrix* moore_penrose_pinv(gsl_matrix* A, const realtype rcond)
+{
+
+  gsl_matrix *V, *Sigma_pinv, *U, *A_pinv;
+  gsl_matrix* _tmp_mat = nullptr;
+  gsl_vector* _tmp_vec;
+  gsl_vector* u;
+  realtype x, cutoff;
+  size_t i, j;
+  unsigned int n = A->size1;
+  unsigned int m = A->size2;
+  bool was_swapped = false;
+
+  if (m > n) {
+    /* libgsl SVD can only handle the case m <= n - transpose matrix */
+    was_swapped = true;
+    _tmp_mat = gsl_matrix_alloc(m, n);
+    gsl_matrix_transpose_memcpy(_tmp_mat, A);
+    A = _tmp_mat;
+    i = m;
+    m = n;
+    n = i;
+  }
+
+  /* do SVD */
+  V = gsl_matrix_alloc(m, m);
+  u = gsl_vector_alloc(m);
+  _tmp_vec = gsl_vector_alloc(m);
+  gsl_linalg_SV_decomp(A, V, u, _tmp_vec);
+  gsl_vector_free(_tmp_vec);
+
+  /* compute ??? */
+  Sigma_pinv = gsl_matrix_alloc(m, n);
+  gsl_matrix_set_zero(Sigma_pinv);
+  cutoff = rcond * gsl_vector_max(u);
+
+  for (i = 0; i < m; ++i) {
+    if (gsl_vector_get(u, i) > cutoff) {
+      x = 1. / gsl_vector_get(u, i);
+    } else {
+      x = 0.;
+    }
+    gsl_matrix_set(Sigma_pinv, i, i, x);
+  }
+
+  /* libgsl SVD yields "thin" SVD - pad to full matrix by adding zeros */
+  U = gsl_matrix_alloc(n, n);
+  gsl_matrix_set_zero(U);
+
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < m; ++j) {
+      gsl_matrix_set(U, i, j, gsl_matrix_get(A, i, j));
+    }
+  }
+
+  if (_tmp_mat != nullptr) {
+    gsl_matrix_free(_tmp_mat);
+  }
+
+  /* two dot products to obtain pseudoinverse */
+  _tmp_mat = gsl_matrix_alloc(m, n);
+  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1., V, Sigma_pinv, 0., _tmp_mat);
+
+  if (was_swapped) {
+    A_pinv = gsl_matrix_alloc(n, m);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1., U, _tmp_mat, 0., A_pinv);
+  } else {
+    A_pinv = gsl_matrix_alloc(m, n);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1., _tmp_mat, U, 0., A_pinv);
+  }
+
+  gsl_matrix_free(_tmp_mat);
+  gsl_matrix_free(U);
+  gsl_matrix_free(Sigma_pinv);
+  gsl_vector_free(u);
+  gsl_matrix_free(V);
+
+  return A_pinv;
+}
+
+int main()
+{
+
+  const unsigned int N = 2;
+  const unsigned int M = 3;
+  const realtype rcond = 1E-15;
+
+  gsl_matrix* A = gsl_matrix_alloc(N, M);
+  gsl_matrix* A_pinv;
+
+  gsl_matrix_set(A, 0, 0, 1.);
+  gsl_matrix_set(A, 0, 1, 3.);
+  gsl_matrix_set(A, 0, 2, 5.);
+  gsl_matrix_set(A, 1, 0, 2.);
+  gsl_matrix_set(A, 1, 1, 4.);
+  gsl_matrix_set(A, 1, 2, 6.);
+
+  printf("A matrix:\n");
+  print_matrix(A);
+  A_pinv = moore_penrose_pinv(A, rcond);
+  printf("\nPseudoinverse of A:\n");
+  print_matrix(A_pinv);
+
+  gsl_matrix_free(A);
+  gsl_matrix_free(A_pinv);
+
+  return 0;
+}
 
 ClusterPEM::ClusterPEM() = default;
 
@@ -111,7 +278,7 @@ ClusterPEM::ClusterPEM(const double* x, const double* y, const double* dx,
   aloneKPads = nullptr;
 
   //
-  if (ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.processingLog >= clusterConfig.info) {
     printf("-----------------------------\n");
     printf("Starting CLUSTER PROCESSING\n");
     printf("# cath0=%2d, cath1=%2d\n", nbrCath0, nbrCath1);
@@ -197,6 +364,17 @@ ClusterPEM::~ClusterPEM()
   deleteInt(aloneIPads);
   deleteInt(aloneJPads);
   deleteInt(aloneKPads);
+}
+
+double ClusterPEM::getMaxCharge()
+{
+  double max = -1;
+  for (int c = 0; c < 2; c++) {
+    if (pads[c] != nullptr) {
+      max = std::fmax(max, vectorMax(pads[c]->getCharges(), getNbrOfPads(c)));
+    }
+  }
+  return max;
 }
 
 int ClusterPEM::getIndexByRow(const char* matrix, PadIdx_t N, PadIdx_t M,
@@ -380,7 +558,7 @@ void ClusterPEM::computeProjectedPads(const Pads& pad0InfSup,
       mapKToIJ[k].j = j;
       mapIJToK[i * N1 + j] = k;
       // Debug
-      if (ClusterConfig::padMappingLog >= ClusterConfig::debug) {
+      if (clusterConfig.padMappingLog >= clusterConfig.debug) {
         printf("newpad %d %d %d %9.3g %9.3g %9.3g %9.3g\n", i, j, k, projX[k],
                projY[k], projDX[k], projDY[k]);
       }
@@ -437,7 +615,7 @@ void ClusterPEM::computeProjectedPads(const Pads& pad0InfSup,
       ij_ptr++;
     }
   }
-  if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+  if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printf("builProjectPads mapIJToK=%p, N0=%d N1=%d\\n", mapIJToK, N0, N1);
     for (int i = 0; i < N0; i++) {
       for (int j = 0; j < N1; j++) {
@@ -458,7 +636,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   if (nbrOfCathodePlanes == 1) {
     // One Cathode case
     // Pad Projection is the cluster itself
-    projectedPads = new Pads(*pads[singleCathPlaneID], Pads::xydxdyMode);
+    projectedPads = new Pads(*pads[singleCathPlaneID], Pads::PadMode::xydxdyMode);
     projNeighbors = projectedPads->buildFirstNeighbors();
     return projectedPads->getNbrOfPads();
   }
@@ -469,8 +647,8 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   vectorSetZeroChar(intersectionMatrix, N0 * N1);
 
   // Get the pad limits
-  Pads padInfSup0(*pads[0], Pads::xyInfSupMode);
-  Pads padInfSup1(*pads[1], Pads::xyInfSupMode);
+  Pads padInfSup0(*pads[0], Pads::PadMode::xyInfSupMode);
+  Pads padInfSup1(*pads[1], Pads::PadMode::xyInfSupMode);
   mapIJToK = new PadIdx_t[N0 * N1];
   vectorSetInt(mapIJToK, -1, N0 * N1);
 
@@ -504,7 +682,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
     }
   }
   //
-  if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+  if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printMatrixChar("  Intersection Matrix", intersectionMatrix, N0, N1);
   }
   //
@@ -529,7 +707,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   }
   // Add alone pas and row/column separators
   maxNbrOfProjPads += nbrOfSinglePads + fmax(N0, N1);
-  if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+  if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printf("  maxNbrOfProjPads %d\n", maxNbrOfProjPads);
   }
   //
@@ -541,7 +719,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   JInterI = new PadIdx_t[maxNbrOfProjPads];
   int checkr = getIndexByRow(intersectionMatrix, N0, N1, IInterJ);
   int checkc = getIndexByColumns(intersectionMatrix, N0, N1, JInterI);
-  if (ClusterConfig::padMappingCheck) {
+  if (clusterConfig.padMappingCheck) {
     if ((checkr > maxNbrOfProjPads) || (checkc > maxNbrOfProjPads)) {
       printf(
         "Allocation pb for  IInterJ or JInterI: allocated=%d, needed for "
@@ -550,7 +728,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
       throw std::overflow_error("Allocation pb for  IInterJ or JInterI");
     }
   }
-  if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+  if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printInterMap("  IInterJ", IInterJ, N0);
     printInterMap("  JInterI", JInterI, N1);
   }
@@ -573,7 +751,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   computeProjectedPads(padInfSup0, padInfSup1, maxNbrOfProjPads, aloneIPads,
                        aloneJPads, aloneKPads, includeSingleCathodePads);
 
-  if (ClusterConfig::padMappingCheck) {
+  if (clusterConfig.padMappingCheck) {
     checkConsistencyMapKToIJ(intersectionMatrix, mapKToIJ, mapIJToK, aloneIPads,
                              aloneJPads, N0, N1, projectedPads->getNbrOfPads());
   }
@@ -584,7 +762,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   int thereAreIsolatedPads = 0;
   projNeighbors = projectedPads->buildFirstNeighbors();
   // Pads::printPads("Projected Pads:", *projectedPads);
-  if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+  if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printf("  Neighbors of the projected geometry\n");
     Pads::printNeighbors(projNeighbors, projectedPads->getNbrOfPads());
   }
@@ -596,7 +774,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
       thereAreIsolatedPads = 1;
       ij = mapKToIJ[k];
       if ((ij.i >= 0) && (ij.j >= 0)) {
-        if (ClusterConfig::padMappingLog >= ClusterConfig::detail) {
+        if (clusterConfig.padMappingLog >= clusterConfig.detail) {
           printf(" Isolated pad: nul intersection i,j = %d %d\n", ij.i, ij.j);
         }
         intersectionMatrix[ij.i * N1 + ij.j] = 0;
@@ -605,7 +783,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
       }
     }
   }
-  if ((ClusterConfig::padMappingLog >= ClusterConfig::detail) && thereAreIsolatedPads) {
+  if ((clusterConfig.padMappingLog >= clusterConfig.detail) && thereAreIsolatedPads) {
     printf("There are isolated pads %d\n", thereAreIsolatedPads);
   }
   //
@@ -721,7 +899,7 @@ double* ClusterPEM::projectChargeOnProjGeometry(int includeAlonePads)
     } else if (includeAlonePads) {
       // Alone j-pad
       k = aloneJPads[j];
-      if (ClusterConfig::padMappingCheck && (k < 0)) {
+      if (clusterConfig.padMappingCheck && (k < 0)) {
         printf("ERROR: Alone j-pad with negative index j=%d\n", j);
         // printf("Alone i-pad  i=%d, k=%d\n", i, k);
       }
@@ -767,7 +945,7 @@ int ClusterPEM::buildGroupOfPads()
   int nbrCath0 = (pads[0]) ? pads[0]->getNbrOfPads() : 0;
   int nbrCath1 = (pads[1]) ? pads[1]->getNbrOfPads() : 0;
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.groupsLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
     printf("\n");
     printf("[buildGroupOfPads] Group processing\n");
     printf("----------------\n");
@@ -778,7 +956,7 @@ int ClusterPEM::buildGroupOfPads()
   // are not considered. They are named 'single-pads'
   nbrOfProjGroups = getConnectedComponentsOfProjPadsWOSinglePads();
 
-  if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+  if (clusterConfig.inspectModel >= clusterConfig.active) {
     saveProjPadToGroups(projPadToGrp, projectedPads->getNbrOfPads());
   }
 
@@ -817,7 +995,7 @@ int ClusterPEM::buildGroupOfPads()
     cathGroup[1] = new Groups_t[nCath1];
     vectorSetZeroShort(cathGroup[0], nCath0);
     vectorSetZeroShort(cathGroup[1], nCath1);
-    if (ClusterConfig::groupsLog >= ClusterConfig::info) {
+    if (clusterConfig.groupsLog >= clusterConfig.info) {
       printf("> Projected Groups nbrOfProjGroups=%d\n", nbrOfProjGroups);
       vectorPrintShort("  projPadToGrp", projPadToGrp, nProjPads);
     }
@@ -828,7 +1006,7 @@ int ClusterPEM::buildGroupOfPads()
     // Propagate proj-groups on the cathode pads
     nGroups = assignPadsToGroupFromProj(nbrOfProjGroups);
     // nGroups = assignGroupToCathPads( );
-    if (ClusterConfig::groupsLog >= ClusterConfig::info) {
+    if (clusterConfig.groupsLog >= clusterConfig.info) {
       printf("> Groups after cathodes propagation nCathGroups=%d\n", nGroups);
     }
 
@@ -866,7 +1044,7 @@ int ClusterPEM::buildGroupOfPads()
     for (int p = 0; p < nProjPads; p++) {
       projPadToGrp[p] = mapGrpToGrp[projPadToGrp[p]];
     }
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("> addIsolatedPadInGroups in cath-0 nNewGroups =%d\n", nGroups);
       vectorPrintShort("  mapGrpToGrp", mapGrpToGrp, nGroups + 1);
     }
@@ -886,7 +1064,7 @@ int ClusterPEM::buildGroupOfPads()
     for (int p = 0; p < nProjPads; p++) {
       projPadToGrp[p] = mapGrpToGrp[projPadToGrp[p]];
     }
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("> addIsolatedPadInGroups in cath-1 nNewGroups =%d\n", nGroups);
       vectorPrintShort("  mapGrpToGrp", mapGrpToGrp, nGroups + 1);
     }
@@ -896,7 +1074,7 @@ int ClusterPEM::buildGroupOfPads()
     // Some groups may be merged, others groups may diseappear
     // So the final groups must be renumbered
     int nNewGroups = renumberGroups(mapGrpToGrp, nGroups);
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("> Groups after renumbering nGroups=%d\n", nGroups);
       vectorPrintShort("  projPadToGrp", projPadToGrp, nProjPads);
       printf("  nNewGrpCath0=%d, nNewGrpCath1=%d, nGroups=%d\n", nNewGrpCath0,
@@ -915,7 +1093,7 @@ int ClusterPEM::buildGroupOfPads()
     updateProjectionGroups();
   }
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.groupsLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
     printf("  > Final Groups %d\n", nGroups);
     vectorPrintShort("  cathToGrp[0]", cathGroup[0], nbrCath0);
     vectorPrintShort("  cathToGrp[1]", cathGroup[1], nbrCath1);
@@ -942,7 +1120,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
   int i, j, k;
   // printNeighbors();
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     printf(
       "> Extract connected components "
       "[getConnectedComponentsOfProjPadsWOIsolatedPads]\n");
@@ -953,7 +1131,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
       curPadGrp++;
     }
     k = curPadGrp - projPadToGrp;
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("    k=%d, nbrOfPadSetInGrp g=%d: n=%d\n", k, currentGrpId,
              nbrOfPadSetInGrp);
     }
@@ -962,7 +1140,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
     // aloneKPads = 0 if only one cathode
     if (aloneKPads && (aloneKPads[k] != -1)) {
       // Alone Pad no group at the moment
-      if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+      if (clusterConfig.groupsLog >= clusterConfig.detail) {
         printf("    isolated pad %d\n", k);
       }
       projPadToGrp[k] = -1;
@@ -970,7 +1148,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
       continue;
     }
     currentGrpId++;
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("    New Grp, pad k=%d in new grp=%d\n", k, currentGrpId);
     }
     projPadToGrp[k] = currentGrpId;
@@ -981,7 +1159,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
     // Propagation of the group in all neighbour list
     for (; startIdx < endIdx; startIdx++) {
       i = neighToDo[startIdx];
-      if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+      if (clusterConfig.groupsLog >= clusterConfig.detail) {
         printf("    propagate grp to neighbours of i=%d ", i);
       }
       //
@@ -995,14 +1173,14 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
           //
           // aloneKPads = 0 if only one cathode
           if (aloneKPads && (aloneKPads[j] != -1)) {
-            if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+            if (clusterConfig.groupsLog >= clusterConfig.detail) {
               printf("    isolated pad %d, ", j);
             }
             projPadToGrp[j] = -1;
             nbrOfPadSetInGrp++;
             continue;
           }
-          if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+          if (clusterConfig.groupsLog >= clusterConfig.detail) {
             printf("%d, ", j);
           }
           projPadToGrp[j] = currentGrpId;
@@ -1012,7 +1190,7 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
           endIdx++;
         }
       }
-      if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+      if (clusterConfig.groupsLog >= clusterConfig.detail) {
         printf("\n");
       }
     }
@@ -1053,8 +1231,8 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
   //
   PadIdx_t i, j;
   short g, prevGroup;
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
-    printf("> Assign cath-grp from proj-grp [AssignPadsToGroupFromProj]\n");
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
+    printf("[AssignPadsToGroupFromProj] Assign cath-grp from proj-grp \n");
   }
   // Expand the projected Groups
   // 'projPadToGrp' to the pad groups 'padToGrp'
@@ -1086,7 +1264,8 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
         // Already a grp (Conflict)
         // Group to fuse
         // Store the grp into grp matrix
-        cathGroup[0][i] = g;
+        // ??? to suppress cathGroup[0][i] = g;
+        cathGroup[0][i] = std::min(g, prevGroup);
         matGrpGrp[g * (nGrp + 1) + prevGroup] = 1;
         matGrpGrp[prevGroup * (nGrp + 1) + g] = 1;
       }
@@ -1106,13 +1285,14 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
         matGrpGrp[g * (nGrp + 1) + g] = 1;
       } else {
         // Already a Group (Conflict)
-        cathGroup[1][j] = g;
+        // cathGroup[1][j] = g;
+        cathGroup[1][j] = std::min(g, prevGroup);
         matGrpGrp[g * (nGrp + 1) + prevGroup] = 1;
         matGrpGrp[prevGroup * (nGrp + 1) + g] = 1;
       }
     }
   }
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     printMatrixShort("  Group/Group matrix", matGrpGrp, nGrp + 1, nGrp + 1);
     vectorPrintShort("  cathToGrp[0]", cathGroup[0], pads[0]->getNbrOfPads());
     vectorPrintShort("  cathToGrp[1]", cathGroup[1], pads[1]->getNbrOfPads());
@@ -1155,6 +1335,7 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
               grpToMergedGrp[g] = grpToMergedGrp[j];
             }
           }
+          curGroup = grpToMergedGrp[j];
         }
       }
     }
@@ -1162,7 +1343,7 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
   }
 
   // Perform the mapping group -> mergedGroups
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     vectorPrintShort("  Mapping grpToMergedGrp", grpToMergedGrp, nGrp + 1);
   }
   //
@@ -1184,7 +1365,7 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
   }
 
   // Perform the mapping grpToMergedGrp to the cath-groups
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     vectorPrintShort("  Mapping renumbered grpToMergedGrp", grpToMergedGrp,
                      nGrp + 1);
   }
@@ -1195,10 +1376,10 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
     }
   }
 
-  if (ClusterConfig::groupsCheck) {
+  if (clusterConfig.groupsCheck) {
     for (int c = 0; c < 2; c++) {
       for (int p = 0; p < pads[c]->getNbrOfPads(); p++) {
-        if (ClusterConfig::groupsLog >= ClusterConfig::info && cathGroup[c][p] == 0) {
+        if (clusterConfig.groupsLog >= clusterConfig.info && cathGroup[c][p] == 0) {
           printf("  [assignPadsToGroupFromProj] pad %d with no group\n", p);
         }
       }
@@ -1215,6 +1396,12 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
 // Add boundary pads with q charge equal 0
 void ClusterPEM::addBoundaryPads()
 {
+  int nbrOfPads = getNbrOfPads();
+  // Simple case : no adding boundary pads
+  if (nbrOfPads == 1) {
+    return;
+  }
+  //
   for (int c = 0; c < 2; c++) {
     if (pads[c]) {
       Pads* bPads = pads[c]->addBoundaryPads();
@@ -1249,7 +1436,7 @@ int ClusterPEM::assignGroupToCathPads()
   vectorSetZeroShort(projGrpToCathGrp, nGrp + 1);
   int nCathGrp = 0;
   //
-  if (ClusterConfig::groupsLog >= ClusterConfig::info) {
+  if (clusterConfig.groupsLog >= clusterConfig.info) {
     printf("  [assignGroupToCathPads]\n");
   }
   //
@@ -1268,7 +1455,7 @@ int ClusterPEM::assignGroupToCathPads()
     // Intersection indexes of the 2 cath
     i = mapKToIJ[k].i;
     j = mapKToIJ[k].j;
-    if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+    if (clusterConfig.groupsLog >= clusterConfig.detail) {
       printf("map k=%d g=%d to i=%d/%d, j=%d/%d\n", k, g, i, nCath0, j, nCath1);
     }
     //
@@ -1324,7 +1511,7 @@ int ClusterPEM::assignGroupToCathPads()
     }
   }
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     printf("  [assignGroupToCathPads] before renumbering nCathGrp=%d\n", nCathGrp);
     vectorPrintShort("    cath0ToGrpFromProj", cath0ToGrpFromProj, nCath0);
     vectorPrintShort("    cath1ToGrpFromProj", cath1ToGrpFromProj, nCath1);
@@ -1352,7 +1539,7 @@ int ClusterPEM::assignGroupToCathPads()
     projPadToGrp[i] = projGrpToCathGrp[projPadToGrp[i]];
   }
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     vectorPrintShort("  projPadToGrp", projPadToGrp, nProjPads);
     vectorPrintShort("  cath0ToGrp", cathGroup[0], nCath0);
     vectorPrintShort("  cath1ToGrp", cathGroup[1], nCath1);
@@ -1373,6 +1560,79 @@ int ClusterPEM::getNbrOfPadsInGroup(int g)
     }
   }
   return nbrOfPads;
+}
+
+std::pair<double, double> ClusterPEM::computeChargeBarycenter(int plane)
+{
+  int cStart(0), cEnd(0);
+  if (plane == -1) {
+    cStart = 0;
+    cEnd = 2;
+  } else if (plane == 0) {
+    cStart = 0;
+    cEnd = 1;
+  } else {
+    cStart = 1;
+    cEnd = 2;
+  }
+  double xBary(0), yBary(0), wCharges(0);
+  for (int c = cStart; c < cEnd; c++) {
+    int P = getNbrOfPads(c);
+    if (P > 0) {
+      const double* charges = getCharges(c);
+      const double* X = getPads(c)->getX();
+      const double* Y = getPads(c)->getY();
+      for (int p = 0; p < P; p++) {
+        xBary += charges[p] * X[p];
+        yBary += charges[p] * Y[p];
+        wCharges += charges[p];
+      }
+    }
+  }
+  xBary = xBary / wCharges;
+  yBary = yBary / wCharges;
+  //
+  return std::make_pair(xBary, yBary);
+}
+
+std::pair<int, int> ClusterPEM::getNxNy(int c)
+{
+  int N = pads[c]->getNbrOfObsPads();
+  const double* x = pads[c]->getX();
+  const double* y = pads[c]->getY();
+  const double* dx = pads[c]->getDX();
+  const double* dy = pads[c]->getDY();
+  double xMin = vectorMin(x, N);
+  double xMax = vectorMax(x, N);
+  double yMin = vectorMin(y, N);
+  double yMax = vectorMax(y, N);
+  double dxMin = 2 * vectorMin(dx, N);
+  double dyMin = 2 * vectorMin(dy, N);
+  // For allocation
+  int nXMax = (int)((xMax - xMin) / dxMin + 0.5) + 1;
+  int nYMax = (int)((yMax - yMin) / dyMin + 0.5) + 1;
+  Mask_t xSampling[nXMax];
+  Mask_t ySampling[nYMax];
+  vectorSetShort(xSampling, 0, nXMax);
+  vectorSetShort(ySampling, 0, nYMax);
+  int nX(0), nY(0);
+  for (int i = 0; i < N; i++) {
+    // Calculate the indexes in the 1D charge integral
+    // PadIntegralX:PadIntegralY
+    int xIdx = (int)((x[i] - xMin) / dxMin + 0.5);
+    int yIdx = (int)((y[i] - yMin) / dyMin + 0.5);
+    if (xSampling[xIdx] == 0) {
+      // printf("new x, iIdx=%d, x[i]=%6.2f, xMin=%6.2f, dxMin=%6.2f\n", xIdx, x[i], xMin, dxMin );
+      xSampling[xIdx] = 1;
+      nX++;
+    }
+    if (ySampling[yIdx] == 0) {
+      // printf("new y, yIdx=%d, y[i]=%6.2f, yMin=%6.2f, dyMin=%6.2f\n", yIdx, y[i], yMin, dyMin );
+      ySampling[yIdx] = 1;
+      nY++;
+    }
+  }
+  return std::make_pair(nX, nY);
 }
 
 void ClusterPEM::removeLowChargedGroups(int nGroups)
@@ -1398,11 +1658,13 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
 
   char str[256];
   for (Groups_t g = 1; g < nGroups + 1; g++) {
-    double charge = chargeInGroup[0][g] + chargeInGroup[1][g];
-    charge = charge / nbrCath;
+    // Better to use max charge of the two cath-planes
+    double chargePerCath = chargeInGroup[0][g] + chargeInGroup[1][g];
+    chargePerCath = chargePerCath / 2;
+    double maxCharge = std::fmax(chargeInGroup[0][g], chargeInGroup[1][g]);
     int nbrPads = nbrPadsInGroup[0][g] + nbrPadsInGroup[1][g];
-    if ((charge < ClusterConfig::minChargeOfClusterPerCathode) &&
-        (nbrPads > 0)) {
+    if ((maxCharge < clusterConfig.minChargeOfClusterPerCathode) && (nbrPads > 0)) {
+      // if ((chargePerCath < clusterConfig.minChargeOfClusterPerCathode) && (nbrPads > 0)) {
       // Remove groups
       // printf("  Remove group %d, charge=%f\n", g, charge);
       // scanf("%s", str);
@@ -1415,16 +1677,53 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
           }
         }
       }
-      if (ClusterConfig::groupsLog >= ClusterConfig::detail || ClusterConfig::processingLog >= ClusterConfig::info) {
+      if (clusterConfig.groupsLog >= clusterConfig.detail || clusterConfig.processingLog >= clusterConfig.info) {
         int nbrPads = chargeInGroup[0][g] + chargeInGroup[1][g];
-        printf("> [removeLowChargedGroups] Remove low charge group g=%d, # pads=%d\n", g, nbrPads);
+        printf("> [removeLowChargedGroups] Remove low charge group g=%d, charge per cath= %f, #pads=%d \n", g, maxCharge, nbrPads);
       }
     }
   }
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     vectorPrintShort("  cathToGrp[0]", cathGroup[0], pads[0]->getNbrOfPads());
     vectorPrintShort("  cathToGrp[1]", cathGroup[1], pads[1]->getNbrOfPads());
   }
+}
+
+int ClusterPEM::filterFitModelOnSmallChargedSeeds(Pads& pads, double* theta, int K,
+                                                  Mask_t* maskFilteredTheta)
+{
+  //
+  // W filter
+  // w cut-off
+  double* w_ = getW(theta, K);
+  double w[K];
+  double wSum = 0.0;
+  int kSelectedInit = vectorSumShort(maskFilteredTheta, K);
+  double meanCharge = pads.getMeanTotalCharge();
+  // Old relative filter ???
+  // double cutOff = 0.02 / kSelectedSeeds;
+  // meanCharge = 1.0;
+  //
+  double cutOff = clusterConfig.minChargeOfClusterPerCathode;
+  // Normalize new w
+  for (int k = 0; k < K; k++) {
+    wSum += (maskFilteredTheta[k] * w_[k]);
+  }
+  int kWFilter = 0;
+  double norm = meanCharge / wSum;
+  for (int k = 0; k < K; k++) {
+    w[k] = maskFilteredTheta[k] * w_[k] * norm;
+    if ((clusterConfig.processingLog >= clusterConfig.info) && (maskFilteredTheta[k] && (w[k] <= cutOff))) {
+      printf("[filterFitModelOnSmallCharge] remove the %dth seeds, low charge=%f \n", k, w[k]);
+    }
+    maskFilteredTheta[k] = maskFilteredTheta[k] && (w[k] > cutOff);
+    kWFilter += (maskFilteredTheta[k] && (w[k] > cutOff));
+  }
+  if ((clusterConfig.processingLog >= clusterConfig.info) && (kSelectedInit > kWFilter)) {
+    printf("[filterFitModelOnSmallCharge] remove %d seeds (cutOff=%5.2f)\n",
+           kSelectedInit - kWFilter, cutOff);
+  }
+  return kWFilter;
 }
 
 // Remove the seeds outside of the frame delimiting the cluster.
@@ -1439,7 +1738,7 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
   const double* dx = pads.getDX();
   const double* dy = pads.getDY();
   int N = pads.getNbrOfPads();
-  // compute the frame enclosing the pads Min/Max x/y
+  // Compute the frame enclosing the pads Min/Max x/y
   double xyTmp[N];
   int kSpacialFilter = 0;
   vectorAddVector(x, -1.0, dx, N, xyTmp);
@@ -1462,8 +1761,8 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
     }
   }
 
-  if ((ClusterConfig::fittingLog >= ClusterConfig::info) && (kSpacialFilter != K)) {
-    printf("[filterFitModelOnClusterRegion] ---> Spacial Filter; removing %d hit\n", K - kSpacialFilter);
+  if ((clusterConfig.processingLog >= clusterConfig.info) && (kSpacialFilter != K)) {
+    printf("[filterFitModelOnClusterRegion] ---> Out of the frame; removing %d hit\n", K - kSpacialFilter);
   }
   //
   // W filter
@@ -1484,7 +1783,7 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
     maskFilteredTheta[k] = maskFilteredTheta[k] && (w[k] > cutOff);
     kWFilter += (maskFilteredTheta[k] && (w[k] > cutOff));
   }
-  if ((ClusterConfig::fittingLog >= ClusterConfig::detail) && (kSpacialFilter > kWFilter)) {
+  if ((clusterConfig.processingLog >= clusterConfig.detail) && (kSpacialFilter > kWFilter)) {
     printf(
       "[filterFitModelOnClusterRegion] At least one hit such as w[k] < "
       "(0.05 / K) = %8.4f) -> removing %d hit\n",
@@ -1500,7 +1799,7 @@ int ClusterPEM::filterFitModelOnSpaceVariations(const double* thetaEM, int kEM,
                                                 Mask_t* maskFilteredTheta)
 {
   // Rq: kFit is the same for thetaEM & theta
-  vectorSetShort(maskFilteredTheta, 0, kFit);
+
   int kSpacialFilter = 0;
   //
   // Spatial filter on the theta deplacements
@@ -1536,18 +1835,22 @@ int ClusterPEM::filterFitModelOnSpaceVariations(const double* thetaEM, int kEM,
     // Select Seeds which didn't move with the fitting
     if (((muX[k] > xMin) && (muX[k] < xMax)) &&
         ((muY[k] > yMin) && (muY[k] < yMax))) {
-      maskFilteredTheta[k] = 1;
+      // maskFilteredTheta[k] = 1;
       kSpacialFilter++;
     } else {
-      if (ClusterConfig::processingLog >= ClusterConfig::info) {
+      if (clusterConfig.processingLog >= clusterConfig.info) {
         printf("[filterFitModelOnSpaceVariations] ---> too much drift; deltaX/Y=(%6.2f,%6.2f) ---> k=%3d removed\n",
                muEMX[k] - muX[k], muEMY[k] - muY[k], k);
-        printf("     ??? muEMDx[kMin], muEMDy[kMin] = %f, %f\n", muEMDx[kMin], muEMDy[kMin]);
+        printf("[filterFitModelOnSpaceVariations] ---> too much drift; EM=(%6.2f,%6.2f) dxyEM=(%6.2f,%6.2f) Fit=(%6.2f,%6.2f)\n",
+               muEMX[k], muEMY[k], muEMDx[k], muEMDy[k], muX[k], muY[k]);
+        // printf("     ??? muEMDx[kMin], muEMDy[kMin] = %f, %f\n", muEMDx[kMin], muEMDy[kMin]);
       }
+      // Disable this seeds
+      maskFilteredTheta[k] = 0;
     }
   }
-  if ((ClusterConfig::processingLog >= ClusterConfig::info) && (kSpacialFilter != kFit)) {
-    printf("[filterFitModelOnSpaceVariations] ---> %d hit(s) removed\n", kFit - kSpacialFilter);
+  if ((clusterConfig.processingLog >= clusterConfig.info) && (kSpacialFilter != kFit)) {
+    printf("[filterFitModelOnSpaceVariations] ---> Final filter: %d hit(s) removed\n", kFit - kSpacialFilter);
   }
   //
   // Suppress close seeds ~< 0.5 pad size
@@ -1563,8 +1866,8 @@ int ClusterPEM::filterFitModelOnSpaceVariations(const double* thetaEM, int kEM,
           double maxErrorY = 2.0 * std::fmin(muEMDy[k], muEMDy[l]);
           bool xClose = std::fabs(muX[k] - muX[l]) < maxErrorX;
           bool yClose = std::fabs(muY[k] - muY[l]) < maxErrorY;
-          // printf(" ??? muX k/l= %f, %f, muDX K/l= %f, %f\n",  muX[k], muX[l], muEMDx[k], muEMDx[l]);
-          // printf(" ??? muY k/l= %f, %f, muDY K/l= %f, %f\n",  muY[k], muY[l], muEMDy[k], muEMDy[l]);
+          // printf(" ??? Close seeds muX k/l= %f, %f, muDX K/l= %f, %f\n",  muX[k], muX[l], muEMDx[k], muEMDx[l]);
+          // printf(" ??? Close seeds muY k/l= %f, %f, muDY K/l= %f, %f\n",  muY[k], muY[l], muEMDy[k], muEMDy[l]);
           if (xClose && yClose) {
             // Supress the weakest weight
             if (w[k] > w[l]) {
@@ -1580,9 +1883,9 @@ int ClusterPEM::filterFitModelOnSpaceVariations(const double* thetaEM, int kEM,
     }
   }
   int kCloseFilter = vectorSumShort(maskFilteredTheta, kFit);
-  if (ClusterConfig::processingLog >= ClusterConfig::info && (kSpacialFilter > kCloseFilter)) {
+  if (clusterConfig.processingLog >= clusterConfig.info && (kSpacialFilter > kCloseFilter)) {
     printf(
-      "[filterFitModelOnSpaceVariations] ---> removing %d close seeds\n",
+      "[filterFitModelOnSpaceVariations] ---> Close seeds: removed %d close seeds\n",
       kSpacialFilter - kCloseFilter);
   }
   return kCloseFilter;
@@ -1592,23 +1895,8 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
 {
   int nbrCath0 = getNbrOfPads(0);
   int nbrCath1 = getNbrOfPads(1);
-  /*
-  // ??? (111) Invalid fiting
-  // Build the mask to handle pads with the g-group
-  Mask_t maskFit0[nbrCath0];
-  Mask_t maskFit1[nbrCath1];
-  Mask_t *maskFit[2] = {maskFit0, maskFit1};
-  // printf(" ???? nbrCath0=%d, nbrCath1=%d\n", nbrCath0, nbrCath1);
-  // Ne laplacian ??? getMaskCathToGrpFromProj( g, maskFit0, maskFit1, nbrCath0,
-  nbrCath1); vectorBuildMaskEqualShort( pads[0]->cath, g, nbrCath0, maskFit0);
-  vectorBuildMaskEqualShort( pads[1]->cath, g, nbrCath1, maskFit1);
-  // vectorPrintShort("maskFit0", maskFit0, nbrCath0);
-  // vectorPrintShort("maskFit1", maskFit1, nbrCath1);
-  int nFits[2];
-  nFits[1] = vectorSumShort( maskFit1, nbrCath1);
-  nFits[0] = vectorSumShort( maskFit0, nbrCath0);
-  */
   int nFit = nbrCath0 + nbrCath1;
+  int nObsFit = getNbrOfObsPads();
   // double *xyDxyFit;
   // double *qFit;
   int filteredK = 0;
@@ -1616,7 +1904,82 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
   // ThetaFit (output)
   double* thetaFit = new double[kInit * 5];
   vectorSet(thetaFit, 0, kInit * 5);
-  if (nFit < ClusterConfig::nbrOfPadsLimitForTheFitting) {
+  int nX(0), nY(0);
+  if (nbrOfCathodePlanes == 1) {
+    std::pair<int, int> nXY = getNxNy(singleCathPlaneID);
+    nX = nXY.first;
+    nY = nXY.second;
+  }
+  /*
+    else if( getNbrOfObsPads(0) + getNbrOfObsPads(1) < 5 ) {
+    // ??? maybe to perform before LocalMax
+    std::pair<int,int> nXY0 = getNxNy(0);
+    std::pair<int,int> nXY1 = getNxNy(1);
+    int n
+    if( (nXY0.second == 1) && (nXY1.first == 1) ) {
+
+    }
+  }
+  */
+  // Parameters dimensionality - Default (w,x, y)
+  int dimOfParameters = 3;
+  // Which axe to perform the fitting x(axe=0) or y(axe=1) or both (axe=-1)
+  int axe = -1;
+
+  Pads* fitPads = nullptr;
+
+  if ((kInit == 1) && (nbrOfCathodePlanes == 1)) {
+    // Get the Charge centroid to go closer to the seed
+    std::pair<double, double> bary = computeChargeBarycenter(singleCathPlaneID);
+    double* muX = getMuX(thetaInit, kInit);
+    double* muY = getMuY(thetaInit, kInit);
+    // double *w = getW(thetaInit, kInit);
+    muX[0] = bary.first;
+    muY[0] = bary.second;
+  }
+  if (clusterConfig.processingLog >= clusterConfig.info) {
+    printf("fit nbrCath=%d nbrPads=(%d, %d) nbrObsPads=(%d, %d) nX/Y=(%d, %d)\n",
+           nbrOfCathodePlanes, getNbrOfPads(0), getNbrOfPads(1),
+           getNbrOfObsPads(0), getNbrOfObsPads(1), nX, nY);
+  }
+  // Simple cases
+  if ((nbrOfCathodePlanes == 1) && ((nX == 1) || (nY == 1))) {
+    dimOfParameters = 2;
+    // axe to fit
+    axe = (nX == 1) ? 1 : 0;
+    fitPads = pads[singleCathPlaneID];
+    pads[singleCathPlaneID]->setCathodes(singleCathPlaneID);
+
+  } else {
+    // Concatenate the 2 planes of the subCluster For the fitting
+    fitPads = new Pads(pads[0], pads[1], Pads::PadMode::xydxdyMode);
+  }
+  // Compute the barycenter to speed
+  /*
+  double xBary(0), yBary(0), wCharges(0);
+  for(int c=0; c <2; c++) {
+    if ( getNbrOfPads(c) > 0) {
+      const double *charges = getCharges(c);
+      const double *X = getPads(c)->getX();
+      const double *Y = getPads(c)->getY();
+      for (int p=0; p < getNbrOfPads(c); p++) {
+        xBary +=  charges[p] * X[p];
+        yBary +=  charges[p] * Y[p];
+        wCharges += charges[p];
+      }
+    }
+  }
+  xBary = xBary / wCharges;
+  yBary = yBary / wCharges;
+  double *muX = getMuX(thetaFit, kInit);
+  double *muY = getMuY(thetaFit, kInit);
+  double *w = getW(thetaFit, kInit);
+  muX[0] = xBary;
+  muY[0] = yBary;
+  w[0] = 1.0;
+  finalK = 1;
+  */
+  if ((nObsFit > 1) && (nObsFit < clusterConfig.nbrOfPadsLimitForTheFitting)) {
     //
     // Preparing the fitting
     //
@@ -1628,46 +1991,55 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
     */
     //
 
-    // Concatenate the 2 planes of the subCluster For the fitting
-    Pads* fitPads = new Pads(pads[0], pads[1], Pads::xydxdyMode);
+    // ??? Pads::printPads("Pads for fitting", *fitPads);
     // khi2 (output)
     double khi2[1];
     // pError (output)
-    double pError[3 * kInit * 3 * kInit];
-    if (ClusterConfig::fittingLog >= ClusterConfig::detail) {
+    // double pError[3 * kInit * 3 * kInit];
+    double pError[dimOfParameters * kInit * dimOfParameters * kInit];
+    if (clusterConfig.fittingLog >= clusterConfig.detail) {
       printf("Starting the fitting\n");
       printf("- # cath0, cath1 for fitting: %2d %2d\n", getNbrOfPads(0),
              getNbrOfPads(1));
       printTheta("- thetaInit", 1.0, thetaInit, kInit);
     }
     // Fit
-    if ((kInit * 3 - 1) <= nFit) {
+    if ((kInit * dimOfParameters - 1) <= nFit) {
+      // if ((kInit * 3 - 1) <= nFit) {
       /*
       fitMathieson( thetaInit, xyDxyFit, qFit, cathFit, notSaturatedFit,
       zCathTotalCharge, K, nFit, chamberId, processFitVerbose, thetaFit, khi2,
       pError
                 );
       */
-      fitMathieson(*fitPads, thetaInit, kInit, processFitVerbose, thetaFit,
+      fitMathieson(*fitPads, thetaInit, kInit, dimOfParameters, axe, processFitVerbose, thetaFit,
                    khi2, pError);
     } else {
-      printf("---> Fitting parameters to large : k=%d, 3k-1=%d, nFit=%d\n",
-             kInit, kInit * 3 - 1, nFit);
+      printf("---> Fitting parameters to large : k=%d, (3 or 2)*k-1=%d, nFit=%d\n",
+             kInit, kInit * dimOfParameters - 1, nFit);
       printf("     keep the EM solution\n");
       vectorCopy(thetaInit, kInit * 5, thetaFit);
     }
-    if (ClusterConfig::fittingLog >= ClusterConfig::info) {
+    if (clusterConfig.fittingLog >= clusterConfig.info) {
       printTheta("- thetaFit", 1.0, thetaFit, kInit);
     }
     // Filter Fitting solution
     Mask_t maskFilterFit[kInit];
+    // select all
+    vectorSetShort(maskFilterFit, 1, kInit);
+    int filteredK(0);
     // filteredK =
     //   filterFitModelOnClusterRegion(*fitPads, thetaFit, kInit, maskFilterFit);
-    int filteredK = filterFitModelOnSpaceVariations(thetaInit, kInit,
-                                                    thetaFit, kInit, maskFilterFit);
+
+    // WARNING: can't used because of the fitting permutation
+    // filteredK = filterFitModelOnSpaceVariations( thetaInit, kInit,
+    //                                              thetaFit, kInit, maskFilterFit);
+    // Remove small Cluster Charge
+    filteredK = filterFitModelOnSmallChargedSeeds(*fitPads, thetaFit, kInit,
+                                                  maskFilterFit);
     double filteredTheta[5 * filteredK];
     if ((filteredK != kInit) && (nFit >= filteredK)) {
-      if (ClusterConfig::fittingLog >= ClusterConfig::info) {
+      if (clusterConfig.fittingLog >= clusterConfig.info) {
         printf("Filtering the fitting K=%d >= K=%d\n", nFit, filteredK);
         // ??? Inv printTheta("- filteredTheta", filteredTheta, filteredK);
       }
@@ -1675,22 +2047,17 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
         maskedCopyTheta(thetaFit, kInit, maskFilterFit, kInit, filteredTheta,
                         filteredK);
         /*
-        fitMathieson( filteredTheta, xyDxyFit, qFit, cathFit, notSaturatedFit,
-                    zCathTotalCharge, filteredK, nFit,
-                    chamberId, processFit,
-                    filteredTheta, khi2, pError
-                  );
-        */
-        fitMathieson(*fitPads, filteredTheta, filteredK, processFitVerbose,
+        fitMathieson(*fitPads, filteredTheta, filteredK, dimOfParameters, axe, processFitVerbose,
                      filteredTheta, khi2, pError);
         delete[] thetaFit;
         thetaFit = new double[filteredK * 5];
+         */
         copyTheta(filteredTheta, filteredK, thetaFit, filteredK, filteredK);
         finalK = filteredK;
       } else {
         // No hit with the fitting
-        vectorCopy(thetaInit, kInit * 5, thetaFit);
-        finalK = kInit;
+        // ???? vectorCopy(thetaInit, kInit * 5, thetaFit);
+        finalK = 0;
       }
     } else {
       // ??? InvvectorCopy( thetaFit, K*5, thetaFitFinal);
@@ -1698,15 +2065,17 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
       finalK = kInit;
     }
   } else {
-    // Keep "thetaInit
-    if (ClusterConfig::fittingLog >= ClusterConfig::info) {
-      printf(
-        "[Cluster.fit] Keep the EM Result: nFit=%d >= "
-        "nbrOfPadsLimitForTheFitting=%d\n",
-        nFit, ClusterConfig::nbrOfPadsLimitForTheFitting);
+    // Keep "thetaInit (not enough pads)
+    // or only one pad
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf("[Cluster.fit] nbrOfPadsLimit reach. Keep the EM Result: nFit=%d >= nbrOfPadsLimitForTheFitting=%d\n",
+             nFit, clusterConfig.nbrOfPadsLimitForTheFitting);
     }
     vectorCopy(thetaInit, kInit * 5, thetaFit);
     finalK = kInit;
+  }
+  if (axe == -1) {
+    delete fitPads;
   }
   return std::make_pair(finalK, thetaFit);
 }
@@ -1768,7 +2137,7 @@ int ClusterPEM::renumberGroups(Mask_t* grpToGrp, int nGrp)
     }
   }
   int newNbrGroups = currentGrp;
-  if (ClusterConfig::groupsLog >= ClusterConfig::info) {
+  if (clusterConfig.groupsLog >= clusterConfig.info) {
     printf("> Groups renumbering [renumberGroups] newNbrGroups=%d\n",
            newNbrGroups);
     vectorPrintShort("  cath0ToGrp", cathGroup[0], pads[0]->getNbrOfPads());
@@ -1777,7 +2146,578 @@ int ClusterPEM::renumberGroups(Mask_t* grpToGrp, int nGrp)
   return newNbrGroups;
 }
 
+Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheGroupCath)
+{
+
+  /// ??? Verify if not already done
+  // Already done if 1 group
+  Pads* cath0 = pads[0];
+  Pads* cath1 = pads[1];
+  Pads* projPads = projectedPads;
+  // Compute the charge weight of each cathode
+  double cWeight0 = getTotalCharge(0);
+  double cWeight1 = getTotalCharge(1);
+  double preClusterCharge = cWeight0 + cWeight1;
+  cWeight0 /= preClusterCharge;
+  cWeight1 /= preClusterCharge;
+  int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
+  double dxMinPadSize = 1000.0;
+  double dyMinPadSize = 1000.0;
+  double minDY[2] = {1000.0, 1000.0};
+  int n0 = getNbrOfObsPads(0);
+  int n1 = getNbrOfObsPads(1);
+  if (n0) {
+    dxMinPadSize = vectorMin(cath0->getDX(), n0);
+  }
+  if (n1) {
+    dyMinPadSize = vectorMin(cath1->getDY(), n1);
+  }
+  //
+  int chId = chamberId;
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
+    printf("  - [findLocalMaxWithRefinement]\n");
+  }
+
+  // Over allocate pixel for the refinement
+  int maxNbrOfPixels = 4 * projPads->getNbrOfPads();
+  // Call constructor with maxNbrOfPixels over allocation
+  Pads* pixels = new Pads(projPads, maxNbrOfPixels);
+  int nPixels = pixels->getNbrOfPads();
+  // Merge pads of the 2 cathodes
+  // TODO ??? : see if it can be once with Fitting (see fitPads)
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
+  int nPads = mergedPads->getNbrOfPads();
+  // Local maximum locations
+  Pads* localMax = nullptr;
+  Pads* saveLocalMax = nullptr;
+  std::pair<double, double> chi2;
+  int dof, nParameters;
+  // Pixel initilization
+  // Rq: the charge projection is not used
+  pixels->setCharges(1.0);
+  // The field saturate is use to tag pixels as already refined
+  pixels->setSaturate(0);
+  // Init Cij
+  double* Cij = new double[nPads * maxNbrOfPixels];
+  // ??? to be removed : MaskCij Not used
+  // MaskCij: Used to disable Cij contribution (disable pixels)
+  Mask_t* maskCij = new Mask_t[nPads * maxNbrOfPixels];
+  // Compute pad charge (xyInfSup mode) induced with a set of charge (the pixels)
+  // computeCij(*mergedPads, *pixels, Cij);
+  computeFastCij(*mergedPads, *pixels, Cij);
+
+  //
+  // Check computeFastCij
+  if (clusterConfig.mathiesonCheck) {
+    // Mode abort (-1)
+    checkCij(*mergedPads, *pixels, Cij, -1);
+  }
+
+  // Init loop
+  int nbrLocalMax = 0;
+  int nbrPrevLocalMax = 0;
+  double previousCriterion = DBL_MAX;
+  double criterion = DBL_MAX;
+  bool goon = true;
+  int macroIt = 0;
+  if (clusterConfig.processingLog >= clusterConfig.info) {
+    printf(
+      "    Macro  nParam    ndof   ndof   chi2 chi2/ndof chi2/ndof chi2/ndof chi2/ndof  ch2/ndof\n"
+      "     It.      -     cath0   cath1    -       -       cath-0    cath-1   sum 0/1  weight-sum\n");
+  }
+
+  while (goon) {
+    // Save previous local maxima and the criterion
+    if (localMax != nullptr) {
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
+    }
+    previousCriterion = criterion;
+
+    chi2 =
+      PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, 0, minPadResidues[macroIt],
+                    nIterations[macroIt]);
+    // Obsolete
+    // localMax = pixels->clipOnLocalMax(true);
+
+    // Find local maxima and set the pixel to be refined in newPixelIdx
+    std::vector<PadIdx_t> newPixelIdx;
+    localMax = pixels->extractLocalMax(newPixelIdx, dxMinPadSize, dyMinPadSize);
+    nbrLocalMax = newPixelIdx.size();
+    // Debug
+    if (0) {
+      for (int t = 0; t < newPixelIdx.size(); t++) {
+        int idx = newPixelIdx[t];
+        printf("  localMax idx=%d, xy(%f, %f), q[idx]=%f, localMax.q[t]=%f max(pixels)=%f \n",
+               idx, pixels->getX()[idx], pixels->getY()[idx], pixels->getCharges()[idx], localMax->getCharges()[t], vectorMax(pixels->getCharges(), pixels->getNbrOfPads()));
+      }
+    }
+    nParameters = localMax->getNbrOfPads();
+    dof = nMaxPads - 3 * nParameters + 1;
+    if (dof == 0) {
+      dof = 1;
+    }
+    double chi20 = chi2.first;
+    double chi21 = chi2.second;
+    int ndof0, ndof1;
+    if (1) {
+      ndof0 = getNbrOfPads(0) - 3 * nParameters + 1;
+      ndof1 = getNbrOfPads(1) - 3 * nParameters + 1;
+    } else {
+      ndof0 = getNbrOfObsPads(0) - 3 * nParameters + 1;
+      ndof1 = getNbrOfObsPads(1) - 3 * nParameters + 1;
+    }
+    // printf("??? ndof0/1=%d %d \n", ndof0, ndof1);
+    if ((ndof0 <= 0) && (ndof1 <= 0)) {
+      // No good discriminant
+      // Force ndofx = 1
+      ndof0 = 1;
+      ndof1 = 1;
+    }
+    // ndofx <=0, deseable the cathode contribution
+    if (ndof0 <= 0) {
+      ndof0 = 1;
+      cWeight0 = 0.0;
+      cWeight1 = 1.0;
+    }
+    if (ndof1 <= 0.) {
+      ndof1 = 1;
+      cWeight0 = 1.0;
+      cWeight1 = 0.0;
+    }
+
+    // Model selection criteriom (nbre of parameters/seeds)
+    // criteriom0 = fabs( (chi20+chi21 / dof));
+    // criteriom1 = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
+    // printf( "??? cWeight0=%f, cWeight1=%f\n", cWeight0, cWeight1);
+    criterion = cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1);
+    // Inv ??? 2       2   5272.16     14.24     12.73     10.86     23.59     11.93
+    //         3       3   4389.29     13.81     12.25     12.52     24.76     12.36
+
+    // printf( " ??? cWeight0=%f, sqrt(chi20 / ndof0)=%f, cWeight1=%f, sqrt(chi21 / ndof1)=%f\n", cWeight0, sqrt(chi20 / ndof0), cWeight1, sqrt(chi21 / ndof1));
+
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf(
+        "     %2d    %3d   %3d    %3d   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f\n",
+        macroIt, nParameters, ndof0, ndof1, chi20 + chi21, sqrt((chi20 + chi21) / dof),
+        sqrt(chi20 / ndof0), sqrt(chi21 / ndof1),
+        sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1),
+        criterion);
+    }
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
+      inspectSavePixels(macroIt, *pixels);
+    }
+
+    // printf("Before refinement pixel.nPads=%d\n", pixels->getNbrOfPads());
+    pixels->refineLocalMaxAndUpdateCij(*mergedPads, newPixelIdx, Cij);
+    // printf("After refinement pixel.nPads=%d\n", pixels->getNbrOfPads());
+    if (clusterConfig.mathiesonCheck) {
+      checkCij(*mergedPads, *pixels, Cij, -1);
+    }
+
+    macroIt++;
+    goon =
+      ((criterion < 1.0 * previousCriterion) || (macroIt < 3)) && (macroIt < nMacroIterations);
+    // (criterion < 1.0 * previousCriterion) && (macroIt < nMacroIterations);
+    // ((criteriom < 1.0 * previousCriteriom) || ( nbrLocalMax > nbrPrevLocalMax)) && (macroIt < nMacroIterations);
+    nbrPrevLocalMax = nbrLocalMax;
+  }
+  /// with refinement ???
+  // delete pixels;
+  if (criterion < 1.0 * previousCriterion) {
+    delete saveLocalMax;
+  } else {
+    delete localMax;
+    localMax = saveLocalMax;
+  }
+
+  delete[] Cij;
+  delete[] maskCij;
+  return localMax;
+}
+
+Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInTheGroupCath)
+{
+
+  /// ??? Verify if not already done
+  // Already done if 1 group
+  Pads* cath0 = pads[0];
+  Pads* cath1 = pads[1];
+  Pads* projPads = projectedPads;
+  // Compute the charge weight of each cathode
+  double cWeight0 = getTotalCharge(0);
+  double cWeight1 = getTotalCharge(1);
+  double preClusterCharge = cWeight0 + cWeight1;
+  cWeight0 /= preClusterCharge;
+  cWeight1 /= preClusterCharge;
+  double dxMinPadSize, dyMinPadSize;
+  int n0 = getNbrOfObsPads(0);
+  int n1 = getNbrOfObsPads(1);
+  if (n0) {
+    dxMinPadSize = 0.5 * vectorMin(cath0->getDX(), n0);
+  }
+  if (n1) {
+    dyMinPadSize = 0.5 * vectorMin(cath1->getDY(), n1);
+  }
+  // Choose ???
+  dxMinPadSize = 1.0e-4;
+  dyMinPadSize = 1.0e-4;
+  //
+  int chId = chamberId;
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
+    printf("  - [findLocalMaxWithoutRefinement]\n");
+  }
+
+  int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
+
+  // ??? To Optimize/debug
+  // Pads* pixels = projPads->refinePads();
+  // Pads* pixels = projPads;
+
+  // Over allocate pixel for the refinement
+  int maxNbrOfPixels = projPads->getNbrOfPads();
+  if (maxNbrOfPixels == 0) {
+    throw std::out_of_range("[findLocalMaxWithoutRefinement] No projected pads");
+  }
+  // Call constructor with maxNbrOfPixels over allocation
+  Pads* pixels = new Pads(projPads, maxNbrOfPixels);
+  int nPixels = pixels->getNbrOfPads();
+  // Merge pads of the 2 cathodes
+  // TODO ??? : see if it can be once with Fitting (see fitPads)
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
+  int nPads = mergedPads->getNbrOfPads();
+  // ??? printf("    nbr merged pads = %d\n", nPads);
+  // Local maximum locations
+  Pads* localMax = nullptr;
+  Pads* saveLocalMax = nullptr;
+  std::pair<double, double> chi2;
+  int dof, nParameters;
+  // Pixel initilization
+  // Rq: the charge projection is not used
+  pixels->setCharges(1.0);
+  // The field saturate is use to tag pixels as already refined
+  pixels->setSaturate(0);
+  // Init Cij
+  double* Cij = new double[nPads * maxNbrOfPixels];
+  // ??? to be removed : MaskCij Not used
+  // MaskCij: Used to disable Cij contribution (disable pixels)
+  Mask_t* maskCij = new Mask_t[nPads * maxNbrOfPixels];
+  // Compute pad charge (xyInfSup mode) induced with a set of charge (the pixels)
+  // computeCij(*mergedPads, *pixels, Cij);
+  computeFastCij(*mergedPads, *pixels, Cij);
+
+  //
+  // Check computeFastCij
+  if (clusterConfig.mathiesonCheck) {
+    // Mode abort (-1)
+    checkCij(*mergedPads, *pixels, Cij, -1);
+  }
+
+  // Init loop
+  int nbrLocalMax = 0;
+  int nbrPrevLocalMax = 0;
+  double previousCriterion = DBL_MAX;
+  double criterion = DBL_MAX;
+  bool goon = true;
+  int macroIt = 0;
+  if (clusterConfig.processingLog >= clusterConfig.info) {
+    printf(
+      "    Macro  nParam    ndof   ndof   chi2 chi2/ndof chi2/ndof chi2/ndof chi2/ndof  ch2/ndof\n"
+      "     It.      -     cath0   cath1    -       -       cath-0    cath-1   sum 0/1  weight-sum\n");
+  }
+
+  int nTotalIterations = nPads / 10;
+  int chunk = ceil(float(nTotalIterations) / (nMacroIterations + 1));
+  chunk = std::min(chunk, 5);
+  for (int it = 0; it < nMacroIterations; it++) {
+    nIterations[it] = (it + 1) * chunk;
+  }
+  nIterations[nMacroIterations - 1] += chunk;
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
+    printf("    Macro Iterations: nIterations[0, 1, ..,nMacroIterations-1] = [%d, %d, ..., %d] \n",
+           nIterations[0], nIterations[1], nIterations[nMacroIterations - 1]);
+  }
+  chi2 = PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, 0, 0,
+                       10);
+  while (goon) {
+    // Save previous local maxima and the criterion
+    if (localMax != nullptr) {
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
+    }
+    previousCriterion = criterion;
+
+    chi2 =
+      // PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, 0, minPadResidues[macroIt],
+      //              nIterations[macroIt]);
+      PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, 0, 0,
+                    10);
+    // Obsolete
+    // localMax = pixels->clipOnLocalMax(true);
+
+    // Find local maxima and set the pixel to be refined in newPixelIdx
+    std::vector<PadIdx_t> newPixelIdx;
+    localMax = pixels->extractLocalMaxOnCoarsePads_Remanent(newPixelIdx, dxMinPadSize, dyMinPadSize);
+    // localMax = pixels->extractLocalMaxOnCoarsePads_Remanent( newPixelIdx, -1., -1.);
+    // localMax = pixels->extractLocalMaxOnCoarsePads( newPixelIdx);
+    nbrLocalMax = newPixelIdx.size();
+    // Debug
+    if (0) {
+      for (int t = 0; t < newPixelIdx.size(); t++) {
+        int idx = newPixelIdx[t];
+        printf("  localMax idx=%d, xy(%f, %f), q[idx]=%f, localMax.q[t]=%f max(pixels)=%f \n",
+               idx, pixels->getX()[idx], pixels->getY()[idx], pixels->getCharges()[idx], localMax->getCharges()[t], vectorMax(pixels->getCharges(), pixels->getNbrOfPads()));
+      }
+    }
+    nParameters = localMax->getNbrOfPads();
+    dof = nMaxPads - 3 * nParameters + 1;
+    if (dof == 0) {
+      dof = 1;
+    }
+    double chi20 = chi2.first;
+    double chi21 = chi2.second;
+    int ndof0, ndof1;
+    if (1) {
+      ndof0 = getNbrOfPads(0) - 3 * nParameters + 1;
+      ndof1 = getNbrOfPads(1) - 3 * nParameters + 1;
+    } else {
+      ndof0 = getNbrOfObsPads(0) - 3 * nParameters + 1;
+      ndof1 = getNbrOfObsPads(1) - 3 * nParameters + 1;
+    }
+    // printf("??? ndof0/1=%d %d \n", ndof0, ndof1);
+    if ((ndof0 <= 0) && (ndof1 <= 0)) {
+      // No good discriminant
+      // Force ndofx = 1
+      ndof0 = 1;
+      ndof1 = 1;
+    }
+    // ndofx <=0, deseable the cathode contribution
+    if (ndof0 <= 0) {
+      ndof0 = 1;
+      cWeight0 = 0.0;
+      cWeight1 = 1.0;
+    }
+    if (ndof1 <= 0.) {
+      ndof1 = 1;
+      cWeight0 = 1.0;
+      cWeight1 = 0.0;
+    }
+
+    // Model selection criteriom (nbre of parameters/seeds)
+    // criteriom0 = fabs( (chi20+chi21 / dof));
+    // criteriom1 = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
+    // printf( "??? cWeight0=%f, cWeight1=%f\n", cWeight0, cWeight1);
+    criterion = cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1);
+    // Inv ??? 2       2   5272.16     14.24     12.73     10.86     23.59     11.93
+    //         3       3   4389.29     13.81     12.25     12.52     24.76     12.36
+
+    // printf( " ??? cWeight0=%f, sqrt(chi20 / ndof0)=%f, cWeight1=%f, sqrt(chi21 / ndof1)=%f\n", cWeight0, sqrt(chi20 / ndof0), cWeight1, sqrt(chi21 / ndof1));
+
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf(
+        "     %2d    %3d   %3d    %3d   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f\n",
+        macroIt, nParameters, ndof0, ndof1, chi20 + chi21, sqrt((chi20 + chi21) / dof),
+        sqrt(chi20 / ndof0), sqrt(chi21 / ndof1),
+        sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1),
+        criterion);
+    }
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
+      inspectSavePixels(macroIt, *pixels);
+    }
+
+    macroIt++;
+    goon =
+      ((criterion < 1.0 * previousCriterion) && (macroIt < nMacroIterations));
+    //((criterion < 1.0 * previousCriterion) || (macroIt  < 3)) && (macroIt < nMacroIterations) ;
+    // (criterion < 1.0 * previousCriterion) && (macroIt < nMacroIterations);
+    // ((criteriom < 1.0 * previousCriteriom) || ( nbrLocalMax > nbrPrevLocalMax)) && (macroIt < nMacroIterations);
+    nbrPrevLocalMax = nbrLocalMax;
+  }
+  /// with refinement ???
+  // delete pixels;
+  if (criterion < 1.0 * previousCriterion) {
+    delete saveLocalMax;
+  } else {
+    delete localMax;
+    localMax = saveLocalMax;
+  }
+
+  delete[] Cij;
+  delete[] maskCij;
+  return localMax;
+}
+
 int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
+{
+
+  /// ??? Verify if not already done
+  // Already done if 1 group
+  Pads* cath0 = pads[0];
+  Pads* cath1 = pads[1];
+  Pads* projPads = projectedPads;
+
+  // Compute the charge weight of each cathode
+  double cWeight0 = getTotalCharge(0);
+  double cWeight1 = getTotalCharge(1);
+  double clusterCharge = cWeight0 + cWeight1;
+  cWeight0 /= clusterCharge;
+  cWeight1 /= clusterCharge;
+  //
+  int chId = chamberId;
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
+    printf("  - [findLocalMaxWithPEM]\n");
+  }
+  //
+  // Trivial cluster : only 1 pads
+  //
+  // ??? if (projPads->getNbrOfPads() == 1) {
+  if (getNbrOfPads() == 1) {
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf("    Trivial case: only one pad\n");
+    }
+    // Return the unique local maximum : the center of the pads
+    double* w = getW(thetaL, nbrOfPadsInTheGroupCath);
+    double* muX = getMuX(thetaL, nbrOfPadsInTheGroupCath);
+    double* muY = getMuY(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDX = getVarX(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDY = getVarY(thetaL, nbrOfPadsInTheGroupCath);
+    w[0] = 1.0;
+    muX[0] = projPads->getX()[0];
+    muY[0] = projPads->getY()[0];
+    muDX[0] = projPads->getDX()[0] * 0.5;
+    muDY[0] = projPads->getDY()[0] * 0.5;
+    // Return 0 seed if cluster < minClusterCharge
+    return (clusterCharge < clusterConfig.minChargeOfClusterPerCathode) ? 0 : 1;
+  }
+  Pads* localMax = nullptr;
+
+  // int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
+
+  //
+  double minDX[2] = {1000.0, 1000.0};
+  double minDY[2] = {1000.0, 1000.0};
+  int n0 = getNbrOfObsPads(0);
+  int n1 = getNbrOfObsPads(1);
+  if (n0) {
+    minDX[0] = vectorMin(cath0->getDX(), n0);
+    minDY[0] = vectorMin(cath0->getDY(), n0);
+  }
+  if (n1) {
+    minDX[1] = vectorMin(cath1->getDX(), n1);
+    minDY[1] = vectorMin(cath1->getDY(), n1);
+  }
+
+  // Large pads > 10.0
+  bool largePads = (minDX[0] > 3.5) || (minDY[1] > 3.5);
+  if (largePads) {
+    // printf("??? minDXY %f %f without refinement \n", minDX, minDY);
+    localMax = findLocalMaxWithoutRefinement(thetaL, nbrOfPadsInTheGroupCath);
+  } else {
+    // printf("??? minDXY %f %f with refinement\n", minDX, minDY);
+    localMax = findLocalMaxWithRefinement(thetaL, nbrOfPadsInTheGroupCath);
+  }
+  // Debug ???
+  /*
+  for (int k = 0; k < localMax->getNbrOfPads(); k++) {
+    printf("findLocalMax ??? k=%d q=%f,  XY=%f,%f \n", k,
+            localMax->getCharges()[k], localMax->getX()[k],localMax->getY()[k]);
+  }
+  */
+  //
+  // Select local Max
+  // Remove local Max < 0.01 * max(LocalMax)
+  //
+  //
+  // NOT USED ???
+  //
+  if (0) {
+    double cutRatio = 0.01;
+    double qCut =
+      cutRatio * vectorMax(localMax->getCharges(), localMax->getNbrOfPads());
+    int k = 0;
+    double qSum = 0.0;
+    // Remove the last hits if > (nMaxPads +1) / 3
+    int nMaxSolutions =
+      int((std::max(getNbrOfPads(0), getNbrOfPads(1)) + 1.0) / 3.0);
+    // if (nMaxSolutions < 1) {
+    //     nMaxSolutions = 1;
+    //}
+    // To avoid 0 possibility and give more inputs to the fitting
+    nMaxSolutions += 1;
+    int removedLocMax = localMax->getNbrOfPads();
+
+    if (localMax->getNbrOfPads() > nMaxSolutions) {
+      if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
+        printf("seed selection: nbr Max parameters =%d, nLocMax=%d\n",
+               nMaxSolutions, localMax->getNbrOfPads());
+        printf(
+          "seed selection: Reduce the nbr of solutions to fit: Take %d/%d "
+          "solutions\n",
+          nMaxSolutions, localMax->getNbrOfPads());
+      }
+      int index[localMax->getNbrOfPads()];
+      for (int k = 0; k < localMax->getNbrOfPads(); k++) {
+        index[k] = k;
+      }
+      const double* qLocalMax = localMax->getCharges();
+      std::sort(index, &index[localMax->getNbrOfPads()],
+                [=](int a, int b) { return (qLocalMax[a] > qLocalMax[b]); });
+      // Reoder
+      qCut = qLocalMax[index[nMaxSolutions - 1]] - 1.e-03;
+    } else {
+      qCut = 0.70 * clusterConfig.minChargeOfClusterPerCathode;
+    }
+  }
+
+  // Suppress local max with charge > 70 % of min Charge of a cluster/seeds
+  double cutRatio = 0.7;
+  cutRatio = largePads ? 0.0 : cutRatio;
+  // Local max Charge normalization
+  // double coef = ( (getNbrOfPads(0) == 0) || (getNbrOfPads(0) == 0) ) ? 1.0 : 0.5
+  // double meanCharge = coef * (getTotalCharge(0) + getTotalCharge(1));
+  double qPadMax = getMaxCharge();
+  double qPixMax = vectorMax(localMax->getCharges(), localMax->getNbrOfPads());
+  double qCut = cutRatio * clusterConfig.minChargeOfClusterPerCathode * qPixMax / qPadMax;
+  int k0 = localMax->getNbrOfPads();
+  int k = localMax->removePads(qCut);
+  localMax->normalizeCharges();
+  int removedLocMax = k0 - k;
+  // printf("k0, k %d %d qCut=%f qPixMax=%f qPadMax=%f\n", k0, k, qCut, qPixMax, qPadMax);
+  if (clusterConfig.processingLog >= clusterConfig.info && removedLocMax != 0) {
+    printf(
+      "    > seed selection: Final cut -> %d percent (qcut=%8.2f), number of "
+      "local max removed = %d\n",
+      int(cutRatio * 100), qCut, removedLocMax);
+  }
+
+  // Store the local max
+  int K0 = localMax->getNbrOfPads();
+  int K = std::min(K0, nbrOfPadsInTheGroupCath);
+  double* w = getW(thetaL, nbrOfPadsInTheGroupCath);
+  double* muX = getMuX(thetaL, nbrOfPadsInTheGroupCath);
+  double* muY = getMuY(thetaL, nbrOfPadsInTheGroupCath);
+  double* varX = getVarX(thetaL, nbrOfPadsInTheGroupCath);
+  double* varY = getVarY(thetaL, nbrOfPadsInTheGroupCath);
+  const double* ql = localMax->getCharges();
+  const double* xl = localMax->getX();
+  const double* yl = localMax->getY();
+  const double* dxl = localMax->getDX();
+  const double* dyl = localMax->getDY();
+  for (int k = 0; k < K; k++) {
+    w[k] = ql[k];
+    muX[k] = xl[k];
+    muY[k] = yl[k];
+    varX[k] = dxl[k];
+    varY[k] = dyl[k];
+    if (clusterConfig.processingLog >= clusterConfig.info && removedLocMax != 0) {
+      printf("    k=%d w=%f,  XY=%f,%f varXY=%f,%f\n", k, w[k], muX[k], muY[k], varX[k], varY[k]);
+    }
+  }
+  // printf("K0, K nbrOfPadsInTheGroupCath %d %d %d\n", K0, K, nbrOfPadsInTheGroupCath);
+  delete localMax;
+  return K;
+}
+
+// Without ajusted rafinement
+int ClusterPEM::findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsInTheGroupCath)
 {
 
   /// ??? Verify if not already done
@@ -1793,7 +2733,7 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   cWeight1 /= preClusterCharge;
   //
   int chId = chamberId;
-  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
     printf("  - [findLocalMaxWithPEM]\n");
   }
   // Trivial cluster : only 1 pads
@@ -1812,71 +2752,120 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
     return 1;
   }
   int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
-  Pads* pixels = projPads->refinePads();
+
+  // ??? To Optimize/debug
+  Pads* pixels = projPads->refineAll();
+  // Pads* pixels = projPads;
+  // Reserve place for refinment
+  /*
+  int maxNbrOfPixels = 4*projPads->getNbrOfPads();
+  Pads* pixels = new Pads(projPads, maxNbrOfPixels);
+  printf("pixel allocation %d\n", maxNbrOfPixels);
+  */
   int nPixels = pixels->getNbrOfPads();
   // Merge pads of the 2 cathodes
   // TODO ??? : see if it can be once with Fitting (see fitPads)
-  Pads* mPads = new Pads(pads[0], pads[1], Pads::xyInfSupMode);
-  int nPads = mPads->getNbrOfPads();
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
+  int nPads = mergedPads->getNbrOfPads();
   Pads* localMax = nullptr;
   Pads* saveLocalMax = nullptr;
   std::pair<double, double> chi2;
   int dof, nParameters;
-
+  Pads::printPads("???????? mergedPads", *mergedPads);
   // Pixel initilization
   // Rq: the charge projection is not used
   pixels->setCharges(1.0);
+  // The field saturate is use to tag pixels already refined
+  // no refinment
+  // pixels->setSaturate(0);
   // Init Cij
   double* Cij = new double[nPads * nPixels];
-  // Compute pad charge xyInfSup induiced by a set of charge (the pixels)
-  computeFastCij(*mPads, *pixels, Cij);
-  //
-  // Debug computeFastCij
-  /*
-  double *CijTmp = new double[nPads*nPixels];
-  computeCij( *mPads, *pixels, CijTmp);
-  vectorAddVector( Cij, -1, CijTmp, nPads*nPixels, CijTmp);
-  vectorAbs( CijTmp, nPads*nPixels, CijTmp);
-  double minDiff = vectorMin(CijTmp, nPads*nPixels);
-  double maxDiff = vectorMax(CijTmp, nPads*nPixels);
-  int argMax = vectorArgMax(CijTmp, nPads*nPixels);
-  printf("\n\n nPads, nPixels %d %d\n", nPads, nPixels);
-  printf("\n\n min/max(FastCij-Cij)=%f %f nPads*i+j %d %d\n", minDiff, maxDiff,
-  argMax / nPads, argMax % nPads); delete [] CijTmp;
-  */
+  /// double* Cij = new double[nPads * maxNbrOfPixels];
   // MaskCij: Used to disable Cij contribution (disable pixels)
   Mask_t* maskCij = new Mask_t[nPads * nPixels];
+  // Mask_t* maskCij = new Mask_t[nPads * maxNbrOfPixels];
+  // Compute pad charge xyInfSup induiced by a set of charge (the pixels)
+  computeFastCij(*mergedPads, *pixels, Cij);
+  // computeCij(*mergedPads, *pixels, Cij);
+
+  //
+  // Check computeFastCij
+  /*
+  if (clusterConfig.mathiesonCheck) {
+    double *CijTmp = new double[nPads*nPixels];
+    double *diffCij = new double[nPads*nPixels];
+    computeCij( *mergedPads, *pixels, CijTmp);
+    vectorAddVector( Cij, -1, CijTmp, nPads*nPixels, diffCij);
+    vectorAbs( diffCij, nPads*nPixels, diffCij);
+    double minDiff = vectorMin(diffCij, nPads*nPixels);
+    double maxDiff = vectorMax(diffCij, nPads*nPixels);
+    int argMax = vectorArgMax(diffCij, nPads*nPixels);
+    printf("\n\n nPads, nPixels %d %d\n", nPads, nPixels);
+    int iIdx = argMax / nPads;
+    int jIdx = argMax % nPads;
+    printf("\n\n min/max(FastCij-Cij)=%f %f nPads*i+j %d %d\n", minDiff, maxDiff,
+    iIdx, jIdx);
+    printf("\n FastCij=%f differ from  Cij=%f\n", Cij[iIdx*nPads+jIdx], CijTmp[iIdx*nPads+jIdx]);
+    if ( maxDiff > 1.0e-5) {
+      for( int k=0; k< nPixels; k++) {
+        for( int l=0; l< nPads; l++) {
+          if (diffCij[k*nPads+l] >1.0e-5) {
+            printf("pad=%d pixel=%d FastCij=%f Cij=%f diff=%f\n", l, k, Cij[k*nPads+l], CijTmp[k*nPads+l], diffCij[k*nPads+l]);
+          }
+        }
+      }
+      printf("findLocalMaxWithPEM: WARNING maxDiff(Cij)=%f\n", maxDiff);
+      // throw std::out_of_range(
+      //    "[findLocalMaxWithPEM] bad Cij value");
+    }
+    delete [] CijTmp;
+  }
+  */
+
   // Init loop
 
   double previousCriteriom = DBL_MAX;
   double criteriom = DBL_MAX;
   bool goon = true;
   int macroIt = 0;
-  if (ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.processingLog >= clusterConfig.info) {
     printf(
       "    Macro  nParam    chi2 chi2/ndof chi2/ndof chi2/ndof chi2/ndof  ch2/ndof\n"
       "     It.      -       -       -       cath-0    cath-1   sum 0/1  weight-sum\n");
   }
   while (goon) {
     if (localMax != nullptr) {
-      saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
+    /*
     if (0) {
-      vectorSet(Cij, 0.0, nPads * nPixels);
-      for (int j = 0; j < nPads; j++) {
-        Cij[nPads * j + j] = 1.0;
-        // for (int i = 0; i < nPixels; i++) {
-        //   qPadPrediction[j] += Cij[nPads * i + j] * qPixels[i];
-        // }
-      }
+    vectorSet( Cij, 0.0, nPads*nPixels);
+    for (int j = 0; j < nPads; j++) {
+      Cij[nPads * j + j] = 1.0;
+      // for (int i = 0; i < nPixels; i++) {
+      //   qPadPrediction[j] += Cij[nPads * i + j] * qPixels[i];
+      // }
     }
+    }
+    */
+    int qCutMode = 0;
+    // int qCutMode = -1;
     chi2 =
-      PoissonEMLoop(*mPads, *pixels, Cij, maskCij, 0, minPadResidues[macroIt],
-                    nIterations[macroIt], getNbrOfPads(0));
+      PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, qCutMode, minPadResidues[macroIt],
+                    nIterations[macroIt]);
     // Obsolete
     // localMax = pixels->clipOnLocalMax(true);
-    localMax = pixels->extractLocalMax();
+    std::vector<PadIdx_t> newPixelIdx;
+    localMax = pixels->extractLocalMax(newPixelIdx, 0.0, 0.0);
+    // Debug
+    /*
+    for (int t=0; t < newPixelIdx.size(); t++) {
+      int idx = newPixelIdx[t];
+      printf("localMax idx=%d, xy(%f, %f), q[idx]=%f, localMax.q[t]=%f max(pixels)=%f \n",
+              idx, pixels->getX()[idx], pixels->getY()[idx], pixels->getCharges()[idx], localMax->getCharges()[t],  vectorMax(pixels->getCharges(),  pixels->getNbrOfPads()));
+    }
+    */
     nParameters = localMax->getNbrOfPads();
     dof = nMaxPads - 3 * nParameters + 1;
     double chi20 = chi2.first;
@@ -1897,8 +2886,10 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
     // criteriom1 = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
     // printf( "??? cWeight0=%f, cWeight1=%f\n", cWeight0, cWeight1);
     criteriom = cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1);
+    // Inv ??? 2       2   5272.16     14.24     12.73     10.86     23.59     11.93
+    //         3       3   4389.29     13.81     12.25     12.52     24.76     12.36
 
-    if (ClusterConfig::processingLog >= ClusterConfig::info) {
+    if (clusterConfig.processingLog >= clusterConfig.info) {
       printf(
         "     %2d     %3d   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f\n",
         macroIt, nParameters, chi20 + chi21, sqrt((chi20 + chi21) / dof),
@@ -1906,13 +2897,32 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
         sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1),
         cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1));
     }
-    if (ClusterConfig::inspectModel >= ClusterConfig::active) {
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
       inspectSavePixels(macroIt, *pixels);
     }
+    /*
+    printf("pixels.size=%d\n",  pixels->getNbrOfPads());
+    printf("mergedPads.mode %d, mergedPads.size=%d\n", mergedPads->mode, mergedPads->getNbrOfPads());
+    printf("nexPixelIdx[0;N-1]=(%d, %d) localMax->nPads=%d\n",
+            newPixelIdx[0], newPixelIdx[newPixelIdx.size()-1],
+            localMax->getNbrOfPads()
+            );
+    // pixels->refinePads( *localMax, newPixelIdx);
+    printf("pixels.size=%d\n",  pixels->getNbrOfPads());
+    printf("mergedPads.mode %d, mergedPads.size=%d\n", mergedPads->mode, mergedPads->getNbrOfPads());
+    printf("nexPixelIdx[0;N-1]=(%d, %d) localMax->nPads=%d\n",
+            newPixelIdx[0], newPixelIdx[newPixelIdx.size()-1],
+            localMax->getNbrOfPads()
+            );
+    */
+    // pixel->padCenterToBounds();
+    // computeFastCij(*mergedPads, *pixels, Cij);
     macroIt++;
+    printf(" min/max, %g, %g \n", vectorMin(pixels->getCharges(), nPixels), vectorMax(pixels->getCharges(), nPixels));
     goon =
-      (criteriom < 1.01 * previousCriteriom) && (macroIt < nMacroIterations);
+      (criteriom < 1.0 * previousCriteriom) && (macroIt < nMacroIterations);
   }
+  /// with refinement ???
   delete pixels;
   if (criteriom < 1.01 * previousCriteriom) {
     delete saveLocalMax;
@@ -1942,7 +2952,7 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   int removedLocMax = localMax->getNbrOfPads();
 
   if (localMax->getNbrOfPads() > nMaxSolutions) {
-    if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
+    if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
       printf("seed selection: nbr Max parameters =%d, nLocMax=%d\n",
              nMaxSolutions, localMax->getNbrOfPads());
       printf(
@@ -1964,7 +2974,7 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   localMax->normalizeCharges();
   removedLocMax -= k;
 
-  if (ClusterConfig::processingLog >= ClusterConfig::info && removedLocMax != 0) {
+  if (clusterConfig.processingLog >= clusterConfig.info && removedLocMax != 0) {
     printf(
       "    > seed selection: Final cut -> %d percent (qcut=%8.2f), number of "
       "local max removed = %d\n",
@@ -1990,7 +3000,382 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
     muY[k] = yl[k];
     varX[k] = dxl[k];
     varY[k] = dyl[k];
+    printf("k=%d XY=%f,%f varXY=%f,%f\n", k, muX[k], muY[k], varX[k], varY[k]);
   }
+  //
+  // SVD
+  //
+  if (0) {
+    double rcond = 1.e-2;
+    gsl_matrix_view Cij_gsl = gsl_matrix_view_array(Cij, nPixels, nPads);
+    double* qPixelsStar = new double[nPixels];
+    gsl_vector_view qPixelsStar_gsl = gsl_vector_view_array(qPixelsStar, nPixels);
+    /*
+    double *Tji = new double[nPads*nPixels];
+    gsl_matrix_view Tji_gsl = gsl_matrix_view_array(Tji, nPads, nPixels);
+    gsl_matrix_transpose_memcpy(&Tji_gsl.matrix, &Cij_gsl.matrix);
+    gsl_matrix* pInv = moore_penrose_pinv(&Tji_gsl.matrix, rcond);
+
+    // qPads
+    gsl_vector_const_view qPads_gsl = gsl_vector_const_view_array(mergedPads->getCharges(), nPads);
+    // qPixels solution
+
+    gsl_blas_dgemv(CblasNoTrans, 1.0, pInv, &qPads_gsl.vector, 0.0, &qPixelsStar_gsl.vector);
+    */
+
+    // Cij . Cji
+    gsl_matrix* CCii = gsl_matrix_alloc(nPixels, nPixels);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1., &Cij_gsl.matrix, &Cij_gsl.matrix, 0., CCii);
+    gsl_matrix* pInv = moore_penrose_pinv(CCii, rcond);
+    double* pix = new double[nPixels];
+    vectorSet(pix, 0.0, nPixels);
+    pix[0] = 1.0;
+    gsl_vector_view pix_gsl = gsl_vector_view_array(pix, nPixels);
+    gsl_blas_dgemv(CblasNoTrans, 1.0, pInv, &pix_gsl.vector, 0.0, &qPixelsStar_gsl.vector);
+    vectorAddScalar(pix, -1, nPixels, pix);
+    //
+    printGSLVector("qPixelStar", &qPixelsStar_gsl.vector);
+    vectorPrint("qPixels", pixels->getCharges(), nPixels);
+
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
+      inspectOverWriteQ(macroIt - 1, qPixelsStar);
+      // pixels->setCharges( qPixelsStar, nPixels );
+      //  inspectSavePixels(macroIt-1, *pixels);
+    }
+
+    /*
+    double *Tji = new double[nPads*nPixels];
+    gsl_matrix_view Tji_gsl = gsl_matrix_view_array(Tji, nPads, nPixels);
+    gsl_matrix_transpose_memcpy(&Tji_gsl.matrix, &Cij_gsl.matrix);
+    double *V = new double[nPads*nPixels];
+    double *S = new double[nPixels];
+    double *work = new double[nPixels];
+    // gsl_matrix_view V_gsl = gsl_matrix_view_array(V, nPads, nPixels);
+    // gsl_vector_view S_gsl = gsl_vector_view_array(S, nPixels);
+    gsl_matrix_view V_gsl = gsl_matrix_view_array(V, nPads, nPads);
+    gsl_vector_view S_gsl = gsl_vector_view_array(S, nPads);
+    gsl_vector_view work_gsl = gsl_vector_view_array(work, nPads);
+    // A[M,N] = t(Cij), M=nPads, N=nPixels
+    gsl_linalg_SV_decomp (&Cij_gsl.matrix , &V_gsl.matrix, &S_gsl.vector, &work_gsl.vector);
+    printf("Matrix S:");
+    for (int j = 0; j < nPads; j++) {
+        double Sjj = gsl_vector_get(&S_gsl.vector,j);
+        printf("%6.2f ", gsl_vector_get(&S_gsl.vector,j));
+        if (Sjj > 1.0e-2) {
+          Sjj = 1.0/Sjj;
+        } else {
+          Sjj = 0;
+        }
+        gsl_vector_set(&S_gsl.vector,j, Sjj);
+    }
+    printf("\n");
+
+    gsl_matrix *PInv = gsl_matrix_alloc (nPads, nPixels);
+    gsl_matrix *Ut = gsl_matrix_alloc (nPads, nPixels);
+    gsl_matrix_transpose_memcpy (Ut, &Cij_gsl.matrix);
+    //gsl_matrix * SIpVT = gsl_matrix_alloc (n_row, n_row);
+    for (int i = 0; i < nPads; i++) {
+      for (int j = 0; j < nPads; j++) {
+        // Vij = Vij*Sjj
+        gsl_matrix_set(&V_gsl.matrix, i, j, gsl_matrix_get(&V_gsl.matrix, i, j) * gsl_vector_get(&S_gsl.vector,j));
+      }
+    }
+    gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,          // Calculating  inv(S).trans(V)
+                    1.0, &V_gsl.matrix, Ut,
+                    0.0, PInv);
+
+    gsl_matrix *Id = gsl_matrix_alloc (nPixels, nPixels);
+    // Test if 1 matrix
+    gsl_blas_dgemm (CblasNoTrans, CblasNoTrans,
+                    1.0, &Cij_gsl.matrix, PInv,
+                    0.0, Id);
+
+
+    printf("Matrix Id:");
+    for (int j = 0; j < nPads; j++) {
+      for (int i = 0; i < nPixels; i++) {
+        printf("%6.2f ", gsl_matrix_get(Id, j, i));
+      }
+      printf("\n");
+    }
+    */
+  }
+  delete mergedPads;
+  /*
+  delete [] V;
+  delete [] S;
+  delete [] work;
+  */
+  delete localMax;
+  delete[] Cij;
+  delete[] maskCij;
+  return K;
+}
+// Withot ajusted rafinement
+int ClusterPEM::findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupCath)
+{
+
+  /// ??? Verify if not already done
+  // Already done if 1 group
+  Pads* cath0 = pads[0];
+  Pads* cath1 = pads[1];
+  Pads* projPads = projectedPads;
+  // Compute the charge weight of each cathode
+  double cWeight0 = getTotalCharge(0);
+  double cWeight1 = getTotalCharge(1);
+  double preClusterCharge = cWeight0 + cWeight1;
+  cWeight0 /= preClusterCharge;
+  cWeight1 /= preClusterCharge;
+  //
+  int chId = chamberId;
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info || clusterConfig.processingLog >= clusterConfig.info) {
+    printf("  - [findLocalMaxWithPEM]\n");
+  }
+  // Trivial cluster : only 1 pads
+  if (projPads->getNbrOfPads() == 1) {
+    // Return the unique local maximum : the center of the pads
+    double* w = getW(thetaL, nbrOfPadsInTheGroupCath);
+    double* muX = getMuX(thetaL, nbrOfPadsInTheGroupCath);
+    double* muY = getMuY(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDX = getVarX(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDY = getVarY(thetaL, nbrOfPadsInTheGroupCath);
+    w[0] = 1.0;
+    muX[0] = projPads->getX()[0];
+    muY[0] = projPads->getY()[0];
+    muDX[0] = projPads->getDX()[0] * 0.5;
+    muDY[0] = projPads->getDY()[0] * 0.5;
+    return 1;
+  }
+  int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
+
+  // ??? To Optimize/debug
+  // Pads* pixels = projPads->refinePads();
+  Pads* pixels = projPads;
+  // Reserve place for refinment
+  /*
+  int maxNbrOfPixels = 4*projPads->getNbrOfPads();
+  Pads* pixels = new Pads(projPads, maxNbrOfPixels);
+  printf("pixel allocation %d\n", maxNbrOfPixels);
+  */
+  int nPixels = pixels->getNbrOfPads();
+  // Merge pads of the 2 cathodes
+  // TODO ??? : see if it can be once with Fitting (see fitPads)
+  Pads* mergedPads = new Pads(pads[0], pads[1], Pads::PadMode::xyInfSupMode);
+  int nPads = mergedPads->getNbrOfPads();
+  Pads* localMax = nullptr;
+  Pads* saveLocalMax = nullptr;
+  std::pair<double, double> chi2;
+  int dof, nParameters;
+
+  // Pixel initilization
+  // Rq: the charge projection is not used
+  pixels->setCharges(1.0);
+  // The field saturate is use to tag pixels already refined
+  // no refinment
+  // pixels->setSaturate(0);
+  // Init Cij
+  double* Cij = new double[nPads * nPixels];
+  /// double* Cij = new double[nPads * maxNbrOfPixels];
+  // MaskCij: Used to disable Cij contribution (disable pixels)
+  Mask_t* maskCij = new Mask_t[nPads * nPixels];
+  // Mask_t* maskCij = new Mask_t[nPads * maxNbrOfPixels];
+  // Compute pad charge xyInfSup induiced by a set of charge (the pixels)
+  computeFastCij(*mergedPads, *pixels, Cij);
+  // computeCij(*mergedPads, *pixels, Cij);
+
+  // Init loop
+
+  double previousCriteriom = DBL_MAX;
+  double criteriom = DBL_MAX;
+  bool goon = true;
+  int macroIt = 0;
+  if (clusterConfig.processingLog >= clusterConfig.info) {
+    printf(
+      "    Macro  nParam    chi2 chi2/ndof chi2/ndof chi2/ndof chi2/ndof  ch2/ndof\n"
+      "     It.      -       -       -       cath-0    cath-1   sum 0/1  weight-sum\n");
+  }
+  while (goon) {
+    if (localMax != nullptr) {
+      saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
+    }
+    previousCriteriom = criteriom;
+    /*
+    if (0) {
+    vectorSet( Cij, 0.0, nPads*nPixels);
+    for (int j = 0; j < nPads; j++) {
+      Cij[nPads * j + j] = 1.0;
+      // for (int i = 0; i < nPixels; i++) {
+      //   qPadPrediction[j] += Cij[nPads * i + j] * qPixels[i];
+      // }
+    }
+    }
+    */
+    int qCutMode = 0;
+    // int qCutMode = -1;
+    chi2 =
+      PoissonEMLoop(*mergedPads, *pixels, Cij, maskCij, qCutMode, minPadResidues[macroIt],
+                    nIterations[macroIt]);
+    // Obsolete
+    // localMax = pixels->clipOnLocalMax(true);
+    std::vector<PadIdx_t> newPixelIdx;
+    localMax = pixels->extractLocalMax(newPixelIdx, 0.0, 0.0);
+    for (int t = 0; t < newPixelIdx.size(); t++) {
+      int idx = newPixelIdx[t];
+      printf("localMax idx=%d, xy(%f, %f), q[idx]=%f, localMax.q[t]=%f max(pixels)=%f \n",
+             idx, pixels->getX()[idx], pixels->getY()[idx], pixels->getCharges()[idx], localMax->getCharges()[t], vectorMax(pixels->getCharges(), pixels->getNbrOfPads()));
+    }
+    nParameters = localMax->getNbrOfPads();
+    dof = nMaxPads - 3 * nParameters + 1;
+    double chi20 = chi2.first;
+    double chi21 = chi2.second;
+    int ndof0 = getNbrOfPads(0) - 3 * nParameters + 1;
+    if (ndof0 <= 0) {
+      ndof0 = 1;
+    }
+    int ndof1 = getNbrOfPads(1) - 3 * nParameters + 1;
+    if (ndof1 <= 0.) {
+      ndof1 = 1;
+    }
+    if (dof == 0) {
+      dof = 1;
+    }
+    // Model selection criteriom (nbre of parameters/seeds)
+    // criteriom0 = fabs( (chi20+chi21 / dof));
+    // criteriom1 = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
+    // printf( "??? cWeight0=%f, cWeight1=%f\n", cWeight0, cWeight1);
+    criteriom = cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1);
+    // Inv ??? 2       2   5272.16     14.24     12.73     10.86     23.59     11.93
+    //         3       3   4389.29     13.81     12.25     12.52     24.76     12.36
+
+    if (clusterConfig.processingLog >= clusterConfig.info) {
+      printf(
+        "     %2d     %3d   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f\n",
+        macroIt, nParameters, chi20 + chi21, sqrt((chi20 + chi21) / dof),
+        sqrt(chi20 / ndof0), sqrt(chi21 / ndof1),
+        sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1),
+        cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1));
+    }
+    if (clusterConfig.inspectModel >= clusterConfig.active) {
+      inspectSavePixels(macroIt, *pixels);
+    }
+    /*
+    printf("pixels.size=%d\n",  pixels->getNbrOfPads());
+    printf("mergedPads.mode %d, mergedPads.size=%d\n", mergedPads->mode, mergedPads->getNbrOfPads());
+    printf("nexPixelIdx[0;N-1]=(%d, %d) localMax->nPads=%d\n",
+            newPixelIdx[0], newPixelIdx[newPixelIdx.size()-1],
+            localMax->getNbrOfPads()
+            );
+    // pixels->refinePads( *localMax, newPixelIdx);
+    printf("pixels.size=%d\n",  pixels->getNbrOfPads());
+    printf("mergedPads.mode %d, mergedPads.size=%d\n", mergedPads->mode, mergedPads->getNbrOfPads());
+    printf("nexPixelIdx[0;N-1]=(%d, %d) localMax->nPads=%d\n",
+            newPixelIdx[0], newPixelIdx[newPixelIdx.size()-1],
+            localMax->getNbrOfPads()
+            );
+    */
+    // pixel->padCenterToBounds();
+    // computeFastCij(*mergedPads, *pixels, Cij);
+    macroIt++;
+    if (macroIt == 4) {
+      pixels = projPads->refineAll();
+      nPixels = pixels->getNbrOfPads();
+      delete[] Cij;
+      Cij = new double[nPads * nPixels];
+      delete[] maskCij;
+      maskCij = new Mask_t[nPads * nPixels];
+      computeFastCij(*mergedPads, *pixels, Cij);
+    }
+    printf(" min/max, %g, %g \n", vectorMin(pixels->getCharges(), nPixels), vectorMax(pixels->getCharges(), nPixels));
+    goon =
+      (criteriom < 1.0 * previousCriteriom) && (macroIt < nMacroIterations);
+  }
+  /// with refinement ???
+  delete pixels;
+  if (criteriom < 1.01 * previousCriteriom) {
+    delete saveLocalMax;
+  } else {
+    delete localMax;
+    localMax = saveLocalMax;
+  }
+
+  //
+  // Select local Max
+  // Remove local Max < 0.01 * max(LocalMax)
+  //
+  double cutRatio = 0.01;
+  double qCut =
+    cutRatio * vectorMax(localMax->getCharges(), localMax->getNbrOfPads());
+  int k = 0;
+  double qSum = 0.0;
+  // Remove the last hits if > (nMaxPads +1) / 3
+  int nMaxSolutions =
+    int((std::max(getNbrOfPads(0), getNbrOfPads(1)) + 1.0) / 3.0);
+  // if (nMaxSolutions < 1) {
+  //     nMaxSolutions = 1;
+  //}
+  // To avoid 0 possibility and give more inputs to the fitting
+  nMaxSolutions += 1;
+
+  int removedLocMax = localMax->getNbrOfPads();
+
+  if (localMax->getNbrOfPads() > nMaxSolutions) {
+    if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
+      printf("seed selection: nbr Max parameters =%d, nLocMax=%d\n",
+             nMaxSolutions, localMax->getNbrOfPads());
+      printf(
+        "seed selection: Reduce the nbr of solutions to fit: Take %d/%d "
+        "solutions\n",
+        nMaxSolutions, localMax->getNbrOfPads());
+    }
+    int index[localMax->getNbrOfPads()];
+    for (int k = 0; k < localMax->getNbrOfPads(); k++) {
+      index[k] = k;
+    }
+    const double* qLocalMax = localMax->getCharges();
+    std::sort(index, &index[localMax->getNbrOfPads()],
+              [=](int a, int b) { return (qLocalMax[a] > qLocalMax[b]); });
+    // Reoder
+    qCut = qLocalMax[index[nMaxSolutions - 1]] - 1.e-03;
+  }
+  k = localMax->removePads(qCut);
+  localMax->normalizeCharges();
+  removedLocMax -= k;
+
+  if (clusterConfig.processingLog >= clusterConfig.info && removedLocMax != 0) {
+    printf(
+      "    > seed selection: Final cut -> %d percent (qcut=%8.2f), number of "
+      "local max removed = %d\n",
+      int(cutRatio * 100), qCut, removedLocMax);
+  }
+
+  // Store the
+  int K0 = localMax->getNbrOfPads();
+  int K = std::min(K0, nbrOfPadsInTheGroupCath);
+  double* w = getW(thetaL, nbrOfPadsInTheGroupCath);
+  double* muX = getMuX(thetaL, nbrOfPadsInTheGroupCath);
+  double* muY = getMuY(thetaL, nbrOfPadsInTheGroupCath);
+  double* varX = getVarX(thetaL, nbrOfPadsInTheGroupCath);
+  double* varY = getVarY(thetaL, nbrOfPadsInTheGroupCath);
+  const double* ql = localMax->getCharges();
+  const double* xl = localMax->getX();
+  const double* yl = localMax->getY();
+  const double* dxl = localMax->getDX();
+  const double* dyl = localMax->getDY();
+  for (int k = 0; k < K; k++) {
+    w[k] = ql[k];
+    muX[k] = xl[k];
+    muY[k] = yl[k];
+    varX[k] = dxl[k];
+    varY[k] = dyl[k];
+    printf("k=%d XY=%f,%f varXY=%f,%f\n", k, muX[k], muY[k], varX[k], varY[k]);
+  }
+
+  delete mergedPads;
+  /*
+  delete [] V;
+  delete [] S;
+  delete [] work;
+  */
   delete localMax;
   delete[] Cij;
   delete[] maskCij;
@@ -2000,7 +3385,7 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
 // Propagate back cath-group to projection pads
 void ClusterPEM::updateProjectionGroups()
 {
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     printf("> Update projected Groups [updateProjectionGroups]\n");
   }
   int nProjPads = projectedPads->getNbrOfPads();
@@ -2009,7 +3394,7 @@ void ClusterPEM::updateProjectionGroups()
 
   // Save projPadToGrp to Check
   Groups_t savePadGrp[nProjPads];
-  if (ClusterConfig::groupsCheck) {
+  if (clusterConfig.groupsCheck) {
     vectorCopyShort(projPadToGrp, nProjPads, savePadGrp);
   }
   for (int k = 0; k < nProjPads; k++) {
@@ -2031,7 +3416,7 @@ void ClusterPEM::updateProjectionGroups()
     } else if ((i > -1) && (j > -1)) {
       // projPadToGrp[k] = grpToGrp[ projPadToGrp[k] ];
       projPadToGrp[k] = cath0ToGrp[i];
-      // ??? if (ClusterConfig::groupsCheck && (cath0ToGrp[i] != cath1ToGrp[j])) {
+      // ??? if (clusterConfig.groupsCheck && (cath0ToGrp[i] != cath1ToGrp[j])) {
       if (0) {
         printf(
           "  [updateProjectionGroups] i, cath0ToGrp[i]=(%d, %d); j, "
@@ -2046,7 +3431,7 @@ void ClusterPEM::updateProjectionGroups()
       throw std::overflow_error("updateProjectionGroups i,j=-1");
     }
   }
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
+  if (clusterConfig.groupsLog >= clusterConfig.detail) {
     vectorPrintShort("  updated projGrp", projPadToGrp, nProjPads);
   }
   if (0) {
@@ -2111,7 +3496,7 @@ int ClusterPEM::laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
     }
     unselected[i] = (lapl[i] != 1.0);
     smoothQ[i] = sumNeigh / nNeigh;
-    if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::detail) {
+    if (clusterConfig.EMLocalMaxLog >= clusterConfig.detail) {
       printf(
         "Laplacian i=%d, x[i]=%6.3f, y[i]=%6.3f, z[i]=%6.3f, "
         "smoothQ[i]=%6.3f, lapl[i]=%6.3f\n",
@@ -2133,7 +3518,7 @@ int ClusterPEM::laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
   // return smoothQ[a] > smoothQ[b]; });
   std::sort(sortedLocalMax, &sortedLocalMax[nSortedIdx],
             [=](int a, int b) { return q[a] > q[b]; });
-  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::detail) {
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.detail) {
     vectorPrint("  sort w", q, N);
     vectorPrintInt("  sorted q-indexes", sortedLocalMax, nSortedIdx);
   }
@@ -2142,13 +3527,13 @@ int ClusterPEM::laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
   // Filtering local max
   ////
 
-  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
-    printf("  filtering Local Max\n");
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
+    printf("  [laplacian2D] (InspectModel) filtering Local Max\n");
   }
   // At Least one locMax
   if ((nSortedIdx == 0) && (N != 0)) {
     // Take the first pad
-    if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
+    if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
       printf("-> No local Max, take the highest value < 1\n");
     }
     sortedLocalMax[0] = 0;
@@ -2178,7 +3563,7 @@ int ClusterPEM::laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
     if (aspectRatio > 0.6) {
       // Take the max
       nSortedIdx = 1;
-      if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
+      if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
         printf(
           "  -> Limit to one local Max, nPads=%d, chId=%d, aspect ratio=%6.3f\n",
           N, chId, aspectRatio);
@@ -2196,7 +3581,7 @@ int ClusterPEM::laplacian2D(const Pads& pads_, PadIdx_t* neigh, int chId,
       }
     }
     nSortedIdx = std::max(trunkIdx, 1);
-    if ((ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) && (trunkIdx != nSortedIdx)) {
+    if ((clusterConfig.EMLocalMaxLog >= clusterConfig.info) && (trunkIdx != nSortedIdx)) {
       printf("-> Suppress %d local Max. too noisy (q < %6.3f),\n",
              nSortedIdx - trunkIdx, 2 * noise);
     }
@@ -2242,7 +3627,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
   double smoothQ1[N1];
   // Local Maximum for each cathodes
   // There are sorted with the lissed q[O/1] values
-  if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+  if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
     printf("> [findLocalMaxWithBothCathodes] N0=%d N1=%d\n", N0, N1);
   }
   PadIdx_t* grpNeighborsCath0 = nullptr;
@@ -2317,7 +3702,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
   // Debug
   // vectorPrintInt( "mapIToGrpIdx", mapIToGrpIdx, N0);
   // vectorPrintInt( "mapJToGrpIdx", mapJToGrpIdx, N1);
-  if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+  if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
     vectorPrint("findLocalMax q0", q0, N0);
     vectorPrint("findLocalMax q1", q1, N1);
     vectorPrintInt("findLocalMax localMax0", localMax0, K0);
@@ -2328,7 +3713,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
   // Make the combinatorics between the 2 cathodes
   // - Take the maxOf( N0,N1) for the external loop
   //
-  if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+  if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
     printf("  Local max per cathode K0=%d, K1=%d\n", K0, K1);
   }
   bool K0GreaterThanK1 = (K0 >= K1);
@@ -2414,7 +3799,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
   PadIdx_t* UInterV;
   //
   // Cathodes combinatorics
-  if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+  if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
     printf("  Local max combinatorics: KU=%d KV=%d\n", KU, KV);
     // printXYdXY("Projection", xyDxyProj, NProj, NProj, 0, 0);
     // printf("  mapIJToK=%p, N0=%d N1=%d\n", mapIJToK, N0, N1);
@@ -2447,7 +3832,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
     // to checck the intersection
     // VPads int ug = mapGrpIdxToU[uPadIdx];
     int ug = uPadIdx;
-    if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+    if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
       printf("  Cathode u=%d localMaxU[u]=%d, x,y= %6.3f,  %6.3f, q=%6.3f\n", u,
              localMaxU[u], xu[localMaxU[u]], yu[localMaxU[u]],
              qU[localMaxU[u]]);
@@ -2497,7 +3882,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
       localQMax[k] = qU[uPadIdx];
       // Cannot be selected again as a seed
       qvAvailable[maxCathVIdx] = 0;
-      if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+      if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
         printf(
           "    found intersection of u with v: u,v=(%d,%d) , x=%f, y=%f, "
           "w=%f\n",
@@ -2517,7 +3902,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
       // Search v pads intersepting u
       PadIdx_t* uInterV;
       PadIdx_t uPad = 0;
-      if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+      if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
         printf(
           "  No intersection between u=%d and v-set of , approximate the "
           "location\n",
@@ -2543,7 +3928,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
           // Find the y range intercepting pad u
           for (; *uInterV != -1; uInterV++) {
             PadIdx_t idx = mapVToGrpIdx[*uInterV];
-            if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+            if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
               printf("  Global upad=%d intersect global vpad=%d grpIdx=%d\n",
                      uPad, *uInterV, idx);
             }
@@ -2556,7 +3941,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
           localYMax[k] = 0.5 * (vMin + vMax);
           localQMax[k] = qU[uPadIdx];
           if (localYMax[k] == 0 &&
-              (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info)) {
+              (clusterConfig.laplacianLocalMaxLog > clusterConfig.info)) {
             printf("WARNING localYMax[k] == 0, meaning no intersection");
           }
         } else {
@@ -2564,12 +3949,12 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
           // Find the x range intercepting pad u
           for (; *uInterV != -1; uInterV++) {
             PadIdx_t idx = mapVToGrpIdx[*uInterV];
-            if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+            if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
               printf(" Global upad=%d intersect global vpad=%d  grpIdx=%d \n",
                      uPad, *uInterV, idx);
             }
             if (idx != -1) {
-              if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+              if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
                 printf(
                   "xv[idx], yv[idx], dxv[idx], dyv[idx]: %6.3f %6.3f "
                   "%6.3f %6.3f\n",
@@ -2584,11 +3969,11 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
           localQMax[k] = qU[uPadIdx];
           // printf(" uPadIdx = %d/%d\n", uPadIdx, KU);
           if (localXMax[k] == 0 &&
-              (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info)) {
+              (clusterConfig.laplacianLocalMaxLog > clusterConfig.info)) {
             printf("WARNING localXMax[k] == 0, meaning no intersection");
           }
         }
-        if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::no) {
+        if (clusterConfig.laplacianLocalMaxLog > clusterConfig.no) {
           printf(
             "  solution found with all intersection of u=%d with all v, x "
             "more precise %d, position=(%f,%f), qU=%f\n",
@@ -2606,7 +3991,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
         localXMax[k] = xu[uPadIdx];
         localYMax[k] = yu[uPadIdx];
         localQMax[k] = qU[uPadIdx];
-        if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::no) {
+        if (clusterConfig.laplacianLocalMaxLog > clusterConfig.no) {
           printf(
             "  No intersection with u, u added in local Max: k=%d u=%d, "
             "position=(%f,%f), qU=%f\n",
@@ -2623,7 +4008,7 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
       localXMax[k] = xv[l];
       localYMax[k] = yv[l];
       localQMax[k] = qV[l];
-      if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+      if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
         printf(
           "  Remaining VMax, v added in local Max:  v=%d, "
           "position=(%f,%f), qU=%f\n",
@@ -2644,14 +4029,14 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
     wRatio += localQMax[k_];
   }
   wRatio = 1.0 / wRatio;
-  if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+  if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
     printf("Local max found k=%d kmax=%d\n", k, kMax);
   }
   for (int k_ = 0; k_ < k; k_++) {
     muX[k_] = localXMax[k_];
     muY[k_] = localYMax[k_];
     w[k_] = localQMax[k_] * wRatio;
-    if (ClusterConfig::laplacianLocalMaxLog > ClusterConfig::info) {
+    if (clusterConfig.laplacianLocalMaxLog > clusterConfig.info) {
       printf("  w=%6.3f, mux=%7.3f, muy=%7.3f\n", w[k_], muX[k_], muY[k_]);
     }
   }

@@ -12,31 +12,28 @@
 /// \file   tpc-integrate-cluster-currents.cxx
 /// \author Matthias Kleiner, mkleiner@ikf.uni-frankfurt.de
 
-#include <vector>
-#include <string>
-#include "Framework/WorkflowSpec.h"
-#include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
+#include "TPCWorkflow/TPCIntegrateClusterSpec.h"
+#include "TPCWorkflow/TPCIntegrateClusterWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "TPCWorkflow/TPCIntegrateClusterCurrent.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/ConfigParamSpec.h"
 
 using namespace o2::framework;
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("calib-tpc-gainmap-tracks",
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("TPCIntegrateClusters",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
-// we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<ConfigParamSpec>& workflowOptions)
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
+  // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -45,13 +42,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  using namespace o2::tpc;
-
-  // set up configuration
-  o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  WorkflowSpec workflow;
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
-  o2::conf::ConfigurableParam::writeINI("o2tpcintegrateclusters_configuration.ini");
-
-  WorkflowSpec workflow{getTPCIntegrateClustersSpec()};
+  const bool disableWriter = config.options().get<bool>("disable-root-output");
+  workflow.emplace_back(o2::tpc::getTPCIntegrateClusterSpec(disableWriter));
+  if (!disableWriter) {
+    workflow.emplace_back(o2::tpc::getTPCIntegrateClusterWriterSpec());
+  }
   return workflow;
 }

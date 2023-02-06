@@ -23,6 +23,7 @@
 #include <TTree.h>
 #include <TRandom.h>
 #include <arrow/table.h>
+#include <array>
 
 using namespace o2::framework;
 
@@ -181,14 +182,14 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   std::vector<double> dv;
   std::vector<uint8_t> ui;
 
-  int empty[] = {3, 7, 10};
+  std::array<int, 3> empty = {3, 7, 10};
   auto count = 0;
   for (auto i = 1; i < 1000; ++i) {
     iv.clear();
     fv.clear();
     dv.clear();
     ui.clear();
-    if (i != empty[count]) {
+    if (count < empty.size() && i != empty[count]) {
       for (auto j = 0; j < i % 10 + 1; ++j) {
         iv.push_back(j + 2);
         fv.push_back((j + 2) * 0.2134f);
@@ -222,7 +223,7 @@ BOOST_AUTO_TEST_CASE(VariableLists)
     auto fvr = row.fvec();
     auto dvr = row.dvec();
     auto uvr = row.uivec();
-    if (i != empty[count]) {
+    if (count < empty.size() && i != empty[count]) {
       for (auto j = 0; j < i % 10 + 1; ++j) {
         BOOST_CHECK_EQUAL(ivr[j], j + 2);
         BOOST_CHECK_EQUAL(fvr[j], (j + 2) * 0.2134f);

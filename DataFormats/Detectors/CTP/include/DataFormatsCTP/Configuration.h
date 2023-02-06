@@ -150,6 +150,8 @@ class CTPConfiguration
   void printStream(std::ostream& stream) const;
   std::vector<CTPInput>& getCTPInputs() { return mInputs; }
   std::vector<CTPClass>& getCTPClasses() { return mCTPClasses; }
+  const std::vector<CTPInput>& getCTPInputs() const { return mInputs; }      // Read-only interface
+  const std::vector<CTPClass>& getCTPClasses() const { return mCTPClasses; } // Read-only interface
   uint64_t getInputMask(const std::string& name) const;
   int getInputIndex(const std::string& name) const;
   bool isMaskInInputs(const uint64_t& mask) const;
@@ -167,6 +169,8 @@ class CTPConfiguration
   uint64_t getClassMaskForInputMask(uint64_t inputMask) const;
   void printConfigString() { std::cout << mConfigString << std::endl; };
   std::string getConfigString() { return mConfigString; };
+  CTPDescriptor* getDescriptor(int index) { return &mDescriptors[index]; };
+  int assignDescriptors();
 
  private:
   std::string mConfigString = "";

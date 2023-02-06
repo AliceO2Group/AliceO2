@@ -18,7 +18,7 @@
 
 // Snippet to get ms-timestamp for given run / orbit
 
-long getTimeStamp(int runNumber, uint32_t orbit, const std::string& ccdbHost = "https://alice-ccdb.cern.ch")
+long getTimeStamp(int runNumber, uint32_t orbit, const std::string& ccdbHost = "http://alice-ccdb.cern.ch")
 {
   static int prevRunNumber = -1;
   static int64_t orbitResetMUS = 0;

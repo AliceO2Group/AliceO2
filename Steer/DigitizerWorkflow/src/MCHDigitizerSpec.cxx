@@ -24,11 +24,13 @@
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/DigitizerParam.h"
+#include "MCHSimulation/Hit.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include <TGeoManager.h>
+#include <algorithm>
 #include <map>
 
 using namespace o2::framework;
@@ -50,9 +52,8 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer = std::make_unique<Digitizer>(transformation);
   }
 
-  void logStatus(gsl::span<Digit> digits, gsl::span<ROFRecord> rofs,
-                 o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels,
-                 std::chrono::high_resolution_clock::time_point start)
+  void logStatus(gsl::span<Digit> digits, gsl::span<ROFRecord> rofs, o2::dataformats::MCLabelContainer& labels,
+                 size_t nPileup, std::chrono::high_resolution_clock::time_point start)
   {
     LOGP(info, "Number of digits : {}", digits.size());
     LOGP(info, "Number of rofs : {}", rofs.size());
@@ -60,6 +61,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (labels.getIndexedSize() != digits.size()) {
       LOGP(error, "Number of labels != number of digits");
     }
+    LOGP(info, "Number of signal pileup : {} ({} %)", nPileup, 100. * nPileup / digits.size());
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto duration = tEnd - start;
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
@@ -72,34 +74,36 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (finished) {
       return;
     }
-    float noiseProba = DigitizerParam::Instance().noiseProba;
+
     auto tStart = std::chrono::high_resolution_clock::now();
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MCH, mSimChains);
     const auto& eventRecords = context->getEventRecords();
-    const auto& eventParts = context->getEventParts();
-    std::vector<o2::mch::Digit> digits;
-    std::vector<o2::mch::ROFRecord> rofs;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
-    size_t firstIdx = 0;
-    auto mchRecords = groupIR(eventRecords);
-    for (auto mrec : mchRecords) {
-      auto collisionIndices = mrec.second;
-      const auto& mchIR = mrec.first;
-      mDigitizer->startCollision(mchIR);
-      for (auto collisionIndex : collisionIndices) {
-        for (const auto& part : eventParts[collisionIndex]) {
-          std::vector<o2::mch::Hit> hits;
+
+    // generate signals produced by every hits
+    if (!DigitizerParam::Instance().onlyNoise) {
+      const auto& eventParts = context->getEventParts();
+      for (auto i = 0; i < eventRecords.size(); i++) {
+        auto ir = eventRecords[i];
+        for (const auto& part : eventParts[i]) {
+          std::vector<Hit> hits{};
           context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
-          mDigitizer->processHits(hits, part.entryID, part.sourceID);
+          mDigitizer->processHits(hits, ir, part.entryID, part.sourceID);
         }
       }
-      mDigitizer->addNoise(noiseProba);
-      mDigitizer->extractDigitsAndLabels(digits, labels);
-      auto nEntries = digits.size() - firstIdx;
-      rofs.emplace_back(ROFRecord(mchIR, firstIdx, nEntries));
-      firstIdx = digits.size();
     }
+
+    // generate noise-only signals between first and last collisions ± 100 BC (= 25 ADC samples)
+    auto firstIR = InteractionRecord::long2IR(std::max(int64_t(0), eventRecords.front().toLong() - 100));
+    auto lastIR = eventRecords.back() + 100;
+    mDigitizer->addNoise(firstIR, lastIR);
+
+    // digitize
+    std::vector<Digit> digits{};
+    std::vector<ROFRecord> rofs{};
+    dataformats::MCLabelContainer labels{};
+    auto nPileup = mDigitizer->digitize(rofs, digits, labels);
+
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0, Lifetime::Timeframe}, rofs);
     if (pc.outputs().isAllowed({"MCH", "DIGITSLABELS", 0})) {
@@ -112,17 +116,17 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
 
-    logStatus(digits, rofs, labels, tStart);
+    logStatus(digits, rofs, labels, nPileup, tStart);
   }
 
  private:
-  std::unique_ptr<Digitizer> mDigitizer;
-  std::vector<TChain*> mSimChains;
+  std::unique_ptr<Digitizer> mDigitizer{};
+  std::vector<TChain*> mSimChains{};
 };
 
 o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel, bool mctruth)
 {
-  std::vector<OutputSpec> outputs;
+  std::vector<OutputSpec> outputs{};
   outputs.emplace_back("MCH", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   if (mctruth) {

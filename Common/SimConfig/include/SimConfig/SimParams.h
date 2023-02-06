@@ -37,7 +37,7 @@ struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
   float tunnelZ = 1900;       // Z-value from where we apply maxRTrackingZDC (default value taken from standard "hall" dimensions)
 
   float globalDensityFactor = 1.f; // global factor that scales all material densities for systematic studies
-
+  bool lowneut = false;
   O2ParamDef(SimCutParams, "SimCutParams");
 };
 

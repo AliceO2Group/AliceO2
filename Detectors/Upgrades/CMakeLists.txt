@@ -10,5 +10,5 @@
 # or submit itself to any jurisdiction.
 
 message(STATUS "Building detectors for upgrades")
-add_subdirectory(IT3)
+add_subdirectory(ITS3)
 add_subdirectory(ALICE3)

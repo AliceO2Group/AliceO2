@@ -17,6 +17,7 @@
 #include <gsl/gsl_vector.h>
 
 #include "MCHClustering/PadsPEM.h"
+#include "mathieson.h"
 #include "mathUtil.h"
 
 namespace o2
@@ -26,10 +27,10 @@ namespace mch
 typedef struct dataFit {
   int N;
   int K;
-  const double* x_ptr;
-  const double* dx_ptr;
-  const double* y_ptr;
-  const double* dy_ptr;
+  const double* xInf_ptr;
+  const double* xSup_ptr;
+  const double* yInf_ptr;
+  const double* ySup_ptr;
   const Mask_t* cath_ptr;
   const double* zObs_ptr;
   Mask_t* notSaturated_ptr;
@@ -38,10 +39,15 @@ typedef struct dataFit {
   int chamberId;
   double* zCathTotalCharge_ptr;
   int verbose;
-  double* thetaInit; // Only used by InspectModel
+  double* thetaInit;        // Only used by InspectModel
+  double* cathCoefNorm_ptr; // Used to keep the normalization of the 2 cathodes
+  int dimOfParameters;      // default is 3 dimensions (x, y, w), 2 is for (x/y, w) fits
+  int axe;                  // -1 for both axes, 0 for x axis, 1 for y axis
+  CompressedPads_t* compressedPads;
 } funcDescription_t;
 
-void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
+void fitMathieson(const Pads& iPads, double* thetaInit, int kInit,
+                  int dimOfParameters, int axe, int mode,
                   double* thetaFinal, double* khi2, double* pError);
 
 void printState(int iter, gsl_multifit_fdfsolver* s, int K);

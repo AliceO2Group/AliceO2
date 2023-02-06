@@ -68,7 +68,8 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
     stats[iSec] = std::move(rhs.stats[iSec]);
   }
   tfOrbits = std::move(rhs.tfOrbits);
-  sumOfResiduals = std::move(rhs.sumOfResiduals);
+  sumBinnedResid = std::move(rhs.sumBinnedResid);
+  sumUnbinnedResid = std::move(rhs.sumUnbinnedResid);
   lumi = std::move(rhs.lumi);
   unbinnedRes = std::move(rhs.unbinnedRes);
   trackInfo = std::move(rhs.trackInfo);
@@ -107,7 +108,6 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   if (writeBinnedResid) {
     treeOutResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
     treeOutStats = std::make_unique<TTree>("stats", "Voxel statistics mean position and nEntries");
-    treeOutRecords = std::make_unique<TTree>("records", "Statistics per TF slot");
     for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
       residualsPtr[iSec] = &residuals[iSec];
       statsPtr[iSec] = &stats[iSec];
@@ -124,10 +124,12 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
       treeOutResiduals->Branch(Form("sec%d", iSec), &residualsPtr[iSec]);
       treeOutStats->Branch(Form("sec%d", iSec), &statsPtr[iSec]);
     }
-    treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
-    treeOutRecords->Branch("sumOfResiduals", &sumOfResidualsPtr);
-    treeOutRecords->Branch("lumi", &lumiPtr);
   }
+  treeOutRecords = std::make_unique<TTree>("records", "Statistics per TF slot");
+  treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
+  treeOutRecords->Branch("sumOfBinnedResiduals", &sumBinnedResidPtr);
+  treeOutRecords->Branch("sumOfUnbinnedResiduals", &sumUnbinnedResidPtr);
+  treeOutRecords->Branch("lumi", &lumiPtr);
   LOG(debug) << "Done initializing residuals container for file named " << fileName;
 }
 
@@ -136,9 +138,9 @@ void ResidualsContainer::fillStatisticsBranches()
   // only called when the slot is finalized, otherwise treeOutStats
   // remains empty and we keep the statistics in memory in the vectors
   // (since their size anyway does not change)
+  treeOutRecords->Fill();
   if (writeBinnedResid) {
     treeOutStats->Fill();
-    treeOutRecords->Fill();
   }
 }
 
@@ -147,7 +149,8 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
   LOG(debug) << "Filling ResidualsContainer with vector of size " << resid.size();
-  uint32_t nResidualsInTF = 0;
+  uint32_t nUnbinnedResidualsInTF = 0;
+  uint32_t nBinnedResidualsInTF = 0;
   if (ti.tfCounter > lastSeenTF) {
     lastSeenTF = ti.tfCounter;
   }
@@ -157,6 +160,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     firstSeenTF = ti.tfCounter;
   }
   for (const auto& residIn : resid) {
+    ++nUnbinnedResidualsInTF;
     bool counterIncremented = false;
     if (writeUnbinnedResiduals) {
       unbinnedRes.push_back(residIn);
@@ -171,8 +175,8 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     auto& statVecOut = stats[sec];
     std::array<unsigned char, TrackResiduals::VoxDim> bvox;
     float xPos = param::RowX[residIn.row];
-    float yPos = residIn.y * param::MaxY / 0x7fff;
-    float zPos = residIn.z * param::MaxZ / 0x7fff;
+    float yPos = residIn.y * param::MaxY / 0x7fff + residIn.dy * param::MaxResid / 0x7fff;
+    float zPos = residIn.z * param::MaxZ / 0x7fff + residIn.dz * param::MaxResid / 0x7fff;
     if (!trackResiduals->findVoxelBin(sec, xPos, yPos, zPos, bvox)) {
       // we are not inside any voxel
       LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
@@ -191,14 +195,15 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     if (!counterIncremented) {
       ++nResidualsTotal;
     }
-    ++nResidualsInTF;
+    ++nBinnedResidualsInTF;
   }
   for (const auto& trkRef : trkRefsIn) {
     trackInfo.push_back(trkRef);
   }
+  sumBinnedResid.push_back(nBinnedResidualsInTF);
+  sumUnbinnedResid.push_back(nUnbinnedResidualsInTF);
   if (writeBinnedResid) {
     treeOutResiduals->Fill();
-    sumOfResiduals.push_back(nResidualsInTF);
   }
   for (auto& residVecOut : residuals) {
     residVecOut.clear();
@@ -230,10 +235,10 @@ void ResidualsContainer::writeToFile(bool closeFileAfterwards)
   LOG(info) << "Writing results to file. Closing afterwards? " << closeFileAfterwards;
   fillStatisticsBranches(); // these would need to be filled only once, so only the last entry is important
   fileOut->cd();
+  treeOutRecords->Write();
   if (writeBinnedResid) {
     treeOutResiduals->Write();
     treeOutStats->Write();
-    treeOutRecords->Write();
   }
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned->Write();
@@ -243,10 +248,10 @@ void ResidualsContainer::writeToFile(bool closeFileAfterwards)
   }
 
   if (closeFileAfterwards) {
+    treeOutRecords.reset();
     if (writeBinnedResid) {
       treeOutResiduals.reset();
       treeOutStats.reset();
-      treeOutRecords.reset();
     }
     if (writeUnbinnedResiduals) {
       treeOutResidualsUnbinned.reset();
@@ -326,8 +331,10 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   // since the vector of the previous container will be deleted
   prev->tfOrbits.insert(prev->tfOrbits.end(), tfOrbits.begin(), tfOrbits.end());
   std::swap(prev->tfOrbits, tfOrbits);
-  prev->sumOfResiduals.insert(prev->sumOfResiduals.end(), sumOfResiduals.begin(), sumOfResiduals.end());
-  std::swap(prev->sumOfResiduals, sumOfResiduals);
+  prev->sumBinnedResid.insert(prev->sumBinnedResid.end(), sumBinnedResid.begin(), sumBinnedResid.end());
+  std::swap(prev->sumBinnedResid, sumBinnedResid);
+  prev->sumUnbinnedResid.insert(prev->sumUnbinnedResid.end(), sumUnbinnedResid.begin(), sumUnbinnedResid.end());
+  std::swap(prev->sumUnbinnedResid, sumUnbinnedResid);
   prev->lumi.insert(prev->lumi.end(), lumi.begin(), lumi.end());
   std::swap(prev->lumi, lumi);
 

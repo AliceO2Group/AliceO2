@@ -47,9 +47,13 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   for (unsigned int i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
     unsigned int nCl = 0;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
-      if (!((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired)) {
-        nCl++;
+      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+        continue;
       }
+      if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && trackClusters[tracks[i].FirstClusterRef() + j].leg != trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].leg) {
+        continue;
+      }
+      nCl++;
     }
     if (nCl == 0) {
       continue;
@@ -148,6 +152,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
       if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
         continue;
       }
+      if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && trackClusters[tracks[i].FirstClusterRef() + j].leg != trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].leg) {
+        continue;
+      }
       int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
       int sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
@@ -159,8 +166,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         t1 = clusters->clustersLinear[clusterIdGlobal].getTime();
         sector1 = sector;
       }
-      nOutCl2++;
-      if (nOutCl2 == nOutCl) {
+      if (++nOutCl2 == nOutCl) {
         t2 = clusters->clustersLinear[clusterIdGlobal].getTime();
         sector2 = sector;
       }
@@ -189,10 +195,23 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         tFwd = tBwd = delta;
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
-        float tmin = CAMath::Min(t1, t2);
-        float tmax = CAMath::Max(t1, t2);
+        const float tmin = CAMath::Min(t1, t2);
+        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        const float tmax = CAMath::Min(tmin + maxDriftTime, CAMath::Max(t1, t2));
+        float delta = 0.f;
+        if (time0 + maxDriftTime < tmax) {
+          delta = tmax - time0 - maxDriftTime;
+        }
+        if (tmin < time0 + delta) {
+          delta = tmin - time0;
+        }
+        if (delta != 0.f) {
+          time0 += delta;
+          const float deltaZ = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(sector2, delta);
+          oTrack.setZ(oTrack.getZ() + deltaZ);
+        }
         tFwd = tmin - time0;
-        tBwd = time0 - tmax + merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        tBwd = time0 - tmax + maxDriftTime;
       }
     }
     oTrack.setTime0(time0);

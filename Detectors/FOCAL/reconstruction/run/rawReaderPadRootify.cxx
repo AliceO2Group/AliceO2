@@ -198,8 +198,9 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("version", "Print version information");
-    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
+    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file. Multiple files can be parsed separated by ,");
     add_option("output-file,o", bpo::value<std::string>()->default_value("FOCALPadData.root"), "Output file for rootified data");
+    add_option("readout,r", bpo::value<std::string>()->default_value("RORC"), "Readout mode (RORC or CRU)");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -228,12 +229,38 @@ int main(int argc, char** argv)
 
   auto rawfilename = vm["input-file"].as<std::string>();
   auto rootfilename = vm["output-file"].as<std::string>();
+  auto readoutmode = vm["readout"].as<std::string>();
+
+  std::vector<std::string> inputfiles;
+  if (rawfilename.find(",") != std::string::npos) {
+    std::stringstream parser(rawfilename);
+    std::string buffer;
+    while (std::getline(parser, buffer, ',')) {
+      LOG(info) << "Adding " << buffer;
+      inputfiles.push_back(buffer);
+    }
+    LOG(info) << "Found " << inputfiles.size() << " input files to process";
+  }
+
+  o2::raw::RawFileReader::ReadoutCardType readout = o2::raw::RawFileReader::RORC;
+  if (readoutmode != "RORC" && readoutmode != "CRU") {
+    LOG(error) << "Unknown readout mode - select RORC or CRU";
+    exit(3);
+  } else if (readoutmode == "RORC") {
+    LOG(info) << "Reconstructing in C-RORC mode";
+    readout = o2::raw::RawFileReader::RORC;
+  } else {
+    LOG(info) << "Reconstructing in CRU mode";
+    readout = o2::raw::RawFileReader::CRU;
+  }
 
   o2::raw::RawFileReader reader;
   reader.setDefaultDataOrigin(o2::header::gDataOriginFOC);
   reader.setDefaultDataDescription(o2::header::gDataDescriptionRawData);
-  reader.setDefaultReadoutCardType(o2::raw::RawFileReader::RORC);
-  reader.addFile(rawfilename);
+  reader.setDefaultReadoutCardType(readout);
+  for (auto rawfile : inputfiles) {
+    reader.addFile(rawfile);
+  }
   reader.init();
 
   std::unique_ptr<TFile> rootfilewriter(TFile::Open(rootfilename.data(), "RECREATE"));

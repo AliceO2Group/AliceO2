@@ -20,6 +20,8 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/O2DataModelHelpers.h"
 
 using namespace o2::monitoring;
 
@@ -66,6 +68,26 @@ DataSender::DataSender(ServiceRegistryRef registry,
     DataSpecUtils::describe(buffer, 127, mOutputs.back());
     monitoring.send({fmt::format("{} ({})", buffer, (int)mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
   }
+  /// Fill the mPresents with the outputs which are not timeframes.
+  for (size_t i = 0; i < mOutputs.size(); ++i) {
+    mPresentDefaults.push_back(mOutputs[i].lifetime != Lifetime::Timeframe);
+  }
+
+  /// Check if all the inputs are of kind Timeframe / Optional
+  /// and that the completion policy is the default one. If not,
+  /// we actually reset the mPresentDefaults to be empty, so that
+  /// the check is disabled.
+  for (auto& input : mSpec.inputs) {
+    if (input.matcher.lifetime != Lifetime::Timeframe && input.matcher.lifetime != Lifetime::Optional) {
+      LOGP(detail, "Disabling the Lifetime::timeframe check because not all the inputs are of kind Lifetime::Timeframe");
+      mPresentDefaults.resize(0);
+      break;
+    }
+  }
+  if (mSpec.completionPolicy.name != "consume-all" && mSpec.completionPolicy.name != "consume-all-ordered") {
+    LOGP(detail, "Disabling the Lifetime::timeframe check because the completion policy is not the default one");
+    mPresentDefaults.resize(0);
+  }
 }
 
 std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
@@ -75,8 +97,28 @@ std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
-  mRegistry.preSendingMessagesCallbacks(parts, channelIndex);
+  // In case the vector is empty, it means the check is disabled
+  if (mPresentDefaults.empty() == false) {
+    O2DataModelHelpers::updateMissingSporadic(parts, mOutputs, mPresent);
+  }
+  auto& dataProcessorContext = mRegistry.get<DataProcessorContext>();
+  dataProcessorContext.preSendingMessagesCallbacks(mRegistry, parts, channelIndex);
   mPolicy.send(mProxy, parts, channelIndex, mRegistry);
+}
+
+void DataSender::reset()
+{
+  mPresent = mPresentDefaults;
+}
+
+void DataSender::verifyMissingSporadic() const
+{
+  for (auto present : mPresent) {
+    if (!present) {
+      LOGP(debug, O2DataModelHelpers::describeMissingOutputs(mOutputs, mPresent).c_str());
+      return;
+    }
+  }
 }
 
 } // namespace o2::framework

@@ -355,6 +355,7 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
     TFile f("tmp2.root", "RECREATE");
     TTree tree("o2sim", "o2sim");
     auto br = tree.Branch("Labels", &io, 32000, 2);
+    tree.Branch("LabelsOriginal", &container, 32000, 2);
     tree.Fill();
     tree.Write();
     f.Close();
@@ -383,6 +384,21 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1).size() == 2);
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
   BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));
+
+  // testing convenience API to retrieve a constant label container from a ROOT file, entry 0
+  auto cont = o2::dataformats::MCLabelIOHelper::loadFromTTree(tree2, "Labels", 0);
+  auto cont2 = o2::dataformats::MCLabelIOHelper::loadFromTTree(tree2, "LabelsOriginal", 0);
+
+  BOOST_CHECK(cont);
+  BOOST_CHECK(cont2);
+  BOOST_CHECK(cont->getNElements() == (BIGSIZE - 1) * 2);
+  BOOST_CHECK(cont2->getNElements() == (BIGSIZE - 1) * 2);
+  BOOST_CHECK(cont->getLabels(0).size() == 0);
+  BOOST_CHECK(cont2->getLabels(0).size() == 0);
+  BOOST_CHECK(cont->getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
+  BOOST_CHECK(cont->getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));
+  BOOST_CHECK(cont2->getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
+  BOOST_CHECK(cont2->getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));
 }
 
 } // namespace o2

@@ -34,6 +34,43 @@ enum struct DplPluginKind : int {
   Unknown
 };
 
+/// A service which can be loaded from a shared library.
+/// Description is the actual string "LibraryName:ServiceName"
+/// which can be used to load it.
+template <typename T>
+struct LoadableServicePlugin {
+  // How to load the given service.
+  std::string loadSpec;
+
+  void setInstance(T* instance_)
+  {
+    ptr = instance_;
+  }
+
+  T& operator*() const
+  {
+    return ptr;
+  }
+
+  T* operator->() const
+  {
+    return ptr;
+  }
+
+  T* get() const
+  {
+    return ptr;
+  }
+
+  void reset()
+  {
+    delete ptr;
+    ptr = nullptr;
+  }
+
+  T* ptr = nullptr;
+};
+
 } // namespace o2::framework
 
 /// An handle for a generic DPL plugin.

@@ -63,6 +63,10 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
+  if (outputRoutes.size() != 1) {
+    LOG(error) << "Compressor output routes size != 1";
+    return;
+  }
   auto fairMQChannel = outputRoutes.at(0).channel;
   fair::mq::Parts partsOut;
 
@@ -190,10 +194,10 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeaderV6, false, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, false, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true, true>;
+template class CompressorTask<o2::header::RAWDataHeader, false, false>;
+template class CompressorTask<o2::header::RAWDataHeader, false, true>;
+template class CompressorTask<o2::header::RAWDataHeader, true, false>;
+template class CompressorTask<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2

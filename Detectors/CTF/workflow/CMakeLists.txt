@@ -35,7 +35,7 @@ o2_add_library(CTFWorkflow
                                      O2::FT0Workflow
                                      O2::FV0Workflow
                                      O2::FDDWorkflow
-                                     O2::MCHWorkflow
+                                     O2::MCHCTF
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
                                      O2::PHOSWorkflow

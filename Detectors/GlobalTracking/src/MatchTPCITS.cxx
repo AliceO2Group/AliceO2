@@ -35,7 +35,6 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CommonUtils/NameConf.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "GlobalTracking/MatchTPCITS.h"
@@ -86,7 +85,8 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
       break;
     }
     if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
-      mTglITSTPC.emplace_back(mTPCVDrift, mTPCVDriftRef);
+      mTglITSTPC.emplace_back(mTPCVDrift, mTPCDrift.refVDrift);
+      mTglITSTPC.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset);
     }
 
     mTimer[SWDoMatching].Start(false);
@@ -175,9 +175,9 @@ void MatchTPCITS::clear()
 //______________________________________________
 void MatchTPCITS::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.refVDrift * v.corrFact;
-  mTPCVDriftCorrFact = v.corrFact;
-  mTPCVDriftRef = v.refVDrift;
+  mTPCDrift = v;
+  mTPCVDrift = v.getVDrift();
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________
@@ -384,7 +384,7 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
     terr += tpcTimeBin2MUS(tpcOrig.hasBothSidesClusters() ? mParams->safeMarginTPCITSTimeBin : mTPCTimeEdgeTSafeMargin);
   }
   auto& trc = mTPCWork.emplace_back(
-    TrackLocTPC{_tr, {t0 - terr, t0 + terr}, extConstrained ? t0 : tpcTimeBin2MUS(tpcOrig.getTime0()),
+    TrackLocTPC{_tr, {t0 - terr, t0 + terr}, extConstrained ? t0 : tpcTimeBin2MUS(tpcOrig.getTime0()) - mTPCDriftTimeOffset,
                 // for A/C constrained tracks the terr is half-interval, for externally constrained tracks it is sigma*Nsigma
                 terr * (extConstrained ? mTPCExtConstrainedNSigmaInv : SQRT12DInv),
                 tpcID,
@@ -440,7 +440,7 @@ bool MatchTPCITS::prepareTPCData()
     if constexpr (isTPCTrack<decltype(trk)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       if (!this->mSkipTPCOnly) {
-        this->addTPCSeed(trk, this->tpcTimeBin2MUS(time0), this->tpcTimeBin2MUS(terr), gid, gid.getIndex());
+        this->addTPCSeed(trk, this->tpcTimeBin2MUS(time0) - this->mTPCDriftTimeOffset, this->tpcTimeBin2MUS(terr), gid, gid.getIndex());
       }
     }
     if constexpr (isTPCTOFTrack<decltype(trk)>()) {
@@ -1335,7 +1335,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     }
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
-    auto tImposed = timeC * mTPCTBinMUSInv;
+    auto tImposed = (timeC + mTPCDriftTimeOffset) * mTPCTBinMUSInv;
     if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) {
       LOGP(alarm, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
            mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT);
@@ -1468,7 +1468,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
     }
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
-    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), (timeC + mTPCDriftTimeOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(debug) << "Refit failed";
       mMatchedTracks.pop_back(); // destroy failed track

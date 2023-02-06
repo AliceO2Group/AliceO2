@@ -53,6 +53,7 @@ o2_add_library(Framework
                        src/DataProcessingHelpers.cxx
                        src/DataProcessorSpecHelpers.cxx
                        src/DataProcessorMatchers.cxx
+                       src/DataProcessingContext.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -90,7 +91,6 @@ o2_add_library(Framework
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
-                       src/RawBufferContext.cxx
                        src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
@@ -114,6 +114,7 @@ o2_add_library(Framework
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
+                       src/StreamContext.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
@@ -246,6 +247,12 @@ foreach(t
               LABELS framework
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
+
+o2_add_test(O2DatabasePDG NAME test_Framework_test_O2DatabasePDG
+            SOURCES test/test_O2DatabasePDG.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkPhysicsSupport)
 
 o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
             SOURCES test/test_Root2ArrowTable.cxx

@@ -219,9 +219,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnkref.entry = int(mGBTLinks.size());
       auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), RDHUtils::getFEEID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
       lnk.subSpec = dh->subSpecification;
+      lnk.wordLength = RDHUtils::getDataFormat(rdh) == 0 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
-      lnk.format = mFormat;
       LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
     }
@@ -407,14 +407,6 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
   LOG(warning) << mSelfName << " Multithreading is not supported, imposing single thread";
   mNThreads = 1;
 #endif
-}
-
-///______________________________________________________________________
-template <class Mapping>
-void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
-{
-  assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
-  mFormat = f;
 }
 
 ///______________________________________________________________________

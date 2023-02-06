@@ -239,7 +239,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
 
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mOutputChannelInfos.size()};
-        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAW;
+        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAWFMQ;
         OutputChannelInfo info{
           .name = route.channel,
           .channelType = dplChannel,
@@ -315,7 +315,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mForwardChannelInfos.size()};
         auto& channel = device.fChannels.at(route.channel).at(0);
-        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAW;
+        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAWFMQ;
         mForwardChannelInfos.push_back(ForwardChannelInfo{route.channel, dplChannel, channel});
         mForwardChannelStates.push_back(ForwardChannelState{0});
         channelNameToChannel[route.channel] = channelIndex;

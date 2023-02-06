@@ -133,6 +133,7 @@ void O2MCApplicationBase::InitGeometry()
   // load special cuts which might be given from the outside first.
   auto& matMgr = o2::base::MaterialManager::Instance();
   matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  matMgr.SetLowEnergyNeutronTransport(mCutParams.lowneut);
   // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
   matMgr.writeCutsAndProcessesToJSON();

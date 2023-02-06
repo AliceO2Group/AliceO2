@@ -132,7 +132,8 @@ bool CruRawReader::compareRDH(const o2::header::RDHAny* rdhPrev, const o2::heade
     incrementErrors(BadRDHCRUID);
     return false;
   }
-  if (o2::raw::RDHUtils::getPacketCounter(rdhPrev) == o2::raw::RDHUtils::getPacketCounter(rdhCurr)) {
+  uint8_t rdhExpected = o2::raw::RDHUtils::getPacketCounter(rdhPrev) + 1; // packet counter is 8 bits
+  if (o2::raw::RDHUtils::getPacketCounter(rdhCurr) != rdhExpected) {
     if (mMaxWarnPrinted > 0) {
       LOG(warn) << "ERDH  PacketCounters are not sequential in rdh.";
       checkNoWarn();

@@ -47,6 +47,8 @@ enum RunType : int {
   COSMICS,
   SYNTHETIC,
   NOISE,
+  CALIBRATION_PULSE_LENGTH,
+  CALIBRATION_VRESETD,
   NRUNTYPES
 };
 static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
@@ -66,7 +68,9 @@ static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
   "CALIBRATION",
   "COSMICS",
   "SYNTHETIC",
-  "NOISE"};
+  "NOISE",
+  "CALIBRATION_PULSE_LENGTH",
+  "CALIBRATION_VRESETD"};
 
 //_______________________________________________
 static RunType string2RunType(const std::string& rts)
@@ -105,6 +109,8 @@ static std::string getRawDataPersistencyMode(const std::string& runType, bool im
     case RunType::CALIBRATION_FHR:
     case RunType::CALIBRATION_ALPIDE_SCAN:
     case RunType::CALIBRATION:
+    case RunType::CALIBRATION_PULSE_LENGTH:
+    case RunType::CALIBRATION_VRESETD:
       ret = "calib";
     default:
       break;

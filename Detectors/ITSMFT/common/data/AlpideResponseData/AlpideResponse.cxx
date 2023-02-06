@@ -61,6 +61,7 @@ int main(int argc, const char* argv[])
     return 2;
   }
 
+  std::cout << "Generating " << vm["inputdir"].as<std::string>() + vm["name"].as<std::string>() << std::endl;
   alpideResponse(vm["inputdir"].as<std::string>(), vm["outputdir"].as<std::string>(), vm["name"].as<std::string>());
 
   return 0;

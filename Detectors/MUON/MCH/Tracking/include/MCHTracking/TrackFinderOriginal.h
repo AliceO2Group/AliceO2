@@ -17,9 +17,14 @@
 #ifndef O2_MCH_TRACKFINDERORIGINAL_H_
 #define O2_MCH_TRACKFINDERORIGINAL_H_
 
+#include <array>
 #include <chrono>
+#include <list>
+
+#include <gsl/span>
 
 #include "DataFormatsMCH/Cluster.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
 
@@ -43,7 +48,10 @@ class TrackFinderOriginal
   void init();
   void initField(float l3Current, float dipoleCurrent);
 
-  const std::list<Track>& findTracks(const std::array<std::list<const Cluster*>, 10>& clusters);
+  const std::list<Track>& findTracks(gsl::span<const Cluster> clusters);
+
+  /// return the counting of encountered errors
+  ErrorMap& getErrorMap() { return mErrorMap; }
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -94,9 +102,11 @@ class TrackFinderOriginal
 
   TrackFitter mTrackFitter{}; /// track fitter
 
-  const std::array<std::list<const Cluster*>, 10>* mClusters = nullptr; ///< pointer to the lists of clusters
+  std::array<std::list<const Cluster*>, 10> mClusters{}; ///< lists of clusters per chamber
 
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
+
+  ErrorMap mErrorMap{}; ///< counting of encountered errors
 
   double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
   double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction

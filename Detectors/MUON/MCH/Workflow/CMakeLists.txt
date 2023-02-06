@@ -14,9 +14,12 @@
 o2_add_library(MCHWorkflow
                SOURCES
                    src/ClusterFinderOriginalSpec.cxx
+                   src/ClusterFinderGEMSpec.cxx
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
+                   src/PreClusterReaderSpec.cxx
+                   src/PreClusterWriterSpec.cxx
                    src/TrackReaderSpec.cxx
                    src/TrackTreeReader.cxx
                    src/TrackWriterSpec.cxx
@@ -28,6 +31,7 @@ o2_add_library(MCHWorkflow
                    O2::DetectorsRaw
                    O2::MCHCTF
                    O2::MCHClustering
+                   O2::MCHClusteringGEM
                    O2::MCHPreClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
@@ -87,13 +91,25 @@ o2_add_executable(
         sim-digits-reader-workflow
         SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils O2::DataFormatsMCH O2::SimulationDataFormat)
 
 o2_add_executable(
         preclusters-sink-workflow
         SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-writer-workflow
+        SOURCES src/preclusters-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        preclusters-reader-workflow
+        SOURCES src/preclusters-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
         preclusters-to-clusters-original-workflow
@@ -132,18 +148,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
-        clusters-to-tracks-original-workflow
-        SOURCES src/TrackFinderOriginalSpec.cxx src/clusters-to-tracks-original-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
-
-o2_add_executable(
-        clusters-to-tracks-workflow
-        SOURCES src/TrackFinderSpec.cxx src/clusters-to-tracks-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
-
-o2_add_executable(
         vertex-sampler-workflow
         SOURCES src/VertexSamplerSpec.cxx src/vertex-sampler-workflow.cxx
         COMPONENT_NAME mch
@@ -180,12 +184,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
-        tracks-to-tracks-workflow
-        SOURCES src/TrackFitterSpec.cxx src/tracks-to-tracks-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
-
-o2_add_executable(
         entropy-encoder-workflow
         SOURCES src/entropy-encoder-workflow.cxx
         COMPONENT_NAME mch
@@ -196,7 +194,6 @@ o2_add_executable(
         SOURCES
             src/DigitReaderSpec.cxx
             src/EventFinderSpec.cxx
-            src/TrackFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
             src/reco-workflow.cxx
         COMPONENT_NAME mch
@@ -227,4 +224,3 @@ o2_add_executable(rofs-histogrammer
         SOURCES src/rofs-histogrammer.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH)
-

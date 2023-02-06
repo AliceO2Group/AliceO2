@@ -22,6 +22,7 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/Formatters.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -96,11 +97,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
+ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
 {
   std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
+  std::shared_ptr<bool> stablePeriods = std::make_shared<bool>(false);
   // FIXME: should create timeslices when period expires....
-  return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [last, stablePeriods, period, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // We start with a random offset to avoid all the devices
     // send their first message at the same time, bring down
     // the QC machine.
@@ -109,21 +111,29 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // the future.
     // We do it here because if we do it in configure, long delays
     // between configure and run will cause this to behave
-    // incorrrectly.
-    if (*last == 0ULL || index.didReceiveData() == false) {
+    // incorrectly.
+    bool timerHasFired = hasTimerFired();
+    if (*last == 0ULL || (index.didReceiveData() == false && timerHasFired)) {
       std::random_device r;
       std::default_random_engine e1(r());
       std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
-      *last = getCurrentTime() - dist(e1) - period.count() * 0.1;
+      auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + period.count() * 0.1);
+      *last = getCurrentTime() - randomizedPeriodUs;
+      updateTimerPeriod(randomizedPeriodUs / 1000, randomizedPeriodUs / 1000);
+      *stablePeriods = false;
+      LOG(debug) << "Timer updated to a randomized period of " << randomizedPeriodUs << "us";
+    } else if (timerHasFired && *stablePeriods == false) {
+      updateTimerPeriod(period.count() / 1000, period.count() / 1000);
+      *stablePeriods = true;
+      LOG(debug) << "Timer updated to a stable period of " << period.count() << "us";
     }
     // Nothing to do if the time has not expired yet.
-    auto current = getCurrentTime();
-    auto delta = current - *last;
-    if (delta < period.count()) {
+    if (timerHasFired == false) {
       auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
       index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
+    auto current = getCurrentTime();
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
     //        for now to avoid duplicate entries.
@@ -139,9 +149,10 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
+
+    *last = current;
     // If we are here the timer has expired and a new slice needs
     // to be created.
-    *last = current;
     data_matcher::VariableContext newContext;
     newContext.put({0, static_cast<uint64_t>(current)});
     newContext.commit();
@@ -460,24 +471,9 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
   return f;
 }
 
-// Life is too short. LISP rules.
-#define STREAM_ENUM(x) \
-  case Lifetime::x:    \
-    oss << #x;         \
-    break;
 std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
 {
-  switch (val) {
-    STREAM_ENUM(Timeframe)
-    STREAM_ENUM(Condition)
-    STREAM_ENUM(QA)
-    STREAM_ENUM(Transient)
-    STREAM_ENUM(Timer)
-    STREAM_ENUM(Enumeration)
-    STREAM_ENUM(Signal)
-    STREAM_ENUM(Optional)
-    STREAM_ENUM(OutOfBand)
-  };
+  oss << fmt::format("{}", val);
   return oss;
 }
 

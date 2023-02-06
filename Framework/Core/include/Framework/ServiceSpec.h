@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/program_options/variables_map.hpp>
 
 namespace fair::mq
@@ -253,6 +254,12 @@ struct ServiceForwardingHandle {
 };
 
 struct ServiceStartHandle {
+  ServiceSpec const& spec;
+  ServiceStartCallback callback;
+  void* service;
+};
+
+struct ServiceStartStreamHandle {
   ServiceSpec const& spec;
   ServiceStartCallback callback;
   void* service;

@@ -89,6 +89,8 @@ struct DeviceState {
   uv_loop_t* loop = nullptr;
   // The list of active timers which notify this device.
   std::vector<uv_timer_t*> activeTimers;
+  // The list of timers fired in this loop
+  std::vector<uv_timer_t*> firedTimers;
   // The list of pollers for active input channels
   std::vector<uv_poll_t*> activeInputPollers;
   // The list of pollers for active output channels

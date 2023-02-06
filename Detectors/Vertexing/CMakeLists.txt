@@ -11,15 +11,13 @@
 
 o2_add_library(DetectorsVertexing
                TARGETVARNAME targetName
-               SOURCES src/DCAFitterN.cxx
-                       src/PVertexer.cxx
+               SOURCES src/PVertexer.cxx
                        src/PVertexerHelpers.cxx
                        src/PVertexerParams.cxx
                        src/VertexTrackMatcher.cxx
                        src/SVertexer.cxx
                        src/SVertexerParams.cxx
                        src/SVertexHypothesis.cxx
-                       src/FwdDCAFitterN.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
                                      O2::CommonUtils
                                      O2::ReconstructionDataFormats
@@ -32,14 +30,12 @@ o2_add_library(DetectorsVertexing
                                      O2::FT0Reconstruction
                                      O2::DataFormatsFT0
                                      O2::GlobalTracking
+                                     O2::DCAFitter
                                      Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DetectorsVertexing
-                          HEADERS include/DetectorsVertexing/HelixHelper.h
-                                  include/DetectorsVertexing/PVertexerHelpers.h
+                          HEADERS include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/PVertexerParams.h
-                                  include/DetectorsVertexing/DCAFitterN.h
-                                  include/DetectorsVertexing/FwdDCAFitterN.h
                                   include/DetectorsVertexing/SVertexerParams.h
                                   include/DetectorsVertexing/SVertexHypothesis.h)
 
@@ -47,16 +43,6 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-
-
-o2_add_test(
-  DCAFitterN
-  SOURCES test/testDCAFitterN.cxx
-  COMPONENT_NAME DetectorsVertexing
-  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing ROOT::Core ROOT::Physics
-  LABELS vertexing
-  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/PVFromPool.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing

@@ -12,6 +12,7 @@
 #define ALICEO2_FOCAL_RAWDECODERSPEC_H
 
 #include <array>
+#include <map>
 #include <unordered_map>
 #include <vector>
 #include <gsl/span>
@@ -41,6 +42,7 @@ class RawDecoderSpec : public framework::Task
     std::vector<std::array<PadLayerEvent, constants::PADS_NLAYERS>> mPadEvents;
     std::vector<std::array<PixelLayerEvent, constants::PIXELS_NLAYERS>> mPixelEvent;
     std::vector<o2::InteractionRecord> mPixelTriggers;
+    std::vector<std::vector<int>> mFEEs;
   };
   RawDecoderSpec() = default;
   RawDecoderSpec(uint32_t outputSubspec, bool usePadData, bool usePixelData, bool debug) : mDebugMode(debug), mUsePadData(usePadData), mUsePixelData(usePixelData), mOutputSubspec(outputSubspec) {}
@@ -50,20 +52,31 @@ class RawDecoderSpec : public framework::Task
 
   void run(framework::ProcessingContext& ctx) final;
 
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+
  private:
   void sendOutput(framework::ProcessingContext& ctx);
   void resetContainers();
-  void decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& interaction);
-  void decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& interaction);
-  void decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& interaction, int fecID);
+  int decodePadData(const gsl::span<const char> padWords, o2::InteractionRecord& hbIR);
+  void decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& hbIR);
+  int decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& hbIR, int fecID);
   std::array<PadLayerEvent, constants::PADS_NLAYERS> createPadLayerEvent(const o2::focal::PadData& data) const;
-  void fillChipsToLayer(PixelLayerEvent& pixellayer, const gsl::span<const PixelChip>& chipData);
+  void fillChipsToLayer(PixelLayerEvent& pixellayer, const gsl::span<const PixelChip>& chipData, int feeID);
   void fillEventPixeHitContainer(std::vector<PixelHit>& eventHits, std::vector<PixelChipRecord>& eventChips, const PixelLayerEvent& pixelLayer, int layerIndex);
+  int filterIncompletePixelsEventsHBF(HBFData& data, const std::vector<int>& expectFEEs);
   void buildEvents();
+  bool consistencyCheckPixelFEE(const std::unordered_map<int, int>& counters) const;
+  int maxCounter(const std::unordered_map<int, int>& counters) const;
+  void printCounters(const std::unordered_map<int, int>& counters) const;
+  void printEvents(const std::unordered_map<int, std::vector<int>>& counters) const;
+  bool checkEventsHBFConsistency(const std::unordered_map<int, std::vector<int>>& counters) const;
+  void fillPixelEventHBFCount(const std::unordered_map<int, std::vector<int>>& counters);
 
   bool mDebugMode = false;
+  bool mDisplayInconsistent = false;
   bool mUsePadData = true;
   bool mUsePixelData = true;
+  bool mFilterIncomplete = false;
   uint32_t mOutputSubspec = 0;
   PadDecoder mPadDecoder;
   PixelDecoder mPixelDecoder;
@@ -72,6 +85,20 @@ class RawDecoderSpec : public framework::Task
   std::vector<PixelHit> mOutputPixelHits;
   std::vector<PixelChipRecord> mOutputPixelChips;
   std::vector<PadLayerEvent> mOutputPadLayers;
+
+  // Some counters
+  int mNumTimeframes = 0;
+  int mNumHBFPads = 0;
+  int mNumHBFPixels = 0;
+  int mNumEventsPads = 0;
+  int mNumEventsPixels = 0;
+  int mNumInconsistencyPixelHBF = 0;
+  int mNumInconsistencyPixelEvent = 0;
+  int mNumInconsistencyPixelEventHBF = 0;
+  std::map<int, int> mNumEventsHBFPads;
+  std::map<int, int> mNumEventsHBFPixels;
+  std::map<int, int> mNumHBFperTFPads;
+  std::map<int, int> mNumHBFperTFPixels;
 };
 
 framework::DataProcessorSpec getRawDecoderSpec(bool askDISTSTF, uint32_t outputSubspec, bool usePadData, bool usePixelData, bool debugMode);

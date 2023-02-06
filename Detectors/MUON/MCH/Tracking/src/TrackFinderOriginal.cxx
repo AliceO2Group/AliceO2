@@ -24,6 +24,7 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
+#include "MCHBase/Error.h"
 #include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackExtrap.h"
 
@@ -72,13 +73,20 @@ void TrackFinderOriginal::initField(float l3Current, float dipoleCurrent)
 }
 
 //_________________________________________________________________________________________________
-const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::list<const Cluster*>, 10>& clusters)
+const std::list<Track>& TrackFinderOriginal::findTracks(gsl::span<const Cluster> clusters)
 {
   /// Run the original track finder algorithm
 
   print("\n------------------ Start the original track finder ------------------");
-  mClusters = &clusters;
+  for (auto& clustersInCh : mClusters) {
+    clustersInCh.clear();
+  }
   mTracks.clear();
+
+  // Group the clusters per chamber
+  for (const auto& cluster : clusters) {
+    mClusters[cluster.getChamberId()].emplace_back(&cluster);
+  }
 
   // Use the chamber resolution when fitting the tracks during the tracking
   mTrackFitter.useChamberResolution();
@@ -112,7 +120,7 @@ const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::li
     mTimeFollowTracks += tEnd - tStart;
 
   } catch (exception const& e) {
-    LOG(error) << e.what() << " --> abort";
+    LOG(warning) << e.what() << " --> abort";
     mTracks.clear();
     return mTracks;
   }
@@ -318,11 +326,11 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
   // create an iterator to the last track of the list before adding new ones
   auto itTrack = mTracks.empty() ? mTracks.end() : std::prev(mTracks.end());
 
-  for (const auto cluster1 : mClusters->at(ch1)) {
+  for (const auto cluster1 : mClusters.at(ch1)) {
 
     double z1 = cluster1->getZ();
 
-    for (const auto cluster2 : mClusters->at(ch2)) {
+    for (const auto cluster2 : mClusters.at(ch2)) {
 
       // skip combinations of clusters already part of a track if requested
       if (skipUsedPairs && areUsed(*cluster1, *cluster2)) {
@@ -403,6 +411,7 @@ void TrackFinderOriginal::createTrack(const Cluster& cl1, const Cluster& cl2)
   /// Throw an exception if the maximum number of tracks is exceeded
 
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
 
@@ -492,6 +501,7 @@ std::list<Track>::iterator TrackFinderOriginal::addTrack(const std::list<Track>:
   /// Add the given track at the requested position in the list of tracks
   /// Throw an exception if the maximum number of tracks is exceeded
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
   return mTracks.emplace(pos, track);
@@ -738,10 +748,10 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   }
 
   // Prepare to remember the clusters used in ch1 in combination with a cluster in ch2
-  std::vector<bool> clusterCh1Used(mClusters->at(ch1).size(), false);
+  std::vector<bool> clusterCh1Used(mClusters.at(ch1).size(), false);
 
   // Look for cluster candidates in chamber 2
-  for (const auto clusterCh2 : mClusters->at(ch2)) {
+  for (const auto clusterCh2 : mClusters.at(ch2)) {
 
     // Fast try to add the current cluster
     if (!tryOneClusterFast(extrapTrackParamAtCh, *clusterCh2)) {
@@ -787,7 +797,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
       // look for second cluster candidates in chamber 1
       int iCluster1(-1);
-      for (const auto clusterCh1 : mClusters->at(ch1)) {
+      for (const auto clusterCh1 : mClusters.at(ch1)) {
 
         ++iCluster1;
 
@@ -849,7 +859,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
   // look for cluster candidates not already used in chamber 1
   int iCluster1(-1);
-  for (const auto clusterCh1 : mClusters->at(ch1)) {
+  for (const auto clusterCh1 : mClusters.at(ch1)) {
 
     ++iCluster1;
     if (clusterCh1Used[iCluster1]) {
@@ -916,7 +926,7 @@ std::list<Track>::iterator TrackFinderOriginal::followLinearTrackInChamber(const
   TrackExtrap::addMCSEffect(trackParam, SChamberThicknessInX0[trackParam.getClusterPtr()->getChamberId()], -1.);
 
   // Look for cluster candidates in the next chamber
-  for (const auto cluster : mClusters->at(nextChamber)) {
+  for (const auto cluster : mClusters.at(nextChamber)) {
 
     // Fast try to add the current cluster
     if (!tryOneClusterFast(trackParam, *cluster)) {
@@ -1150,7 +1160,7 @@ bool TrackFinderOriginal::completeTracks()
       // Look for a second cluster candidate in the same chamber
       int deId = itParam->getClusterPtr()->getDEId();
       double bestChi2AtCluster = mTrackFitter.getMaxChi2();
-      for (const auto cluster : mClusters->at(itParam->getClusterPtr()->getChamberId())) {
+      for (const auto cluster : mClusters.at(itParam->getClusterPtr()->getChamberId())) {
 
         // In another detection element
         if (cluster->getDEId() == deId) {

@@ -136,7 +136,8 @@ BOOST_AUTO_TEST_CASE(TestTimeframePresent)
   };
   std::vector<bool> present;
   present.resize(outputs.size());
-  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present));
+  O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
+  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == true);
 }
 
 BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
@@ -163,9 +164,11 @@ BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
   };
   std::vector<bool> present;
   present.resize(outputs.size());
-  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present) == false);
+  O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
+  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == false);
+
   BOOST_CHECK_EQUAL(O2DataModelHelpers::describeMissingOutputs(outputs, present),
-                    "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA.");
+                    "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA. Present outputs are: TPC/CLUSTERS/0.");
 }
 
 BOOST_AUTO_TEST_CASE(TestTimeframeSporadic)
@@ -192,5 +195,6 @@ BOOST_AUTO_TEST_CASE(TestTimeframeSporadic)
   };
   std::vector<bool> present;
   present.resize(outputs.size());
-  BOOST_CHECK(O2DataModelHelpers::checkForMissingSporadic(inputs, outputs, present) == true);
+  O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
+  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == true);
 }

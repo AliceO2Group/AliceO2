@@ -118,8 +118,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ $EPNSYNCMODE != 1 ]]; then
-      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-      exit 2
+      echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
@@ -138,7 +137,17 @@ if workflow_has_parameter CALIB_PROXIES; then
       CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
     fi
     if [[ ! -z $CHANNELS_LIST ]]; then
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C;$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      DATASPEC_LIST=
+      if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_A\""
+      fi
+      if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
+      fi
+      if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
+      fi
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
@@ -168,7 +177,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # PrimVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     if [[ -z $TFPERSLOTS_MEANVTX ]]; then TFPERSLOTS_MEANVTX=55000; fi
-    DELAYINTFS_MEANVTX="10"
+    if [[ -z $DELAYINTFS_MEANVTX ]]; then DELAYINTFS_MEANVTX=10; fi
     add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=$TFPERSLOTS_MEANVTX;MeanVertexCalib.maxTFdelay=$DELAYINTFS_MEANVTX"
   fi
 

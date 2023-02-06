@@ -1051,13 +1051,14 @@ bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxEr
 {
   o2d::DCA dca;
   auto z = trc.getZAt(0., mBz);
-  if (z < -999.) {
+  if (z < -998.) {
     z = mMeanVertex.getZ();
   }
   mMeanVertex.setMeanXYVertexAtZ(mMeanVertexSeed, z);
-  return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
-                                                          o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
-         (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
+  if (!o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance)) {
+    return false;
+  }
+  return dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut;
 }
 
 //______________________________________________
