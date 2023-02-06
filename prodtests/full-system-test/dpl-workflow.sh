@@ -213,7 +213,7 @@ fi
 
 if ! has_detector_reco TOF; then
   TOF_OUTPUT=digits
-elif has_detector_reco TOF && ! has_detector_from_global_reader TOF; then
+elif [[ -z "$DISABLE_ROOT_OUTPUT" ]] && has_detector_reco TOF && ! has_detector_from_global_reader TOF; then
   TOF_OUTPUT+=",digits"
 fi
 
