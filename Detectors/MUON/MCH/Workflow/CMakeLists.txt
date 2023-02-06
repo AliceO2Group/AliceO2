@@ -91,7 +91,7 @@ o2_add_executable(
         sim-digits-reader-workflow
         SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils O2::DataFormatsMCH O2::SimulationDataFormat)
 
 o2_add_executable(
         preclusters-sink-workflow
