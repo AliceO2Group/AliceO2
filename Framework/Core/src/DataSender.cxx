@@ -115,7 +115,7 @@ void DataSender::verifyMissingSporadic() const
 {
   for (auto present : mPresent) {
     if (!present) {
-      LOGP(warning, O2DataModelHelpers::describeMissingOutputs(mOutputs, mPresent).c_str());
+      LOGP(debug, O2DataModelHelpers::describeMissingOutputs(mOutputs, mPresent).c_str());
       return;
     }
   }
