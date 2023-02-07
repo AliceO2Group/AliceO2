@@ -80,7 +80,7 @@ class ChannelCalibratorDeviceDPL
 
     std::array<gsl::span<const ColumnData>, 2> calibData{pc.inputs().get<gsl::span<ColumnData>>("mid_noise"), pc.inputs().get<gsl::span<ColumnData>>("mid_dead")};
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
-    std::array<double, 2> timeOrTriggers{mHBFsPerTF * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
+    std::array<double, 2> timeOrTriggers{o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
 
     for (size_t idx = 0; idx < calibData.size(); ++idx) {
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrators[idx].getCurrentTFInfo());
@@ -101,7 +101,6 @@ class ChannelCalibratorDeviceDPL
   std::array<ChannelCalibrator, 2> mCalibrators{}; ///< Channels calibrators
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::vector<ColumnData> mRefMasks{}; ///< Reference masks
-  int mHBFsPerTF = 128.;               ///< Number of HBFs per TF
 
   void sendOutput(of::DataAllocator& output)
   {
