@@ -333,6 +333,7 @@ foreach(w
         ParallelPipeline
         ParallelProducer
         SlowConsumer
+        SlowProducerWithWildCard
         SimpleDataProcessingDevice01
         SimpleStatefulProcessing01
         SimpleStringProcessing
