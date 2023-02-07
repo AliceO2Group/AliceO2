@@ -879,12 +879,14 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.wasActive = &mWasActive;
 
   context.isSink = false;
-  context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
   bool enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
 
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& spec = ref.get<DeviceSpec const>();
+
+  // The policy is now allowed to state the default.
+  context.balancingInputs = spec.completionPolicy.balanceChannels;
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
   if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
