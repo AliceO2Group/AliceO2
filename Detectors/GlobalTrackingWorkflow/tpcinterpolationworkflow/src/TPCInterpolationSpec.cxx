@@ -60,13 +60,19 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // other init-once stuff
+    const auto& param = SpacePointsCalibConfParam::Instance();
     mInterpolation.init();
     int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
-    bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
-    int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
+    bool limitTracks = (param.maxTracksPerCalibSlot < 0) ? false : true;
+    int nTracksPerTfMax = (nTfs > 0 && limitTracks) ? param.maxTracksPerCalibSlot / nTfs : -1;
     if (nTracksPerTfMax > 0) {
       LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
-           nTracksPerTfMax, SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot, nTfs);
+           nTracksPerTfMax, param.maxTracksPerCalibSlot, nTfs);
+      if (param.additionalTracksITSTPC > 0) {
+        int nITSTPCadd = param.additionalTracksITSTPC / nTfs;
+        LOGP(info, "In addition up to {} ITS-TPC tracks are processed per TF", nITSTPCadd);
+        mInterpolation.setAddITSTPCTracksPerTF(nITSTPCadd);
+      }
     } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
     } else {
