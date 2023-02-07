@@ -452,10 +452,6 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
     if (mCorrectionSlow) {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
-      float dzTOF = 0;
-      getTOFcorrection(slice, row, x, ly, lz, dzTOF);
-      z += dzTOF;
-
       float gx, gy, gz;
       getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
 
