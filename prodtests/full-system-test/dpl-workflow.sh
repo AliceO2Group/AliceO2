@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
 MYDIR="$(dirname $(realpath $0))"
+source $MYDIR/gen_topo_helper_functions.sh
 source $MYDIR/setenv.sh
 
 if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
@@ -492,7 +493,12 @@ if [[ ! -z "$EXTRA_WORKFLOW" ]]; then
 fi
 
 if [[ ! -z "$ADD_EXTRA_WORKFLOW" ]]; then
-  add_W $ADD_EXTRA_WORKFLOW
+  OLD_IFS=$IFS
+  IFS=','
+  for wf in $ADD_EXTRA_WORKFLOW; do
+    [[ ! -z "$wf" ]] && add_W $wf
+  done
+  IFS="$OLD_IFS"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
