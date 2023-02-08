@@ -138,8 +138,8 @@ class MatchITSTPCQC
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
   // Pt
-  TH1F* mPt = nullptr;
-  TH1F* mPtTPC = nullptr;
+  TH1D* mPt = nullptr;
+  TH1D* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
   TH1F* mPtPhysPrim = nullptr;
   TH1F* mPtTPCPhysPrim = nullptr;
