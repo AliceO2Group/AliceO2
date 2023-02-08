@@ -22,6 +22,8 @@
 #include <map>
 #include <string>
 
+#include <Rtypes.h>
+
 namespace o2::mch
 {
 
@@ -90,6 +92,8 @@ struct Error {
   std::string getTypeDescription() const;
   /** returns the error message corresponding to this error */
   std::string asString() const;
+
+  ClassDefNV(Error, 1)
 };
 
 } // namespace o2::mch

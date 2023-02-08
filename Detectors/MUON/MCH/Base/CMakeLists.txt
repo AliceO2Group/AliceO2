@@ -24,6 +24,7 @@ o2_add_library(MCHBase
 
 o2_target_root_dictionary(MCHBase
                           HEADERS include/MCHBase/DecoderError.h
+                                  include/MCHBase/Error.h
                                   include/MCHBase/HeartBeatPacket.h
                                   include/MCHBase/PreCluster.h
                                   include/MCHBase/ResponseParam.h

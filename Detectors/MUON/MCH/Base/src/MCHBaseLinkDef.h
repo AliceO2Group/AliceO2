@@ -27,4 +27,7 @@
 #pragma link C++ class o2::mch::PreCluster + ;
 #pragma link C++ class std::vector < o2::mch::PreCluster> + ;
 
+#pragma link C++ class o2::mch::Error + ;
+#pragma link C++ class std::vector < o2::mch::Error> + ;
+
 #endif
