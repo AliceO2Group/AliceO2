@@ -401,7 +401,8 @@ void DataRequest::requestSecondaryVertertices(bool)
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
-void DataRequest::requestStrangeTracks(bool) {
+void DataRequest::requestStrangeTracks(bool)
+{
   addInput({"strangetracks", "GLO", "STRANGETRACKS", 0, Lifetime::Timeframe});
   requestMap["STracker"] = false; // no MC for the time being
 }
@@ -804,7 +805,6 @@ void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool)
   //   pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
   // }
 }
-
 
 //____________________________________________________________
 void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
