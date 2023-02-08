@@ -55,8 +55,8 @@ class MatchITSTPCQC
   void finalize();
   void reset();
 
-  TH1F* getHistoPt() const { return mPt; }
-  TH1F* getHistoPtTPC() const { return mPtTPC; }
+  TH1D* getHistoPt() const { return mPt; }
+  TH1D* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
 
   TH1F* getHistoPhi() const { return mPhi; }
