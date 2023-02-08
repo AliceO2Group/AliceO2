@@ -99,6 +99,8 @@ class TPCFastTransformHelperO2
 
   TPCFastSpaceChargeCorrectionMap& getCorrectionMap() { return mCorrectionMap; }
 
+  void fillSpaceChargeCorrectionFromMap(TPCFastSpaceChargeCorrection& correction);
+
  private:
   /// initialization
   void init();
