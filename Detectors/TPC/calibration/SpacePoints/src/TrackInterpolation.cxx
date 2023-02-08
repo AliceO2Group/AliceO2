@@ -115,7 +115,7 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
       maxTracksReached = true;
       // if mAddTracksITSTPC > 0 we will still process up to mAddTracksITSTPC tracks,
       // otherwise the following if statement is also true and we break
-      iSeed = nSeeds - trkCounters.at(GTrackID::Source::ITSTPC);
+      break;
     }
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksITSTPC) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
