@@ -253,6 +253,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
       mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
+    mIndexTables.clear();
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);

@@ -13,6 +13,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DigitReaderSpec.h"
+#include "ErrorMergerSpec.h"
 #include "EventFinderSpec.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
@@ -28,6 +29,7 @@
 #include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/ClusterWriterSpec.h"
+#include "MCHWorkflow/ErrorWriterSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
@@ -122,6 +124,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
         specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
       }
     }
+  }
+
+  specs.emplace_back(o2::mch::getErrorMergerSpec("mch-error-merger", true, !disableClustering,
+                                                 !(disableClustering || disableTracking)));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::mch::getErrorWriterSpec("mch-error-writer"));
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

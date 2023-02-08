@@ -47,7 +47,7 @@ class Tracker : public TrackerConfig
 
  public:
   Tracker(bool useMC);
-  ~Tracker() = default;
+  ~Tracker();
 
   Tracker(const Tracker&) = delete;
   Tracker& operator=(const Tracker&) = delete;

@@ -93,6 +93,12 @@ class DataAllocator
 
   void adoptChunk(const Output&, char*, size_t, fair::mq::FreeFn*, void*);
 
+  // This method can be used to send a 0xdeadbeef message associated to a given
+  // output. The @a spec will be used to determine the channel to which the
+  // output will need to be sent, however the actual message will be empty
+  // and with subspecification 0xdeadbeef.
+  void cookDeadBeef(const Output& spec);
+
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
   /// Note: decltype(auto) will deduce the return type from the expression and it

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDSimulation/PileupTool.h"
+#include "TRDSimulation/TRDSimParams.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
@@ -28,7 +29,7 @@ SignalContainer PileupTool::addSignals(std::deque<std::array<SignalContainer, co
         // check if the signal is from a previous event
         if (signalArray.firstTBtime < triggerTime) {
           pileupSignalBecomesObsolete = true;
-          if ((triggerTime - signalArray.firstTBtime) > constants::READOUT_TIME) { // OS: READOUT_TIME should actually be drift time (we want to ignore signals which don't contribute signal anymore at triggerTime)
+          if ((triggerTime - signalArray.firstTBtime) > TRDSimParams::Instance().readoutTimeNS) { // OS: READOUT_TIME should actually be drift time (we want to ignore signals which don't contribute signal anymore at triggerTime)
             continue;                                                              // ignore the signal if it  is too old.
           }
           // add only what's leftover from this signal

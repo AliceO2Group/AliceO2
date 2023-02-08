@@ -38,6 +38,8 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;
   int zSpan = -1;
+  int ZBins = 1;
+  int PhiBins = 128;
 
   int nThreads = 1;
 

@@ -25,6 +25,10 @@ namespace mft
 {
 
 using namespace constants::mft;
+using BinContainer = std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)>;
+using RArray = std::array<Float_t, constants::mft::LayersNumber>;
+using PhiArray = std::array<Int_t, constants::mft::LayersNumber>;
+using InverseRArray = std::array<Float_t, constants::mft::LayersNumber>;
 
 class TrackerConfig
 {
@@ -39,9 +43,7 @@ class TrackerConfig
   const Int_t getPhiBinIndex(const Float_t phi) const;
   const Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex) const;
 
-  // tracking configuration parameters
-  const auto& getBinsS() { return mBinsS; }
-  const auto& getBins() { return mBins; }
+  static void initBinContainers();
 
   const std::pair<Int_t, Int_t>& getClusterBinIndexRange(Int_t layerId, Int_t bin) const { return mClusterBinIndexRange[layerId][bin]; }
 
@@ -67,13 +69,16 @@ class TrackerConfig
   bool mFullClusterScan = false;
   Float_t mTrueTrackMCThreshold; // Minimum fraction of correct MC labels to tag True tracks
 
+  static std::mutex sTCMutex;
+
   static Float_t mPhiBinSize;
   static Float_t mInversePhiBinSize;
-  static std::array<Int_t, constants::mft::LayersNumber> mPhiBinWin;
-  static std::array<Float_t, constants::mft::LayersNumber> mRBinSize;
-  static std::array<Float_t, constants::mft::LayersNumber> mInverseRBinSize;
-  static std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
-  static std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
+
+  static std::unique_ptr<InverseRArray> mInverseRBinSize;
+  static std::unique_ptr<PhiArray> mPhiBinWin;
+  static std::unique_ptr<RArray> mRBinSize;
+  static std::unique_ptr<BinContainer> mBins;
+  static std::unique_ptr<BinContainer> mBinsS;
   std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
 
   ClassDefNV(TrackerConfig, 3);
@@ -81,15 +86,16 @@ class TrackerConfig
 
 inline Float_t TrackerConfig::mPhiBinSize;
 inline Float_t TrackerConfig::mInversePhiBinSize;
-inline std::array<Int_t, constants::mft::LayersNumber> TrackerConfig::mPhiBinWin;
-inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mRBinSize;
-inline std::array<Float_t, constants::mft::LayersNumber> TrackerConfig::mInverseRBinSize;
-inline std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> TrackerConfig::mBins;
-inline std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> TrackerConfig::mBinsS;
+
+inline std::unique_ptr<InverseRArray> TrackerConfig::mInverseRBinSize;
+inline std::unique_ptr<PhiArray> TrackerConfig::mPhiBinWin;
+inline std::unique_ptr<RArray> TrackerConfig::mRBinSize;
+inline std::unique_ptr<BinContainer> TrackerConfig::mBins;
+inline std::unique_ptr<BinContainer> TrackerConfig::mBinsS;
 
 inline const Int_t TrackerConfig::getRBinIndex(const Float_t r, const Int_t layer) const
 {
-  return (Int_t)((r - constants::index_table::RMin[layer]) * mInverseRBinSize[layer]);
+  return (Int_t)((r - constants::index_table::RMin[layer]) * (*mInverseRBinSize)[layer]);
 }
 
 inline const Int_t TrackerConfig::getPhiBinIndex(const Float_t phi) const

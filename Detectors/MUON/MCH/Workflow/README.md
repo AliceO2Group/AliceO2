@@ -18,6 +18,7 @@
 * [Tracking](#tracking)
 * [Track extrapolation to vertex](#track-extrapolation-to-vertex)
 * [Track fitter](#track-fitter)
+* [Error merger](#error-merger)
 * [Samplers](#samplers)
   * [Digit sampler](#digit-sampler)
   * [Precluster reader](#precluster-reader)
@@ -25,6 +26,7 @@
   * [Cluster reader](#cluster-reader)
   * [Track sampler](#track-sampler)
   * [Track reader](#track-reader)
+  * [Error reader](#error-reader)
   * [Vertex sampler](#vertex-sampler)
 * [Sinks](#sinks)
   * [Precluster sink](#precluster-sink)
@@ -33,6 +35,7 @@
   * [Cluster writer](#cluster-writer)
   * [Track sink](#track-sink)
   * [Track writer](#track-writer)
+  * [Error writer](#error-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -207,6 +210,20 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 
 Refit the tracks to their associated clusters. [more...](/Detectors/MUON/MCH/Tracking/README.md)
 
+## Error merger
+
+```shell
+o2-mch-errors-merger-workflow
+```
+
+Take as input the list of all MCH preclustering, clustering and tracking errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PRECLUSTERERRORS", "CLUSTERERRORS" and "TRACKERRORS", respectively. Send the merged list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the time frame, with the data description "ERRORS".
+
+Options `--disable-preclustering-errors` allows to skip the preclustering errors.
+
+Options `--disable-clustering-errors` allows to skip the clustering errors.
+
+Options `--disable-tracking-errors` allows to skip the tracking errors.
+
 ## Samplers
 
 ### Digit sampler
@@ -304,6 +321,16 @@ Option `--input-dir` allows to set the name of the directory containing the inpu
 Option `--digits` allows to also read the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and send them with the data description "TRACKDIGITS".
 
 Option `--enable-mc` allows to also read the track MC labels and send them with the data description "TRACKLABELS".
+
+## Error reader
+
+```shell
+o2-mch-errors-reader-workflow --infile mcherrors.root
+```
+
+Send the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS".
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
 
 ### Vertex sampler
 
@@ -411,3 +438,11 @@ Does the same kind of work as the [track sink](#track-sink) but the output is in
 Option `--digits` allows to also write the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) from the input message with the data description "TRACKDIGITS".
 
 Option `--enable-mc` allows to also write the track MC labels from the input message with the data description "TRACKLABELS".
+
+## Error writer
+
+```shell
+o2-mch-errors-writer-workflow
+```
+
+Take as input the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS", and write it in the root file "mcherrors.root".

@@ -133,9 +133,9 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 {
   static long counter = -1;
   counter++;
-  if (mUseMC) { // extract MC tracks
-    auto prop = o2::base::Propagator::Instance();
+  auto prop = o2::base::Propagator::Instance();
 
+  if (mUseMC) { // extract MC tracks
     const o2::steer::DigitizationContext* digCont = nullptr;
     if (!mcReader.initFromDigitContext("collisioncontext.root")) {
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
@@ -155,6 +155,8 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
     float RRef2 = mRRef * mRRef;
     const o2::MCTrack* mcTrack = nullptr;
+    std::vector<short> clSector, clRow;
+    std::vector<float> clIniX, clIniY, clIniZ, clMovX, clMovY, clMovZ;
     for (size_t itr = 0; itr < mTPCTracksArray.size(); itr++) {
       auto tr = mTPCTracksArray[itr]; // create track copy
 
@@ -241,13 +243,50 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       } else if (tr.hasBothSidesClusters()) {
         dz = 0; // CE crossing tracks should not be shifted
       }
+      // extract cluster info
+      clSector.clear();
+      clRow.clear();
+      clIniX.clear();
+      clIniY.clear();
+      clIniZ.clear();
+      clMovX.clear();
+      clMovY.clear();
+      clMovZ.clear();
+      int count = tr.getNClusters();
+      const auto* corrMap = mTPCCorrMapsLoader.getCorrMap();
+      const o2::tpc::ClusterNative* cl = nullptr;
+      for (int ic = count; ic--;) {
+        uint8_t sector, row;
+        cl = &tr.getCluster(mTPCTrackClusIdx, ic, *mTPCClusterIdxStruct, sector, row);
+        clSector.push_back(sector);
+        clRow.push_back(row);
+        float x, y, z;
+        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tr.getTime0()); // nominal time of the track
+        clIniX.push_back(x);
+        clIniY.push_back(y);
+        clIniZ.push_back(z);
+        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, bcTB); // shifted time of the track
+        clMovX.push_back(x);
+        clMovY.push_back(y);
+        clMovZ.push_back(z);
+      }
+
       // store results
       (*mDBGOut) << "tpc"
                  << "iniTrack=" << tr
-                 << "intTrackRef=" << trf
+                 << "iniTrackRef=" << trf
                  << "movTrackRef=" << trackRefit
                  << "mcTrack=" << mctrO2
-                 << "imposedTB=" << bcTB << "dz=" << dz << "\n";
+                 << "imposedTB=" << bcTB << "dz=" << dz
+                 << "clSector=" << clSector
+                 << "clRow=" << clRow
+                 << "clIniX=" << clIniX
+                 << "clIniY=" << clIniY
+                 << "clIniZ=" << clIniZ
+                 << "clMovX=" << clMovX
+                 << "clMovY=" << clMovY
+                 << "clMovZ=" << clMovZ
+                 << "\n";
     }
   }
 }

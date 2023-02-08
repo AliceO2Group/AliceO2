@@ -9,15 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include <vector>
+#include "Framework/CompletionPolicyHelpers.h"
+#include "MCHWorkflow/ErrorWriterSpec.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::framework;
 
-#pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
-#pragma link C++ class o2::its3::MisalignmentParameter + ;
-#pragma link C++ class o2::its3::SuperAlpideParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::SuperAlpideParams> + ;
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MCH|mch).*[W,w]riter.*"));
+}
 
-#endif
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(const ConfigContext&)
+{
+  return WorkflowSpec{o2::mch::getErrorWriterSpec("mch-error-writer")};
+}

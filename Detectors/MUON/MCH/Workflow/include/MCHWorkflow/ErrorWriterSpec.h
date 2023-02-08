@@ -9,15 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_MCH_WORKFLOW_ERROR_WRITER_SPEC_H
+#define O2_MCH_WORKFLOW_ERROR_WRITER_SPEC_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
-#pragma link C++ class o2::its3::MisalignmentParameter + ;
-#pragma link C++ class o2::its3::SuperAlpideParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::SuperAlpideParams> + ;
+namespace o2::mch
+{
+framework::DataProcessorSpec getErrorWriterSpec(const char* specName = "mch-error-writer");
+}
 
 #endif
