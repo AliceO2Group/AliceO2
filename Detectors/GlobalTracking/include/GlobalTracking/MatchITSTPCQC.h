@@ -63,6 +63,10 @@ class MatchITSTPCQC
   TH1F* getHistoPhiTPC() const { return mPhiTPC; }
   TEfficiency* getFractionITSTPCmatchPhi() const { return mFractionITSTPCmatchPhi; }
 
+  TH2F* getHistoPhiVsPt() const { return mPhiVsPt; }
+  TH2F* getHistoPhiVsPtTPC() const { return mPhiVsPtTPC; }
+  TEfficiency* getFractionITSTPCmatchPhiVsPt() const { return mFractionITSTPCmatchPhiVsPt; }
+
   TH1F* getHistoEta() const { return mEta; }
   TH1F* getHistoEtaTPC() const { return mEtaTPC; }
   TEfficiency* getFractionITSTPCmatchEta() const { return mFractionITSTPCmatchEta; }
@@ -140,6 +144,9 @@ class MatchITSTPCQC
   TH1F* mPhi = nullptr;
   TH1F* mPhiTPC = nullptr;
   TEfficiency* mFractionITSTPCmatchPhi = nullptr;
+  TH2F* mPhiVsPt = nullptr;
+  TH2F* mPhiVsPtTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchPhiVsPt = nullptr;
   TH1F* mPhiPhysPrim = nullptr;
   TH1F* mPhiTPCPhysPrim = nullptr;
   TEfficiency* mFractionITSTPCmatchPhiPhysPrim = nullptr;
@@ -159,6 +166,25 @@ class MatchITSTPCQC
   TH1F* mChi2Refit = nullptr;
   TH2F* mTimeResVsPt = nullptr;
 
+  void setEfficiency(TEfficiency* eff, TH2F* hnum, TH2F* hden)
+  {
+    if (!eff) {
+      LOG(fatal) << "Cannot get TEfficiency object ";
+    }
+    if (!hnum) {
+      LOG(fatal) << "Cannot get numerator histogram for TEfficiency object " << eff->GetName();
+    }
+    if (!hden) {
+      LOG(fatal) << "Cannot get denominator histogram for TEfficiency object " << eff->GetName();
+    }
+    LOG(info) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
+
+    // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
+    if (!eff->SetTotalHistogram(*hden, "f") || !eff->SetPassedHistogram(*hnum, "")) {
+      LOG(fatal) << "Something went wrong when defining the efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
+    }
+    eff->SetTitle(Form("%s;%s;%s;%s", eff->GetTitle(), hnum->GetXaxis()->GetTitle(), hnum->GetYaxis()->GetTitle(), "Efficiency"));
+  }
   int mNTPCSelectedTracks = 0;
   int mNITSTPCSelectedTracks = 0;
 
