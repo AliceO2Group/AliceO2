@@ -895,7 +895,8 @@ GPUd() void GPUTPCCompressionTrackModel::getClusterRMS2(int iRow, float z, float
   if (rowType > 2) {
     rowType = 2; // TODO: Add type 3
   }
-  z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
+  constexpr float tpcLength = 250.f - 0.275f;
+  z = CAMath::Abs(tpcLength - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;

@@ -997,8 +997,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             ZOffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, mc.t0, mParam->par.continuousMaxTimeBin)) * (mc.z < 0 ? -1 : 1);
           }
 #else
-          if (fabsf(mc.z) > 250) {
-            ZOffset = mc.z > 0 ? (mc.z - 250) : (mc.z + 250);
+          if (fabsf(mc.z) > GPUTPCGeometry::TPCLength()) {
+            ZOffset = mc.z > 0 ? (mc.z - GPUTPCGeometry::TPCLength()) : (mc.z + GPUTPCGeometry::TPCLength());
           }
           trkParam.Set(mclocal[0], mclocal[1], mc.z - ZOffset, mclocal[2], mclocal[3], mc.pZ, charge);
 #endif
@@ -1026,7 +1026,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           if (fabsf(trkParam.Z() + ZOffset) > mMaxClusterZ + (iMC ? 0 : 0)) {
             break;
           }
-          if (fabsf(trkParam.Z() - z0) > (iMC ? 250 : 250)) {
+          if (fabsf(trkParam.Z() - z0) > (iMC ? GPUTPCGeometry::TPCLength() : GPUTPCGeometry::TPCLength())) {
             break;
           }
           if (inFlyDirection) {

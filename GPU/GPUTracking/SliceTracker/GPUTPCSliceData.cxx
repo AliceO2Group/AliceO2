@@ -124,10 +124,10 @@ GPUd() unsigned int GPUTPCSliceData::GetGridSize(unsigned int nHits, unsigned in
 GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, float yMin, float yMax, float zMin, float zMax)
 {
   float dz = zMax - zMin;
-  float tfFactor = 1.;
-  if (dz > 270.) {
-    tfFactor = dz / 250.;
-    dz = 250.;
+  float tfFactor = 1.f;
+  if (dz > GPUTPCGeometry::TPCLength() + 20.f) {
+    tfFactor = dz / GPUTPCGeometry::TPCLength();
+    dz = GPUTPCGeometry::TPCLength();
   }
   const float norm = CAMath::FastInvSqrt(row->mNHits / tfFactor);
   float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
