@@ -860,7 +860,7 @@ DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
 DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
 DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
 DECLARE_SOA_COLUMN(H4Lmass, h4Lmass, float);           //! H4L mass
-DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);          //! He4L mass
+DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);         //! He4L mass
 DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
 DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
 DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size

@@ -41,7 +41,6 @@ struct StrangeTrack {
   float mTopoChi2;
 };
 
-
 } // namespace dataformats
 } // namespace o2
 
