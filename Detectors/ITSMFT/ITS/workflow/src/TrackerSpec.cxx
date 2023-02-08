@@ -91,30 +91,11 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[2].MinTrackLength = 4;
     LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
-  } else if (mMode == "sync_misaligned") {
-
-    trackParams.resize(3);
-    trackParams[0].PhiBins = 32;
-    trackParams[0].ZBins = 64;
-    trackParams[0].CellDeltaTanLambdaSigma *= 3.;
-    trackParams[0].SystErrorZ2[0] = 1.e-4;
-    trackParams[0].SystErrorZ2[1] = 1.e-4;
-    trackParams[0].SystErrorZ2[2] = 1.e-4;
-    trackParams[0].SystErrorZ2[3] = 9.e-4;
-    trackParams[0].SystErrorZ2[4] = 9.e-4;
-    trackParams[0].SystErrorZ2[5] = 9.e-4;
-    trackParams[0].SystErrorZ2[6] = 9.e-4;
-    std::copy(trackParams[0].SystErrorZ2.begin(), trackParams[0].SystErrorZ2.end(), trackParams[0].SystErrorY2.begin());
-    trackParams[0].MaxChi2ClusterAttachment = 60.;
-    trackParams[0].MaxChi2NDF = 40.;
-    trackParams[1] = trackParams[0];
-    trackParams[2] = trackParams[0];
-    trackParams[1].MinTrackLength = 6;
-    trackParams[2].MinTrackLength = 4;
-    LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
-
   } else if (mMode == "sync") {
     trackParams.resize(1);
+    trackParams[0].ZBins = 64;
+    trackParams[0].PhiBins = 32;
+    trackParams[0].MinTrackLength = 4;
     LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
   } else if (mMode == "cosmics") {
     mCosmicsProcessing = true;
