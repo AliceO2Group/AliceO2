@@ -21,6 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
+#include "CommonUtils/DebugStreamer.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <string>
@@ -114,6 +115,9 @@ class TPCFastTransform : public FlatObject
 #else
   ~TPCFastTransform() CON_DEFAULT;
 #endif
+
+  /// write output of streamer to file
+  void flushStreamer() { mStreamer.flush(); }
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -331,9 +335,10 @@ class TPCFastTransform : public FlatObject
 
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
+  o2::utils::DebugStreamer mStreamer;                     ///<! debug streamer for fast transform
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 2);
+  ClassDefNV(TPCFastTransform, 3);
 #endif
 };
 
@@ -483,6 +488,34 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
       } else {
         dv = -dv; // mirror z for A-Side
       }
+    }
+
+    using Streamer = o2::utils::DebugStreamer;
+    if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+      auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+      streamer.setStreamer("debug_fasttransform", "UPDATE");
+
+      float ly, lz;
+      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+
+      streamer.getStreamer() << streamer.getUniqueTreeName("tree").data()
+                             << "dx=" << dx
+                             << "du=" << du
+                             << "dv=" << dv
+                             << "v=" << v
+                             << "u=" << u
+                             << "row=" << row
+                             << "slice=" << slice
+                             << "ly=" << ly
+                             << "lz=" << lz
+                             << "lx=" << x
+                             << "gx=" << gx
+                             << "gy=" << gy
+                             << "gz=" << gz
+                             << "\n";
     }
 
     x += dx;

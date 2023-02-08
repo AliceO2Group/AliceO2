@@ -22,6 +22,7 @@
 #include <cmath>
 #include "TPCSpaceCharge/TriCubic.h"
 #include "DataFormatsTPC/Defs.h"
+#include "TFormula.h"
 
 namespace o2
 {
@@ -129,6 +130,74 @@ class AnalyticalFields
   DataT mParB{0.5};                      ///< parameter [1] of functions
   DataT mParC{1e-4};                     ///< parameter [2] of functions
   o2::tpc::Side mSide{o2::tpc::Side::A}; ///< side of the TPC. Since the absolute value is taken during the calculations the choice of the side is arbitrary.
+};
+
+/// struct for containing simple analytical distortions (as function of local coordinates) and the resulting corrections
+template <typename DataT = double>
+class AnalyticalDistCorr
+{
+ public:
+  DataT getDistortionsLX(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mDlXFormula.Eval(lx, ly, lz, side); };
+  DataT getCorrectionsLX(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mClXFormula.Eval(lx, ly, lz, side); };
+  DataT getDistortionsLY(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mDlYFormula.Eval(lx, ly, lz, side); };
+  DataT getCorrectionsLY(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mClYFormula.Eval(lx, ly, lz, side); };
+  DataT getDistortionsLZ(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mDlZFormula.Eval(lx, ly, lz, side); };
+  DataT getCorrectionsLZ(const DataT lx, const DataT ly, const DataT lz, const Side side) const { return mClZFormula.Eval(lx, ly, lz, side); };
+
+  /// set default analytical formulas for distortions and corrections
+  void initDefault()
+  {
+    mDlXFormula = TFormula{"mDlX", "(254.5 - x) / 50"};                              ///< analytical distortions in lx as a function of lx
+    mClXFormula = TFormula{"mClX", "(x * 50 - 254.5) / 49 - x"};                     ///< analytical corrections in lx as a function of lx
+    mDlYFormula = TFormula{"mDlY", "2 + 0.01 * x"};                                  ///< analytical distortions in ly as a function of lx
+    mClYFormula = TFormula{"mClY", "-(2 + 0.01 * (x + (x * 50 - 254.5) / 49 - x))"}; ///< analytical correction in ly as a function of lx
+    mDlZFormula = TFormula{"mDlZ", "z / 50"};                                        ///< analytical correction in lz as a function of lz
+    mClZFormula = TFormula{"mClZ", "z * 50 / 51 - z"};                               ///< analytical correction in lz as a function of lz
+  }
+
+  /// check if all formulas are valid
+  bool isValid() const { return mDlXFormula.IsValid() && mClXFormula.IsValid() && mDlYFormula.IsValid() && mClYFormula.IsValid() && mDlZFormula.IsValid() && mClZFormula.IsValid(); }
+
+  ///  const DataT dlX = (TPCParameters<DataT>::OFCRADIUS - lx) / 50; // (171 -> 0) / 50 = 3.42 cn
+  ///  return dlX;
+  TFormula mDlXFormula{}; ///< analytical distortions in lx as a function of lx
+
+  ///  analytical correction in lx as a function of lx
+  ///  distorted point: lx_2 = lx_1 + mDlX(lx_1)
+  ///                   lx_2 = lx_1 + (TPCParameters<DataT>::OFCRADIUS - lx) / 50);
+  ///                   lx_2 * 50 = lx_1 * 50 + TPCParameters<DataT>::OFCRADIUS - lx
+  ///                   lx_2 * 50 - TPCParameters<DataT>::OFCRADIUS = lx_1 * 49
+  ///                   lx_2 * 50 - TPCParameters<DataT>::OFCRADIUS / 49 = lx_1
+  ///  correction: dCorrX = lx_2 - lx_1
+  ///
+  ///  const DataT lx2 = (lx * 50 - TPCParameters<DataT>::OFCRADIUS) / 49;
+  ///  return lx2 - lx;
+  TFormula mClXFormula{}; ///< analytical corrections in lx as a function of lx
+
+  /// const DataT dlY = 2 + 0.01 * lx;
+  /// return dlY;
+  TFormula mDlYFormula{}; ///< analytical distortions in ly as a function of lx
+
+  /// const DataT dlX_1 = lx + mClX(lx, 0, 0, Side::A); // corrected point (original point without distortion)
+  /// return -mDlY(dlX_1, 0, 0, Side::A);               // distortion at original point
+  TFormula mClYFormula{}; ///< analytical correction in ly as a function of lx
+
+  /// const DataT dlZ = lz / 50;
+  /// return dlZ;
+  TFormula mDlZFormula{}; ///< analytical correction in lz as a function of lz
+
+  ///  lz_2 = lz_1 + mDlZ(lz_1)
+  ///  lz_2 = lz_1 + lz_1 / 50
+  ///  lz_2 = lz_1 * (1 + 1/50)
+  ///  lz_2 / (1 + 1/50) = lz_1
+  ///  lz_2 * 50 / 51 = lz_1
+  ///
+  ///  const DataT lz2 = lz * 50 / 51.;
+  ///  const DataT diffZ = lz2 - lz;
+  ///  return diffZ;
+  TFormula mClZFormula{}; ///< analytical correction in lz as a function of lz
+
+  ClassDefNV(AnalyticalDistCorr, 1);
 };
 
 ///
