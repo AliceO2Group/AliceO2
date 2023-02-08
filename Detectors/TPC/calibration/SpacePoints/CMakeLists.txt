@@ -38,3 +38,6 @@ o2_target_root_dictionary(SpacePoints
 o2_add_test_root_macro(macro/staticMapCreator.C
                        PUBLIC_LINK_LIBRARIES O2::SpacePoints
                        LABELS tpc COMPILE_ONLY)
+
+install(FILES macro/staticMapCreator.C
+        DESTINATION share/macro/)
