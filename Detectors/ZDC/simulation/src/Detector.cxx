@@ -2629,6 +2629,9 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
 
   auto determineSectorID = [&Nx = Nx, &Ny = Ny](int detector, int x, int y) {
     if (detector == ZNA || detector == ZNC) {
+      if ((x + y) % 2 == 0) {
+        return (int)Common;
+      }
       if (x < Nx / 2) {
         if (y < Ny / 2) {
           return (int)Ch1;
