@@ -336,6 +336,8 @@ void TrackResiduals::processSectorResiduals(int iSec)
 {
   LOGP(info, "Processing {} voxel residuals for sector {}", mLocalResidualsIn.size(), iSec);
   initResultsContainer(iSec);
+  // effective t0 correction changes sign between A-/C-side
+  float effT0corr = (iSec < SECTORSPERSIDE) ? mEffT0Corr : -1. * mEffT0Corr;
   std::vector<unsigned short> binData;
   for (const auto& res : mLocalResidualsIn) {
     binData.push_back(getGlbVoxBin(res.bvox));
@@ -373,7 +375,8 @@ void TrackResiduals::processSectorResiduals(int iSec)
     }
     dyVec.push_back(mLocalResidualsIn[idx].dy * param::MaxResid / 0x7fff);
     dzVec.push_back(mLocalResidualsIn[idx].dz * param::MaxResid / 0x7fff -
-                    mEffVdriftCorr * secData[currVoxBin].stat[VoxZ] * secData[currVoxBin].stat[VoxX]);
+                    mEffVdriftCorr * secData[currVoxBin].stat[VoxZ] * secData[currVoxBin].stat[VoxX] -
+                    effT0corr);
     tgVec.push_back(mLocalResidualsIn[idx].tgSlp * param::MaxTgSlp / 0x7fff);
 
     ++nPointsInVox;
