@@ -20,25 +20,6 @@
 // ClassImp(o2::tof::Parameters);
 using namespace o2::tof;
 
-template <int nPar>
-bool ParameterCollection::retrieveParameters(Parameters<nPar>& p, const std::string& key) const
-{
-  if (!hasKey(key)) { // Can't find the required key. Cna't load parameters to the object
-    return false;
-  }
-
-  const auto& toGet = mParameters.at(key);
-  for (int i = 0; i < p.size(); i++) {
-    const auto& name = p.GetParameterName(i);
-    if (toGet.find(name) == toGet.end()) {
-      LOG(debug) << "Did not find parameter " << name << " in collection, keeping preexisting";
-      continue;
-    }
-    p.SetParameter(i, toGet.at(name));
-  }
-  return true;
-}
-
 bool ParameterCollection::addParameter(const std::string& pass, const std::string& parName, float value)
 {
   const bool alreadyPresent = hasKey(pass);
@@ -60,6 +41,13 @@ int ParameterCollection::getSize(const std::string& pass) const
   return mParameters.at(pass).size();
 }
 
+void ParameterCollection::print() const
+{
+  for (const auto& [pass, pars] : mParameters) {
+    print(pass);
+  }
+}
+
 void ParameterCollection::print(const std::string& pass) const
 {
   const auto& size = getSize(pass);
@@ -71,20 +59,4 @@ void ParameterCollection::print(const std::string& pass) const
   for (const auto& [par, value] : mParameters.at(pass)) {
     LOG(info) << "par name = " << par << ", value = " << value;
   }
-}
-
-template <int nPar>
-bool ParameterCollection::storeParameters(const Parameters<nPar>& p, const std::string& key)
-{
-  const bool alreadyPresent = hasKey(key);
-  if (alreadyPresent) {
-    LOG(debug) << "Changing parametrization corresponding to key " << key << " from size " << mParameters[key].size() << " to " << p.GetName() << " of size " << p.size();
-  } else {
-    mParameters[key] = std::unordered_map<std::string, paramvar_t>{};
-    LOG(debug) << "Adding new parametrization corresponding to key " << key << ": " << p.GetName() << " of size " << p.size();
-  }
-  for (int i = 0; i < p.size(); i++) {
-    mParameters[key][p.GetParameterName(i)] = p[i];
-  }
-  return alreadyPresent;
 }

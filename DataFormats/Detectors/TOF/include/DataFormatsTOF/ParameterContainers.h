@@ -59,14 +59,14 @@ class Parameters
 
   /// Setter for the parameter, using a parameter object
   /// \param params parameter object with parameters
-  void setParameters(const Parameters<nPar> params) { SetParameters(params.mPar); };
+  void setParameters(const Parameters<nPar> params) { setParameters(params.mPar); };
 
   /// Setter for the parameter, using a parameter pointer
   /// \param params pointer to parameter object with parameters
-  void setParameters(const Parameters<nPar>* params) { SetParameters(params->mPar); };
+  void setParameters(const Parameters<nPar>* params) { setParameters(params->mPar); };
 
   /// Printer of the parameter values
-  void print(Option_t* option = "") const
+  void print() const
   {
     LOG(info) << "Parameters '" << mName << "'";
     for (int i = 0; i < nPar; i++) {
@@ -99,7 +99,7 @@ class Parameters
       f.ls();
     }
     f.Close();
-    SetParameters(p);
+    setParameters(p);
     print();
   }
 
@@ -114,6 +114,10 @@ class Parameters
   /// Getter for the parameters
   /// \return returns an array of parameters
   const std::string getParameterName(int i) const { return mParNames[i]; }
+
+  /// Getter for the parameters
+  /// \return returns an array of parameters
+  const std::string getName() const { return mName; }
 
   /// Getter for the size of the parameter
   /// \return returns the size of the parameter array
@@ -147,12 +151,29 @@ class ParameterCollection : public TNamed
 
   /// @brief Function to load the parameters from the this container into the array based for the asked key, e.g. pass or version
   ///        Parameters that are not found in storage are kept unchanged in the array.
-  /// @tparam nPar dimension of the parameter to configure
+  /// @tparam ParType type of the parameter container
   /// @param p parameter list to configure from the stored information
   /// @param key key to look for in the stored information e.g. pass
   /// @return true if found and configured false if not fully configured
-  template <int nPar>
-  bool retrieveParameters(Parameters<nPar>& p, const std::string& key) const;
+  template <typename ParType>
+  bool retrieveParameters(ParType& p, const std::string& key) const
+  {
+    if (!hasKey(key)) { // Can't find the required key. Can't load parameters to the object
+      return false;
+    }
+
+    const auto& toGet = mParameters.at(key);
+    for (int i = 0; i < p.size(); i++) {
+      const auto& name = p.getParameterName(i);
+      if (toGet.find(name) == toGet.end()) {
+        LOG(debug) << "Did not find parameter '" << name << "' in collection, keeping preexisting";
+        continue;
+      }
+      LOG(debug) << "Found parameter '" << name << "' in collection, keeping preexisting";
+      p.setParameter(i, toGet.at(name));
+    }
+    return true;
+  }
 
   /// @brief Function to add a single parameter conatiner based on the asked key, e.g. pass or version
   /// @param value parameter to add to the stored information
@@ -164,22 +185,65 @@ class ParameterCollection : public TNamed
   int getSize(const std::string& pass) const;
 
   /// @brief Function to push the parameters from the sub container into the collection and store it under a given key
-  /// @tparam nPar dimension of the parameter to store
+  /// @tparam ParType type of the parameter container
   /// @param p parameter list to store
   /// @param key store key
   /// @return true if modified and false if a new key is added
-  template <int nPar>
-  bool storeParameters(const Parameters<nPar>& p, const std::string& key);
+  template <typename ParType>
+  bool storeParameters(const ParType& p, const std::string& key)
+  {
+    const bool alreadyPresent = hasKey(key);
+    if (alreadyPresent) {
+      LOG(debug) << "Changing parametrization corresponding to key " << key << " from size " << mParameters[key].size() << " to " << p.getName() << " of size " << p.size();
+    } else {
+      mParameters[key] = std::unordered_map<std::string, paramvar_t>{};
+      LOG(debug) << "Adding new parametrization corresponding to key " << key << ": " << p.getName() << " of size " << p.size();
+    }
+    for (int i = 0; i < p.size(); i++) {
+      mParameters[key][p.getParameterName(i)] = p[i];
+    }
+    return alreadyPresent;
+  }
 
   /// @brief getter for the parameters stored in the container matching to a pass
   const auto& getPars(const std::string& pass) const { return mParameters.at(pass); }
 
-  /// @brief printing function
+  /// @brief printing function for the content of the pass
+  /// @param pass pass to print
   void print(const std::string& pass) const;
+
+  /// @brief printing function for the full content of the container
+  void print() const;
 
   /// @brief Getter of the full map of parameters stored in the container
   /// @return returns the full map of parameters
   const auto& getFullMap() { return mParameters; }
+
+  /// Loader from file
+  /// \param FileName name of the input file
+  /// \param ParamName name of the input object
+  void loadParamFromFile(const TString FileName, const TString ParamName)
+  {
+    TFile f(FileName, "READ");
+    if (!f.Get(ParamName)) {
+      LOG(fatal) << "Did not find parameters " << ParamName << " in file " << FileName;
+    }
+    LOG(info) << "Loading parameters " << ParamName << " from TFile " << FileName;
+    ParameterCollection* p;
+    f.GetObject(ParamName, p);
+    if (!p) {
+      LOG(fatal) << "Could not get parameters " << ParamName << " from file";
+      f.ls();
+    }
+    f.Close();
+
+    for (const auto& pass : p->mParameters) {
+      for (const auto& par : pass.second) {
+        addParameter(pass.first, par.first, par.second);
+      }
+    }
+    print();
+  }
 
  private:
   /// Array of the parameter
