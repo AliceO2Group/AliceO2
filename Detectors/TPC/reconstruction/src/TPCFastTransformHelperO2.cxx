@@ -192,55 +192,15 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     fastTransform.finishConstruction();
   }
 
+  fillSpaceChargeCorrectionFromMap(fastTransform.getCorrection());
   updateCalibration(fastTransform, TimeStamp);
 
   return std::move(fastTransformPtr);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
+void TPCFastTransformHelperO2::fillSpaceChargeCorrectionFromMap(TPCFastSpaceChargeCorrection& correction)
 {
-  // Update the calibration with the new time stamp
-  LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
-  if (!mIsInitialized) {
-    init();
-  }
-
-  if (TimeStamp < 0) {
-    return 0;
-  }
-
-  // search for the calibration database ...
-
-  auto& detParam = ParameterDetector::Instance();
-  auto& gasParam = ParameterGas::Instance();
-  auto& elParam = ParameterElectronics::Instance();
-  // start the initialization
-
-  fastTransform.setTimeStamp(TimeStamp);
-  if (vDriftRef == 0) {
-    vDriftRef = ParameterGas::Instance().DriftV;
-  }
-  const double vDrift = elParam.ZbinWidth * vDriftRef * vDriftFactor; // cm/timebin
-
-  // fast transform formula:
-  // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
-  // Z = Z(L) +  tpcAlignmentZ
-  // spline corrections for xyz
-  // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
-
-  const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
-
-  const double vdCorrY = 0.;
-  const double ldCorr = 0.;
-  const double tofCorr = 0.;
-  const double primVtxZ = 0.;
-
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
-
   // now calculate correction map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
-
-  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrection();
-
   // for the future: switch TOF correction off for a while
 
   if (mCorrectionMap.isInitialized()) {
@@ -285,7 +245,50 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   } else {
     correction.setNoCorrection();
   }
+}
 
+int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
+{
+  // Update the calibration with the new time stamp
+  LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
+  if (!mIsInitialized) {
+    init();
+  }
+
+  if (TimeStamp < 0) {
+    return 0;
+  }
+
+  // search for the calibration database ...
+
+  auto& detParam = ParameterDetector::Instance();
+  auto& gasParam = ParameterGas::Instance();
+  auto& elParam = ParameterElectronics::Instance();
+  // start the initialization
+
+  fastTransform.setTimeStamp(TimeStamp);
+  if (vDriftRef == 0) {
+    vDriftRef = ParameterGas::Instance().DriftV;
+  }
+  const double vDrift = elParam.ZbinWidth * vDriftRef * vDriftFactor; // cm/timebin
+
+  // fast transform formula:
+  // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
+  // Z = Z(L) +  tpcAlignmentZ
+  // spline corrections for xyz
+  // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
+
+  const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
+
+  const double vdCorrY = 0.;
+  const double ldCorr = 0.;
+  const double tofCorr = 0.;
+  const double primVtxZ = 0.;
+
+  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+
+  // The next line should not be needed
+  // fastTransform.getCorrection().initInverse();
   // for the future: set back the time-of-flight correction
 
   return 0;
