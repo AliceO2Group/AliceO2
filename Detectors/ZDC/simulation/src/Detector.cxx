@@ -540,6 +540,9 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
   // could be put inside the image class
   auto determineSectorID = [Nx, Ny](int detector, int x, int y) {
     if (detector == ZNA || detector == ZNC) {
+      if ((x + y) % 2 == 0) {
+        return (int)Common;
+      }
       if (x < Nx / 2) {
         if (y < Ny / 2) {
           return (int)Ch1;
@@ -556,6 +559,9 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
     }
 
     if (detector == ZPA || detector == ZPC) {
+      if ((x + y) % 2 == 0) {
+        return (int)Common;
+      }
       auto i = (int)(4.f * x / Nx);
       return (int)(i + 1);
     }
@@ -2648,6 +2654,9 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
     }
 
     if (detector == ZPA || detector == ZPC) {
+      if ((x + y) % 2 == 0) {
+        return (int)Common;
+      }
       auto i = (int)(4.f * x / Nx);
       return (int)(i + 1);
     }
