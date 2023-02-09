@@ -514,7 +514,7 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
       float YZtoNominalZ;
       InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
 
-      streamer.getStreamer() << streamer.getUniqueTreeName("tree").data()
+      streamer.getStreamer() << streamer.getUniqueTreeName("tree_Transform").data()
                              // corrections in x, u, v
                              << "dx=" << dx
                              << "du=" << du
@@ -720,6 +720,22 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
     ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
     x = (x - xr) * scale + xr;
   }
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    streamer.setStreamer("debug_fasttransform", "UPDATE");
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoX").data()
+                           << "slice=" << slice
+                           << "row=" << row
+                           << "scale=" << scale
+                           << "y=" << y
+                           << "z=" << z
+                           << "x=" << x
+                           << "v=" << v
+                           << "u=" << u
+                           << "\n";
+  }
 }
 
 GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
@@ -735,6 +751,25 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
     vn = (vn - vnr) * scale + vnr;
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    streamer.setStreamer("debug_fasttransform", "UPDATE");
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
+                           << "slice=" << slice
+                           << "row=" << row
+                           << "scale=" << scale
+                           << "y=" << y
+                           << "z=" << z
+                           << "ny=" << ny
+                           << "nz=" << nz
+                           << "u=" << u
+                           << "v=" << v
+                           << "un=" << un
+                           << "vn=" << vn
+                           << "\n";
+  }
 }
 
 } // namespace gpu
