@@ -86,7 +86,7 @@ class GPUTPCTrackletConstructor
   GPUd() static void InitTracklet(MEM_LG2(GPUTPCTrackParam) & tParam);
 
   MEM_CLASS_PRE2_TEMPLATE(class T)
-  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() T& s, GPUTPCThreadMemory& r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow, calink& rowHit);
+  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() T& s, GPUTPCThreadMemory& r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow, calink& rowHit, calink* rowHits);
 
   MEM_CLASS_PRE23()
   GPUd() static void StoreTracklet(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_LG2(GPUTPCTracker) & tracker, MEM_LG3(GPUTPCTrackParam) & tParam, calink* rowHits);
