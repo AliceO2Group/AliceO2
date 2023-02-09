@@ -121,18 +121,13 @@ void ClusterFinderGEM::deinit()
 }
 
 //_________________________________________________________________________________________________
+
 ClusterFinderGEM::~ClusterFinderGEM() = default;
-/*
+
+/* Trace
 ClusterFinderGEM::~ClusterFinderGEM()
 {
-  // std::cout << "  [GEM] Delete " << std::endl;
-  // GG invalid
-  if ( pOriginalClusterDump != 0) {
-    delete [] pOriginalClusterDump;
-  }
-  if ( pGEMClusterDump != 0) {
-    delete [] pGEMClusterDump;
-  }
+  std::cout << "  [ClusterFinderGEM] Delete " << std::endl;
 }
 */
 
@@ -143,6 +138,13 @@ void ClusterFinderGEM::reset()
   // std::cout << "  [GEM] Reset hits/mClusters.size=" << mClusters.size() << std::endl;
 
   // GEM part
+  releasePreCluster();
+  // Inv ??? freeMemoryPadProcessing();
+  mClusters.clear();
+  mUsedDigits.clear();
+}
+
+ void ClusterFinderGEM::releasePreCluster() {
   nPads = 0;
   DEId = -1;
   if (xyDxy != nullptr) {
@@ -161,10 +163,7 @@ void ClusterFinderGEM::reset()
     delete[] saturated;
     saturated = nullptr;
   };
-  // Inv ??? freeMemoryPadProcessing();
-  mClusters.clear();
-  mUsedDigits.clear();
-}
+ }
 
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::dumpPreCluster(ClusterDump* dumpFile, gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster)
@@ -502,6 +501,8 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
   }
 
   // std::cout << "  [GEM] Finished preCluster " << digits.size() << std::endl;
+  cleanClusterResults();
+  releasePreCluster();
 }
 
 } // namespace mch
