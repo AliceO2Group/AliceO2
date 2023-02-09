@@ -644,7 +644,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
+  auto isAOD = [](InputSpec const& spec) {
+    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
+  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
