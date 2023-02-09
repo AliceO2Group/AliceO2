@@ -50,6 +50,7 @@ class TPCIntegrateClusters : public Task
     mNSlicesTF = ic.options().get<int>("nSlicesTF");
     mHBScaling = ic.options().get<float>("heart-beat-scaling");
     mProcess3D = ic.options().get<bool>("process-3D-currents");
+    mNBits = ic.options().get<int>("nBits");
   }
 
   void run(ProcessingContext& pc) final
@@ -153,9 +154,13 @@ class TPCIntegrateClusters : public Task
   int mContinuousMaxTimeBin{-1};                          ///< max time bin of clusters
   bool mInitICCBuffer{true};                              ///< flag for initializing ICCs only once
   int mNTSPerSlice{1};                                    ///< number of time stamps per slice
+  int mNBits = 32;                                        ///< number of bits used for rounding
 
   void sendOutput(ProcessingContext& pc)
   {
+    if (mNBits < 32) {
+      mBufferCurrents.compress(mNBits);
+    }
     pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTPCC()}, mBufferCurrents);
     // in case of ROOT output also store the TFinfo in the TTree
     if (!mDisableWriter) {
@@ -192,7 +197,8 @@ o2::framework::DataProcessorSpec getTPCIntegrateClusterSpec(const bool disableWr
     AlgorithmSpec{adaptFromTask<TPCIntegrateClusters>(ccdbRequest, disableWriter)},
     Options{{"nSlicesTF", VariantType::Int, 11, {"number of slices into which a TF is divided"}},
             {"heart-beat-scaling", VariantType::Float, 1.f, {"fraction of filled TFs (1 full TFs, 0.25 TFs filled only with 25%)"}},
-            {"process-3D-currents", VariantType::Bool, false, {"Process full 3D currents instead of 1D integrated only currents"}}}};
+            {"process-3D-currents", VariantType::Bool, false, {"Process full 3D currents instead of 1D integrated only currents"}},
+            {"nBits", VariantType::Int, 32, {"Number of bits used for compression/rounding (values >= 32 results in no compression)"}}}};
 }
 
 } // namespace tpc

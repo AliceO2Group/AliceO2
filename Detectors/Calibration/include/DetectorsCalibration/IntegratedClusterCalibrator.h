@@ -82,6 +82,25 @@ struct ITPCC {
   std::vector<float> mINClA;  ///< integrated 1D-currents for NCl A-side
   std::vector<float> mINClC;  ///< integrated 1D-currents for NCl A-side
 
+  float compression(float value, const int nBits) const
+  {
+    const int shiftN = std::pow(2, nBits);
+    int exp2;
+    const auto mantissa = std::frexp(value, &exp2);
+    const auto mantissaRounded = std::round(mantissa * shiftN) / shiftN;
+    return std::ldexp(mantissaRounded, exp2);
+  }
+
+  void compress(const int nBits)
+  {
+    std::transform(mIQMaxA.begin(), mIQMaxA.end(), mIQMaxA.begin(), [this, nBits](float val) { return compression(val, nBits); });
+    std::transform(mIQMaxC.begin(), mIQMaxC.end(), mIQMaxC.begin(), [this, nBits](float val) { return compression(val, nBits); });
+    std::transform(mIQTotA.begin(), mIQTotA.end(), mIQTotA.begin(), [this, nBits](float val) { return compression(val, nBits); });
+    std::transform(mIQTotC.begin(), mIQTotC.end(), mIQTotC.begin(), [this, nBits](float val) { return compression(val, nBits); });
+    std::transform(mINClA.begin(), mINClA.end(), mINClA.begin(), [this, nBits](float val) { return compression(val, nBits); });
+    std::transform(mINClC.begin(), mINClC.end(), mINClC.begin(), [this, nBits](float val) { return compression(val, nBits); });
+  }
+
   bool areSameSize() const { return sameSize(mIQMaxA, mIQMaxC, mIQTotA, mIQTotC, mINClA, mINClC); } ///< check if stored currents have same number of entries
   bool isEmpty() const { return mIQMaxA.empty(); }                                                  ///< check if values are empty
   size_t getEntries() const { return mIQMaxA.size(); }                                              ///< \return returns number of values stored
