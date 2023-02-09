@@ -501,7 +501,21 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
       float gx, gy, gz;
       getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
 
+      float lyT, lzT;
+      float uCorr = u + du;
+      float vCorr = v + dv;
+      float lxT = x + dx;
+      getGeometry().convUVtoLocal(slice, uCorr, vCorr, lyT, lzT);
+
+      float invYZtoX;
+      InverseTransformYZtoX(slice, row, ly, lz, invYZtoX);
+
+      float YZtoNominalY;
+      float YZtoNominalZ;
+      InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
+
       streamer.getStreamer() << streamer.getUniqueTreeName("tree").data()
+                             // corrections in x, u, v
                              << "dx=" << dx
                              << "du=" << du
                              << "dv=" << dv
@@ -509,12 +523,22 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
                              << "u=" << u
                              << "row=" << row
                              << "slice=" << slice
+                             // original local coordinates
                              << "ly=" << ly
                              << "lz=" << lz
                              << "lx=" << x
+                             // corrected local coordinated
+                             << "lxT=" << lxT
+                             << "lyT=" << lyT
+                             << "lzT=" << lzT
+                             // global uncorrected coordinates
                              << "gx=" << gx
                              << "gy=" << gy
                              << "gz=" << gz
+                             // some transformations which are applied
+                             << "invYZtoX=" << invYZtoX
+                             << "YZtoNominalY=" << YZtoNominalY
+                             << "YZtoNominalZ=" << YZtoNominalZ
                              << "\n";
     }
 
