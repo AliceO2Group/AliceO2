@@ -18,6 +18,10 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
+                   src/ErrorReaderSpec.cxx
+                   src/ErrorWriterSpec.cxx
+                   src/PreClusterReaderSpec.cxx
+                   src/PreClusterWriterSpec.cxx
                    src/TrackReaderSpec.cxx
                    src/TrackTreeReader.cxx
                    src/TrackWriterSpec.cxx
@@ -89,13 +93,25 @@ o2_add_executable(
         sim-digits-reader-workflow
         SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils O2::DataFormatsMCH O2::SimulationDataFormat)
 
 o2_add_executable(
         preclusters-sink-workflow
         SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-writer-workflow
+        SOURCES src/preclusters-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        preclusters-reader-workflow
+        SOURCES src/preclusters-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
         preclusters-to-clusters-original-workflow
@@ -170,6 +186,24 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
+        errors-merger-workflow
+        SOURCES src/ErrorMergerSpec.cxx src/errors-merger-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
+
+o2_add_executable(
+        errors-writer-workflow
+        SOURCES src/errors-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        errors-reader-workflow
+        SOURCES src/errors-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
         entropy-encoder-workflow
         SOURCES src/entropy-encoder-workflow.cxx
         COMPONENT_NAME mch
@@ -179,6 +213,7 @@ o2_add_executable(
         reco-workflow
         SOURCES
             src/DigitReaderSpec.cxx
+            src/ErrorMergerSpec.cxx
             src/EventFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
             src/reco-workflow.cxx

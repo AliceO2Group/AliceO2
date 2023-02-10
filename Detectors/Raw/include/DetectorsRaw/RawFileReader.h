@@ -27,6 +27,7 @@
 #include "Headers/RAWDataHeader.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -34,12 +35,14 @@ namespace raw
 {
 
 using IR = o2::InteractionRecord;
+using DetID = o2::detectors::DetID;
 
 struct ReaderInp {
   std::string inifile{};
   std::string rawChannelConfig{};
   std::string dropTF{};
   std::string metricChannel{};
+  std::string onlyDet{};
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
   size_t minSHM = 0;
@@ -219,7 +222,7 @@ class RawFileReader
 
   //=====================================================================================
 
-  RawFileReader(const std::string& config = "", int verbosity = 0, size_t buffsize = 50 * 1024UL);
+  RawFileReader(const std::string& config = "", int verbosity = 0, size_t buffsize = 50 * 1024UL, const std::string& onlyDet = {});
   ~RawFileReader() { clear(); }
 
   void loadFromInputsMap(const InputsMap& inp);
@@ -282,7 +285,7 @@ class RawFileReader
 
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
-  static InputsMap parseInput(const std::string& confUri);
+  static InputsMap parseInput(const std::string& confUri, const std::string& onlyDet = {}, bool verbose = false);
   static std::string nochk_opt(ErrTypes e);
   static std::string nochk_expl(ErrTypes e);
 

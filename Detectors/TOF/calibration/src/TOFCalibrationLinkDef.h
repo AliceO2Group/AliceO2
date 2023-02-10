@@ -50,11 +50,4 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::tof::Diagnostic> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::Diagnostic> + ;
 #pragma link C++ class o2::tof::TOFDiagnosticCalibrator + ;
-
-#pragma link C++ struct o2::tof::ITOFC + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusters + ;
-#pragma link C++ class o2::tof::TOFIntegratedClusterCalibrator + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFIntegratedClusters> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tof::TOFIntegratedClusters> + ;
-
 #endif

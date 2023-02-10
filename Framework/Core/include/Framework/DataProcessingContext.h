@@ -46,7 +46,69 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback statelessProcess;
   AlgorithmSpec::ErrorCallback error = nullptr;
 
-  DataProcessorSpec* spec = nullptr;
+  DataProcessorSpec* spec = nullptr; /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
+
+  /// Invoke callbacks to be executed before starting the processing loop
+  void preStartCallbacks(ServiceRegistryRef);
+  /// Invoke callbacks to be executed before every process method invokation
+  void preProcessingCallbacks(ProcessingContext&);
+  /// Invoke callbacks to be executed after every process method invokation
+  void postProcessingCallbacks(ProcessingContext&);
+  /// Invoke callbacks to be executed before every dangling check
+  void preDanglingCallbacks(DanglingContext&);
+  /// Invoke callbacks to be executed after every dangling check
+  void postDanglingCallbacks(DanglingContext&);
+  /// Invoke callbacks to be executed before every EOS user callback invokation
+  void preEOSCallbacks(EndOfStreamContext&);
+  /// Invoke callbacks to be executed after every EOS user callback invokation
+  void postEOSCallbacks(EndOfStreamContext&);
+  /// Invoke callbacks to monitor inputs after dispatching, regardless of them
+  /// being discarded, consumed or processed.
+  void postDispatchingCallbacks(ProcessingContext&);
+  /// Callback invoked after the late forwarding has been done
+  void postForwardingCallbacks(ProcessingContext&);
+
+  /// Invoke callbacks on stop.
+  void postStopCallbacks(ServiceRegistryRef);
+  /// Invoke callbacks on exit.
+  /// Note how this is a static helper because otherwise we would need to
+  /// handle differently the deletion of the DataProcessingContext itself.
+  static void preExitCallbacks(std::vector<ServiceExitHandle>, ServiceRegistryRef);
+
+  /// Invoke whenever we get a new DomainInfo message
+  void domainInfoUpdatedCallback(ServiceRegistryRef, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
+
+  /// Invoke before sending messages @a parts on a channel @a channelindex
+  void preSendingMessagesCallbacks(ServiceRegistryRef, fair::mq::Parts& parts, ChannelIndex channelindex);
+
+  /// Callback for services to be executed before every processing.
+  /// The callback MUST BE REENTRANT and threadsafe.
+  mutable std::vector<ServiceProcessingHandle> preProcessingHandlers;
+  /// Callback for services to be executed after every processing.
+  /// The callback MUST BE REENTRANT and threadsafe.
+  mutable std::vector<ServiceProcessingHandle> postProcessingHandlers;
+  /// Callbacks for services to be executed before every dangling check
+  mutable std::vector<ServiceDanglingHandle> preDanglingHandles;
+  /// Callbacks for services to be executed after every dangling check
+  mutable std::vector<ServiceDanglingHandle> postDanglingHandles;
+  /// Callbacks for services to be executed before every EOS user callback invokation
+  mutable std::vector<ServiceEOSHandle> preEOSHandles;
+  /// Callbacks for services to be executed after every EOS user callback invokation
+  mutable std::vector<ServiceEOSHandle> postEOSHandles;
+  /// Callbacks for services to be executed after every dispatching
+  mutable std::vector<ServiceDispatchingHandle> postDispatchingHandles;
+  /// Callbacks for services to be executed after every dispatching
+  mutable std::vector<ServiceForwardingHandle> postForwardingHandles;
+  /// Callbacks for services to be executed before Start
+  mutable std::vector<ServiceStartHandle> preStartHandles;
+  /// Callbacks for services to be executed on the Stop transition
+  mutable std::vector<ServiceStopHandle> postStopHandles;
+  /// Callbacks for services to be executed on exit
+  mutable std::vector<ServiceExitHandle> preExitHandles;
+  /// Callbacks for services to be executed on exit
+  mutable std::vector<ServiceDomainInfoHandle> domainInfoHandles;
+  /// Callbacks for services to be executed before sending messages
+  mutable std::vector<ServicePreSendingMessagesHandle> preSendingMessagesHandles;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;

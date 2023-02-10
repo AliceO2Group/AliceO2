@@ -35,6 +35,7 @@
 
 #include <fairlogger/Logger.h>
 
+#include "MCHBase/Error.h"
 #include "MCHBase/MathiesonOriginal.h"
 #include "MCHBase/ResponseParam.h"
 #include "MCHClustering/ClusterizerParam.h"
@@ -603,6 +604,7 @@ void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
       }
     }
     if (localMaxima.size() > 99) {
+      mErrorMap.add(ErrorType::Clustering_TooManyLocalMaxima, mSegmentation->detElemId(), 0);
       LOG(warning) << "Too many local maxima !!!";
       break;
     }

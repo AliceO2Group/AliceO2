@@ -40,11 +40,11 @@ struct ChannelFilterParam : o2::conf::ConfigurableParamHelper<ChannelFilterParam
   int16_t mTimeUpper = 2050;
   int16_t mTimeLower = -2050;
 
-  uint8_t mPMbitsGood = (1 << ChannelData::EEventDataBit::kIsCFDinADCgate); // use only in ADC gate amplitudes, for physics
+  uint8_t mPMbitsGood = 0;
   uint8_t mPMbitsBad = 0;                                                   // no checking for bad bits
   uint8_t mPMbitsToCheck = mPMbitsGood | mPMbitsBad;
 
-  uint8_t mTrgBitsGood = (1 << Triggers::bitDataIsValid); // only good data
+  uint8_t mTrgBitsGood = 0;
   uint8_t mTrgBitsBad = 0;                                // Laser haven't been used in 2022, no check for bad bits
   uint8_t mTrgBitsToCheck = mTrgBitsGood | mTrgBitsBad;
   bool checkPMbits(uint8_t pmBits) const

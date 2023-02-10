@@ -20,6 +20,7 @@ o2_add_library(SimulationDataFormat
                        src/MCUtils.cxx
                        src/O2DatabasePDG.cxx
                        src/InteractionSampler.cxx
+                       src/ConstMCTruthContainer.cxx
                PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      FairRoot::Base
                                      O2::DetectorsCommonDataFormats

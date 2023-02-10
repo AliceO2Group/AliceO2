@@ -143,6 +143,7 @@ class MatchCosmics
   float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0.; ///< drift time offset in mus
   float mTPCTBinMUS = 0.; ///< TPC time bin duration in microseconds
   float mBz = 0;          ///< nominal Bz
   bool mFieldON = true;

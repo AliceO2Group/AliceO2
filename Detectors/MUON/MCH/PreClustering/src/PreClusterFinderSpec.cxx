@@ -35,9 +35,11 @@
 #include "Framework/WorkflowSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
+#include "MCHBase/Error.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHBase/PreCluster.h"
-#include "MCHPreClustering/PreClusterFinder.h"
 #include "MCHBase/SanityCheck.h"
+#include "MCHPreClustering/PreClusterFinder.h"
 
 #include <iostream>
 #include <chrono>
@@ -52,7 +54,7 @@ using namespace std;
 using namespace o2::framework;
 
 enum tCheckNoLeftoverDigits {
-  CHECK_NO_LEFTOVER_DIGITS_OFF,
+  CHECK_NO_LEFTOVER_DIGITS_QUIET,
   CHECK_NO_LEFTOVER_DIGITS_ERROR,
   CHECK_NO_LEFTOVER_DIGITS_FATAL
 };
@@ -80,12 +82,15 @@ class PreClusterFinderTask
       auto tEnd = std::chrono::high_resolution_clock::now();
       LOG(info) << "deinitializing preclusterizer in: "
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
+      mErrorMap.forEach([](Error error) {
+        LOGP(warning, error.asString());
+      });
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
 
     auto checkNoLeftoverDigits = ic.options().get<std::string>("check-no-leftover-digits");
-    if (checkNoLeftoverDigits == "off") {
-      mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_OFF;
+    if (checkNoLeftoverDigits == "quiet") {
+      mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_QUIET;
     } else if (checkNoLeftoverDigits == "error") {
       mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_ERROR;
     } else if (checkNoLeftoverDigits == "fatal") {
@@ -132,6 +137,8 @@ class PreClusterFinderTask
     // prepare to receive new data
     mPreClusters.clear();
     mUsedDigits.clear();
+    auto& errorMap = mPreClusterFinder.getErrorMap();
+    errorMap.clear();
 
     if (!abort) {
 
@@ -174,29 +181,34 @@ class PreClusterFinderTask
       }
 
       // check sizes of input and output digits vectors
-      bool digitsSizesDiffer = (nRemovedDigits + mUsedDigits.size() != nDigitsInRofs);
-      switch (mCheckNoLeftoverDigits) {
-        case CHECK_NO_LEFTOVER_DIGITS_OFF:
-          break;
-        case CHECK_NO_LEFTOVER_DIGITS_ERROR:
-          if (digitsSizesDiffer) {
+      if (nRemovedDigits + mUsedDigits.size() != nDigitsInRofs) {
+        errorMap.add(ErrorType::PreClustering_LostDigit, 0, 0, nDigitsInRofs - nRemovedDigits - mUsedDigits.size());
+        switch (mCheckNoLeftoverDigits) {
+          case CHECK_NO_LEFTOVER_DIGITS_QUIET:
+            break;
+          case CHECK_NO_LEFTOVER_DIGITS_ERROR:
             static int nAlarms = 0;
             if (nAlarms++ < 5) {
               LOG(warning) << "some digits have been lost during the preclustering";
             }
-          }
-          break;
-        case CHECK_NO_LEFTOVER_DIGITS_FATAL:
-          if (digitsSizesDiffer) {
+            break;
+          case CHECK_NO_LEFTOVER_DIGITS_FATAL:
             throw runtime_error("some digits have been lost during the preclustering");
-          }
-          break;
-      };
+            break;
+        };
+      }
     }
 
     // create the output messages for preclusters and associated digits
     pc.outputs().snapshot(OutputRef{"preclusters"}, mPreClusters);
     pc.outputs().snapshot(OutputRef{"preclusterdigits"}, mUsedDigits);
+
+    // create the output message for preclustering errors
+    auto& preClusterErrors = pc.outputs().make<std::vector<Error>>(OutputRef{"preclustererrors"});
+    errorMap.forEach([&preClusterErrors](Error error) {
+      preClusterErrors.emplace_back(error);
+    });
+    mErrorMap.add(errorMap);
 
     LOGP(info, "Processed {} digit rofs with {} digits and output {} precluster rofs with {} preclusters and {} digits",
          digitROFs.size(),
@@ -209,6 +221,7 @@ class PreClusterFinderTask
   PreClusterFinder mPreClusterFinder{};   ///< preclusterizer
   std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
   std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
+  ErrorMap mErrorMap{};                   ///< counting of encountered errors
 
   int mCheckNoLeftoverDigits{CHECK_NO_LEFTOVER_DIGITS_ERROR};             ///< digits vector size check option
   bool mDiscardHighOccDEs = false;                                        ///< discard DEs with occupancy > 20%
@@ -230,14 +243,15 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* specName,
     fmt::format("digits:MCH/{}/0;digitrofs:MCH/{}/0",
                 inputDigitDataDescription,
                 inputDigitRofDataDescription);
-  std::string helpstr = "[off/error/fatal] check that all digits are included in pre-clusters";
+  std::string helpstr = "[quiet/error/fatal] check that all digits are included in pre-clusters";
 
   return DataProcessorSpec{
     specName,
     o2::framework::select(input.c_str()),
     Outputs{OutputSpec{{"preclusterrofs"}, "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"preclusters"}, "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{{"preclusterdigits"}, "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
+            OutputSpec{{"preclusterdigits"}, "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{{"preclustererrors"}, "MCH", "PRECLUSTERERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
     Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}},
             {{"sanity-check"}, VariantType::Bool, false, {"perform some input digit sanity checks"}},

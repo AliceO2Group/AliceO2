@@ -26,7 +26,7 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   auto inputDesc = ConfigParamSpec{"tof-compressed-inspector-input-desc", VariantType::String, "CRAWDATA", {"Input specs description string"}};
-  auto rdhVersion = ConfigParamSpec{"tof-compressed-inspector-rdh-version", VariantType::Int, 4, {"Raw Data Header version"}};
+  auto rdhVersion = ConfigParamSpec{"tof-compressed-inspector-rdh-version", VariantType::Int, 7, {"Raw Data Header version"}};
   workflowOptions.push_back(inputDesc);
   workflowOptions.push_back(rdhVersion);
 }
@@ -44,6 +44,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask<o2::header::RAWDataHeaderV4>>()};
   } else if (rdhVersion == 6) {
     algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask<o2::header::RAWDataHeaderV6>>()};
+  } else if (rdhVersion == 7) {
+    algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask<o2::header::RAWDataHeaderV7>>()};
   }
 
   WorkflowSpec workflow;

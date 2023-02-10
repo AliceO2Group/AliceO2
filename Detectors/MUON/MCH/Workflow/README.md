@@ -18,19 +18,24 @@
 * [Tracking](#tracking)
 * [Track extrapolation to vertex](#track-extrapolation-to-vertex)
 * [Track fitter](#track-fitter)
+* [Error merger](#error-merger)
 * [Samplers](#samplers)
   * [Digit sampler](#digit-sampler)
+  * [Precluster reader](#precluster-reader)
   * [Cluster sampler](#cluster-sampler)
   * [Cluster reader](#cluster-reader)
   * [Track sampler](#track-sampler)
   * [Track reader](#track-reader)
+  * [Error reader](#error-reader)
   * [Vertex sampler](#vertex-sampler)
 * [Sinks](#sinks)
   * [Precluster sink](#precluster-sink)
+  * [Precluster writer](#precluster-writer)
   * [Cluster sink](#cluster-sink)
   * [Cluster writer](#cluster-writer)
   * [Track sink](#track-sink)
   * [Track writer](#track-writer)
+  * [Error writer](#error-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -135,7 +140,7 @@ Group the digits in preclusters. [more...](/Detectors/MUON/MCH/PreClustering/REA
 o2-mch-preclusters-to-clusters-original-workflow
 ```
 
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)), the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction and the list of processing errors ([Error](../Base/include/MCHBase/Error.h)) in four separate messages with the data description "CLUSTERS", "CLUSTERDIGITS", "CLUSTERROFS" and "CLUSTERERRORS", respectively.
 
 Option `--run2-config` allows to configure the clustering to process run2 data.
 
@@ -205,6 +210,20 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 
 Refit the tracks to their associated clusters. [more...](/Detectors/MUON/MCH/Tracking/README.md)
 
+## Error merger
+
+```shell
+o2-mch-errors-merger-workflow
+```
+
+Take as input the list of all MCH preclustering, clustering and tracking errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PRECLUSTERERRORS", "CLUSTERERRORS" and "TRACKERRORS", respectively. Send the merged list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the time frame, with the data description "ERRORS".
+
+Options `--disable-preclustering-errors` allows to skip the preclustering errors.
+
+Options `--disable-clustering-errors` allows to skip the clustering errors.
+
+Options `--disable-tracking-errors` allows to skip the tracking errors.
+
 ## Samplers
 
 ### Digit sampler
@@ -229,6 +248,18 @@ Option `--nEvents xxx` allows to limit the number of events to process (all by d
 Option `--event xxx` allows to process only this event.
 
 Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
+
+### Precluster reader
+
+```
+o2-mch-preclusters-reader-workflow --infile mchpreclusters.root
+```
+
+Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, with the data description "PRECLUSTERS", the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERROFS", and the list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) associated to preclusters, with the data description "PRECLUSTERDIGITS".
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
+
+Option `--enable-mc` allows to also send the precluster MC labels with the data description "PRECLUSTERLABELS".
 
 ### Cluster sampler
 
@@ -291,6 +322,16 @@ Option `--digits` allows to also read the associated digits ([Digit](/DataFormat
 
 Option `--enable-mc` allows to also read the track MC labels and send them with the data description "TRACKLABELS".
 
+## Error reader
+
+```shell
+o2-mch-errors-reader-workflow --infile mcherrors.root
+```
+
+Send the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS".
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
+
 ### Vertex sampler
 
 ```shell
@@ -326,6 +367,16 @@ Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/
 Option `--txt` allows to write the preclusters in the output file in text format.
 
 Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
+
+### Precluster writer
+
+```shell
+o2-mch-preclusters-writer-workflow
+```
+
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them in the root file "mchpreclusters.root".
+
+Option `--enable-mc` allows to also write the precluster MC labels, with the data description "PRECLUSTERLABELS".
 
 ### Cluster sink
 
@@ -387,3 +438,11 @@ Does the same kind of work as the [track sink](#track-sink) but the output is in
 Option `--digits` allows to also write the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) from the input message with the data description "TRACKDIGITS".
 
 Option `--enable-mc` allows to also write the track MC labels from the input message with the data description "TRACKLABELS".
+
+## Error writer
+
+```shell
+o2-mch-errors-writer-workflow
+```
+
+Take as input the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS", and write it in the root file "mcherrors.root".

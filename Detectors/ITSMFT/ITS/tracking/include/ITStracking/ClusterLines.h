@@ -39,6 +39,7 @@ struct Line final {
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
   GPUhd() unsigned char isEmpty() const { return (originPoint[0] == 0.f && originPoint[1] == 0.f && originPoint[2] == 0.f) &&
                                                  (cosinesDirector[0] == 0.f && cosinesDirector[1] == 0.f && cosinesDirector[2] == 0.f); }
+  GPUhd() void print() const;
   bool operator==(const Line&) const;
   bool operator!=(const Line&) const;
 
@@ -102,7 +103,7 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   }
 }
 
-// static functions
+// static functions:
 inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
 {
   float DCASquared{0};
@@ -195,6 +196,12 @@ inline bool Line::operator!=(const Line& rhs) const
   return val;
 }
 
+GPUhdi() void Line::print() const
+{
+  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f)\n",
+         originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2]);
+}
+
 class ClusterLines final
 {
  public:
@@ -216,8 +223,8 @@ class ClusterLines final
   bool operator==(const ClusterLines&) const;
 
  protected:
-  std::array<float, 6> mAMatrix;              // AX=B
-  std::array<float, 3> mBMatrix;              // AX=B
+  std::array<double, 6> mAMatrix;             // AX=B
+  std::array<double, 3> mBMatrix;             // AX=B
   std::vector<int> mLabels;                   // labels
   std::array<float, 9> mWeightMatrix = {0.f}; // weight matrix
   std::array<float, 3> mVertex = {0.f};       // cluster centroid position

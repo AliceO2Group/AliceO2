@@ -28,6 +28,7 @@
 #include <gsl/span>
 
 #include "DataFormatsMCH/Cluster.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
 
@@ -52,6 +53,9 @@ class TrackFinder
   void initField(float l3Current, float dipoleCurrent);
 
   const std::list<Track>& findTracks(gsl::span<const Cluster> clusters);
+
+  /// return the counting of encountered errors
+  ErrorMap& getErrorMap() { return mErrorMap; }
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -140,6 +144,8 @@ class TrackFinder
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
 
   std::chrono::time_point<std::chrono::steady_clock> mStartTime{}; ///< time when the tracking start
+
+  ErrorMap mErrorMap{}; ///< counting of encountered errors
 
   double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
   double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction

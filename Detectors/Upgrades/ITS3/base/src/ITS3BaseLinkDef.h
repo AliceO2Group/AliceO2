@@ -17,5 +17,7 @@
 
 #pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
 #pragma link C++ class o2::its3::MisalignmentParameter + ;
+#pragma link C++ class o2::its3::SuperAlpideParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::SuperAlpideParams> + ;
 
 #endif

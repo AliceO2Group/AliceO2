@@ -45,10 +45,10 @@ struct TPCVDTglContainer {
 
   void fill(const gsl::span<const o2::dataformats::Pair<float, float>> data)
   {
-    if (data.size() < 2) { // first entry always contains the full and reference VDrift used for the TF
+    if (data.size() < 3) { // first 2 entres always contains the {full and reference VDrift} and {full and reference DriftTimeOffset} used for the TF
       return;
     }
-    for (size_t i = 1; i < data.size(); i++) {
+    for (size_t i = 2; i < data.size(); i++) {
       auto& p = data[i];
       auto bin = histo->fill(p.first, p.first - p.second);
       LOGP(debug, "fill #{} : {} for {} {}", i - 1, bin, p.first, p.first - p.second);

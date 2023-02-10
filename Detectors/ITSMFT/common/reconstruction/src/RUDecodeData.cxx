@@ -67,5 +67,26 @@ void RUDecodeData::fillChipStatistics(int icab, const ChipPixelData* chipData)
   }
 }
 
+///_________________________________________________________________
+/// dump cable data for debugging
+void RUDecodeData::dumpcabledata(int icab)
+{
+  const auto* cdat = cableData[icab].data();
+  size_t cdats = cableData[icab].getUnusedSize(), cdi = 0;
+  const auto lll = cableLinkPtr[icab];
+  LOGP(info, "RU#{} Cab{} Nbytes: {} IR: {} | {}", ruSWID, icab, cdats, lll->ir.asString(), lll->describe());
+  std::string dmp = "";
+  while (cdi < cdats) {
+    dmp += fmt::format(" {:#04x}", cdat[cdi++]);
+    if (cdi && (cdi % 9) == 0) {
+      LOGP(info, "wrd#{}: {}", cdi / 9 - 1, dmp);
+      dmp = "";
+    }
+  }
+  if (!dmp.empty()) {
+    LOGP(info, "wrd#{}: {}", cdi / 9 - 1, dmp);
+  }
+}
+
 } // namespace itsmft
 } // namespace o2

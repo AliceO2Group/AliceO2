@@ -81,7 +81,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
-    mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
     mDumpOnError = ic.options().get<int>("raw-data-dumps");
@@ -359,7 +358,6 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp, ggRequest)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp, ggRequest)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
-      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},

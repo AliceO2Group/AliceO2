@@ -169,7 +169,11 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side TPC side
-  const IDCZero& getIDCZero(const o2::tpc::Side side) const { return mIDCZero[mSideIndex[side]]; }
+  const IDCZero& getIDCZero(const o2::tpc::Side side) const& { return mIDCZero[mSideIndex[side]]; }
+
+  /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
+  /// \param side TPC side
+  auto getIDCZero(const o2::tpc::Side side) && { return mIDCZero[mSideIndex[side]]; }
 
   /// \return returns stored IDC1 I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   /// \param side TPC side

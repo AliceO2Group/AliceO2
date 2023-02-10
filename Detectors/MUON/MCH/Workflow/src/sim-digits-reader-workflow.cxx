@@ -14,24 +14,27 @@
 /// \author Michael Winn <Michael.Winn at cern.ch>
 /// \date   17 April 2021
 
-#include <string>
 #include <vector>
-#include "Framework/Variant.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigParamSpec.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsMCH/Digit.h"
-#include "DataFormatsMCH/ROFRecord.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DigitReaderSpec.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}}};
+    {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -42,6 +45,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::mch::getDigitReaderSpec(useMC));
+
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return specs;
 }

@@ -479,7 +479,7 @@ HmpidEquipment* HmpidDecoder2::evaluateHeaderContents(int EquipmentIndex)
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {
     std::cout << "HMPID Header reports an error : " << mHeHmpidError << std::endl;
-    dumpHmpidError(mHeHmpidError);
+    dumpHmpidError(eq, mHeHmpidError, mHeBCDI, mHeORBIT);
     eq->setError(ERR_HMPID);
   }
   return (eq);
@@ -1089,7 +1089,7 @@ void HmpidDecoder2::dumpPads(int EquipmId, int type)
 
 /// Prints on the standard output the decoded HMPID error field
 /// @param[in] ErrorField : the HMPID readout error field
-void HmpidDecoder2::dumpHmpidError(int ErrorField)
+void HmpidDecoder2::dumpHmpidError(HmpidEquipment* eq, int ErrorField, int mHeBCDI, int mHeORBIT)
 {
   char printbuf[MAXHMPIDERRORS * MAXDESCRIPTIONLENGHT + 255];
   if (decodeHmpidError(ErrorField, printbuf) == true) {
@@ -1097,7 +1097,9 @@ void HmpidDecoder2::dumpHmpidError(int ErrorField)
       std::cout << "HMPID Decoder2 : [ERROR] "
                 << "HMPID Error field = " << ErrorField << " : " << printbuf << std::endl;
     }
-    LOG(warn) << "HMPID Header Error Field =" << ErrorField << " [" << printbuf << "]";
+    LOG(warn) << "HMPID Header Error Field =" << ErrorField << " [" << printbuf << "]"
+              << "Equi = " << eq->getEquipmentId() << " Event = " << eq->mEventNumber
+              << " Orbit = " << mHeORBIT << " BC = " << mHeBCDI;
   }
   return;
 }

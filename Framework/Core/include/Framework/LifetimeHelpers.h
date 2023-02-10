@@ -40,7 +40,7 @@ struct LifetimeHelpers {
   /// Callback which creates a new timeslice when timer
   /// expires and there is not a compatible datadriven callback
   /// available.
-  static ExpirationHandler::Creator timeDrivenCreation(std::chrono::microseconds period);
+  static ExpirationHandler::Creator timeDrivenCreation(std::chrono::microseconds period, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod);
 
   /// Callback which  creates a new timeslice whenever some libuv event happens
   static ExpirationHandler::Creator uvDrivenCreation(int loopReason, DeviceState& state);

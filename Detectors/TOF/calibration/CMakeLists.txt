@@ -19,7 +19,6 @@ o2_add_library(TOFCalibration
                        src/TOFDCSProcessor.cxx
                        src/TOFFEElightReader.cxx
                        src/TOFFEElightConfig.cxx
-                       src/TOFIntegratedClusterCalibrator.cxx
            src/TOFDiagnosticCalibrator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB
@@ -39,7 +38,6 @@ o2_target_root_dictionary(TOFCalibration
                                   include/TOFCalibration/TOFDCSProcessor.h
                                   include/TOFCalibration/TOFFEElightReader.h
                                   include/TOFCalibration/TOFFEElightConfig.h
-                                  include/TOFCalibration/TOFIntegratedClusterCalibrator.h
           include/TOFCalibration/TOFDiagnosticCalibrator.h)
 
 if (OpenMP_CXX_FOUND)

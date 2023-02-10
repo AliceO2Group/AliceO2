@@ -114,7 +114,7 @@ struct bcRanges {
     // is merging required?
     if (!isMerged || toForce) {
       std::vector<limits> tmpList;
-      uint64_t ifirst = 0, ilast;
+      uint64_t ifirst = 0, ilast = 0;
 
       // apply sorting of the ranges
       if (!isSorted) {

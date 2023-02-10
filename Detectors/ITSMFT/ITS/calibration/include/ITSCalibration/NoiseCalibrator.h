@@ -71,6 +71,7 @@ class NoiseCalibrator
   auto getInstanceID() const { return mInstanceID; }
   auto getNInstances() const { return mNInstances; }
   auto getNStrobes() const { return mNumberOfStrobes; }
+  auto setNStrobes(unsigned int s) { mNumberOfStrobes = s; }
 
  private:
   const o2::itsmft::TopologyDictionary* mDict = nullptr;

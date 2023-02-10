@@ -233,6 +233,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   float mTPCVDriftRef = -1.;                                                          ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDriftCorrFact = 1.;                                                      ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;                                                             ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0.;                                                     ///< drift time offset in mus
   int mMinClusters{50};                                                               ///< minimum number of clusters the tracks require
   bool mPropagateTrack{false};                                                        ///< propagating the track instead of performing a refit
   bool mDoNotNormCharge{false};                                                       ///< do not normalize the cluster charge to the dE/dx

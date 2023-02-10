@@ -52,6 +52,7 @@ class TPCInterpolationDPL : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
+  bool mProcessSeeds{false};      ///< process not only most complete track, but also its shorter parts
   bool mSendTrackData{false};     ///< if true, not only the clusters but also corresponding track data will be sent
   uint32_t mSlotLength{600u};     ///< the length of one calibration slot required to calculate max number of tracks per TF
   TStopwatch mTimer;

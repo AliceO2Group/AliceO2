@@ -9,43 +9,45 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TOFIntegratedClusterCalibrator.cxx
+/// \file IntegratedClusterCalibrator.cxx
 ///
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 /// \date Jan 21, 2023
 
-#include "TOFCalibration/TOFIntegratedClusterCalibrator.h"
+#include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 namespace o2
 {
-namespace tof
+namespace calibration
 {
-using Slot = o2::calibration::TimeSlot<o2::tof::TOFIntegratedClusters>;
 
-void TOFIntegratedClusters::dumpToFile(const char* outFileName, const char* outName) const
+template <typename DataT>
+void IntegratedClusters<DataT>::dumpToFile(const char* outFileName, const char* outName) const
 {
   TFile fOut(outFileName, "RECREATE");
   fOut.WriteObject(this, outName);
   fOut.Close();
 }
 
-void TOFIntegratedClusters::fill(const o2::calibration::TFType tfID, const std::vector<float>& iTOFCNcl, const std::vector<float>& iTOFCqTot)
+template <typename DataT>
+void IntegratedClusters<DataT>::fill(const o2::calibration::TFType tfID, const DataT& currentsContainer)
 {
   // check if size is same
-  if (iTOFCNcl.size() != iTOFCqTot.size()) {
-    LOGP(warning, "Received data with different size. iTOFCNcl.size {}   iTOFCqTot.size {}", iTOFCNcl.size(), iTOFCqTot.size());
+  if (!currentsContainer.areSameSize()) {
+    LOGP(warning, "Received data with different size. Returning");
     return;
   }
 
-  if (iTOFCNcl.empty()) {
+  if (currentsContainer.isEmpty()) {
     LOGP(info, "Empty data received. Returning");
     return;
   }
 
   // initialize when first data is received
+  const unsigned int entries = currentsContainer.getEntries();
   if (mInitialize) {
-    initData(iTOFCqTot);
+    initData(entries);
   }
 
   // check if all data is already received (this should never happen)
@@ -54,25 +56,25 @@ void TOFIntegratedClusters::fill(const o2::calibration::TFType tfID, const std::
     return;
   }
 
-  if (iTOFCNcl.size() != mNValuesPerTF) {
-    LOGP(info, "Received data with size {} expected size {} (expected size can be ignored if merging was performed)", iTOFCNcl.size(), mNValuesPerTF);
+  if (entries != mNValuesPerTF) {
+    LOGP(info, "Received data with size {} expected size {} (expected size can be ignored if merging was performed)", entries, mNValuesPerTF);
   }
 
   const unsigned int posIndex = (tfID - mTFFirst) * mNValuesPerTF;
-  if (posIndex + iTOFCNcl.size() > mCurrents.mITOFCNCl.size()) {
-    LOGP(warning, "Index for TF {} is larger {} than expected max index {} with {} values per package", tfID, posIndex, mCurrents.mITOFCNCl.size(), mNValuesPerTF);
+  if (posIndex + entries > mCurrents.getEntries()) {
+    LOGP(warning, "Index for TF {} is larger {} than expected max index {} with {} values per package", tfID, posIndex, mCurrents.getEntries(), mNValuesPerTF);
     return;
   }
 
   // copy data to buffer
-  std::copy(iTOFCNcl.begin(), iTOFCNcl.end(), mCurrents.mITOFCNCl.begin() + posIndex);
-  std::copy(iTOFCqTot.begin(), iTOFCqTot.end(), mCurrents.mITOFCQ.begin() + posIndex);
+  mCurrents.fill(posIndex, currentsContainer);
 
-  mRemainingData -= iTOFCNcl.size();
+  mRemainingData -= entries;
   LOGP(debug, "Processed TF {} at index {} with first TF {} and {} expected currents per TF. Remaining data {}", tfID, posIndex, mTFFirst, mNValuesPerTF, mRemainingData);
 }
 
-void TOFIntegratedClusters::merge(const TOFIntegratedClusters* prev)
+template <typename DataT>
+void IntegratedClusters<DataT>::merge(const IntegratedClusters* prev)
 {
   LOGP(info, "Printing last object...");
   prev->print();
@@ -89,9 +91,8 @@ void TOFIntegratedClusters::merge(const TOFIntegratedClusters* prev)
     if (!mInitialize) {
       // current buffer is already initialized just add empty values in front of buffer
       LOGP(info, "Adding dummy data to front");
-      std::vector<float> vecTmp(mNValuesPerTF * ((prev->mTFLast - prev->mTFFirst) + 1), 0);
-      mCurrents.mITOFCNCl.insert(mCurrents.mITOFCNCl.begin(), vecTmp.begin(), vecTmp.end());
-      mCurrents.mITOFCQ.insert(mCurrents.mITOFCQ.begin(), vecTmp.begin(), vecTmp.end());
+      const unsigned int nDummyValues = mNValuesPerTF * ((prev->mTFLast - prev->mTFFirst) + 1);
+      mCurrents.insert(nDummyValues);
     }
     LOGP(info, "Do not merge last object since it was not initialized. Adjusting TF range:");
     print();
@@ -101,22 +102,21 @@ void TOFIntegratedClusters::merge(const TOFIntegratedClusters* prev)
   // check if current object needs to be initialized
   if (mInitialize) {
     // init with dummy vector
-    initData(std::vector<float>(prev->mNValuesPerTF));
+    initData(prev->mNValuesPerTF);
   }
 
   // creating new temporary object with the range of current and last object
   const unsigned int totalTFs = (tfMax - tfMin) + 1; // add 1 since first<= t <=last
   const unsigned int nTotal = mNValuesPerTF * totalTFs;
-  TOFIntegratedClusters dataTmp(tfMin, tfMax);
+  IntegratedClusters dataTmp(tfMin, tfMax);
   dataTmp.mInitialize = false; // do no initialization as it is done manually
   dataTmp.mNValuesPerTF = mNValuesPerTF;
   dataTmp.mRemainingData = -1;
-  dataTmp.mCurrents.mITOFCNCl.resize(nTotal);
-  dataTmp.mCurrents.mITOFCQ.resize(nTotal);
+  dataTmp.mCurrents.resize(nTotal);
 
   // fill buffered values to tmp objects
-  dataTmp.fill(mTFFirst, mCurrents.mITOFCNCl, mCurrents.mITOFCQ);
-  dataTmp.fill(prev->mTFFirst, prev->mCurrents.mITOFCNCl, prev->mCurrents.mITOFCQ);
+  dataTmp.fill(mTFFirst, mCurrents);
+  dataTmp.fill(prev->mTFFirst, prev->mCurrents);
 
   dataTmp.mRemainingData = mRemainingData;
   *this = std::move(dataTmp);
@@ -124,19 +124,20 @@ void TOFIntegratedClusters::merge(const TOFIntegratedClusters* prev)
   print();
 }
 
-void TOFIntegratedClusters::initData(const std::vector<float>& vec)
+template <typename DataT>
+void IntegratedClusters<DataT>::initData(const unsigned int valuesPerTF)
 {
   mInitialize = false;
   const unsigned int totalTFs = (mTFLast - mTFFirst) + 1; // add 1 since first<= t <=last
-  mNValuesPerTF = vec.size();
+  mNValuesPerTF = valuesPerTF;
   const unsigned int nTotal = mNValuesPerTF * totalTFs;
-  mCurrents.mITOFCNCl.resize(nTotal);
-  mCurrents.mITOFCQ.resize(nTotal);
+  mCurrents.resize(nTotal);
   mRemainingData = nTotal;
   LOGP(info, "Init: Expecting {} packages with {} values per package with {} total values", mRemainingData, mNValuesPerTF, nTotal);
 }
 
-void TOFIntegratedClusters::dumpToTree(const char* outFileName)
+template <typename DataT>
+void IntegratedClusters<DataT>::dumpToTree(const char* outFileName)
 {
   o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
   pcstream << "tree"
@@ -148,36 +149,52 @@ void TOFIntegratedClusters::dumpToTree(const char* outFileName)
            << "\n";
 }
 
-void TOFIntegratedClusterCalibrator::initOutput()
+template <typename DataT>
+void IntegratedClusterCalibrator<DataT>::initOutput()
 {
   mIntervals.clear();
   mCalibs.clear();
   mTimeIntervals.clear();
 }
 
-void TOFIntegratedClusterCalibrator::finalizeSlot(Slot& slot)
+template <typename DataT>
+void IntegratedClusterCalibrator<DataT>::finalizeSlot(o2::calibration::TimeSlot<o2::calibration::IntegratedClusters<DataT>>& slot)
 {
   const TFType startTF = slot.getTFStart();
   const TFType endTF = slot.getTFEnd();
   LOGP(info, "Finalizing slot {} <= TF <= {}", startTF, endTF);
 
-  auto& TOFIntegratedClusters = *slot.getContainer();
+  auto& integratedClusters = *slot.getContainer();
   if (mDebug) {
-    TOFIntegratedClusters.dumpToFile(fmt::format("TOFIntegratedClusters_TF_{}_{}_TS_{}_{}.root", startTF, endTF, slot.getStartTimeMS(), slot.getEndTimeMS()).data());
+    integratedClusters.dumpToFile(fmt::format("IntegratedClusters_TF_{}_{}_TS_{}_{}.root", startTF, endTF, slot.getStartTimeMS(), slot.getEndTimeMS()).data());
   }
-  mCalibs.emplace_back(TOFIntegratedClusters.getITOFCCurrents());
+  mCalibs.emplace_back(std::move(integratedClusters).getCurrents());
+
   mIntervals.emplace_back(startTF, endTF);
   mTimeIntervals.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
 }
 
 /// Creates new time slot
-Slot& TOFIntegratedClusterCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
+template <typename DataT>
+o2::calibration::TimeSlot<o2::calibration::IntegratedClusters<DataT>>& IntegratedClusterCalibrator<DataT>::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
-  auto& cont = getSlots();
+  auto& cont = this->getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<TOFIntegratedClusters>(tstart, tend));
+  slot.setContainer(std::make_unique<IntegratedClusters<DataT>>(tstart, tend));
   return slot;
 }
 
-} // end namespace tof
+template class IntegratedClusters<o2::tof::ITOFC>;
+template class IntegratedClusterCalibrator<o2::tof::ITOFC>;
+
+template class IntegratedClusters<o2::fit::IFT0C>;
+template class IntegratedClusterCalibrator<o2::fit::IFT0C>;
+
+template class IntegratedClusters<o2::fit::IFV0C>;
+template class IntegratedClusterCalibrator<o2::fit::IFV0C>;
+
+template class IntegratedClusters<o2::tpc::ITPCC>;
+template class IntegratedClusterCalibrator<o2::tpc::ITPCC>;
+
+} // end namespace calibration
 } // end namespace o2

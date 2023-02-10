@@ -218,6 +218,9 @@ class TrackInterpolation
   /// Sets the maximum number of tracks to be processed (successfully) per TF
   void setMaxTracksPerTF(int n) { mMaxTracksPerTF = n; }
 
+  /// In addition to mMaxTracksPerTF up to the set number of ITS-TPC only tracks can be processed
+  void setAddITSTPCTracksPerTF(int n) { mAddTracksITSTPC = n; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
@@ -232,8 +235,11 @@ class TrackInterpolation
   float mTPCTimeBinMUS{.2f};    ///< TPC time bin duration in us
   float mTPCVDriftRef = -1.;    ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0.;                    ///< TPC drift time bias in cm/mus
+  float mTPCDriftTimeOffsetRef = 0.;                 ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
+  int mAddTracksITSTPC{0};                           ///< number of ITS-TPC tracks which can be processed in addition to mMaxTracksPerTF
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container

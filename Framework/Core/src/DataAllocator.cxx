@@ -323,4 +323,18 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::Seria
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);
 }
 
+void DataAllocator::cookDeadBeef(const Output& spec)
+{
+  auto& proxy = mRegistry.get<FairMQDeviceProxy>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
+
+  // We get the output route from the original spec, but we send it
+  // using the binding of the deadbeef subSpecification.
+  RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+  auto deadBeefOutput = Output{spec.origin, spec.description, 0xdeadbeef, Lifetime::Timeframe};
+  auto headerMessage = headerMessageFromOutput(deadBeefOutput, routeIndex, header::gSerializationMethodNone, 0);
+
+  addPartToContext(proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);
+}
+
 } // namespace o2::framework

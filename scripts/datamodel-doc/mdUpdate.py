@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 # get text in file 'fn' beteween the lines starting with 'delimiter'
 def blockbtwdelims (fn, delimiter):
   blck = []
-  
+
   cnt = 0
   with open(fn) as f:
     for line in f:
@@ -26,12 +26,12 @@ def blockbtwdelims (fn, delimiter):
           blck.append(line.rstrip())
 
   return blck
-  
+
 # -----------------------------------------------------------------------------
 # get text in file 'fn' before any line starting with 'delimiter'
 def blockbefdelims (fn, delimiter):
   blck = []
-  
+
   with open(fn) as f:
     for line in f:
       if line.startswith(delimiter):
@@ -39,13 +39,13 @@ def blockbefdelims (fn, delimiter):
       blck.append(line.rstrip())
 
   return blck
-  
+
 # -----------------------------------------------------------------------------
 # get text in file 'fn' after the text block delimited by lines starting with
 # 'delimiter'
 def blockaftdelims (fn, delimiter):
   blck = []
-  
+
   cnt = 0
   with open(fn) as f:
     for line in f:
@@ -53,19 +53,19 @@ def blockaftdelims (fn, delimiter):
         if cnt < 2:
           cnt += 1
           continue
-      
+
       if cnt > 1:
         blck.append(line.rstrip())
 
   return blck
-  
+
 # -----------------------------------------------------------------------------
 # concatenate two blocks of text
 def addblocks(b0, b1):
   b2 = b0
   for l in b1:
     b2.append(l.rstrip())
-    
+
   return b2
 
 # -----------------------------------------------------------------------------
@@ -82,7 +82,7 @@ def main(initCard):
     print ("    fnnew: file with replaced text")
     print ("")
     exit()
-    
+
   cc = int(sys.argv[1])
   fntouse = sys.argv[2]
   fnold = sys.argv[3]

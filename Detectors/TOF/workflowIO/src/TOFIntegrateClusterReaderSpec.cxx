@@ -54,7 +54,7 @@ class IntegratedClusterReader : public Task
 void IntegratedClusterReader::init(InitContext& ic)
 {
   const auto dontCheckFileAccess = ic.options().get<bool>("dont-check-file-access");
-  auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("tofcurrents-infiles"));
+  auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("tof-currents-infiles"));
 
   // check if only one input file (a txt file contaning a list of files is provided)
   if (fileList.size() == 1) {
@@ -148,7 +148,7 @@ DataProcessorSpec getTOFIntegrateClusterReaderSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<IntegratedClusterReader>()},
     Options{
-      {"tofcurrents-infiles", VariantType::String, "o2currents_tof.root", {"comma-separated list of input files or .txt file containing list of input files"}},
+      {"tof-currents-infiles", VariantType::String, "o2currents_tof.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"dont-check-file-access", VariantType::Bool, false, {"Deactivate check if all files are accessible before adding them to the list of files"}},
     }};

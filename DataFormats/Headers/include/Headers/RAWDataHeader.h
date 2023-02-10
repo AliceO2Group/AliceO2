@@ -42,6 +42,102 @@ namespace header
 /// assume that this is the only type the software has to support (based on
 /// experience with previous systems)
 ///
+/// RAWDataHeaderV7
+/// V7 introduces a detector source ID field
+/// Description of the fields can be found here
+/// https://gitlab.cern.ch/AliceO2Group/wp6-doc/-/blob/master/rdh/RDHv7.md
+//
+///
+///       63     56      48      40      32      24      16       8       0
+///       |---------------|---------------|---------------|---------------|
+///
+///       | reserved              | priori|               |    header     |
+/// 0     | reserve zero  |Source | ty bit|    FEE id     | size  |version|
+///
+/// 1     |ep | cru id    |pcount|link id |  memory size  |offset nxt pack|
+///
+/// 2     |                orbit          | reserved         |bunch cross |
+///                                                               | data
+/// 3     |                          reserved                     | format|
+///
+/// 4     |  zero | stop  |   page count  |      trigger type             |
+///
+/// 5     |                          reserved                             |
+///
+/// 6     |      zero     | detector par  |         detector field        |
+///
+/// 5     |                          reserved                             |
+///
+struct RAWDataHeaderV7 {
+  union {
+    // default value
+    uint64_t word0 = 0x00000000ffff4007;
+    //                       | |     | version 67
+    //                       | |   | 8x64 bit words = 64 (0x40) byte
+    //                       | | invalid FEE id
+    //                       | priority bit 0
+    struct {
+      uint64_t version : 8;        /// bit  0 to  7: header version
+      uint64_t headerSize : 8;     /// bit  8 to 15: header size
+      uint64_t feeId : 16;         /// bit 16 to 31: FEE identifier
+      uint64_t priority : 8;       /// bit 32 to 39: priority bit
+      uint64_t sourceID : 8;       /// bit 40 to 47: source ID
+      uint64_t zero0 : 16;         /// bit 48 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word1 = 0x0;          /// data written by the CRU
+    struct {                       ///
+      uint32_t offsetToNext : 16;  /// bit 64 to 79:  offset to next packet in memory
+      uint32_t memorySize : 16;    /// bit 80 to 95:  memory size
+      uint32_t linkID : 8;         /// bit 96 to 103: link id
+      uint32_t packetCounter : 8;  /// bit 104 to 111: packet counter
+      uint16_t cruID : 12;         /// bit 112 to 123: CRU ID
+      uint32_t endPointID : 4;     /// bit 124 to 127: DATAPATH WRAPPER ID: number used to
+    };                             ///                 identify one of the 2 End Points [0/1]
+  };                               ///
+  union {                          ///
+    uint64_t word2 = 0x0;          ///
+    struct {                       ///
+      uint32_t bunchCrossing : 12; /// bit 0 to 11: bunch crossing counter
+      uint32_t reserved2 : 20;     /// bit 12 to 31: reserved
+      uint32_t orbit;              /// bit 32 to 63: orbit
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word3 = 0x0;          ///
+    struct {                       ///
+      uint32_t dataFormat : 8;     /// bit 0 to 7: data format: 0: padded (48 bit of padding + 80 bit of data)
+                                   ///                          1: no padding, TOF LIKE (word#1 64 bit + word#0 64 bit = 128 bit)
+                                   ///                          2: no padding,  ITS/MFT like (appending words of 80 bit to build 128 bit)
+      uint64_t zero3 : 56;         /// bit 8 to 63 zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word4 = 0x0;          ///
+    struct {                       ///
+      uint64_t triggerType : 32;   /// bit  0 to 31: trigger type
+      uint64_t pageCnt : 16;       /// bit 32 to 47: pages counter
+      uint64_t stop : 8;           /// bit 48 to 53: stop code
+      uint64_t zero4 : 8;          /// bit 54 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word5 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word6 = 0x0;          ///
+    struct {                       ///
+      uint64_t detectorField : 32; /// bit  0 to 31: detector field
+      uint64_t detectorPAR : 16;   /// bit 32 to 47: detector PAR (Pause and Reset)
+      uint64_t zero6 : 16;         /// bit 48 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word7 = 0x0;          /// bit  0 to 63: zeroed
+  };
+};
+
 /// RAWDataHeaderV6
 /// V6 introduces a detector source ID field
 /// Description of the fields can be found here
@@ -66,7 +162,7 @@ namespace header
 ///
 /// 6     |      zero     | detector par  |         detector field        |
 ///
-/// 5     |                          reserved                             |
+/// 7     |                          reserved                             |
 struct RAWDataHeaderV6 {
   union {
     // default value
@@ -159,7 +255,7 @@ struct RAWDataHeaderV6 {
 ///
 /// 6     |      zero     | detector par  |         detector field        |
 ///
-/// 5     |                          reserved                             |
+/// 7     |                          reserved                             |
 struct RAWDataHeaderV5 {
   union {
     // default value
@@ -254,7 +350,7 @@ struct RAWDataHeaderV5 {
 ///
 /// 6     |res|    page count     | stop  | detector par  |detector field |
 ///
-/// 5     |                          reserved                             |
+/// 7     |                          reserved                             |
 ///
 /// Field 1,3,5,7 are reserved fields and added to extend each word to 128 bit, marked
 /// grey in the documentation to indicate that those fields are added by the CRU
@@ -427,7 +523,7 @@ struct RAWDataHeaderV2 {
 
 using RAWDataHeader = RAWDataHeaderV6; // default version
 using RDHLowest = RAWDataHeaderV4;     // link this to lowest version
-using RDHHighest = RAWDataHeaderV6;    // link this to highest version
+using RDHHighest = RAWDataHeaderV7;    // link this to highest version
 
 } // namespace header
 } // namespace o2

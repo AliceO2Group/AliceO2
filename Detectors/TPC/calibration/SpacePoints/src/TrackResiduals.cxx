@@ -372,7 +372,8 @@ void TrackResiduals::processSectorResiduals(int iSec)
       tgVec.clear();
     }
     dyVec.push_back(mLocalResidualsIn[idx].dy * param::MaxResid / 0x7fff);
-    dzVec.push_back(mLocalResidualsIn[idx].dz * param::MaxResid / 0x7fff);
+    dzVec.push_back(mLocalResidualsIn[idx].dz * param::MaxResid / 0x7fff -
+                    mEffVdriftCorr * secData[currVoxBin].stat[VoxZ] * secData[currVoxBin].stat[VoxX]);
     tgVec.push_back(mLocalResidualsIn[idx].tgSlp * param::MaxTgSlp / 0x7fff);
 
     ++nPointsInVox;
@@ -460,25 +461,45 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
     LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
   }
-  std::array<float, 2> res{0.f};
-  std::array<float, 3> err{0.f};
-  float sigMAD = fitPoly1Robust(tg, dy, res, err, mParams->LTMCut);
-  if (sigMAD < 0) {
-    LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
-    return;
+  if (!mParams->isBfieldZero) {
+    std::array<float, 2> res{0.f};
+    std::array<float, 3> err{0.f};
+    float sigMAD = fitPoly1Robust(tg, dy, res, err, mParams->LTMCut);
+    if (sigMAD < 0) {
+      LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
+      return;
+    }
+    float corrErr = err[0] * err[2];
+    corrErr = corrErr > 0 ? err[1] / std::sqrt(corrErr) : -999;
+    //
+    resVox.D[ResX] = -res[1];
+    resVox.D[ResY] = res[0];
+    resVox.D[ResZ] = zResults[1];
+    resVox.E[ResX] = std::sqrt(err[2]);
+    resVox.E[ResY] = std::sqrt(err[0]);
+    resVox.E[ResZ] = zResults[4];
+    resVox.EXYCorr = corrErr;
+    resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
+    resVox.dZSigLTM = zResults[2];
+  } else {
+    // for B=0 we cannot disentangle radial distortions from distortions in y,
+    // so simply use average for dy as well and set distortion in X to zero
+    std::array<float, 7> yResults;
+    std::vector<size_t> indicesY(dy.size());
+    if (!o2::math_utils::LTMUnbinned(dy, indicesY, yResults, mParams->LTMCut)) {
+      LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
+      return;
+    }
+    resVox.D[ResX] = 0; // force to zero
+    resVox.D[ResY] = yResults[1];
+    resVox.D[ResZ] = zResults[1];
+    resVox.E[ResX] = 0;
+    resVox.E[ResY] = yResults[4];
+    resVox.E[ResZ] = zResults[4];
+    resVox.EXYCorr = 0;
+    resVox.D[ResD] = resVox.dYSigMAD = yResults[2];
+    resVox.dZSigLTM = zResults[2];
   }
-  float corrErr = err[0] * err[2];
-  corrErr = corrErr > 0 ? err[1] / std::sqrt(corrErr) : -999;
-  //
-  resVox.D[ResX] = -res[1];
-  resVox.D[ResY] = res[0];
-  resVox.D[ResZ] = zResults[1];
-  resVox.E[ResX] = std::sqrt(err[2]);
-  resVox.E[ResY] = std::sqrt(err[0]);
-  resVox.E[ResZ] = zResults[4];
-  resVox.EXYCorr = corrErr;
-  resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
-  resVox.dZSigLTM = zResults[2];
 
   LOGF(debug, "D[0]=%.2f, D[1]=%.2f, D[2]=%.2f, E[0]=%.2f, E[1]=%.2f, E[2]=%.2f, EXYCorr=%.4f, dYSigMAD=%.3f, dZSigLTM=%.3f",
        resVox.D[0], resVox.D[1], resVox.D[2], resVox.E[0], resVox.E[1], resVox.E[2], resVox.EXYCorr, resVox.dYSigMAD, resVox.dZSigLTM);
@@ -1421,8 +1442,36 @@ bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, st
 
 void TrackResiduals::createOutputFile(const char* filename)
 {
+  if (getNVoxelsPerSector() == 0) {
+    LOG(warn) << "For the tree aliases to work you must initialize the binning before calling createOutputFile()";
+  }
   mFileOut = std::make_unique<TFile>(filename, "recreate");
   mTreeOut = std::make_unique<TTree>("voxResTree", "Voxel results and statistics");
+  mTreeOut->SetAlias("z2xBin", "bvox[0]");
+  mTreeOut->SetAlias("y2xBin", "bvox[1]");
+  mTreeOut->SetAlias("xBin", "bvox[2]");
+  mTreeOut->SetAlias("z2xAV", "stat[0]");
+  mTreeOut->SetAlias("y2xAV", "stat[1]");
+  mTreeOut->SetAlias("xAV", "stat[2]");
+  mTreeOut->SetAlias("fsector", "bsec+0.5+9.*(y2xAV)/pi");
+  mTreeOut->SetAlias("phi", "(bsec%18+0.5+9.*(stat[1])/pi)/9*pi");
+  mTreeOut->SetAlias("r", "stat[2]");
+  mTreeOut->SetAlias("z", "z2xAV*xAV");
+  mTreeOut->SetAlias("dX", "D[0]");
+  mTreeOut->SetAlias("dY", "D[1]");
+  mTreeOut->SetAlias("dZ", "D[2]");
+  mTreeOut->SetAlias("dXS", "DS[0]");
+  mTreeOut->SetAlias("dYS", "DS[1]");
+  mTreeOut->SetAlias("dZS", "DS[2]");
+  mTreeOut->SetAlias("dXE", "E[0]");
+  mTreeOut->SetAlias("dYE", "E[1]");
+  mTreeOut->SetAlias("dZE", "E[2]");
+  mTreeOut->SetAlias("voxelIndex", Form("xBin + %i * (y2xBin + %i * z2xBin) + %i * bsec", getNXBins(), getNY2XBins(), getNVoxelsPerSector()));
+  mTreeOut->SetAlias("entries", "stat[3]");
+  mTreeOut->SetAlias("fitOK", Form("(flags & %u) == %u", DistDone, DistDone));
+  mTreeOut->SetAlias("dispOK", Form("(flags & %u) == %u", DispDone, DispDone));
+  mTreeOut->SetAlias("smtOK", Form("(flags & %u) == %u", SmoothDone, SmoothDone));
+  mTreeOut->SetAlias("masked", Form("(flags & %u) == %u", Masked, Masked));
   mTreeOut->Branch("voxRes", &mVoxelResultsOutPtr);
 }
 

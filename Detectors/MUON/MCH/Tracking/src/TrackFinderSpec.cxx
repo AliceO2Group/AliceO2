@@ -45,6 +45,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/Propagator.h"
+#include "MCHBase/Error.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
@@ -102,6 +104,9 @@ class TrackFinderTask
       mTrackFinder.printStats();
       mTrackFinder.printTimers();
       LOG(info) << "tracking duration = " << mElapsedTime.count() << " s";
+      mErrorMap.forEach([](Error error) {
+        LOGP(warning, error.asString());
+      });
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -147,6 +152,8 @@ class TrackFinderTask
 
     trackROFs.reserve(clusterROFs.size());
     auto timeStart = std::chrono::high_resolution_clock::now();
+    auto& errorMap = mTrackFinder.getErrorMap();
+    errorMap.clear();
 
     for (const auto& clusterROF : clusterROFs) {
 
@@ -162,6 +169,13 @@ class TrackFinderTask
       trackROFs.emplace_back(clusterROF.getBCData(), trackOffset, mchTracks.size() - trackOffset,
                              clusterROF.getBCWidth());
     }
+
+    // create the output message for tracking errors
+    auto& trackErrors = pc.outputs().make<std::vector<Error>>(OutputRef{"trackerrors"});
+    errorMap.forEach([&trackErrors](Error error) {
+      trackErrors.emplace_back(error);
+    });
+    mErrorMap.add(errorMap);
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = timeEnd - timeStart;
@@ -259,6 +273,7 @@ class TrackFinderTask
   std::shared_ptr<base::GRPGeomRequest> mCCDBRequest{}; ///< pointer to the CCDB requests
   float mTrackTime3Sigma{6.0};                          ///< three times the digit time resolution, in BC units
   T mTrackFinder{};                                     ///< track finder
+  ErrorMap mErrorMap{};                                 ///< counting of encountered errors
   std::chrono::duration<double> mElapsedTime{};         ///< timer
 };
 
@@ -280,6 +295,7 @@ o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName, bool c
   if (digits) {
     outputSpecs.emplace_back(OutputSpec{{"trackdigits"}, "MCH", "TRACKDIGITS", 0, Lifetime::Timeframe});
   }
+  outputSpecs.emplace_back(OutputSpec{{"trackerrors"}, "MCH", "TRACKERRORS", 0, Lifetime::Timeframe});
 
   auto ccdbRequest = disableCCDBMagField ? nullptr
                                          : std::make_shared<base::GRPGeomRequest>(false,                      // orbitResetTime

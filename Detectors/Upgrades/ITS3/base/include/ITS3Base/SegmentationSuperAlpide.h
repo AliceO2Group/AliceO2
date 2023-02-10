@@ -18,6 +18,7 @@
 #include <Rtypes.h>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
+#include "ITS3Base/SuperAlpideParams.h"
 #include <Framework/Logger.h>
 
 namespace o2
@@ -30,33 +31,40 @@ class SegmentationSuperAlpide
 {
  public:
   SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
-                                           mNPixels{mNRows * mNCols},
+                                           mPitchCol{SuperAlpideParams::Instance().pitchCol},
+                                           mPitchRow{SuperAlpideParams::Instance().pitchRow},
+                                           mNCols{static_cast<int>(mLength / mPitchCol)},
                                            mNRows{static_cast<int>(double(mRadii[layer] + mSensorLayerThickness / 2) * double(constants::math::PI) / double(mPitchRow) + 1)},
+                                           mNPixels{mNRows * mNCols},
+                                           mActiveMatrixSizeCols{mPitchCol * mNCols},
                                            mActiveMatrixSizeRows{mPitchRow * mNRows},
+                                           mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide},
                                            mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}
   {
-    LOGP(info, "rows: {} cols: {} npixels: {}", mNRows, mNCols, mNPixels);
-    LOGP(info, "SegmentationSuperAlpide: layer {} ActiveMatrixSizeRows: {} ActiveMatrixSizeCols: {}", mLayer, mActiveMatrixSizeCols, mActiveMatrixSizeRows);
+    LOGP(info, "SegmentationSuperAlpide:");
+    LOGP(info, "PitchCol={} PitchRow={}", mPitchCol, mPitchRow);
+    LOGP(info, "Layer {}: ActiveMatrixSizeRows={} ActiveMatrixSizeCols={}", mLayer, mActiveMatrixSizeCols, mActiveMatrixSizeRows);
+    LOGP(info, "Rows={} Cols={} NPixels={}", mNRows, mNCols, mNPixels);
   }
-  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};
-  static constexpr float mLength = 27.15f;
-  static constexpr float mPitchCol = 20.e-4;
-  static constexpr float mPitchRow = 20.e-4;
-  static constexpr int mNCols = mLength / mPitchCol;
-  int mNRows;
-  int mNPixels;
-  int mLayer;
-  static constexpr float mPassiveEdgeReadOut = 0.;                   // width of the readout edge (Passive bottom)
-  static constexpr float mPassiveEdgeTop = 0.;                       // Passive area on top
-  static constexpr float mPassiveEdgeSide = 0.;                      // width of Passive area on left/right of the sensor
-  static constexpr float mActiveMatrixSizeCols = mPitchCol * mNCols; // Active size along columns
-  float mActiveMatrixSizeRows;                                       // Active size along rows
+  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f}; ///< radii for different layers
+  static constexpr float mLength = 27.15f;                                        ///< chip length
+  const float mPitchCol;                                                          ///< pixel column size
+  const float mPitchRow;                                                          ///< pixel row size
+  const int mNCols;                                                               ///< number of columns
+  const int mNRows;                                                               ///< number of rows
+  const int mNPixels;                                                             ///< total number of pixels
+  const int mLayer;                                                               ///< chip layer
+  static constexpr float mPassiveEdgeReadOut = 0.;                                ///< width of the readout edge (Passive bottom)
+  static constexpr float mPassiveEdgeTop = 0.;                                    ///< Passive area on top
+  static constexpr float mPassiveEdgeSide = 0.;                                   ///< width of Passive area on left/right of the sensor
+  const float mActiveMatrixSizeCols;                                              ///< Active size along columns
+  const float mActiveMatrixSizeRows;                                              ///< Active size along rows
 
-  // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float mSensorLayerThicknessEff = 28.e-4;
-  static constexpr float mSensorLayerThickness = 30.e-4;                                                // physical thickness of sensitive part
-  static constexpr float mSensorSizeCols = mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide; // SensorSize along columns
-  float mSensorSizeRows;                                                                                // SensorSize along rows
+  // effective thickness of sensitive layer, accounting for charge collection non-uniformity, https://alice.its.cern.ch/jira/browse/AOC-46
+  static constexpr float mSensorLayerThicknessEff = 28.e-4; ///< effective thickness of sensitive part
+  static constexpr float mSensorLayerThickness = 30.e-4;    ///< physical thickness of sensitive part
+  const float mSensorSizeCols;                              ///< SensorSize along columns
+  const float mSensorSizeRows;                              ///< SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
 
@@ -65,11 +73,11 @@ class SegmentationSuperAlpide
   /// \param xCurved Detector local curved coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param yCurved Detector local curved coordinate y in cm with respect to
-  /// the center of the sensitive volulme.
+  /// the center of the sensitive volume.
   /// \param xFlat Detector local flat coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param yFlat Detector local flat coordinate y in cm with respect to
-  /// the center of the sensitive volulme.
+  /// the center of the sensitive volume.
   void curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat);
 
   /// Transformation from the flat surface to a curved surface
@@ -77,11 +85,11 @@ class SegmentationSuperAlpide
   /// \param xFlat Detector local flat coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param yFlat Detector local flat coordinate y in cm with respect to
-  /// the center of the sensitive volulme.
+  /// the center of the sensitive volume.
   /// \param xCurved Detector local curved coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param yCurved Detector local curved coordinate y in cm with respect to
-  /// the center of the sensitive volulme.
+  /// the center of the sensitive volume.
   void flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved);
 
   /// Transformation from Geant detector centered local coordinates (cm) to
@@ -92,7 +100,7 @@ class SegmentationSuperAlpide
   /// \param float x Detector local coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param float z Detector local coordinate z in cm with respect to
-  /// the center of the sensitive volulme.
+  /// the center of the sensitive volume.
   /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
   /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
   bool localToDetector(float x, float z, int& iRow, int& iCol);
@@ -106,7 +114,7 @@ class SegmentationSuperAlpide
   /// \param float x Detector local coordinate x in cm with respect to the
   /// center of the sensitive volume.
   /// \param float z Detector local coordinate z in cm with respect to the
-  /// center of the sensitive volulme.
+  /// center of the sensitive volume.
   /// If iRow and or iCol is outside of the segmentation range a value of -0.5*Dx()
   /// or -0.5*Dz() is returned.
   bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol);
@@ -122,11 +130,14 @@ class SegmentationSuperAlpide
   {
     return 0.5 * ((mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - mPitchRow);
   }
-  static constexpr float getFirstColCoordinate() { return 0.5 * (mPitchCol - mActiveMatrixSizeCols); }
+  float getFirstColCoordinate()
+  {
+    return 0.5 * (mPitchCol - mActiveMatrixSizeCols);
+  }
 
   void print();
 
-  ClassDefNV(SegmentationSuperAlpide, 1); // Segmentation class upgrade pixels
+  ClassDefNV(SegmentationSuperAlpide, 2); // Segmentation class upgrade pixels
 };
 
 inline void SegmentationSuperAlpide::curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat)

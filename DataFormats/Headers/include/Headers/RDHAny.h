@@ -47,7 +47,8 @@ struct RDHAny {
   //------------------ service methods
   using RDHv4 = o2::header::RAWDataHeaderV4; // V3 == V4
   using RDHv5 = o2::header::RAWDataHeaderV5;
-  using RDHv6 = o2::header::RAWDataHeaderV6; // update this for every new version
+  using RDHv6 = o2::header::RAWDataHeaderV6;
+  using RDHv7 = o2::header::RAWDataHeaderV7; // update this for every new version
 
   /// make sure we RDH is a legitimate RAWDataHeader
   template <typename RDH>
@@ -55,7 +56,7 @@ struct RDHAny {
   {
 #ifndef GPUCA_GPUCODE_DEVICE
     static_assert(std::is_same<RDH, RDHv4>::value || std::is_same<RDH, RDHv5>::value ||
-                    std::is_same<RDH, RDHv6>::value,
+                    std::is_same<RDH, RDHv6>::value || std::is_same<RDH, RDHv7>::value,
                   "not an RDH");
 #endif
   }
@@ -66,7 +67,7 @@ struct RDHAny {
   {
 #ifndef GPUCA_GPUCODE_DEVICE
     static_assert(std::is_same<RDH, RDHv4>::value || std::is_same<RDH, RDHv5>::value ||
-                    std::is_same<RDH, RDHv6>::value || std::is_same<RDHAny, RDH>::value,
+                    std::is_same<RDH, RDHv6>::value || std::is_same<RDH, RDHv7>::value || std::is_same<RDHAny, RDH>::value,
                   "not an RDH or RDHAny");
 #endif
   }

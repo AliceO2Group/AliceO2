@@ -50,8 +50,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
  public:
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides, const int nTFsBuffer, const bool processClusters)
-    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides}, mNTFsBuffer{nTFsBuffer}, mProcessClusters{processClusters} {};
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides, const int nTFsBuffer)
+    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides}, mNTFsBuffer{nTFsBuffer} {};
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -79,11 +79,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     if (!refGainMapFile.empty()) {
       LOGP(info, "Loading GainMap from file {}", refGainMapFile);
       mIDCFactorization.setGainMap(refGainMapFile.data(), "GainMap");
-    }
-
-    // disabling CCDB output in order to avoid writing ICCs to IDC CCDB storage!
-    if (mProcessClusters) {
-      mSendOutCCDB = false;
     }
   }
 
@@ -199,10 +194,9 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   bool mEnableWritingPadStatusMap{false};           ///< do not store the pad status map in the CCDB
   o2::framework::DataTakingContext mDataTakingContext{};
   bool mSetDataTakingCont{true};
-  const bool mProcessClusters{false};
-  long mTimestampStart{0};                                                                                                                                                                  ///< time stamp of first TF
-  uint64_t mRun{0};                                                                                                                                                                         ///< run number
-  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId, mProcessClusters)}, Lifetime::Sporadic}}; ///< filter for looping over input data
+  long mTimestampStart{0};                                                                                                                                                ///< time stamp of first TF
+  uint64_t mRun{0};                                                                                                                                                       ///< run number
+  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Sporadic}}; ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output)
   {
@@ -440,10 +434,10 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     }
   }
 
-  std::string getCurrentType() const { return mProcessClusters ? "ICC" : "IDC"; }
+  std::string getCurrentType() const { return "IDC"; }
 };
 
-DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int nTFsBuffer = 1, const bool processClusters = false)
+DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int nTFsBuffer = 1)
 {
   const auto sides = o2::tpc::IDCFactorization::getSides(crus);
 
@@ -471,7 +465,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   }
 
   std::vector<InputSpec> inputSpecs;
-  inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane, processClusters)}, Lifetime::Sporadic});
+  inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic});
   inputSpecs.emplace_back(InputSpec{"firstTF", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCFirstTF(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
   if (usePrecisetimeStamp) {
     inputSpecs.emplace_back(InputSpec{"orbitreset", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
@@ -488,12 +482,12 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   std::copy(std::begin(paramIDCGroup.groupLastPadsThreshold), std::end(paramIDCGroup.groupLastPadsThreshold), std::begin(groupLastPadsThreshold));
   const unsigned int groupPadsSectorEdges = paramIDCGroup.groupPadsSectorEdges;
 
-  const std::string type = processClusters ? "icc" : "idc";
+  const std::string type = "idc";
   DataProcessorSpec spec{
     fmt::format("tpc-factorize-{}-{:02}", type, lane).data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides, nTFsBuffer, processClusters)},
+    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides, nTFsBuffer)},
     Options{{"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
             {"enablePadStatusMap", VariantType::Bool, false, {"Enabling the usage of the pad-by-pad status map during factorization."}},
             {"enableWritingPadStatusMap", VariantType::Bool, false, {"Write the pad status map to CCDB."}},

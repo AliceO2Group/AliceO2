@@ -9,28 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_CTP_RECOWORKFLOW_H
-#define O2_CTP_RECOWORKFLOW_H
+#ifndef O2_MCH_WORKFLOW_PRECLUSTER_READER_SPEC_H
+#define O2_MCH_WORKFLOW_PRECLUSTER_READER_SPEC_H
 
-#include "Framework/WorkflowSpec.h"
-#include <string>
-#include <vector>
+#include "Framework/DataProcessorSpec.h"
 
-namespace o2
+namespace o2::mch
 {
+o2::framework::DataProcessorSpec getPreClusterReaderSpec(bool useMC, const char* specName = "mch-precluster-reader");
+} // namespace o2::mch
 
-namespace ctp
-{
-
-namespace reco_workflow
-{
-
-/// create the workflow for CTP reconstruction
-framework::WorkflowSpec getWorkflow(bool noLostTF);
-
-} // namespace reco_workflow
-
-} // namespace ctp
-
-} // namespace o2
 #endif

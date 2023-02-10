@@ -37,6 +37,16 @@ class DataSender
              SendingPolicy const& policy);
   void send(fair::mq::Parts&, ChannelIndex index);
   std::unique_ptr<fair::mq::Message> create(RouteIndex index);
+  /// Reset the datasender to a clean state
+  /// so that we can track what whill be sent in the next
+  /// iteration and eventually complain if one of the
+  /// Lifetime::Timeframe is not create / sent.
+  void reset();
+  /// Actually verify if all the selected outputs have been sent.
+  /// Notice how I think there are a few cases in which we might
+  /// have a false positive, since I one could have a completion policy
+  /// which creates two required messages in two different iterations.
+  void verifyMissingSporadic() const;
 
  private:
   FairMQDeviceProxy& mProxy;
@@ -51,6 +61,8 @@ class DataSender
   std::vector<std::string> mMetricsNames;
   std::vector<std::string> mVariablesMetricsNames;
   std::vector<std::string> mQueriesMetricsNames;
+  std::vector<bool> mPresent;
+  std::vector<bool> mPresentDefaults;
 
   TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };

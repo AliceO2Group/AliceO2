@@ -190,7 +190,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
         toAdd.push_back(c);
       }
       // Pad zeros up to 128 bits
-      uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
+      uint32_t NZeros = (o2::raw::RDHUtils::GBTWord128 * 8 - NGBT) / 8;
       for (uint32_t i = 0; i < NZeros; i++) {
         char c = 0;
         toAdd.push_back(c);
@@ -213,7 +213,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
       toAdd.push_back(c);
     }
     // Pad zeros up to 128 bits
-    uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
+    uint32_t NZeros = (o2::raw::RDHUtils::GBTWord128 * 8 - NGBT) / 8;
     for (uint32_t i = 0; i < NZeros; i++) {
       char c = 0;
       toAdd.push_back(c);

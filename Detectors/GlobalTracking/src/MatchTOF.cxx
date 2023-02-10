@@ -156,6 +156,7 @@ void MatchTOF::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________
@@ -390,7 +391,7 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
     return;
   }
 
-  float trackTime0 = _tr.getTime0() * mTPCTBinMUS;
+  float trackTime0 = _tr.getTime0() * mTPCTBinMUS - mTPCDriftTimeOffset;
 
   timeInfo.setTimeStampError((_tr.getDeltaTBwd() + 5) * mTPCTBinMUS + extraErr);
   mExtraTPCFwdTime.push_back((_tr.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
@@ -1407,7 +1408,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 
   // correct the time of the track
   auto timeTOFMUS = (tofCl.getTime() - intLT.getTOF(tpcTrOrig.getPID())) * 1e-6; // tof time in \mus, FIXME: account for time of flight to R TOF
-  auto timeTOFTB = timeTOFMUS * mTPCTBinMUSInv;                                  // TOF time in TPC timebins
+  auto timeTOFTB = (timeTOFMUS + mTPCDriftTimeOffset) * mTPCTBinMUSInv;          // TOF time in TPC timebins, including TPC time offset
   auto deltaTBins = timeTOFTB - tpcTrOrig.getTime0();                            // time shift in timeBins
   float timeErr = 0.010;                                                         // assume 10 ns error FIXME
   auto dzCorr = deltaTBins * mTPCBin2Z;

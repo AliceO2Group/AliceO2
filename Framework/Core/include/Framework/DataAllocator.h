@@ -14,7 +14,6 @@
 #include "Framework/MessageContext.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -93,6 +92,12 @@ class DataAllocator
   inline DataChunk& newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
   void adoptChunk(const Output&, char*, size_t, fair::mq::FreeFn*, void*);
+
+  // This method can be used to send a 0xdeadbeef message associated to a given
+  // output. The @a spec will be used to determine the channel to which the
+  // output will need to be sent, however the actual message will be empty
+  // and with subspecification 0xdeadbeef.
+  void cookDeadBeef(const Output& spec);
 
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
@@ -443,8 +448,7 @@ class DataAllocator
 
   int countDeviceOutputs(bool excludeDPLOrigin = false)
   {
-    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
-           mRegistry.get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
+    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin);
   }
 
  private:

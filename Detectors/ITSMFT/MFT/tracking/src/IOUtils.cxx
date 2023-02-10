@@ -88,7 +88,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
     o2::math_utils::bringTo02PiGen(phiCoord);
-    int rBinIndex = tracker->getRBinIndex(rCoord);
+    int rBinIndex = tracker->getRBinIndex(rCoord, layer);
     int phiBinIndex = tracker->getPhiBinIndex(phiCoord);
     int binIndex = tracker->getBinIndex(rBinIndex, phiBinIndex);
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);

@@ -58,12 +58,6 @@ class ServiceRegistryRef
     return mRegistry.get<T>(mSalt);
   }
 
-  /// Invoke before sending messages @a parts on a channel @a channelindex
-  void preSendingMessagesCallbacks(fair::mq::Parts& parts, ChannelIndex channelindex)
-  {
-    mRegistry.preSendingMessagesCallbacks(mRegistry, parts, channelindex);
-  }
-
   void registerService(ServiceTypeHash typeHash, void* service, ServiceKind kind, char const* name = nullptr) const
   {
     mRegistry.registerService(typeHash, service, kind, mSalt, name);

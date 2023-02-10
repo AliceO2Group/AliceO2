@@ -22,6 +22,9 @@
 #include "TOFBase/Geo.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
 
+#include <algorithm>
+#include <numeric>
+
 using namespace o2::framework;
 
 namespace o2
@@ -39,6 +42,9 @@ class TOFIntegrateClusters : public Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mNSlicesTF = ic.options().get<int>("nSlicesTF");
+    mTimeCutNoisePS = ic.options().get<int>("time-cut-noise-PS");
+    mMinClustersNeighbours = ic.options().get<int>("min-clusters-neighbours");
+    mTagNoise = !(ic.options().get<bool>("do-not-tag-noise"));
   }
 
   void run(ProcessingContext& pc) final
@@ -58,7 +64,15 @@ class TOFIntegrateClusters : public Task
     o2::pmr::vector<float> iTOFCqTot(nSlices);
 
     const auto clusters = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
+    if (mTagNoise) {
+      tagNoiseCluster(clusters);
+    }
+
     for (size_t iCl = 0; iCl < clusters.size(); ++iCl) {
+      if (mTagNoise && (mCounterNeighbours[iCl] < mMinClustersNeighbours)) {
+        continue;
+      }
+
       const double timePS = clusters[iCl].getTime();
       const unsigned int sliceInTF = timePS * sliceWidthPSinv;
       if (sliceInTF < mNSlicesTF) {
@@ -86,6 +100,10 @@ class TOFIntegrateClusters : public Task
  private:
   int mNSlicesTF = 11;                                    ///< number of slices a TF is divided into
   const bool mDisableWriter{false};                       ///< flag if no ROOT output will be written
+  int mTimeCutNoisePS = 4000;                             ///< time in ps for which neighbouring clusters are checked during the noise filtering
+  int mMinClustersNeighbours = 2;                         ///< minimum neighbouring clusters for the noise filtering
+  bool mTagNoise{true};                                   ///< flag if noise will be rejected
+  std::vector<int> mCounterNeighbours;                    ///< buffer for noise removal (contains number of neighbouring cluster for time +-mTimeCutNoisePS)
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< info for CCDB request
 
   void sendOutput(ProcessingContext& pc, o2::pmr::vector<float> iTOFCNCl, o2::pmr::vector<float> iTOFCqTot)
@@ -97,6 +115,47 @@ class TOFIntegrateClusters : public Task
       o2::dataformats::TFIDInfo tfinfo;
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
       pc.outputs().snapshot(Output{header::gDataOriginTOF, "ITOFTFID"}, tfinfo);
+    }
+  }
+
+  /// \param tofArray - vector of the TOF cluster.
+  /// \return vector of the number of clusters in local neighbourhood +-4 ns (4000 ps)
+  /// Algorithm:
+  /// 0.) Sort clusters in time
+  /// 1.) Update counter - count the time bin after the trigger bin in the interval (-mTimeCutNoisePS,mTimeCutNoisePS) ~ (-4ns,4ns)
+  void tagNoiseCluster(const gsl::span<const o2::tof::Cluster>& tofArray)
+  {
+    const size_t nCl = tofArray.size();
+    // reset buffer
+    std::fill(mCounterNeighbours.begin(), mCounterNeighbours.end(), 0);
+    mCounterNeighbours.resize(nCl);
+
+    std::vector<size_t> tofTimeIndex(nCl);
+    std::iota(tofTimeIndex.begin(), tofTimeIndex.end(), 0);
+
+    // 0.) sort clusters in time: filling index to tofTimeIndex
+    std::stable_sort(tofTimeIndex.begin(), tofTimeIndex.end(), [&tofArray](size_t i1, size_t i2) { return tofArray[i1].getTime() < tofArray[i2].getTime(); });
+
+    // 1.) update counter - count timebin after the trigger bin in interval (-mTimeCutNoisePS,mTimeCutNoisePS) ~ (-4ns,4ns)
+    // Loop over all cluster and count for each cluster the neighouring clusters -defined by timeCut- in time
+    for (int i0 = 0; i0 < nCl; i0++) {
+      const double t0 = tofArray[tofTimeIndex[i0]].getTime();
+      // loop over clusters after current cluster which are close in time and count them
+      for (int idP = i0 + 1; idP < nCl; ++idP) {
+        if (std::abs(t0 - tofArray[tofTimeIndex[idP]].getTime()) > mTimeCutNoisePS) {
+          break;
+        }
+        // count clusters in local neighbourhood
+        ++mCounterNeighbours[tofTimeIndex[i0]];
+      }
+      // loop over clusters before current cluster which are close in time and count them
+      for (int idM = i0 - 1; idM >= 0; --idM) {
+        if (std::abs(t0 - tofArray[tofTimeIndex[idM]].getTime()) > mTimeCutNoisePS) {
+          break;
+        }
+        // count clusters in local neighbourhood
+        ++mCounterNeighbours[tofTimeIndex[i0]];
+      }
     }
   }
 };
@@ -126,7 +185,10 @@ o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec(const bool disableWr
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TOFIntegrateClusters>(ccdbRequest, disableWriter)},
-    Options{{"nSlicesTF", VariantType::Int, 11, {"number of slices into which a TF is divided"}}}};
+    Options{{"nSlicesTF", VariantType::Int, 11, {"number of slices into which a TF is divided"}},
+            {"time-cut-noise-PS", VariantType::Int, 4000, {"time in ps for which neighbouring clusters are checked during the noise filtering"}},
+            {"min-clusters-neighbours", VariantType::Int, 2, {"minimum neighbouring clusters for the noise filtering"}},
+            {"do-not-tag-noise", VariantType::Bool, false, {"Do not reject noise"}}}};
 }
 
 } // end namespace tof

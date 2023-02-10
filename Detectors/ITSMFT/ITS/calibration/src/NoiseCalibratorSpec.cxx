@@ -92,7 +92,9 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     gsl::span<const int> partInfo = pc.inputs().get<gsl::span<int>>("mapspartInfo");
     mCalibrator->addMap(*extMap.get());
     done = (++mNPartsDone == partInfo[1]);
-    LOGP(info, "Received accumulated map with {} of {}, total number of maps = {}", partInfo[0], partInfo[1], mNPartsDone);
+    mStrobeCounter += partInfo[2];
+    mCalibrator->setNStrobes(mStrobeCounter);
+    LOGP(info, "Received accumulated map {} of {} with {} ROFs, total number of maps = {} and strobes = {}", partInfo[0] + 1, partInfo[1], partInfo[2], mNPartsDone, mCalibrator->getNStrobes());
   }
   if (done) {
     LOG(info) << "Minimum number of noise counts has been reached !";
@@ -119,6 +121,7 @@ void NoiseCalibratorSpec::sendAccumulatedMap(DataAllocator& output)
   std::vector<int> outInf;
   outInf.push_back(mCalibrator->getInstanceID());
   outInf.push_back(mCalibrator->getNInstances());
+  outInf.push_back(mCalibrator->getNStrobes());
   output.snapshot(Output{"ITS", "NOISEMAPPARTINF", (unsigned int)mCalibrator->getInstanceID()}, outInf);
   LOGP(info, "Sending accumulated map with {} ROFs processed", mCalibrator->getNStrobes());
 }

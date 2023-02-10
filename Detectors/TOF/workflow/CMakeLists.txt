@@ -30,7 +30,7 @@ o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME tof
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
 
-o2_add_executable(digit-writer-workflow
+o2_add_executable(digit-writer-splitted-workflow
                   SOURCES src/digit-writer-commissioning.cxx
                   COMPONENT_NAME tof
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)

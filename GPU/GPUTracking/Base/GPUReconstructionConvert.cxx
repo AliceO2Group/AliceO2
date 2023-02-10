@@ -978,7 +978,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
     }
   }
-  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord) {
+  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord128) {
     throw std::runtime_error("Decoding didn't reach end of page");
   }
 }
@@ -1075,14 +1075,14 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
 
       if (page && mustWritePage) {
         if constexpr (std::is_same_v<T, struct zsEncoderDenseLinkBased>) {
-          if ((pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord) {
-            pagePtr += o2::raw::RDHUtils::GBTWord - (pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord;
+          if ((pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord128) {
+            pagePtr += o2::raw::RDHUtils::GBTWord128 - (pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord128;
           }
           unsigned char* triggerWord = nullptr;
           if (hbf != nexthbf || endpoint != lastEndpoint) {
             if ((pagePtr - (unsigned char*)page) + sizeof(TPCZSHDRV2) + o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE <= TPCZSHDR::TPC_ZS_PAGE_SIZE) {
-              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord)) {
-                pagePtr += o2::raw::RDHUtils::GBTWord; // align to 256 bit, size constrained cannot be affected by this
+              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord128)) {
+                pagePtr += o2::raw::RDHUtils::GBTWord128; // align to 256 bit, size constrained cannot be affected by this
               }
               hdr->flags |= o2::tpc::TPCZSHDRV2::ZSFlags::TriggerWordPresent;
             } else {
@@ -1096,8 +1096,8 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
             triggerWord = pagePtr;
             pagePtr += o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE;
           }
-          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord) == 0) {
-            pagePtr += o2::raw::RDHUtils::GBTWord; // align to 128bit mod 256
+          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord128) == 0) {
+            pagePtr += o2::raw::RDHUtils::GBTWord128; // align to 128bit mod 256
           }
           TPCZSHDRV2* pagehdr = (TPCZSHDRV2*)pagePtr;
           pagePtr += sizeof(TPCZSHDRV2);
@@ -1114,7 +1114,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           *totalSize += !std::is_same_v<T, struct zsEncoderDenseLinkBased> && (lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
         }
         size_t size = !std::is_same_v<T, struct zsEncoderDenseLinkBased> && (padding || lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
-        size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
+        size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord128>(size);
 #ifdef GPUCA_O2_LIB
         if (raw) {
           raw->addData(rawfeeid, rawcru, this->RAWLNK, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);

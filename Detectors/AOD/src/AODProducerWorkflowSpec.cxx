@@ -2171,11 +2171,105 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     }
   }
 
+  extrapolateToCalorimeters(extraInfoHolder, data.getTrackParamOut(trackIndex));
   // set bit encoding for PVContributor property as part of the flag field
   if (trackIndex.isPVContributor()) {
     extraInfoHolder.flags |= o2::aod::track::PVContributor;
   }
   return extraInfoHolder;
+}
+
+void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track)
+{
+  constexpr float XEMCAL = 440.f, XPHOS = 460.f, XEMCAL2 = XEMCAL * XEMCAL;
+  constexpr float ETAEMCAL = 0.75;                                  // eta of EMCAL/DCAL with margin
+  constexpr float ETADCALINNER = 0.22;                              // eta of the DCAL PHOS Hole (at XEMCAL)
+  constexpr float ETAPHOS = 0.13653194;                             // nominal eta of the PHOS acceptance (at XPHOS): -log(tan((TMath::Pi()/2 - atan2(63, 460))/2))
+  constexpr float ETAPHOSMARGIN = 0.17946979;                       // etat of the PHOS acceptance with 20 cm margin (at XPHOS): -log(tan((TMath::Pi()/2 + atan2(63+20., 460))/2)), not used, for the ref only
+  constexpr float ETADCALPHOSSWITCH = (ETADCALINNER + ETAPHOS) / 2; // switch to DCAL to PHOS check if eta < this value
+  constexpr short SNONE = 0, SEMCAL = 0x1, SPHOS = 0x2;
+  constexpr short SECTORTYPE[18] = {
+    SNONE, SNONE, SNONE, SNONE,                     // 0:3
+    SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, // 3:9 EMCAL only
+    SNONE, SNONE,                                   // 10:11
+    SPHOS,                                          // 12 PHOS only
+    SPHOS | SEMCAL, SPHOS | SEMCAL, SPHOS | SEMCAL, // 13:15 PHOS & DCAL
+    SEMCAL,                                         // 16 DCAL only
+    SNONE};                                         // 17
+
+  o2::track::TrackPar outTr{track};
+  auto prop = o2::base::Propagator::Instance();
+  // 1st propagate to EMCAL nominal radius
+  float xtrg = 0;
+  if (!outTr.getXatLabR(XEMCAL, xtrg, prop->getNominalBz(), o2::track::DirType::DirOutward) ||
+      !prop->PropagateToXBxByBz(outTr, xtrg, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
+    LOGP(debug, "preliminary step: does not reach R={} {}", XEMCAL, outTr.asString());
+    return;
+  }
+  // we do not necessarilly reach wanted radius in a single propagation
+  if ((outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY() < XEMCAL2) &&
+      (!outTr.rotateParam(outTr.getPhi()) ||
+       !outTr.getXatLabR(XEMCAL, xtrg, prop->getNominalBz(), o2::track::DirType::DirOutward) ||
+       !prop->PropagateToXBxByBz(outTr, xtrg, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT))) {
+    LOGP(debug, "does not reach R={} {}", XEMCAL, outTr.asString());
+    return;
+  }
+  // rotate to proper sector
+  int sector = o2::math_utils::angle2Sector(outTr.getPhiPos());
+
+  auto propExactSector = [&outTr, &sector, prop](float xprop) -> bool { // propagate exactly to xprop in the proper sector frame
+    int ntri = 0;
+    while (ntri < 2) {
+      auto outTrTmp = outTr;
+      float alpha = o2::math_utils::sector2Angle(sector);
+      if (!outTrTmp.rotateParam(alpha) ||
+          !prop->PropagateToXBxByBz(outTrTmp, xprop, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
+        LOGP(debug, "failed on rotation to {} (sector {}) or propagation to X={} {}", alpha, sector, xprop, outTrTmp.asString());
+        return false;
+      }
+      // make sure we are still in the target sector
+      int sectorTmp = o2::math_utils::angle2Sector(outTrTmp.getPhiPos());
+      if (sectorTmp == sector) {
+        outTr = outTrTmp;
+        break;
+      }
+      sector = sectorTmp;
+      ntri++;
+    }
+    if (ntri == 2) {
+      LOGP(debug, "failed to rotate to sector, {}", outTr.asString());
+      return false;
+    }
+    return true;
+  };
+
+  // we are at the EMCAL X, check if we are in the good sector
+  if (!propExactSector(XEMCAL) || SECTORTYPE[sector] == SNONE) { // propagation faile or neither EMCAL not DCAL/PHOS
+    return;
+  }
+
+  // check if we are in a good eta range
+  float r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY()), tg = std::atan2(r, outTr.getZ());
+  float eta = -std::log(std::tan(0.5f * tg)), etaAbs = std::abs(eta);
+  if (etaAbs > ETAEMCAL) {
+    LOGP(debug, "eta = {} is off at EMCAL radius", eta, outTr.asString());
+    return;
+  }
+  // are we in the PHOS hole (with margin)?
+  if ((SECTORTYPE[sector] & SPHOS) && etaAbs < ETADCALPHOSSWITCH) { // propagate to PHOS radius
+    if (!propExactSector(XPHOS)) {
+      return;
+    }
+    r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY());
+    tg = std::atan2(r, outTr.getZ());
+    eta = std::log(std::tan(0.5f * tg));
+  } else if (!(SECTORTYPE[sector] & SEMCAL)) { // are in the sector with PHOS only
+    return;
+  }
+  extraInfoHolder.trackPhiEMCAL = outTr.getPhiPos();
+  extraInfoHolder.trackEtaEMCAL = eta;
+  LOGP(debug, "eta = {} phi = {} sector {} for {}", extraInfoHolder.trackEtaEMCAL, extraInfoHolder.trackPhiEMCAL, sector, outTr.asString());
+  //
 }
 
 void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -2209,6 +2303,7 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     const auto& pvParams = o2::vertexing::PVertexerParams::Instance();
     mNSigmaTimeTrack = pvParams.nSigmaTimeTrack;
     mTimeMarginTrackTime = pvParams.timeMarginTrackTime * 1.e3;
+    mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
   }
 }
 
