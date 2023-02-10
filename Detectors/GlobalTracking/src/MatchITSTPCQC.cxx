@@ -165,7 +165,7 @@ bool MatchITSTPCQC::init()
   mPhi->Sumw2();
   mPhiVsPt->Sumw2();
   mPhiVsPtTPC->Sumw2();
-  //mFractionITSTPCmatchPhiVsPt->Sumw2();
+  // mFractionITSTPCmatchPhiVsPt->Sumw2();
   mPtTPCPhysPrim->Sumw2();
   mPtPhysPrim->Sumw2();
   mPhiTPCPhysPrim->Sumw2();
@@ -175,7 +175,7 @@ bool MatchITSTPCQC::init()
   mEtaTPCPhysPrim->Sumw2();
   mEtaVsPt->Sumw2();
   mEtaVsPtTPC->Sumw2();
-  //mFractionITSTPCmatchEtaVsPt->Sumw2();
+  // mFractionITSTPCmatchEtaVsPt->Sumw2();
 
   mPtTPC->SetOption("logy");
   mPt->SetOption("logy");
