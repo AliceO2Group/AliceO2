@@ -175,6 +175,17 @@ class MatchITSTPCQC
 
   void setEfficiency(TEfficiency* eff, TH2F* hnum, TH2F* hden)
   {
+    if (!eff) {
+      LOG(fatal) << "Cannot get TEfficiency object ";
+    }
+    if (!hnum) {
+      LOG(fatal) << "Cannot get numerator histogram for TEfficiency object " << eff->GetName();
+    }
+    if (!hden) {
+      LOG(fatal) << "Cannot get denominator histogram for TEfficiency object " << eff->GetName();
+    }
+    LOG(info) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
+
     // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
     if (!eff->SetTotalHistogram(*hden, "f") || !eff->SetPassedHistogram(*hnum, "")) {
       LOG(fatal) << "Something went wrong when defining the efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
