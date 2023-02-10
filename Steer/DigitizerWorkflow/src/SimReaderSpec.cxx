@@ -92,9 +92,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
 
-    // init gRandom to random start
-    // TODO: offer option to set seed
-    gRandom->SetSeed(0);
+    // init gRandom
+    gRandom->SetSeed(ctx.options().get<int>("seed"));
 
     if (simprefixes.size() == 0) {
       LOG(error) << "No simulation prefix available";
@@ -235,6 +234,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       {"qed-x-section-ratio", VariantType::Float, -1.f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
       {"incontext", VariantType::String, "", {"Take collision context from this file"}},
+      {"seed", VariantType::Int, 0, {"Random seed for collision context generation"}},
       {"ncollisions,n",
        VariantType::Int,
        0,
