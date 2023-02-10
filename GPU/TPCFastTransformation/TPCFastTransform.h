@@ -117,7 +117,7 @@ class TPCFastTransform : public FlatObject
 #endif
 
   /// write output of streamer to file
-  void flushStreamer() { mStreamer.flush(); }
+  GPUd() void flushStreamer() { mStreamer.flush(); }
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
