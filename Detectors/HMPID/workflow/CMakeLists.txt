@@ -25,7 +25,7 @@ o2_add_library(HMPIDWorkflow
                        src/WriteRawFileSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-                              
+
                        PUBLIC_LINK_LIBRARIES O2::Framework
                                              O2::CCDB
                                              O2::DPLUtils
