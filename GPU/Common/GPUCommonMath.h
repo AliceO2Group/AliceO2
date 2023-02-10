@@ -151,7 +151,7 @@ class GPUCommonMath
   GPUd() static float FMulRZ(float a, float b);
 
   template <int I, class T>
-  GPUd() CONSTEXPR17 static T nextMultipleOf(T val);
+  GPUd() CONSTEXPR static T nextMultipleOf(T val);
 
 #ifdef GPUCA_NOCOMPAT
   GPUdi() static float Sum2() // Needed for legacy C++, For >=17 the below if constexpr handles the case
@@ -162,7 +162,7 @@ class GPUCommonMath
   template <typename... Args>
   GPUdi() static float Sum2(float w, Args... args)
   {
-    if CONSTEXPR17 (sizeof...(Args) == 0) {
+    if CONSTEXPR (sizeof...(Args) == 0) {
       return w * w;
     } else {
       return w * w + Sum2(args...);
@@ -196,9 +196,9 @@ typedef GPUCommonMath CAMath;
 #endif // clang-format on
 
 template <int I, class T>
-GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
+GPUdi() CONSTEXPR T GPUCommonMath::nextMultipleOf(T val)
 {
-  if CONSTEXPR17 (I & (I - 1)) {
+  if CONSTEXPR (I & (I - 1)) {
     T tmp = val % I;
     if (tmp) {
       val += I - tmp;

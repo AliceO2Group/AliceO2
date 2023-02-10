@@ -110,7 +110,7 @@ class GPUProcessor
     if (basePtr == 0) {
       basePtr = 1;
     }
-    CONSTEXPR size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
+    CONSTEXPR const size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
     basePtr += getAlignment<maxAlign>(basePtr);
     S* retVal = (S*)(basePtr);
     basePtr += nEntries * sizeof(S);
