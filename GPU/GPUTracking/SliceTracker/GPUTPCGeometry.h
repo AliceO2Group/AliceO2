@@ -55,7 +55,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
   const float mPadWidth[10] GPUCA_CPP11_INIT(= {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f});
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPRRET float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 512.f); // Used in compression, must remain constant at 250cm, 512 time bins!
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 512.f); // Used in compression, must remain constant at 250cm, 512 time bins!
 #endif
 
  public:
@@ -87,7 +87,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
   const float mPadWidth[3] GPUCA_CPP11_INIT(= {.4f, .6f, .6f});
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPRRET float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 1024.f); // Used in compression, must remain constant at 250cm, 1024 time bins!
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 1024.f); // Used in compression, must remain constant at 250cm, 1024 time bins!
 #endif
 
  public:
@@ -101,10 +101,10 @@ class GPUTPCGeometry // TODO: Make values constexpr
 #endif
  private:
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPRRET float FACTOR_Z2T GPUCA_CPP11_INIT(= 1.f / FACTOR_T2Z);
+  static CONSTEXPR float FACTOR_Z2T GPUCA_CPP11_INIT(= 1.f / FACTOR_T2Z);
 #endif
  public:
-  GPUd() static CONSTEXPRRET float TPCLength() { return 250.f - 0.275f; }
+  GPUd() static CONSTEXPR float TPCLength() { return 250.f - 0.275f; }
   GPUd() float Row2X(int row) const { return (mX[row]); }
   GPUd() float PadHeight(int row) const { return (mPadHeight[GetRegion(row)]); }
   GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
