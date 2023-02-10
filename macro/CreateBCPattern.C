@@ -1,6 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonConstants/LHCConstants.h"
+#include "UDFSParser.h"
 #include <TFile.h>
 #include <string>
 #endif
@@ -45,6 +46,51 @@ void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const st
   if (!outFileName.empty()) {
     std::string nm = !objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
     LOG(info) << "Storing pattern with name " << nm << " in a file " << outFileName;
+    TFile outf(outFileName.c_str(), "update");
+    outf.WriteObjectAny(&pattern, pattern.Class(), nm.c_str());
+    outf.Close();
+  }
+}
+
+// this version of CreateBCPattern takes a filling scheme definition file (*.csv from
+// https://lpc.web.cern.ch/cgi-bin/filling_schemes.py) as input
+void CreateBCPatternFromFile(const std::string& inFileName, const std::string& outFileName = "bcPattern.root", const string& objName = "")
+{
+  o2::BunchFilling pattern;
+
+  // the UDFSParser allows to read and interpret the filling scheme definition file (*.csv)
+  // the buckets are converted to P2BCs
+  UDFSParser fsparser = UDFSParser(inFileName.data());  
+  
+  // 1. method to fill pattern
+  // loop over all possible P2BCs and select colliding BCs
+  // with this method only the interacting bunches are specified
+  for (auto bcnum{0}; bcnum < o2::constants::lhc::LHCMaxBunches; bcnum++) {
+    if (fsparser.isP2BCBB(bcnum)) {
+      pattern.setBC(bcnum);
+    }
+  }
+  pattern.print();
+  
+  // 2. method to fill pattern
+  // one can also use the pattern string from fsparser.patternString to set the
+  // filling schemes of both beams
+  LOGF(info, "\n");
+  LOGF(info, "patternString A-beam %s", fsparser.patternString(0));
+  LOGF(info, "patternString C-beam %s\n", fsparser.patternString(1));
+
+  pattern.setBCFilling(fsparser.patternString(0), 0); // A Beam
+  pattern.setBCFilling(fsparser.patternString(1), 1); // C Beam
+  pattern.setInteractingBCsFromBeams();
+  
+  // the printout of both pattern filling methods should be the same
+  LOGF(info, "\n");
+  pattern.print();
+  
+  // create the bcPattern.root file
+  if (!outFileName.empty()) {
+    std::string nm = !objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
+    LOGF(info, "Storing pattern with name %s in a file %s", nm, outFileName);
     TFile outf(outFileName.c_str(), "update");
     outf.WriteObjectAny(&pattern, pattern.Class(), nm.c_str());
     outf.Close();
