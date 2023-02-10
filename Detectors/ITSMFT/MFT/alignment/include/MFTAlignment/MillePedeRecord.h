@@ -127,7 +127,7 @@ class MillePedeRecord : public TObject
   Double32_t* fValue; ///< [fSize] array of values: derivs,residuals
   Double32_t fWeight; ///< global weight for the record
 
-  ClassDef(MillePedeRecord, 3);
+  ClassDefOverride(MillePedeRecord, 3);
 };
 
 //_____________________________________________________________________________

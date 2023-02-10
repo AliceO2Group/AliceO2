@@ -13,17 +13,14 @@
 /// \brief Implementation of the SegmentationSuperAlpide class
 
 #include "ITS3Base/SegmentationSuperAlpide.h"
-#include <cstdio>
+#include <Framework/Logger.h>
 
 ClassImp(o2::its3::SegmentationSuperAlpide);
 
-using namespace o2::its3;
-
-void SegmentationSuperAlpide::print()
+void o2::its3::SegmentationSuperAlpide::print()
 {
-  printf("Pixel size: %.2f (along %d rows) %.2f (along %d columns) microns\n", mPitchRow * 1e4, mNRows, mPitchCol * 1e4, mNCols);
-  printf("Passive edges: bottom: %.2f, top: %.2f, left/right: %.2f microns\n",
-         mPassiveEdgeReadOut * 1e4, mPassiveEdgeTop * 1e4, mPassiveEdgeSide * 1e4);
-  printf("Active/Total size: %.6f/%.6f (rows) %.6f/%.6f (cols) cm\n", mActiveMatrixSizeRows, mSensorSizeRows,
-         mActiveMatrixSizeCols, mSensorSizeCols);
+  LOGP(info, "SegmentationSuperAlpide:");
+  LOGP(info, "Layer {}: Active/Total size {:.2f}/{:.2f} (rows) x {:.2f}/{:.2f}", mLayer, mActiveMatrixSizeRows, mSensorSizeRows, mActiveMatrixSizeCols, mSensorSizeCols);
+  LOGP(info, "Pixel size: {:.2f} (along {} rows) {:.2f} (along {} columns) microns", mPitchRow * 1e4, mNRows, mPitchCol * 1e4, mNCols);
+  LOGP(info, "Passive edges: bottom: {:.6f}, top: {:.6f}, left/right: {:.6f} microns", mPassiveEdgeReadOut * 1e4, mPassiveEdgeTop * 1e4, mPassiveEdgeSide * 1e4);
 }

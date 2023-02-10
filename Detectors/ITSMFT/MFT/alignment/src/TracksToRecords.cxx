@@ -568,13 +568,13 @@ bool TracksToRecords::setLocalEquationX()
            mGlobalDerivatives[chipId * mNDofPerSensor + 1],
            mGlobalDerivatives[chipId * mNDofPerSensor + 2],
            mGlobalDerivatives[chipId * mNDofPerSensor + 3],
-           mAlignPoint->getLocalMeasuredPosition().X(),
+           mAlignPoint->getLocalResidual().X(),
            mAlignPoint->getLocalMeasuredPositionSigma().X());
     }
     mMillepede->SetLocalEquation(
       mGlobalDerivatives,
       mLocalDerivatives,
-      mAlignPoint->getLocalMeasuredPosition().X(),
+      mAlignPoint->getLocalResidual().X(),
       mAlignPoint->getLocalMeasuredPositionSigma().X());
   } else {
     mCounterLocalEquationFailed++;
@@ -632,13 +632,13 @@ bool TracksToRecords::setLocalEquationY()
            mGlobalDerivatives[chipId * mNDofPerSensor + 1],
            mGlobalDerivatives[chipId * mNDofPerSensor + 2],
            mGlobalDerivatives[chipId * mNDofPerSensor + 3],
-           mAlignPoint->getLocalMeasuredPosition().Y(),
+           mAlignPoint->getLocalResidual().Y(),
            mAlignPoint->getLocalMeasuredPositionSigma().Y());
     }
     mMillepede->SetLocalEquation(
       mGlobalDerivatives,
       mLocalDerivatives,
-      mAlignPoint->getLocalMeasuredPosition().Y(),
+      mAlignPoint->getLocalResidual().Y(),
       mAlignPoint->getLocalMeasuredPositionSigma().Y());
   } else {
     mCounterLocalEquationFailed++;
@@ -696,13 +696,13 @@ bool TracksToRecords::setLocalEquationZ()
            mGlobalDerivatives[chipId * mNDofPerSensor + 1],
            mGlobalDerivatives[chipId * mNDofPerSensor + 2],
            mGlobalDerivatives[chipId * mNDofPerSensor + 3],
-           mAlignPoint->getLocalMeasuredPosition().Z(),
+           mAlignPoint->getLocalResidual().Z(),
            mAlignPoint->getLocalMeasuredPositionSigma().Z());
     }
     mMillepede->SetLocalEquation(
       mGlobalDerivatives,
       mLocalDerivatives,
-      mAlignPoint->getLocalMeasuredPosition().Z(),
+      mAlignPoint->getLocalResidual().Z(),
       mAlignPoint->getLocalMeasuredPositionSigma().Z());
   } else {
     mCounterLocalEquationFailed++;

@@ -9,26 +9,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CompressorTask.cxx
+/// @file   CompressorTaskOld.cxx
 /// @author Roberto Preghenella
 /// @since  2019-12-18
 /// @brief  TOF raw data compressor task
 
-#include "TOFCompression/CompressorTask.h"
+#include "TOFCompression/CompressorTaskOld.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputRecordWalker.h"
 #include "CommonUtils/VerbosityConfig.h"
 
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
+
 using namespace o2::framework;
 
-namespace o2::tof
+namespace o2
+{
+namespace tof
 {
 
 template <typename RDH, bool verbose, bool paranoid>
-void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
+void CompressorTaskOld<RDH, verbose, paranoid>::init(InitContext& ic)
 {
   LOG(info) << "Compressor init";
 
@@ -51,9 +57,18 @@ void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 }
 
 template <typename RDH, bool verbose, bool paranoid>
-void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
+void CompressorTaskOld<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 {
   LOG(debug) << "Compressor run";
+
+  auto device = pc.services().get<o2::framework::RawDeviceService>().device();
+  auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
+  if (outputRoutes.size() != 1) {
+    LOG(error) << "Compressor output routes size != 1";
+    return;
+  }
+  auto fairMQChannel = outputRoutes.at(0).channel;
+  fair::mq::Parts partsOut;
 
   /** to store data sorted by subspec id **/
   std::map<int, std::vector<o2::framework::DataRef>> subspecPartMap;
@@ -75,7 +90,22 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
-        pc.outputs().cookDeadBeef(Output{"TOF", "CRAWDATA", dh->subSpecification});
+        // send empty message with DEADBEEF subspec
+        const auto* dph = o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
+        o2::header::DataHeader emptyDH("CRAWDATA", "TOF", 0xdeadbeef, 0, 0, 1);
+        emptyDH.runNumber = dh->runNumber;
+        emptyDH.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+        emptyDH.firstTForbit = dh->firstTForbit;
+        emptyDH.tfCounter = dh->tfCounter;
+
+        o2::header::Stack emptyStack{emptyDH, o2::framework::DataProcessingHeader{dph->startTime, dph->duration, dph->creation}};
+
+        auto headerMessage = device->NewMessage(emptyStack.size());
+        auto payloadMessage = device->NewMessage(0);
+        std::memcpy(headerMessage->GetData(), emptyStack.data(), emptyStack.size());
+        partsOut.AddPart(std::move(headerMessage));
+        partsOut.AddPart(std::move(payloadMessage));
+        device->Send(partsOut, fairMQChannel);
         return;
       }
     }
@@ -116,23 +146,22 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
     /** use the first part to define output headers **/
     auto headerOut = *DataRefUtils::getHeader<o2::header::DataHeader*>(firstPart);
+    auto dataProcessingHeaderOut = *DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(firstPart);
     headerOut.dataDescription = "CRAWDATA";
     headerOut.payloadSize = 0;
     headerOut.splitPayloadParts = 1;
 
     /** initialise output message **/
     auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);
-    auto output = Output{headerOut.dataOrigin, "CRAWDATA", headerOut.subSpecification};
-    auto&& v = pc.outputs().makeVector<char>(output);
-    v.resize(bufferSize);
-    // Better way of doing this would be to used an offset, so that we can resize the vector
-    // as well. However, this should be good enough because bufferSize overestimates the size
-    // of the payload.
-    auto bufferPointer = v.data();
+    auto payloadMessage = device->NewMessage(bufferSize);
+    auto bufferPointer = (char*)payloadMessage->GetData();
 
     /** loop over subspec parts **/
     for (const auto& ref : parts) {
+
       /** input **/
+      auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = DataRefUtils::getPayloadSize(ref);
 
@@ -150,14 +179,25 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
       headerOut.payloadSize += payloadOutSize;
     }
 
-    v.resize(headerOut.payloadSize);
-    pc.outputs().adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+    /** finalise output message **/
+    payloadMessage->SetUsedSize(headerOut.payloadSize);
+    o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
+    auto headerMessage = device->NewMessage(headerStack.size());
+    std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
+
+    /** add parts **/
+    partsOut.AddPart(std::move(headerMessage));
+    partsOut.AddPart(std::move(payloadMessage));
   }
+
+  /** send message **/
+  device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeader, false, false>;
-template class CompressorTask<o2::header::RAWDataHeader, false, true>;
-template class CompressorTask<o2::header::RAWDataHeader, true, false>;
-template class CompressorTask<o2::header::RAWDataHeader, true, true>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, false, false>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, false, true>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, true, false>;
+template class CompressorTaskOld<o2::header::RAWDataHeader, true, true>;
 
+} // namespace tof
 } // namespace o2

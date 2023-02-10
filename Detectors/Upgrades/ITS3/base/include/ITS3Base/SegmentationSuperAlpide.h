@@ -30,41 +30,28 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
-                                           mPitchCol{SuperAlpideParams::Instance().pitchCol},
-                                           mPitchRow{SuperAlpideParams::Instance().pitchRow},
-                                           mNCols{static_cast<int>(mLength / mPitchCol)},
-                                           mNRows{static_cast<int>(double(mRadii[layer] + mSensorLayerThickness / 2) * double(constants::math::PI) / double(mPitchRow) + 1)},
-                                           mNPixels{mNRows * mNCols},
-                                           mActiveMatrixSizeCols{mPitchCol * mNCols},
-                                           mActiveMatrixSizeRows{mPitchRow * mNRows},
-                                           mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide},
-                                           mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}
-  {
-    LOGP(info, "SegmentationSuperAlpide:");
-    LOGP(info, "PitchCol={} PitchRow={}", mPitchCol, mPitchRow);
-    LOGP(info, "Layer {}: ActiveMatrixSizeRows={} ActiveMatrixSizeCols={}", mLayer, mActiveMatrixSizeCols, mActiveMatrixSizeRows);
-    LOGP(info, "Rows={} Cols={} NPixels={}", mNRows, mNCols, mNPixels);
-  }
-  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f}; ///< radii for different layers
-  static constexpr float mLength = 27.15f;                                        ///< chip length
-  const float mPitchCol;                                                          ///< pixel column size
-  const float mPitchRow;                                                          ///< pixel row size
-  const int mNCols;                                                               ///< number of columns
-  const int mNRows;                                                               ///< number of rows
-  const int mNPixels;                                                             ///< total number of pixels
-  const int mLayer;                                                               ///< chip layer
-  static constexpr float mPassiveEdgeReadOut = 0.;                                ///< width of the readout edge (Passive bottom)
-  static constexpr float mPassiveEdgeTop = 0.;                                    ///< Passive area on top
-  static constexpr float mPassiveEdgeSide = 0.;                                   ///< width of Passive area on left/right of the sensor
-  const float mActiveMatrixSizeCols;                                              ///< Active size along columns
-  const float mActiveMatrixSizeRows;                                              ///< Active size along rows
+  SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow} { print(); }
+  SegmentationSuperAlpide(int layer = 0) : SegmentationSuperAlpide(layer, SuperAlpideParams::Instance().pitchCol, SuperAlpideParams::Instance().pitchRow) {}
+
+  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 7.0f, 10.f};                                                               ///< radii for different layers
+  static constexpr float mLength = 27.15f;                                                                                                      ///< chip length
+  const int mLayer;                                                                                                                             ///< chip layer
+  const float mPitchCol;                                                                                                                        ///< pixel column size
+  const float mPitchRow;                                                                                                                        ///< pixel row size
+  const int mNCols{static_cast<int>(mLength / mPitchCol)};                                                                                      ///< number of columns
+  const int mNRows{static_cast<int>(double(mRadii[mLayer] + mSensorLayerThickness / 2) * double(constants::math::PI) / double(mPitchRow) + 1)}; ///< number of rows
+  const int mNPixels{mNRows * mNCols};                                                                                                          ///< total number of pixels
+  static constexpr float mPassiveEdgeReadOut = 0.;                                                                                              ///< width of the readout edge (Passive bottom)
+  static constexpr float mPassiveEdgeTop = 0.;                                                                                                  ///< Passive area on top
+  static constexpr float mPassiveEdgeSide = 0.;                                                                                                 ///< width of Passive area on left/right of the sensor
+  const float mActiveMatrixSizeCols{mPitchCol * mNCols};                                                                                        ///< Active size along columns
+  const float mActiveMatrixSizeRows{mPitchRow * mNRows};                                                                                        ///< Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-uniformity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float mSensorLayerThicknessEff = 28.e-4; ///< effective thickness of sensitive part
-  static constexpr float mSensorLayerThickness = 30.e-4;    ///< physical thickness of sensitive part
-  const float mSensorSizeCols;                              ///< SensorSize along columns
-  const float mSensorSizeRows;                              ///< SensorSize along rows
+  static constexpr float mSensorLayerThicknessEff = 28.e-4;                                   ///< effective thickness of sensitive part
+  static constexpr float mSensorLayerThickness = 30.e-4;                                      ///< physical thickness of sensitive part
+  const float mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide};   ///< SensorSize along columns
+  const float mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}; ///< SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
 

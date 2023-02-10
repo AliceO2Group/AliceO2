@@ -179,6 +179,7 @@ bool DataInputDescriptor::setFile(int counter)
 
   mCurrentFileID = counter;
   mCurrentFileStartedAt = uv_hrtime();
+  mIOTime = 0;
 
   return true;
 }
