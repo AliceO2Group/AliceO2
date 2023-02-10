@@ -22,9 +22,9 @@ namespace o2
 namespace hmpid
 {
 
-o2::framework::DataProcessorSpec getClustersToRootWriter();
+o2::framework::DataProcessorSpec getClusterWriterSpec();
 
 } // end namespace hmpid
 } // end namespace o2
 
-#endif /* STEER_DIGITIZERWORKFLOW_SRC_HMPIDDIGITWRITERSPEC_H_ */
+#endif /* STEER_DIGITIZERWORKFLOW_SRC_HMPCLUSTERWRITERSPEC_H_ */

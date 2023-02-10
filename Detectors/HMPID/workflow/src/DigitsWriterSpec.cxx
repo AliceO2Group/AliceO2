@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   ClustersToRootSpec.cxx
+/// \file   DigitsToRootSpec.cxx
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 20 nov 2021
-/// \brief Implementation of a data processor to produce Root File from Clusters Stream
+/// \brief Implementation of a data processor to produce Root File from Digits stream
 ///
 
 #include <random>
@@ -50,7 +50,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 
 #include "HMPIDBase/Geo.h"
-#include "HMPIDWorkflow/ClustersToRootSpec.h"
+#include "HMPIDWorkflow/DigitsWriterSpec.h"
 
 namespace o2
 {
@@ -62,69 +62,65 @@ using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
 //=======================
-// Data decoder
-void ClustersToRootTask::init(framework::InitContext& ic)
+void DigitsToRootTask::init(framework::InitContext& ic)
 {
-  LOG(info) << "[HMPID Write Root File From Clusters stream - init()]";
+  LOG(info) << "[HMPID Write Root File From Digits stream - init()]";
 
   // get line command options
   mOutRootFileName = ic.options().get<std::string>("out-file");
 
   mTriggers.clear();
-  mClusters.clear();
+  mDigits.clear();
 
-  TString filename;
-  TString tit;
+  TString filename = TString::Format("%s", mOutRootFileName.c_str());
+  TString tit = TString::Format("HMPID Digits File Decoding");
 
-  filename = TString::Format("%s", mOutRootFileName.c_str());
   LOG(info) << "Create the ROOT file " << filename.Data();
   mfileOut = new TFile(TString::Format("%s", filename.Data()), "RECREATE");
-  tit = TString::Format("HMPID Clusters File Decoding");
+
   mTheTree = new TTree("o2hmp", tit);
   mTheTree->Branch("InteractionRecords", &mTriggers);
-  mTheTree->Branch("HMPIDClusters", &mClusters);
+  mTheTree->Branch("HMPIDDigits", &mDigits);
 
   mExTimer.start();
   return;
 }
 
-void ClustersToRootTask::run(framework::ProcessingContext& pc)
+void DigitsToRootTask::run(framework::ProcessingContext& pc)
 {
   std::vector<o2::hmpid::Trigger> triggers;
-  std::vector<o2::hmpid::Cluster> clusters;
+  std::vector<o2::hmpid::Digit> digits;
 
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
-    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "INTRECORDS1"}})) {
+    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "INTRECORDS"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      //    LOG(info) << "We receive triggers =" << triggers.size();
+      LOG(info) << "We receive triggers =" << triggers.size();
     }
-    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "CLUSTERS"}})) {
-      clusters = pc.inputs().get<std::vector<o2::hmpid::Cluster>>(ref);
-      //    LOG(info) << "The size of the vector =" << clusters.size();
+    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "DIGITS"}})) {
+      digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
+      LOG(info) << "The size of the vector =" << digits.size();
     }
 
     for (int i = 0; i < triggers.size(); i++) {
-      //    LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
-      int startClusterIndex = mClusters.size();
-      int numberOfClusters = 0;
+      LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
+      int startDigitsIndex = mDigits.size();
+      int numberOfDigits = 0;
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
-        mClusters.push_back(clusters[j]); // append the cluster
-        numberOfClusters++;
+        mDigits.push_back(digits[j]); // append the cluster
+        numberOfDigits++;
       }
       mTriggers.push_back(triggers[i]);
-      mTriggers.back().setDataRange(startClusterIndex, numberOfClusters);
+      mTriggers.back().setDataRange(startDigitsIndex, numberOfDigits);
     }
   }
   mExTimer.stop();
   return;
 }
 
-void ClustersToRootTask::endOfStream(framework::EndOfStreamContext& ec)
+void DigitsToRootTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.logMes("Received an End Of Stream !");
-  for (int i = 0; i < mClusters.size(); i++) {
-    mClusters.at(i).print();
-  }
+  LOG(info) << "The size of digits vector =" << mDigits.size();
   mTheTree->Fill();
   mTheTree->Write();
   mfileOut->Close();
@@ -133,20 +129,20 @@ void ClustersToRootTask::endOfStream(framework::EndOfStreamContext& ec)
 }
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getClustersToRootSpec(std::string inputSpec)
+o2::framework::DataProcessorSpec getDigitsToRootSpec(std::string inputSpec)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("clusters", o2::header::gDataOriginHMP, "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intrecord", o2::header::gDataOriginHMP, "INTRECORDS1", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("intrecord", o2::header::gDataOriginHMP, "INTRECORDS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
 
   return DataProcessorSpec{
-    "HMP-ClustersToRoot",
+    "HMP-DigitsToRoot",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClustersToRootTask>()},
-    Options{{"out-file", VariantType::String, "hmpClusters.root", {"name of the output file"}}}};
+    AlgorithmSpec{adaptFromTask<DigitsToRootTask>()},
+    Options{{"out-file", VariantType::String, "hmpDigits.root", {"name of the output file"}}}};
 }
 
 } // namespace hmpid

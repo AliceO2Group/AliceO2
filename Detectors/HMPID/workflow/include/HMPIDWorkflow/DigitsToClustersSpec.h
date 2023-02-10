@@ -37,8 +37,7 @@ namespace hmpid
 class DigitsToClustersTask : public framework::Task
 {
  public:
-  DigitsToClustersTask(bool readFile)
-    : mReadFile(readFile) {}
+  DigitsToClustersTask(){};
   ~DigitsToClustersTask() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -51,9 +50,6 @@ class DigitsToClustersTask : public framework::Task
 
   std::unique_ptr<TFile> mFile; ///< input file containin the tree
   std::unique_ptr<TTree> mTree; ///< input tree
-
-  std::vector<o2::hmpid::Digit> mDigitsFromFile, *mDigitsFromFilePtr = &mDigitsFromFile;
-  std::vector<o2::hmpid::Trigger> mTriggersFromFile, *mTriggersFromFilePtr = &mTriggersFromFile;
 
   std::unique_ptr<o2::hmpid::Clusterer> mRec; // ef: changed to smart-pointer
   long mDigitsReceived;
@@ -68,9 +64,7 @@ class DigitsToClustersTask : public framework::Task
 
 // ef : read from stream by default:
 o2::framework::DataProcessorSpec
-  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool readFile = false, bool writeFile = false);
-
-// o2::framework::DataProcessorSpec getClustersToRootWriter();
+  getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS", bool disableRootInp = false, bool disableRootOut = false);
 
 } // end namespace hmpid
 } // end namespace o2

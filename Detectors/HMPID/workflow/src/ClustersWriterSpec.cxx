@@ -26,7 +26,7 @@ namespace hmpid
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getClustersToRootWriter()
+o2::framework::DataProcessorSpec getClusterWriterSpec()
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;

@@ -13,6 +13,8 @@
 /// \brief Implementation of clusterization for HMPID; read upstream/from file write upstream/to file
 
 #include "HMPIDWorkflow/DigitsToClustersSpec.h"
+#include "HMPIDWorkflow/DigitsReaderSpec.h"
+#include "HMPIDWorkflow/ClustersWriterSpec.h"
 
 #include <array>
 #include <fstream>
@@ -74,8 +76,6 @@ void DigitsToClustersTask::strToFloatsSplit(std::string s,
 //
 void DigitsToClustersTask::init(framework::InitContext& ic)
 {
-  LOG(info) << "[HMPID Clusterization - init() ; mReadFile = ] "
-            << mReadFile;
   mSigmaCutPar = ic.options().get<std::string>("sigma-cut");
 
   if (mSigmaCutPar != "") {
@@ -87,16 +87,6 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
   mRec.reset(new o2::hmpid::Clusterer()); // ef: changed to smart-pointer
 
   mExTimer.start();
-
-  // specify location and filename for output in case of writing to file
-  if (mReadFile) {
-    // Build the file name
-    const auto filename = o2::utils::Str::concat_string(
-      o2::utils::Str::rectifyDirectory(
-        ic.options().get<std::string>("input-dir")),
-      ic.options().get<std::string>("hmpid-digit-infile"));
-    initFileIn(filename);
-  }
 }
 
 void DigitsToClustersTask::run(framework::ProcessingContext& pc)
@@ -108,68 +98,25 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
   clusters.clear();
   clusterTriggers.clear();
 
-  //===============mReadFromFile=============================================
-  if (mReadFile) {
-    LOG(info) << "[HMPID DClusterization - run() ] Entries  = " << mTree->GetEntries();
+  auto triggers = pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("intrecord");
+  auto digits = pc.inputs().get<gsl::span<o2::hmpid::Digit>>("digits");
 
-    // check if more entries in tree
-    if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
-
-      pc.services().get<ControlService>().endOfStream();
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-      mExTimer.stop();
-      mExTimer.logMes("End Clusterization !  digits = " +
-                      std::to_string(mDigitsReceived));
-    } else {
-      auto entry = mTree->GetReadEntry() + 1;
-      assert(entry < mTree->GetEntries());
-
-      mTree->GetEntry(entry);
-
-      // =============== create clusters =====================
-      for (const auto& trig : *mTriggersFromFilePtr) {
-        if (trig.getNumberOfObjects()) {
-          gsl::span<const o2::hmpid::Digit> trigDigits{
-            mDigitsFromFilePtr->data() + trig.getFirstEntry(),
-            size_t(trig.getNumberOfObjects())};
-          size_t clStart = clusters.size();
-          mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
-          clusterTriggers.emplace_back(trig.getIr(), clStart,
-                                       clusters.size() - clStart);
-        }
-      }
-
-      LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
-           mTriggersFromFilePtr->size(), mDigitsFromFilePtr->size(), clusterTriggers.size(),
-           clusters.size());
-      mDigitsReceived += mDigitsFromFilePtr->size();
-    } // <end else of num entries>
-  }   //===============  <end mReadFromFile>
-
-  else { // =========  if readfromStream==============================================
-
-    auto triggers = pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("intrecord");
-    auto digits = pc.inputs().get<gsl::span<o2::hmpid::Digit>>("digits");
-
-    for (const auto& trig : triggers) {
-      if (trig.getNumberOfObjects()) {
-        gsl::span<const o2::hmpid::Digit> trigDigits{
-          digits.data() + trig.getFirstEntry(),
-          size_t(trig.getNumberOfObjects())};
-        size_t clStart = clusters.size();
-        mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
-        clusterTriggers.emplace_back(trig.getIr(), clStart,
-                                     clusters.size() - clStart);
-      }
+  for (const auto& trig : triggers) {
+    if (trig.getNumberOfObjects()) {
+      gsl::span<const o2::hmpid::Digit> trigDigits{
+        digits.data() + trig.getFirstEntry(),
+        size_t(trig.getNumberOfObjects())};
+      size_t clStart = clusters.size();
+      mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
+      clusterTriggers.emplace_back(trig.getIr(), clStart,
+                                   clusters.size() - clStart);
     }
-    mDigitsReceived += digits.size();
-    /*LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
-         triggers.size(), digits.size(), clusterTriggers.size(),
-         clusters.size());
-       */
-  } //========= <end readfromStream>
-    //=====================================================================================
+  }
+  LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
+       triggers.size(), digits.size(), clusterTriggers.size(),
+       clusters.size());
 
+  mDigitsReceived += digits.size();
   mClustersReceived += clusters.size();
 
   pc.outputs().snapshot(
@@ -184,7 +131,7 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
   mExTimer.elapseMes("Clusterization of Digits received = " +
                      std::to_string(mDigitsReceived));
   mExTimer.elapseMes("Clusterization of Clusters received = " +
-                     std::to_string(mDigitsReceived));
+                     std::to_string(mClustersReceived));
 }
 
 void DigitsToClustersTask::endOfStream(framework::EndOfStreamContext& ec)
@@ -195,62 +142,20 @@ void DigitsToClustersTask::endOfStream(framework::EndOfStreamContext& ec)
                   std::to_string(mDigitsReceived));
 }
 
-void DigitsToClustersTask::initFileIn(const std::string& filename)
-{
-  // Create the TFIle
-  mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
-  if (!mFile) {
-    LOG(error)
-      << "HMPID DigitToClusterSpec::init() : Did not find any digits file ";
-    return;
-  }
-  assert(mFile && !mFile->IsZombie());
-  mTree.reset((TTree*)mFile->Get("o2sim"));
-
-  if (!mTree) {
-    mTree.reset((TTree*)mFile->Get("o2hmp"));
-  }
-
-  if (!mTree) {
-    LOG(error)
-      << "HMPID DigitToClusterSpec::init() : Did not find o2sim tree in "
-      << filename.c_str();
-    throw std::runtime_error(
-      "HMPID DigitToClusterSpec::init() : Did not find "
-      "o2sim file in digits tree");
-  }
-
-  if (mTree->GetBranchStatus("HMPDigit"))
-    mTree->SetBranchAddress("HMPDigit", &mDigitsFromFilePtr);
-  else if (mTree->GetBranchStatus("HMPIDDigits"))
-    mTree->SetBranchAddress("HMPIDDigits", &mDigitsFromFilePtr);
-  else {
-    LOG(error)
-      << "HMPID DigitToClusterSpec::init() : Did not find any branch ";
-  }
-  mTree->SetBranchAddress("InteractionRecords", &mTriggersFromFilePtr);
-  mTree->Print("toponly");
-}
-
 //_______________________________________________________________________________________________
 o2::framework::DataProcessorSpec
-  getDigitsToClustersSpec(std::string inputSpec, bool readFile, bool writeFile)
+  getDigitsToClustersSpec(std::string inputSpec, bool disableRootInp, bool disableRootOut)
 
 {
 
-  // define inputs if reading from stream:
   std::vector<o2::framework::InputSpec> inputs;
-  if (!readFile) {
-    inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0,
-                        Lifetime::Timeframe);
-    inputs.emplace_back("intrecord", o2::header::gDataOriginHMP, "INTRECORDS",
-                        0, Lifetime::Timeframe);
-  }
+
+  inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0,
+                      o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("intrecord", o2::header::gDataOriginHMP, "INTRECORDS", 0,
+                      o2::framework::Lifetime::Timeframe);
 
   // define outputs
-
-  // outputs are streamed, and optionally stored in a root-file if the --write-to-file
-  // option in digits-to-clusters-workflow.cxx is passed
   std::vector<o2::framework::OutputSpec> outputs;
 
   outputs.emplace_back("HMP", "CLUSTERS", 0,
@@ -260,16 +165,11 @@ o2::framework::DataProcessorSpec
 
   return DataProcessorSpec{
     "HMP-Clusterization", inputs, outputs,
-    AlgorithmSpec{adaptFromTask<DigitsToClustersTask>(readFile)},
+    AlgorithmSpec{adaptFromTask<DigitsToClustersTask>()},
     Options{{"sigma-cut",
              VariantType::String,
              "",
-             {"sigmas as comma separated list"}},
-            {"hmpid-digit-infile",
-             VariantType::String,
-             "hmpiddigits.root",
-             {"Name of the input file"}},
-            {"input-dir", VariantType::String, "./", {"Input directory"}}}};
+             {"sigmas as comma separated list"}}}};
 }
 
 } // namespace hmpid

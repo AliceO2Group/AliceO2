@@ -41,25 +41,29 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
     "clusters-hmpid-write", CompletionPolicy::CompletionOp::Consume));
 }
 
+using o2::framework::ConfigParamSpec;
+using o2::framework::VariantType;
 // we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(
-    o2::framework::ConfigParamSpec{"configKeyValues",
-                                   o2::framework::VariantType::String,
-                                   "",
-                                   {keyvaluehelp}});
+    ConfigParamSpec{"configKeyValues",
+                    VariantType::String,
+                    "",
+                    {keyvaluehelp}});
+
   workflowOptions.push_back(
-    o2::framework::ConfigParamSpec{"read-from-file",
-                                   o2::framework::VariantType::Bool,
-                                   false,
-                                   {"read upstream by default"}});
+    ConfigParamSpec{"disable-root-input",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"disable root-files input readers"}});
+
   workflowOptions.push_back(
-    o2::framework::ConfigParamSpec{"write-to-file",
-                                   o2::framework::VariantType::Bool,
-                                   false,
-                                   {"read upstream by default"}});
+    ConfigParamSpec{"disable-root-output",
+                    VariantType::Bool,
+                    false,
+                    {"disable root-files output writers"}});
 
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
@@ -67,8 +71,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "HMPIDWorkflow/DigitsToClustersSpec.h"
 #include "HMPIDWorkflow/ClustersWriterSpec.h"
-
-//#include "HMPIDWorkflow/HMPIDDigitizerSpec.h"
+#include "HMPIDWorkflow/DigitsReaderSpec.h"
+//#include "HMPIDWorkflow/HMPIDDigitizerSpec.h"ss
 
 using namespace o2;
 using namespace o2::framework;
@@ -78,19 +82,27 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(
     configcontext.options().get<std::string>("configKeyValues"));
-  auto mFromFile = configcontext.options().get<bool>(
-    "read-from-file"); // read upstream by default
-  auto mToFile = configcontext.options().get<bool>(
-    "write-to-file"); // write upstream by default
+
+  auto disableRootInp = configcontext.options().get<bool>(
+    "disable-root-input"); // read upstream by default
+  auto disableRootOut = configcontext.options().get<bool>(
+    "disable-root-output"); // write upstream by default
 
   DataProcessorSpec consumer =
-    o2::hmpid::getDigitsToClustersSpec("HMP/DIGITS", mFromFile, mToFile);
+    hmpid::getDigitsToClustersSpec("HMP/DIGITS", disableRootInp, disableRootOut);
 
   specs.push_back(consumer);
 
-  if (mToFile) { // Write to File
-    DataProcessorSpec consumerClusterToRoot = o2::hmpid::getClustersToRootWriter();
-    specs.push_back(consumerClusterToRoot);
+  // Read to File; input file and dir can be specified using
+  // --hmpid-digit-infile and --input-dir (from DigitsReaderSpec Class)
+  if (!disableRootInp) {
+    specs.emplace_back(hmpid::getDigitsReaderSpec());
+  }
+
+  // Write to Cluster-File; output file and dir can be specified using
+  // --outfile and --output-dir (from MakeTreeRootWriter Class)
+  if (!disableRootOut) {
+    specs.push_back(hmpid::getClusterWriterSpec());
   }
 
   return specs;

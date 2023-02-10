@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   clusters-to-root-workflow.cxx
+/// \file   digits-to-root-workflow.cxx
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 22 nov 2021
@@ -40,7 +40,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("clusters-hmpid-root", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("digits-hmpid-root", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -52,7 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/ClustersToRootSpec.h"
+#include "HMPIDWorkflow/DigitsWriterSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -61,7 +61,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec consumer = o2::hmpid::getClustersToRootSpec();
+  DataProcessorSpec consumer = o2::hmpid::getDigitsToRootSpec();
   specs.push_back(consumer);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
