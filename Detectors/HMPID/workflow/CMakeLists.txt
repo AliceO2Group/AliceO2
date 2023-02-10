@@ -16,7 +16,7 @@ o2_add_library(HMPIDWorkflow
                        src/DigitsReaderSpec.cxx
                        src/ClustersReaderSpec.cxx
                        src/DigitsToClustersSpec.cxx
-                       src/DigitsWriterSpec.cxx     # DigitsToRoot
+                       src/DigitsWriterSpec.cxx
                        src/ClustersWriterSpec.cxx
                        src/DumpDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
@@ -25,17 +25,16 @@ o2_add_library(HMPIDWorkflow
                        src/WriteRawFileSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-                       
-
-               PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::CCDB
-                                     O2::DPLUtils
-                                     O2::DetectorsRaw
-                                     O2::HMPIDBase
-                                     O2::DataFormatsHMP
-                                     O2::DataFormatsDCS
-                                     O2::HMPIDSimulation
-                                     O2::HMPIDReconstruction)
+                              
+                       PUBLIC_LINK_LIBRARIES O2::Framework
+                                             O2::CCDB
+                                             O2::DPLUtils
+                                             O2::DetectorsRaw
+                                             O2::HMPIDBase
+                                             O2::DataFormatsHMP
+                                             O2::DataFormatsDCS
+                                             O2::HMPIDSimulation
+                                             O2::HMPIDReconstruction)
 
 o2_add_executable(digits-reader-workflow
                   COMPONENT_NAME hmpid
