@@ -110,11 +110,6 @@ void Tracker<T>::configure(const MFTTrackingParam& trkParam, bool firstTracker)
 template <typename T>
 void Tracker<T>::initializeFinder()
 {
-
-  if (mFullClusterScan) {
-    return;
-  }
-
   // The lock will prevent executing the code below at the same time for different tracker copes (one will wait for other)
   std::lock_guard<std::mutex> guard(TrackerConfig::sTCMutex);
   if (mBins) {
