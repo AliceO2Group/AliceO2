@@ -165,7 +165,7 @@ bool MatchITSTPCQC::init()
   mPhi->Sumw2();
   mPhiVsPt->Sumw2();
   mPhiVsPtTPC->Sumw2();
-  mFractionITSTPCmatchPhiVsPt->Sumw2();
+  //mFractionITSTPCmatchPhiVsPt->Sumw2();
   mPtTPCPhysPrim->Sumw2();
   mPtPhysPrim->Sumw2();
   mPhiTPCPhysPrim->Sumw2();
@@ -175,7 +175,7 @@ bool MatchITSTPCQC::init()
   mEtaTPCPhysPrim->Sumw2();
   mEtaVsPt->Sumw2();
   mEtaVsPtTPC->Sumw2();
-  mFractionITSTPCmatchEtaVsPt->Sumw2();
+  //mFractionITSTPCmatchEtaVsPt->Sumw2();
 
   mPtTPC->SetOption("logy");
   mPt->SetOption("logy");
@@ -282,13 +282,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       mPhi->Fill(trkTpc.getPhi());
       mPhiVsPt->Fill(trkTpc.getPt(), trkTpc.getPhi());
       mEta->Fill(trkTpc.getEta());
-      mEtaVsPt->FIll(trkTpc.getPt(), trkTpc.getEta());
+      mEtaVsPt->Fill(trkTpc.getPt(), trkTpc.getEta());
       // we fill also the denominator
       mPtTPC->Fill(trkTpc.getPt());
       mPhiTPC->Fill(trkTpc.getPhi());
       mPhiVsPtTPC->Fill(trkTpc.getPt(), trkTpc.getPhi());
       mEtaTPC->Fill(trkTpc.getEta());
-      mEtaVsPtTPC->FIll(trkTpc.getPt(), trkTpc.getEta());
+      mEtaVsPtTPC->Fill(trkTpc.getPt(), trkTpc.getEta());
       if (el.second.mIsPhysicalPrimary) {
         mPtPhysPrim->Fill(trkTpc.getPt());
         mPhiPhysPrim->Fill(trkTpc.getPhi());
@@ -315,7 +315,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         mPhi->Fill(trkTpc.getPhi());
         mPhiVsPt->Fill(trkTpc.getPt(), trkTpc.getPhi());
         mEta->Fill(trkTpc.getEta());
-        mEtaVsPt->FIll(trkTpc.getPt(), trkTpc.getEta());
+        mEtaVsPt->Fill(trkTpc.getPt(), trkTpc.getEta());
       }
       mResidualPt->Fill(trk.getPt(), trk.getPt() - trkTpc.getPt());
       mResidualPhi->Fill(trk.getPhi(), trk.getPhi() - trkTpc.getPhi());
