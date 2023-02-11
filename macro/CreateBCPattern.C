@@ -60,8 +60,8 @@ void CreateBCPatternFromFile(const std::string& inFileName, const std::string& o
 
   // the UDFSParser allows to read and interpret the filling scheme definition file (*.csv)
   // the buckets are converted to P2BCs
-  UDFSParser fsparser = UDFSParser(inFileName.data());  
-  
+  UDFSParser fsparser = UDFSParser(inFileName.data());
+
   // 1. method to fill pattern
   // loop over all possible P2BCs and select colliding BCs
   // with this method only the interacting bunches are specified
@@ -71,7 +71,7 @@ void CreateBCPatternFromFile(const std::string& inFileName, const std::string& o
     }
   }
   pattern.print();
-  
+
   // 2. method to fill pattern
   // one can also use the pattern string from fsparser.patternString to set the
   // filling schemes of both beams
@@ -82,11 +82,11 @@ void CreateBCPatternFromFile(const std::string& inFileName, const std::string& o
   pattern.setBCFilling(fsparser.patternString(0), 0); // A Beam
   pattern.setBCFilling(fsparser.patternString(1), 1); // C Beam
   pattern.setInteractingBCsFromBeams();
-  
+
   // the printout of both pattern filling methods should be the same
   LOGF(info, "\n");
   pattern.print();
-  
+
   // create the bcPattern.root file
   if (!outFileName.empty()) {
     std::string nm = !objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
