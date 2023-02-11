@@ -14,9 +14,9 @@
 #include "DataFormatsMCH/Digit.h"
 #include <set>
 #include <fmt/format.h>
-#include "DigitWriter.h"
+#include "DigitSink.h"
 #include <iostream>
-#include "DigitWriterImpl.h"
+#include "DigitSinkImpl.h"
 #include <map>
 #include <algorithm>
 #include <limits>
@@ -125,21 +125,21 @@ void printDigitsAndRofs(std::ostream& os,
 namespace o2::mch::io
 {
 
-DigitWriter::DigitWriter(std::ostream& os, DigitFileFormat format, size_t maxSize) : mOutput(os), mBinary(true), mFileFormat(format), mMaxSize(maxSize)
+DigitSink::DigitSink(std::ostream& os, DigitFileFormat format, size_t maxSize) : mOutput(os), mBinary(true), mFileFormat(format), mMaxSize(maxSize)
 {
   // write the tag to identify the file
   os.write(reinterpret_cast<char*>(&mFileFormat), sizeof(DigitFileFormat));
-  mImpl = impl::createDigitWriterImpl(mFileFormat.fileVersion);
+  mImpl = impl::createDigitSinkImpl(mFileFormat.fileVersion);
 }
 
-DigitWriter::DigitWriter(std::ostream& os) : mOutput(os), mBinary(false), mImpl{}
+DigitSink::DigitSink(std::ostream& os) : mOutput(os), mBinary(false), mImpl{}
 {
 }
 
-DigitWriter::~DigitWriter() = default;
+DigitSink::~DigitSink() = default;
 
-bool DigitWriter::write(gsl::span<const Digit> digits,
-                        gsl::span<const ROFRecord> rofs)
+bool DigitSink::write(gsl::span<const Digit> digits,
+                      gsl::span<const ROFRecord> rofs)
 {
   if (digits.empty()) {
     return false;

@@ -9,28 +9,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitReader.h"
+#include "DigitSampler.h"
 #include <istream>
 #include "DigitFileFormat.h"
 #include <iostream>
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include <fmt/format.h>
-#include "DigitReaderImpl.h"
+#include "DigitSamplerImpl.h"
 
 namespace o2::mch::io
 {
 
-DigitReader::DigitReader(std::istream& in) : mInput{in}
+DigitSampler::DigitSampler(std::istream& in) : mInput{in}
 {
   mFileFormat = readDigitFileFormat(mInput);
-  mImpl = impl::createDigitReaderImpl(mFileFormat.fileVersion);
+  mImpl = impl::createDigitSamplerImpl(mFileFormat.fileVersion);
 }
 
-DigitReader::~DigitReader() = default;
+DigitSampler::~DigitSampler() = default;
 
-bool DigitReader::read(std::vector<Digit>& digits,
-                       std::vector<ROFRecord>& rofs)
+bool DigitSampler::read(std::vector<Digit>& digits,
+                        std::vector<ROFRecord>& rofs)
 {
   digits.clear();
   rofs.clear();
@@ -38,12 +38,12 @@ bool DigitReader::read(std::vector<Digit>& digits,
   return ok;
 }
 
-void DigitReader::rewind()
+void DigitSampler::rewind()
 {
   mImpl->rewind(mInput);
 }
 
-void DigitReader::count() const
+void DigitSampler::count() const
 {
   if (mCountDone) {
     return;
@@ -52,19 +52,19 @@ void DigitReader::count() const
   mCountDone = true;
 }
 
-size_t DigitReader::nofTimeFrames() const
+size_t DigitSampler::nofTimeFrames() const
 {
   count();
   return mNofTimeFrames;
 }
 
-size_t DigitReader::nofROFs() const
+size_t DigitSampler::nofROFs() const
 {
   count();
   return mNofROFs;
 }
 
-size_t DigitReader::nofDigits() const
+size_t DigitSampler::nofDigits() const
 {
   count();
   return mNofDigits;

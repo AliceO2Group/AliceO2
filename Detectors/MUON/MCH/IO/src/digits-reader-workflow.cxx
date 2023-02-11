@@ -18,7 +18,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DigitReaderSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
 
 using namespace o2::framework;
 
@@ -32,21 +32,28 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"mch-output-digits-data-description", VariantType::String, "DIGITS", {"description string for the output digits message"}},
+    {"mch-output-digitrofs-data-description", VariantType::String, "DIGITROFS", {"description string for the output digit rofs message"}},
+  };
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
 
-WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const& cc)
 {
-  bool useMC = !cfgc.options().get<bool>("disable-mc");
+  bool useMC = !cc.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mch::getDigitReaderSpec(useMC));
+  specs.emplace_back(o2::mch::getDigitReaderSpec(
+    useMC,
+    "mch-digit-reader",
+    cc.options().get<std::string>("mch-output-digits-data-description"),
+    cc.options().get<std::string>("mch-output-digitrofs-data-description")));
 
-  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
+  o2::raw::HBFUtilsInitializer hbfIni(cc, specs);
 
   return specs;
 }

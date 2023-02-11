@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_IMPL_H
-#define O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_IMPL_H
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_SINK_IMPL_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_SINK_IMPL_H
 
 #include <ostream>
 #include <gsl/span>
@@ -25,19 +25,19 @@ class ROFRecord;
 namespace o2::mch::io::impl
 {
 
-struct DigitWriterImpl {
-  virtual ~DigitWriterImpl() = default;
+struct DigitSinkImpl {
+  virtual ~DigitSinkImpl() = default;
 
   /** write rofs, digits at the current position in the output stream
-  * @param digits vector of Digits, must not be empty
-  * @param rofs vector of ROFRecord, might be empty
-  * @returns true if writing was successull, false otherwise
-  */
+   * @param digits vector of Digits, must not be empty
+   * @param rofs vector of ROFRecord, might be empty
+   * @returns true if writing was successull, false otherwise
+   */
   virtual bool write(std::ostream& out,
                      gsl::span<const Digit> digits,
                      gsl::span<const ROFRecord> rofs) = 0;
 };
 
-std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version);
+std::unique_ptr<DigitSinkImpl> createDigitSinkImpl(int version);
 } // namespace o2::mch::io::impl
 #endif

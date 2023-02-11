@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitWriterImpl.h"
+#include "DigitSinkImpl.h"
 #include "DigitIOV0.h"
 #include "DigitIOV1.h"
 #include "DigitIOV2.h"
@@ -19,19 +19,19 @@
 
 namespace o2::mch::io::impl
 {
-std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version)
+std::unique_ptr<DigitSinkImpl> createDigitSinkImpl(int version)
 {
   switch (version) {
     case 0:
-      return std::make_unique<DigitWriterV0>();
+      return std::make_unique<DigitSinkV0>();
     case 1:
-      return std::make_unique<DigitWriterV1>();
+      return std::make_unique<DigitSinkV1>();
     case 2:
-      return std::make_unique<DigitWriterV2>();
+      return std::make_unique<DigitSinkV2>();
     case 3:
-      return std::make_unique<DigitWriterV3>();
+      return std::make_unique<DigitSinkV3>();
     case 4:
-      return std::make_unique<DigitWriterV4>();
+      return std::make_unique<DigitSinkV4>();
     default:
       break;
   };

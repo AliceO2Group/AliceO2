@@ -27,42 +27,42 @@ namespace o2::mch::io
 {
 namespace impl
 {
-class DigitReaderImpl;
+class DigitSamplerImpl;
 }
-class DigitReader
+class DigitSampler
 {
  public:
-  DigitReader(std::istream& in);
+  DigitSampler(std::istream& in);
 
   /* defined in the implementation file, where mImpl is a complete type */
-  ~DigitReader();
+  ~DigitSampler();
 
   /** Which file format has been detected */
   DigitFileFormat fileFormat() const { return mFileFormat; }
 
   /** read rofs, digits at the current position in the input stream.
-  * i.e. reads one full time frame.
-  *
-  * @param digits vector of Digits
-  * @param rofs vector of ROFRecord
-  * @returns true if reading was successull, false otherwise
-  */
+   * i.e. reads one full time frame.
+   *
+   * @param digits vector of Digits
+   * @param rofs vector of ROFRecord
+   * @returns true if reading was successull, false otherwise
+   */
   bool read(std::vector<Digit>& digits,
             std::vector<ROFRecord>& rofs);
 
   /** Count the number of timeframes in the input stream.
-  * WARNING : depending on the size of the input this might be a
-  * costly operation */
+   * WARNING : depending on the size of the input this might be a
+   * costly operation */
   size_t nofTimeFrames() const;
 
   /** Count the number of ROFRecords in the input stream
-  * WARNING : depending on the size of the input this might be a
-  * costly operation */
+   * WARNING : depending on the size of the input this might be a
+   * costly operation */
   size_t nofROFs() const;
 
   /** Count the number of digits in the input stream
-  * WARNING : depending on the size of the input this might be a
-  * costly operation */
+   * WARNING : depending on the size of the input this might be a
+   * costly operation */
   size_t nofDigits() const;
 
   /** Rewind, aka restart reading from the beginning of the stream */
@@ -74,7 +74,7 @@ class DigitReader
  private:
   std::istream& mInput;
   DigitFileFormat mFileFormat;
-  std::unique_ptr<impl::DigitReaderImpl> mImpl;
+  std::unique_ptr<impl::DigitSamplerImpl> mImpl;
   mutable size_t mNofTimeFrames{0};
   mutable size_t mNofROFs{0};
   mutable size_t mNofDigits{0};

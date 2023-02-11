@@ -20,7 +20,7 @@
 * [Track fitter](#track-fitter)
 * [Error merger](#error-merger)
 * [Samplers](#samplers)
-  * [Digit sampler](#digit-sampler)
+  * [Digit Readers/Writers and Samplers/Sinks](#digit-readerswriters-and-samplerssinks)
   * [Precluster reader](#precluster-reader)
   * [Cluster sampler](#cluster-sampler)
   * [Cluster reader](#cluster-reader)
@@ -224,30 +224,16 @@ Options `--disable-clustering-errors` allows to skip the clustering errors.
 
 Options `--disable-tracking-errors` allows to skip the tracking errors.
 
+
 ## Samplers
 
-### Digit sampler
+### Digit Readers/Writers and Samplers/Sinks
 
-```shell
-o2-mch-digits-sampler-workflow --infile "digits.in"
-```
+Readers (writers) workflows are reading from (to) Root files.
+[more...](/Detectors/MUON/MCH/IO/README.md)
 
-where `digits.in` is a binary file containing for each event:
-
-* number of digits (int)
-* list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
-
-Send the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS".
-
-Option `--useRun2DigitUID` allows to specify that the input digits data member mPadID contains the digit UID in run2 format and need to be converted in the corresponding run3 pad ID.
-
-Option `--print` allows to print the digitUID - padID conversion in the terminal.
-
-Option `--nEvents xxx` allows to limit the number of events to process (all by default).
-
-Option `--event xxx` allows to process only this event.
-
-Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
+Samplers (sinks) workflows are reading from (to) files written in MCH custom
+binary format(s). [more...](/Detectors/MUON/MCH/DevIO/README.md)
 
 ### Precluster reader
 
@@ -322,7 +308,7 @@ Option `--digits` allows to also read the associated digits ([Digit](/DataFormat
 
 Option `--enable-mc` allows to also read the track MC labels and send them with the data description "TRACKLABELS".
 
-## Error reader
+### Error reader
 
 ```shell
 o2-mch-errors-reader-workflow --infile mcherrors.root
@@ -439,7 +425,7 @@ Option `--digits` allows to also write the associated digits ([Digit](/DataForma
 
 Option `--enable-mc` allows to also write the track MC labels from the input message with the data description "TRACKLABELS".
 
-## Error writer
+### Error writer
 
 ```shell
 o2-mch-errors-writer-workflow

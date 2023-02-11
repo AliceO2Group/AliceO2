@@ -27,8 +27,8 @@ class ROFRecord;
 namespace o2::mch::io::impl
 {
 
-struct DigitReaderImpl {
-  virtual ~DigitReaderImpl() = default;
+struct DigitSamplerImpl {
+  virtual ~DigitSamplerImpl() = default;
   virtual void count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits) = 0;
   virtual bool read(std::istream& in,
                     std::vector<Digit>& digits,
@@ -37,7 +37,7 @@ struct DigitReaderImpl {
   void rewind(std::istream& in);
 };
 
-std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version);
+std::unique_ptr<DigitSamplerImpl> createDigitSamplerImpl(int version);
 
 } // namespace o2::mch::io::impl
 

@@ -12,7 +12,7 @@
 #include "ClusterFinderGEMSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DigitReaderSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
 #include "ErrorMergerSpec.h"
 #include "EventFinderSpec.h"
 #include "Framework/CallbacksPolicy.h"
@@ -80,7 +80,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   if (!disableRootInput) {
-    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
+    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-digit-reader"));
   }
 
   specs.emplace_back(o2::mch::getDigitFilteringSpec(useMC, "mch-digit-filtering",
