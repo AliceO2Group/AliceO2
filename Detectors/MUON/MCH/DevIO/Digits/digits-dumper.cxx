@@ -12,8 +12,8 @@
 #include "boost/program_options.hpp"
 #include <iostream>
 #include <fstream>
-#include "DigitReader.h"
-#include "DigitWriter.h"
+#include "DigitSampler.h"
+#include "DigitSink.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include <fmt/format.h>
@@ -22,7 +22,7 @@
 namespace po = boost::program_options;
 
 /**
- * o2-mch-digits-file-dumper is a small helper program to inspect 
+ * o2-mch-digits-file-dumper is a small helper program to inspect
  * MCH digit binary files (the ones that are not in CTF format)
  */
 
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     std::cerr << "cannot open input file " << inputFile << "\n";
     return 3;
   }
-  o2::mch::io::DigitReader dr(in);
+  o2::mch::io::DigitSampler dr(in);
 
   if (describe) {
     std::cout << dr.fileFormat() << "\n";
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   if (printTFs || printDigits) {
     int tfid{0};
     int tfcount{0};
-    o2::mch::io::DigitWriter dump(std::cout);
+    o2::mch::io::DigitSink dump(std::cout);
     std::vector<o2::mch::Digit> digits;
     std::vector<o2::mch::ROFRecord> rofs;
     while (dr.read(digits, rofs)) {

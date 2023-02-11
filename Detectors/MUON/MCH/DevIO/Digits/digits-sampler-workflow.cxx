@@ -12,7 +12,7 @@
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitIOBaseTask.h"
-#include "DigitReader.h"
+#include "DigitSampler.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ControlService.h"
@@ -40,7 +40,7 @@ using namespace o2::mch;
 class DigitSamplerTask : public io::DigitIOBaseTask
 {
  private:
-  std::unique_ptr<io::DigitReader> mDigitReader;
+  std::unique_ptr<io::DigitSampler> mDigitSampler;
   std::ifstream mInput;
   bool mReadIsOk = true;
   size_t mMaxNofROFs;
@@ -55,7 +55,7 @@ class DigitSamplerTask : public io::DigitIOBaseTask
     io::DigitIOBaseTask::init(ic); // init common options
     auto inputFileName = ic.options().get<std::string>(OPTNAME_INFILE);
     mInput.open(inputFileName);
-    mDigitReader = std::make_unique<io::DigitReader>(mInput);
+    mDigitSampler = std::make_unique<io::DigitSampler>(mInput);
     mNofProcessedTFs = 0;
     mMaxNofROFs = ic.options().get<int>(OPTNAME_MAX_NOF_ROFS);
     mMinNumberOfROFsPerTF = ic.options().get<int>(OPTNAME_REPACK_ROFS);
@@ -91,7 +91,7 @@ class DigitSamplerTask : public io::DigitIOBaseTask
 
     std::vector<ROFRecord> rofs;
     std::vector<Digit> digits;
-    mReadIsOk = mDigitReader->read(digits, rofs);
+    mReadIsOk = mDigitSampler->read(digits, rofs);
     if (!mReadIsOk) {
       return;
     }
@@ -121,7 +121,7 @@ class DigitSamplerTask : public io::DigitIOBaseTask
   }
 };
 
-o2::framework::DataProcessorSpec getDigitsFileReaderSpec(const char* specName, bool run2)
+o2::framework::DataProcessorSpec getDigitSamplerSpec(const char* specName, bool run2)
 {
   std::string spec = fmt::format("digits:MCH/DIGITS{}/0", run2 ? "R2" : "");
   InputSpec itmp = o2::framework::select(spec.c_str())[0];
@@ -143,8 +143,8 @@ o2::framework::DataProcessorSpec getDigitsFileReaderSpec(const char* specName, b
 }
 
 /** add workflow options. Note that customization needs to be declared
-* before including Framework/runDataProcessing
-*/
+ * before including Framework/runDataProcessing
+ */
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back(OPTNAME_RUN2, VariantType::Bool, false,
@@ -156,5 +156,5 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 //_________________________________________________________________________________________________
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
-  return WorkflowSpec{getDigitsFileReaderSpec("mch-digits-file-reader", cc.options().get<bool>(OPTNAME_RUN2))};
+  return WorkflowSpec{getDigitSamplerSpec("mch-digits-sampler", cc.options().get<bool>(OPTNAME_RUN2))};
 }

@@ -20,7 +20,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitFileFormat.h"
 #include "DigitIOBaseTask.h"
-#include "DigitWriter.h"
+#include "DigitSink.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -87,12 +87,12 @@ class DigitsSinkTask : public io::DigitIOBaseTask
         LOGP(warn,
              "Will dump binary information (version {}) up to a maximum size of {} KB",
              binaryFileFormat, maxsize);
-        mWriter = std::make_unique<io::DigitWriter>(*mStream,
-                                                    io::digitFileFormats[binaryFileFormat],
-                                                    static_cast<size_t>(maxsize));
+        mWriter = std::make_unique<io::DigitSink>(*mStream,
+                                                  io::digitFileFormats[binaryFileFormat],
+                                                  static_cast<size_t>(maxsize));
       } else {
         LOGP(warn, "Will dump textual information");
-        mWriter = std::make_unique<io::DigitWriter>(*mStream);
+        mWriter = std::make_unique<io::DigitSink>(*mStream);
       }
     }
   }
@@ -136,11 +136,11 @@ class DigitsSinkTask : public io::DigitIOBaseTask
   }
 
  private:
-  std::unique_ptr<io::DigitWriter> mWriter = nullptr; // actual digit writer
-  std::unique_ptr<std::iostream> mStream = nullptr;   // output stream
-  bool mNoFile = false;                               // disable output to file
-  bool mWithOrbits = false;                           // expect ORBITs as input (in addition to just digits)
-  bool mBinary = true;                                // output is a binary file
+  std::unique_ptr<io::DigitSink> mWriter = nullptr; // actual digit writer
+  std::unique_ptr<std::iostream> mStream = nullptr; // output stream
+  bool mNoFile = false;                             // disable output to file
+  bool mWithOrbits = false;                         // expect ORBITs as input (in addition to just digits)
+  bool mBinary = true;                              // output is a binary file
 };
 
 /**
@@ -153,7 +153,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                ConfigParamSpec::HelpString{"do not expect, in addition to digits and rofs, to get Orbits at the input"});
   workflowOptions.emplace_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "DIGITS", {"description string for the input digits data"}});
   workflowOptions.emplace_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "DIGITROFS", {"description string for the input digit rofs data"}});
-  workflowOptions.emplace_back(ConfigParamSpec{"enable-root-output", VariantType::Bool, false, {"output in Root format"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -182,26 +181,11 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
   options.insert(options.end(), commonOptions.begin(), commonOptions.end());
 
   Inputs inputs{o2::framework::select(input.c_str())};
-  const char* specName = "mch-digits-writer";
+  const char* specName = "mch-digits-sink";
 
-  if (!cc.options().get<bool>("enable-root-output")) {
-    DataProcessorSpec producer{
-      specName,
-      inputs,
-      Outputs{},
-      AlgorithmSpec{adaptFromTask<DigitsSinkTask>(withOrbits)},
-      options};
-    specs.push_back(producer);
-  } else {
-    auto rofs = std::find_if(inputs.begin(), inputs.end(), [](const InputSpec& is) { return is.binding == "rofs"; });
-    auto digits = std::find_if(inputs.begin(), inputs.end(), [](const InputSpec& is) { return is.binding == "digits"; });
-    DataProcessorSpec producer = MakeRootTreeWriterSpec(specName,
-                                                        "mchdigits.root",
-                                                        MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Digits"},
-                                                        BranchDefinition<std::vector<ROFRecord>>{InputSpec{*rofs}, "MCHROFRecords"},
-                                                        BranchDefinition<std::vector<Digit>>{InputSpec{*digits}, "MCHDigit"})();
-    specs.push_back(producer);
-  }
-
-  return specs;
+  return {{specName,
+           inputs,
+           Outputs{},
+           AlgorithmSpec{adaptFromTask<DigitsSinkTask>(withOrbits)},
+           options}};
 }

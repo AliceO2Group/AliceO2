@@ -14,7 +14,7 @@
 /// \author Michael Winn <Michael.Winn at cern.ch>
 /// \date   17 April 2021
 
-#include "DigitReaderSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
 
 #include <memory>
 #include <sstream>
@@ -49,6 +49,7 @@ class DigitsReaderDeviceDPL
   void init(InitContext& ic)
   {
     auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("mch-digit-infile"));
+
     if (mUseMC) {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
@@ -81,13 +82,17 @@ class DigitsReaderDeviceDPL
   bool mUseMC = true;
 };
 
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName)
+framework::DataProcessorSpec getDigitReaderSpec(
+  bool useMC,
+  std::string_view specName,
+  std::string_view outputDigitDataDescription,
+  std::string_view outputDigitRofDataDescription)
 {
   std::vector<OutputSpec> outputs;
   std::vector<header::DataDescription> descriptions;
   std::stringstream ss;
-  ss << "A:" << header::gDataOriginMCH.as<std::string>() << "/DIGITS/0";
-  ss << ";B:" << header::gDataOriginMCH.as<std::string>() << "/DIGITROFS/0";
+  ss << "A:" << header::gDataOriginMCH.as<std::string>() << "/" << outputDigitDataDescription << "/0";
+  ss << ";B:" << header::gDataOriginMCH.as<std::string>() << "/" << outputDigitRofDataDescription << "/0";
   if (useMC) {
     ss << ";C:" << header::gDataOriginMCH.as<std::string>() << "/DIGITLABELS/0";
   }
@@ -98,7 +103,7 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName
   }
 
   return DataProcessorSpec{
-    specName,
+    std::string(specName),
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitsReaderDeviceDPL>(useMC, descriptions)},

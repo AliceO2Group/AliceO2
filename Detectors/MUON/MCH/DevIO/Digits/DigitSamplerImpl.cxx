@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitReaderImpl.h"
+#include "DigitSamplerImpl.h"
 #include <istream>
 #include "DigitFileFormat.h"
 #include <map>
@@ -23,19 +23,19 @@
 namespace o2::mch::io::impl
 {
 
-std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version)
+std::unique_ptr<DigitSamplerImpl> createDigitSamplerImpl(int version)
 {
   switch (version) {
     case 0:
-      return std::make_unique<DigitReaderV0>();
+      return std::make_unique<DigitSamplerV0>();
     case 1:
-      return std::make_unique<DigitReaderV1>();
+      return std::make_unique<DigitSamplerV1>();
     case 2:
-      return std::make_unique<DigitReaderV2>();
+      return std::make_unique<DigitSamplerV2>();
     case 3:
-      return std::make_unique<DigitReaderV3>();
+      return std::make_unique<DigitSamplerV3>();
     case 4:
-      return std::make_unique<DigitReaderV4>();
+      return std::make_unique<DigitSamplerV4>();
     default:
       break;
   };
@@ -44,7 +44,7 @@ std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version)
   return nullptr;
 }
 
-void DigitReaderImpl::rewind(std::istream& in)
+void DigitSamplerImpl::rewind(std::istream& in)
 {
   in.clear();
   in.seekg(sizeof(DigitFileFormat));

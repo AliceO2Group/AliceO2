@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITWRITERSPEC_H_
-#define STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITWRITERSPEC_H_
+#include "MCHIO/DigitWriterSpec.h"
 
+#include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
@@ -35,7 +35,7 @@ o2::framework::DataProcessorSpec getMCHDigitWriterSpec(bool mctruth)
   return MakeRootTreeWriterSpec("MCHDigitWriter",
                                 "mchdigits.root",
                                 "o2sim",
-                                1, //default number of events
+                                1, // default number of events
                                 BranchDefinition<std::vector<o2::mch::Digit>>{InputSpec{"mchdigits", "MCH", "DIGITS"}, "MCHDigit"},
                                 BranchDefinition<std::vector<o2::mch::ROFRecord>>{InputSpec{"mchrofrecords", "MCH", "DIGITROFS"}, "MCHROFRecords"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSLABELS"}, "MCHMCLabels", mctruth ? 1 : 0}
@@ -43,7 +43,29 @@ o2::framework::DataProcessorSpec getMCHDigitWriterSpec(bool mctruth)
                                 )();
 }
 
+o2::framework::DataProcessorSpec getDigitWriterSpec(
+  bool useMC,
+  std::string_view specName,
+  std::string_view outfile,
+  std::string_view inputDigitDataDescription,
+  std::string_view inputDigitRofDataDescription)
+{
+  std::string input =
+    fmt::format("digits:MCH/{};rofs:MCH/{}",
+                inputDigitDataDescription, inputDigitRofDataDescription);
+
+  framework::Inputs inputs{framework::select(input.c_str())};
+  auto rofs = std::find_if(inputs.begin(), inputs.end(), [](const framework::InputSpec& is) { return is.binding == "rofs"; });
+  auto digits = std::find_if(inputs.begin(), inputs.end(), [](const framework::InputSpec& is) { return is.binding == "digits"; });
+  return framework::MakeRootTreeWriterSpec(
+    std::string(specName).c_str(),
+    std::string(outfile).c_str(),
+    framework::MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Digits"},
+    BranchDefinition<std::vector<ROFRecord>>{framework::InputSpec{*rofs}, "MCHROFRecords"},
+    BranchDefinition<std::vector<Digit>>{framework::InputSpec{*digits}, "MCHDigit"},
+    BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{
+      framework::InputSpec{"mchdigitlabels", "MCH", "DIGITSLABELS"}, "MCHMCLabels", useMC ? 1 : 0})();
+}
+
 } // end namespace mch
 } // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITWRITERSPEC_H_ */

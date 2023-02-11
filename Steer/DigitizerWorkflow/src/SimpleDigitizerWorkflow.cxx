@@ -82,7 +82,7 @@
 
 // for MUON MCH
 #include "MCHDigitizerSpec.h"
-#include "MCHDigitWriterSpec.h"
+#include "MCHIO/DigitWriterSpec.h"
 
 // for MID
 #include "MIDDigitizerSpec.h"
