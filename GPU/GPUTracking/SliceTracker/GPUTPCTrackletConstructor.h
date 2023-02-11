@@ -57,8 +57,8 @@ class GPUTPCTrackletConstructor
     int mISH;         // track index
     int mFirstRow;    // first row index
     int mLastRow;     // last row index
-    int mStartRow;    // first row index
-    int mEndRow;      // first row index
+    int mStartRow;    // row index of first hit in seed
+    int mEndRow;      // row index of last hit in seed
     calink mCurrIH;   // indef of the current hit
     char mGo;         // do fit/searching flag
     int mStage;       // reco stage
