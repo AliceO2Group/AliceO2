@@ -2,9 +2,9 @@
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
-MYDIR="$(dirname $(realpath $0))"
-source $MYDIR/gen_topo_helper_functions.sh
-source $MYDIR/setenv.sh
+[[ -z $GEN_TOPO_MYDIR ]] GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh
+source $GEN_TOPO_MYDIR/setenv.sh
 
 if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
   alien-token-info >& /dev/null
@@ -26,8 +26,8 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
-source $MYDIR/getCommonArgs.sh
-source $MYDIR/workflow-setup.sh
+source $GEN_TOPO_MYDIR/getCommonArgs.sh
+source $GEN_TOPO_MYDIR/workflow-setup.sh
 workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
@@ -466,8 +466,8 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Calibration workflows
-workflow_has_parameter CALIB && { source ${CALIB_WF:-$MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
-workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter CALIB && { source ${CALIB_WF:-$GEN_TOPO_MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$GEN_TOPO_MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display
