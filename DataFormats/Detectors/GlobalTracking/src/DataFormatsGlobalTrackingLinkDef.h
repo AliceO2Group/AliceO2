@@ -19,6 +19,7 @@
 #pragma link C++ class o2::dataformats::FilteredRecoTF::Header + ;
 #pragma link C++ class std::vector < o2::dataformats::FilteredRecoTF> + ;
 
+#pragma link C++ class o2::globaltracking::TrackTuneParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::TrackTuneParams> + ;
 
 #endif
