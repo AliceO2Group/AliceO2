@@ -297,9 +297,6 @@ class MatchTPCITS
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
 
-  static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
-  static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
-
   static constexpr int MaxUpDnLadders = 3;                     // max N ladders to check up and down from selected one
   static constexpr int MaxLadderCand = 2 * MaxUpDnLadders + 1; // max ladders to check for matching clusters
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
@@ -539,6 +536,8 @@ class MatchTPCITS
 
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
+
+  float YMaxAtXMatchingRef = 999.; ///< max Y in the sector at reference X
 
   float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
 
