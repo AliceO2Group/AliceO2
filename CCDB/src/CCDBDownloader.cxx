@@ -13,8 +13,8 @@
 
 #include <curl/curl.h>
 #include <unordered_map>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <uv.h>
 #include <string>
 #include <thread>
@@ -112,7 +112,7 @@ void closeHandles(uv_handle_t* handle, void* arg)
 
 void onUVClose(uv_handle_t* handle)
 {
-  if (handle != NULL) {
+  if (handle != nullptr) {
     delete handle;
   }
 }
@@ -188,10 +188,12 @@ void CCDBDownloader::curlPerform(uv_poll_t* handle, int status, int events)
 {
   int running_handles;
   int flags = 0;
-  if (events & UV_READABLE)
+  if (events & UV_READABLE) {
     flags |= CURL_CSELECT_IN;
-  if (events & UV_WRITABLE)
+  }
+  if (events & UV_WRITABLE) {
     flags |= CURL_CSELECT_OUT;
+  }
 
   auto context = (CCDBDownloader::curl_context_t*)handle->data;
 
@@ -214,10 +216,12 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
       curl_context = socketp ? (CCDBDownloader::curl_context_t*)socketp : CD->createCurlContext(s);
       curl_multi_assign(socketData->curlm, s, (void*)curl_context);
 
-      if (action != CURL_POLL_IN)
+      if (action != CURL_POLL_IN) {
         events |= UV_WRITABLE;
-      if (action != CURL_POLL_OUT)
+      }
+      if (action != CURL_POLL_OUT) {
         events |= UV_READABLE;
+      }
 
       if (CD->socketTimerMap.find(s) != CD->socketTimerMap.end()) {
         uv_timer_stop(CD->socketTimerMap[s]);
@@ -232,7 +236,7 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
         }
         uv_poll_stop(&((CCDBDownloader::curl_context_t*)socketp)->poll_handle);
         CD->destroyCurlContext((CCDBDownloader::curl_context_t*)socketp);
-        curl_multi_assign(socketData->curlm, s, NULL);
+        curl_multi_assign(socketData->curlm, s, nullptr);
       }
       break;
     default:
@@ -359,8 +363,9 @@ int CCDBDownloader::startTimeout(CURLM* multi, long timeout_ms, void* userp)
   if (timeout_ms < 0) {
     uv_timer_stop(timeout);
   } else {
-    if (timeout_ms == 0)
+    if (timeout_ms == 0) {
       timeout_ms = 1; // Calling curlTimeout when timeout = 0 could create an infinite loop
+    }
     uv_timer_start(timeout, curlTimeout, timeout_ms, 0);
   }
   return 0;
