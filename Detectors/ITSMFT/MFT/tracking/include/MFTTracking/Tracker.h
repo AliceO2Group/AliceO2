@@ -77,8 +77,9 @@ class Tracker : public TrackerConfig
   bool fitTracks(ROframe<T>&);
   void computeTracksMClabels(const std::vector<T>&);
 
-  void configure(const MFTTrackingParam& trkParam, bool firstTracker);
+  void configure(const MFTTrackingParam& trkParam, int trackerID);
   void initializeFinder();
+  int getTrackerID() const { return mTrackerID; }
 
  private:
   void findTracksLTF(ROframe<T>&);
@@ -143,6 +144,7 @@ class Tracker : public TrackerConfig
   void addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe<T>&);
   void addCellToCurrentRoad(ROframe<T>&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
+  int mTrackerID = 0;
   Float_t mBz;
   std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
