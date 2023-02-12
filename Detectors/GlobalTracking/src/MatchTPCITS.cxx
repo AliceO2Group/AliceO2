@@ -40,6 +40,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 
 #include "ITStracking/IOUtils.h"
@@ -56,8 +57,6 @@ using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<doub
 using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double, 4>>;
 using NAMES = o2::base::NameConf;
 using GTrackID = o2::dataformats::GlobalTrackID;
-constexpr float MatchTPCITS::XMatchingRef;
-constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
 
 //______________________________________________
@@ -199,6 +198,7 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
+  YMaxAtXMatchingRef = mParams->XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
   mParams->printKeyValues();
   mFT0Params = &o2::ft0::InteractionTag::Instance();
   setUseMatCorrFlag(mParams->matCorr);
@@ -392,6 +392,12 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
                 MinusOne,
                 (extConstrained || tpcOrig.hasBothSidesClusters()) ? TrackLocTPC::Constrained : (tpcOrig.hasASideClustersOnly() ? TrackLocTPC::ASide : TrackLocTPC::CSide)});
   // propagate to matching Xref
+  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+  if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+    bool preserveCorrelation = trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations;
+    trc.updateCov(trackTune.tpcCovInner, preserveCorrelation);
+  }
+
   if (!propagateToRefX(trc)) {
     mTPCWork.pop_back(); // discard track whose propagation to XMatchingRef failed
     return;
@@ -399,6 +405,7 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
   if (mMCTruthON) {
     mTPCLblWork.emplace_back(mTPCTrkLabels[tpcID]);
   }
+
   // cache work track index
   mTPCSectIndexCache[o2::math_utils::angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
 }
@@ -1129,7 +1136,7 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
   mITSWork.push_back(mITSWork.back()); // clone the last track defined in given sector
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::math_utils::sector2Angle(sector)) &&
-      o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, MaxSnp, 2., MatCorrType::USEMatCorrNONE)) {
+      o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, mParams->XMatchingRef, MaxSnp, 2., MatCorrType::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
@@ -1146,14 +1153,14 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   // propagate track to matching reference X, making sure its assigned alpha
   // is consistent with TPC sector
   bool refReached = false;
-  refReached = XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
+  refReached = mParams->XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
   int trialsLeft = 2;
-  while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, MaxSnp, 2., mUseMatCorrFlag)) {
+  while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, mParams->XMatchingRef, MaxSnp, 2., mUseMatCorrFlag)) {
     if (refReached) {
       break;
     }
     // make sure the track is indeed within the sector defined by alpha
-    if (fabs(trc.getY()) < XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
+    if (fabs(trc.getY()) < mParams->XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
       refReached = true;
       break; // ok, within
     }
@@ -1179,7 +1186,7 @@ void MatchTPCITS::print() const
   }
 
   printf("MC truth: %s\n", mMCTruthON ? "on" : "off");
-  printf("Matching reference X: %.3f\n", XMatchingRef);
+  printf("Matching reference X: %.3f\n", mParams->XMatchingRef);
   printf("Account Z dimension: %s\n", mCompareTracksDZ ? "on" : "off");
   printf("Cut on matching chi2: %.3f\n", mParams->cutMatchingChi2);
   printf("Max number ITS candidates per TPC track: %d\n", mParams->maxMatchCandidates);
