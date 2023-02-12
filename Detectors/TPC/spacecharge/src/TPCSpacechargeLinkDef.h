@@ -43,4 +43,6 @@
 #pragma link C++ class o2::tpc::NumericalFields < float> + ;
 #pragma link C++ class o2::tpc::DistCorrInterpolator < float> + ;
 #pragma link C++ class o2::tpc::GridProperties < float> + ;
+#pragma link C++ class o2::tpc::AnalyticalDistCorr < double> + ;
+#pragma link C++ class o2::tpc::AnalyticalDistCorr < float> + ;
 #endif
