@@ -92,11 +92,11 @@ void DigitReader::run(ProcessingContext& pc)
   std::vector<o2::hmpid::Trigger> mTriggersFromFile, *mTriggersFromFilePtr = &mTriggersFromFile;
 
   /*  */
-  if (mTree->GetBranchStatus("HMPDigit"))
+  if (mTree->GetBranchStatus("HMPDigit")) {
     mTree->SetBranchAddress("HMPDigit", &mDigitsFromFilePtr);
-  else if (mTree->GetBranchStatus("HMPIDDigits"))
+  } else if (mTree->GetBranchStatus("HMPIDDigits")) {
     mTree->SetBranchAddress("HMPIDDigits", &mDigitsFromFilePtr);
-  else {
+  } else {
     LOG(error)
       << "HMPID DigitWriterSpec::init() : Did not find any branch for Digits";
     throw std::runtime_error("Did Not find Any correct Branch for Digits in HMPID Digits File");
