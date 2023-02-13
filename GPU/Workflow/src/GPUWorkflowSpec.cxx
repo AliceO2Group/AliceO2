@@ -33,6 +33,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
 #include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
@@ -705,6 +706,33 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
     downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
+    // if requested, tune TPC tracks
+    using TrackTunePar = o2::globaltracking::TrackTuneParams;
+    const auto& trackTune = TrackTunePar::Instance();
+    if (ptrs.nOutputTracksTPCO2 && trackTune.sourceLevelTPC &&
+        (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
+         trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
+      auto buffout = outputBuffers[outputRegions.getIndex(outputRegions.tpcTracksO2)].first->get().data();
+      if (((const void*)ptrs.outputTracksTPCO2) != ((const void*)buffout)) {
+        throw std::runtime_error("Buffer does not match span");
+      }
+      o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
+      for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
+        auto& trc = tpcTracks[itr];
+        if (trackTune.useTPCInnerCorr) {
+          trc.updateParams(trackTune.tpcParInner);
+        }
+        if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
+          trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
+        }
+        if (trackTune.useTPCOuterCorr) {
+          trc.getParamOut().updateParams(trackTune.tpcParOuter);
+        }
+        if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
+          trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
+        }
+      }
+    }
     if (mClusterOutputIds.size() > 0 && (void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
       throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
     }

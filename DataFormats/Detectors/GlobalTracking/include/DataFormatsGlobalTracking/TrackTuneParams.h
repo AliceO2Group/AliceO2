@@ -32,6 +32,11 @@ struct TrackTuneParams : public o2::conf::ConfigurableParamHelper<TrackTuneParam
   };
   AddCovType tpcCovInnerType = AddCovType::Disable;
   AddCovType tpcCovOuterType = AddCovType::Disable;
+  bool sourceLevelTPC = true;   // if TPC corrections are allowed, apply them TPC source output level (tracking/reader), otherwise in the global tracking consumers BEFORE update by external detector
+  bool useTPCInnerCorr = false; // request to correct TPC inner param
+  bool useTPCOuterCorr = false; // request to correct TPC outer param
+  float tpcParInner[5] = {};    // ad hoc correction to be added to TPC param at the inner XRef
+  float tpcParOuter[5] = {};    // ad hoc correction to be added to TPC param at the outer XRef
   float tpcCovInner[5] = {}; // ad hoc errors to be added to TPC cov.matrix at the inner XRef
   float tpcCovOuter[5] = {}; // ad hoc errors to be added to TPC outer param at the outer XRef
 
