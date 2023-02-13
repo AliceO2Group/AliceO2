@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ -z $GEN_TOPO_MYDIR ]] GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh
 
 if [[ `which StfBuilder 2> /dev/null | wc -l` == "0" ]]; then
