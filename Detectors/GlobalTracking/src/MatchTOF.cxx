@@ -283,10 +283,6 @@ void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::datafo
   o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
 
   timeEst ts(time0, terr);
-  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
-  if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) { // only TRD-refitted track have cov.matrix already manipulated
-    trc.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
-  }
   addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
 //______________________________________________
@@ -373,8 +369,13 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
 
   auto trc = _tr.getOuterParam();
   const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
-  if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) { // only TRD-refitted track have cov.matrix already manipulated
-    trc.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+  if (!trackTune.sourceLevelTPC) { // correct only if TPC track was not corrected at the source level
+    if (trackTune.useTPCOuterCorr) {
+      trc.updateParams(trackTune.tpcParOuter);
+    }
+    if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) { // only TRD-refitted track have cov.matrix already manipulated
+      trc.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    }
   }
   if (!propagateToRefXWithoutCov(trc, mXRef, 10, mBz)) { // we first propagate to 371 cm without considering the covariance matri
     mNotPropagatedToTOF[trkType::UNCONS]++;
@@ -1454,6 +1455,14 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
       LOG(debug) << "Inward Refit failed";
       return false;
     }
+    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct TPC track after inwar refit
+    if (!trackTune.useTPCInnerCorr) {
+      trConstr.updateParams(trackTune.tpcParInner);
+    }
+    if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+      trConstr.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    }
+
     trConstr.setChi2Refit(chi2);
     //
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCOuterRef);

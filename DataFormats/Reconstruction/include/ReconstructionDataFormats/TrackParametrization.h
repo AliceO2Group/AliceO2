@@ -700,6 +700,12 @@ GPUdi() void TrackParametrization<value_T>::updateParams(const value_t* delta)
   for (int i = kNParams; i--;) {
     mP[i] += delta[i];
   }
+  // make sure that snp is in the valid range
+  if (mP[kSnp] > constants::math::Almost1) {
+    mP[kSnp] = constants::math::Almost1;
+  } else if (mP[kSnp] < -constants::math::Almost1) {
+    mP[kSnp] = -constants::math::Almost1;
+  }
 }
 
 } // namespace track
