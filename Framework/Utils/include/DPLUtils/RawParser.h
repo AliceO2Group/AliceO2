@@ -241,7 +241,7 @@ class ConcreteRawParser
   size_t mSize;
 };
 
-using V7 = header::RAWDataHeaderV6;
+using V7 = header::RAWDataHeaderV7;
 using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
@@ -263,7 +263,7 @@ using V4Parser = ConcreteRawParser<header::RAWDataHeaderV4, N>;
 /// Parser instance type for the raw parser main class, all supported versions of
 /// RAWDataHeader are handled in a variant
 template <size_t N>
-using ConcreteParserVariants = std::variant<V6Parser<N>, V5Parser<N>, V4Parser<N>>;
+using ConcreteParserVariants = std::variant<V7Parser<N>, V6Parser<N>, V5Parser<N>, V4Parser<N>>;
 
 /// create a raw parser depending on version of RAWDataHeader found at beginning of data
 template <size_t PageSize, typename T>
@@ -377,7 +377,7 @@ class RawParser
   void parse(Processor&& processor)
   {
     constexpr size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
-    static_assert(NofAlternatives == 3);
+    static_assert(NofAlternatives == 4); // Change this if a new RDH version is added
     raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
     // it turned out that using a iterative function is faster than using std::visit
     //std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
