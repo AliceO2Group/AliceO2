@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ -z $GEN_TOPO_MYDIR ]] GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh
 
 # This sets up the hardcoded configuration to run the async full system test workflow on the EPN
