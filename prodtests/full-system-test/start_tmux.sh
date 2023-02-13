@@ -22,7 +22,7 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
 fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
-[[ -z $GEN_TOPO_MYDIR ]] GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh
 
 if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
