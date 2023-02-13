@@ -5,8 +5,8 @@ if [ "0$O2_ROOT" == "0" ]; then
   alienv --no-refresh load O2/latest
 fi
 
-MYDIR="$(dirname $(realpath $0))"
-source $MYDIR/setenv.sh
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/setenv.sh
 
 ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --shm-throw-bad-alloc 0 --no-cleanup"
 if [[ $NUMAGPUIDS == 1 ]]; then
