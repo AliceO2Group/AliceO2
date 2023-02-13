@@ -1061,6 +1061,26 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     (void)retVal;
   }
 
+  // FIXME: this should really be a combo box
+#ifdef __APPLE__
+  if (ImGui::Button("Memory Profile")) {
+    std::string pidStr = std::to_string(pid);
+    setenv("O2PROFILEDPID", pidStr.c_str(), 1);
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Allocations --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+    std::cout << defaultAppleProfileCommand << std::endl;
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+#endif
+
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
     ImGui::Text("#%lu: %s", i, DriverInfoHelper::stateToString(driverInfo.states[i]));
   }
