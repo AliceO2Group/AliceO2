@@ -37,7 +37,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/RAWDataHeader.h"
 
-#include "CommonUtils/NameConf.h" // ef : o2::utils::Str
+#include "CommonUtils/NameConf.h" // o2::utils::Str
 
 namespace o2
 {
