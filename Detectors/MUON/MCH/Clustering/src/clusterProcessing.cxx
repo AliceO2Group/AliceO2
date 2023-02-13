@@ -51,7 +51,7 @@ static struct Results_t {
 } clusterResults;
 
 // Release memory and reset the seed list
-void cleanClusterResults()
+void o2::mch::cleanClusterResults()
 {
   for (int i = 0; i < clusterResults.seedList.size(); i++) {
     delete[] clusterResults.seedList[i].second;
@@ -128,7 +128,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
 {
 
   nbrOfHits = 0;
-  cleanClusterResults();
+  // Invalid ??? cleanClusterResults();
   // if (INSPECTMODEL) {
   cleanInspectModel();
   InspectModelChrono(0, false);
@@ -256,7 +256,10 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
 
     ClusterPEM* subCluster = nullptr;
     // Extract the sub-cluster
-    if ((nGroups == 1) && (cluster.getNbrOfPadsInGroup(g) == cluster.getNbrOfPads())) {
+    // rq : (cluster.getNbrOfPadsInGroup(g) != cluster.getNbrOfPads()) in
+    // the case of a low charge grp has been removed
+    bool originalCluster = (cluster.getNbrOfPadsInGroup(g) == cluster.getNbrOfPads());
+    if ((nGroups == 1) && (originalCluster)) {
       subCluster = &cluster;
     } else {
       subCluster = new ClusterPEM(cluster, g);
@@ -357,7 +360,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
     // Release pointer for group
     // deleteDouble( xyDxyGrp );
     // deleteDouble( chGrp );
-    if (nGroups > 1) {
+    if ((nGroups != 1) || (!originalCluster)) {
       delete subCluster;
     }
   } // next group

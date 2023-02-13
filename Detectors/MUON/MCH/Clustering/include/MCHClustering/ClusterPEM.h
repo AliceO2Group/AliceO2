@@ -123,9 +123,9 @@ class ClusterPEM
     nullptr, nullptr}; // Map cathode-pad index to pad index
 
   // Projection
-  Pads* projectedPads = nullptr;     // Projected pads
-  PadIdx_t* projNeighbors = nullptr; // Neighbors list of projected pads
-  Groups_t* projPadToGrp = nullptr;  // Groups of projected pads
+  Pads* projectedPads = nullptr; // Projected pads
+  // Invalid PadIdx_t* projNeighbors = nullptr; // Neighbors list of projected pads
+  Groups_t* projPadToGrp = nullptr; // Groups of projected pads
   int nbrOfProjGroups = 0;
   // Groups (i.e. cathode groups)
   Groups_t* cathGroup[2] = {nullptr, nullptr};

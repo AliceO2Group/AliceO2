@@ -200,7 +200,7 @@ Pads* Pads::addBoundaryPads()
   std::vector<double> bdY;
   int N = nPads;
   // Build neigbors if required
-  PadIdx_t* neigh = buildFirstNeighbors();
+  PadIdx_t* neigh = getFirstNeighbors();
   for (int i = 0; i < N; i++) {
     bool east = true, west = true, north = true, south = true;
     for (const PadIdx_t* neigh_ptr = getTheFirtsNeighborOf(neigh, i);
@@ -835,7 +835,7 @@ void Pads::normalizeCharges()
 }
 
 // Build the neighbor list
-PadIdx_t* Pads::buildFirstNeighbors()
+PadIdx_t* Pads::getFirstNeighbors()
 {
   int N = nPads;
   if (neighbors == nullptr) {
@@ -856,7 +856,7 @@ int Pads::addIsolatedPadInGroups(Mask_t* cathToGrp, Mask_t* grpToGrp,
     printf("[addIsolatedPadInGroups]  nGroups=%d\n", nGroups);
     vectorPrintShort("  cathToGrp input", cathToGrp, nPads);
   }
-  PadIdx_t* neigh = buildFirstNeighbors();
+  PadIdx_t* neigh = getFirstNeighbors();
 
   for (int p = 0; p < nPads; p++) {
     if (cathToGrp[p] == 0) {
@@ -1245,7 +1245,7 @@ Pads* Pads::extractLocalMaxOnCoarsePads(std::vector<PadIdx_t>& localMaxIdx)
     delete[] neighbors;
   }
   // 4(5) neighbors
-  neighbors = buildFirstNeighbors();
+  neighbors = getFirstNeighbors();
   PadIdx_t* neigh = neighbors;
   // printNeighbors( neigh, nPads);
   //
@@ -1459,7 +1459,7 @@ Pads* Pads::extractLocalMaxOnCoarsePads_Remanent(std::vector<PadIdx_t>& localMax
     delete[] neighbors;
   }
   // 4(5) neighbors
-  neighbors = buildFirstNeighbors();
+  neighbors = getFirstNeighbors();
   PadIdx_t* neigh = neighbors;
   // printNeighbors( neigh, nPads);
   //
@@ -1660,9 +1660,13 @@ Pads* Pads::extractLocalMaxOnCoarsePads_Remanent(std::vector<PadIdx_t>& localMax
       }
     }
     // Clean the local Max - Remove definitely remanent local max
+    delete localMax;
     localMax = newPixels->selectPads(index, k0);
     nNewPixels = k0;
   } else {
+    if (localMax != nullptr) {
+      delete localMax;
+    }
     localMax = new Pads(*newPixels, PadMode::xydxdyMode);
     k0 = nNewPixels;
   }
@@ -1952,6 +1956,9 @@ Pads* Pads::extractLocalMax(std::vector<PadIdx_t>& localMaxIdx, double dxMinPadS
     }
 
     // Clean the local Max - Remove definitely remanent local max
+    if (localMax != nullptr) {
+      delete localMax;
+    }
     localMax = newPixels->selectPads(index, k0);
     // Update  newPixelIdx
     if (1) {

@@ -62,7 +62,7 @@ struct ClusterConfig {
     debug = 0x3   ///< Ful details
   };
   VerboseMode fittingLog = no;
-  VerboseMode processingLog = no; // Global
+  VerboseMode processingLog = info; // Global
   VerboseMode padMappingLog = no;
   VerboseMode groupsLog = no;
   VerboseMode EMLocalMaxLog = no;

@@ -1310,6 +1310,7 @@ void fitMathieson(const Pads& iPads, double* thetaInit, int kInit,
   delete[] yInf;
   delete[] ySup;
   deleteCompressedPads(mathiesonData.compressedPads);
+  delete mathiesonData.compressedPads;
 
   // printf("End fitting: iteration=%d nPads=%d \n", iter, N);
   return;

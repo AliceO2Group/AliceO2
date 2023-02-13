@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <cmath>
+#include <iostream>
 
 #include "MCHClustering/ClusterConfig.h"
 #include "MCHClustering/ClusterPEM.h"
@@ -261,7 +262,7 @@ ClusterPEM::ClusterPEM(const double* x, const double* y, const double* dx,
   // ??? To remove if default Constructor
   // Projection
   projectedPads = nullptr;
-  projNeighbors = nullptr;
+  // Invalid projNeighbors = nullptr;
   projPadToGrp = nullptr;
   nbrOfProjGroups = 0;
   // Groups
@@ -341,18 +342,18 @@ ClusterPEM::ClusterPEM(ClusterPEM& cluster, Groups_t g)
 ClusterPEM::~ClusterPEM()
 {
   for (int c = 0; c < 2; c++) {
-    if (pads[c] == nullptr) {
+    if (pads[c] != nullptr) {
       delete pads[c];
       pads[c] = nullptr;
     }
     deleteInt(mapCathPadIdxToPadIdx[c]);
     deleteShort(cathGroup[c]);
   }
-  if (projectedPads == nullptr) {
+  if (projectedPads != nullptr) {
     delete projectedPads;
     projectedPads = nullptr;
   }
-  deleteInt(projNeighbors);
+  // Invalid deleteInt(projNeighbors);
   deleteShort(projPadToGrp);
   deleteInt(IInterJ);
   deleteInt(JInterI);
@@ -631,13 +632,13 @@ void ClusterPEM::computeProjectedPads(const Pads& pad0InfSup,
 
 int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
 {
-
+  PadIdx_t* projNeighbors;
   // Single cathode
   if (nbrOfCathodePlanes == 1) {
     // One Cathode case
     // Pad Projection is the cluster itself
     projectedPads = new Pads(*pads[singleCathPlaneID], Pads::PadMode::xydxdyMode);
-    projNeighbors = projectedPads->buildFirstNeighbors();
+    projNeighbors = projectedPads->getFirstNeighbors();
     return projectedPads->getNbrOfPads();
   }
 
@@ -760,7 +761,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
   // (they have no neighboring)
   //
   int thereAreIsolatedPads = 0;
-  projNeighbors = projectedPads->buildFirstNeighbors();
+  projNeighbors = projectedPads->getFirstNeighbors();
   // Pads::printPads("Projected Pads:", *projectedPads);
   if (clusterConfig.padMappingLog >= clusterConfig.detail) {
     printf("  Neighbors of the projected geometry\n");
@@ -798,8 +799,7 @@ int ClusterPEM::buildProjectedGeometry(int includeSingleCathodePads)
     delete projectedPads;
     computeProjectedPads(padInfSup0, padInfSup1, maxNbrOfProjPads, aloneIPads,
                          aloneJPads, aloneKPads, includeSingleCathodePads);
-    delete[] projNeighbors;
-    projNeighbors = projectedPads->buildFirstNeighbors();
+    projNeighbors = projectedPads->getFirstNeighbors();
   }
   return projectedPads->getNbrOfPads();
 }
@@ -1107,8 +1107,8 @@ int ClusterPEM::getConnectedComponentsOfProjPadsWOSinglePads()
   // components) projPadToGrp is set to the group Id of the pad. If the group Id
   // is zero, the the pad is unclassified Return the number of groups
   int N = projectedPads->getNbrOfPads();
-  projPadToGrp = new Groups_t[N];
-  PadIdx_t* neigh = projNeighbors;
+  // Invalid Mem Leak : projPadToGrp = new Groups_t[N];
+  PadIdx_t* neigh = projectedPads->getFirstNeighbors();
   PadIdx_t neighToDo[N];
   vectorSetZeroShort(projPadToGrp, N);
   // Nbr of pads alrready proccessed
@@ -2229,6 +2229,9 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
@@ -2241,6 +2244,9 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
 
     // Find local maxima and set the pixel to be refined in newPixelIdx
     std::vector<PadIdx_t> newPixelIdx;
+    if (localMax != nullptr) {
+      delete localMax;
+    }
     localMax = pixels->extractLocalMax(newPixelIdx, dxMinPadSize, dyMinPadSize);
     nbrLocalMax = newPixelIdx.size();
     // Debug
@@ -2322,7 +2328,6 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
     nbrPrevLocalMax = nbrLocalMax;
   }
   /// with refinement ???
-  // delete pixels;
   if (criterion < 1.0 * previousCriterion) {
     delete saveLocalMax;
   } else {
@@ -2330,8 +2335,10 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
     localMax = saveLocalMax;
   }
 
+  delete pixels;
   delete[] Cij;
   delete[] maskCij;
+  delete mergedPads;
   return localMax;
 }
 
@@ -2441,6 +2448,9 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
   while (goon) {
     // Save previous local maxima and the criterion
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriterion = criterion;
@@ -2455,6 +2465,9 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
 
     // Find local maxima and set the pixel to be refined in newPixelIdx
     std::vector<PadIdx_t> newPixelIdx;
+    if (localMax != nullptr) {
+      delete localMax;
+    }
     localMax = pixels->extractLocalMaxOnCoarsePads_Remanent(newPixelIdx, dxMinPadSize, dyMinPadSize);
     // localMax = pixels->extractLocalMaxOnCoarsePads_Remanent( newPixelIdx, -1., -1.);
     // localMax = pixels->extractLocalMaxOnCoarsePads( newPixelIdx);
@@ -2532,14 +2545,17 @@ Pads* ClusterPEM::findLocalMaxWithoutRefinement(double* thetaL, int nbrOfPadsInT
     nbrPrevLocalMax = nbrLocalMax;
   }
   /// with refinement ???
-  // delete pixels;
+  // ??? std::cerr << "Without> del pixel " << pixels << std::endl;
+  // ??? std::cerr << "Without> del mergedPads " << mergedPads << std::endl;
+  // ??? std::cerr << "Without> Pass" << std::endl;
   if (criterion < 1.0 * previousCriterion) {
     delete saveLocalMax;
   } else {
     delete localMax;
     localMax = saveLocalMax;
   }
-
+  delete pixels;
+  delete mergedPads;
   delete[] Cij;
   delete[] maskCij;
   return localMax;
@@ -2835,6 +2851,9 @@ int ClusterPEM::findLocalMaxWithPEMFullRefinement(double* thetaL, int nbrOfPadsI
   }
   while (goon) {
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
@@ -3196,6 +3215,9 @@ int ClusterPEM::findLocalMaxWithPEM2Lev(double* thetaL, int nbrOfPadsInTheGroupC
   }
   while (goon) {
     if (localMax != nullptr) {
+      if (saveLocalMax != nullptr) {
+        delete saveLocalMax;
+      }
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::PadMode::xydxdyMode);
     }
     previousCriteriom = criteriom;
@@ -3635,12 +3657,12 @@ int ClusterPEM::findLocalMaxWithBothCathodes(double* thetaOut, int kMax)
   // Number of local max
   int K0 = 0, K1 = 0;
   if (N0) {
-    grpNeighborsCath0 = pads[0]->buildFirstNeighbors();
+    grpNeighborsCath0 = pads[0]->getFirstNeighbors();
     K0 = laplacian2D(*pads[0], grpNeighborsCath0, chamberId, localMax0, kMax0,
                      smoothQ0);
   }
   if (N1) {
-    grpNeighborsCath1 = pads[1]->buildFirstNeighbors();
+    grpNeighborsCath1 = pads[1]->getFirstNeighbors();
     K1 = laplacian2D(*pads[1], grpNeighborsCath1, chamberId, localMax1, kMax1,
                      smoothQ1);
   }
