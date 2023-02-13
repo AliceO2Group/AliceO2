@@ -47,6 +47,7 @@ BOOST_AUTO_TEST_CASE(testRDHUtils)
   o2::header::RAWDataHeaderV4 rdh4;
   o2::header::RAWDataHeaderV5 rdh5;
   o2::header::RAWDataHeaderV6 rdh6;
+  o2::header::RAWDataHeaderV7 rdh7;
 
   for (const auto& fee : testDetails) {
     const auto feeID = getFEEID(fee.cru, fee.endpoint, fee.link);
@@ -95,6 +96,19 @@ BOOST_AUTO_TEST_CASE(testRDHUtils)
     link = getLink(rdh6);
     endpoint = getEndPoint(rdh6);
     userLogic = isFromUserLogic(rdh6);
+
+    BOOST_CHECK_EQUAL(feeID, fee.feeID);
+    BOOST_CHECK_EQUAL(cru, fee.cru);
+    BOOST_CHECK_EQUAL(endpoint, fee.endpoint);
+    BOOST_CHECK_EQUAL(link, fee.link);
+    BOOST_CHECK_EQUAL(userLogic, fee.userLogic);
+
+    // RDH v7 checks
+    rdh7.feeId = feeID;
+    cru = getCRU(rdh7);
+    link = getLink(rdh7);
+    endpoint = getEndPoint(rdh7);
+    userLogic = isFromUserLogic(rdh7);
 
     BOOST_CHECK_EQUAL(feeID, fee.feeID);
     BOOST_CHECK_EQUAL(cru, fee.cru);
