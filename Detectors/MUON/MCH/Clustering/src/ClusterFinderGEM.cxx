@@ -144,7 +144,8 @@ void ClusterFinderGEM::reset()
   mUsedDigits.clear();
 }
 
- void ClusterFinderGEM::releasePreCluster() {
+void ClusterFinderGEM::releasePreCluster()
+{
   nPads = 0;
   DEId = -1;
   if (xyDxy != nullptr) {
@@ -163,7 +164,7 @@ void ClusterFinderGEM::reset()
     delete[] saturated;
     saturated = nullptr;
   };
- }
+}
 
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::dumpPreCluster(ClusterDump* dumpFile, gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster)

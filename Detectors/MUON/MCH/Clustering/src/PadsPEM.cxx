@@ -1957,7 +1957,7 @@ Pads* Pads::extractLocalMax(std::vector<PadIdx_t>& localMaxIdx, double dxMinPadS
 
     // Clean the local Max - Remove definitely remanent local max
     if (localMax != nullptr) {
-        delete localMax;
+      delete localMax;
     }
     localMax = newPixels->selectPads(index, k0);
     // Update  newPixelIdx

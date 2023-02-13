@@ -2245,7 +2245,7 @@ Pads* ClusterPEM::findLocalMaxWithRefinement(double* thetaL, int nbrOfPadsInTheG
     // Find local maxima and set the pixel to be refined in newPixelIdx
     std::vector<PadIdx_t> newPixelIdx;
     if (localMax != nullptr) {
-        delete localMax;
+      delete localMax;
     }
     localMax = pixels->extractLocalMax(newPixelIdx, dxMinPadSize, dyMinPadSize);
     nbrLocalMax = newPixelIdx.size();
