@@ -16,6 +16,7 @@
 #ifndef ALICEO2_MFT_TRACKERCONFIG_H_
 #define ALICEO2_MFT_TRACKERCONFIG_H_
 
+#include <mutex>
 #include "MFTTracking/Constants.h"
 #include "MFTTracking/MFTTrackingParam.h"
 
