@@ -2,7 +2,7 @@
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
-[[ -z $GEN_TOPO_MYDIR ]] GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh
 source $GEN_TOPO_MYDIR/setenv.sh
 
