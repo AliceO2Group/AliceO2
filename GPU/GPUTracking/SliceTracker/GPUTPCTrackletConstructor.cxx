@@ -313,8 +313,12 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       } // end of search for the closest hit
 
       if (best == CALINK_INVAL) {
-        rowHit = CALINK_INVAL;
-        break;
+        if (r.mNHits == 0 && r.mStage < 3) {
+          best = rowHit;
+        } else {
+          rowHit = CALINK_INVAL;
+          break;
+        }
       }
 
       cahit2 hh = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits, best);
@@ -324,7 +328,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       CADEBUG(printf("%14s: SEA Hit %5d (%8.3f %8.3f), Res %f %f\n", "", best, y, z, tParam.Y() - y, tParam.Z() - z));
 
       calink oldHit = (r.mStage == 2 && iRow >= r.mStartRow) ? rowHit : CALINK_INVAL;
-      if (oldHit != best && !tParam.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL)) {
+      if (oldHit != best && !tParam.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL) && r.mNHits != 0) {
         rowHit = CALINK_INVAL;
         break;
       }
