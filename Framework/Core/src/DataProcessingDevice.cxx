@@ -1056,6 +1056,7 @@ void DataProcessingDevice::Run()
         auto timeout = deviceContext.exitTransitionTimeout;
         if (timeout != 0 && state.streaming != StreamingState::Idle) {
           state.transitionHandling = TransitionHandlingState::Requested;
+          ref.get<CallbackService>()(CallbackService::Id::ExitRequested, ref);
           uv_update_time(state.loop);
           uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {

@@ -79,7 +79,9 @@ class CallbackService
     /// Invoked when new domain info is available
     DomainInfoUpdated,
     /// Invoked the device undergoes a state change
-    DeviceStateChanged
+    DeviceStateChanged,
+    /// Invoked when the device was requested to stop
+    ExitRequested,
   };
 
   using StartCallback = std::function<void()>;
@@ -96,23 +98,25 @@ class CallbackService
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
   using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
   using DeviceStateChangedCallback = std::function<void(ServiceRegistryRef, int newState)>;
+  using ExitRequestedCallback = std::function<void(ServiceRegistryRef)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                                  //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                          //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                            //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                          //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                            //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                  //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,            //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,              //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,        //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,            //
-                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,          //
-                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,        //
-                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,    //
-                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,  //
-                                     RegistryPair<Id, Id::DeviceStateChanged, DeviceStateChangedCallback> //
-                                     >;                                                                   //
+  using Callbacks = CallbackRegistry<Id,                                                                   //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                           //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                             //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                           //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                             //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                   //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,             //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,               //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,         //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,             //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,           //
+                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,         //
+                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,     //
+                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,   //
+                                     RegistryPair<Id, Id::DeviceStateChanged, DeviceStateChangedCallback>, //
+                                     RegistryPair<Id, Id::ExitRequested, ExitRequestedCallback>            //
+                                     >;                                                                    //
 
   // set callback for specified processing step
   template <typename U>
