@@ -31,16 +31,17 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
+  o2::base::GeometryManager::loadGeometry("o2sim_geometry-aligned.root");
   its::GeometryTGeo* geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  int nrof{0};
+  tf->mNrof = 0;
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
 
-      int layer = geom->getLayer(c.getSensorID());
-
+      auto sensorID = c.getSensorID();
+      int layer = layer = geom->getLayer(sensorID);
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
@@ -57,7 +58,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
-      auto sensorID = c.getSensorID();
+
       // Inverse transformation to the local --> tracking
       auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
       // Transformation to the local --> global
@@ -74,7 +75,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
     for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
       tf->mROframesClusters[iL].push_back(tf->getUnsortedClusters()[iL].size());
     }
-    nrof++;
+    tf->mNrof++;
   }
 
   for (auto& v : tf->mNTrackletsPerCluster) {
@@ -84,8 +85,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
   if (mcLabels) {
     tf->mClusterLabels = mcLabels;
   }
-
-  return nrof;
+  return tf->mNrof;
 }
 } // namespace ioutils
 } // namespace its3

@@ -726,8 +726,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   double dx = -1, dz = -1;
 
   for (int j = 0; j < nNodes; j++) {
-    //    AliInfo(Form("L%d %d of %d %s %s ->
-    // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(),numberOfChips));
+    LOGP(debug, "layer={}, node/nodes={}/{}, node name={}, pattern={}, number of chips={}, is ITS3 layer={}", lay, j, nNodes, volLd->GetNodes()->At(j)->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), numberOfChips, mIsLayerITS3[lay]);
     TGeoNodeMatrix* node = (TGeoNodeMatrix*)volLd->GetNodes()->At(j);
     if (!strstr(node->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern())) {
       continue;
