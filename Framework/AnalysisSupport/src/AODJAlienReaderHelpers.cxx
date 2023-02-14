@@ -120,7 +120,8 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 {
-  auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
+  auto callback = AlgorithmSpec{adaptStateful([](CallbackService& callbacks,
+                                                 ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec,
                                                  Monitoring& monitoring) {
     monitoring.send(Metric{(uint64_t)0, "arrow-bytes-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
@@ -179,6 +180,15 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
+
+    auto exitcb = [numTF, fileCounter](ServiceRegistryRef ref) -> void {
+      auto& control = ref.get<ControlService>();
+      LOGP(info, "Sending EoS on timed exit after {} dataframes and {} files", *numTF + 1, *fileCounter);
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set<CallbackService::Id::ExitRequested>(exitcb);
+
     return adaptStateless([TFNumberHeader,
                            TFFileNameHeader,
                            requestedTables,
