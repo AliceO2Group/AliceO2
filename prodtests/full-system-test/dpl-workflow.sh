@@ -2,9 +2,9 @@
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
-MYDIR="$(dirname $(realpath $0))"
-source $MYDIR/gen_topo_helper_functions.sh
-source $MYDIR/setenv.sh
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh
+source $GEN_TOPO_MYDIR/setenv.sh
 
 if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
   alien-token-info >& /dev/null
@@ -26,8 +26,8 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
-source $MYDIR/getCommonArgs.sh
-source $MYDIR/workflow-setup.sh
+source $GEN_TOPO_MYDIR/getCommonArgs.sh
+source $GEN_TOPO_MYDIR/workflow-setup.sh
 workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
@@ -266,7 +266,7 @@ if [[ ! -z $WORKFLOW_DETECTORS_USE_GLOBAL_READER ]]; then
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER $GLOBAL_READER_OPTIONS $DISABLE_MC --hbfutils-config o2_tfidinfo.root"
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "--hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-sim-mch-digits-reader-workflow "--hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "--hbfutils-config o2_tfidinfo.root"
@@ -466,8 +466,8 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Calibration workflows
-workflow_has_parameter CALIB && { source ${CALIB_WF:-$MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
-workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter CALIB && { source ${CALIB_WF:-$GEN_TOPO_MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$GEN_TOPO_MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display

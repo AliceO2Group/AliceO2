@@ -8,18 +8,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_DEVICECONFIG_H_
+#define O2_FRAMEWORK_DEVICECONFIG_H_
 
-#ifdef __CLING__
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#include <boost/program_options/variables_map.hpp>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+namespace o2::framework
+{
+struct DeviceConfig {
+  boost::program_options::variables_map options;
+};
+} // namespace o2::framework
 
-#pragma link C++ class o2::dataformats::FilteredRecoTF + ;
-#pragma link C++ class o2::dataformats::FilteredRecoTF::Header + ;
-#pragma link C++ class std::vector < o2::dataformats::FilteredRecoTF> + ;
-
-#pragma link C++ class o2::globaltracking::TrackTuneParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::TrackTuneParams> + ;
-
-#endif
+#endif // O2_FRAMEWORK_DEVICECONFIG_H_

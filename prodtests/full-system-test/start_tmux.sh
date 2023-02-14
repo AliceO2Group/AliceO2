@@ -22,8 +22,8 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
 fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
-MYDIR="$(dirname $(realpath $0))"
-source $MYDIR/setenv.sh
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/setenv.sh
 
 if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   # This sets up the hardcoded configuration to run the full system workflow on the EPN
@@ -110,16 +110,16 @@ if [[ ! -z $FST_TMUX_SINGLENUMA ]]; then
 fi
 
 if workflow_has_parameter CALIB_PROXIES; then
-  CALIB_COMMAND="$MYDIR/aggregator-workflow.sh"
+  CALIB_COMMAND="$GEN_TOPO_MYDIR/aggregator-workflow.sh"
   CALIB_TASKS="BARREL_TF CALO_TF FORWARD_TF BARREL_SPORADIC" # CALO_SPORADIC MUON_TF MUON_SPORADIC
 else
   CALIB_TASKS=
 fi
 
 if [ "0$FST_TMUX_BATCH_MODE" == "01" ]; then
-  { sleep $FST_SLEEP0; eval "NUMAID=0 $MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}"; eval "$ENDCMD"; } &
-  { sleep $FST_SLEEP1; eval "NUMAID=1 $MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}"; eval "$ENDCMD"; } &
-  { sleep $FST_SLEEP2; eval "SEVERITY=debug numactl --interleave=all $MYDIR/$CMD ${LOGCMD/\[REPLACE]/2}"; eval "$KILLCMD $ENDCMD"; } &
+  { sleep $FST_SLEEP0; eval "NUMAID=0 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}"; eval "$ENDCMD"; } &
+  { sleep $FST_SLEEP1; eval "NUMAID=1 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}"; eval "$ENDCMD"; } &
+  { sleep $FST_SLEEP2; eval "SEVERITY=debug numactl --interleave=all $GEN_TOPO_MYDIR/$CMD ${LOGCMD/\[REPLACE]/2}"; eval "$KILLCMD $ENDCMD"; } &
   for i in $CALIB_TASKS; do
     { eval "AGGREGATOR_TASKS=$i $CALIB_COMMAND ${LOGCMD/\[REPLACE]/3_${i}}"; eval "$ENDCMD"; } &
   done
@@ -127,11 +127,11 @@ if [ "0$FST_TMUX_BATCH_MODE" == "01" ]; then
 else
   TMUX_SPLIT_COMMAND="split-window"
   TMUX_COMMAND="tmux -L FST"
-  TMUX_COMMAND+=" new-session  \"sleep $FST_SLEEP0; NUMAID=0 $MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}; $ENDCMD\" ';'"
+  TMUX_COMMAND+=" new-session  \"sleep $FST_SLEEP0; NUMAID=0 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}; $ENDCMD\" ';'"
   for i in `seq 1 $(($NUM_DPL_WORKFLOWS - 1))`; do
-    TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP1; NUMAID=$i $MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}; $ENDCMD\" ';'"
+    TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP1; NUMAID=$i $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}; $ENDCMD\" ';'"
   done
-  TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP2; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD\" ';'"
+  TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP2; SEVERITY=debug numactl --interleave=all $GEN_TOPO_MYDIR/$CMD; $KILLCMD $ENDCMD\" ';'"
   FIRST_CALIB=1
   for i in $CALIB_TASKS; do
     TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"AGGREGATOR_TASKS=$i $CALIB_COMMAND ${LOGCMD/\[REPLACE]/3_${i}}; $ENDCMD\" ';'"

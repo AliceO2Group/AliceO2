@@ -16,6 +16,7 @@
 #include "Framework/StreamContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceState.h"
 #include "ContextHelpers.h"
 #include <fairmq/Device.h>
 #include <iostream>

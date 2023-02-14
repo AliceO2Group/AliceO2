@@ -9,17 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_FRAMEWORK_SERVICEMETRICSINFO_H_
+#define O2_FRAMEWORK_SERVICEMETRICSINFO_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DeviceInfo.h"
+#include <vector>
 
-#pragma link C++ class o2::dataformats::FilteredRecoTF + ;
-#pragma link C++ class o2::dataformats::FilteredRecoTF::Header + ;
-#pragma link C++ class std::vector < o2::dataformats::FilteredRecoTF> + ;
-
-#pragma link C++ class o2::globaltracking::TrackTuneParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::TrackTuneParams> + ;
-
-#endif
+namespace o2::framework
+{
+struct ServiceMetricsInfo {
+  std::vector<DeviceMetricsInfo>& deviceMetricsInfos;
+  std::vector<DeviceSpec>& deviceSpecs;
+  std::vector<DeviceInfo>& deviceInfos;
+  DeviceMetricsInfo& driverMetricsInfo;
+};
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_SERVICEMETRICSINFO_H_

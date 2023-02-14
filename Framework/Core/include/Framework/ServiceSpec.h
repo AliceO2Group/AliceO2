@@ -12,13 +12,11 @@
 #define O2_FRAMEWORK_SERVICESPEC_H_
 
 #include "Framework/ServiceHandle.h"
-#include "Framework/DeviceMetricsInfo.h"
-#include "Framework/DeviceInfo.h"
+#include "Framework/RoutingIndices.h"
+#include <fairmq/FwdDecls.h>
 #include <string>
+#include <functional>
 #include <vector>
-
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#include <boost/program_options/variables_map.hpp>
 
 namespace fair::mq
 {
@@ -37,6 +35,9 @@ struct ProcessingContext;
 class EndOfStreamContext;
 struct ConfigContext;
 struct WorkflowSpecNode;
+
+struct ServiceMetricsInfo;
+struct DeviceConfig;
 
 class DanglingContext;
 
@@ -68,7 +69,7 @@ using ServiceEOSCallback = void (*)(EndOfStreamContext&, void*);
 /// Callback executed before the forking of a given device in the driver
 /// Notice the forking can happen multiple times. It's responsibility of
 /// the service to track how many times it happens and act accordingly.
-using ServicePreFork = std::function<void(ServiceRegistryRef, boost::program_options::variables_map const&)>;
+using ServicePreFork = std::function<void(ServiceRegistryRef, DeviceConfig const&)>;
 
 /// Callback executed after forking a given device in the driver,
 /// but before doing exec / starting the device.
@@ -79,17 +80,14 @@ using ServicePostForkChild = std::function<void(ServiceRegistryRef)>;
 using ServicePostForkParent = std::function<void(ServiceRegistryRef)>;
 
 /// Callback executed before each redeployment of the whole configuration
-using ServicePreSchedule = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServicePreSchedule = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback executed after each redeployment of the whole configuration
-using ServicePostSchedule = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServicePostSchedule = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback executed in the driver in order to process a metric.
 using ServiceMetricHandling = void (*)(ServiceRegistryRef,
-                                       std::vector<o2::framework::DeviceMetricsInfo>& metrics,
-                                       std::vector<o2::framework::DeviceSpec>& specs,
-                                       std::vector<o2::framework::DeviceInfo>& infos,
-                                       DeviceMetricsInfo& driverMetrics,
+                                       ServiceMetricsInfo const&,
                                        size_t timestamp);
 
 /// Callback executed in the child after dispatching happened.
@@ -99,10 +97,10 @@ using ServicePostDispatching = void (*)(ProcessingContext&, void*);
 using ServicePostForwarding = void (*)(ProcessingContext&, void*);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverInit = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServiceDriverInit = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverStartup = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServiceDriverStartup = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback invoked when we inject internal devices in the topology
 using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);

@@ -53,13 +53,4 @@ void o2::mft::TrackerConfig::initBinContainers()
   if (!mBinsS) {
     mBinsS = std::make_unique<BinContainer>();
   }
-  if (!mRBinSize) {
-    mRBinSize = std::make_unique<RArray>();
-  }
-  if (!mPhiBinWin) {
-    mPhiBinWin = std::make_unique<PhiArray>();
-  }
-  if (!mInverseRBinSize) {
-    mInverseRBinSize = std::make_unique<InverseRArray>();
-  }
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MYDIR="$(dirname $(realpath $0))"
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 
 if [[ -z $1 || -z $2 ]]; then
   echo "ERROR: Command line arguments missing. Syntax: run-workflow-on-inputlist.sh [CTF | DD | TF] [name of file with list of files to be processed] [Timeout in seconds (optional: default = disabled)] [Log to stdout (optional: default = enabled)]"
@@ -60,7 +60,7 @@ echo "Processing $2 in $1 mode"
 if [[ $1 == "DD" ]]; then
   export EXTINPUT=1
   export DD_STARTUP_DELAY=5
-  start_process $MYDIR/datadistribution.sh
+  start_process $GEN_TOPO_MYDIR/datadistribution.sh
 elif [[ $1 == "CTF" ]]; then
   export CTFINPUT=1
 elif [[ $1 == "TF" ]]; then
@@ -72,7 +72,7 @@ else
   exit 1
 fi
 
-start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$MYDIR/dpl-workflow.sh}
+start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$GEN_TOPO_MYDIR/dpl-workflow.sh}
 
 if [[ "0$4" != "00" ]]; then
   sleep 1

@@ -163,6 +163,13 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
 {
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
+  // flushing debug output to file
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+    if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
+      mSpaceCharge->flushStreamer();
+    }
+  }
 }
 
 void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
@@ -190,10 +197,13 @@ void Digitizer::setUseSCDistortions(TFile& finp)
   if (!mSpaceCharge) {
     mSpaceCharge = std::make_unique<SC>();
   }
-  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
-  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
-  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::A);
-  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::C);
+
+  // in case analytical distortions are loaded from file they are applied
+  mSpaceCharge->setAnalyticalCorrectionsDistortionsFromFile(finp);
+  if (!mSpaceCharge->getUseAnalyticalDistCorr()) {
+    mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
+    mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
+  }
 }
 
 void Digitizer::setStartTime(double time)

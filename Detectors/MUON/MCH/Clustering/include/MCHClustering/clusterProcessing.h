@@ -29,7 +29,7 @@ void collectGroupMapping(Mask_t* padToMGrp, int nPads);
                         const PadIdx_t *mapCath1PadIdxToPadIdx, int nCath1);
 */
 void collectSeeds(double* theta, o2::mch::Groups_t* thetaToGroup, int K);
-
+void cleanClusterResults();
 } // namespace mch
 } // namespace o2
 

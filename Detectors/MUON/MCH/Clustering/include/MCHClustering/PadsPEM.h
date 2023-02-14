@@ -129,8 +129,9 @@ class Pads
                                   std::vector<PadIdx_t>& localMaxIdx, double Cij[]);
   // Add zero-charged pads to the neighboring of the pads (cathode cluster)
   Pads* addBoundaryPads();
-  // Building Neighbors
-  PadIdx_t* buildFirstNeighbors();
+  // Getting/Building Neighbors
+  // Should be a const PadIdx_t*
+  PadIdx_t* getFirstNeighbors();
   // Building K-Neighbors
   PadIdx_t* buildKFirstsNeighbors(int kernelSize);
   // Extract local maximima

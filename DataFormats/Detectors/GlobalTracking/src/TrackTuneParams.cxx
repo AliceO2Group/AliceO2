@@ -9,17 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file TrackTuneParams.h
+/// \brief Configurable params for tracks ad hoc tuning
+/// \author ruben.shahoyan@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::dataformats::FilteredRecoTF + ;
-#pragma link C++ class o2::dataformats::FilteredRecoTF::Header + ;
-#pragma link C++ class std::vector < o2::dataformats::FilteredRecoTF> + ;
-
-#pragma link C++ class o2::globaltracking::TrackTuneParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::TrackTuneParams> + ;
-
-#endif
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
+O2ParamImpl(o2::globaltracking::TrackTuneParams);

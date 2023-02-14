@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MYDIR="$(dirname $(realpath $0))"
-source $MYDIR/setenv.sh
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/setenv.sh
 
 # This sets up the hardcoded configuration to run the async full system test workflow on the EPN
 if [ $GPUTYPE == "CPU" ]; then
@@ -36,6 +36,6 @@ export NTIMEFRAMES=$((($NTIMEFRAMES + 1) / 2))
 rm -f /dev/shm/*fmq*
 
 tmux -L ASYNC \
-    new-session  "sleep 0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
-    split-window "sleep 2; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
+    new-session  "sleep 0; NUMAID=0 $GEN_TOPO_MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
+    split-window "sleep 2; NUMAID=1 $GEN_TOPO_MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
     select-layout even-vertical

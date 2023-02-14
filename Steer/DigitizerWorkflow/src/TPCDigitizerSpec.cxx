@@ -139,6 +139,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
         if (std::filesystem::exists(readSpaceCharge[0])) {
+          LOGP(info, "Reading space-charge object from file {}", readSpaceCharge[0].data());
           TFile fileSC(readSpaceCharge[0].data(), "READ");
           mDigitizer.setUseSCDistortions(fileSC);
         } else {

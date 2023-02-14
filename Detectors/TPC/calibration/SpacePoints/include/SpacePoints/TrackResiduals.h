@@ -147,6 +147,8 @@ class TrackResiduals
 
   void setVdriftCorr(float corr) { mEffVdriftCorr = corr; }
 
+  void setT0Corr(float corr) { mEffT0Corr = corr; }
+
   // -------------------------------------- I/O --------------------------------------------------
 
   std::vector<LocalResid>& getLocalResVec() { return mLocalResidualsIn; }
@@ -491,6 +493,7 @@ class TrackResiduals
   std::array<double, ResDim * sMaxSmtDim> mLastSmoothingRes{};     ///< results of last smoothing operation
   // calibrated parameters
   float mEffVdriftCorr{0.f}; ///< global correction factor for vDrift based on d(delta(z))/dz fit
+  float mEffT0Corr{0.f};     ///< global correction for T0 shift from offset of d(delta(z))/dz fit
   // (intermediate) results
   std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
   std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
