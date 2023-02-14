@@ -71,6 +71,8 @@ void ITSDCSParser::run(ProcessingContext& pc)
     this->resetMemory();
   }
 
+  this->saveMissingToOutput();
+
   if (this->mConfigDCS.size()) {
     this->pushToCCDB(pc);
     this->mConfigDCS.clear();
@@ -87,6 +89,7 @@ void ITSDCSParser::run(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 {
+
   // Print the entire string if verbose mode is requested
   if (this->mVerboseOutput) {
     LOG(info) << "Parsing string: " << inString;
@@ -94,6 +97,7 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // Parse the individual parts of the string
   const std::string delimiter = "|";
+  const std::string terminator = "!";
   size_t pos = 0;
   size_t npos = inString.find(delimiter);
   if (npos == std::string::npos) {
@@ -103,6 +107,14 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // First is the stave name
   this->mStaveName = inString.substr(pos, npos);
+  this->mSavedStaves.push_back(this->mStaveName);
+
+  // Control the integrity of the string
+  this->mTerminationString = true;
+  if (inString.back() != '!') {
+    this->mTerminationString = false;
+    LOG(warning) << "Terminator not found, possibly incomplete data for stave " << this->mStaveName << " !";
+  }
 
   // Next is the run number
   if (!this->updatePosition(pos, npos, delimiter, "RUN", inString)) {
@@ -149,6 +161,21 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
     return;
   }
   std::string doubleColsEORstr = inString.substr(pos);
+
+  // In this case the terminator is missing and the DCOLS_EOR field is empty:
+  // the stave is passed whitout meaningful infos
+  if (doubleColsEORstr == "|") {
+    this->writeChipInfo(this->mStaveName, -1);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
+  }
+  // Eliminate all the chars after the last ";":
+  // If the string is complete this has no effect on the saved object
+  // If the string is incomplete this avoids saving wrong data
+  size_t pos_del = doubleColsEORstr.rfind(';');
+  if (pos_del != std::string::npos) {
+    doubleColsEORstr = doubleColsEORstr.erase(pos_del);
+  }
+
   if (doubleColsEORstr.length()) {
     std::vector<std::string> bigVect = this->vectorizeStringList(doubleColsEORstr, "&");
     for (const std::string& bigStr : bigVect) {
@@ -160,6 +187,9 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
       // First, update map of disabled double columns at EOR
       std::vector<std::string> doubleColDisable = this->vectorizeStringList(bigVectSplit[0], ";");
       for (const std::string& str : doubleColDisable) {
+        if (str == '!') {
+          continue; // protection needed to avoid to pass '!' to std::stoi() in vectorizeStringListInt()
+        }
         std::vector<unsigned short int> doubleColDisableVector = this->vectorizeStringListInt(str, ":");
         this->mDoubleColsDisableEOR[doubleColDisableVector[0]].push_back(doubleColDisableVector[1]);
       }
@@ -189,7 +219,11 @@ bool ITSDCSParser::updatePosition(size_t& pos, size_t& npos,
 
     // Check that npos does not go out-of-bounds
     if (npos == std::string::npos) {
-      LOG(error) << "Delimiter not found, possibly corrupted data!";
+      LOG(error) << "Delimiter not found, possibly corrupted data for stave " << this->mStaveName << " !";
+      // If the last word is not complete and the terminator is missing the stave is saved as a stave
+      this->writeChipInfo(this->mStaveName, -1);
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
+
       return false;
     }
 
@@ -274,7 +308,7 @@ void ITSDCSParser::saveToOutput()
   // First loop through the disabled chips to write these to the string
   for (const unsigned short int& chipID : this->mDisabledChips) {
     // Write basic chip info
-    this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+    this->writeChipInfo(this->mStaveName, chipID);
 
     // Mark chip as disabled
     o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "1");
@@ -283,6 +317,7 @@ void ITSDCSParser::saveToOutput()
     o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
     o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
     o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
 
     // Ensure that chips are removed from the maps
     mDoubleColsDisableEOR.erase(chipID);
@@ -295,7 +330,7 @@ void ITSDCSParser::saveToOutput()
     maskedDoubleCols.erase(maskedDoubleCols.begin());
 
     // Write basic chip info
-    this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+    this->writeChipInfo(this->mStaveName, chipID);
     o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
 
     // Write information for disabled double columns
@@ -308,31 +343,52 @@ void ITSDCSParser::saveToOutput()
     o2::dcs::addConfigItem(
       this->mConfigDCS, "Pixel_flags", this->intVecToStr(this->mPixelFlagsEOR[chipID], "|"));
     this->mPixelFlagsEOR.erase(chipID);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
   }
 
   // Finally, loop through any remaining chips
   for (const auto& [chipID, v] : this->mDoubleColsDisableEOR) {
     std::string s = this->intVecToStr(v, "|");
     if (s != "-1") { // Ensure no meaningless entries
-      this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+      this->writeChipInfo(this->mStaveName, chipID);
       o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", this->intVecToStr(v, "|"));
       o2::dcs::addConfigItem(
         this->mConfigDCS, "Pixel_flags", this->intVecToStr(this->mPixelFlagsEOR[chipID], "|"));
       this->mPixelFlagsEOR.erase(chipID);
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
     }
   }
 
   for (const auto& [chipID, v] : this->mPixelFlagsEOR) {
     std::string s = this->intVecToStr(v, "|");
     if (s != "-1") { // Ensure no meaningless entries
-      this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+      this->writeChipInfo(this->mStaveName, chipID);
       o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", this->intVecToStr(v, "|"));
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
     }
+  }
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+void ITSDCSParser::saveMissingToOutput()
+{
+  // Loop on the missing staves
+  std::vector<string> missingStaves;
+  std::vector<string> listStaves = this->listStaves();
+  std::vector<string> savedStaves = this->mSavedStaves;
+  std::sort(savedStaves.begin(), savedStaves.end());
+  std::set_difference(listStaves.begin(), listStaves.end(), savedStaves.begin(), savedStaves.end(),
+                      std::inserter(missingStaves, missingStaves.begin()));
+
+  for (std::string stave : missingStaves) {
+    this->writeChipInfo(stave, -1);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", "-1");
   }
 
   return;
@@ -371,24 +427,38 @@ std::string ITSDCSParser::intVecToStr(
 //////////////////////////////////////////////////////////////////////////////
 // Write the Stave, Hs_pos, Hic_pos, and ChipID to the config object
 void ITSDCSParser::writeChipInfo(
-  o2::dcs::DCSconfigObject_t& configObj, const std::string& staveName,
-  const unsigned short int chipID)
+  const std::string& staveName, const short int chipID)
 {
-  // First save the Stave to the string
-  o2::dcs::addConfigItem(configObj, "Stave", staveName);
+  // Stave present in the EOR data and all the "worlds" correctly read
+  if (chipID != -1) {
+    // First save the Stave to the string
+    o2::dcs::addConfigItem(this->mConfigDCS, "Stave", staveName);
 
-  // Hs_pos: 0 is lower, 1 is upper
-  // Hic_pos: from 1 to 7 (module number)
-  unsigned short int hicPos = chipID / 16;
-  bool hsPos = (hicPos > 7);
-  if (hsPos) {
-    hicPos -= 8;
+    // Hs_pos: 0 is lower, 1 is upper
+    // Hic_pos: from 1 to 7 (module number)
+    unsigned short int hicPos = chipID / 16;
+    bool hsPos = (hicPos > 7);
+    if (hsPos) {
+      hicPos -= 8;
+    }
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hs_pos", std::to_string(hsPos));
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hic_pos", std::to_string(hicPos));
+
+    // Chip ID inside the module
+    o2::dcs::addConfigItem(this->mConfigDCS, "ChipID", std::to_string(chipID % 16));
   }
-  o2::dcs::addConfigItem(configObj, "Hs_pos", std::to_string(hsPos));
-  o2::dcs::addConfigItem(configObj, "Hic_pos", std::to_string(hicPos));
 
-  // Chip ID inside the module
-  o2::dcs::addConfigItem(configObj, "ChipID", std::to_string(chipID % 16));
+  // Stave missing in the EOR data or "word" non cottectly read
+  else {
+    o2::dcs::addConfigItem(this->mConfigDCS, "Stave", staveName);
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hs_pos", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hic_pos", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "ChipID", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", "-1");
+  }
 
   return;
 }
@@ -450,6 +520,24 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   }
 
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+std::vector<std::string> ITSDCSParser::listStaves()
+{
+  std::vector<std::string> vecStaves = {};
+  int stavesPerLayer[] = {12, 16, 20, 24, 30, 42, 48};
+  std::string stavenum = "";
+  for (int i = 0; i < 7; i++) {
+    for (int j = 0; j < stavesPerLayer[i]; j++) {
+      string stavestring = std::to_string(j);
+      int precision = 2 - std::min(2, (int)(stavestring.size()));
+      stavenum = std::string(precision, '0').append(std::to_string(j));
+      std::string stave = "L" + std::to_string(i) + "_" + stavenum;
+      vecStaves.push_back(stave);
+    }
+  }
+  return vecStaves;
 }
 
 //////////////////////////////////////////////////////////////////////////////
