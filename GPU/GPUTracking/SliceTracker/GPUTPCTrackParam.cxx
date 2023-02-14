@@ -806,15 +806,20 @@ GPUd() int MEM_LG(GPUTPCTrackParam)::GetPropagatedYZ(float bz, float x, float& p
 {
   float k = mParam.mP[4] * bz;
   float dx = x - mParam.mX;
-  float kdx = k * dx;
   float ey = mParam.mP[2];
   float ex = CAMath::Sqrt(1 - ey * ey);
-  float ey1 = kdx + ey;
+  if (SignCosPhi() < 0) {
+    ex = -ex;
+  }
+  float ey1 = ey - k * dx;
   if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
     return 0;
   }
   float ss = ey + ey1;
   float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
+  if (SignCosPhi() < 0) {
+    ex1 = -ex1;
+  }
   float cc = ex + ex1;
   float dxcci = dx / cc;
   float dy = dxcci * ss;
