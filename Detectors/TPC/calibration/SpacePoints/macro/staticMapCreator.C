@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 #include <TFile.h>
 #include <TTree.h>
@@ -230,6 +231,7 @@ void staticMapCreator(std::string fileInput = "files.txt",
   std::vector<UnbinnedResid> residualsVd;                                                   // collect here the residuals used for the vDrift estimate
 
   bool haveSectorScalingEstimate = false;
+  int64_t startTime = -1;
 
   for (const auto& fileName : fileList) {
     LOGP(info, "Processing input file {}", fileName);
@@ -270,6 +272,15 @@ void staticMapCreator(std::string fileInput = "files.txt",
     treeRecords.reset((TTree*)inputFile->Get("records"));
     treeRecords->SetBranchAddress("firstTForbit", &orbitsPtr);
     treeRecords->GetEntry(0); // per input file there is only a single entry in the tree
+    if (startTime < 0) {
+      uint32_t minFirstOrbit = -1;
+      for (auto orbit : orbits) {
+        if (orbit < minFirstOrbit) {
+          minFirstOrbit = orbit;
+        }
+      }
+      startTime = orbitResetTimeMS + minFirstOrbit * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+    }
     for (int iEntry = 0; iEntry < treeUnbinnedResiduals->GetEntries(); ++iEntry) {
       if (params.timeFilter) {
         int64_t tfTimeInMS = orbitResetTimeMS + orbits[iEntry] * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
@@ -375,13 +386,17 @@ void staticMapCreator(std::string fileInput = "files.txt",
     float fracToKeep = 0.7;
     sigMAD[0] = trackResiduals.fitPoly1Robust(zPos, dzPos, fitResults[0], fitErrors[0], fracToKeep);
     sigMAD[1] = trackResiduals.fitPoly1Robust(zNeg, dzNeg, fitResults[1], fitErrors[1], fracToKeep);
-    LOGP(info, "For z>0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[0][0], fitResults[0][1], sigMAD[0]);
-    LOGP(info, "For z<0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[1][0], fitResults[1][1], sigMAD[1]);
+    LOGP(info, "For A-side z>0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[0][0], fitResults[0][1], sigMAD[0]);
+    LOGP(info, "For C-side z<0: offset={}, vDriftCorr={}, sigMAD={}", fitResults[1][0], fitResults[1][1], sigMAD[1]);
     if (sigMAD[0] < 0 || sigMAD[1] < 0) {
       LOG(error) << "Failed linear fit for vDrift";
     }
     float vDriftCorr = 0.5f * (fitResults[0][1] + fitResults[1][1]);
-    LOGP(info, "Setting vDrift correction factor to {}", vDriftCorr);
+    // offset_A = delta(t0) * v_D + delta(Z)
+    // offset_B = -delta(t0) * v_D + delta(Z)
+    // the minus removes the static component of the delta(Z) shift and we keep only the component from delta(t0)
+    float t0Corr = 0.5f * (fitResults[0][0] - fitResults[1][0]);
+    LOGP(info, "Setting vDrift correction factor to {}. T0 correction to {}", vDriftCorr, t0Corr);
     trackResiduals.getOutputFilePtr()->cd();
     hVdrift->Write();
     hVdrift.reset();
@@ -393,6 +408,10 @@ void staticMapCreator(std::string fileInput = "files.txt",
     fNeg.reset();
     residualsVd.clear();
     trackResiduals.setVdriftCorr(vDriftCorr);
+    trackResiduals.setT0Corr(t0Corr);
+    LOGP(info, "Determined start time {} for which the reference vDrift will be obtained", startTime);
+    auto vDriftTgl = ccdbmgr.getForTimeStamp<o2::tpc::VDriftCorrFact>("TPC/Calib/VDriftTgl", startTime);
+    trackResiduals.getOutputFilePtr()->WriteObjectAny(vDriftTgl, "o2::tpc::VDriftCorrFact", "vDriftTglRef");
   }
 
   for (int iSec = 0; iSec < nSectors; ++iSec) {
