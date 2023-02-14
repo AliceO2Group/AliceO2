@@ -307,9 +307,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
 
-      pc.outputs().snapshot(Output{"ITS3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-      pc.outputs().snapshot(Output{"ITS3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
-      pc.outputs().snapshot(Output{"ITS3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+      pc.outputs().snapshot(Output{"IT3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+      pc.outputs().snapshot(Output{"IT3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
+      pc.outputs().snapshot(Output{"IT3", "ITS3TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   }
   mTimer.Stop();
@@ -392,7 +392,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
     inputs.emplace_back("MC2ROframes", "IT3", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("IT3", "VERTICESMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("IT3", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("IT3", "ITS3TrackMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("IT3", "VERTICES", 0, Lifetime::Timeframe);
   }
 

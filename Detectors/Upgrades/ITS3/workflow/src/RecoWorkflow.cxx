@@ -13,7 +13,7 @@
 #include "ITS3Workflow/ClustererSpec.h"
 #include "ITS3Workflow/ClusterWriterSpec.h"
 #include "ITS3Workflow/TrackerSpec.h"
-// #include "ITSWorkflow/TrackWriterSpec.h"
+#include "ITS3Workflow/TrackWriterSpec.h"
 #include "ITS3Workflow/DigitReaderSpec.h"
 
 namespace o2
@@ -43,9 +43,9 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
 
   specs.emplace_back(o2::its3::getTrackerSpec(useMC, useTrig, trmode, dtype));
 
-  // if (!disableRootOutput) {
-  //   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
-  // }
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::its3::getTrackWriterSpec(useMC));
+  }
 
   return specs;
 }
