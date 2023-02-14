@@ -177,7 +177,7 @@ class TPCFastTransform : public FlatObject
   /// taking calibration + alignment into account.
   ///
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
-  GPUd() void TransformYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
+  GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -535,7 +535,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
   }
 }
 
-GPUdi() void TPCFastTransform::TransformYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref, float scale) const
+GPUdi() void TPCFastTransform::TransformXYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref, float scale) const
 {
   float u, v;
   getGeometry().convLocalToUV(slice, y, z, u, v);
