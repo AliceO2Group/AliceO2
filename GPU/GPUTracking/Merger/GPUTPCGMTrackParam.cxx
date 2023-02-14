@@ -35,6 +35,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUParam.inc"
