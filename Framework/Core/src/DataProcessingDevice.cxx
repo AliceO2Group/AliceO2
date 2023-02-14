@@ -434,7 +434,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
       break;
     }
   }
-  stats.totalSigusr1 += 1;
+  stats.updateStats({(int)ProcessingStatsId::TOTAL_SIGUSR1, DataProcessingStats::Op::Add, 1});
 }
 
 static auto toBeForwardedHeader = [](void* header) -> bool {
@@ -935,7 +935,8 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       auto& err = error_from_ref(e);
       LOGP(error, "Exception caught: {} ", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      ref.get<DataProcessingStats>().exceptionCount++;
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
       ErrorContext errorContext{record, ref, e};
       errorCallback(errorContext);
     };
@@ -949,7 +950,8 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       LOGP(error, "Exception caught: {} ", err.what);
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      ref.get<DataProcessingStats>().exceptionCount++;
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -1245,7 +1247,6 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 {
   ZoneScopedN("DataProcessingDevice::doPrepare");
   auto& context = ref.get<DataProcessorContext>();
-  ref.get<DataProcessingStats>().beginIterationTimestamp = uv_hrtime() / 1000000;
 
   *context.wasActive = false;
   {
@@ -1526,7 +1527,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     auto ref = ServiceRegistryRef{*context.registry};
     auto& stats = ref.get<DataProcessingStats>();
     auto& parts = info.parts;
-    stats.inputParts = parts.Size();
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_INPUTS, DataProcessingStats::Op::Set, parts.Size()});
 
     TracyPlot("messages received", (int64_t)parts.Size());
     std::vector<InputInfo> results;
@@ -1606,7 +1607,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
   };
 
   auto reportError = [ref](const char* message) {
-    ref.get<DataProcessingStats>().errorCount++;
+    auto& stats = ref.get<DataProcessingStats>();
+    stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add, 1});
   };
 
   auto handleValidMessages = [&info, ref, &reportError](std::vector<InputInfo> const& inputInfos) {
@@ -1769,9 +1771,14 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
 
 namespace
 {
-auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> DataProcessingStats::InputLatency
+struct InputLatency {
+  int minLatency = -1;
+  int maxLatency = 0;
+};
+
+auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> InputLatency
 {
-  DataProcessingStats::InputLatency result{static_cast<int>(-1), 0};
+  InputLatency result;
 
   for (auto& item : record) {
     auto* header = o2::header::get<DataProcessingHeader*>(item.header);
@@ -1835,8 +1842,9 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   auto getReadyActions = [&completed, ref]() -> std::vector<DataRelayer::RecordAction> {
     auto& stats = ref.get<DataProcessingStats>();
     auto& relayer = ref.get<DataRelayer>();
-    stats.pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    stats.incomplete = completed.empty() ? 1 : 0;
+    using namespace o2::framework;
+    stats.updateStats({(int)ProcessingStatsId::PENDING_INPUTS, DataProcessingStats::Op::Set, static_cast<int64_t>(relayer.getParallelTimeslices() - completed.size())});
+    stats.updateStats({(int)ProcessingStatsId::INCOMPLETE_INPUTS, DataProcessingStats::Op::Set, completed.empty() ? 1 : 0});
     return completed;
   };
 
@@ -1970,14 +1978,15 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 3 : 0;
       update_maximum(stats.statesSize, cacheId + 1);
-      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
-      stats.relayerState[cacheId].store(state);
+      stats.updateStats({static_cast<short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
     }
     uint64_t tEnd = uv_hrtime();
-    stats.lastElapsedTimeMs = tEnd - tStart;
-    stats.lastProcessedSize = calculateTotalInputRecordSize(record);
-    stats.totalProcessedSize += stats.lastProcessedSize;
-    stats.lastLatency = calculateInputRecordLatency(record, tStart);
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int)(tEnd - tStart)});
+    stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
+    auto latency = calculateInputRecordLatency(record, tStart);
+    stats.updateStats({(int)ProcessingStatsId::LAST_MIN_LATENCY, DataProcessingStats::Op::Set, (int)latency.minLatency});
+    stats.updateStats({(int)ProcessingStatsId::LAST_MAX_LATENCY, DataProcessingStats::Op::Set, (int)latency.maxLatency});
   };
 
   auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
@@ -1987,8 +1996,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 2 : 0;
       update_maximum(stats.statesSize, cacheId + 1);
-      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
-      stats.relayerState[cacheId].store(state);
+      stats.updateStats({static_cast<short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
     }
   };
 
@@ -2169,7 +2177,8 @@ void DataProcessingDevice::error(const char* msg)
 {
   LOG(error) << msg;
   ServiceRegistryRef ref{mServiceRegistry};
-  ref.get<DataProcessingStats>().errorCount++;
+  auto& stats = ref.get<DataProcessingStats>();
+  stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add});
 }
 
 std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef registry, const char* name, std::vector<ConfigParamSpec> const& options)
