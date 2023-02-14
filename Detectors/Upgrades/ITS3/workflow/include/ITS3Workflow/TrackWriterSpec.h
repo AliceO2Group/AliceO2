@@ -25,7 +25,7 @@ namespace its3
 /// write ITS tracks to ROOT file
 o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
 
-} // namespace its
+} // namespace its3
 } // namespace o2
 
 #endif /* O2_ITS_TRACKWRITER */

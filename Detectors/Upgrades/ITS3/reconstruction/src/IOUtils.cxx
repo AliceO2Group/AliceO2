@@ -31,7 +31,6 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  o2::base::GeometryManager::loadGeometry("o2sim_geometry-aligned.root");
   its::GeometryTGeo* geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
