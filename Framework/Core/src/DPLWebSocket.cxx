@@ -509,7 +509,7 @@ void ws_client_write_callback(uv_write_t* h, int status)
     free(h);
     return;
   }
-  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  context->state->loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_READING);
   if (context->buf.base) {
     free(context->buf.base);
   }
@@ -520,7 +520,7 @@ void ws_client_write_callback(uv_write_t* h, int status)
 void ws_client_bulk_write_callback(uv_write_t* h, int status)
 {
   BulkWriteRequestContext* context = (BulkWriteRequestContext*)h->data;
-  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  context->state->loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_WRITING);
   if (status < 0) {
     LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
