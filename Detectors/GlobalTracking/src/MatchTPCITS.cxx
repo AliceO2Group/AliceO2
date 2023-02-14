@@ -1034,7 +1034,7 @@ int MatchTPCITS::compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC&
   }
   // calculate mutual chi2 excluding Z in continuos mode
   chi2 = getPredictedChi2NoZ(tITS, tTPC);
-  if (chi2 > mParams->cutMatchingChi2) {
+  if (chi2 > mParams->cutMatchingChi2 || chi2 < 0.) { // sometime due to the numerical stability the chi2 is negative, reject it.
     return RejectOnChi2;
   }
 
