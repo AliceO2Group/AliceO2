@@ -128,6 +128,7 @@ class GPUTPCTrackParam
   GPUd() bool CheckNumericalQuality() const;
 
   GPUd() void ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR);
+  GPUd() int GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const;
 
   GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
   {

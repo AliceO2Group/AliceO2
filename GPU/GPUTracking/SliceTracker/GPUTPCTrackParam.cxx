@@ -800,3 +800,36 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
   std::cout << "errs2: " << Err2Y() << " " << Err2Z() << " " << Err2SinPhi() << " " << Err2DzDs() << " " << Err2QPt() << std::endl;
 #endif
 }
+
+MEM_CLASS_PRE()
+GPUd() int MEM_LG(GPUTPCTrackParam)::GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const
+{
+  float k = mParam.mP[4] * bz;
+  float dx = x - mParam.mX;
+  float kdx = k * dx;
+  float ey = mParam.mP[2];
+  float ex = CAMath::Sqrt(1 - ey * ey);
+  float ey1 = kdx + ey;
+  if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
+    return 0;
+  }
+  float ss = ey + ey1;
+  float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
+  float cc = ex + ex1;
+  float dxcci = dx / cc;
+  float dy = dxcci * ss;
+  float norm2 = 1.f + ey * ey1 + ex * ex1;
+  float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
+  float dS;
+  {
+    float dSin = 0.5f * k * dl;
+    float a = dSin * dSin;
+    const float k2 = 1.f / 6.f;
+    const float k4 = 3.f / 40.f;
+    dS = dl + dl * a * (k2 + a * (k4));
+  }
+  float dz = dS * mParam.mP[3];
+  projY = mParam.mP[0] + dy;
+  projZ = mParam.mP[1] + dz;
+  return 1;
+}
