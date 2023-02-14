@@ -185,13 +185,14 @@ class MatchITSTPCQC
       LOG(fatal) << "Cannot get denominator histogram for TEfficiency object " << eff->GetName();
     }
     LOG(info) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
-
+    
     // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
     if (!eff->SetTotalHistogram(*hden, "f") || !eff->SetPassedHistogram(*hnum, "")) {
       LOG(fatal) << "Something went wrong when defining the efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
     }
     eff->SetTitle(Form("%s;%s;%s;%s", eff->GetTitle(), hnum->GetXaxis()->GetTitle(), hnum->GetYaxis()->GetTitle(), "Efficiency"));
   }
+
   int mNTPCSelectedTracks = 0;
   int mNITSTPCSelectedTracks = 0;
 
