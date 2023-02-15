@@ -80,14 +80,14 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg, int offs)
   std::bitset<12> trb(gbtTrg->triggerType);
   LOG(info) << "Offs: " << offs << " Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:"
             << gbtTrg->noData << " internal:" << gbtTrg->internal << " continuation:" << gbtTrg->continuation << " on " << describe();
-  gbtTrg->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtTrg->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal, int offs)
 {
   LOGP(info, "Offs: {} Calibration word {:5} | user_data {:#08x} on {}", offs, gbtCal->calibCounter, gbtCal->calibUserField, describe());
-  gbtCal->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtCal->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -95,7 +95,7 @@ void GBTLink::printHeader(const GBTDataHeader* gbtH, int offs)
 {
   std::bitset<28> LA(gbtH->activeLanes);
   LOG(info) << "Offs: " << offs << " Header : Active Lanes " << LA << " on " << describe();
-  gbtH->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtH->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -103,7 +103,7 @@ void GBTLink::printHeader(const GBTDataHeaderL* gbtH, int offs)
 {
   std::bitset<28> LA(gbtH->activeLanesL);
   LOG(info) << "Offs: " << offs << " HeaderL : Active Lanes " << LA << " on " << describe();
-  gbtH->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtH->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -111,28 +111,28 @@ void GBTLink::printTrailer(const GBTDataTrailer* gbtT, int offs)
 {
   std::bitset<28> LT(gbtT->lanesTimeout), LS(gbtT->lanesStops); // RSTODO
   LOG(info) << "Offs: " << offs << " Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS << " on " << describe();
-  gbtT->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtT->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD, int offs)
 {
   LOG(info) << "Offs: " << offs << " Diagnostic word on " << describe();
-  gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtD->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
 {
   LOGP(info, "Diagnostic for {} Lane {} | errorID: {} data {:#018x} on {}", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData, describe());
-  gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtD->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
 {
   LOGP(info, "Status data, not processed at the moment, on {}", describe());
-  gbtS->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+  gbtS->printX(expectPadding);
 }
 
 ///====================================================================
@@ -155,7 +155,7 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
     err |= uint8_t(Abort);
     return err; // fatal error
   }
-  if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
+  if (expectPadding && (RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) { // packet counter check makes sense only for data with padding (no UL)
     if (irHBF.isDummy()) {
       irHBF = RDHUtils::getHeartBeatIR(rdh);
     }
@@ -240,7 +240,7 @@ uint8_t GBTLink::checkErrorsTriggerWord(const GBTTrigger* gbtTrg)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger])) {
-      gbtTrg->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+      gbtTrg->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTTrigger];
       err |= uint8_t(ErrorPrinted);
     }
@@ -267,7 +267,7 @@ uint8_t GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader])) {
-      gbtH->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+      gbtH->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
       err |= uint8_t(ErrorPrinted);
     }
@@ -286,7 +286,7 @@ uint8_t GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
     gbtErrStatUpadated = true;
     if (verbosity >= VerboseErrors) {
-      gbtH->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+      gbtH->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
       err |= uint8_t(ErrorPrinted);
     }
@@ -396,7 +396,7 @@ uint8_t GBTLink::checkErrorsTrailerWord(const GBTDataTrailer* gbtT)
 {
   uint8_t err = uint8_t(NoError);
   if (!gbtT->isDataTrailer()) {
-    gbtT->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+    gbtT->printX(expectPadding);
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer])) {
@@ -475,7 +475,7 @@ uint8_t GBTLink::checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord])) {
-      gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+      gbtD->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingDiagnosticWord];
       err |= uint8_t(ErrorPrinted);
     }
@@ -494,7 +494,7 @@ uint8_t GBTLink::checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW)
     statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID])) {
-      gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+      gbtD->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrWrongeCableID] << ' ' << gbtD->getCableID();
       err |= uint8_t(ErrorPrinted);
     }
