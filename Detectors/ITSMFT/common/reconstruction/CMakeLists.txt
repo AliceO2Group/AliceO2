@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# add_compile_options(-O0 -g -fPIC)
+
 o2_add_library(ITSMFTReconstruction
                TARGETVARNAME targetName
                SOURCES src/ChipMappingITS.cxx
@@ -33,7 +35,7 @@ o2_add_library(ITSMFTReconstruction
                                      O2::CommonDataFormat
                                      O2::DetectorsRaw
                                      O2::DetectorsBase
-                                     O2::SimulationDataFormat 
+                                     O2::SimulationDataFormat
                                      O2::DataFormatsITSMFT
                                      O2::DPLUtils
                                      O2::rANS
@@ -65,4 +67,4 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-  
+
