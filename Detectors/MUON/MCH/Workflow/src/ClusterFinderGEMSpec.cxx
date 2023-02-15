@@ -36,6 +36,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHBase/PreCluster.h"
 #include "DataFormatsMCH/Cluster.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
@@ -171,6 +172,9 @@ class ClusterFinderGEMTask
         delete mGEMDump;
         mGEMDump = nullptr;
       }
+      mErrorMap.forEach([](Error error) {
+        LOGP(warning, error.asString());
+      });
     });
     auto stop = [this]() {
       /// close the output file
@@ -198,6 +202,8 @@ class ClusterFinderGEMTask
     uint32_t iPreCluster = 0;
 
     clusterROFs.reserve(preClusterROFs.size());
+    ErrorMap errorMap; // TODO: use this errorMap to score processing errors
+
     for (const auto& preClusterROF : preClusterROFs) {
       // LOG(info) << "processing interaction: time frame " << preClusterROF.getBCData().orbit << "...";
       // GG infos
@@ -284,6 +290,13 @@ class ClusterFinderGEMTask
       writeClusters(clusters, usedDigits);
     }
 
+    // create the output message for clustering errors
+    auto& clusterErrors = pc.outputs().make<std::vector<Error>>(OutputRef{"clustererrors"});
+    errorMap.forEach([&clusterErrors](Error error) {
+      clusterErrors.emplace_back(error);
+    });
+    mErrorMap.add(errorMap);
+
     LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
          clusters.size(), preClusters.size(), preClusterROFs.size());
   }
@@ -318,6 +331,7 @@ class ClusterFinderGEMTask
   int mode;                                       ///< Original or GEM or both
   ClusterDump* mGEMDump;
   ClusterDump* mOriginalDump;
+  ErrorMap mErrorMap{};                               ///< counting of encountered errors
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
 
@@ -331,7 +345,8 @@ o2::framework::DataProcessorSpec getClusterFinderGEMSpec(const char* specName)
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"clusterrofs"}, "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
+            OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{{"clustererrors"}, "MCH", "CLUSTERERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderGEMTask>()},
     Options{
       {"mch-config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
