@@ -23,7 +23,7 @@ namespace gpu
 {
 // Copy of TPC constants from AliRoot:TPCGeometry / O2:TPC/Base/Mapper
 // Should be unified, but cannot take the contants from the official headers for now, since we want it to be constexpr
-class GPUTPCGeometry
+class GPUTPCGeometry // TODO: Make values constexpr
 {
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__)
   GPUTPCGeometry(); // Fake constructor declaration for OpenCL due to static members, does not exist!
@@ -55,7 +55,7 @@ class GPUTPCGeometry
   const float mPadWidth[10] GPUCA_CPP11_INIT(= {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f});
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 512.f);
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 512.f); // Used in compression, must remain constant at 250cm, 512 time bins!
 #endif
 
  public:
@@ -87,7 +87,7 @@ class GPUTPCGeometry
   const float mPadWidth[3] GPUCA_CPP11_INIT(= {.4f, .6f, .6f});
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 1024.f);
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 1024.f); // Used in compression, must remain constant at 250cm, 1024 time bins!
 #endif
 
  public:
@@ -104,6 +104,7 @@ class GPUTPCGeometry
   static CONSTEXPR float FACTOR_Z2T GPUCA_CPP11_INIT(= 1.f / FACTOR_T2Z);
 #endif
  public:
+  GPUd() static CONSTEXPR float TPCLength() { return 250.f - 0.275f; }
   GPUd() float Row2X(int row) const { return (mX[row]); }
   GPUd() float PadHeight(int row) const { return (mPadHeight[GetRegion(row)]); }
   GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
@@ -118,7 +119,7 @@ class GPUTPCGeometry
 
   GPUd() static float LinearTime2Z(int slice, float time)
   {
-    const float v = 250.f - time * FACTOR_T2Z;
+    const float v = 250.f - time * FACTOR_T2Z; // Used in compression, must remain constant at 250cm!
     return (slice >= GPUCA_NSLICES / 2) ? -v : v;
   }
 
@@ -131,7 +132,7 @@ class GPUTPCGeometry
   GPUd() static float LinearZ2Time(int slice, float z)
   {
     const float v = (slice >= GPUCA_NSLICES / 2) ? -z : z;
-    return (250.f - v) * FACTOR_Z2T;
+    return (250.f - v) * FACTOR_Z2T; // Used in compression, must remain constant at 250cm
   }
 #endif
 };

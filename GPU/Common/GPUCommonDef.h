@@ -54,19 +54,15 @@
 #ifdef GPUCA_NOCOMPAT
   #define CON_DELETE = delete
   #define CON_DEFAULT = default
-  #define CONSTEXPR constexpr
-  #define CONSTEXPRRET CONSTEXPR
   #if defined(__cplusplus) && __cplusplus >= 201703L
-    #define CONSTEXPR17 constexpr
+    #define CONSTEXPR constexpr
   #else
-    #define CONSTEXPR17
+    #define CONSTEXPR
   #endif
 #else
   #define CON_DELETE
   #define CON_DEFAULT
-  #define CONSTEXPR const
-  #define CONSTEXPR17
-  #define CONSTEXPRRET
+  #define CONSTEXPR
 #endif
 #if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
   #define VOLATILE // ROOT5 has a problem with volatile in CINT

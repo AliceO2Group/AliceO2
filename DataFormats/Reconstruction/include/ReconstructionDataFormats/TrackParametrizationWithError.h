@@ -406,6 +406,8 @@ template <typename value_T>
 GPUdi() void TrackParametrizationWithError<value_T>::updateCovCorr(const value_t* delta2)
 {
   // Increment cov.matrix diagonal elements by the vector of squared deltas, modify non-diagonal elements to preserve correlations
+#pragma GCC diagnostic push // FIXME: remove in the future, GCC compiler bug reports incorrect uninitialized warning for oldDiag
+#pragma GCC diagnostic ignored "-Wuninitialized"
   value_t oldDiag[kNParams];
   for (int i = 0; i < kNParams; i++) {
     auto diagI = DiagMap[i];
@@ -415,6 +417,7 @@ GPUdi() void TrackParametrizationWithError<value_T>::updateCovCorr(const value_t
       mC[CovarMap[i][j]] *= gpu::CAMath::Sqrt(mC[diagI] * mC[DiagMap[j]] / (oldDiag[i] * oldDiag[j]));
     }
   }
+#pragma GCC diagnostic pop
 }
 
 //__________________________________________________________________________

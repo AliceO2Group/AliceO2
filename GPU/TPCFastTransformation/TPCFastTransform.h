@@ -177,6 +177,7 @@ class TPCFastTransform : public FlatObject
   /// taking calibration + alignment into account.
   ///
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
+  GPUd() void TransformYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -337,6 +338,8 @@ class TPCFastTransform : public FlatObject
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
   o2::utils::DebugStreamer mStreamer;                     ///<! debug streamer for fast transform
 
+  GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const;
+
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastTransform, 3);
 #endif
@@ -440,42 +443,15 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
   dz = sideC ? dv : -dv;
 }
 
-GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, float scale) const
+GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const
 {
-  /// _______________ The main method: cluster transformation _______________________
-  ///
-  /// Transforms raw TPC coordinates to local XYZ withing a slice
-  /// taking calibration + alignment into account.
-  ///
-
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-
-  // const SliceInfo &sliceInfo = getSliceInfo( slice );
-  // bool sideC = ( slice >= NumberOfSlices / 2 );
-
-  x = rowInfo.x;
-  float u = 0, v = 0;
-  convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
-
   if (mApplyCorrection) {
     float dx, du, dv;
 
-    if (!mCorrectionSlow) {
-      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
-      if (ref && scale > 0.f) { // scaling was requested
-        float dxRef, duRef, dvRef;
-        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
-        dx = (dx - dxRef) * scale + dxRef;
-        du = (du - duRef) * scale + duRef;
-        dv = (dv - dvRef) * scale + dvRef;
-      }
-    } else {
+#ifndef GPUCA_GPUCODE
+    if (mCorrectionSlow) {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
-      float dzTOF = 0;
-      getTOFcorrection(slice, row, x, ly, lz, dzTOF);
-      z += dzTOF;
-
       float gx, gy, gz;
       getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
 
@@ -487,6 +463,17 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
         du = -du; // mirror for c-Side
       } else {
         dv = -dv; // mirror z for A-Side
+      }
+    } else
+#endif // GPUCA_GPUCODE
+    {
+      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+      if (ref && scale > 0.f) { // scaling was requested
+        float dxRef, duRef, dvRef;
+        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+        dx = (dx - dxRef) * scale + dxRef;
+        du = (du - duRef) * scale + duRef;
+        dv = (dv - dvRef) * scale + dvRef;
       }
     }
 
@@ -546,6 +533,37 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
     u += du;
     v += dv;
   }
+}
+
+GPUdi() void TPCFastTransform::TransformYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref, float scale) const
+{
+  float u, v;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  TransformInternal(slice, row, u, v, x, ref, scale);
+  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  float dzTOF = 0;
+  getTOFcorrection(slice, row, x, y, z, dzTOF);
+  z += dzTOF;
+}
+
+GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, float scale) const
+{
+  /// _______________ The main method: cluster transformation _______________________
+  ///
+  /// Transforms raw TPC coordinates to local XYZ withing a slice
+  /// taking calibration + alignment into account.
+  ///
+
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+
+  // const SliceInfo &sliceInfo = getSliceInfo( slice );
+  // bool sideC = ( slice >= NumberOfSlices / 2 );
+
+  x = rowInfo.x;
+  float u = 0, v = 0;
+  convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
+
+  TransformInternal(slice, row, u, v, x, ref, scale);
 
   getGeometry().convUVtoLocal(slice, u, v, y, z);
 

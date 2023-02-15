@@ -14,6 +14,7 @@
 
 #include "GPUTPCTrackLinearisation.h"
 #include "GPUTPCTrackParam.h"
+#include "GPUTPCGeometry.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -724,6 +725,65 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
          (c[12] * c[12] <= c[14] * c[5]) && (c[13] * c[13] <= c[14] * c[9]);
   }
   return ok;
+}
+
+MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCTrackParam)::ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR)
+{
+  const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mParam.mP[4] * bz));
+
+  const float dist2 = mParam.mX * mParam.mX + mParam.mP[0] * mParam.mP[0];
+  const float dist1r2 = dist2 * r1 * r1;
+  float deltaZ = 0.f;
+  bool beamlineReached = false;
+  if (dist1r2 < 4) {
+    const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
+    const float beta = CAMath::ATan2(mParam.mP[0], mParam.mX);
+    const int comp = mParam.mP[2] > CAMath::Sin(beta);
+    const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
+    const float res = CAMath::Abs(sinab - mParam.mP[2]);
+
+    if (res < 0.2) {
+      const float r = 1.f / r1;
+      const float dS = alpha * r;
+      float z0 = dS * mParam.mP[3];
+      if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
+        z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+      }
+      deltaZ = mParam.mP[1] - z0;
+      beamlineReached = true;
+    }
+  }
+
+  if (!beamlineReached) {
+    float basez, basex;
+    if (CAMath::Abs(z1) < CAMath::Abs(z2)) {
+      basez = z1;
+      basex = x1;
+    } else {
+      basez = z2;
+      basex = x2;
+    }
+    float refZ = ((basez > 0) ? defaultZOffsetOverR : -defaultZOffsetOverR) * basex;
+    deltaZ = basez - refZ - mParam.mZOffset;
+  }
+  mParam.mZOffset += deltaZ;
+  mParam.mP[1] -= deltaZ;
+  deltaZ = 0;
+  float zMax = CAMath::Max(z1, z2);
+  float zMin = CAMath::Min(z1, z2);
+  if (zMin < 0 && zMin - mParam.mZOffset < -GPUTPCGeometry::TPCLength()) {
+    deltaZ = zMin - mParam.mZOffset + GPUTPCGeometry::TPCLength();
+  } else if (zMax > 0 && zMax - mParam.mZOffset > GPUTPCGeometry::TPCLength()) {
+    deltaZ = zMax - mParam.mZOffset - GPUTPCGeometry::TPCLength();
+  }
+  if (zMin < 0 && zMax - (mParam.mZOffset + deltaZ) > 0) {
+    deltaZ = zMax - mParam.mZOffset;
+  } else if (zMax > 0 && zMin - (mParam.mZOffset + deltaZ) < 0) {
+    deltaZ = zMin - mParam.mZOffset;
+  }
+  mParam.mZOffset += deltaZ;
+  mParam.mP[1] -= deltaZ;
 }
 
 #if !defined(GPUCA_GPUCODE)

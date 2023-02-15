@@ -82,7 +82,7 @@ struct GBTLink {
 
   using RDH = o2::header::RDHAny;
   using RDHUtils = o2::raw::RDHUtils;
-  static constexpr int CRUPageAlignment = 32; // use such alignment (in bytes) for CRU pages
+  static constexpr int CRUPageAlignment = 16; // use such alignment (in bytes) for CRU pages
   CollectedDataStatus status = None;
   Verbosity verbosity = VerboseErrors;
   std::vector<PhysTrigger>* extTrigVec = nullptr;

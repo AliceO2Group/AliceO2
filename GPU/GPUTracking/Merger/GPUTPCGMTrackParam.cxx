@@ -891,8 +891,8 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
       const float r = 1.f / r1;
       const float dS = alpha * r;
       float z0 = dS * mP[3];
-      if (CAMath::Abs(z0) > 250.f) {
-        z0 = z0 > 0 ? 250.f : -250.f;
+      if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
+        z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
       }
       deltaZ = mP[1] - z0;
       beamlineReached = true;
@@ -935,10 +935,10 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     float zMax = CAMath::Max(tz1, tz2);
     float zMin = CAMath::Min(tz1, tz2);
     // printf("Z Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, zMin, zMax, mTZOffset);
-    if (zMin < 0 && zMin - mTZOffset < -250) {
-      deltaZ = zMin - mTZOffset + 250;
-    } else if (zMax > 0 && zMax - mTZOffset > 250) {
-      deltaZ = zMax - mTZOffset - 250;
+    if (zMin < 0 && zMin - mTZOffset < -GPUTPCGeometry::TPCLength()) {
+      deltaZ = zMin - mTZOffset + GPUTPCGeometry::TPCLength();
+    } else if (zMax > 0 && zMax - mTZOffset > GPUTPCGeometry::TPCLength()) {
+      deltaZ = zMax - mTZOffset - GPUTPCGeometry::TPCLength();
     }
     if (zMin < 0 && zMax - (mTZOffset + deltaZ) > 0) {
       deltaZ = zMax - mTZOffset;

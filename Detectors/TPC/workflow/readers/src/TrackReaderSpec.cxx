@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "CommonUtils/NameConf.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
 
 using namespace o2::framework;
 
@@ -43,13 +44,32 @@ void TrackReader::run(ProcessingContext& pc)
   accumulate(ent, 1);                // to really accumulate all, use accumulate(ent,mTree->GetEntries());
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
+  using TrackTunePar = o2::globaltracking::TrackTuneParams;
+  const auto& trackTune = TrackTunePar::Instance();
+  if (trackTune.sourceLevelTPC &&
+      (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
+       trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
+    for (auto& trc : mTracksOut) {
+      if (trackTune.useTPCInnerCorr) {
+        trc.updateParams(trackTune.tpcParInner);
+      }
+      if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
+        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType);
+      }
+      if (trackTune.useTPCOuterCorr) {
+        trc.getParamOut().updateParams(trackTune.tpcParOuter);
+      }
+      if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
+        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType);
+      }
+    }
+  }
 
   pc.outputs().snapshot(Output{"TPC", "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
   pc.outputs().snapshot(Output{"TPC", "CLUSREFS", 0, Lifetime::Timeframe}, mCluRefVecOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe}, mMCTruthOut);
   }
-
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
