@@ -6,8 +6,8 @@ set -o pipefail
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
-source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh
-source $GEN_TOPO_MYDIR/setenv.sh
+source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }
+source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
 if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
   alien-token-info >& /dev/null
@@ -29,9 +29,9 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
-source $GEN_TOPO_MYDIR/getCommonArgs.sh
-source $GEN_TOPO_MYDIR/workflow-setup.sh
-workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
+source $GEN_TOPO_MYDIR/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
+source $GEN_TOPO_MYDIR/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
+workflow_has_parameter CALIB && { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 [[ $GPUTYPE != "CPU" || ! -z $OPTIMIZED_PARALLEL_ASYNC ]] && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
@@ -469,8 +469,8 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Calibration workflows
-workflow_has_parameter CALIB && { source ${CALIB_WF:-$GEN_TOPO_MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
-workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$GEN_TOPO_MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter CALIB && { source ${CALIB_WF:-$GEN_TOPO_MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && echo "calib-workflow.sh failed" 1>&2 && exit 1; }
+workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$GEN_TOPO_MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && echo "aggregator-workflow.sh failed" 1>&2 && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display
@@ -489,7 +489,7 @@ workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-w
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-workflow_has_parameter QC && { source $O2DPG_ROOT/DATA/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter QC && { source $O2DPG_ROOT/DATA/production/qc-workflow.sh; [[ $? != 0 ]] && echo "qc-workflow.sh failed" 1>&2 && exit 1; }
 
 if [[ ! -z "$EXTRA_WORKFLOW" ]]; then
   WORKFLOW+="$EXTRA_WORKFLOW"
