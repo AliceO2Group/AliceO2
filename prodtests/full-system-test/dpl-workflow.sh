@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Non-zero exit code already if one command in a pipe fails
+set -o pipefail
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
