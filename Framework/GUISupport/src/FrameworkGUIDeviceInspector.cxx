@@ -275,6 +275,26 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+#ifdef __APPLE__
+  if (ImGui::Button("Profile Allocations 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Allocations --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+    LOG(error) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+#endif
+
 #if DPL_ENABLE_TRACING
   ImGui::SameLine();
   if (ImGui::Button("Tracy")) {
