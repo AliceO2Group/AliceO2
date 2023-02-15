@@ -118,6 +118,20 @@ class CallbackService
                                      RegistryPair<Id, Id::ExitRequested, ExitRequestedCallback>            //
                                      >;                                                                    //
 
+  // Typesafe API to register callbacks
+  template <Id id, typename U>
+  void set(U&& callback)
+  {
+    mCallbacks.set(id, std::forward<U>(callback));
+  }
+
+  // Typesafe API to invoke callbacks
+  template <Id id, typename... TArgs>
+  auto call(TArgs&&... args)
+  {
+    mCallbacks(id, std::forward<TArgs>(args)...);
+  }
+
   // set callback for specified processing step
   template <typename U>
   void set(Id id, U&& cb)
