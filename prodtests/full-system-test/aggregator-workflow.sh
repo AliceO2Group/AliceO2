@@ -4,10 +4,10 @@
 #ENABLE_METRICS=1
 [ -d "$O2DPG_ROOT" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
-source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 if [[ -z "$WORKFLOW" ]] || [[ -z "$GEN_TOPO_MYDIR" ]]; then
   echo This script must be called from the dpl-workflow.sh and not standalone 1>&2

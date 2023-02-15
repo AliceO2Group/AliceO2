@@ -5,4 +5,4 @@ if [ "0$O2DPG_ROOT" == "0" ]; then
     exit 1
 fi
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
