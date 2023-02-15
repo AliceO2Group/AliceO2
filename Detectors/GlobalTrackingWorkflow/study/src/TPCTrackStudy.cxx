@@ -215,7 +215,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       if (!pPDG) {
         continue;
       }
-      o2::track::TrackPar mctrO2(xyz, pxyz, (pPDG->Charge() + 0.1) / 3, false);
+      o2::track::TrackPar mctrO2(xyz, pxyz, TMath::Nint(pPDG->Charge() / 3), false);
       //
       // propagate it to the alpha/X of the reconstructed track
       if (!mctrO2.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(mctrO2, tr.getX())) {
