@@ -2241,7 +2241,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   };
 
   // we are at the EMCAL X, check if we are in the good sector
-  if (!propExactSector(XEMCAL) || SECTORTYPE[sector] == SNONE) { // propagation faile or neither EMCAL not DCAL/PHOS
+  if (!propExactSector(XEMCAL) || SECTORTYPE[sector] == SNONE) { // propagation failed or neither EMCAL not DCAL/PHOS
     return;
   }
 
@@ -2259,7 +2259,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
     }
     r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY());
     tg = std::atan2(r, outTr.getZ());
-    eta = std::log(std::tan(0.5f * tg));
+    eta = -std::log(std::tan(0.5f * tg));
   } else if (!(SECTORTYPE[sector] & SEMCAL)) { // are in the sector with PHOS only
     return;
   }
