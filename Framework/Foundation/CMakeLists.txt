@@ -28,6 +28,7 @@ add_executable(o2-test-framework-foundation
                test/test_FunctionalHelpers.cxx 
                test/test_Traits.cxx 
                test/test_StructToTuple.cxx
+               test/test_CallbackRegistry.cxx
                test/test_CompilerBuiltins.cxx 
                #               test/test_Signpost.cxx 
                test/test_RuntimeError.cxx)
