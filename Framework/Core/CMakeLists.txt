@@ -179,7 +179,6 @@ add_executable(o2-test-framework-core
               test/test_ASoAHelpers.cxx
               test/test_BoostOptionsRetriever.cxx
               test/test_ConfigurationOptionsRetriever.cxx
-              test/test_CallbackRegistry.cxx
               test/test_ChannelSpecHelpers.cxx
               test/test_CheckTypes.cxx
               test/test_CompletionPolicy.cxx

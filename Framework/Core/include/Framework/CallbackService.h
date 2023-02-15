@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_CALLBACKSERVICE_H_
 #define O2_FRAMEWORK_CALLBACKSERVICE_H_
 
-#include "CallbackRegistry.h"
+#include "Framework/CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/DataProcessingHeader.h"
 #include "ServiceRegistry.h"
@@ -38,8 +38,8 @@ class CallbackService
   /// invoked by the main thread only.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// the defined processing steps at which a callback can be invoked
-  enum class Id {
-    Start,        /**< Invoked before the inner loop is started */
+  enum struct Id : int {
+    Start = 0,    /**< Invoked before the inner loop is started */
     Stop,         /**< Invoked when the device is about to be stoped */
     Reset,        /**< Invoked on device rest */
     Idle,         /**< Invoked when there was no computation scheduled */
@@ -118,32 +118,17 @@ class CallbackService
                                      RegistryPair<Id, Id::ExitRequested, ExitRequestedCallback>            //
                                      >;                                                                    //
 
-  // Typesafe API to register callbacks
-  template <Id id, typename U>
-  void set(U&& callback)
+  template <Id ID, typename U>
+  void set(U&& cb)
   {
-    mCallbacks.set(id, std::forward<U>(callback));
-  }
-
-  // Typesafe API to invoke callbacks
-  template <Id id, typename... TArgs>
-  auto call(TArgs&&... args)
-  {
-    mCallbacks(id, std::forward<TArgs>(args)...);
-  }
-
-  // set callback for specified processing step
-  template <typename U>
-  void set(Id id, U&& cb)
-  {
-    mCallbacks.set(id, std::forward<U>(cb));
+    mCallbacks.set<ID>(std::forward<U>(cb));
   }
 
   // execute callback for specified processing step with argument pack
-  template <typename... TArgs>
-  auto operator()(Id id, TArgs&&... args)
+  template <Id ID, typename... TArgs>
+  auto call(TArgs&&... args)
   {
-    mCallbacks(id, std::forward<TArgs>(args)...);
+    mCallbacks.call<ID>(std::forward<TArgs>(args)...);
   }
 
  private:
