@@ -148,9 +148,9 @@ void ServiceRegistry::postRenderGUICallbacks()
   }
 }
 
-void ServiceRegistry::throwError(RuntimeErrorRef const& ref) const
+void ServiceRegistry::throwError(const char* name, int64_t hash, int64_t streamId, int64_t dataProcessorId) const
 {
-  throw ref;
+  throw runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", name, hash, streamId, dataProcessorId);
 }
 
 int ServiceRegistry::getPos(ServiceTypeHash typeHash, Salt salt) const
@@ -169,7 +169,7 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
 {
   // Cannot find a stream service using a global salt.
   if (salt.streamId == GLOBAL_CONTEXT_SALT.streamId && kind == ServiceKind::Stream) {
-    throwError(runtime_error_f("Cannot find %s service using a global salt.", name ? name : "a stream"));
+    throw runtime_error_f("Cannot find %s service using a global salt.", name ? name : "a stream");
   }
   // Look for the service. If found, return it.
   // Notice how due to threading issues, we might
@@ -179,7 +179,7 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
   // If we are here it means we never registered a
   // service for the 0 thread (i.e. the main thread).
   if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && valueFromSalt(mServicesKey[pos].load().salt) != valueFromSalt(salt)) {
-    throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.streamId, mServicesKey[pos].load().salt.streamId));
+    throw runtime_error_f("Inconsistent registry for thread %d. Expected %d", salt.streamId, mServicesKey[pos].load().salt.streamId);
     O2_BUILTIN_UNREACHABLE();
   }
 
@@ -188,12 +188,12 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     bool isDataProcessor = mServicesMeta[pos].kind == ServiceKind::DataProcessorStream || mServicesMeta[pos].kind == ServiceKind::DataProcessorGlobal || mServicesMeta[pos].kind == ServiceKind::DataProcessorSerial;
 
     if (isStream && salt.streamId <= 0) {
-      throwError(runtime_error_f("A stream service (%s) cannot be retrieved from a non stream salt %d", name ? name : "unknown", salt.streamId));
+      throw runtime_error_f("A stream service (%s) cannot be retrieved from a non stream salt %d", name ? name : "unknown", salt.streamId);
       O2_BUILTIN_UNREACHABLE();
     }
 
     if (isDataProcessor && salt.dataProcessorId < 0) {
-      throwError(runtime_error_f("A data processor service (%s) cannot be retrieved from a non dataprocessor context %d", name ? name : "unknown", salt.dataProcessorId));
+      throw runtime_error_f("A data processor service (%s) cannot be retrieved from a non dataprocessor context %d", name ? name : "unknown", salt.dataProcessorId);
       O2_BUILTIN_UNREACHABLE();
     }
 
@@ -210,15 +210,15 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
   if (salt.streamId == 0) {
     for (int i = 0; i < MAX_SERVICES; ++i) {
       if (mServicesKey[i].load().typeHash.hash == typeHash.hash && valueFromSalt(mServicesKey[i].load().salt) != valueFromSalt(salt)) {
-        throwError(runtime_error_f("Service %s found in registry at %d rather than where expected by getPos", name, i));
+        throw runtime_error_f("Service %s found in registry at %d rather than where expected by getPos", name, i);
       }
       if (mServicesKey[i].load().typeHash.hash == typeHash.hash) {
-        throwError(runtime_error_f("Found service %s with hash %d but with salt %d of service kind %d",
-                                   name, typeHash, valueFromSalt(mServicesKey[i].load().salt), (int)mServicesMeta[i].kind));
+        throw runtime_error_f("Found service %s with hash %d but with salt %d of service kind %d",
+                              name, typeHash, valueFromSalt(mServicesKey[i].load().salt), (int)mServicesMeta[i].kind);
       }
     }
-    throwError(runtime_error_f("Unable to find requested service %s with hash %d using salt %d for service kind %d",
-                               name ? name : "<unknown>", typeHash, valueFromSalt(salt), (int)kind));
+    throw runtime_error_f("Unable to find requested service %s with hash %d using salt %d for service kind %d",
+                          name ? name : "<unknown>", typeHash, valueFromSalt(salt), (int)kind);
   }
 
   // Let's lookit up in the global context for the data processor.
@@ -243,8 +243,8 @@ void* ServiceRegistry::get(ServiceTypeHash typeHash, Salt salt, ServiceKind kind
     LOGP(detail, "Registering a stream service {} with hash {} and salt {}", name ? name : "", typeHash.hash, valueFromSalt(salt));
     auto pos = getPos(typeHash, {.streamId = GLOBAL_CONTEXT_SALT.streamId, .dataProcessorId = salt.dataProcessorId});
     if (pos == -1) {
-      throwError(runtime_error_f("Stream service %s with hash %d using salt %d for service kind %d was not declared upfront.",
-                                 name, typeHash, valueFromSalt(salt), (int)kind));
+      throw runtime_error_f("Stream service %s with hash %d using salt %d for service kind %d was not declared upfront.",
+                            name, typeHash, valueFromSalt(salt), (int)kind);
     }
     auto& spec = mSpecs[mServicesMeta[pos].specIndex.index];
     auto& deviceState = this->get<DeviceState>(globalDeviceSalt());
