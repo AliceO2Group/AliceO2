@@ -204,18 +204,19 @@ class TimeFrame
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
+  const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
+  std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
   std::vector<std::vector<int>> mIndexTables;
   std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
-
- private:
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
+ private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
   float mBeamPos[2] = {0.f, 0.f};
@@ -230,7 +231,6 @@ class TimeFrame
   std::vector<Vertex> mPrimaryVertices;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
-  const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<Cell>> mCells;
@@ -248,7 +248,7 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-  std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
+
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
