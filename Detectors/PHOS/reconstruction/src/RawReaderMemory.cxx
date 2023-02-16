@@ -40,6 +40,8 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV5*>(payloadwords));
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
+  } else if (headerversion == 7) {
+    return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV7*>(payloadwords));
   }
   LOG(error) << "Wrong header version " << int(headerversion);
   throw RawDecodingError::ErrorType_t::HEADER_DECODING;
