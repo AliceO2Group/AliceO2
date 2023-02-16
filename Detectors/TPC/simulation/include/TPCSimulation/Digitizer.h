@@ -18,8 +18,6 @@
 
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/Point.h"
-#include "TPCSpaceCharge/SpaceCharge.h"
-
 #include "TPCBase/Mapper.h"
 
 #include <cmath>
@@ -35,6 +33,11 @@ namespace tpc
 {
 
 class DigitContainer;
+
+template <class T>
+class SpaceCharge;
+
+enum class SCDistortionType : int;
 
 /// \class Digitizer
 /// This is the digitizer for the ALICE GEM TPC.
@@ -55,10 +58,10 @@ class Digitizer
   using SC = SpaceCharge<double>;
 
   /// Default constructor
-  Digitizer() = default;
+  Digitizer();
 
   /// Destructor
-  ~Digitizer() = default;
+  ~Digitizer();
 
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
@@ -115,15 +118,15 @@ class Digitizer
   /// \param nZSlices number of grid points in z, must be (2**N)+1
   /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
-  void setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity);
+  void setUseSCDistortions(const SCDistortionType& distortionType, const TH3* hisInitialSCDensity);
   /// Enable the use of space-charge distortions and provide SpaceCharge object as input
   /// \param spaceCharge unique pointer to spaceCharge object
   void setUseSCDistortions(SC* spaceCharge);
 
   /// Enable the use of space-charge distortions by providing global distortions and global corrections stored in a ROOT file
   /// The storage of the values should be done by the methods provided in the SpaceCharge class
-  /// \param TFile file containing distortions and corrections
-  void setUseSCDistortions(TFile& finp);
+  /// \param file containing distortions
+  void setUseSCDistortions(std::string_view finp);
 
   void setVDrift(float v) { mVDrift = v; }
   void setTDriftOffset(float t) { mTDriftOffset = t; }
@@ -137,7 +140,7 @@ class Digitizer
   float mVDrift = 0;                 ///< VDrift for current timestamp
   float mTDriftOffset = 0;           ///< drift time additive offset in \mus
   bool mIsContinuous;                ///< Switch for continuous readout
-  bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
+  bool mUseSCDistortions = false;    ///< Flag to switch on the use of space-charge distortions
   ClassDefNV(Digitizer, 1);
 };
 } // namespace tpc

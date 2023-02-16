@@ -13,12 +13,15 @@ o2_add_library(TPCSpaceCharge
                TARGETVARNAME targetName
                SOURCES src/SpaceCharge.cxx
                        src/PoissonSolver.cxx
-                       src/SpaceChargeParameter.cxx
                        src/TriCubic.cxx
+                       src/DataContainer3D.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      O2::Field
                                      Vc::Vc
-                                     ROOT::Core)
+                                     ROOT::Core
+                                     ROOT::ROOTDataFrame
+                                     O2::DataFormatsParameters)
+
 
 o2_target_root_dictionary(TPCSpaceCharge
                           HEADERS include/TPCSpaceCharge/PoissonSolver.h

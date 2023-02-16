@@ -25,7 +25,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CDBInterface.h"
-
+#include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCBase/Mapper.h"
 
 #include <fairlogger/Logger.h>
@@ -33,6 +33,10 @@
 ClassImp(o2::tpc::Digitizer);
 
 using namespace o2::tpc;
+
+Digitizer::~Digitizer() = default;
+
+Digitizer::Digitizer() = default;
 
 void Digitizer::init()
 {
@@ -164,15 +168,12 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
   // flushing debug output to file
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
-      mSpaceCharge->flushStreamer();
-    }
+  if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
+    o2::utils::DebugStreamer::instance()->flush();
   }
 }
 
-void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
+void Digitizer::setUseSCDistortions(const SCDistortionType& distortionType, const TH3* hisInitialSCDensity)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
@@ -191,7 +192,7 @@ void Digitizer::setUseSCDistortions(SC* spaceCharge)
   mSpaceCharge.reset(spaceCharge);
 }
 
-void Digitizer::setUseSCDistortions(TFile& finp)
+void Digitizer::setUseSCDistortions(std::string_view finp)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {

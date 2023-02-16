@@ -173,7 +173,8 @@ template <typename DataT>
 void poissonSolver3D()
 {
   using GridProp = GridProperties<DataT>;
-  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ), GridProp::getGridSpacingR(NR), GridProp::getGridSpacingPhi(NPHI)};
+  const ParamSpaceCharge params{NR, NZ, NPHI};
+  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ), GridProp::getGridSpacingR(NR), GridProp::getGridSpacingPhi(NPHI), params};
 
   using DataContainer = o2::tpc::DataContainer3D<DataT>;
   DataContainer potentialNumerical(NZ, NR, NPHI);
@@ -188,7 +189,7 @@ void poissonSolver3D()
   // set analytical potential
   setPotentialFromFormula<DataT>(analyticalFields, grid3D, potentialAnalytical);
 
-  //calculate numerical potential
+  // calculate numerical potential
   PoissonSolver<DataT> poissonSolver(grid3D);
   const int symmetry = 0;
   poissonSolver.poissonSolver3D(potentialNumerical, charge, symmetry);
@@ -201,7 +202,8 @@ template <typename DataT>
 void poissonSolver2D()
 {
   using GridProp = GridProperties<DataT>;
-  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ2D), GridProp::getGridSpacingR(NR2D), GridProp::getGridSpacingPhi(NPHI2D)};
+  const ParamSpaceCharge params{NR2D, NZ2D, NPHI2D};
+  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ2D), GridProp::getGridSpacingR(NR2D), GridProp::getGridSpacingPhi(NPHI2D), params};
 
   using DataContainer = o2::tpc::DataContainer3D<DataT>;
   DataContainer potentialNumerical(NZ2D, NR2D, NPHI2D);
@@ -216,7 +218,7 @@ void poissonSolver2D()
   // set analytical potential
   setPotentialFromFormula<DataT>(analyticalFields, grid3D, potentialAnalytical);
 
-  //calculate numerical potential
+  // calculate numerical potential
   PoissonSolver<DataT> poissonSolver(grid3D);
   poissonSolver.poissonSolver2D(potentialNumerical, charge);
 
@@ -226,29 +228,18 @@ void poissonSolver2D()
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D_test)
 {
-  o2::tpc::MGParameters::isFull3D = true; //3D
-
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI);
-
+  o2::tpc::MGParameters::isFull3D = true; // 3D
   poissonSolver3D<DataT>();
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D2D_test)
 {
   o2::tpc::MGParameters::isFull3D = false; // 3D2D
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI);
   poissonSolver3D<DataT>();
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver2D_test)
 {
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ2D);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR2D);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI2D);
   poissonSolver2D<DataT>();
 }
 
