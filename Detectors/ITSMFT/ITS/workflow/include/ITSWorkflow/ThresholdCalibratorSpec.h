@@ -76,6 +76,7 @@ enum RunTypes {
   VCASN100 = 10,
   VCASN100_100HZ = 21,
   VCASN130 = 22,
+  VCASNBB = 24,
   ITHR150 = 27,
   ITHR100 = 11,
   ITHR100_100HZ = 25,
