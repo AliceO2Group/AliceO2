@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHWorkflow/PreClusterReaderSpec.h"
+#include "MCHIO/PreClusterReaderSpec.h"
 
 #include <iostream>
 #include <vector>

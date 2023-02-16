@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHWorkflow/PreClusterWriterSpec.h"
+#include "MCHIO/PreClusterWriterSpec.h"
 
 #include <vector>
 #include "Framework/Logger.h"

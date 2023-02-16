@@ -8,6 +8,8 @@
 
 * [Digit reader](#digit-reader)
 * [Digit writer](#digit-writer)
+* [Precluster reader](#precluster-reader)
+* [Precluster writer](#precluster-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -40,4 +42,26 @@ For some expert usage you can also specify the data specifications that will be
 used as sources for the digits and the rofs messages (respectively `MCH/DIGITS` and
 `MCH/DIGITROFS` by default) using the `--mch-input-digits-data-description` and
 `-mch-input-digitrofs-data-description`options.
+
+## Precluster reader
+
+```shell
+o2-mch-preclusters-reader-workflow --infile mchpreclusters.root
+```
+
+Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, with the data description "PRECLUSTERS", the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERROFS", and the list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) associated to preclusters, with the data description "PRECLUSTERDIGITS".
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
+
+Option `--enable-mc` allows to also send the precluster MC labels with the data description "PRECLUSTERLABELS".
+
+## Precluster writer
+
+```shell
+o2-mch-preclusters-writer-workflow
+```
+
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them in the root file "mchpreclusters.root".
+
+Option `--enable-mc` allows to also write the precluster MC labels, with the data description "PRECLUSTERLABELS".
 
