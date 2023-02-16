@@ -713,9 +713,10 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->N_RANGE = 51;
     this->mCheckExactRow = true;
 
-  } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130) {
+  } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130 || runtype == VCASNBB) {
     // VCASN tuning for different target thresholds
     // Store average VCASN for each chip into CCDB
+    // ATTENTION: with back bias (VCASNBB) put max vcasn to 130 (default is 80)
     // 4 rows per chip
     this->mScanType = 'V';
     this->mMin = inMinVcasn; // 30 is the default
