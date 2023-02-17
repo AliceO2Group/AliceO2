@@ -409,7 +409,7 @@ class MakeRootTreeWriterSpec
         processAttributes->writer->close();
       };
 
-      ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
+      ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishWriting);
 
       auto processingFct = [processAttributes](ProcessingContext& pc) {
         auto& writer = processAttributes->writer;

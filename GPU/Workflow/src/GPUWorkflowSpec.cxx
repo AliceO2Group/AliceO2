@@ -257,7 +257,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
-  callbacks.set(CallbackService::Id::RegionInfoCallback, [this](fair::mq::RegionInfo const& info) {
+  callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
     if (info.size == 0) {
       return;
     }

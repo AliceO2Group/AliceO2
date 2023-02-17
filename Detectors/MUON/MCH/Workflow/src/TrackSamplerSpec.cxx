@@ -72,7 +72,7 @@ class TrackSamplerTask
       LOG(info) << "stop track sampler";
       this->mInputFile.close();
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

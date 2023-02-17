@@ -76,7 +76,7 @@ class DumpPagesTask
       LOG(info) << "stop file reader";
       this->mOutputFile.close();
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

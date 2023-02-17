@@ -171,7 +171,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     if (proxyMode == ProxyMode::SkipOutput) {
       *channelName = externalChannelSpec.name;
     } else {
-      callbacks.set(CallbackService::Id::Start, producerChannelInit);
+      callbacks.set<CallbackService::Id::Start>(producerChannelInit);
     }
     // the compute callback of the producer
     auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds) {
@@ -319,7 +319,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     }
   };
   auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
-    callbacks.set(CallbackService::Id::EndOfStream, checkCounter);
+    callbacks.set<CallbackService::Id::EndOfStream>(checkCounter);
     return adaptStateless(checkerCallback);
   };
 

@@ -306,7 +306,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
       /// Add a callback on stop which dumps the statistics for the caching per
       /// path
-      callbacks.set(CallbackService::Id::Stop, [helper]() {
+      callbacks.set<CallbackService::Id::Stop>([helper]() {
         LOGP(info, "CCDB cache miss/hit ratio:");
         for (auto& entry : helper->mapURL2UUID) {
           LOGP(info, "  {}: {}/{} ({}-{} bytes)", entry.first, entry.second.cacheMiss, entry.second.cacheHit, entry.second.minSize, entry.second.maxSize);

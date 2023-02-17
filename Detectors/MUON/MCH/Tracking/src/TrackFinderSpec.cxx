@@ -108,7 +108,7 @@ class TrackFinderTask
         LOGP(warning, error.asString());
       });
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

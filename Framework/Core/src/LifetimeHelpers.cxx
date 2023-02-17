@@ -401,7 +401,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.tfCounter = timestamp;
     dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
     DataProcessingHeader dph{timestamp, 1};
-    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh, dph);
+    services.get<CallbackService>().call<CallbackService::Id::NewTimeslice>(dh, dph);
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});

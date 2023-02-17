@@ -62,7 +62,7 @@ class RawWriterDeviceDPL
     auto stop = [this]() {
       mEncoder.finalize();
     };
-    ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
+    ic.services().get<of::CallbackService>().set<of::CallbackService::Id::Stop>(stop);
 
     // Write basic config files to be used with raw data reader workflow
     mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::Str::concat_string(dirname, '/', "MIDraw.cfg"));

@@ -48,8 +48,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            ImGui::End();
            sokol::render3D();
          };
-         callbacks.set(CallbackService::Id::ClockTick,
-                       [count, window, guiCallback]() {
+         callbacks.set<CallbackService::Id::ClockTick>(
+           [count, window, guiCallback]() {
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
          return adaptStateless([count](InputRecord& inputs, ControlService& control) {
            auto input = inputs.get<TableConsumer>("Collisions");
