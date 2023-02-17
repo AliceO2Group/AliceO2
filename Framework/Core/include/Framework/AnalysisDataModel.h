@@ -737,17 +737,17 @@ DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information, Run 2 format, to be p
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
 using Zdc = Zdcs::iterator;
 
-DECLARE_SOA_TABLE(ZdcsRun3, "AOD", "ZDCRUN3",                                                                         //! ZDC information, Run 3 format, to be preprocessed via ZDC converter
+DECLARE_SOA_TABLE(ZdcRun3s, "AOD", "ZDCRUN3",                                                                         //! ZDC information, Run 3 format, to be preprocessed via ZDC converter
                   o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT); //
-using ZdcRun3 = ZdcsRun3::iterator;
+using ZdcRun3 = ZdcRun3s::iterator;
 
-DECLARE_SOA_TABLE(ZdcsAnalysis, "AOD", "ZDCANALYSIS", //! ZDC information for the user, provided by ZDC converter
+DECLARE_SOA_TABLE(ZdcAnalysiss, "AOD", "ZDCANALYSIS", //! ZDC information for the user, provided by ZDC converter
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC,
                   zdc::AmplitudeZEM1, zdc::AmplitudeZEM2, zdc::AmplitudeZNA, zdc::AmplitudeZNC, zdc::AmplitudeZPA, zdc::AmplitudeZPC);
-using ZdcAnalysis = ZdcsAnalysis::iterator;
+using ZdcAnalysis = ZdcAnalysiss::iterator;
 
 namespace fv0a
 {
@@ -1174,6 +1174,8 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);        //!
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collisions); //!
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
 DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);                    //!
+DECLARE_SOA_INDEX_COLUMN(ZdcRun3, zdcrun3);            //!
+DECLARE_SOA_INDEX_COLUMN(ZdcAnalysis, zdcanalysis);    //!
 DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);                  //!
 DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);                  //!
 DECLARE_SOA_INDEX_COLUMN(FT0, ft0);                    //!
