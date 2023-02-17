@@ -67,7 +67,7 @@ class VertexerTraits
   virtual void computeTrackletMatching();
   virtual void computeVertices();
   virtual void adoptTimeFrame(TimeFrame* tf);
-  virtual void updateVertexingParameters(const VertexingParameters& vrtPar);
+  virtual void updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
 
   void computeVerticesInRof(int,
                             gsl::span<const o2::its::Line>&,
@@ -106,9 +106,6 @@ class VertexerTraits
 
 inline void VertexerTraits::initialise(const TrackingParameters& trackingParams)
 {
-  if (!mIndexTableUtils.getNzBins()) {
-    updateVertexingParameters(mVrtParams);
-  }
   mTimeFrame->initialise(0, trackingParams, 3);
   setIsGPU(false);
 }

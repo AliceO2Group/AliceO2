@@ -77,7 +77,10 @@ void Vertexer::getGlobalConfiguration()
   verPar.ZBins = vc.ZBins;
   verPar.PhiBins = vc.PhiBins;
 
-  mTraits->updateVertexingParameters(verPar);
+  TimeFrameGPUParameters tfGPUpar;
+  tfGPUpar.maxGPUMemoryGB = grc.maxGPUMemoryGB;
+
+  mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }
 
 void Vertexer::adoptTimeFrame(TimeFrame& tf)

@@ -53,7 +53,6 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void adoptTimeFrame(TimeFrame& tf);
-  void setParameters(const VertexingParameters& verPar);
   VertexingParameters& getVertParameters() const;
   void getGlobalConfiguration();
 
@@ -99,11 +98,6 @@ template <typename... T>
 void Vertexer::findTracklets(T&&... args)
 {
   mTraits->computeTracklets(std::forward<T>(args)...);
-}
-
-inline void Vertexer::setParameters(const VertexingParameters& verPar)
-{
-  mTraits->updateVertexingParameters(verPar);
 }
 
 inline VertexingParameters& Vertexer::getVertParameters() const

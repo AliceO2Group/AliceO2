@@ -115,15 +115,15 @@ struct VertexingParameters {
   int nThreads = 1;
 };
 
-struct TimeFrameGPUConfig {
-  TimeFrameGPUConfig() = default;
-  TimeFrameGPUConfig(size_t cubBufferSize,
-                     size_t maxTrkClu,
-                     size_t cluLayCap,
-                     size_t cluROfCap,
-                     size_t maxTrkCap,
-                     size_t maxVertCap,
-                     size_t maxROFs);
+struct TimeFrameGPUParameters {
+  TimeFrameGPUParameters() = default;
+  TimeFrameGPUParameters(size_t cubBufferSize,
+                         size_t maxTrkClu,
+                         size_t cluLayCap,
+                         size_t cluROfCap,
+                         size_t maxTrkCap,
+                         size_t maxVertCap,
+                         size_t maxROFs);
 
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
@@ -141,19 +141,19 @@ struct TimeFrameGPUConfig {
   // VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
 
-inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
-                                              size_t maxTrkClu,
-                                              size_t cluLayCap,
-                                              size_t cluROfCap,
-                                              size_t maxTrkCap,
-                                              size_t maxVertCap,
-                                              size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
-                                                                maxTrackletsPerCluster{maxTrkClu},
-                                                                clustersPerLayerCapacity{cluLayCap},
-                                                                clustersPerROfCapacity{cluROfCap},
-                                                                maxLinesCapacity{maxTrkCap},
-                                                                maxVerticesCapacity{maxVertCap},
-                                                                nMaxROFs{maxROFs}
+inline TimeFrameGPUParameters::TimeFrameGPUParameters(size_t cubBufferSize,
+                                                      size_t maxTrkClu,
+                                                      size_t cluLayCap,
+                                                      size_t cluROfCap,
+                                                      size_t maxTrkCap,
+                                                      size_t maxVertCap,
+                                                      size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
+                                                                        maxTrackletsPerCluster{maxTrkClu},
+                                                                        clustersPerLayerCapacity{cluLayCap},
+                                                                        clustersPerROfCapacity{cluROfCap},
+                                                                        maxLinesCapacity{maxTrkCap},
+                                                                        maxVerticesCapacity{maxVertCap},
+                                                                        nMaxROFs{maxROFs}
 {
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 }

@@ -93,10 +93,7 @@ VertexerTraitsGPU::~VertexerTraitsGPU()
 
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
 {
-  if (!mIndexTableUtils.getNzBins()) {
-    updateVertexingParameters(mVrtParams);
-  }
-  mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils);
+  mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
 }
 
 namespace gpu
@@ -594,9 +591,10 @@ GPUg() void computeVertexKernel(
 }
 } // namespace gpu
 
-void VertexerTraitsGPU::updateVertexingParameters(const VertexingParameters& vrtPar)
+void VertexerTraitsGPU::updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
+  mTfGPUParams = tfPar;
   mIndexTableUtils.setTrackingParameters(vrtPar);
   mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
@@ -666,7 +664,7 @@ void VertexerTraitsGPU::computeTracklets()
           mVrtParams.phiCut);                                               // const float phiCut = 0.002f)            // Cut on phi
 
         discardResult(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),
-                                                    mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUConfig()->tmpCUBBufferSize,
+                                                    mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize,
                                                     mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundLines(),
                                                     mTimeFrameGPU->getChunk(chunkId).getDeviceNExclusiveFoundLines() /*+ 1*/,
                                                     mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1),

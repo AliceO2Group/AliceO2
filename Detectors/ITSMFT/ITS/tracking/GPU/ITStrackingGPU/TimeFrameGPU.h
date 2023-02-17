@@ -77,15 +77,16 @@ template <int nLayers>
 class GpuTimeFrameChunk
 {
  public:
-  static size_t computeScalingSizeBytes(const int, const TimeFrameGPUConfig&);
-  static size_t computeFixedSizeBytes(const TimeFrameGPUConfig&);
-  static size_t computeRofPerChunk(const TimeFrameGPUConfig&, const size_t);
+  static size_t computeScalingSizeBytes(const int, const TimeFrameGPUParameters&);
+  static size_t computeFixedSizeBytes(const TimeFrameGPUParameters&);
+  static size_t computeRofPerChunk(const TimeFrameGPUParameters&, const size_t);
 
   GpuTimeFrameChunk() = delete;
-  GpuTimeFrameChunk(o2::its::TimeFrame* tf, TimeFrameGPUConfig& conf)
+  GpuTimeFrameChunk(o2::its::TimeFrame* tf, TimeFrameGPUParameters& conf)
   {
     mTimeFramePtr = tf;
-    mTFGconf = &conf;
+    mTFGPUParams = &conf;
+    LOGP(info, "GpuTimeFrameChunk: mTimeFramePtr = {}", (void*)mTimeFramePtr);
   }
   ~GpuTimeFrameChunk();
 
@@ -104,7 +105,7 @@ class GpuTimeFrameChunk
   int* getDeviceTrackletsLookupTables(const int);
   Cell* getDeviceCells(const int);
   int* getDeviceCellsLookupTables(const int);
-  TimeFrameGPUConfig* getTimeFrameGPUConfig() const { return mTFGconf; }
+  TimeFrameGPUParameters* getTimeFrameGPUParameters() const { return mTFGPUParams; }
 
   void downloadDeviceLines(std::vector<Line>&, Stream&);
 
@@ -154,7 +155,7 @@ class GpuTimeFrameChunk
   size_t mNRof = 0;
   size_t mNPopulatedRof = 0;
   o2::its::TimeFrame* mTimeFramePtr = nullptr;
-  TimeFrameGPUConfig* mTFGconf = nullptr;
+  TimeFrameGPUParameters* mTFGPUParams = nullptr;
 };
 
 template <int nLayers = 7>
@@ -167,8 +168,8 @@ class TimeFrameGPU : public TimeFrame
   /// Most relevant operations
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, const IndexTableUtils* utils = nullptr);
-  void initDevice(const int, const IndexTableUtils*, const TrackingParameters& trkParam, const int);
+  void initialise(const int, const TrackingParameters&, const int, const IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
+  void initDevice(const int, const IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int);
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t);
@@ -188,7 +189,7 @@ class TimeFrameGPU : public TimeFrame
   bool mDeviceInitialised = false;
   bool mHostRegistered = false;
   std::vector<GpuTimeFrameChunk<nLayers>> mMemChunks;
-  TimeFrameGPUConfig mGpuConfig;
+  TimeFrameGPUParameters mGpuParams;
   StaticTrackingParameters<nLayers> mStaticTrackingParams;
 
   // Device pointers
@@ -212,7 +213,7 @@ size_t TimeFrameGPU<nLayers>::loadChunkData(const size_t chunk, const size_t off
 {
   size_t nRof{0};
 
-  mMemChunks[chunk].reset(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuConfig, mAvailMemGB),
+  mMemChunks[chunk].reset(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB),
                           task,
                           mGpuStreams[chunk]); // Reset chunks memory
   if constexpr ((bool)task) {

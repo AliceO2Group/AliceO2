@@ -149,7 +149,7 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
   return filteredBins;
 }
 
-void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
+void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
   mIndexTableUtils.setTrackingParameters(vrtPar);

@@ -256,7 +256,6 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
