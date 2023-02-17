@@ -131,7 +131,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     auto& control = ref.get<ControlService>();
     auto& callbacks = ref.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
-    callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
+    callbacks.call<CallbackService::Id::DeviceStateChanged>(ServiceRegistryRef{ref}, (int)state);
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
