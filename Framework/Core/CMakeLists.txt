@@ -157,7 +157,6 @@ o2_add_library(Framework
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
-                                     ${BOOST_FILESYSTEM}
                                      Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
