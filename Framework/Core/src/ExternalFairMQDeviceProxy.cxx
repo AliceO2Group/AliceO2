@@ -478,10 +478,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
+    ctx.services().get<CallbackService>().set<CallbackService::Id::Start>(channelConfigurationChecker);
     if (ctx.options().get<std::string>("ready-state-policy") == "drain") {
       LOG(info) << "Drain mode requested while in Ready state";
-      ctx.services().get<CallbackService>().set(CallbackService::Id::DeviceStateChanged, drainMessages);
+      ctx.services().get<CallbackService>().set<CallbackService::Id::DeviceStateChanged>(drainMessages);
     }
 
     static auto countEoS = [](fair::mq::Parts& inputs) -> int {
@@ -625,7 +625,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         throw std::runtime_error("no corresponding output channel found for input '" + outputChannelName + "'");
       }
     };
-    callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
+    callbacks.set<CallbackService::Id::Start>(channelConfigurationChecker);
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
 
     if (deviceSpec.forwards.size() > 0) {
@@ -671,7 +671,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         sendOnChannel(*device, out, channelName, (size_t)-1);
       }
     };
-    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+    callbacks.set<CallbackService::Id::EndOfStream>(forwardEos);
 
     return adaptStateless([lastDataProcessingHeader](InputRecord& inputs) {
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
@@ -744,8 +744,8 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       mutableDeviceSpec.forwards.clear();
     };
-    callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
-    callbacks.set(CallbackService::Id::Stop, channelConfigurationDisposer);
+    callbacks.set<CallbackService::Id::Start>(channelConfigurationInitializer);
+    callbacks.set<CallbackService::Id::Stop>(channelConfigurationDisposer);
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {
@@ -786,7 +786,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         sendOnChannel(*device, out, channelName, (size_t)-1);
       }
     };
-    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+    callbacks.set<CallbackService::Id::EndOfStream>(forwardEos);
 
     return adaptStateless([channelSelector, lastDataProcessingHeader](InputRecord& inputs) {
       // there is nothing to do if the forwarding is handled on the framework level

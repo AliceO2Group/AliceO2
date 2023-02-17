@@ -304,7 +304,7 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
 o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framework::InitContext& ic)
 {
   auto& callbacks = ic.services().get<o2::framework::CallbackService>();
-  callbacks.set(o2::framework::CallbackService::Id::EndOfStream, endOfStream);
+  callbacks.set<o2::framework::CallbackService::Id::EndOfStream>(endOfStream);
 
   // the aliases arrays contain all the names of the MCH or MID data points
   // we are interested to transit to the CCDB

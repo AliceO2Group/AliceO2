@@ -181,14 +181,14 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
                 }),
     Outputs(),
     AlgorithmSpec{adaptStateful([checkMap, bindings = std::move(bindings)](CallbackService& callbacks) {
-      callbacks.set(CallbackService::Id::EndOfStream, [checkMap](EndOfStreamContext& ctx) {
+      callbacks.set<CallbackService::Id::EndOfStream>([checkMap](EndOfStreamContext& ctx) {
         for (auto const& [subspec, pipeline] : *checkMap) {
           // we require all checks to be invalidated
           ASSERT_ERROR(pipeline == -1);
         }
         checkMap->clear();
       });
-      callbacks.set(CallbackService::Id::Stop, [checkMap]() {
+      callbacks.set<CallbackService::Id::Stop>([checkMap]() {
         ASSERT_ERROR(checkMap->size() == 0);
       });
       return adaptStateless([checkMap, bindings = std::move(bindings)](InputRecord& inputs) {

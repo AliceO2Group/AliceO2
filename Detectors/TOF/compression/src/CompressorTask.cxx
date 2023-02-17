@@ -47,7 +47,7 @@ void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
     mCompressor.checkSummary();
   };
 
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
 }
 
 template <typename RDH, bool verbose, bool paranoid>

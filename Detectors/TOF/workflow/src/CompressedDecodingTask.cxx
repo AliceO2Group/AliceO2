@@ -57,7 +57,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   auto finishFunction = [this]() {
     LOG(debug) << "CompressedDecoding finish";
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
   mTimer.Stop();
   mTimer.Reset();
 }

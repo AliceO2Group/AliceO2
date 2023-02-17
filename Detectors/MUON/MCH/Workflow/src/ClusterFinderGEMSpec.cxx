@@ -157,7 +157,7 @@ class ClusterFinderGEMTask
     // Inv ??? LOG(info) << "GG = lowestPadCharge = " << ClusterizerParam::Instance().lowestPadCharge;
 
     /// Print the timer and clear the clusterizer when the processing is over
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>([this]() {
       LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
       if (isActive(DoOriginal)) {
         this->mClusterFinderOriginal.deinit();

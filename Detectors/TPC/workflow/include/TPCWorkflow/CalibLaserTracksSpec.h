@@ -50,7 +50,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
         LOGP(error, "Calibration data was not published, laser track calibration might have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF ", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
       }
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
   }
 
   void run(o2::framework::ProcessingContext& pc) final

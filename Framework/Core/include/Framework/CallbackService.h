@@ -54,7 +54,7 @@ class CallbackService
     ///
     /// return AlgorithmSpec::InitCallback{[=](InitContext& ic) {
     ///    auto& callbacks = ic.services().get<CallbackService>();
-    ///    callbacks.set(CallbackService::Id::RegionInfoCallback, [](fair::mq::RegionInfo const& info) {
+    ///    callbacks.set<CallbackService::Id::RegionInfoCallback>([](fair::mq::RegionInfo const& info) {
     ///    ... do GPU init ...
     ///    });
     ///  }
