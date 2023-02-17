@@ -26,6 +26,7 @@
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationView/Screenshot.h>
+#include <EventVisualisationDataConverter/Statistic.h>
 #include <EventVisualisationView/Options.h>
 #include <Rtypes.h>
 #include <mutex>
@@ -56,7 +57,7 @@ EventManagerFrame::~EventManagerFrame()
   this->StopTimer();
 }
 
-EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& eventManager)
+EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& eventManager, EventManagerFrame::DisplayMode displayMode)
   : TGMainFrame(gClient->GetRoot(), 400, 100, kVerticalFrame)
 {
   mInstance = this;
@@ -132,12 +133,24 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
   }
 
+  this->mDisplayMode = displayMode;
   this->setRunMode(mRunMode, kFALSE);
-  this->mOnlineModeBtn->SetState(kButtonDown);
+  switch (this->mDisplayMode) {
+    case OnlineMode:
+      this->mOnlineModeBtn->SetState(kButtonDown);
+      break;
+    case SavedMode:
+      this->mSavedModeBtn->SetState(kButtonDown);
+      break;
+    case SequentialMode:
+      this->mSequentialModeBtn->SetState(kButtonDown);
+      break;
+  }
   SetCleanup(kDeepCleanup);
   Layout();
   MapSubwindows();
   MapWindow();
+  this->updateGUI();
 }
 
 TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt,
@@ -273,6 +286,7 @@ void EventManagerFrame::DoNextEvent()
   }
   mEventManager->NextEvent();
   this->updateGUI();
+  createManualScreenshot();
   clearInTick();
 }
 
@@ -290,12 +304,8 @@ void EventManagerFrame::DoSetEvent()
 {
 }
 
-void EventManagerFrame::DoScreenshot()
+void EventManagerFrame::createManualScreenshot()
 {
-  if (not setInTick()) {
-    return;
-  }
-
   std::time_t time = std::time(nullptr);
   char time_str[100];
   std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
@@ -314,6 +324,18 @@ void EventManagerFrame::DoScreenshot()
   fileName.replace_extension(std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
   std::error_code ec;
   std::filesystem::copy_file(mEventManager->getDataSource()->getEventAbsoluteFilePath(), fileName, ec);
+  Statistic report;
+  report.toFile(VisualisationEvent::getStatistic());
+  this->mEventManager->createVisualisationSettings(report.tree, *report.allocator);
+  report.save(fileName.replace_extension(std::filesystem::path(".stat")).c_str());
+}
+
+void EventManagerFrame::DoScreenshot()
+{
+  if (not setInTick()) {
+    return;
+  }
+  createManualScreenshot();
   clearInTick();
 }
 
@@ -378,12 +400,17 @@ void EventManagerFrame::DoTimeTick()
   this->createOutreachScreenshot();
   bool refreshNeeded = mEventManager->getDataSource()->refresh();
   if (this->mDisplayMode == SequentialMode) {
-    mEventManager->getDataSource()->rollToNext();
+    bool wasRollBack = mEventManager->getDataSource()->rollToNext();
+    if (wasRollBack and Options::Instance()->generateScreenshots()) {
+      this->mDisplayMode = SavedMode; // stops iterating after reaching end of available sequence
+      updateGUI();
+    }
     refreshNeeded = true;
   }
 
   if (refreshNeeded) {
     mEventManager->displayCurrentEvent();
+    createManualScreenshot();
   }
   mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   clearInTick();
@@ -422,8 +449,8 @@ void EventManagerFrame::DoOnlineMode()
   if (not setInTick()) {
     return;
   }
-  this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
   this->mDisplayMode = OnlineMode;
+  this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, this->mDisplayMode).Data());
   this->mEventManager->setShowDate(true);
   clearInTick();
   mEventManager->GotoEvent(-1);
@@ -436,14 +463,14 @@ void EventManagerFrame::DoSavedMode()
     if (not setInTick()) {
       return;
     }
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
     this->mDisplayMode = SavedMode;
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, this->mDisplayMode).Data());
     this->mEventManager->setShowDate(true);
     if (mEventManager->getDataSource()->refresh()) {
       mEventManager->displayCurrentEvent();
     }
     clearInTick();
-    mEventManager->GotoEvent(-1);
+    mEventManager->GotoEvent(0);
     mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 }
@@ -454,14 +481,14 @@ void EventManagerFrame::DoSequentialMode()
     if (not setInTick()) {
       return;
     }
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
     this->mDisplayMode = SequentialMode;
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, this->mDisplayMode).Data());
     this->mEventManager->setShowDate(false);
     if (mEventManager->getDataSource()->refresh()) {
       mEventManager->displayCurrentEvent();
     }
     clearInTick();
-    mEventManager->GotoEvent(-1);
+    mEventManager->GotoEvent(0);
     mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 }
@@ -477,7 +504,7 @@ void EventManagerFrame::changeRunMode(RunMode runMode)
     ConfigurationManager::getInstance().getConfig(settings);
 
     this->mRunMode = runMode;
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, EventManagerFrame::OnlineMode).Data());
 
     mEventManager->getDataSource()->refresh();
     mEventManager->displayCurrentEvent();
@@ -545,7 +572,7 @@ float EventManagerFrame::getMaxTimeFrameSliderValue() const
 void EventManagerFrame::setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit)
 {
   if (emit) {
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, EventManagerFrame::OnlineMode).Data());
   } else {
     mSyntheticRunBtn->SetState(EButtonState::kButtonUp, kFALSE);
     mCosmicsRunBtn->SetState(EButtonState::kButtonUp, kFALSE);
@@ -568,21 +595,23 @@ void EventManagerFrame::setRunMode(EventManagerFrame::RunMode runMode, Bool_t em
   }
 }
 
-TString EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode)
+TString EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
-
-  switch (runMode) {
-    case EventManagerFrame::SyntheticRun:
-      return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
-    case EventManagerFrame::CosmicsRun:
-      return settings.GetValue("data.cosmics.run.dir", "jsons/cosmics");
-    case EventManagerFrame::PhysicsRun:
-      return settings.GetValue("data.physics.run.dir", "jsons/physics");
-    default:
-      return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
+  if (displayMode == EventManagerFrame::OnlineMode) {
+    switch (runMode) {
+      case EventManagerFrame::SyntheticRun:
+        return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
+      case EventManagerFrame::CosmicsRun:
+        return settings.GetValue("data.cosmics.run.dir", "jsons/cosmics");
+      case EventManagerFrame::PhysicsRun:
+        return settings.GetValue("data.physics.run.dir", "jsons/physics");
+      default:
+        return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
+    }
   }
+  return Options::Instance()->savedDataFolder();
 }
 
 EventManagerFrame::RunMode EventManagerFrame::decipherRunMode(TString name, RunMode defaultRun)
