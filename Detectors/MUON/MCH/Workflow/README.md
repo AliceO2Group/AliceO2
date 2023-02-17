@@ -20,17 +20,13 @@
 * [Track fitter](#track-fitter)
 * [Error merger](#error-merger)
 * [Samplers](#samplers)
-  * [Digit Readers/Writers and Samplers/Sinks](#digit-readerswriters-and-samplerssinks)
-  * [Precluster reader](#precluster-reader)
+  * [Digit, PreCluster Readers/Writers and Samplers/Sinks](#digit-precluster-readerswriters-and-samplerssinks)
   * [Cluster sampler](#cluster-sampler)
   * [Cluster reader](#cluster-reader)
   * [Track sampler](#track-sampler)
   * [Track reader](#track-reader)
   * [Error reader](#error-reader)
   * [Vertex sampler](#vertex-sampler)
-* [Sinks](#sinks)
-  * [Precluster sink](#precluster-sink)
-  * [Precluster writer](#precluster-writer)
   * [Cluster sink](#cluster-sink)
   * [Cluster writer](#cluster-writer)
   * [Track sink](#track-sink)
@@ -38,7 +34,6 @@
   * [Error writer](#error-writer)
 
 <!-- vim-markdown-toc -->
-
 
 ## A note for developers
 
@@ -224,28 +219,15 @@ Options `--disable-clustering-errors` allows to skip the clustering errors.
 
 Options `--disable-tracking-errors` allows to skip the tracking errors.
 
-
 ## Samplers
 
-### Digit Readers/Writers and Samplers/Sinks
+### Digit, PreCluster Readers/Writers and Samplers/Sinks
 
 Readers (writers) workflows are reading from (to) Root files.
 [more...](/Detectors/MUON/MCH/IO/README.md)
 
 Samplers (sinks) workflows are reading from (to) files written in MCH custom
 binary format(s). [more...](/Detectors/MUON/MCH/DevIO/README.md)
-
-### Precluster reader
-
-```
-o2-mch-preclusters-reader-workflow --infile mchpreclusters.root
-```
-
-Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, with the data description "PRECLUSTERS", the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERROFS", and the list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) associated to preclusters, with the data description "PRECLUSTERDIGITS".
-
-Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
-
-Option `--enable-mc` allows to also send the precluster MC labels with the data description "PRECLUSTERLABELS".
 
 ### Cluster sampler
 
@@ -334,35 +316,6 @@ Option `--infile "vertices.in"` allows to read the position of the vertex from t
 * z (double)
 
 If no binary file is provided, the vertex is always set to (0,0,0).
-
-## Sinks
-
-### Precluster sink
-
-```shell
-o2-mch-preclusters-sink-workflow --outfile "preclusters.out"
-```
-
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them event-by-event in the binary file `preclusters.out` with the following format for each event:
-
-* number of preclusters (int)
-* number of associated digits (int)
-* list of preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h))
-* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
-
-Option `--txt` allows to write the preclusters in the output file in text format.
-
-Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
-
-### Precluster writer
-
-```shell
-o2-mch-preclusters-writer-workflow
-```
-
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them in the root file "mchpreclusters.root".
-
-Option `--enable-mc` allows to also write the precluster MC labels, with the data description "PRECLUSTERLABELS".
 
 ### Cluster sink
 

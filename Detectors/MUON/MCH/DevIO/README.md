@@ -14,6 +14,8 @@ This is mostly for debug and/or usage with Run2 (converted) data.
   * [Digit ID converter (from Run2 to Run3)](#digit-id-converter-from-run2-to-run3)
   * [Digit random generator](#digit-random-generator)
   * [Digit file dumper](#digit-file-dumper)
+* [Precluster I/O](#precluster-io)
+  * [Precluster sink](#precluster-sink)
 
 <!-- vim-markdown-toc -->
 ## Digit I/O
@@ -143,4 +145,23 @@ options:
   --max-nof-tfs arg      max number of timeframes to process
   --first-tf arg         first timeframe to process
 ```
+
+## Precluster I/O
+
+### Precluster sink
+
+```shell
+o2-mch-preclusters-sink-workflow --outfile "preclusters.out"
+```
+
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them event-by-event in the binary file `preclusters.out` with the following format for each event:
+
+* number of preclusters (int)
+* number of associated digits (int)
+* list of preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
+
+Option `--txt` allows to write the preclusters in the output file in text format.
+
+Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
 

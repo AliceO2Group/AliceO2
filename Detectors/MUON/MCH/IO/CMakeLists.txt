@@ -13,12 +13,14 @@ o2_add_library(MCHIO
         SOURCES
            src/DigitReaderSpec.cxx
            src/DigitWriterSpec.cxx
+           src/PreClusterReaderSpec.cxx
+           src/PreClusterWriterSpec.cxx
         PUBLIC_LINK_LIBRARIES
            O2::DPLUtils
            O2::DataFormatsMCH
            O2::Framework
+           O2::MCHBase
            )
-
 
 o2_add_executable(
         digits-reader-workflow
@@ -39,3 +41,19 @@ o2_add_executable(
           O2::MCHIO
           O2::SimulationDataFormat
           )
+
+o2_add_executable(
+        preclusters-writer-workflow
+        SOURCES src/preclusters-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHIO)
+
+o2_add_executable(
+        preclusters-reader-workflow
+        SOURCES src/preclusters-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+          O2::DetectorsRaw
+          O2::MCHIO
+          )
+
