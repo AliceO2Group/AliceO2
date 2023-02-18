@@ -11,7 +11,7 @@
 
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
-#include "MCHWorkflow/ClusterReaderSpec.h"
+#include "MCHIO/ClusterReaderSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 

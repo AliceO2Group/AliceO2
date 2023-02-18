@@ -10,6 +10,8 @@
 * [Digit writer](#digit-writer)
 * [Precluster reader](#precluster-reader)
 * [Precluster writer](#precluster-writer)
+* [Cluster reader](#cluster-reader)
+* [Cluster writer](#cluster-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -64,4 +66,32 @@ o2-mch-preclusters-writer-workflow
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them in the root file "mchpreclusters.root".
 
 Option `--enable-mc` allows to also write the precluster MC labels, with the data description "PRECLUSTERLABELS".
+
+## Cluster reader
+
+```shell
+o2-mch-clusters-reader-workflow --infile mchclusters.root [--enable-mc] [--local] [--no-digits]
+```
+
+Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "GLOBALCLUSTERS", the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS", and the list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) associated to clusters, with the data description "CLUSTERDIGITS".
+
+Option `--local` assumes that clusters are in the local coordinate system and send them with the description "CLUSTERS".
+
+Option `--no-digits` allows to do not send the associated digits.
+
+Option `--enable-mc` allows to also send the cluster MC labels with the data description "CLUSTERLABELS".
+
+## Cluster writer
+
+```shell
+o2-mch-clusters-writer-workflow [--enable-mc] [--local] [--no-digits]
+```
+
+Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "GLOBALCLUSTERS", the list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)), with the data description "CLUSTERDIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS", and write them in the root file "mchclusters.root".
+
+Option `--local` allows to write the list of clusters in the local coordinate system, with the data description "CLUSTERS".
+
+Option `--no-digits` allows to do not write the associated digits.
+
+Option `--enable-mc` allows to also write the cluster MC labels, with the data description "CLUSTERLABELS".
 

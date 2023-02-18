@@ -16,6 +16,9 @@ This is mostly for debug and/or usage with Run2 (converted) data.
   * [Digit file dumper](#digit-file-dumper)
 * [Precluster I/O](#precluster-io)
   * [Precluster sink](#precluster-sink)
+* [Cluster I/O](#cluster-io)
+  * [Cluster sampler](#cluster-sampler)
+  * [Cluster sink](#cluster-sink)
 
 <!-- vim-markdown-toc -->
 ## Digit I/O
@@ -162,6 +165,44 @@ Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/
 * list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
 
 Option `--txt` allows to write the preclusters in the output file in text format.
+
+Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
+
+## Cluster I/O
+
+### Cluster sampler
+
+```shell
+o2-mch-clusters-sampler-workflow --infile "clusters.in" [--global]
+```
+
+where `clusters.in` is a binary file containing for each event:
+
+* number of clusters (int)
+* number of associated digits (int)
+* list of clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
+
+Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS", and the list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) associated to clusters, with the data description "CLUSTERDIGITS".
+
+Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
+
+Option `--no-digits` allows to do not send the associated digits.
+
+### Cluster sink
+
+```shell
+o2-mch-clusters-sink-workflow --outfile "clusters.out" [--txt] [--no-digits] [--global]
+```
+
+Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)), unless `--no-digits` option is used, and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
+
+* number of clusters (int)
+* number of associated digits (int) (= 0 if `--no-digits` is used)
+* list of clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) (unless option `--no-digits` is used)
+
+Option `--txt` allows to write the clusters in the output file in text format.
 
 Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
 

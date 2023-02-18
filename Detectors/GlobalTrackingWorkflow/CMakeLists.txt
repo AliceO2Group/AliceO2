@@ -39,7 +39,6 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow
-                                     O2::MCHWorkflow
                                      O2::SimulationDataFormat
                                      O2::DetectorsVertexing)
 
