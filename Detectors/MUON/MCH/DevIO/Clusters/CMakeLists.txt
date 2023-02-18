@@ -9,6 +9,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Digits)
-add_subdirectory(PreClusters)
-add_subdirectory(Clusters)
+o2_add_executable(
+        clusters-sink-workflow
+        SOURCES clusters-sink-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
+
+o2_add_executable(
+        clusters-sampler-workflow
+        SOURCES clusters-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+

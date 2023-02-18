@@ -28,7 +28,7 @@
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
 #include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
-#include "MCHWorkflow/ClusterWriterSpec.h"
+#include "MCHIO/ClusterWriterSpec.h"
 #include "MCHWorkflow/ErrorWriterSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"

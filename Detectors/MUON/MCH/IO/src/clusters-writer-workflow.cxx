@@ -11,7 +11,7 @@
 
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
-#include "MCHWorkflow/ClusterWriterSpec.h"
+#include "MCHIO/ClusterWriterSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;

@@ -11,6 +11,8 @@
 
 o2_add_library(MCHIO
         SOURCES
+           src/ClusterReaderSpec.cxx
+           src/ClusterWriterSpec.cxx
            src/DigitReaderSpec.cxx
            src/DigitWriterSpec.cxx
            src/PreClusterReaderSpec.cxx
@@ -21,6 +23,21 @@ o2_add_library(MCHIO
            O2::Framework
            O2::MCHBase
            )
+
+o2_add_executable(
+        clusters-reader-workflow
+        SOURCES src/clusters-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+          O2::DetectorsRaw
+          O2::MCHIO
+          )
+
+o2_add_executable(
+        clusters-writer-workflow
+        SOURCES src/clusters-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHIO)
 
 o2_add_executable(
         digits-reader-workflow
