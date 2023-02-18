@@ -137,7 +137,9 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-      tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISlice(), iRow, x, y, z);
+      if (iRow != r.mStartRow || !tracker.Param().par.continuousTracking) {
+        tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISlice(), iRow, x, y, z);
+      }
 #endif
       if (iRow == r.mStartRow) {
         tParam.SetX(x);
@@ -145,9 +147,14 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
         r.mLastY = y;
         if (tracker.Param().par.continuousTracking) {
           float refZ = ((z > 0) ? tracker.Param().rec.tpc.defaultZOffsetOverR : -tracker.Param().rec.tpc.defaultZOffsetOverR) * x;
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+          float zTmp = refZ;
+          tracker.GetConstantMem()->calibObjects.fastTransformHelper->TransformXYZ(tracker.ISlice(), iRow, x, y, zTmp);
+          z += zTmp - refZ; // Add zCorrection (=zTmp - refZ) to z, such that zOffset is set such, that transformed (z - zOffset) becomes refZ
+#endif
+          tParam.SetZOffset(z - refZ);
           tParam.SetZ(refZ);
           r.mLastZ = refZ;
-          tParam.SetZOffset(z - refZ);
         } else {
           tParam.SetZ(z);
           r.mLastZ = z;
