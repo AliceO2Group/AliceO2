@@ -97,6 +97,30 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::DataFormatsMCH O2::MCHTracking)
 
 o2_add_executable(
+        tracks-sink-workflow
+        SOURCES src/TrackSinkSpec.cxx src/tracks-sink-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+
+o2_add_executable(
+        tracks-writer-workflow
+        SOURCES src/tracks-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        tracks-reader-workflow
+        SOURCES src/tracks-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        tracks-sampler-workflow
+        SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+
+o2_add_executable(
         errors-merger-workflow
         SOURCES src/ErrorMergerSpec.cxx src/errors-merger-workflow.cxx
         COMPONENT_NAME mch
@@ -142,17 +166,10 @@ o2_add_executable(
             O2::Steer
         TARGETVARNAME mch-reco-workflow)
 
-o2_add_executable(
-       tracks-sampler-workflow
-       SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
-       COMPONENT_NAME mch
-       PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
-
-o2_add_executable(
-       tracks-file-dumper
-       SOURCES src/tracks-file-dumper.cxx
-       COMPONENT_NAME mch
-       PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)
+o2_add_executable(tracks-file-dumper
+        SOURCES src/tracks-file-dumper.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)
 
 o2_add_executable(
         tracks-mc-label-finder-workflow
