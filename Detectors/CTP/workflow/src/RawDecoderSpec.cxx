@@ -121,107 +121,35 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       size_gbt = 0;
       orbit0 = triggerOrbit;
     }
-    // Create 128 bit words
+    // Create 80 bit words
     gsl::span<const uint8_t> payload(it.data(), it.size());
-    gbtword128_t gbtWord128 = 0;
+    gbtword80_t gbtWord80 = 0;
     int wordCount = 0;
-    std::vector<gbtword128_t> gbtwords128;
+    int wordSize = 10;
+    std::vector<gbtword80_t> gbtwords80;
+    //mPadding = 0;
+    if(mPadding == 1) {
+      wordSize = 16;
+    }
     LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
-      int wc = wordCount % 16;
+      int wc = wordCount % wordSize;
       // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
       if ((wc == 0) && (wordCount != 0)) {
-        LOG(info) << "128:" << gbtWord128;
-        gbtwords128.push_back(gbtWord128);
-        gbtWord128 = 0;
+        LOG(info) << "gw80:" << gbtWord80;
+        gbtwords80.push_back(gbtWord80);
+        gbtWord80 = 0;
       }
-      for (int i = 0; i < 8; i++) {
-        gbtWord128[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
+      if(wc < 10) {
+        for (int i = 0; i < 8; i++) {
+          gbtWord80[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
+        }
       }
       wordCount++;
     }
-    if (gbtWord128.count()) {
-      gbtwords128.push_back(gbtWord128);
-      LOG(info) << "128:" << gbtWord128;
-    }
-    // Create 80 bits words
-    // mPadding = 0;
-    gbtword80_t remnant = 0;
-    gbtword80_t w80 = 0;
-    std::vector<gbtword80_t> gbtwords80;
-    if (mPadding == 1) {
-      for (auto word : gbtwords128) {
-        LOG(info) << word;
-        std::string str = word.to_string();
-        str = str.substr(48);
-        w80 = std::bitset<80>(str);
-        LOG(info) << "w80:" << w80;
-        gbtwords80.push_back(w80);
-      }
-    } else {
-      int count = 0;
-      for (auto word : gbtwords128) {
-        int countmod = count % 5;
-        if (countmod == 0) {
-          // 80
-          w80 = subbitset(0, 80, word);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 0:" << w80;
-          // 48
-          remnant = subbitset(80, 48, word);
-          LOG(info) << "rem 0:" << remnant;
-        } else if (countmod == 1) {
-          // 32
-          w80 = remnant | subbitset(0, 32, word, 48);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 1:" << w80;
-          // 80
-          w80 = subbitset(32, 80, word);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 1:" << w80;
-          // 16
-          remnant = subbitset(112, 16, word);
-          LOG(info) << "rem 1:" << remnant;
-        } else if (countmod == 2) {
-          // 64
-          w80 = remnant | subbitset(0, 64, word, 16);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 2:" << w80;
-          // 64
-          remnant = subbitset(64, 64, word);
-          LOG(info) << "rem 2:" << remnant;
-        } else if (countmod == 3) {
-          // 16
-          w80 = remnant | subbitset(0, 16, word, 64);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 3:" << w80;
-          // 80
-          w80 = subbitset(16, 80, word);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 3:" << w80;
-          // 32
-          remnant = subbitset(96, 32, word);
-          LOG(info) << "rem 3:" << remnant;
-        } else if (countmod == 4) {
-          // 48
-          w80 = remnant | subbitset(0, 48, word, 32);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 4:" << w80;
-          w80 = subbitset(48, 80, word);
-          gbtwords80.push_back(w80);
-          LOG(info) << "w80 4:" << w80;
-          remnant = 0;
-        } else {
-          LOG(error) << "Impossible to get here";
-        }
-        count++;
-      }
-    }
-    // remnant
-    // LOG(info) << "remnant:" << remnant;
-    if (remnant.count()) {
-      gbtwords80.push_back(remnant);
-      LOG(info) << "w80 r:" << w80;
+    if (gbtWord80.count()) {
+      gbtwords80.push_back(gbtWord80);
+      LOG(info) << "w80l:" << gbtWord80;
     }
     // decode 80 bits payload
     gbtword80_t bcmask = std::bitset<80>("111111111111");

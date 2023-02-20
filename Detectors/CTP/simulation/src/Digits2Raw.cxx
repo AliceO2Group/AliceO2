@@ -231,17 +231,17 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
       }
     }
   }
-  if (mPadding == false) {
-    uint32_t NZeros = 0;
-    if (countBytes % 16) {
-      NZeros = 16 - (countBytes % 16);
-    }
-    LOG(info) << "Adding bytes:" << NZeros;
-    for (uint32_t i = 0; i < NZeros; i++) {
-      char c = 0;
-      toAdd.push_back(c);
-    }
-  }
+  //if (mPadding == false) {
+  //  uint32_t NZeros = 0;
+  //  if (countBytes % 16) {
+  //    NZeros = 16 - (countBytes % 16);
+  //  }
+  //  LOG(info) << "Adding bytes:" << NZeros;
+  //  for (uint32_t i = 0; i < NZeros; i++) {
+  //    char c = 0;
+  //    toAdd.push_back(c);
+  //  }
+  //}
   return std::move(toAdd);
 }
 // Adding payload of size < NGBT to GBT words of size NGBT
