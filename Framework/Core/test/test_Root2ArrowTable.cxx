@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
 
 namespace o2::aod
 {
-DECLARE_SOA_STORE();
+DECLARE_SOA_VERSIONING();
 namespace test
 {
 DECLARE_SOA_COLUMN_FULL(Px, px, float, "px");
