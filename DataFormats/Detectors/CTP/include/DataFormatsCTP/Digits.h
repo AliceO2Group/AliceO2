@@ -33,6 +33,7 @@ static constexpr uint32_t NGBT = 80;
 static constexpr std::uint32_t NumOfHBInTF = 128;
 static constexpr uint32_t NRUNS = 16;
 typedef std::bitset<NGBT> gbtword80_t;
+typedef std::bitset<128> gbtword128_t;
 //
 static constexpr std::uint32_t CTP_NINPUTS = 48;    /// Max number of CTP inputs for all levels
 static constexpr std::uint32_t CTP_NCLASSES = 64;   /// Number of classes in hardware

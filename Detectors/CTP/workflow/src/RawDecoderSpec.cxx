@@ -81,6 +81,12 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
+    uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
+    if(version == 7) {
+      mPadding = 0;
+    }
+    LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+    // get reserved
     // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
@@ -92,23 +98,19 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
       payloadCTP = o2::ctp::NClassPayload;
-      if (!mDoDigits) {
+      if (!mDoDigits) { // Do not do TCR if only lumi
         continue;
       }
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
     // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
     }
     //  TF in 128 bits words
-    gsl::span<const uint8_t> payload(it.data(), it.size());
-    gbtword80_t gbtWord = 0;
-    int wordCount = 0;
-    std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
         lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, 0, countsMBT, countsMBV});
@@ -119,49 +121,134 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       size_gbt = 0;
       orbit0 = triggerOrbit;
     }
-    // LOG(info) << "payload size:" << payload.size();
+    // Create 128 bit words
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    gbtword128_t gbtWord128 = 0;
+    int wordCount = 0;
+    std::vector<gbtword128_t> gbtwords128;
+    LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
-      // LOG(info) << wordCount << " payload:" << int(payloadWord);
-      if (wordCount == 15) {
-        wordCount = 0;
-      } else if (wordCount > 9) {
-        wordCount++;
-      } else if (wordCount == 9) {
-        for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
-        }
-        wordCount++;
-        diglets.clear();
-        // LOG(info) << " gbtword:" << gbtWord;
-        makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
-        // save digit in buffer recs
-        // LOG(info) << "diglets size:" << diglets.size();
-        for (auto diglet : diglets) {
-          if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
-            gbtword80_t pld = (diglet >> 12) & mTVXMask;
-            if (pld.count() != 0) {
-              countsMBT++;
-            }
-            pld = (diglet >> 12) & mVBAMask;
-            if (pld.count() != 0) {
-              countsMBV++;
-            }
+      int wc = wordCount % 16;
+      //LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
+      if( (wc == 0) && (wordCount != 0)) {
+        LOG(info) << "128:" << gbtWord128;
+        gbtwords128.push_back(gbtWord128);
+        gbtWord128 = 0;
+      }
+      for (int i = 0; i < 8; i++) {
+          gbtWord128[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
+      }
+      wordCount++;
+    }
+    if(gbtWord128.count()) {
+      gbtwords128.push_back(gbtWord128);
+      LOG(info) << "128:" << gbtWord128;
+    }
+    // Create 80 bits words
+    //mPadding = 0;
+    gbtword80_t remnant = 0;
+    gbtword80_t w80 = 0;
+    std::vector<gbtword80_t> gbtwords80;
+    if(mPadding == 1) {
+      for(auto word : gbtwords128) {
+        LOG(info) << word;
+        std::string str = word.to_string();
+        str = str.substr(48);
+        w80 = std::bitset<80>(str);
+        LOG(info) << "w80:" << w80;
+        gbtwords80.push_back(w80);
+      }
+    } else {
+        int count = 0;
+        for(auto word : gbtwords128) {
+          int countmod = count % 5;
+          if(countmod == 0) {
+            //80
+            w80 = subbitset(0,80,word);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 0:" << w80;
+            //48
+            remnant = subbitset(80,48,word);
+            LOG(info) << "rem 0:" << remnant;
+          } else if( countmod == 1) {
+            //32
+            w80 = remnant | subbitset(0,32,word, 48);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 1:" << w80;
+            // 80
+            w80 = subbitset(32,80,word);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 1:" << w80;
+            // 16
+            remnant = subbitset(112,16,word);
+            LOG(info) << "rem 1:" << remnant;
+          } else if( countmod == 2) {
+            //64
+            w80 = remnant | subbitset(0,64,word,16);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 2:" << w80;
+            // 64
+            remnant = subbitset(64,64,word);
+            LOG(info) << "rem 2:" << remnant;
+          } else if ( countmod == 3) {
+            //16
+            w80 = remnant | subbitset(0,16,word,64);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 3:" << w80;
+            // 80
+            w80 = subbitset(16,80,word);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 3:" << w80;
+            // 32
+            remnant = subbitset(96,32,word);
+            LOG(info) << "rem 3:" << remnant;
+          } else if (countmod == 4) {
+            //48
+            w80 = remnant | subbitset(0,48,word,32);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 4:" << w80;
+            w80 = subbitset(48,80,word);
+            gbtwords80.push_back(w80);
+            LOG(info) << "w80 4:" << w80;
+            remnant = 0;
+          } else {
+            LOG(error) << "Impossible to get here";
           }
-          if (!mDoDigits) {
-            continue;
+          count++;
+        }
+    }
+    // remnant
+    //LOG(info) << "remnant:" << remnant;
+    if( remnant.count() ) {
+      gbtwords80.push_back(remnant);
+      LOG(info) << "w80 r:" << w80;
+    }
+    // decode 80 bits payload
+    gbtword80_t bcmask = std::bitset<80>("111111111111");
+    for(auto word : gbtwords80) {
+      std::vector<gbtword80_t> diglets;
+      gbtword80_t gbtWord = word;
+      makeGBTWordInverse(diglets,gbtWord,remnant,size_gbt,payloadCTP);
+      for (auto diglet : diglets) {
+        if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
+          gbtword80_t pld = (diglet >> 12) & mTVXMask;
+          if (pld.count() != 0) {
+            countsMBT++;
           }
-          addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
+          pld = (diglet >> 12) & mVBAMask;
+          if (pld.count() != 0) {
+            countsMBV++;
+          }
         }
-        gbtWord = 0;
-      } else {
-        for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+        if (!mDoDigits) {
+          continue;
         }
-        wordCount++;
+        LOG(info) << "diglet:" << diglet << " " << (diglet&bcmask).to_ullong();
+        addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
       }
     }
-    // LOG(info) << "remnant:" << remnant;
-    if ((remnant.count() > 0) && stopBit) {
+    //if ((remnant.count() > 0) && stopBit) {
+    if (remnant.count() > 0) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
@@ -176,6 +263,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
       addCTPDigit(linkCRU, triggerOrbit, remnant, pldmask, digits);
+      LOG(info) << "diglett:" << remnant << " " << (remnant&bcmask).to_ullong();
       remnant = 0;
     }
   }
@@ -258,7 +346,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
   uint16_t bcid = (diglet & bcidmask).to_ulong();
-  // LOG(info) << bcid << "    pld:" << pld;
+  LOG(info) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir = {bcid, triggerOrbit};
   int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
@@ -270,7 +358,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       return 0;
     }
     ir -= BCShiftCorrection;
-    LOG(debug) << "ir ir corrected:" << ir;
+    LOG(info) << "ir ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setInputMask(pld);
@@ -296,7 +384,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       return 0;
     }
     ir -= offset;
-    LOG(debug) << "tcr ir corrected:" << ir;
+    LOG(info) << "tcr ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
@@ -316,7 +404,17 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   }
   return 0;
 }
-
+//
+//  000 pos2 00000 pos1 0000
+std::bitset<80> RawDecoderSpec::subbitset(int pos, int len, gbtword128_t& bs, int shift) {
+  gbtword80_t word;
+  std::string str = bs.to_string();
+  pos = 128 - pos - len;
+  str = str.substr(pos,len);
+  word = std::bitset<80>(str);
+  word = word << shift;
+  return word;
+}
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
   if (!digits && !lumi) {
