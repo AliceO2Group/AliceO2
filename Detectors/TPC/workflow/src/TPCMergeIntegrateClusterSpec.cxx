@@ -155,21 +155,26 @@ class TPCMergeIntegrateClusters : public Task
           const unsigned int region = cruTmp.region();
           const unsigned int sector = cruTmp.sector();
           for (int interval = 0; interval < nIntegrationIntervals; ++interval) {
-            const unsigned int indexStart = interval * Mapper::getNumberOfPadsPerSide() + (sector % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region];
-            const unsigned int indexEnd = indexStart + Mapper::PADSPERREGION[region];
-            const auto& currqMax = (side == Side::A) ? object.mIQMaxA : object.mIQMaxC;
-            const auto& currqTot = (side == Side::A) ? object.mIQTotA : object.mIQTotC;
-            const auto& currNCl = (side == Side::A) ? object.mINClA : object.mINClC;
+            const unsigned int indexEnd = Mapper::PADSPERREGION[region];
+            auto& currqMax = (side == Side::A) ? object.mIQMaxA : object.mIQMaxC;
+            auto& currqTot = (side == Side::A) ? object.mIQTotA : object.mIQTotC;
+            auto& currNCl = (side == Side::A) ? object.mINClA : object.mINClC;
 
             // check if values are empty -> dummy input
-            if (std::all_of(currNCl.begin() + indexStart, currNCl.begin() + indexEnd, [](float x) { return x == 0; })) {
+            if (std::all_of(currNCl.begin(), currNCl.begin() + indexEnd, [](float x) { return x == 0; })) {
+              currqMax.erase(currqMax.begin(), currqMax.begin() + indexEnd);
+              currqTot.erase(currqTot.begin(), currqTot.begin() + indexEnd);
+              currNCl.erase(currNCl.begin(), currNCl.begin() + indexEnd);
               continue;
             }
 
             // copy currents for factorization (ToDo: optimize the class for factorization such that no copy is required)
-            factorizeqMax.setIDCs(std::vector<float>(currqMax.begin() + indexStart, currqMax.begin() + indexEnd), cru, interval);
-            factorizeqTot.setIDCs(std::vector<float>(currqTot.begin() + indexStart, currqTot.begin() + indexEnd), cru, interval);
-            factorizeNCl.setIDCs(std::vector<float>(currNCl.begin() + indexStart, currNCl.begin() + indexEnd), cru, interval);
+            factorizeqMax.setIDCs(std::vector<float>(std::make_move_iterator(currqMax.begin()), std::make_move_iterator(currqMax.begin() + indexEnd)), cru, interval);
+            factorizeqTot.setIDCs(std::vector<float>(std::make_move_iterator(currqTot.begin()), std::make_move_iterator(currqTot.begin() + indexEnd)), cru, interval);
+            factorizeNCl.setIDCs(std::vector<float>(std::make_move_iterator(currNCl.begin()), std::make_move_iterator(currNCl.begin() + indexEnd)), cru, interval);
+            currqMax.erase(currqMax.begin(), currqMax.begin() + indexEnd);
+            currqTot.erase(currqTot.begin(), currqTot.begin() + indexEnd);
+            currNCl.erase(currNCl.begin(), currNCl.begin() + indexEnd);
           }
         }
 
