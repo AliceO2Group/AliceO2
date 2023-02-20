@@ -28,9 +28,10 @@ namespace tpc
 
 struct ParameterDetector : public o2::conf::ConfigurableParamHelper<ParameterDetector> {
 
-  float TPClength = 250.f;     ///< Length of the TPC [cm]
-  float PadCapacitance = 0.1f; ///< Capacitance of a single pad [pF]
-  TimeBin TmaxTriggered = 550; ///< Maximum time bin in case of triggered readout mode
+  float TPClength = 250.f;       ///< Length of the TPC [cm]
+  float TPCRecoWindowSim = 1.5f; ///< length of the reconstruction window in units of drift time of the TPC in simulation (Neutron capture process can extend up to 30-40 TPC drift time)
+  float PadCapacitance = 0.1f;   ///< Capacitance of a single pad [pF]
+  TimeBin TmaxTriggered = 550;   ///< Maximum time bin in case of triggered readout mode
 
   O2ParamDef(ParameterDetector, "TPCDetParam");
 };
