@@ -96,4 +96,7 @@
 #pragma link C++ class o2::dataformats::DecayNbody + ;
 #pragma link C++ class std::vector < o2::dataformats::DecayNbody> + ;
 
+#pragma link C++ class o2::dataformats::StrangeTrack + ;
+#pragma link C++ class std::vector < o2::dataformats::StrangeTrack> + ;
+
 #endif

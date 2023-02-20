@@ -25,6 +25,7 @@
 #include "GlobalTrackingWorkflowReaders/MatchedMCHMIDReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/StrangenessTrackingReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
@@ -42,6 +43,7 @@
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+// #include "StrangenessTrackingWorkflow/StrangenessTrackingReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -185,6 +187,16 @@ int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
+  return 0;
+}
+
+// attach strangeness tracking reader
+int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc));
   return 0;
 }
 

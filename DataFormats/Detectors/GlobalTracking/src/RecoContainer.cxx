@@ -26,6 +26,7 @@
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
@@ -400,6 +401,15 @@ void DataRequest::requestSecondaryVertertices(bool)
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
+void DataRequest::requestStrangeTracks(bool mc)
+{
+  addInput({"strangetracks", "GLO", "STRANGETRACKS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"strack_mc", "GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["STracker"] = mc; // no MC for the time being
+}
+
 void DataRequest::requestCTPDigits(bool mc)
 {
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
@@ -747,6 +757,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addSVertices(pc, req->second);
   }
 
+  req = reqMap.find("STracker");
+  if (req != reqMap.end()) {
+    addStrangeTracks(pc, req->second);
+  }
+
   req = reqMap.find("IRFramesITS");
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
@@ -780,6 +795,18 @@ void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
 
   if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVerticesTMP
     pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool mc)
+{
+  strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("strangetracks"), STRACK);
+  // pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref"), PVTX_TRMTCREFS);
+
+  if (mc && !strkPool.isLoaded(STRACK_MC)) { // in case was loaded via addPVerticesTMP
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("strack_mc"), STRACK_MC);
+    // }
   }
 }
 

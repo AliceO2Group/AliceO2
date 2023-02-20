@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "StrangenessTrackingWorkflow/StrangenessTrackingSpec.h"
-#include "StrangenessTrackingWorkflow/StrangenessTrackingWriterSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
@@ -57,7 +57,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -65,11 +64,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource));
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC));
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
-  specs.emplace_back(getStrangenessTrackingWriterSpec());
+  specs.emplace_back(getStrangenessTrackingWriterSpec(useMC));
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
