@@ -42,11 +42,6 @@ class Digits2Raw
   void setZeroSuppressedIntRec(bool value) { mZeroSuppressedIntRec = value; }
   void setZeroSuppressedClassRec(bool value) { mZeroSuppressedClassRec = value; }
   void setPadding(bool value) { mPadding = value; }
-  void setAlignmentSize(int value)
-  {
-    mAlignmentSize = value;
-    mWriter.setAlignmentSize(value);
-  }
   bool getFilePerLink() const { return mOutputPerLink; }
   uint64_t getFEEIDIR() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDIntRec << 8)); }
   uint64_t getFEEIDTC() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDClassRec << 8)); }
@@ -80,7 +75,6 @@ class Digits2Raw
   bool mZeroSuppressedIntRec = true;
   bool mZeroSuppressedClassRec = true;
   bool mPadding = true;
-  int mAlignmentSize = 16;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
   std::string mCTPRawDataFileName = "CTP_alio2-cr1-flp163_cru1111_0";
 };

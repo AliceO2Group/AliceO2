@@ -82,9 +82,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
-    if (version == 7) {
-      mPadding = 0;
-    }
+    mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
     LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
     // get reserved
     // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
@@ -123,7 +121,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     // Create 80 bit words
     gsl::span<const uint8_t> payload(it.data(), it.size());
-    gbtword80_t gbtWord80 = 0;
+    gbtword80_t gbtWord80;
+    gbtWord80.set();
     int wordCount = 0;
     int wordSize = 10;
     std::vector<gbtword80_t> gbtwords80;
@@ -131,14 +130,16 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     if(mPadding == 1) {
       wordSize = 16;
     }
-    LOG(info) << "payload size:" << payload.size();
+    //LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
       int wc = wordCount % wordSize;
       // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
       if ((wc == 0) && (wordCount != 0)) {
-        LOG(info) << "gw80:" << gbtWord80;
-        gbtwords80.push_back(gbtWord80);
-        gbtWord80 = 0;
+        if( gbtWord80.count() != 80 ) {
+          gbtwords80.push_back(gbtWord80);
+          LOG(info) << "gw80:" << gbtWord80;
+        }
+        gbtWord80.set();
       }
       if(wc < 10) {
         for (int i = 0; i < 8; i++) {
@@ -147,7 +148,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       }
       wordCount++;
     }
-    if (gbtWord80.count()) {
+    if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
       LOG(info) << "w80l:" << gbtWord80;
     }

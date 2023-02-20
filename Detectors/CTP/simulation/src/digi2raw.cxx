@@ -127,8 +127,12 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   m2r.setOutDir(outDirName);
   m2r.setZeroSuppressedIntRec(zsIR);
   m2r.setZeroSuppressedClassRec(zsClass);
-  //m2r.getWriter().useRDHDataFormat(enablePadding ? 0 : 2);
+  m2r.getWriter().useRDHDataFormat(enablePadding ? 0 : 2);
   m2r.setPadding(enablePadding);
+  if (!enablePadding) { // CRU page alignment padding is used only if no GBT word padding is used
+    m2r.getWriter().setAlignmentSize(o2::ctp::CRUPageAlignment);
+    m2r.getWriter().setAlignmentPaddingFiller(0xff);
+  }
   m2r.init();
   m2r.processDigits(inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));

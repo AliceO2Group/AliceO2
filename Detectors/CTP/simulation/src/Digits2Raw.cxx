@@ -36,7 +36,7 @@ void Digits2Raw::init()
   }
   LOG(info) << "Raw outpud dir:" << mOutDir;
   //
-  LOG(info) << "Raw Data padding:" << mPadding << " Alignmant size:" << mAlignmentSize;
+  LOG(info) << "Raw Data padding:" << mPadding;
   // Interaction Record
   int ilink = 0;
   uint64_t feeID = getFEEIDIR();
@@ -49,7 +49,6 @@ void Digits2Raw::init()
   mWriter.registerLink(feeID, mCruID, ilink, mEndPointID, outFileLink1);
   // ilink = 2: HBMap, Counters - tbd
   mWriter.setEmptyPageCallBack(this);
-  mWriter.setAlignmentSize(mAlignmentSize);
 }
 void Digits2Raw::processDigits(const std::string& fileDigitsName)
 {
@@ -231,17 +230,6 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
       }
     }
   }
-  //if (mPadding == false) {
-  //  uint32_t NZeros = 0;
-  //  if (countBytes % 16) {
-  //    NZeros = 16 - (countBytes % 16);
-  //  }
-  //  LOG(info) << "Adding bytes:" << NZeros;
-  //  for (uint32_t i = 0; i < NZeros; i++) {
-  //    char c = 0;
-  //    toAdd.push_back(c);
-  //  }
-  //}
   return std::move(toAdd);
 }
 // Adding payload of size < NGBT to GBT words of size NGBT
