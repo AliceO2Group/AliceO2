@@ -249,7 +249,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
-  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
+  if (mOverrideBeamEstimation) {
+    LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", timeFrame->getBeamX(), timeFrame->getBeamY());
+  } else {
+    LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
+  }
 
   if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
