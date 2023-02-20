@@ -19,6 +19,7 @@
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Hit.h"
 #include "EMCALSimulation/Digitizer.h"
+#include "EMCALSimulation/DigitizerTRU.h"
 #include "EMCALSimulation/SDigitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <DetectorsBase/BaseDPLDigitizer.h>
@@ -69,7 +70,9 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   Bool_t mLoadSimParamFromCCDB = false; ///< Flag to load the the SimParams from CCDB
   bool mIsConfigured = false;           ///< Initialization status of the digitizer
   Digitizer mDigitizer;                 ///< Digitizer object
+  DigitizerTRU mDigitizerTRU;                 ///< Digitizer object TRU
   o2::emcal::SDigitizer mSumDigitizer;  ///< Summed digitizer
+  o2::emcal::SDigitizer mSumDigitizerTRU;  ///< Summed digitizer TRU
   std::vector<Hit> mHits;               ///< Vector with input hits
   std::vector<TChain*> mSimChains;
 };

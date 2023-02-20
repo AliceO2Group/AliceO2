@@ -46,9 +46,11 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   // init digitizer
 
   mSumDigitizer.setGeometry(geom);
+  mSumDigitizerTRU.setGeometry(geom);
 
   if (ctx.options().get<bool>("debug-stream")) {
     mDigitizer.setDebugStreaming(true);
+    mDigitizerTRU.setDebugStreaming(true);
   }
   // mDigitizer.init();
 
@@ -93,6 +95,54 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
 
   auto& eventParts = context->getEventParts();
+
+
+
+  // ------------------------------
+  // TRIGGER Simulation
+  // ------------------------------
+  // 1. Run SDigitizer separate loop -> map of vector of SDigits
+  // 2. Run Trigger simulation chain (Digitizer -> Digits writeout buffer -> L0 Simulation)
+  // 3. Run Loop SDigits -> Digits, set live only if the trigger is accepted.
+  //
+  // loop over all composite collisions given from context
+  // (aka loop over all the interaction records)
+  for (int collID = 0; collID < timesview.size(); ++collID) {
+
+    mDigitizerTRU.setEventTime(timesview[collID]);
+
+    // if (!mDigitizerTRU.isLive()) {
+    //   continue;
+    // }
+
+    // for each collision, loop over the constituents event and source IDs
+    // (background signal merging is basically taking place here)
+    for (auto& part : eventParts[collID]) {
+
+      mSumDigitizerTRU.setCurrEvID(part.entryID);
+      mSumDigitizerTRU.setCurrSrcID(part.sourceID);
+
+      // get the hits for this event and this source
+      mHits.clear();
+      context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
+
+      LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+
+      std::vector<o2::emcal::LabeledDigit> summedLabeledDigits = mSumDigitizerTRU.process(mHits);
+      std::vector<o2::emcal::Digit> summedDigits;
+      for(auto labeledsummeddigit : summedLabeledDigits){
+        summedDigits.push_back(labeledsummeddigit.getDigit());
+      }
+
+      // call actual digitization procedure
+      mDigitizerTRU.process(summedDigits);
+    }
+  }
+
+  mDigitizerTRU.finish();
+
+
+
 
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
