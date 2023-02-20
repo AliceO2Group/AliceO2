@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("no-zs-ir", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress interaction records");
     add_option("no-zs-class", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress trigger class records");
-    add_option("padding",bpo::value<bool>()->default_value(true)->implicit_value(true),"pad raw gbt data to 128 bits: 80 bits payload+48 bits 0");
+    add_option("padding", bpo::value<bool>()->default_value(true)->implicit_value(true), "pad raw gbt data to 128 bits: 80 bits payload+48 bits 0");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, bool zsIR, bool zsClass, bool padRaw,int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, bool zsIR, bool zsClass, bool padRaw, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();

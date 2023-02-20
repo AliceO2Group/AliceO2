@@ -88,7 +88,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           break;
       }
     }
-    LOG(info) << data.intRecord.bc << " " << data.intRecord.orbit <<  " Input mask:" << inpmaskcoll;
+    LOG(info) << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll;
     data.CTPInputMask = inpmaskcoll;
     calculateClassMask(inpmaskcoll, data.CTPClassMask);
     digits.emplace_back(data);

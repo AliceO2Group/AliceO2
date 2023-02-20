@@ -184,7 +184,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
   bool valid;
   for (auto const& dig : digits) {
     valid = makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend);
-    LOG(info) << Npld << " digit:" << dig << " " << (dig.to_ulong() & 0xfff) << " " ;
+    LOG(info) << Npld << " digit:" << dig << " " << (dig.to_ulong() & 0xfff) << " ";
     LOG(info) << "gbt  :" << gbtsend << " valid:" << valid;
     if (valid == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
@@ -196,7 +196,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
         char c = w;
         toAdd.push_back(c);
       }
-      if(mPadding) {
+      if (mPadding) {
         // Pad zeros up to 128 bits
         uint32_t NZeros = (o2::raw::RDHUtils::GBTWord128 * 8 - NGBT) / 8;
         for (uint32_t i = 0; i < NZeros; i++) {
@@ -223,7 +223,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
       toAdd.push_back(c);
     }
     // Pad zeros up to 128 bits
-    if(mPadding) {
+    if (mPadding) {
       uint32_t NZeros = (o2::raw::RDHUtils::GBTWord128 * 8 - NGBT) / 8;
       for (uint32_t i = 0; i < NZeros; i++) {
         char c = 0;
@@ -231,13 +231,13 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
       }
     }
   }
-  if(mPadding == false) {
+  if (mPadding == false) {
     uint32_t NZeros = 0;
     if (countBytes % 16) {
       NZeros = 16 - (countBytes % 16);
     }
     LOG(info) << "Adding bytes:" << NZeros;
-    for(uint32_t i = 0; i < NZeros; i++) {
+    for (uint32_t i = 0; i < NZeros; i++) {
       char c = 0;
       toAdd.push_back(c);
     }
