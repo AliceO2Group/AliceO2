@@ -84,6 +84,9 @@ void DescriptorInnerBarrelITS3::configure()
   IBtdr5dat.emplace_back(std::array<double, 9>{2.4f, 27.15, 0.1, 4., 0.06, 0.128, 0.25, 0.8, 0.022});
   IBtdr5dat.emplace_back(std::array<double, 9>{3.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022});
 
+  std::vector<std::array<double, 10>> IBtdr5dat4thLayer;
+  IBtdr5dat4thLayer.emplace_back(std::array<double, 10>{6.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022, 0.05});
+
   if (mVersion == "ThreeLayersNoDeadZones") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -93,7 +96,7 @@ void DescriptorInnerBarrelITS3::configure()
       mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
       mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
       mDetectorThickness[idLayer] = mSensorLayerThickness;
-      mGap[idLayer] = 0.1;
+      mGap[idLayer] = IBtdr5dat[idLayer][2];
       mChipTypeID[idLayer] = 0;
       mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
       mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
@@ -125,7 +128,45 @@ void DescriptorInnerBarrelITS3::configure()
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
   } else if (mVersion == "FourLayers") {
-    LOGP(fatal, "ITS3 version FourLayers not yet implemented.");
+
+    mWrapperMinRadius = IBtdr5dat[0][0] - safety;
+    mWrapperMaxRadius = IBtdr5dat4thLayer[0][0] + safety;
+
+    for (auto idLayer{0u}; idLayer < IBtdr5dat.size(); ++idLayer) {
+      mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
+      mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
+      mDetectorThickness[idLayer] = mSensorLayerThickness;
+      mNumSubSensorsHalfLayer[idLayer] = (int)IBtdr5dat[idLayer][3];
+      mFringeChipWidth[idLayer] = IBtdr5dat[idLayer][4];
+      mMiddleChipWidth[idLayer] = IBtdr5dat[idLayer][5];
+      mGap[idLayer] = IBtdr5dat[idLayer][2];
+      mChipTypeID[idLayer] = 0;
+      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
+      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
+      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+
+      LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
+           idLayer, mLayerRadii[idLayer], mDetectorThickness[idLayer], mGap[idLayer],
+           mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
+           mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
+    }
+
+    mLayerRadii[3] = IBtdr5dat4thLayer[0][0];
+    mLayerZLen[3] = IBtdr5dat4thLayer[0][1];
+    mDetectorThickness[3] = mSensorLayerThickness;
+    mNumSubSensorsHalfLayer[3] = (int)IBtdr5dat4thLayer[0][3];
+    mFringeChipWidth[3] = IBtdr5dat4thLayer[0][4];
+    mMiddleChipWidth[3] = IBtdr5dat4thLayer[0][5];
+    mGap[3] = IBtdr5dat4thLayer[0][2];
+    mChipTypeID[3] = 0;
+    mHeightStripFoam[3] = IBtdr5dat4thLayer[0][6];
+    mLengthSemiCircleFoam[3] = IBtdr5dat4thLayer[0][7];
+    mThickGluedFoam[3] = IBtdr5dat4thLayer[0][8];
+    mGapXDirection4thLayer = IBtdr5dat4thLayer[0][9];
+    LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}, GapXDirection4thLayer:{}",
+         3, mLayerRadii[3], mDetectorThickness[3], mGap[3],
+         mNumSubSensorsHalfLayer[3], mFringeChipWidth[3], mMiddleChipWidth[3],
+         mHeightStripFoam[3], mLengthSemiCircleFoam[3], mThickGluedFoam[3], mGapXDirection4thLayer);
   } else if (mVersion == "FiveLayers") {
     LOGP(fatal, "ITS3 version FiveLayers not yet implemented.");
   } else {
@@ -157,6 +198,16 @@ ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
     mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
     mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
     mLayer[idLayer]->createLayerWithDeadZones(dest);
+  } else if (mVersion == "FourLayers") {
+    mLayer[idLayer]->setFringeChipWidth(mFringeChipWidth[idLayer]);
+    mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
+    mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
+    if (idLayer != 3) {
+      mLayer[idLayer]->createLayerWithDeadZones(dest);
+    } else if (idLayer == 3) {
+      mLayer[idLayer]->setGapXDirection(mGapXDirection4thLayer);
+      mLayer[idLayer]->create4thLayer(dest);
+    }
   }
 
   return mLayer[idLayer]; // is this needed?
