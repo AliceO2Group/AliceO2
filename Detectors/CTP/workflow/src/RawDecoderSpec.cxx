@@ -126,22 +126,22 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     int wordCount = 0;
     int wordSize = 10;
     std::vector<gbtword80_t> gbtwords80;
-    //mPadding = 0;
-    if(mPadding == 1) {
+    // mPadding = 0;
+    if (mPadding == 1) {
       wordSize = 16;
     }
-    //LOG(info) << "payload size:" << payload.size();
+    // LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
       int wc = wordCount % wordSize;
       // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
       if ((wc == 0) && (wordCount != 0)) {
-        if( gbtWord80.count() != 80 ) {
+        if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
           LOG(info) << "gw80:" << gbtWord80;
         }
         gbtWord80.set();
       }
-      if(wc < 10) {
+      if (wc < 10) {
         for (int i = 0; i < 8; i++) {
           gbtWord80[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
         }

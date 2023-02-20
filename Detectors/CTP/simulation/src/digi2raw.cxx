@@ -108,7 +108,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
-  if(rdhV < 7 && !enablePadding) {
+  if (rdhV < 7 && !enablePadding) {
     enablePadding = true;
     LOG(info) << "padding is always ON for RDH version " << rdhV;
   }
