@@ -100,6 +100,8 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
     treeOutResidualsUnbinned->Branch("res", &unbinnedResPtr);
     treeOutResidualsUnbinned->Branch("trackInfo", &trackInfoPtr);
+    treeOutResidualsUnbinned->Branch("lumi", &lumiTF);
+    treeOutResidualsUnbinned->Branch("timeMS", &timeMS);
   }
   if (writeTrackData) {
     treeOutTrackData = std::make_unique<TTree>("trackData", "Track information incl cluster range ref");
@@ -216,6 +218,10 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     trkData.clear();
   }
   if (writeUnbinnedResiduals) {
+    if (lumiInput) {
+      lumiTF = *lumiInput;
+    }
+    timeMS = orbitResetTime + ti.tfCounter * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
     treeOutResidualsUnbinned->Fill();
     unbinnedRes.clear();
     trackInfo.clear();
