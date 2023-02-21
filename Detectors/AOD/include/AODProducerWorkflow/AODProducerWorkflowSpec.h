@@ -49,6 +49,8 @@ using GID = o2::dataformats::GlobalTrackID;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using DataRequest = o2::globaltracking::DataRequest;
 
+#define O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
+
 namespace o2::aodproducer
 {
 
@@ -272,10 +274,12 @@ class AODProducerWorkflowDPL : public Task
 
   BunchCrossings mBCLookup;
 
+#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
-  map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
-  map<string, float> mZDCTDCMap;    // mapping TDC channel to a corresponding TDC value
+  std::array<float, o2::zdc::NChannels> mZDCEnergyMap; // mapping detector id to a corresponding energy
+  std::array<float, o2::zdc::NTDCChannels> mZDCTDCMap; // mapping TDC channel id to a corresponding TDC value
+#endif
 
   std::vector<uint16_t> mITSTPCTRDTriggers; // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
   std::vector<uint16_t> mTPCTRDTriggers;    // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
