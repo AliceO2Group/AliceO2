@@ -104,8 +104,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
   auto& gasParam = ParameterGas::Instance();
-  const Int_t   kMaxDistRef =15;     // maximal difference between 2 stored references - the parameter should be 15-30 cm default
-  static Double_t lastReferenceR=0;  /// using static global varaible - in Run1,2 it was OK - in Run3 use some other mechanism
+  const Int_t kMaxDistRef = 15;       // maximal difference between 2 stored references - the parameter should be 15-30 cm default
+  static Double_t lastReferenceR = 0; /// using static global varaible - in Run1,2 it was OK - in Run3 use some other mechanism
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(info) << "tpc::ProcessHits";
@@ -152,11 +152,11 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
   }
-  if (TMath::Abs(lastReferenceR-fMC->TrackLength())>kMaxDistRef){   /// we can speedup
+  if (TMath::Abs(lastReferenceR - fMC->TrackLength()) > kMaxDistRef) { /// we can speedup
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
-   lastReferenceR = fMC->TrackLength();
- }
+    lastReferenceR = fMC->TrackLength();
+  }
 
   // ===| CONVERT THE ENERGY LOSS TO IONIZATION ELECTRONS |=====================
   //
