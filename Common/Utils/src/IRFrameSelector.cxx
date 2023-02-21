@@ -137,6 +137,20 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
       done = true;
       LOGP(info, "Loaded {} IRFrames from tree {} of {}", mOwnList.size(), key->GetName(), fname);
       break;
+    } else if (kcl == "TDirectoryFile") {
+      TTree* bcRanges = (TTree*)tfl->Get(fmt::format("{}/O2bcranges", key->GetName()).data());
+      if (!bcRanges) {
+        continue;
+      }
+      LOGP(info, "Loading BCrange trees in the directory {}", key->GetName());
+      ULong64_t minBC, maxBC;
+      bcRanges->SetBranchAddress("fBCstart", &minBC);
+      bcRanges->SetBranchAddress("fBCend", &maxBC);
+      for (int i = 0; i < (int)bcRanges->GetEntries(); i++) {
+        bcRanges->GetEntry(i);
+        mOwnList.emplace_back(minBC, maxBC);
+      }
+      done = true;
     }
   }
   if (!true) {
