@@ -34,10 +34,10 @@ int dumpCTPRO(bool files = 0)
     return 0;
   }
   // CTP digits
-  //TFile* fileDigits = TFile::Open("/home/rl/tests/digits/ctpdigits.root");
+  // TFile* fileDigits = TFile::Open("/home/rl/tests/digits/ctpdigits.root");
   TFile* fileDigits = TFile::Open("/home/rl/pp/529690/ctpdigits.root");
-  //TFile* fileDigits = TFile::Open("/home/rl/PbPb/529403/1820/ctpdigits.root");
-  //TFile* fileDigits = TFile::Open("/home/rl/PbPb/529403/1820/ctpdigitsNOParams.root");
+  // TFile* fileDigits = TFile::Open("/home/rl/PbPb/529403/1820/ctpdigits.root");
+  // TFile* fileDigits = TFile::Open("/home/rl/PbPb/529403/1820/ctpdigitsNOParams.root");
   //
   fileDigits->ls();
   o2::ctp::CTPDigit* dig = new o2::ctp::CTPDigit;
@@ -57,7 +57,7 @@ int dumpCTPRO(bool files = 0)
       std::cout << "Error:" << std::dec << ctpdigs.GetSetupStatus() << " for:" << ctpdigs.GetBranchName() << std::endl;
       return 1;
     }
-    //std::cout << "size:" << std::dec << ctpdigs.GetSize() << std::endl;
+    // std::cout << "size:" << std::dec << ctpdigs.GetSize() << std::endl;
     int i;
     for (i = 0; i < ctpdigs.GetSize(); i++) {
       o2::ctp::CTPDigit* dig = &ctpdigs[i];
