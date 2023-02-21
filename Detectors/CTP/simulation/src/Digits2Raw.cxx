@@ -209,7 +209,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
   LOG(debug) << "gbtword:" << gbtword;
   LOG(debug) << "gbtsend:" << gbtsend;
   if (size_gbt > 0) {
-    //LOG(info) << "Adding left over.";
+    // LOG(info) << "Adding left over.";
     gbtword80_t gbtsend = gbtword;
     for (uint32_t i = 0; i < NGBT; i += 8) {
       uint32_t w = 0;

@@ -84,8 +84,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
     mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
-    //LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
-    // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
+    // LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+    //  std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
