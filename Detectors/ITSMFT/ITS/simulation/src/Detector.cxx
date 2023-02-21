@@ -946,7 +946,9 @@ void Detector::constructDetectorGeometry()
   if (detName == "ITS") {
     ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createServices(wrapVols[0]);
   } else if (detName == "IT3" && mNumberInnerLayers == 3) {
+#ifdef ENABLE_UPGRADES
     ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->createServices(wrapVols[0]);
+#endif
   }
 
   mServicesGeometry = new V3Services(detName);
