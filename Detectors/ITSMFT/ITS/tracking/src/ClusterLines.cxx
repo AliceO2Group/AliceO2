@@ -85,7 +85,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
 
 {
   mLabels.push_back(firstLabel);
-  mLabels.push_back(secondLabel);
+  if (secondLabel > 0) {
+    mLabels.push_back(secondLabel); // don't add info in case of beamline used
+  }
 
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
@@ -279,9 +281,9 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
   }
   // if(weight) line->GetSigma2P0(covariance);
 
-  float determinant{line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] * covariance[1] +
-                    line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[0] * covariance[2] +
-                    line.cosinesDirector[0] * line.cosinesDirector[0] * covariance[1] * covariance[2]};
+  double determinant{line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] * covariance[1] +
+                     line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[0] * covariance[2] +
+                     line.cosinesDirector[0] * line.cosinesDirector[0] * covariance[1] * covariance[2]};
 
   mAMatrix[0] += (line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[1] +
                   line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[2]) /
@@ -319,9 +321,9 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
 void ClusterLines::computeClusterCentroid()
 {
 
-  float determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
-                    mAMatrix[1] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
-                    mAMatrix[2] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])};
+  double determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
+                     mAMatrix[1] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
+                     mAMatrix[2] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])};
 
   if (determinant == 0) {
     return;

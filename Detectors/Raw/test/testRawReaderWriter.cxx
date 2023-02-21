@@ -110,11 +110,11 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
         // of creating empty HBFs for the links w/o data
         for (int il = 0; il < NLinkPerCRU; il++) {
           buffer.clear();
-          int nGBT = gRandom->Poisson(RDHUtils::MAXCRUPage / RDHUtils::GBTWord * (il));
+          int nGBT = gRandom->Poisson(RDHUtils::MAXCRUPage / RDHUtils::GBTWord128 * (il));
           if (nGBT) {
-            buffer.resize((nGBT + 2) * RDHUtils::GBTWord, icru * NLinkPerCRU + il); // reserve 16B words accounting for the Header and Trailer
-            std::memcpy(buffer.data(), PLHeader.c_str(), RDHUtils::GBTWord);
-            std::memcpy(buffer.data() + buffer.size() - RDHUtils::GBTWord, PLTrailer.c_str(), RDHUtils::GBTWord);
+            buffer.resize((nGBT + 2) * RDHUtils::GBTWord128, icru * NLinkPerCRU + il); // reserve 16B words accounting for the Header and Trailer
+            std::memcpy(buffer.data(), PLHeader.c_str(), RDHUtils::GBTWord128);
+            std::memcpy(buffer.data() + buffer.size() - RDHUtils::GBTWord128, PLTrailer.c_str(), RDHUtils::GBTWord128);
             // we don't care here about the content of the payload, except the presence of header and trailer
           }
           writer.addData((icru << feeIDShift) + il, icru, il, 0, ir, buffer);
@@ -149,8 +149,8 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
   void emptyHBFMethod(const RDHAny* rdh, std::vector<char>& toAdd) const
   {
     // what we want to add for every empty page
-    toAdd.resize(RDHUtils::GBTWord);
-    std::memcpy(toAdd.data(), HBFEmpty.c_str(), RDHUtils::GBTWord);
+    toAdd.resize(RDHUtils::GBTWord128);
+    std::memcpy(toAdd.data(), HBFEmpty.c_str(), RDHUtils::GBTWord128);
   }
 
   //_________________________________________________________________
@@ -161,7 +161,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     // it is already equiped with header and trailer
     static int verboseCount = 0;
 
-    if (maxSize <= RDHUtils::GBTWord) { // do not carry over trailer or header only
+    if (maxSize <= RDHUtils::GBTWord128) { // do not carry over trailer or header only
       return 0;
     }
 
@@ -171,10 +171,10 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
       LOG(info) << "Carry-over method for chunk of size " << bytesLeft << " is called, MaxSize = " << maxSize << (lastPage ? " : last chunk being processed!" : "");
     }
     // here we simply copy the header/trailer of the payload to every CRU page of this payload
-    header.resize(RDHUtils::GBTWord);
-    std::memcpy(header.data(), &data[0], RDHUtils::GBTWord);
-    trailer.resize(RDHUtils::GBTWord);
-    std::memcpy(trailer.data(), &data[data.size() - RDHUtils::GBTWord], RDHUtils::GBTWord);
+    header.resize(RDHUtils::GBTWord128);
+    std::memcpy(header.data(), &data[0], RDHUtils::GBTWord128);
+    trailer.resize(RDHUtils::GBTWord128);
+    std::memcpy(trailer.data(), &data[data.size() - RDHUtils::GBTWord128], RDHUtils::GBTWord128);
     // since we write an extra GBT word (trailer) in the end of the CRU page, we ask to write
     // not the block ptr : ptr+maxSize, but ptr : ptr+maxSize - GBTWord;
     int sz = maxSize; // if the method is called for the last page, then the trailer is overwritten !!!
@@ -222,7 +222,7 @@ struct TestRawReader { // simple class to read detector raw data for multiple li
     std::vector<std::vector<char>> buffers;
     std::vector<bool> firstHBF;
     std::string testStr;
-    testStr.resize(RDHUtils::GBTWord);
+    testStr.resize(RDHUtils::GBTWord128);
     buffers.resize(nLinks); // 1 buffer per link
     firstHBF.resize(nLinks, true);
 
@@ -273,21 +273,21 @@ struct TestRawReader { // simple class to read detector raw data for multiple li
                 if (lnk.cruDetector) {
                   BOOST_CHECK(memSize > rdhSize); // in this model all non-closing pages must contain something
                 }
-                if (memSize - rdhSize == RDHUtils::GBTWord) { // empty HBF will contain just a status word
+                if (memSize - rdhSize == RDHUtils::GBTWord128) { // empty HBF will contain just a status word
                   if (lnk.cruDetector) {
-                    testStr.assign(ptr + rdhSize, RDHUtils::GBTWord);
+                    testStr.assign(ptr + rdhSize, RDHUtils::GBTWord128);
                     BOOST_CHECK(testStr == HBFEmpty);
                   }
                 } else if (memSize > rdhSize) {
                   // pages with real payload should have at least header + trailer + some payload
-                  BOOST_CHECK(memSize - rdhSize > 2 * RDHUtils::GBTWord);
-                  testStr.assign(ptr + rdhSize, RDHUtils::GBTWord);
+                  BOOST_CHECK(memSize - rdhSize > 2 * RDHUtils::GBTWord128);
+                  testStr.assign(ptr + rdhSize, RDHUtils::GBTWord128);
                   BOOST_CHECK(testStr == PLHeader);
-                  testStr.assign(ptr + memSize - RDHUtils::GBTWord, RDHUtils::GBTWord);
+                  testStr.assign(ptr + memSize - RDHUtils::GBTWord128, RDHUtils::GBTWord128);
                   BOOST_CHECK(testStr == PLTrailer);
                 }
               } else { // for the special CRU with preformatted data make sure the page sizes were not modified
-                if (memSize > rdhSize + RDHUtils::GBTWord) {
+                if (memSize > rdhSize + RDHUtils::GBTWord128) {
                   auto tfhb = HBFUtils::Instance().getTFandHBinTF({RDHUtils::getHeartBeatBC(rdhi), RDHUtils::getHeartBeatOrbit(rdhi)}); // TF and HBF relative to TF
                   BOOST_CHECK(tfhb.second % (HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF) == 0);            // we were filling only every NPreformHBFPerTF-th HBF
                   BOOST_CHECK(memSize == SpecSize[RDHUtils::getLinkID(rdhi)]);                                            // check if the size is correct

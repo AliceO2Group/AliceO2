@@ -4,10 +4,10 @@
 #ENABLE_METRICS=1
 [ -d "$O2DPG_ROOT" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
-source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
@@ -118,27 +118,37 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
     if [[ $EPNSYNCMODE != 1 ]]; then
-      echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-      exit 2
+      echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
+    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:47900"
     if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
       [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
       for flp in $(seq -f "%03g" 1 144); do
-        FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
+        [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
     fi
     if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
       [[ -z $TPC_SAC_FLP_PORT ]] && TPC_SAC_FLP_PORT=47901
-      FLP_ADDRESS_SAC="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
-      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
+      [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
+      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
     fi
     if [[ ! -z $CHANNELS_LIST ]]; then
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C;$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      DATASPEC_LIST=
+      if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_A\""
+      fi
+      if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
+      fi
+      if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
+      fi
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
@@ -168,7 +178,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # PrimVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     if [[ -z $TFPERSLOTS_MEANVTX ]]; then TFPERSLOTS_MEANVTX=55000; fi
-    DELAYINTFS_MEANVTX="10"
+    if [[ -z $DELAYINTFS_MEANVTX ]]; then DELAYINTFS_MEANVTX=10; fi
     add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=$TFPERSLOTS_MEANVTX;MeanVertexCalib.maxTFdelay=$DELAYINTFS_MEANVTX"
   fi
 
@@ -294,7 +304,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH"; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"

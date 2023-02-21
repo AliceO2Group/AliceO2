@@ -41,9 +41,8 @@ namespace bpo = boost::program_options;
 constexpr int DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
-void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity,
-              uint32_t rdhV = DefRDHVersion, bool noEmptyHBF = false,
-              int superPageSizeInB = 1024 * 1024);
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV = DefRDHVersion, bool enablePadding = false,
+              bool noEmptyHBF = false, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -62,6 +61,7 @@ int main(int argc, char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cruendpoint,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(DefRDHVersion), "RDH version to use");
+    add_option("enable-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "enable GBT word padding to 128 bits even for RDH V7");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
@@ -95,6 +95,7 @@ int main(int argc, char** argv)
            vm["file-for"].as<std::string>(),
            vm["verbosity"].as<uint32_t>(),
            vm["rdh-version"].as<uint32_t>(),
+           vm["enable-padding"].as<bool>(),
            vm["no-empty-hbf"].as<bool>());
   LOG(info) << "HBFUtils settings used for conversion:";
 
@@ -103,13 +104,17 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV, bool enablePadding, bool noEmptyHBF, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
   using ROFR = o2::itsmft::ROFRecord;
   using ROFRVEC = std::vector<o2::itsmft::ROFRecord>;
   const uint8_t ruSWMin = 0, ruSWMax = 0xff; // seq.ID of 1st and last RU (stave) to convert
+  if (rdhV < 7 && !enablePadding) {
+    enablePadding = true;
+    LOG(info) << "padding is always ON for RDH version " << rdhV;
+  }
 
   LOG(info) << "HBFUtil settings:";
   o2::raw::HBFUtils::Instance().print();
@@ -154,6 +159,11 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
   m2r.getWriter().setSuperPageSize(superPageSizeInB);
   m2r.getWriter().useRDHVersion(rdhV);
+  m2r.getWriter().useRDHDataFormat(enablePadding ? 0 : 2);
+  if (!enablePadding) { // CRU page alignment padding is used only if no GBT word padding is used
+    m2r.getWriter().setAlignmentSize(o2::itsmft::GBTLink::CRUPageAlignment);
+    m2r.getWriter().setAlignmentPaddingFiller(0xff);
+  }
   m2r.getWriter().setDontFillEmptyHBF(noEmptyHBF);
 
   m2r.setVerbosity(verbosity);
@@ -440,6 +450,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
       link->cruID = ruhw.cruHWID;
       link->feeID = mp.RUSW2FEEId(ruID, il);
       link->endPointID = link->idInCRU > 11 ? 1 : 0;
+      link->wordLength = m2r.getWriter().getUsedRDHDataFormat() == 0 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       accL += lnkAs[il];
       outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix);
       if (fileFor != "all") { // single file for all links

@@ -13,6 +13,7 @@
 
 #include "Framework/ASoA.h"
 #include <cmath>
+#include <bitset>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -289,6 +290,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                              int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdPattern, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasNeighbor; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdPattern, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasCrossing; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDNLayers, trdPattern, //! Number of TRD tracklets in a Track
+                           [](uint8_t trdPattern) -> std::size_t { return std::bitset<6>(trdPattern).count(); });
 } // namespace track
 
 DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the track parameters at collision vertex
@@ -1019,6 +1029,8 @@ namespace soa
 DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
 } // namespace soa
 
 namespace aod
@@ -1190,6 +1202,8 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
 } // namespace aod
 namespace soa
 {
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::McTrackLabels);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
 extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa

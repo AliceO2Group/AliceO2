@@ -10,3 +10,4 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(Digits)
+add_subdirectory(PreClusters)

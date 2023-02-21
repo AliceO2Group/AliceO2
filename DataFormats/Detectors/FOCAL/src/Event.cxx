@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <DataFormatsFOCAL/ErrorHandling.h>
 #include <DataFormatsFOCAL/Event.h>
+#include <iostream>
+
 using namespace o2::focal;
 
 PadLayerEvent& Event::getPadLayer(unsigned int index)
@@ -50,6 +52,7 @@ void Event::setPixelLayerEvent(unsigned int layer, const PixelLayerEvent& event)
 
 void Event::reset()
 {
+  mInitialized = false;
   for (auto& padlayer : mPadLayers) {
     padlayer.reset();
   }
@@ -68,9 +71,29 @@ void Event::construct(const o2::InteractionRecord& interaction, gsl::span<const 
     ilayer++;
   }
 
+  int currentlast = 0;
   for (auto& chip : eventPixels) {
-    mPixelLayers[chip.getLayerID()].addChip(chip.getLaneID(), chip.getChipID(), pixelHits.subspan(chip.getFirstHit(), chip.getNumberOfHits()));
+    if (chip.getLayerID() > 1) {
+      std::cerr << "Invalid layer ID chip " << chip.getChipID() << ": " << chip.getLayerID() << std::endl;
+      continue;
+    }
+    if (chip.getNumberOfHits()) {
+      if (chip.getFirstHit() >= pixelHits.size()) {
+        std::cerr << "First hit index " << chip.getFirstHit() << " exceeding hit contiainer " << pixelHits.size() << std::endl;
+        continue;
+      }
+      if (chip.getFirstHit() + chip.getNumberOfHits() - 1 >= pixelHits.size()) {
+        std::cerr << "First hit index " << chip.getFirstHit() + chip.getNumberOfHits() - 1 << " exceeding hit contiainer " << pixelHits.size() << std::endl;
+        continue;
+      }
+      mPixelLayers[chip.getLayerID()].addChip(chip.getFeeID(), chip.getLaneID(), chip.getChipID(), chip.getStatusCode(), pixelHits.subspan(chip.getFirstHit(), chip.getNumberOfHits()));
+    }
+    currentlast = chip.getFirstHit() + chip.getNumberOfHits();
   }
+  if (currentlast < pixelHits.size()) {
+    std::cerr << "Inconsistent number of hits / event : all chips -> " << currentlast << " hits, container size -> " << pixelHits.size() << std::endl;
+  }
+  mInitialized = true;
 }
 
 void Event::check_pad_layers(unsigned int index) const
@@ -222,13 +245,13 @@ void PixelLayerEvent::addChip(const PixelChip& chip)
   }
 }
 
-void PixelLayerEvent::addChip(int laneID, int chipID, gsl::span<const PixelHit> hits)
+void PixelLayerEvent::addChip(int feeID, int laneID, int chipID, uint16_t statusCode, gsl::span<const PixelHit> hits)
 {
-  auto found = std::find_if(mChips.begin(), mChips.end(), [laneID, chipID](const PixelChip& testchip) { return chipID == testchip.mChipID && laneID == testchip.mLaneID; });
+  auto found = std::find_if(mChips.begin(), mChips.end(), [laneID, chipID, feeID](const PixelChip& testchip) { return chipID == testchip.mChipID && laneID == testchip.mLaneID && feeID == testchip.mFeeID; });
   if (found != mChips.end()) {
     std::copy(hits.begin(), hits.end(), std::back_inserter(found->mHits));
   } else {
-    mChips.push_back({static_cast<uint8_t>(laneID), static_cast<uint8_t>(chipID)});
+    mChips.push_back({static_cast<uint8_t>(feeID), static_cast<uint8_t>(laneID), static_cast<uint8_t>(chipID), statusCode});
     auto& currentchip = mChips.back();
     std::copy(hits.begin(), hits.end(), std::back_inserter(currentchip.mHits));
   }

@@ -276,7 +276,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       ASSERT_ERROR(attributes->channelName.length() > 0);
       loggerInit(*pState);
     };
-    callbacks.set(CallbackService::Id::Start, producerBenchInit);
+    callbacks.set<CallbackService::Id::Start>(producerBenchInit);
 
     auto producerCallback = [pState, loggerCycle, loggerSummary, attributes](InputRecord& inputs, DataAllocator& outputs, ControlService& control, RawDeviceService& rds) {
       auto& state = *pState;
@@ -441,8 +441,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     loggerSummary(*cState);
   };
   auto checkerInit = [checkerCallback, checkerBenchInit, checkerBenchSummary](CallbackService& callbacks) {
-    callbacks.set(CallbackService::Id::Start, checkerBenchInit);
-    callbacks.set(CallbackService::Id::EndOfStream, checkerBenchSummary);
+    callbacks.set<CallbackService::Id::Start>(checkerBenchInit);
+    callbacks.set<CallbackService::Id::EndOfStream>(checkerBenchSummary);
     return adaptStateless(checkerCallback);
   };
 

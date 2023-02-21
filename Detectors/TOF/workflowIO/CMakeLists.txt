@@ -21,5 +21,7 @@ o2_add_library(TOFWorkflowIO
                        src/TOFCalibWriterSpec.cxx
                        src/TOFMatchedReaderSpec.cxx
                        src/CalibInfoReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction)
+                       src/TOFIntegrateClusterWriterSpec.cxx
+                       src/TOFIntegrateClusterReaderSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction O2::Algorithm)
 

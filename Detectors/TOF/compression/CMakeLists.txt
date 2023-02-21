@@ -12,6 +12,7 @@
 o2_add_library(TOFCompression
                SOURCES src/Compressor.cxx
                	       src/CompressorTask.cxx
+                       src/CompressorTaskOld.cxx
                PUBLIC_LINK_LIBRARIES O2::TOFBase O2::Framework O2::Headers O2::DataFormatsTOF
 	                             O2::DetectorsRaw
 	       )

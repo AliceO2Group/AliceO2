@@ -64,6 +64,24 @@ void timer_callback(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
+  if (std::find(state->firedTimers.begin(), state->firedTimers.end(), handle) == state->firedTimers.end()) {
+    state->firedTimers.push_back(handle);
+  }
+}
+
+auto timer_fired(uv_timer_t* timer)
+{
+  return [timer]() -> bool {
+    auto* state = (DeviceState*)timer->data;
+    return std::find(state->firedTimers.begin(), state->firedTimers.end(), timer) != state->firedTimers.end();
+  };
+}
+
+auto timer_set_period(uv_timer_t* timer)
+{
+  return [timer](uint64_t timeout_ms, uint64_t repeat_ms) -> void {
+    uv_timer_start(timer, detail::timer_callback, timeout_ms, repeat_ms);
+  };
 }
 
 void signal_callback(uv_signal_t* handle, int)
@@ -95,7 +113,7 @@ struct ExpirationHandlerHelpers {
       uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period), detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
@@ -158,7 +176,7 @@ struct ExpirationHandlerHelpers {
       }
       auto start = options.hasOption(startName.c_str()) ? options.get<int64_t>(startName.c_str()) : defaultStart;
       auto stop = options.hasOption(endName.c_str()) ? options.get<int64_t>(endName.c_str()) : defaultStop;
-      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStop;
+      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStep;
       auto repetitions = defaultRepetitions;
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };

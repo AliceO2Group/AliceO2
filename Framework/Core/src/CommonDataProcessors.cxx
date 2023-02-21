@@ -164,7 +164,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
@@ -290,7 +290,7 @@ DataProcessorSpec
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
 
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
@@ -339,13 +339,11 @@ DataProcessorSpec
         }
 
         // get metadata
-        if (DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AMD"))) {
-          if (ref.spec->binding == "aodmdk") {
-            aodMetaDataKeys = pc.inputs().get<std::vector<TString>>("aodmdk");
-          }
-          if (ref.spec->binding == "aodmdv") {
-            aodMetaDataVals = pc.inputs().get<std::vector<TString>>("aodmdv");
-          }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataKeys"))) {
+          aodMetaDataKeys = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
+        }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataVals"))) {
+          aodMetaDataVals = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
         }
 
         // skip non-AOD refs
@@ -566,7 +564,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
           }
         }
       };
-      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
+      callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
 
       return adaptStateless([]() {
       });

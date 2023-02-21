@@ -40,7 +40,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .policy = [](CallbackService& service, InitContext&) {
-      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
+      service.set<CallbackService::Id::Start>([]() { LOG(info) << "invoked at start"; });
     }});
 }
 

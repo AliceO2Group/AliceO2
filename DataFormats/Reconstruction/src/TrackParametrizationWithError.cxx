@@ -716,9 +716,9 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   value_t z = this->getZ() - p[1];
   auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
   if (chi2 < 0.) {
-    LOGP(alarm, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
 #ifndef GPUCA_ALIGPUCODE
-    LOGP(alarm, "Track: {}", asString());
+    LOGP(warning, "Track: {}", asString());
 #endif
   }
   return chi2;
@@ -1141,6 +1141,17 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
+#else
+  TrackParametrization<value_T>::printParam();
+  printf(
+    "\n%7s %+.3e\n"
+    "%7s %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e",
+    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
+    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+    mC[kSigQ2Pt2]);
 #endif
 }
 

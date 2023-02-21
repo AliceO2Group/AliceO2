@@ -179,12 +179,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     auto inputDesc = cfgc.options().get<std::string>("input-desc");
     specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
     useMC = 0;
-
-    if (writedigit && !disableRootOutput) {
-      // add TOF digit writer without mc labels
-      LOG(debug) << "Insert TOF Digit Writer";
-      specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));
-    }
+  }
+  if ((!dgtinput || disableRootInput) && writedigit && !disableRootOutput) {
+    // add TOF digit writer without mc labels
+    LOG(debug) << "Insert TOF Digit Writer";
+    specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));
   }
 
   if (!clusterinput && writecluster) {

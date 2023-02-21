@@ -541,18 +541,33 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     } else if (providesDISTSTF) {
       ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
     } else {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
 
@@ -573,18 +588,33 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
     if (requiresDISTSUBTIMEFRAME) {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
   }

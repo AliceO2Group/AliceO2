@@ -359,7 +359,7 @@ void displayDeviceMetrics(const char* label,
   size_t minDomain = std::numeric_limits<size_t>::max();
   size_t gmi = 0;
 
-  ImPlotFlags axisFlags = 0;
+  ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
@@ -381,8 +381,8 @@ void displayDeviceMetrics(const char* label,
         maxValue[data.axis] = std::max(maxValue[data.axis], metricsInfos[di].max[mi]);
         minDomain = std::min(minDomain, metricsInfos[di].minDomain[mi]);
         maxDomain = std::max(maxDomain, metricsInfos[di].maxDomain[mi]);
-        axisFlags |= data.axis == 1 ? ImPlotFlags_YAxis2 : ImPlotFlags_None;
-        axisFlags |= data.axis == 2 ? ImPlotFlags_YAxis3 : ImPlotFlags_None;
+        axisFlags |= data.axis == 1 ? (ImPlotFlags_)ImPlotFlags_YAxis2 : ImPlotFlags_None;
+        axisFlags |= data.axis == 2 ? (ImPlotFlags_)ImPlotFlags_YAxis3 : ImPlotFlags_None;
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
@@ -1060,6 +1060,26 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     int retVal = system(getenv("O2DPLPROFILE"));
     (void)retVal;
   }
+
+  // FIXME: this should really be a combo box
+#ifdef __APPLE__
+  if (ImGui::Button("Memory Profile")) {
+    std::string pidStr = std::to_string(pid);
+    setenv("O2PROFILEDPID", pidStr.c_str(), 1);
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Allocations --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+    std::cout << defaultAppleProfileCommand << std::endl;
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+#endif
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
     ImGui::Text("#%lu: %s", i, DriverInfoHelper::stateToString(driverInfo.states[i]));

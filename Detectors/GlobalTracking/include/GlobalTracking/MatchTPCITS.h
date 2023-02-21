@@ -46,6 +46,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2InterfaceRefit.h"
@@ -296,9 +297,6 @@ class MatchTPCITS
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
 
-  static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
-  static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
-
   static constexpr int MaxUpDnLadders = 3;                     // max N ladders to check up and down from selected one
   static constexpr int MaxLadderCand = 2 * MaxUpDnLadders + 1; // max ladders to check for matching clusters
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
@@ -539,6 +537,8 @@ class MatchTPCITS
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
 
+  float YMaxAtXMatchingRef = 999.; ///< max Y in the sector at reference X
+
   float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
 
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
@@ -551,10 +551,9 @@ class MatchTPCITS
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
   int mITSTimeBiasInBC = 0;            ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
   float mITSTimeBiasMUS = 0.;          ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
-  float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
-  float mTPCVDriftCorrFact = 1.;       ///< TPC nominal correction factort (wrt ref)
   float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
   float mTPCVDriftInv = -1.;           ///< inverse TPC nominal drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0;       ///< drift time offset in mus
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
   float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
   float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
@@ -568,6 +567,7 @@ class MatchTPCITS
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
+  o2::tpc::VDriftCorrFact mTPCDrift{};
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
 
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction

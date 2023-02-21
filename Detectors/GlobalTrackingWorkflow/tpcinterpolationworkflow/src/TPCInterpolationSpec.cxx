@@ -49,6 +49,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
+  mProcessSeeds = ic.options().get<bool>("process-seeds");
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -59,13 +60,19 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // other init-once stuff
+    const auto& param = SpacePointsCalibConfParam::Instance();
     mInterpolation.init();
     int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
-    bool limitTracks = (SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot < 0) ? true : false;
-    int nTracksPerTfMax = (nTfs > 0 && !limitTracks) ? SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot / nTfs : -1;
+    bool limitTracks = (param.maxTracksPerCalibSlot < 0) ? false : true;
+    int nTracksPerTfMax = (nTfs > 0 && limitTracks) ? param.maxTracksPerCalibSlot / nTfs : -1;
     if (nTracksPerTfMax > 0) {
       LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
-           nTracksPerTfMax, SpacePointsCalibConfParam::Instance().maxTracksPerCalibSlot, nTfs);
+           nTracksPerTfMax, param.maxTracksPerCalibSlot, nTfs);
+      if (param.additionalTracksITSTPC > 0) {
+        int nITSTPCadd = param.additionalTracksITSTPC / nTfs;
+        LOGP(info, "In addition up to {} ITS-TPC tracks are processed per TF", nITSTPCadd);
+        mInterpolation.setAddITSTPCTracksPerTF(nITSTPCadd);
+      }
     } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
     } else {
@@ -75,8 +82,10 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
   // we may have other params which need to be queried regularly
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
   }
@@ -113,9 +122,11 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPCTOF, 0));
   trkCounters.insert(std::make_pair<int, int>(GTrackID::Source::ITSTPC, 0));
 
-  bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
+  // so that the flags can be used inside the lambda
+  bool processITSTPConly = mProcessITSTPConly;
+  bool processSeeds = mProcessSeeds;
   // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
-  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
+  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &processSeeds, &gids, &param, &trkCounters](auto& _tr, GTrackID _origID, float t0, float tErr) {
     if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
       bool trackGood = true;
       bool hasOuterPoint = false;
@@ -124,7 +135,16 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         // ITS and TPC track is always needed. At this stage ITS afterburner tracks are also rejected
         return true;
       }
-      if (gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet()) {
+      if (gidTable[GTrackID::TRD].isIndexSet()) {
+        // TRD specific cuts
+        const auto& trdTrk = recoData.getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+        if (trdTrk.getNtracklets() < param.minTRDNTrklts) {
+          trackGood = false;
+        }
+        hasOuterPoint = true;
+      }
+      if (gidTable[GTrackID::TOF].isIndexSet()) {
+        // TOF specific cuts (if any)
         hasOuterPoint = true;
       }
       const auto itstpcTrk = &recoData.getTPCITSTrack(gidTable[GTrackID::ITSTPC]);
@@ -143,6 +163,9 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         if (itsTrk->getNumberOfClusters() < param.minITSNClsNoOuterPoint || tpcTrk->getNClusterReferences() < param.minTPCNClsNoOuterPoint) {
           trackGood = false;
         }
+        if (itsTrk->getPt() < param.minPtNoOuterPoint) {
+          trackGood = false;
+        }
       } else {
         if (itsTrk->getNumberOfClusters() < param.minITSNCls || tpcTrk->getNClusterReferences() < param.minTPCNCls) {
           trackGood = false;
@@ -155,13 +178,21 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
         gids.push_back(_origID);
         trkCounters[_origID.getSource()] += 1;
       }
-      return true;
+      if (processSeeds || (gidTable[GTrackID::TRD].isIndexSet() && gidTable[GTrackID::TOF].isIndexSet())) {
+        // for ITS-TPC-TRD-TOF tracks we are interested also in the ITS-TPC-TRD part
+        // we want to have both available, so return false for the full barrell tracks
+        return false;
+      } else {
+        return true;
+      }
     } else {
       return false;
     }
   };
   recoData.createTracksVariadic(creator); // create track sample considered for interpolation
-  LOG(info) << "Created " << seeds.size() << " seeds.";
+  LOGP(info, "Created {} seeds. {} ITS-TPC-TRD-TOF, {} ITS-TPC-TRD, {} ITS-TPC-TOF, {} ITS-TPC",
+       seeds.size(), trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), trkCounters.at(GTrackID::Source::ITSTPCTRD),
+       trkCounters.at(GTrackID::Source::ITSTPCTOF), trkCounters.at(GTrackID::Source::ITSTPC));
 
   if (mUseMC) {
     // possibly MC labels will be used to check filtering procedure performance before interpolation
@@ -233,7 +264,8 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     outputs,
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData)},
     Options{
-      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}}}};
+      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
 
 } // namespace tpc

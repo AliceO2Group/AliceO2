@@ -35,6 +35,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"
+#include "CorrectionMapsHelper.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUParam.inc"
@@ -79,8 +80,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
     }
   }
 
-  int nWays = param.rec.tpc.nWays;
-  int maxN = N;
+  const int nWays = param.rec.tpc.nWays;
+  const int maxN = N;
   int ihitStart = 0;
   float covYYUpd = 0.f;
   float lastUpdateX = -1.f;
@@ -362,7 +363,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       }
     }
     if (((nWays - iWay) & 1) && (clusters[0].slice < 18) == (clusters[maxN - 1].slice < 18)) {
-      ShiftZ2(clusters, clustersXYZ, merger, N);
+      ShiftZ2(clusters, clustersXYZ, merger, maxN);
     }
   }
   ConstrainSinPhi();
@@ -850,47 +851,84 @@ GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPU
 GPUd() void GPUTPCGMTrackParam::ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, int N)
 {
   float tzInner, tzOuter;
+  float xInner, xOuter;
   if (N == 0) {
     N = 1;
   }
   if (merger->Param().par.earlyTpcTransform) {
     tzInner = clustersXYZ[N - 1].z;
     tzOuter = clustersXYZ[0].z;
+    xInner = clustersXYZ[N - 1].x;
+    xOuter = clustersXYZ[0].x;
   } else {
     const auto& GPUrestrict() cls = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
     tzInner = cls[clusters[N - 1].num].getTime();
     tzOuter = cls[clusters[0].num].getTime();
+    xInner = merger->Param().tpcGeometry.Row2X(clusters[N - 1].row);
+    xOuter = merger->Param().tpcGeometry.Row2X(clusters[0].row);
   }
-  ShiftZ(merger, clusters[0].slice, tzInner, tzOuter);
+  ShiftZ(merger, clusters[0].slice, tzInner, tzOuter, xInner, xOuter);
 }
 
-GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tz1, float tz2)
+GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tz1, float tz2, float x1, float x2)
 {
   if (!merger->Param().par.continuousTracking) {
     return;
   }
-  const float cosPhi = CAMath::Abs(mP[2]) < 1.f ? CAMath::Sqrt(1 - mP[2] * mP[2]) : 0.f;
-  const float dxf = -CAMath::Abs(mP[2]);
-  const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
-  const float r1 = CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
-  const float r = r1 > 0.0001 ? (1.f / r1) : 10000;
-  float xp = mX + dxf * r;
-  float yp = mP[0] + dyf * r;
-  // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r, xp, yp);
-  const float r2 = (r + CAMath::Sqrt(xp * xp + yp * yp)) / 2.f; // Improve the radius by taking into acount both points we know (00 and xy).
-  xp = mX + dxf * r2;
-  yp = mP[0] + dyf * r2;
-  // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r2, xp, yp);
-  float atana = CAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
-  float atanb = CAMath::ATan2(CAMath::Abs(mX - xp), CAMath::Abs(mP[0] - yp));
-  // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
-  const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
-  float z0 = dS * mP[3];
-  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - TZ span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
-  if (CAMath::Abs(z0) > 250.f) {
-    z0 = z0 > 0 ? 250.f : -250.f;
+  const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz()));
+
+  const float dist2 = mX * mX + mP[0] * mP[0];
+  const float dist1r2 = dist2 * r1 * r1;
+  float deltaZ = 0.f;
+  bool beamlineReached = false;
+  if (dist1r2 < 4) {
+    const float alpha = CAMath::ACos(1 - 0.5f * dist1r2); // Angle of a circle, such that |(cosa, sina) - (1,0)| == dist
+    const float beta = CAMath::ATan2(mP[0], mX);
+    const int comp = mP[2] > CAMath::Sin(beta);
+    const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
+    const float res = CAMath::Abs(sinab - mP[2]);
+
+    if (res < 0.2) {
+      const float r = 1.f / r1;
+      const float dS = alpha * r;
+      float z0 = dS * mP[3];
+      if (CAMath::Abs(z0) > GPUTPCGeometry::TPCLength()) {
+        z0 = z0 > 0 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+      }
+      deltaZ = mP[1] - z0;
+      beamlineReached = true;
+
+      // printf("X %9.3f Y %9.3f QPt %9.3f R %9.3f --> Alpha %9.3f Snp %9.3f Snab %9.3f Res %9.3f dS %9.3f z0 %9.3f\n", mX, mP[0], mP[4], r, alpha / 3.1415 * 180, mP[2], sinab, res, dS, z0);
+    }
   }
-  float deltaZ = mP[1] - z0;
+
+  if (!beamlineReached) {
+    if (merger->Param().par.earlyTpcTransform) {
+      float basez, basex;
+      if (CAMath::Abs(tz1) < CAMath::Abs(tz2)) {
+        basez = tz1;
+        basex = x1;
+      } else {
+        basez = tz2;
+        basex = x2;
+      }
+      float refZ = ((basez > 0) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * basex;
+      deltaZ = basez - refZ - mTZOffset;
+    } else {
+      float baset, basex;
+      if (CAMath::Abs(tz1) > CAMath::Abs(tz2)) {
+        baset = tz1;
+        basex = x1;
+      } else {
+        baset = tz2;
+        basex = x2;
+      }
+      float refZ = ((slice < GPUCA_NSLICES / 2) ? merger->Param().rec.tpc.defaultZOffsetOverR : -merger->Param().rec.tpc.defaultZOffsetOverR) * basex;
+      float basez;
+      merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->TransformIdealZ(slice, baset, basez, mTZOffset);
+      deltaZ = basez - refZ;
+    }
+  }
   if (merger->Param().par.earlyTpcTransform) {
     mTZOffset += deltaZ;
     mP[1] -= deltaZ;
@@ -898,14 +936,14 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     float zMax = CAMath::Max(tz1, tz2);
     float zMin = CAMath::Min(tz1, tz2);
     // printf("Z Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, zMin, zMax, mTZOffset);
-    if (zMin < 0 && zMin - mTZOffset < -250) {
-      deltaZ = zMin - mTZOffset + 250;
-    } else if (zMax > 0 && zMax - mTZOffset > 250) {
-      deltaZ = zMax - mTZOffset - 250;
+    if (zMin < 0 && zMin - mTZOffset < -GPUTPCGeometry::TPCLength()) {
+      deltaZ = zMin - mTZOffset + GPUTPCGeometry::TPCLength();
+    } else if (zMax > 0 && zMax - mTZOffset > GPUTPCGeometry::TPCLength()) {
+      deltaZ = zMax - mTZOffset - GPUTPCGeometry::TPCLength();
     }
-    if (zMin < 0 && zMax - mTZOffset > 0) {
+    if (zMin < 0 && zMax - (mTZOffset + deltaZ) > 0) {
       deltaZ = zMax - mTZOffset;
-    } else if (zMax > 0 && zMin - mTZOffset < 0) {
+    } else if (zMax > 0 && zMin - (mTZOffset + deltaZ) < 0) {
       deltaZ = zMin - mTZOffset;
     }
     // if (deltaZ != 0) printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in Z\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaZ, tz1 - mTZOffset - deltaZ);
@@ -922,12 +960,12 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     if (mTZOffset < minT) {
       deltaT = minT - mTZOffset;
     }
-    if (mTZOffset > maxT) {
+    if (mTZOffset + deltaT > maxT) {
       deltaT = maxT - mTZOffset;
     }
     if (deltaT != 0.f) {
       deltaZ = merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(slice, deltaT);
-      // printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in T\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
+      // printf("Moving clusters to TPC Range: QPt %f, New mTZOffset %f, t1 %f, t2 %f, Shift %f in Z: %f to %f --> %f to %f in T\n", mP[4], mTZOffset + deltaT, tz1, tz2, deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
       mTZOffset += deltaT;
       mP[1] -= deltaZ;
     }

@@ -12,6 +12,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/InputRecord.h"
@@ -69,6 +70,7 @@ constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
 
 DataProcessorSpec getSourceSpec()
 {
+  static_assert(enable_root_serialization<o2::test::Polymorphic>::value, "enable_root_serialization<o2::test::Polymorphic> must be true");
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
     o2::test::TriviallyCopyable a(42, 23, 0xdead);

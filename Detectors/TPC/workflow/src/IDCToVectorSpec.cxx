@@ -164,9 +164,10 @@ class IDCToVectorDevice : public o2::framework::Task
             continue;
           }
 
-          auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-          if (!rdhPtr) {
-            throw std::runtime_error("could not get RDH from packet");
+          auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+          const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+          if (!rdhPtr || rdhVersion < 6) {
+            throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
           }
 
           // ---| extract hardware information to do the processing |---
@@ -541,9 +542,10 @@ class IDCToVectorDevice : public o2::framework::Task
               continue;
             }
 
-            auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-            if (!rdhPtr) {
-              throw std::runtime_error("could not get RDH from packet");
+            auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+            const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+            if (!rdhPtr || rdhVersion < 6) {
+              throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
             }
 
             // ---| extract hardware information to do the processing |---
@@ -557,7 +559,7 @@ class IDCToVectorDevice : public o2::framework::Task
             }
 
             // write out raw data
-            mRawOutputFile.write((const char*)it.raw(), rdhPtr->memorySize);
+            mRawOutputFile.write((const char*)it.raw(), RDHUtils::getMemorySize(rdhPtr));
           }
         } catch (...) {
         }

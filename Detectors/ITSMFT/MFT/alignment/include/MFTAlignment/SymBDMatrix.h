@@ -106,7 +106,7 @@ class SymBDMatrix : public MatrixSq
  protected:
   Double_t* fElems; ///< Elements booked by constructor
 
-  ClassDef(SymBDMatrix, 0);
+  ClassDefOverride(SymBDMatrix, 0);
 };
 
 //___________________________________________________________

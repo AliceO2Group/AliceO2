@@ -53,6 +53,7 @@ o2_add_library(Framework
                        src/DataProcessingHelpers.cxx
                        src/DataProcessorSpecHelpers.cxx
                        src/DataProcessorMatchers.cxx
+                       src/DataProcessingContext.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -90,7 +91,6 @@ o2_add_library(Framework
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
-                       src/RawBufferContext.cxx
                        src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
@@ -114,6 +114,7 @@ o2_add_library(Framework
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
+                       src/StreamContext.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
@@ -156,7 +157,6 @@ o2_add_library(Framework
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
-                                     ${BOOST_FILESYSTEM}
                                      Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
@@ -332,6 +332,7 @@ foreach(w
         ParallelPipeline
         ParallelProducer
         SlowConsumer
+        SlowProducerWithWildCard
         SimpleDataProcessingDevice01
         SimpleStatefulProcessing01
         SimpleStringProcessing

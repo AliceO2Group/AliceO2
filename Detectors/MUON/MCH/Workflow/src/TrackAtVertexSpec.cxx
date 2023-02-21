@@ -104,7 +104,7 @@ class TrackAtVertexTask
     auto stop = [this]() {
       LOG(info) << "track propagation to vertex duration = " << mElapsedTime.count() << " s";
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

@@ -27,6 +27,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
+#include "MathUtils/Utils.h"
 
 #include <numeric>
 #include <chrono>
@@ -35,6 +36,7 @@
 #include "TH2F.h"
 #include "TGraph.h"
 #include "TCanvas.h"
+#include "TROOT.h"
 
 #if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
@@ -46,6 +48,13 @@ static inline int omp_get_max_threads() { return 1; }
 templateClassImp(o2::tpc::SpaceCharge);
 
 using namespace o2::tpc;
+
+template <typename DataT>
+SpaceCharge<DataT>::SpaceCharge(const DataT omegaTau, const DataT t1, const DataT t2)
+{
+  ROOT::EnableThreadSafety();
+  setOmegaTauT1T2(omegaTau, t1, t2);
+};
 
 template <typename DataT>
 void SpaceCharge<DataT>::setGrid(const unsigned short nZVertices, const unsigned short nRVertices, const unsigned short nPhiVertices)
@@ -228,7 +237,6 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
   const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
   const auto rStart = getNearestRVertex(radiusStart, side);
   const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
-  const Mapper& mapper = Mapper::instance();
 
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
   const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
@@ -1304,6 +1312,31 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
   // get the distortions for input coordinate
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
 
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+    auto& streamer = (const_cast<SpaceCharge<DataT>*>(this))->mStreamer;
+    streamer.setStreamer("debug_distortions", "UPDATE");
+
+    GlobalPosition3D pos(point);
+    float phi = std::atan2(pos.Y(), pos.X());
+    if (phi < 0.) {
+      phi += TWOPI;
+    }
+    unsigned char secNum = std::floor(phi / SECPHIWIDTH);
+    const Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
+    LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sector);
+
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree").data()
+                           << "pos=" << pos
+                           << "lPos=" << lPos
+                           << "phi=" << phi
+                           << "secNum=" << secNum
+                           << "distX=" << distX
+                           << "distY=" << distY
+                           << "distZ=" << distZ
+                           << "\n";
+  }
+
   // set distorted coordinates
   point.SetXYZ(point.X() + distX, point.Y() + distY, point.Z() + distZ);
 }
@@ -1377,20 +1410,24 @@ void SpaceCharge<DataT>::getCorrectionsCyl(const std::vector<DataT>& z, const st
 template <typename DataT>
 void SpaceCharge<DataT>::getCorrections(const DataT x, const DataT y, const DataT z, const Side side, DataT& corrX, DataT& corrY, DataT& corrZ) const
 {
-  // convert cartesian to polar
-  const DataT radius = getRadiusFromCartesian(x, y);
-  const DataT phi = getPhiFromCartesian(x, y);
+  if (mUseAnaDistCorr) {
+    getCorrectionsAnalytical(x, y, z, side, corrX, corrY, corrZ);
+  } else {
+    // convert cartesian to polar
+    const DataT radius = getRadiusFromCartesian(x, y);
+    const DataT phi = getPhiFromCartesian(x, y);
 
-  DataT corrR{};
-  DataT corrRPhi{};
-  getCorrectionsCyl(z, radius, phi, side, corrZ, corrR, corrRPhi);
+    DataT corrR{};
+    DataT corrRPhi{};
+    getCorrectionsCyl(z, radius, phi, side, corrZ, corrR, corrRPhi);
 
-  // Calculate corrected position
-  const DataT radiusCorr = radius + corrR;
-  const DataT phiCorr = phi + corrRPhi / radius;
+    // Calculate corrected position
+    const DataT radiusCorr = radius + corrR;
+    const DataT phiCorr = phi + corrRPhi / radius;
 
-  corrX = getXFromPolar(radiusCorr, phiCorr) - x; // difference between corrected and original x coordinate
-  corrY = getYFromPolar(radiusCorr, phiCorr) - y; // difference between corrected and original y coordinate
+    corrX = getXFromPolar(radiusCorr, phiCorr) - x; // difference between corrected and original x coordinate
+    corrY = getYFromPolar(radiusCorr, phiCorr) - y; // difference between corrected and original y coordinate
+  }
 }
 
 template <typename DataT>
@@ -1488,20 +1525,73 @@ void SpaceCharge<DataT>::getDistortionsCyl(const std::vector<DataT>& z, const st
 template <typename DataT>
 void SpaceCharge<DataT>::getDistortions(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ) const
 {
-  // convert cartesian to polar
-  const DataT radius = getRadiusFromCartesian(x, y);
-  const DataT phi = getPhiFromCartesian(x, y);
+  if (mUseAnaDistCorr) {
+    getDistortionsAnalytical(x, y, z, side, distX, distY, distZ);
+  } else {
+    // convert cartesian to polar
+    const DataT radius = getRadiusFromCartesian(x, y);
+    const DataT phi = getPhiFromCartesian(x, y);
 
-  DataT distR{};
-  DataT distRPhi{};
-  getDistortionsCyl(z, radius, phi, side, distZ, distR, distRPhi);
+    DataT distR{};
+    DataT distRPhi{};
+    getDistortionsCyl(z, radius, phi, side, distZ, distR, distRPhi);
 
-  // Calculate distorted position
-  const DataT radiusDist = radius + distR;
-  const DataT phiDist = phi + distRPhi / radius;
+    // Calculate distorted position
+    const DataT radiusDist = radius + distR;
+    const DataT phiDist = phi + distRPhi / radius;
 
-  distX = getXFromPolar(radiusDist, phiDist) - x; // difference between distorted and original x coordinate
-  distY = getYFromPolar(radiusDist, phiDist) - y; // difference between distorted and original y coordinate
+    distX = getXFromPolar(radiusDist, phiDist) - x; // difference between distorted and original x coordinate
+    distY = getYFromPolar(radiusDist, phiDist) - y; // difference between distorted and original y coordinate
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::getDistortionsCorrectionsAnalytical(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ, const bool dist) const
+{
+  const GlobalPosition3D pos(x, y, z);
+  float phi = std::atan2(pos.Y(), pos.X());
+  if (phi < 0.) {
+    phi += TWOPI;
+  }
+  const unsigned char secNum = std::floor(phi / SECPHIWIDTH);
+  const Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
+  const LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sector);
+
+  // convert dlx and dlY to r, rPhi
+  const DataT dlX = dist ? mAnaDistCorr.getDistortionsLX(lPos.X(), lPos.Y(), lPos.Z(), side) : mAnaDistCorr.getCorrectionsLX(lPos.X(), lPos.Y(), lPos.Z(), side);
+  const DataT dlY = dist ? mAnaDistCorr.getDistortionsLY(lPos.X(), lPos.Y(), lPos.Z(), side) : mAnaDistCorr.getCorrectionsLY(lPos.X(), lPos.Y(), lPos.Z(), side);
+  const DataT dlZ = dist ? mAnaDistCorr.getDistortionsLZ(lPos.X(), lPos.Y(), lPos.Z(), side) : mAnaDistCorr.getCorrectionsLZ(lPos.X(), lPos.Y(), lPos.Z(), side);
+
+  // convert distortios in local coordinates to global coordinates
+  // distorted local position
+  const LocalPosition3D lPosDist(lPos.X() + dlX, lPos.Y() + dlY, lPos.Z() + dlZ);
+
+  // calc global position
+  const auto globalPosDist = Mapper::LocalToGlobal(lPosDist, sector);
+  distX = globalPosDist.X() - x;
+  distY = globalPosDist.Y() - y;
+  distZ = globalPosDist.Z() - z;
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+    auto& streamer = (const_cast<SpaceCharge<DataT>*>(this))->mStreamer;
+    streamer.setStreamer("debug_distortions_analytical", "UPDATE");
+    float dlXTmp = dlX;
+    float dlYTmp = dlY;
+    float dlZTmp = dlZ;
+    auto posTmp = pos;
+    auto lPosTmp = lPos;
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree_ana").data()
+                           << "pos=" << posTmp
+                           << "lPos=" << lPosTmp
+                           << "dlX=" << dlXTmp
+                           << "dlY=" << dlYTmp
+                           << "dlZ=" << dlZTmp
+                           << "distX=" << distX
+                           << "distY=" << distY
+                           << "distZ=" << distZ
+                           << "\n";
+  }
 }
 
 template <typename DataT>
@@ -1877,6 +1967,32 @@ void SpaceCharge<DataT>::normalizeHistoQVEps0(TH3& histoIonsPhiRZ)
       }
     }
   }
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpAnalyticalCorrectionsDistortions(TFile& outf) const
+{
+  if (!mAnaDistCorr.isValid()) {
+    LOGP(info, "============== analytical functions are not set! returning ==============\n");
+    return 0;
+  }
+  bool isOK = outf.WriteObject(&mAnaDistCorr, "analyticalDistCorr");
+  return isOK;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setAnalyticalCorrectionsDistortionsFromFile(TFile& inpf)
+{
+  const bool containsFormulas = inpf.GetListOfKeys()->Contains("analyticalDistCorr");
+  if (!containsFormulas) {
+    LOGP(info, "============== analytical functions are not stored! returning ==============\n");
+    return;
+  }
+  LOGP(info, "Using analytical corrections and distortions");
+  setUseAnalyticalDistCorr(true);
+  AnalyticalDistCorr<DataT>* form = (AnalyticalDistCorr<DataT>*)inpf.Get("analyticalDistCorr");
+  mAnaDistCorr = *form;
+  delete form;
 }
 
 using DataTD = double;

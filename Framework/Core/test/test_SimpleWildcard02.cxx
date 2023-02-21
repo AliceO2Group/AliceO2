@@ -13,6 +13,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/DataRefUtils.h"
@@ -48,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            Inputs{InputSpec{"in", ConcreteDataTypeMatcher{"TST", "OUT"}}},
            Outputs{},
            AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-             callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+             callbacks.set<CallbackService::Id::EndOfStream>([](EndOfStreamContext& context) {
                context.services().get<ControlService>().readyToQuit(QuitRequest::All);
              });
              return adaptStateless([](InputRecord& inputs) {

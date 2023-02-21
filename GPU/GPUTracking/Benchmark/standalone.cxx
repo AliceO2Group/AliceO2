@@ -221,6 +221,9 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
   }
+  if (configStandalone.QA.dumpToROOT) {
+    configStandalone.proc.outputSharedClusterMap = true;
+  }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }

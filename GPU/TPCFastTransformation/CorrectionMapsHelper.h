@@ -41,6 +41,11 @@ class CorrectionMapsHelper
     mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mLumiScale);
   }
 
+  GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z) const
+  {
+    mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mLumiScale);
+  }
+
   GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
   {
     mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mLumiScale);

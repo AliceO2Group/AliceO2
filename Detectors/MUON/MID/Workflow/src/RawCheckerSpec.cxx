@@ -89,7 +89,7 @@ class RawCheckerDeviceDPL
       mOutFile << summary << "\n";
       LOG(info) << summary;
     };
-    ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);
+    ic.services().get<o2::framework::CallbackService>().set<o2::framework::CallbackService::Id::Stop>(stop);
 
     mMaxErrors = ic.options().get<int>("mid-checker-max-errors");
   }

@@ -21,6 +21,7 @@ namespace o2::framework
 {
 
 constexpr size_t PageSize = 8192;
+using V7 = header::RAWDataHeaderV7;
 using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
@@ -45,7 +46,7 @@ void fillPages(Container& buffer)
   }
 }
 
-typedef boost::mpl::list<V5, V6> testTypes;
+typedef boost::mpl::list<V5, V6, V7> testTypes;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_RawParser, RDH, testTypes)
 {

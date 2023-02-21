@@ -26,6 +26,7 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
+#include "MCHBase/Error.h"
 #include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackExtrap.h"
 
@@ -833,6 +834,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
 
   std::chrono::duration<double> currentTrackingDuration = std::chrono::steady_clock::now() - mStartTime;
   if (currentTrackingDuration.count() > TrackerParam::Instance().maxTrackingDuration) {
+    mErrorMap.add(ErrorType::Tracking_TooLong, 0, 0);
     throw length_error(string("Tracking is taking too long (") + std::round(currentTrackingDuration.count()) + " s)");
   }
 
@@ -1352,6 +1354,7 @@ void TrackFinder::createTrack(const Cluster& cl1, const Cluster& cl2)
   /// Throw an exception if the maximum number of tracks is exceeded
 
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
 
@@ -1377,6 +1380,7 @@ std::list<Track>::iterator TrackFinder::addTrack(const std::list<Track>::iterato
   /// Add the given track at the requested position in the list of tracks
   /// Throw an exception if the maximum number of tracks is exceeded
   if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    mErrorMap.add(ErrorType::Tracking_TooManyCandidates, 0, 0);
     throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
   }
   return mTracks.emplace(pos, track);

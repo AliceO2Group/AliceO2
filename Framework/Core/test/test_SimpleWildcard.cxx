@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/RootSerializationSupport.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
@@ -49,7 +50,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            Inputs{InputSpec{"in", {"TST", "OUT"}}},
            Outputs{},
            AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-             callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+             callbacks.set<CallbackService::Id::EndOfStream>([](EndOfStreamContext& context) {
                context.services().get<ControlService>().readyToQuit(QuitRequest::All);
              });
              return adaptStateless([](InputRecord& inputs) {

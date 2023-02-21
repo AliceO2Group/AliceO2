@@ -44,7 +44,8 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   float minCellEnergyTime_bc = 0.1;     ///< minimum energy needed to fill the time histogram
   float sigmaTime_bc = 5;               ///< sigma value for the upper cut on the time-variance distribution
   unsigned int slotLength_bc = 0;       ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
-  bool UpdateAtEndOfRunOnly_bc = false; ///< switsch to enable trigger of calibration only at end of run
+  bool UpdateAtEndOfRunOnly_bc = false; ///< switch to enable trigger of calibration only at end of run
+  float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
 
   // parameters for time calibration
   unsigned int minNEvents_tc = 1e7;     ///< minimum number of events to trigger the calibration

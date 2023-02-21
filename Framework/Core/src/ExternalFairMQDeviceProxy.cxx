@@ -25,6 +25,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RateLimiter.h"
 #include "Framework/TimingInfo.h"
+#include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"
@@ -477,10 +478,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
+    ctx.services().get<CallbackService>().set<CallbackService::Id::Start>(channelConfigurationChecker);
     if (ctx.options().get<std::string>("ready-state-policy") == "drain") {
       LOG(info) << "Drain mode requested while in Ready state";
-      ctx.services().get<CallbackService>().set(CallbackService::Id::DeviceStateChanged, drainMessages);
+      ctx.services().get<CallbackService>().set<CallbackService::Id::DeviceStateChanged>(drainMessages);
     }
 
     static auto countEoS = [](fair::mq::Parts& inputs) -> int {
@@ -547,23 +548,32 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
       for (size_t ci = 0; ci < channels.size(); ++ci) {
         std::string const& channel = channels[ci];
-        fair::mq::Parts parts;
-        device->Receive(parts, channel, 0, channels.size() == 1 ? -1 : 1);
-        // Populate TimingInfo from the first message
-        if (parts.Size() != 0) {
-          auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
-          auto& timingInfo = ctx.services().get<TimingInfo>();
-          if (dh != nullptr) {
-            timingInfo.runNumber = dh->runNumber;
-            timingInfo.firstTForbit = dh->firstTForbit;
-            timingInfo.tfCounter = dh->tfCounter;
+        int waitTime = channels.size() == 1 ? -1 : 1;
+        int maxRead = 1000;
+        while (maxRead-- > 0) {
+          fair::mq::Parts parts;
+          device->Receive(parts, channel, 0, waitTime);
+          // Populate TimingInfo from the first message
+          unsigned int nReceived = parts.Size();
+          if (nReceived != 0) {
+            auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
+            auto& timingInfo = ctx.services().get<TimingInfo>();
+            if (dh != nullptr) {
+              timingInfo.runNumber = dh->runNumber;
+              timingInfo.firstTForbit = dh->firstTForbit;
+              timingInfo.tfCounter = dh->tfCounter;
+            }
+            auto const dph = o2::header::get<DataProcessingHeader*>(parts.At(0)->GetData());
+            if (dph != nullptr) {
+              timingInfo.timeslice = dph->startTime;
+              timingInfo.creation = dph->creation;
+            }
+            dataHandler(timingInfo, parts, 0, ci);
           }
-          auto const dph = o2::header::get<DataProcessingHeader*>(parts.At(0)->GetData());
-          if (dph != nullptr) {
-            timingInfo.timeslice = dph->startTime;
-            timingInfo.creation = dph->creation;
+          if (nReceived == 0 || channels.size() == 1) {
+            break;
           }
-          dataHandler(timingInfo, parts, 0, ci);
+          waitTime = 0;
         }
       }
     };
@@ -615,7 +625,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         throw std::runtime_error("no corresponding output channel found for input '" + outputChannelName + "'");
       }
     };
-    callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
+    callbacks.set<CallbackService::Id::Start>(channelConfigurationChecker);
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
 
     if (deviceSpec.forwards.size() > 0) {
@@ -661,7 +671,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         sendOnChannel(*device, out, channelName, (size_t)-1);
       }
     };
-    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+    callbacks.set<CallbackService::Id::EndOfStream>(forwardEos);
 
     return adaptStateless([lastDataProcessingHeader](InputRecord& inputs) {
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
@@ -734,8 +744,8 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       mutableDeviceSpec.forwards.clear();
     };
-    callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
-    callbacks.set(CallbackService::Id::Stop, channelConfigurationDisposer);
+    callbacks.set<CallbackService::Id::Start>(channelConfigurationInitializer);
+    callbacks.set<CallbackService::Id::Stop>(channelConfigurationDisposer);
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {
@@ -776,7 +786,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         sendOnChannel(*device, out, channelName, (size_t)-1);
       }
     };
-    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+    callbacks.set<CallbackService::Id::EndOfStream>(forwardEos);
 
     return adaptStateless([channelSelector, lastDataProcessingHeader](InputRecord& inputs) {
       // there is nothing to do if the forwarding is handled on the framework level

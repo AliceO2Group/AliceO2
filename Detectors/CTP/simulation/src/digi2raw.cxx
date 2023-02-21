@@ -108,16 +108,17 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.setDontFillEmptyHBF(noEmptyHBF);
 
   std::string outDirName(outDir);
-  if (outDirName.back() != '/') {
-    outDirName += '/';
-  }
   // if needed, create output directory
   if (!std::filesystem::exists(outDirName)) {
-    if (!std::filesystem::create_directories(outDirName)) {
-      LOG(fatal) << "could not create output directory " << outDirName;
+    std::error_code ec;
+    if (!std::filesystem::create_directories(outDirName, ec)) {
+      LOG(fatal) << "could not create output directory " << outDirName << ": " << ec.message();
     } else {
       LOG(info) << "created output directory " << outDirName;
     }
+  }
+  if (outDirName.back() != '/') {
+    outDirName += '/';
   }
   m2r.setOutDir(outDirName);
   m2r.setZeroSuppressedIntRec(zsIR);

@@ -48,6 +48,7 @@ enum mMFTTrackTypes { kReco,
                       kGen,
                       kTrackable,
                       kRecoTrue,
+                      kRecoFake,
                       kRecoTrueMC,
                       kNumberOfTrackTypes };
 
@@ -69,7 +70,7 @@ class MFTAssessment
   void processTrackables();
   void processGeneratedTracks();
   void processRecoTracks();
-  void processTrueTracks();
+  void processTrueAndFakeTracks();
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
   void reset();
   void fillTrueRecoTracksMap()
@@ -83,6 +84,8 @@ class MFTAssessment
     for (const auto& trackLabel : mMFTTrackLabels) {
       if (trackLabel.isCorrect()) {
         mTrueTracksMap[trackLabel.getSourceID()][trackLabel.getEventID()].push_back(id);
+      } else {
+        mFakeTracksVec.push_back(id);
       }
       id++;
     }
@@ -114,6 +117,7 @@ class MFTAssessment
 
   std::array<bool, 936> mUnusedChips; // 936 chipIDs in total
   int mNumberTFs = 0;
+  int mLastTrackType;
 
   // MC Labels
   bool mUseMC = false;
@@ -139,6 +143,7 @@ class MFTAssessment
   std::unique_ptr<TH1F> mMFTClsOfTracksZ = nullptr;
 
   std::array<std::unique_ptr<TH2F>, 10> mMFTClsXYinLayer = {nullptr};
+  std::array<std::unique_ptr<TH1F>, 10> mMFTClsRinLayer = {nullptr};
   std::array<std::unique_ptr<TH2F>, 10> mMFTClsOfTracksXYinLayer = {nullptr};
   std::array<std::unique_ptr<TH2F>, 5> mMFTClsXYRedundantInDisk = {nullptr};
 
@@ -165,7 +170,8 @@ class MFTAssessment
                                                 "Gen",
                                                 "Trackable",
                                                 "RecoTrue",
-                                                "RecotrueMC"};
+                                                "RecoFake",
+                                                "RecoTrueMC"};
 
   std::unique_ptr<TH2F> mHistPhiRecVsPhiGen = nullptr;
   std::unique_ptr<TH2F> mHistEtaRecVsEtaGen = nullptr;
@@ -175,6 +181,8 @@ class MFTAssessment
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistPhiVsPt;
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistZvtxVsEta;
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistRVsZ;
+  std::array<std::unique_ptr<TH1F>, kNumberOfTrackTypes> mHistIsPrimary;
+  std::array<std::unique_ptr<TH1F>, kNumberOfTrackTypes> mHistTrackChi2;
 
   // Histos for reconstruction assessment
 
@@ -349,6 +357,7 @@ class MFTAssessment
 
   std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
   std::vector<std::vector<std::vector<int>>> mTrueTracksMap;                  // Maps srcIDs and eventIDs to true reco tracks
+  std::vector<int> mFakeTracksVec;                                            // IDs of fake MFT tracks
   std::vector<std::vector<std::vector<o2::MCCompLabel>>> mTrackableTracksMap; // Maps srcIDs and eventIDs to trackable tracks
 
   static constexpr std::array<short, 7> sMinNClustersList = {4, 5, 6, 7, 8, 9, 10};

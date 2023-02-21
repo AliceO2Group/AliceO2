@@ -34,3 +34,10 @@ o2_target_root_dictionary(SpacePoints
                                   include/SpacePoints/ResidualAggregator.h
                                   include/SpacePoints/SpacePointsCalibConfParam.h
                           LINKDEF src/SpacePointCalibLinkDef.h)
+
+o2_add_test_root_macro(macro/staticMapCreator.C
+                       PUBLIC_LINK_LIBRARIES O2::SpacePoints
+                       LABELS tpc COMPILE_ONLY)
+
+install(FILES macro/staticMapCreator.C
+        DESTINATION share/macro/)

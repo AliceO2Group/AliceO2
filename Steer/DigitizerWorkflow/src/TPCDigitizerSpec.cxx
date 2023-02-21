@@ -139,6 +139,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
         if (std::filesystem::exists(readSpaceCharge[0])) {
+          LOGP(info, "Reading space-charge object from file {}", readSpaceCharge[0].data());
           TFile fileSC(readSpaceCharge[0].data(), "READ");
           mDigitizer.setUseSCDistortions(fileSC);
         } else {
@@ -248,8 +249,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     //    mTPCVDriftHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
-      LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
-      mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
+      mDigitizer.setVDrift(vd.getVDrift());
+      mDigitizer.setTDriftOffset(vd.getTimeOffset());
       mTPCVDriftHelper.acknowledgeUpdate();
     }
 

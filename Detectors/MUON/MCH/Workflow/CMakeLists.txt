@@ -18,6 +18,8 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
+                   src/ErrorReaderSpec.cxx
+                   src/ErrorWriterSpec.cxx
                    src/TrackReaderSpec.cxx
                    src/TrackTreeReader.cxx
                    src/TrackWriterSpec.cxx
@@ -48,13 +50,6 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
 
-# to be deprecated : use DevIO/digits-writer instead
-o2_add_executable(
-        digits-sink-workflow
-        SOURCES src/digits-sink-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils Boost::program_options O2::MCHBase O2::MCHRawDecoder)
-
 o2_add_executable(
         raw-to-digits-workflow
         SOURCES src/raw-to-digits-workflow.cxx
@@ -78,24 +73,6 @@ o2_add_executable(
         SOURCES src/EventFinderSpec.cxx src/event-finder-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHTriggering)
-
-o2_add_executable(
-        digits-reader-workflow
-        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
-
-o2_add_executable(
-        sim-digits-reader-workflow
-        SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
-
-o2_add_executable(
-        preclusters-sink-workflow
-        SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
 
 o2_add_executable(
         preclusters-to-clusters-original-workflow
@@ -170,6 +147,24 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
+        errors-merger-workflow
+        SOURCES src/ErrorMergerSpec.cxx src/errors-merger-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
+
+o2_add_executable(
+        errors-writer-workflow
+        SOURCES src/errors-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        errors-reader-workflow
+        SOURCES src/errors-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
         entropy-encoder-workflow
         SOURCES src/entropy-encoder-workflow.cxx
         COMPONENT_NAME mch
@@ -178,7 +173,7 @@ o2_add_executable(
 o2_add_executable(
         reco-workflow
         SOURCES
-            src/DigitReaderSpec.cxx
+            src/ErrorMergerSpec.cxx
             src/EventFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
             src/reco-workflow.cxx
@@ -186,6 +181,7 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES
             O2::MCHDigitFiltering
             O2::MCHGeometryTransformer
+            O2::MCHIO
             O2::MCHMappingImpl4
             O2::MCHTimeClustering
             O2::MCHTriggering

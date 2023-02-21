@@ -374,8 +374,11 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   if (mNumberOfModules[lay] > 0) {
     path += Form("%s%d_%d/", mIsLayerITS3[lay] ? getITS3ModulePattern() : getITSModulePattern(), lay, mod);
   }
-  path +=
-    Form("%s%d_%d/%s%d_1", mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), lay, chipInMod, mIsLayerITS3[lay] ? getITS3SensorPattern() : getITSSensorPattern(), lay);
+  if (!mIsLayerITS3[lay]) {
+    path += Form("%s%d_%d/%s%d_1", getITSChipPattern(), lay, chipInMod, getITSSensorPattern(), lay);
+  } else {
+    path += Form("%s%d_%d", getITS3ChipPattern(), lay, chipInMod); // for ITS3 currently we might have more sensors than chips, so we have to take the chip to avoid mismatches with chipId
+  }
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -388,8 +391,8 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
   // RSS
-  //  printf("%d/%d/%d %s\n",lay,stav,detInSta,path.Data());
-  //  mat->Print();
+  // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
+  // matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
@@ -397,7 +400,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   double delta = 0.;
   if (mIsLayerITS3[lay]) {
 #ifdef ENABLE_UPGRADES
-    delta = SegmentationITS3::SensorLayerThickness - SegmentationITS3::SensorLayerThicknessEff;
+    delta = SegmentationITS3::mSensorLayerThickness - SegmentationITS3::mSensorLayerThicknessEff;
 #endif
   } else {
     delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
@@ -723,8 +726,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   double dx = -1, dz = -1;
 
   for (int j = 0; j < nNodes; j++) {
-    //    AliInfo(Form("L%d %d of %d %s %s ->
-    // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(),numberOfChips));
+    LOGP(debug, "layer={}, node/nodes={}/{}, node name={}, pattern={}, number of chips={}, is ITS3 layer={}", lay, j, nNodes, volLd->GetNodes()->At(j)->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), numberOfChips, mIsLayerITS3[lay]);
     TGeoNodeMatrix* node = (TGeoNodeMatrix*)volLd->GetNodes()->At(j);
     if (!strstr(node->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern())) {
       continue;

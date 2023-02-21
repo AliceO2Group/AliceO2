@@ -98,7 +98,7 @@ class TimeClusterFinderTask
         LOGP(info, "\nduration = {} us / TF\n", mTimeProcess.count() * 1000 / mTFcount);
       }
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   ROFFilter createRandomRejectionFilter(float rejectionFraction)

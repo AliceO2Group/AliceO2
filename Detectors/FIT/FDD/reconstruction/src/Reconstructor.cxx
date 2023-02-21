@@ -37,7 +37,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
     bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
     bool inAdcGate = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
     if (inAdcGate) {
-      outChData.emplace_back(inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
+      outChData.emplace_back((int)inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
                              (double)inChData[ich].mChargeADC, inChData[ich].mFEEBits);
       nStored++;
     }
@@ -49,9 +49,9 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
     }
     Float_t timeErr = 1;
     if (adc > 3) {
-      timeErr = 1 / adc;
+      timeErr = 1. / adc;
     }
-    if (outChData[ich].mPMNumber < 8) {
+    if ((int)inChData[ich].mPMNumber < 8) {
       nInTimeC += inTime;
       timeFDC += time / (timeErr * timeErr);
       weightFDC += 1. / (timeErr * timeErr);
@@ -63,18 +63,24 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   }
   const int nsToPs = 1e3;
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-  /// Avg time for each side, only if one channel satisfy the TVDC condition
+  /// Avg time for each side, only if one channel satisfy the TVDC condition (if not, also avg time is propagated for background study using AO2D)
   if (nInTimeA > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs)
                                                                : o2::fdd::RecPoint::sDummyCollissionTime;
+  } else {
+    if (weightFDA > 0) {
+      mCollisionTime[o2::fdd::RecPoint::TimeA] = round(timeFDA / weightFDA * nsToPs);
+    }
   }
   if (nInTimeC > 0) {
     mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs)
                                                                : o2::fdd::RecPoint::sDummyCollissionTime;
+  } else {
+    if (weightFDC > 0) {
+      mCollisionTime[o2::fdd::RecPoint::TimeC] = round(timeFDC / weightFDC * nsToPs);
+    }
   }
-  if (nStored != 0) {
-    RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
-  }
+  RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
 }
 //________________________________________________________
 void Reconstructor::finish()

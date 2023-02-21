@@ -49,7 +49,6 @@ install(FILES CheckDigits_mft.C
               compareTOFClusters.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
-              run_trac_ca_its.C
               run_trac_its.C
               CreateBCPattern.C
               UploadDummyAlignment.C
@@ -329,12 +328,6 @@ o2_add_test_root_macro(CreateCTPOrbitResetObject.C
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
 # O2::DataFormatsITSMFT O2::DataFormatsParameters O2::DetectorsBase O2::Field
 # O2::ITSBase O2::ITStracking O2::MathUtils O2::SimulationDataFormat)
-
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_trac_ca_its.C
-                       PUBLIC_LINK_LIBRARIES O2::GPUTracking
-                       LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_its.C

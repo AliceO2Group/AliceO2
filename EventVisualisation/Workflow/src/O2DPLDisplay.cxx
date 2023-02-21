@@ -127,7 +127,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   helper.setITSROFs();
   helper.selectTracks(&(mData.mConfig.configCalib), mClMask, mTrkMask, mTrkMask);
-  helper.selectTowers();
+  helper.selectTowers(); // this crashes in vertex mode --> needs investigation
 
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
@@ -360,6 +360,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   auto primaryVertexMode = cfgc.options().get<bool>("primary-vertex-mode");
   auto maxPrimaryVertices = cfgc.options().get<int>("max-primary-vertices");
+
+  primaryVertexMode = true;
+  maxPrimaryVertices = 1000;
 
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   if (primaryVertexMode) {

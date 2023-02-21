@@ -54,6 +54,8 @@ std::unique_ptr<SC> spaceCharge;
 
 void getGlobalSpaceChargeCorrection(const int roc, double x, double y, double z,
                                     double& dx, double& dy, double& dz);
+void getLocalSpaceChargeCorrection(const int roc, int irow, double y, double z,
+                                   double& dx, double& dy, double& dz);
 void initSpaceCharge(const char* histoFileName, const char* histoName);
 
 void DumpFlatObjectToFile(const TPCFastTransform* obj, const char* file);
@@ -80,6 +82,56 @@ void createTPCSpaceChargeCorrection(
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
   fastTransform->writeToFile(outputFileName);
+
+  if (debug > 0) {
+    const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
+    utils::TreeStreamRedirector pcstream(TString::Format("fastTransformUnitTest_debug%d_gridsize%d-%d-%d.root", debug, nPhi, nR, nZ).Data(), "recreate");
+    switch (debug) {
+      case 1:
+        debugInterpolation(pcstream, geo, fastTransform.get());
+        break;
+      case 2:
+        debugGridpoints(pcstream, geo, fastTransform.get());
+        break;
+      default:
+        printf("Debug option %d is not implemented. Debug tree will be empty.", debug);
+    }
+    pcstream.Close();
+  }
+}
+
+/// Creates TPCFastTransform object for TPC space-charge correction, stores it in a file and provides a debug tree if requested
+/// \param outputFileName name of the output file to store the TPCFastTransform object in
+/// \param debug create debug tree comparing original corrections and spline interpolations from TPCFastTransform (1 = on the spline interpolation grid, 2 = on the original lookup table grid)
+void createTPCSpaceChargeCorrectionAnalytical(
+  const char* outputFileName = "tpctransform.root",
+  const int debug = 0)
+{
+  SC::setGrid(nZ, nR, nPhi);
+
+  // initialize space-charge object
+  spaceCharge = std::make_unique<SC>();
+
+  // default analytical formulas for distortions and corrections
+  AnalyticalDistCorr<double> formula;
+  formula.initDefault();
+  /*
+    set custom distortions and corrections here. e.g.
+    TFormula mDistZ{"mDlZ", "z * 11"};
+    formula.mDlZFormula = mDistZ;
+  */
+
+  spaceCharge->setDistortionsCorrectionsAnalytical(formula);
+  spaceCharge->setUseAnalyticalDistCorr(true);
+
+  // dumping the space-charge object to file to apply it during the TPC digitizer simulation
+  TFile fSC("distortions_analytical.root", "RECREATE");
+  spaceCharge->dumpAnalyticalCorrectionsDistortions(fSC);
+
+  TPCFastTransformHelperO2::instance()->setLocalSpaceChargeCorrection(getLocalSpaceChargeCorrection);
+
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  fastTransform->writeToFile(outputFileName, "ccdb_object");
 
   if (debug > 0) {
     const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
@@ -129,6 +181,19 @@ void getGlobalSpaceChargeCorrection(const int roc, double x, double y, double z,
 {
   Side side = roc < 18 ? Side::A : Side::C;
   spaceCharge->getCorrections(x, y, z, side, dx, dy, dz);
+}
+
+/// Function to get corrections from original lookup tables
+/// \param XYZ array with x, y and z position
+/// \param dXdYdZ array with correction dx, dy and dz
+void getLocalSpaceChargeCorrection(const int roc, int irow, double y, double z,
+                                   double& dx, double& dy, double& dz)
+{
+  Side side = roc < 18 ? Side::A : Side::C;
+  float x = o2::tpc::TPCFastTransformHelperO2::instance()->getGeometry().getRowInfo(irow).x;
+  dx = spaceCharge->getDistortionsCorrectionsAnalytical().getCorrectionsLX(x, y, z, side);
+  dy = spaceCharge->getDistortionsCorrectionsAnalytical().getCorrectionsLY(x, y, z, side);
+  dz = spaceCharge->getDistortionsCorrectionsAnalytical().getCorrectionsLZ(x, y, z, side);
 }
 
 /// Save TPCFastTransform to a file

@@ -117,21 +117,25 @@ void TPCTrackStudySpec::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
   }
   if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
 void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 {
-  if (mUseMC) { // extract MC tracks
-    auto prop = o2::base::Propagator::Instance();
+  static long counter = -1;
+  counter++;
+  auto prop = o2::base::Propagator::Instance();
 
+  if (mUseMC) { // extract MC tracks
     const o2::steer::DigitizationContext* digCont = nullptr;
     if (!mcReader.initFromDigitContext("collisioncontext.root")) {
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
@@ -148,9 +152,11 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 
     float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
-
+    float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
     float RRef2 = mRRef * mRRef;
     const o2::MCTrack* mcTrack = nullptr;
+    std::vector<short> clSector, clRow;
+    std::vector<float> clIniX, clIniY, clIniZ, clMovX, clMovY, clMovZ;
     for (size_t itr = 0; itr < mTPCTracksArray.size(); itr++) {
       auto tr = mTPCTracksArray[itr]; // create track copy
 
@@ -160,7 +166,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       // impose MC time in TPC timebin and refit inward after resetted covariance
       int retVal = mTPCRefitter->RefitTrackAsTrackParCov(trf, mTPCTracksArray[itr].getClusterRef(), tr.getTime0(), &chi2Out, false, true);
       if (retVal < 0) {
-        LOGP(warn, "Refit failed ({}) with originaltime0: {} : {}", retVal, tr.getTime0(), ((const o2::track::TrackPar&)tr.getOuterParam()).asString());
+        LOGP(warn, "Refit failed ({}) with originaltime0: {} : track#{}[{}]", retVal, tr.getTime0(), counter, ((const o2::track::TrackPar&)tr.getOuterParam()).asString());
         continue;
       }
       // propagate original track
@@ -201,7 +207,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         continue;
       }
       long bc = intRecs[lbl.getEventID()].toLong(); // bunch crossing of the interaction
-      float bcTB = bc / 8.;                         // the same in TPC timebins
+      float bcTB = bc / 8. + tpcTBBias;             // the same in TPC timebins, accounting for the TPC time bias
       // create MC truth track in O2 format
       std::array<float, 3> xyz{(float)mcTrack->GetStartVertexCoordinatesX(), (float)mcTrack->GetStartVertexCoordinatesY(), (float)mcTrack->GetStartVertexCoordinatesZ()},
         pxyz{(float)mcTrack->GetStartVertexMomentumX(), (float)mcTrack->GetStartVertexMomentumY(), (float)mcTrack->GetStartVertexMomentumZ()};
@@ -209,7 +215,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       if (!pPDG) {
         continue;
       }
-      o2::track::TrackPar mctrO2(xyz, pxyz, (pPDG->Charge() + 0.1) / 3, false);
+      o2::track::TrackPar mctrO2(xyz, pxyz, TMath::Nint(pPDG->Charge() / 3), false);
       //
       // propagate it to the alpha/X of the reconstructed track
       if (!mctrO2.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(mctrO2, tr.getX())) {
@@ -222,12 +228,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       // impose MC time in TPC timebin and refit inward after resetted covariance
       retVal = mTPCRefitter->RefitTrackAsTrackParCov(trackRefit, mTPCTracksArray[itr].getClusterRef(), bcTB, &chi2Out, false, true);
       if (retVal < 0) {
-        LOGP(warn, "Refit failed ({}), imposed time0: {} conventional time0: \n{}", retVal, bcTB, tr.getTime0(), ((o2::track::TrackPar&)trackRefit).asString());
+        LOGP(warn, "Refit failed for #{} ({}), imposed time0: {} conventional time0: {} [{}]", counter, retVal, bcTB, tr.getTime0(), ((o2::track::TrackPar&)trackRefit).asString());
         continue;
       }
       // propagate the refitted track to the same X/alpha as original track
       if (!trackRefit.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(trackRefit, tr.getX())) {
-        LOGP(warn, "Failed to propagate refitted track [{}] to X/alpha of original track [{}]", trackRefit.asString(), tr.asString());
+        LOGP(warn, "Failed to propagate refitted track#{} [{}] to X/alpha of original track [{}]", counter, trackRefit.asString(), tr.asString());
         continue;
       }
       // estimate Z shift in case of no-distortions
@@ -237,13 +243,50 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       } else if (tr.hasBothSidesClusters()) {
         dz = 0; // CE crossing tracks should not be shifted
       }
+      // extract cluster info
+      clSector.clear();
+      clRow.clear();
+      clIniX.clear();
+      clIniY.clear();
+      clIniZ.clear();
+      clMovX.clear();
+      clMovY.clear();
+      clMovZ.clear();
+      int count = tr.getNClusters();
+      const auto* corrMap = mTPCCorrMapsLoader.getCorrMap();
+      const o2::tpc::ClusterNative* cl = nullptr;
+      for (int ic = count; ic--;) {
+        uint8_t sector, row;
+        cl = &tr.getCluster(mTPCTrackClusIdx, ic, *mTPCClusterIdxStruct, sector, row);
+        clSector.push_back(sector);
+        clRow.push_back(row);
+        float x, y, z;
+        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tr.getTime0()); // nominal time of the track
+        clIniX.push_back(x);
+        clIniY.push_back(y);
+        clIniZ.push_back(z);
+        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, bcTB); // shifted time of the track
+        clMovX.push_back(x);
+        clMovY.push_back(y);
+        clMovZ.push_back(z);
+      }
+
       // store results
       (*mDBGOut) << "tpc"
                  << "iniTrack=" << tr
-                 << "intTrackRef=" << trf
+                 << "iniTrackRef=" << trf
                  << "movTrackRef=" << trackRefit
                  << "mcTrack=" << mctrO2
-                 << "imposedTB=" << bcTB << "dz=" << dz << "\n";
+                 << "imposedTB=" << bcTB << "dz=" << dz
+                 << "clSector=" << clSector
+                 << "clRow=" << clRow
+                 << "clIniX=" << clIniX
+                 << "clIniY=" << clIniY
+                 << "clIniZ=" << clIniZ
+                 << "clMovX=" << clMovX
+                 << "clMovY=" << clMovY
+                 << "clMovZ=" << clMovZ
+                 << "\n";
     }
   }
 }

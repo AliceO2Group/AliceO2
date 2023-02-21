@@ -302,7 +302,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBSingleThread(
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
 
-  if CONSTEXPR17 (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
+  if CONSTEXPR (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
 
     unsigned int byte = 0, bits = 0, nSamplesWritten = 0, rawFECChannel = 0;
 
@@ -398,7 +398,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBMultiThread(
 
     unsigned int adc = 0;
 
-    if CONSTEXPR17 (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
+    if CONSTEXPR (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
 
       // Try to access adcData with 4 byte reads instead of 1 byte.
       // You'd think this would improve performace, but it's actually slower...
@@ -661,7 +661,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTB(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 
-  if CONSTEXPR17 (DecodeInParallel) {
+  if CONSTEXPR (DecodeInParallel) {
     return DecodeTBMultiThread<PayloadExtendsToNextPage>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, cru, payloadEnd, nextPage);
   } else {
     unsigned short nSamplesWritten = 0;
@@ -686,7 +686,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 #define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
-  if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
+  if CONSTEXPR (PayloadExtendsToNextPage) {                        \
     if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
       ptrdiff_t diff = pagePtr - payloadEnd;                       \
       pagePtr = nextPage;                                          \
@@ -824,7 +824,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 #define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
-  if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
+  if CONSTEXPR (PayloadExtendsToNextPage) {                        \
     if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
       ptrdiff_t diff = pagePtr - payloadEnd;                       \
       pagePtr = nextPage;                                          \

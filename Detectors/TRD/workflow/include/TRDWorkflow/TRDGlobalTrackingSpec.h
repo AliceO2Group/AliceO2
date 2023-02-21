@@ -57,7 +57,7 @@ class TRDGlobalTracking : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   bool refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
   bool refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
-  bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards);
+  bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, bool tpcSA);
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
@@ -72,6 +72,7 @@ class TRDGlobalTracking : public o2::framework::Task
   float mTPCTBinMUS{.2f};                                        ///< width of a TPC time bin in us
   float mTPCTBinMUSInv{1.f / mTPCTBinMUS};                       ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                                       ///< TPC drift velocity (for shifting TPC tracks along Z)
+  float mTPCTDriftOffset{0.f};                                   ///< TPC drift time additive offset
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};

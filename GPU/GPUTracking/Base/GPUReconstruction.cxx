@@ -1125,6 +1125,12 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 {
   GPUReconstruction* retVal = nullptr;
   unsigned int type = cfg.deviceType;
+#ifdef DEBUG_STREAMER
+  if (type != DeviceType::CPU) {
+    GPUError("Cannot create GPUReconstruction for a non-CPU device if DEBUG_STREAMER are enabled");
+    return nullptr;
+  }
+#endif
   if (type == DeviceType::CPU) {
     retVal = GPUReconstruction_Create_CPU(cfg);
   } else if (type == DeviceType::CUDA) {

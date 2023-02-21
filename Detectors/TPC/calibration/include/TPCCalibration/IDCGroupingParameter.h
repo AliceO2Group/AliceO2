@@ -45,10 +45,9 @@ struct ParameterIDCGroup : public o2::conf::ConfigurableParamHelper<ParameterIDC
   unsigned int groupPadsSectorEdges{0};                                                 ///< decoded number of pads at the sector edges which are grouped differently. First digit specifies the EdgePadGroupingMethod  (example: 0: no pads are grouped, 110: first two pads are not grouped, 3210: first pad is not grouped, second + third pads are grouped, fourth + fifth + sixth pads are grouped)
   AveragingMethod method = AveragingMethod::FAST;                                       ///< method which is used for averaging
   float sigma = 3.f;                                                                    ///< sigma cut which can be used during the grouping for outlier filtering
-  float minIDC0Median = 6;                                                              ///< this value is used for identifying outliers (pads with high IDC0 values): "accepted IDC 0 values > median_IDC0 + stdDev * minIDC0Median"
-  float maxIDC0Median = 6;                                                              ///< this value is used for identifying outliers (pads with high IDC0 values): "accepted IDC 0 values < median_IDC0 + stdDev * maxIDC0Median"
-  int minIDC0Val = 1;                                                                   ///< minimum accepted IDC0 value (should be larger than 0 in case of real data)
-  int maxIDC0Val = 150;                                                                 ///< maximum accepted IDC0 value (max IDC0 for 3MHz pp ~30)
+  float minIDC0Median = 8;                                                              ///< this value is used for identifying outliers (pads with low IDC0 values): "accepted IDC 0 values > median_IDC0 + stdDev * minIDC0Median"
+  float maxIDC0Median = 15;                                                             ///< this value is used for identifying outliers (pads with high IDC0 values): "accepted IDC 0 values < median_IDC0 + stdDev * maxIDC0Median"
+  float minmaxIDC0MedianCentreEdge = 20;                                                ///< this value is used for identifying outliers at the centre of the cross and the edges of the sector i.e. where the gain is significantly lower (cross) and sometimes higher at the edges"
 
   /// Helper function for setting the groupimg parameters from a string (can be "X": parameters in all regions are "X" or can be "1,2,3,4,5,6,7,8,9,10" for setting individual regions)
   /// \param sgroupPads string for grouping parameter in pad direction

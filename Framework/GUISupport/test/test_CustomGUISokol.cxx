@@ -57,8 +57,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            ImGui::End();
            sokol::render3D();
          };
-         callbacks.set(CallbackService::Id::ClockTick,
-                       [count, window, guiCallback]() {
+         callbacks.set<CallbackService::Id::ClockTick>(
+           [count, window, guiCallback]() {
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
          return adaptStateless([count](ControlService& control) {
            if (*count > 1000) {

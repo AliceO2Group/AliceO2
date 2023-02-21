@@ -158,6 +158,9 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   linkData.fileName = outFileName;
   linkData.subspec = sspec;
   RDHUtils::setVersion(linkData.rdhCopy, mUseRDHVersion);
+  if (mUseRDHVersion > 6) {
+    RDHUtils::setDataFormat(linkData.rdhCopy, mUseRDHDataFormat);
+  }
   RDHUtils::setFEEID(linkData.rdhCopy, fee);
   RDHUtils::setCRUID(linkData.rdhCopy, cru);
   RDHUtils::setLinkID(linkData.rdhCopy, link);
@@ -182,7 +185,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   if (mVerbosity > 10) {
     LOGP(info, "addData for {}  on IR BCid:{} Orbit: {}, payload: {}, preformatted: {}, trigger: {}, detField: {}", link.describe(), ir.bc, ir.orbit, data.size(), preformatted, trigger, detField);
   }
-  if (isCRUDetector() && (data.size() % RDHUtils::GBTWord)) {
+  if (isCRUDetector() && mUseRDHDataFormat == 0 && (data.size() % RDHUtils::GBTWord128)) {
     LOG(error) << "provided payload size " << data.size() << " is not multiple of GBT word size";
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
@@ -386,7 +389,7 @@ void RawFileWriter::LinkData::addDataInternal(const IR& ir, const gsl::span<char
     int sizeLeftSupPage = writer->mSuperPageSize - buffer.size();
     int sizeLeftCRUPage = RDHUtils::MAXCRUPage - (int(buffer.size()) - lastRDHoffset);
     int sizeLeft = sizeLeftCRUPage < sizeLeftSupPage ? sizeLeftCRUPage : sizeLeftSupPage;
-    if (!sizeLeft) { // this page is just over, open a new one
+    if (!sizeLeft || (sizeLeft < writer->mAlignmentSize)) { // this page is just over, open a new one
       addHBFPage();  // start new CRU page, if needed, the completed superpage is flushed
       if (writer->newRDHFunc) {
         std::vector<char> newPageHeader;
@@ -472,6 +475,12 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   // finalize last RDH
   auto& lastRDH = *getLastRDH();
   int psize = getCurrentPageSize(); // set the size for the previous header RDH
+
+  if (writer->mAlignmentSize && psize % writer->mAlignmentSize != 0) { // need to pad to align to needed size
+    std::vector<char> padding(writer->mAlignmentSize - psize % writer->mAlignmentSize, writer->mAlignmentPaddingFiller);
+    pushBack(padding.data(), padding.size());
+    psize += padding.size();
+  }
   RDHUtils::setOffsetToNext(lastRDH, psize);
   RDHUtils::setMemorySize(lastRDH, psize);
 
@@ -487,7 +496,7 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     RDHUtils::printRDH(lastRDH);
   }
   if (add) { // if we are in stopping HBF and new page is needed, add it
-    // check if the superpage reached the size where it hase to be flushed
+    // check if the superpage reached the size where it has to be flushed
     int left = writer->mSuperPageSize - buffer.size();
     if (left <= MarginToFlush) {
       flushSuperPage();
@@ -497,9 +506,15 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     RDHUtils::setStop(rdhCopy, stop);
     std::vector<char> userData;
     int sz = sizeof(RDHAny);
-    if (stop && writer->newRDHFunc) { // detector may want to write something in closing page
-      writer->newRDHFunc(&rdhCopy, psize == sizeof(RDHAny), userData);
-      sz += userData.size();
+    if (stop) {
+      if (writer->newRDHFunc) { // detector may want to write something in closing page
+        writer->newRDHFunc(&rdhCopy, psize == sizeof(RDHAny), userData);
+        sz += userData.size();
+      }
+      if (writer->mAlignmentSize && sz % writer->mAlignmentSize != 0) { // need to pad to align to needed size
+        sz += writer->mAlignmentSize - sz % writer->mAlignmentSize;
+        userData.resize(sz - sizeof(RDHAny), writer->mAlignmentPaddingFiller);
+      }
     }
     RDHUtils::setOffsetToNext(rdhCopy, sz);
     RDHUtils::setMemorySize(rdhCopy, sz);

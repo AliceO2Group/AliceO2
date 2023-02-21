@@ -77,7 +77,7 @@ class VertexerTraits
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
-
+  VertexingParameters& getVertexingParameters() { return mVrtParams; }
   void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();

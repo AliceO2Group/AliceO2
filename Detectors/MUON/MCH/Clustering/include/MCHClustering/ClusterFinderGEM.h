@@ -65,7 +65,7 @@ class ClusterFinderGEM
   void deinit();
   void reset();
   void fillGEMInputData(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
-
+  void releasePreCluster();
   //
   void findClusters(gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
   //

@@ -27,7 +27,7 @@
 #include "ITS3Simulation/Digitizer.h"
 #include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
-#include "ITS3Base/GeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include <TChain.h>
 #include <TStopwatch.h>
 #include <string>
@@ -81,7 +81,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
               << " RO mode";
 
     // configure digitizer
-    o2::its3::GeometryTGeo* geom = o2::its3::GeometryTGeo::Instance();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 

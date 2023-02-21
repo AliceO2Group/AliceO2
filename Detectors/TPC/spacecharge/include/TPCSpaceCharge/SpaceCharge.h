@@ -26,6 +26,7 @@
 #include "TPCSpaceCharge/DataContainer3D.h"
 #include "TPCSpaceCharge/SpaceChargeParameter.h"
 #include "DataFormatsTPC/Defs.h"
+#include "CommonUtils/DebugStreamer.h"
 
 class TH3;
 class TH3D;
@@ -64,7 +65,7 @@ class SpaceCharge
   /// \param omegaTau \omega \tau value
   /// \param t1 value for t1
   /// \param t2 value for t2
-  SpaceCharge(const DataT omegaTau = 0.32f, const DataT t1 = 1, const DataT t2 = 1) { setOmegaTauT1T2(omegaTau, t1, t2); };
+  SpaceCharge(const DataT omegaTau = 0.32f, const DataT t1 = 1, const DataT t2 = 1);
 
   /// \param nZVertices number of vertices of the grid in z direction
   /// \param nRVertices number of vertices of the grid in z direction
@@ -333,6 +334,15 @@ class SpaceCharge
   /// \param corrZ returns corrections in z direction
   void getCorrections(const DataT x, const DataT y, const DataT z, const Side side, DataT& corrX, DataT& corrY, DataT& corrZ) const;
 
+  /// get the analytical global corrections for given coordinate
+  /// \param x global x coordinate
+  /// \param y global y coordinate
+  /// \param z global z coordinate
+  /// \param corrX returns corrections in x direction
+  /// \param corrY returns corrections in y direction
+  /// \param corrZ returns corrections in z direction
+  void getCorrectionsAnalytical(const DataT x, const DataT y, const DataT z, const Side side, DataT& corrX, DataT& corrY, DataT& corrZ) const { getDistortionsCorrectionsAnalytical(x, y, z, side, corrX, corrY, corrZ, false); }
+
   /// get the local distortions for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
@@ -413,6 +423,27 @@ class SpaceCharge
   /// \param distY returns distortion in y direction
   /// \param distZ returns distortion in z direction
   void getDistortions(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ) const;
+
+  /// get the global distortions for given coordinate for a possible analytical formula if it was specified
+  /// \param x global x coordinate
+  /// \param y global y coordinate
+  /// \param z global z coordinate
+  /// \param distX returns distortion in x direction
+  /// \param distY returns distortion in y direction
+  /// \param distZ returns distortion in z direction
+  void getDistortionsAnalytical(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ) const { getDistortionsCorrectionsAnalytical(x, y, z, side, distX, distY, distZ, true); }
+
+  /// set distortions and corrections by an analytical formula
+  void setDistortionsCorrectionsAnalytical(const AnalyticalDistCorr<DataT>& formula) { mAnaDistCorr = formula; }
+
+  /// \return returns analytical distortions/corrections
+  const auto& getDistortionsCorrectionsAnalytical() const& { return mAnaDistCorr; }
+
+  /// setting usage of the analytical formula for the distortions and corrections
+  void setUseAnalyticalDistCorr(const bool useAna) { mUseAnaDistCorr = useAna; }
+
+  /// \return returns if the analytical formula will be used in the distortElectron() and getCorrections() function
+  bool getUseAnalyticalDistCorr() const { return mUseAnaDistCorr; }
 
   /// convert x and y coordinates from cartesian to the radius in polar coordinates
   static DataT getRadiusFromCartesian(const DataT x, const DataT y) { return std::sqrt(x * x + y * y); }
@@ -821,6 +852,14 @@ class SpaceCharge
   template <typename DataTOut = DataT>
   int dumpGlobalDistortions(TFile& outf, const Side side) const;
 
+  /// write analytical corrections and distortions to file
+  /// \param outf output file where the analytical corrections and distortions will be written to
+  int dumpAnalyticalCorrectionsDistortions(TFile& outf) const;
+
+  /// set analytical corrections and distortions from file
+  /// \param inpf input file where the analytical corrections and distortions are stored
+  void setAnalyticalCorrectionsDistortionsFromFile(TFile& inpf);
+
   /// set global distortions from root file
   /// \param inpf input file where the global distortions are stored
   /// \side side of the TPC
@@ -914,6 +953,9 @@ class SpaceCharge
   /// \return returns max threads
   static int getOMPMaxThreads();
 
+  /// write output of streamer to file
+  void flushStreamer() { mStreamer.flush(); }
+
  private:
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance();                                      ///<! parameters of the grid on which the calculations are performed
   inline static int sNThreads{getOMPMaxThreads()};                                                        ///<! number of threads which are used during the calculations
@@ -965,6 +1007,9 @@ class SpaceCharge
   DistCorrInterpolator<DataT> mInterpolatorLocalDist[FNSIDES]{{mLocalDistdR[Side::A], mLocalDistdZ[Side::A], mLocalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mLocalDistdR[Side::C], mLocalDistdZ[Side::C], mLocalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                                ///<! interpolator for the local distortions
   DistCorrInterpolator<DataT> mInterpolatorLocalVecDist[FNSIDES]{{mLocalVecDistdR[Side::A], mLocalVecDistdZ[Side::A], mLocalVecDistdRPhi[Side::A], mGrid3D[Side::A], Side::A}, {mLocalVecDistdR[Side::C], mLocalVecDistdZ[Side::C], mLocalVecDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                           ///<! interpolator for the local distortion vectors
   NumericalFields<DataT> mInterpolatorEField[FNSIDES]{{mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A}, {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}};                                                                                                                                                                                                                  ///<! interpolator for the electric fields
+  AnalyticalDistCorr<DataT> mAnaDistCorr;
+  bool mUseAnaDistCorr{false};        ///< flag if analytical distortions will be used in the distortElectron() and getCorrections() function
+  o2::utils::DebugStreamer mStreamer; ///<! debug streamer for distortions
 
   /// check if the addition of two values are close to zero.
   /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
@@ -1041,7 +1086,9 @@ class SpaceCharge
   /// \return setting the boundary potential for given GEM stack
   void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame = false);
 
-  ClassDefNV(SpaceCharge, 2);
+  void getDistortionsCorrectionsAnalytical(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ, const bool dist) const;
+
+  ClassDefNV(SpaceCharge, 3);
 };
 
 ///
@@ -1189,7 +1236,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpElectricFields(TFile& outf, const Side side) const
 {
   if (!mIsEfieldSet[side]) {
-    LOGP(warning, "============== E-Fields are not set! returning ==============\n");
+    LOGP(info, "============== E-Fields are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);
@@ -1215,7 +1262,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpGlobalDistortions(TFile& outf, const Side side) const
 {
   if (!mIsGlobalDistSet[side]) {
-    LOGP(warning, "============== global distortions are not set! returning ==============\n");
+    LOGP(info, "============== global distortions are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);
@@ -1241,7 +1288,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpGlobalCorrections(TFile& outf, const Side side) const
 {
   if (!mIsGlobalCorrSet[side]) {
-    LOGP(warning, "============== global corrections are not set! returning ==============\n");
+    LOGP(info, "============== global corrections are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);
@@ -1267,7 +1314,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpLocalCorrections(TFile& outf, const Side side) const
 {
   if (!mIsLocalCorrSet[side]) {
-    LOGP(warning, "============== local corrections are not set! returning ==============\n");
+    LOGP(info, "============== local corrections are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);
@@ -1297,7 +1344,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpLocalDistortions(TFile& outf, const Side side) const
 {
   if (!mIsLocalDistSet[side]) {
-    LOGP(warning, "============== local distortions are not set! returning ==============\n");
+    LOGP(info, "============== local distortions are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);
@@ -1312,7 +1359,7 @@ template <typename DataTOut>
 int SpaceCharge<DataT>::dumpLocalDistCorrVectors(TFile& outf, const Side side) const
 {
   if (!mIsLocalVecDistSet[side]) {
-    LOGP(warning, "============== local distortion vectors are not set! returning ==============\n");
+    LOGP(info, "============== local distortion vectors are not set! returning ==============\n");
     return 0;
   }
   const std::string sideName = getSideName(side);

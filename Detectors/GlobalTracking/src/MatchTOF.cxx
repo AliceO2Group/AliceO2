@@ -34,6 +34,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
 
 #include "GlobalTracking/MatchTOF.h"
 
@@ -59,6 +60,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 {
   if (!mMatchParams) {
     mMatchParams = &o2::globaltracking::MatchTOFParams::Instance();
+    mSigmaTimeCut = mMatchParams->nsigmaTimeCut;
   }
 
   ///< running the matching
@@ -155,6 +157,7 @@ void MatchTOF::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________
@@ -280,7 +283,6 @@ void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::datafo
   o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
 
   timeEst ts(time0, terr);
-
   addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
 //______________________________________________
@@ -366,7 +368,15 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
   }
 
   auto trc = _tr.getOuterParam();
-
+  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+  if (!trackTune.sourceLevelTPC) { // correct only if TPC track was not corrected at the source level
+    if (trackTune.useTPCOuterCorr) {
+      trc.updateParams(trackTune.tpcParOuter);
+    }
+    if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) { // only TRD-refitted track have cov.matrix already manipulated
+      trc.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    }
+  }
   if (!propagateToRefXWithoutCov(trc, mXRef, 10, mBz)) { // we first propagate to 371 cm without considering the covariance matri
     mNotPropagatedToTOF[trkType::UNCONS]++;
     return;
@@ -389,7 +399,7 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
     return;
   }
 
-  float trackTime0 = _tr.getTime0() * mTPCTBinMUS;
+  float trackTime0 = _tr.getTime0() * mTPCTBinMUS - mTPCDriftTimeOffset;
 
   timeInfo.setTimeStampError((_tr.getDeltaTBwd() + 5) * mTPCTBinMUS + extraErr);
   mExtraTPCFwdTime.push_back((_tr.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
@@ -1406,7 +1416,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 
   // correct the time of the track
   auto timeTOFMUS = (tofCl.getTime() - intLT.getTOF(tpcTrOrig.getPID())) * 1e-6; // tof time in \mus, FIXME: account for time of flight to R TOF
-  auto timeTOFTB = timeTOFMUS * mTPCTBinMUSInv;                                  // TOF time in TPC timebins
+  auto timeTOFTB = (timeTOFMUS + mTPCDriftTimeOffset) * mTPCTBinMUSInv;          // TOF time in TPC timebins, including TPC time offset
   auto deltaTBins = timeTOFTB - tpcTrOrig.getTime0();                            // time shift in timeBins
   float timeErr = 0.010;                                                         // assume 10 ns error FIXME
   auto dzCorr = deltaTBins * mTPCBin2Z;
@@ -1445,6 +1455,14 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
       LOG(debug) << "Inward Refit failed";
       return false;
     }
+    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct TPC track after inwar refit
+    if (!trackTune.useTPCInnerCorr) {
+      trConstr.updateParams(trackTune.tpcParInner);
+    }
+    if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+      trConstr.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    }
+
     trConstr.setChi2Refit(chi2);
     //
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCOuterRef);

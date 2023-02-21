@@ -2270,6 +2270,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 
 namespace o2::soa
 {
+
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0);
@@ -2316,6 +2317,22 @@ struct Join : JoinBase<Ts...> {
     } else {
       static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
     }
+  }
+
+  template <typename T>
+  static constexpr bool contains()
+  {
+    if constexpr (is_type_with_originals_v<T>) {
+      return contains(typename T::originals{});
+    } else {
+      return framework::has_type_v<T, originals>;
+    }
+  }
+
+  template <typename... TTs>
+  static constexpr bool contains(framework::pack<TTs...>)
+  {
+    return (contains<TTs>() || ...);
   }
 };
 

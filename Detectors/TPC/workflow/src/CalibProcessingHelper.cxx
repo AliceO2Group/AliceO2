@@ -26,6 +26,7 @@
 #include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/DataHeaderHelpers.h"
+#include "Headers/RDHAny.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
 #include "DataFormatsTPC/RawDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
@@ -132,9 +133,10 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       // detect decoder type by analysing first RDH
       if (!readFirst) {
         auto it = parser.begin();
-        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-        if (!rdhPtr) {
-          throw std::runtime_error("could not get RDH from packet");
+        auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+        const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+        if (!rdhPtr || rdhVersion < 6) {
+          throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
         }
         const auto link = RDHUtils::getLinkID(*rdhPtr);
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
@@ -236,9 +238,10 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
 void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType)
 {
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-    if (!rdhPtr) {
-      throw std::runtime_error("could not get RDH from packet");
+    auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+    if (!rdhPtr || rdhVersion < 6) {
+      throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
     }
     // workaround for MW2 data
     // const bool useTimeBins = true;
@@ -290,9 +293,10 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
     o2::framework::RawParser parser(raw.data(), raw.size());
 
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-      if (!rdhPtr) {
-        throw std::runtime_error("could not get RDH from packet"); // RS: this method is not used at the moment
+      auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+      if (!rdhPtr || rdhVersion < 6) {
+        throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
       }
 
       // only process LinkZSdata, only supported for data where this is already set in the UL

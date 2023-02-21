@@ -72,7 +72,14 @@ class Compressor
   void setDecoderCONET(bool val)
   {
     mDecoderCONET = val;
-    mDecoderNextWordStep = val ? 0 : 2;
+    if (val) {
+      mDecoderNextWordStep = 0;
+    }
+  };
+
+  void setDecoderCRUZEROES(bool val = true)
+  {
+    mDecoderNextWordStep = val ? 2 : 0;
   };
 
   void setDecoderVerbose(bool val) { mDecoderVerbose = val; };
@@ -119,7 +126,7 @@ class Compressor
   const uint32_t* mDecoderPointerMax = nullptr;
   const uint32_t* mDecoderPointerNext = nullptr;
   uint8_t mDecoderNextWord = 1;
-  uint8_t mDecoderNextWordStep = 2;
+  uint8_t mDecoderNextWordStep = 0;
   const RDH* mDecoderRDH;
   bool mDecoderCONET = false;
   bool mDecoderVerbose = false;

@@ -17,10 +17,12 @@
 #define O2_MID_DIGITSMERGER_H
 
 #include <vector>
+#include <gsl/span>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/MCLabel.h"
+#include "MIDBase/ColumnDataHandler.h"
 
 namespace o2
 {
@@ -29,21 +31,32 @@ namespace mid
 class DigitsMerger
 {
  public:
+  /// @brief Merges the MC digits that are provided per hit into the format that we expect from data
+  /// @param inDigitStore Vector of input MC digits
+  /// @param inMCContainer Container with MC labels for input MC digits
+  /// @param inROFRecords Vector with RO frame records
+  /// @param mergeInBunchPileup Merge the digits coming from in-bunch pileup
   void process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
 
-  /// Gets the merged column data
+  /// @brief Merges the MC digits that are provided per hit into the format that we expect from data
+  /// @param inDigitStore Vector of input MC digits
+  /// @param inROFRecords Vector with RO frame records
+  /// @param inMCContainer Pointer to a container with MC labels for input MC digits (can be null)
+  /// @param mergeInBunchPileup Merge the digits coming from in-bunch pileup
+  void process(gsl::span<const ColumnData> inDigitStore, gsl::span<const ROFRecord> inROFRecords, const o2::dataformats::MCTruthContainer<MCLabel>* inMCContainer = nullptr, bool mergeInBunchPileup = true);
+
+  /// @brief Gets the merged column data
   const std::vector<ColumnData>& getColumnData() const { return mDigitStore; }
-  /// Gets the merged MC labels
+  /// @brief Gets the merged MC labels
   const o2::dataformats::MCTruthContainer<MCLabel>& getMCContainer() const { return mMCContainer; }
-  /// Gets the merged RO frame records
+  /// @brief Gets the merged RO frame records
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
 
  private:
-  void mergeDigit(size_t idigit, const std::vector<ColumnData>& inDigitStore);
-  std::vector<std::pair<ColumnData, std::vector<size_t>>> mDigitsLabels{}; //! Temporary digits store
-  std::vector<ColumnData> mDigitStore{};                                   ///< Digit store
-  o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{};               ///< MC Container
-  std::vector<ROFRecord> mROFRecords{};                                    ///< RO frame records
+  ColumnDataHandler mHandler;                                ///! Column data handler
+  std::vector<ColumnData> mDigitStore{};                     ///< Digit store
+  o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{}; ///< MC Container
+  std::vector<ROFRecord> mROFRecords{};                      ///< RO frame records
 };
 
 } // namespace mid

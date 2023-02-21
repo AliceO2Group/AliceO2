@@ -79,13 +79,10 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   // the callback simply sets the captured variable to indicated that it was called
   bool cbCalled = false;
   auto cb = [&]() { cbCalled = true; };
-  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, cb);
-
-  // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
+  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).set<CallbackService::Id::Stop>(cb);
 
   // execute and check
-  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt())(CallbackService::Id::Stop);
+  registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).call<CallbackService::Id::Stop>();
   BOOST_CHECK(cbCalled);
 }
 

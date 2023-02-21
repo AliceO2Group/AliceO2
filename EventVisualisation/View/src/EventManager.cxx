@@ -281,9 +281,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)
 {
-  int size = event.getCaloCount();
-  if (size > 0) {
-    const std::string detector = detectorName == "EMC" ? "emcal" : "phos";
+  if (event.getCaloCount() > 0) {
     struct CaloInfo {
       std::string name;
       std::string configColor;
@@ -333,9 +331,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     };
     std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
-      auto key = std::make_pair(calo.getEta(), calo.getPhi());
-      map.try_emplace(key, 0);
-      map[key] = map[key] + calo.getEnergy();
+      map[std::make_pair(calo.getEta(), calo.getPhi())] += calo.getEnergy();
     }
 
     for (const auto& entry : map) {
@@ -373,6 +369,25 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
 
 void EventManager::saveVisualisationSettings()
 {
+  ofstream settings(TEMP_SETTINGS_PATH);
+
+  if (settings.good()) {
+    Document d;
+    d.SetObject();
+    auto& allocator = d.GetAllocator();
+
+    createVisualisationSettings(d, allocator);
+
+    StringBuffer strbuf;
+    Writer<StringBuffer> writer(strbuf);
+    d.Accept(writer);
+
+    settings << strbuf.GetString();
+  }
+}
+
+void EventManager::createVisualisationSettings(rapidjson::Document& d, rapidjson::Document::AllocatorType& allocator)
+{
   const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
 
   for (auto elm : tracks.RefChildren()) {
@@ -400,13 +415,6 @@ void EventManager::saveVisualisationSettings()
       vizSettings.clusterSize[i] = clusterSet->GetMarkerSize();
     }
   }
-
-  ofstream settings(TEMP_SETTINGS_PATH);
-
-  if (settings.good()) {
-    Document d;
-    d.SetObject();
-    auto& allocator = d.GetAllocator();
 
     auto jsonArray = [](const auto& array, auto& allocator) {
       Value arr(kArrayType);
@@ -443,20 +451,12 @@ void EventManager::saveVisualisationSettings()
       } else if (camera.IsPerspective()) {
         obj.AddMember("fov", dynamic_cast<TGLPerspectiveCamera&>(camera).GetFOV(), allocator);
       }
-
       return obj;
     };
 
     d.AddMember("camera3d", jsonCamera(MultiView::View3d, allocator), allocator);
     d.AddMember("cameraRphi", jsonCamera(MultiView::ViewRphi, allocator), allocator);
     d.AddMember("cameraZY", jsonCamera(MultiView::ViewZY, allocator), allocator);
-
-    StringBuffer strbuf;
-    Writer<StringBuffer> writer(strbuf);
-    d.Accept(writer);
-
-    settings << strbuf.GetString();
-  }
 }
 
 void EventManager::restoreVisualisationSettings()

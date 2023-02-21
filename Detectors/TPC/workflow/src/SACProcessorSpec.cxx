@@ -85,12 +85,13 @@ class SACProcessorDevice : public Task
       for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
         const auto size = it.size();
         if (size == 0) {
-          auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-          if (!rdhPtr) {
-            throw std::runtime_error("could not get RDH from packet");
+          auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+          const auto rdhVersion = raw::RDHUtils::getVersion(rdhPtr);
+          if (!rdhPtr || rdhVersion < 6) {
+            throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
           }
           // TODO: should only be done once for the first packet
-          if ((mDecoder.getReferenceTime() < 0) && (rdhPtr->packetCounter == 0)) {
+          if ((mDecoder.getReferenceTime() < 0) && (raw::RDHUtils::getPacketCounter(rdhPtr))) {
             const double referenceTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tinfo.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
             LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}", referenceTime, tinfo.tfCounter, tinfo.firstTForbit);
             mDecoder.setReferenceTime(referenceTime); // TODO set proper time
