@@ -32,14 +32,18 @@ void CCDBManagerInstance::reportFatal(std::string_view err)
   LOG(fatal) << err;
 }
 
-std::pair<uint64_t, uint64_t> CCDBManagerInstance::getRunDuration(int runnumber) const
+std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal) const
 {
   auto response = mCCDBAccessor.retrieveHeaders("RCT/Info/RunInformation", std::map<std::string, std::string>(), runnumber);
   if (response.size() == 0 || response.find("SOR") == response.end() || response.find("EOR") == response.end()) {
-    LOG(fatal) << "Empty or missing response from query to RCT/Info/RunInformation for run " << runnumber;
+    if (fatal) {
+      LOG(fatal) << "Empty or missing response from query to RCT/Info/RunInformation for run " << runnumber;
+    } else {
+      return std::make_pair(-1L, -1L);
+    }
   }
-  auto sor = boost::lexical_cast<uint64_t>(response["SOR"]);
-  auto eor = boost::lexical_cast<uint64_t>(response["EOR"]);
+  auto sor = boost::lexical_cast<int64_t>(response["SOR"]);
+  auto eor = boost::lexical_cast<int64_t>(response["EOR"]);
   return std::make_pair(sor, eor);
 }
 
