@@ -25,7 +25,7 @@ namespace o2
 namespace ctp
 {
 /// CTP related constants
-static constexpr int CRUPageAlignment = 32;
+static constexpr int CRUPageAlignment = 16;
 static constexpr uint32_t GBTLinkIDIntRec = 0;
 static constexpr uint32_t NIntRecPayload = 48 + 12;
 static constexpr uint32_t GBTLinkIDClassRec = 1;

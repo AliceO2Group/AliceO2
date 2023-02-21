@@ -79,11 +79,11 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     int nbc = CTPDigits.size();
-    LOG(info) << "Entry " << ient << " : " << nbc << " BCs stored";
+    LOG(debug) << "Entry " << ient << " : " << nbc << " BCs stored";
     std::vector<gbtword80_t> hbfIR;
     std::vector<gbtword80_t> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
-      LOG(info) << ctpdig.intRecord.bc << " bc all orbit " << ctpdig.intRecord.orbit;
+      LOG(debug) << ctpdig.intRecord.bc << " bc all orbit " << ctpdig.intRecord.orbit;
       if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
         if (firstorbit == true) {
           firstorbit = false;
@@ -94,15 +94,14 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         gbtword80_t gbtdigIR;
         gbtword80_t gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
-        LOG(info) << "ir:" << gbtdigIR << " " << (gbtdigIR.to_ullong() & 0xfff);
-        LOG(info) << "tr:" << gbtdigTC;
+        LOG(debug) << "ir:" << gbtdigIR << " " << (gbtdigIR.to_ullong() & 0xfff);
+        LOG(debug) << "tr:" << gbtdigTC;
         hbfIR.push_back(gbtdigIR);
         hbfTC.push_back(gbtdigTC);
       } else {
         std::vector<char> buffer;
-        LOG(info) << "Packing orbit:" << orbit0;
+        LOG(info) << "Packing orbit:" << orbit0 << " hbfIR:" << hbfIR.size() << " hbfTC:" << hbfTC.size();
         intRec.orbit = orbit0;
-        LOG(info) << "hbfIR:" << hbfIR.size() << " hbfTC:" << hbfTC.size();
         if (mZeroSuppressedIntRec == true) {
           buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
         } else {
@@ -110,12 +109,12 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
         // add data for IR
-        LOG(info) << "IR buffer size:" << buffer.size() << ":";
+        LOG(debug) << "IR buffer size:" << buffer.size() << ":";
         mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
         buffer = digits2HBTPayload(hbfTC, NClassPayload);
-        LOG(info) << "TC buffer size:" << buffer.size() << ":";
+        LOG(debug) << "TC buffer size:" << buffer.size() << ":";
         mWriter.addData(getFEEIDTC(), mCruID, GBTLinkIDClassRec, mEndPointID, intRec, buffer);
         //
         orbit0 = ctpdig.intRecord.orbit;
@@ -125,8 +124,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         gbtword80_t gbtdigIR;
         gbtword80_t gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
-        LOG(info) << "ir:" << gbtdigIR;
-        LOG(info) << "tr:" << gbtdigTC;
+        LOG(debug) << "ir:" << gbtdigIR;
+        LOG(debug) << "tr:" << gbtdigTC;
         hbfIR.push_back(gbtdigIR);
         hbfTC.push_back(gbtdigTC);
       }
@@ -143,12 +142,12 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
       buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
     }
     // add data for IR
-    LOG(info) << "IR buffer size:" << buffer.size() << " orbit:" << intRec.orbit;
+    LOG(debug) << "IR buffer size:" << buffer.size() << " orbit:" << intRec.orbit;
     mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
     // add data for Trigger Class Record
     buffer.clear();
     buffer = digits2HBTPayload(hbfTC, NClassPayload);
-    LOG(info) << "TC buffer size:" << buffer.size() << " orbit:" << intRec.orbit;
+    LOG(debug) << "TC buffer size:" << buffer.size() << " orbit:" << intRec.orbit;
     mWriter.addData(getFEEIDTC(), mCruID, GBTLinkIDClassRec, mEndPointID, intRec, buffer);
     //
     //orbit0 = ctpdig.intRecord.orbit;
@@ -183,8 +182,8 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
   bool valid;
   for (auto const& dig : digits) {
     valid = makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend);
-    LOG(info) << Npld << " digit:" << dig << " " << (dig.to_ulong() & 0xfff) << " ";
-    LOG(info) << "gbt  :" << gbtsend << " valid:" << valid;
+    LOG(debug) << Npld << " digit:" << dig << " " << (dig.to_ulong() & 0xfff) << " ";
+    LOG(debug) << "gbt  :" << gbtsend << " valid:" << valid;
     if (valid == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
         uint32_t w = 0;
@@ -206,11 +205,11 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
     }
   }
   // add what is left: maybe never left anything - tbc
-  LOG(info) << size_gbt << " size valid " << valid;
-  LOG(info) << "gbtword:" << gbtword;
-  LOG(info) << "gbtsend:" << gbtsend;
+  LOG(debug) << size_gbt << " size valid " << valid;
+  LOG(debug) << "gbtword:" << gbtword;
+  LOG(debug) << "gbtsend:" << gbtsend;
   if (size_gbt > 0) {
-    LOG(info) << "Adding left over.";
+    //LOG(info) << "Adding left over.";
     gbtword80_t gbtsend = gbtword;
     for (uint32_t i = 0; i < NGBT; i += 8) {
       uint32_t w = 0;
@@ -249,11 +248,6 @@ bool Digits2Raw::makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint3
     size_gbt = size_gbt + Npld - NGBT;
     valid = true;
   }
-  //printDigit("pld:", pld);
-  //printDigit("gbtword:", gbtword);
-  //std::cout << valid << " ";
-  //printDigit("gbtsend:", gbtsend);
-  //std::cout << gbtsend << std::endl;
   return valid;
 }
 int Digits2Raw::digit2GBTdigit(gbtword80_t& gbtdigitIR, gbtword80_t& gbtdigitTR, const CTPDigit& digit)

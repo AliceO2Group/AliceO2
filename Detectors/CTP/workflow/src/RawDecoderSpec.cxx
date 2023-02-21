@@ -27,6 +27,7 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
 {
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
+  LOG(info) << "CTP reco init done";
 }
 
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
@@ -83,8 +84,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
     mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
-    LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
-    // get reserved
+    //LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
     // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
@@ -102,7 +102,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
     // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
@@ -137,7 +137,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       if ((wc == 0) && (wordCount != 0)) {
         if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
-          LOG(info) << "gw80:" << gbtWord80;
+          LOG(debug) << "w80:" << gbtWord80;
         }
         gbtWord80.set();
       }
@@ -150,7 +150,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
-      LOG(info) << "w80l:" << gbtWord80;
+      LOG(debug) << "w80l:" << gbtWord80;
     }
     // decode 80 bits payload
     gbtword80_t bcmask = std::bitset<80>("111111111111");
@@ -172,7 +172,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         if (!mDoDigits) {
           continue;
         }
-        LOG(info) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+        LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
         addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
       }
     }
@@ -192,7 +192,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
       addCTPDigit(linkCRU, triggerOrbit, remnant, pldmask, digits);
-      LOG(info) << "diglett:" << remnant << " " << (remnant & bcmask).to_ullong();
+      LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
   }
@@ -275,7 +275,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
   uint16_t bcid = (diglet & bcidmask).to_ulong();
-  LOG(info) << bcid << "    pld:" << pld;
+  LOG(debug) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir = {bcid, triggerOrbit};
   int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
@@ -287,7 +287,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       return 0;
     }
     ir -= BCShiftCorrection;
-    LOG(info) << "ir ir corrected:" << ir;
+    LOG(debug) << "ir ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setInputMask(pld);
@@ -313,7 +313,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       return 0;
     }
     ir -= offset;
-    LOG(info) << "tcr ir corrected:" << ir;
+    LOG(debug) << "tcr ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
