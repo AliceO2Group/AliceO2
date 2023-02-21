@@ -68,13 +68,11 @@ class VertexerTraits
   virtual void computeVertices();
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void updateVertexingParameters(const VertexingParameters& vrtPar);
-  // virtual void computeHistVertices();
 
   VertexingParameters getVertexingParameters() const { return mVrtParams; }
   static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
                                                                const std::array<int, 4>& selectedBinsRect,
                                                                const IndexTableUtils& utils);
-  std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
   VertexingParameters& getVertexingParameters() { return mVrtParams; }
