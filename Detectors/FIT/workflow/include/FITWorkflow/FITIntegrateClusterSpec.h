@@ -45,7 +45,7 @@ template <>
 struct DataDescriptionFITCurrents<o2::fv0::RecPoints> {
   using DataTStruct = IFV0C;
   std::string static getName() { return "fv0"; }
-  std::string static getCCDBPath() { return "FT0/Calib/IFV0C"; }
+  std::string static getCCDBPath() { return "FV0/Calib/IFV0C"; }
   static constexpr header::DataDescription getDataDescriptionFITC() { return header::DataDescription{"IFV0C"}; }
   static constexpr header::DataDescription getDataDescriptionFITTFId() { return header::DataDescription{"IFV0TFID"}; }
   static constexpr header::DataDescription getDataDescriptionCCDB() { return header::DataDescription{"IFV0CCCDB"}; }
@@ -56,7 +56,7 @@ template <>
 struct DataDescriptionFITCurrents<o2::ft0::RecPoints> {
   using DataTStruct = IFT0C;
   std::string static getName() { return "ft0"; }
-  std::string static getCCDBPath() { return "FV0/Calib/IFT0C"; }
+  std::string static getCCDBPath() { return "FT0/Calib/IFT0C"; }
   static constexpr header::DataDescription getDataDescriptionFITC() { return header::DataDescription{"IFT0C"}; }
   static constexpr header::DataDescription getDataDescriptionFITTFId() { return header::DataDescription{"IFT0TFID"}; }
   static constexpr header::DataDescription getDataDescriptionCCDB() { return header::DataDescription{"IFT0CCCDB"}; }
