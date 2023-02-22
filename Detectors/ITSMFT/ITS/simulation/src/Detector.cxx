@@ -330,7 +330,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == mNumberLayers - 1)) {
+  if (fMC->IsTrackExiting()) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
