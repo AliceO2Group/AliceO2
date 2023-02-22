@@ -27,8 +27,8 @@ else()
 endif()
 
 add_custom_command(TARGET O2exe-alpide-response-generator POST_BUILD
-                   COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i ${ITSRESPONSE_DIR}/response/AlpideResponseData/ -o ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/
+                   COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i ${ITSRESPONSE_DIR}/response/AlpideResponseData/ -o ${CMAKE_CURRENT_BINARY_DIR}/
                    DEPENDS ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/AlpideResponse.cxx
 )
 
-o2_data_file(COPY ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData DESTINATION Detectors/ITSMFT/data)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/Detectors/ITSMFT/data/AlpideResponseData/")
