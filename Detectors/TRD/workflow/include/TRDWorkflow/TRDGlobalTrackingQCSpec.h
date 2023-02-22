@@ -23,6 +23,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
@@ -71,12 +72,17 @@ class TRDGlobalTrackingQC : public Task
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     static bool initOnceDone = false;
-    if (!initOnceDone) { // this params need to be queried only once
+    if (!initOnceDone) { // these params need to be queried only once
       initOnceDone = true;
 
       mQC.init();
+
+      // Local pad gain calibration from krypton run
+      auto localGain = *(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors"));
+      mQC.setLocalGainFactors(localGain);
     }
   }
+
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   Tracking mQC;
@@ -100,6 +106,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
 
   dataRequest->requestTracks(src, false);
   dataRequest->requestClusters(srcClu, false);
+  dataRequest->inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
