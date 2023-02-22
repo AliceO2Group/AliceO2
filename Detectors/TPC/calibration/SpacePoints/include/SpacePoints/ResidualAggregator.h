@@ -66,6 +66,8 @@ struct ResidualsContainer {
   std::vector<UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes};     ///< unbinned residuals which are sent to the aggregator
   std::vector<TrackData> trkData, *trkDataPtr{&trkData};                     ///< track data and cluster ranges
   std::vector<TrackDataCompact> trackInfo, *trackInfoPtr{&trackInfo};        ///< allows to obtain track type for each unbinned residual downstream
+  o2::ctp::LumiInfo lumiTF;                                                  ///< for each processed TF we store the lumi information in the tree of unbinned residuals
+  uint64_t timeMS;                                                           ///< for each processed TF we store its absolute time in ms in the tree of unbinned residuals
 
   std::string fileName{"o2tpc_residuals"};
   std::unique_ptr<TFile> fileOut{nullptr};
