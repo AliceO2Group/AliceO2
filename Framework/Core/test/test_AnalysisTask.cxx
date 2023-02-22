@@ -8,16 +8,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework AnalysisTask
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
 #include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 using namespace o2;
 using namespace o2::framework;
@@ -125,7 +122,7 @@ struct JTask {
   Configurable<o2::test::SimplePODClass> cfg{"someConfigurable", {}, "Some Configurable Object"};
   void process(o2::aod::Collision const&)
   {
-    BOOST_CHECK_EQUAL(cfg->x, 1);
+    REQUIRE(cfg->x == 1);
   }
 };
 
@@ -146,67 +143,67 @@ struct KTask {
   std::shared_ptr<int> someSharedInt;
 };
 
-BOOST_AUTO_TEST_CASE(AdaptorCompilation)
+TEST_CASE("AdaptorCompilation")
 {
   auto cfgc = makeEmptyConfigContext();
 
   auto task1 = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
-  BOOST_CHECK_EQUAL(task1.inputs.size(), 2);
-  BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
-  BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("Tracks"));
-  BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("TracksExtension"));
-  BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
+  REQUIRE(task1.inputs.size() == 2);
+  REQUIRE(task1.outputs.size() == 1);
+  REQUIRE(task1.inputs[1].binding == std::string("Tracks"));
+  REQUIRE(task1.inputs[0].binding == std::string("TracksExtension"));
+  REQUIRE(task1.outputs[0].binding.value == std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
-  BOOST_CHECK_EQUAL(task2.inputs.size(), 10);
-  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "TracksExtraExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksExtra");
-  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCovExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksCov");
-  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "AmbiguousTracks");
-  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "Calos");
-  BOOST_CHECK_EQUAL(task2.inputs[9].binding, "CaloTriggers");
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions_001");
+  REQUIRE(task2.inputs.size() == 10);
+  REQUIRE(task2.inputs[1].binding == "TracksExtension");
+  REQUIRE(task2.inputs[2].binding == "Tracks");
+  REQUIRE(task2.inputs[3].binding == "TracksExtraExtension");
+  REQUIRE(task2.inputs[4].binding == "TracksExtra");
+  REQUIRE(task2.inputs[5].binding == "TracksCovExtension");
+  REQUIRE(task2.inputs[6].binding == "TracksCov");
+  REQUIRE(task2.inputs[7].binding == "AmbiguousTracks");
+  REQUIRE(task2.inputs[8].binding == "Calos");
+  REQUIRE(task2.inputs[9].binding == "CaloTriggers");
+  REQUIRE(task2.inputs[0].binding == "Collisions_001");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
-  BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
-  BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions_001");
-  BOOST_CHECK_EQUAL(task3.inputs[2].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task3.inputs[1].binding, "TracksExtension");
+  REQUIRE(task3.inputs.size() == 3);
+  REQUIRE(task3.inputs[0].binding == "Collisions_001");
+  REQUIRE(task3.inputs[2].binding == "Tracks");
+  REQUIRE(task3.inputs[1].binding == "TracksExtension");
 
   auto task4 = adaptAnalysisTask<DTask>(*cfgc, TaskName{"test4"});
-  BOOST_CHECK_EQUAL(task4.inputs.size(), 2);
-  BOOST_CHECK_EQUAL(task4.inputs[1].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "TracksExtension");
+  REQUIRE(task4.inputs.size() == 2);
+  REQUIRE(task4.inputs[1].binding == "Tracks");
+  REQUIRE(task4.inputs[0].binding == "TracksExtension");
 
   auto task5 = adaptAnalysisTask<ETask>(*cfgc, TaskName{"test5"});
-  BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
-  BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
+  REQUIRE(task5.inputs.size() == 1);
+  REQUIRE(task5.inputs[0].binding == "FooBars");
 
   auto task6 = adaptAnalysisTask<FTask>(*cfgc, TaskName{"test6"});
-  BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
-  BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
+  REQUIRE(task6.inputs.size() == 1);
+  REQUIRE(task6.inputs[0].binding == "FooBars");
 
   auto task7 = adaptAnalysisTask<GTask>(*cfgc, TaskName{"test7"});
-  BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
+  REQUIRE(task7.inputs.size() == 3);
 
   auto task8 = adaptAnalysisTask<HTask>(*cfgc, TaskName{"test8"});
-  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
+  REQUIRE(task8.inputs.size() == 3);
 
   auto task9 = adaptAnalysisTask<ITask>(*cfgc, TaskName{"test9"});
-  BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
+  REQUIRE(task9.inputs.size() == 4);
 
   auto task10 = adaptAnalysisTask<JTask>(*cfgc, TaskName{"test10"});
-  BOOST_CHECK_EQUAL(task10.inputs.size(), 1);
+  REQUIRE(task10.inputs.size() == 1);
 
   auto task11 = adaptAnalysisTask<KTask>(*cfgc, TaskName{"test11"});
-  BOOST_CHECK_EQUAL(task11.options.size(), 3);
-  BOOST_CHECK_EQUAL(task11.inputs.size(), 1);
+  REQUIRE(task11.options.size() == 3);
+  REQUIRE(task11.inputs.size() == 1);
 }
 
-BOOST_AUTO_TEST_CASE(TestPartitionIteration)
+TEST_CASE("TestPartitionIteration")
 {
   TableBuilder builderA;
   auto rowWriterA = builderA.persist<float, float>({"fX", "fY"});
@@ -219,7 +216,7 @@ BOOST_AUTO_TEST_CASE(TestPartitionIteration)
   rowWriterA(0, 6.0f, 14.0f);
   rowWriterA(0, 7.0f, 15.0f);
   auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  REQUIRE(tableA->num_rows() == 8);
 
   using TestA = o2::soa::Table<o2::soa::Index<>, aod::test::X, aod::test::Y>;
   using FilteredTest = o2::soa::Filtered<TestA>;
@@ -232,41 +229,41 @@ BOOST_AUTO_TEST_CASE(TestPartitionIteration)
 
   PartitionTest p1 = aod::test::x < 4.0f;
   p1.setTable(testA);
-  BOOST_CHECK_EQUAL(4, p1.size());
-  BOOST_CHECK(p1.begin() != p1.end());
+  REQUIRE(4 == p1.size());
+  REQUIRE(p1.begin() != p1.end());
   auto i = 0;
   for (auto& p : p1) {
-    BOOST_CHECK_EQUAL(i, p.x());
-    BOOST_CHECK_EQUAL(i + 8, p.y());
-    BOOST_CHECK_EQUAL(i, p.index());
+    REQUIRE(i == p.x());
+    REQUIRE(i + 8 == p.y());
+    REQUIRE(i == p.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 4);
+  REQUIRE(i == 4);
 
   expressions::Filter f1 = aod::test::x < 4.0f;
   FilteredTest filtered{{testA.asArrowTable()}, o2::soa::selectionToVector(expressions::createSelection(testA.asArrowTable(), f1))};
   PartitionFilteredTest p2 = aod::test::y > 9.0f;
   p2.setTable(filtered);
 
-  BOOST_CHECK_EQUAL(2, p2.size());
+  REQUIRE(2 == p2.size());
   i = 0;
   for (auto& p : p2) {
-    BOOST_CHECK_EQUAL(i + 2, p.x());
-    BOOST_CHECK_EQUAL(i + 10, p.y());
-    BOOST_CHECK_EQUAL(i + 2, p.index());
+    REQUIRE(i + 2 == p.x());
+    REQUIRE(i + 10 == p.y());
+    REQUIRE(i + 2 == p.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 2);
+  REQUIRE(i == 2);
 
   PartitionNestedFilteredTest p3 = aod::test::x < 3.0f;
   p3.setTable(*(p2.mFiltered));
-  BOOST_CHECK_EQUAL(1, p3.size());
+  REQUIRE(1 == p3.size());
   i = 0;
   for (auto& p : p3) {
-    BOOST_CHECK_EQUAL(i + 2, p.x());
-    BOOST_CHECK_EQUAL(i + 10, p.y());
-    BOOST_CHECK_EQUAL(i + 2, p.index());
+    REQUIRE(i + 2 == p.x());
+    REQUIRE(i + 10 == p.y());
+    REQUIRE(i + 2 == p.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 1);
+  REQUIRE(i == 1);
 }

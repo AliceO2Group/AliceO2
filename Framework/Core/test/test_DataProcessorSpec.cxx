@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework DataProcessorSpec
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataProcessorSpecHelpers.h"
 #include "Framework/ConfigParamSpec.h"
@@ -21,7 +17,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 
-BOOST_AUTO_TEST_CASE(TestServiceRegistry)
+TEST_CASE("TestDataProcessorSpecHelpers")
 {
   using namespace o2::framework;
   DataProcessorSpec spec{.name = "test",
@@ -34,10 +30,10 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
                          .labels = {DataProcessorLabel{"label"},
                                     DataProcessorLabel{"label3"}}};
 
-  BOOST_CHECK_EQUAL(spec.labels.size(), 2);
-  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label"), true);
-  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label2"), false);
-  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label3"), true);
+  REQUIRE(spec.labels.size() == 2);
+  REQUIRE(DataProcessorSpecHelpers::hasLabel(spec, "label") == true);
+  REQUIRE(DataProcessorSpecHelpers::hasLabel(spec, "label2") == false);
+  REQUIRE(DataProcessorSpecHelpers::hasLabel(spec, "label3") == true);
 }
 
 #pragma diagnostic pop

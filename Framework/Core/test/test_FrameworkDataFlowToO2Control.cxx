@@ -8,12 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DDSConfigHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "../src/O2ControlHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -28,6 +25,8 @@
 
 using namespace o2::framework;
 
+namespace
+{
 WorkflowSpec defineDataProcessing()
 {
   return {{"A",                                                       //
@@ -65,6 +64,7 @@ char* strdiffchr(const char* s1, const char* s2)
   return (*s1 == *s2) ? nullptr : (char*)s1;
 }
 
+} // namespace
 const auto expectedWorkflow = R"EXPECTED(name: testwf
 vars:
   dpl_command: >-
@@ -485,7 +485,7 @@ command:
     - "'foo;bar'"
 )EXPECTED"};
 
-BOOST_AUTO_TEST_CASE(TestO2ControlDump)
+TEST_CASE("TestO2ControlDump")
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
@@ -520,22 +520,22 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
 
   dumpWorkflow(ss, devices, executions, commandInfo, "testwf", "");
 
-  BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expectedWorkflow), strdiffchr(expectedWorkflow, ss.str().data()));
-  BOOST_CHECK_EQUAL(ss.str(), expectedWorkflow);
+  REQUIRE(strdiffchr(ss.str().data(), expectedWorkflow) == strdiffchr(expectedWorkflow, ss.str().data()));
+  REQUIRE(ss.str() == expectedWorkflow);
 
-  BOOST_REQUIRE_EQUAL(devices.size(), executions.size());
-  BOOST_REQUIRE_EQUAL(devices.size(), expectedTasks.size());
+  REQUIRE(devices.size() == executions.size());
+  REQUIRE(devices.size() == expectedTasks.size());
   for (size_t di = 0; di < devices.size(); ++di) {
     auto& spec = devices[di];
     auto& expected = expectedTasks[di];
 
-    BOOST_TEST_CONTEXT("Device " << spec.name)
+    SECTION("Device " + std::string(spec.name))
     {
       ss.str({});
       ss.clear();
       dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-      BOOST_CHECK_EQUAL(ss.str(), expected);
+      REQUIRE(strdiffchr(ss.str().data(), expected) == strdiffchr(expected, ss.str().data()));
+      REQUIRE(ss.str() == expected);
     }
   }
 }

@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework TableTreeConverter
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/TableTreeHelpers.h"
@@ -27,7 +23,7 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TreeToTableConversion)
+TEST_CASE("TreeToTableConversion")
 {
   /// Create a simple TTree
   Int_t ndp = 17;
@@ -91,58 +87,58 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   f1.Close();
 
   // test result
-  BOOST_REQUIRE_EQUAL(table->Validate().ok(), true);
-  BOOST_REQUIRE_EQUAL(table->num_rows(), ndp);
-  BOOST_REQUIRE_EQUAL(table->num_columns(), ncols);
+  REQUIRE(table->Validate().ok() == true);
+  REQUIRE(table->num_rows() == ndp);
+  REQUIRE(table->num_columns() == ncols);
 
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::Type::BOOL);
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::Type::FLOAT);
-  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::Type::FLOAT);
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::Type::FLOAT);
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::Type::DOUBLE);
-  BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::Type::INT32);
-  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
-  BOOST_REQUIRE_EQUAL(table->column(7)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
-  BOOST_REQUIRE_EQUAL(table->column(8)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
-  BOOST_REQUIRE_EQUAL(table->column(9)->type()->id(), arrow::Type::UINT8);
+  REQUIRE(table->column(0)->type()->id() == arrow::Type::BOOL);
+  REQUIRE(table->column(1)->type()->id() == arrow::Type::FLOAT);
+  REQUIRE(table->column(2)->type()->id() == arrow::Type::FLOAT);
+  REQUIRE(table->column(3)->type()->id() == arrow::Type::FLOAT);
+  REQUIRE(table->column(4)->type()->id() == arrow::Type::DOUBLE);
+  REQUIRE(table->column(5)->type()->id() == arrow::Type::INT32);
+  REQUIRE(table->column(6)->type()->id() == arrow::Type::FIXED_SIZE_LIST);
+  REQUIRE(table->column(7)->type()->id() == arrow::Type::FIXED_SIZE_LIST);
+  REQUIRE(table->column(8)->type()->id() == arrow::Type::FIXED_SIZE_LIST);
+  REQUIRE(table->column(9)->type()->id() == arrow::Type::UINT8);
 
-  BOOST_REQUIRE(table->column(0)->type()->Equals(arrow::boolean()));
-  BOOST_REQUIRE(table->column(1)->type()->Equals(arrow::float32()));
-  BOOST_REQUIRE(table->column(2)->type()->Equals(arrow::float32()));
-  BOOST_REQUIRE(table->column(3)->type()->Equals(arrow::float32()));
-  BOOST_REQUIRE(table->column(4)->type()->Equals(arrow::float64()));
-  BOOST_REQUIRE(table->column(5)->type()->Equals(arrow::int32()));
-  BOOST_REQUIRE(table->column(6)->type()->Equals(arrow::fixed_size_list(arrow::float64(), nelem)));
-  BOOST_REQUIRE(table->column(7)->type()->Equals(arrow::fixed_size_list(arrow::boolean(), 5)));
-  BOOST_REQUIRE(table->column(8)->type()->Equals(arrow::fixed_size_list(arrow::float32(), 96)));
-  BOOST_REQUIRE(table->column(9)->type()->Equals(arrow::uint8()));
+  REQUIRE(table->column(0)->type()->Equals(arrow::boolean()));
+  REQUIRE(table->column(1)->type()->Equals(arrow::float32()));
+  REQUIRE(table->column(2)->type()->Equals(arrow::float32()));
+  REQUIRE(table->column(3)->type()->Equals(arrow::float32()));
+  REQUIRE(table->column(4)->type()->Equals(arrow::float64()));
+  REQUIRE(table->column(5)->type()->Equals(arrow::int32()));
+  REQUIRE(table->column(6)->type()->Equals(arrow::fixed_size_list(arrow::float64(), nelem)));
+  REQUIRE(table->column(7)->type()->Equals(arrow::fixed_size_list(arrow::boolean(), 5)));
+  REQUIRE(table->column(8)->type()->Equals(arrow::fixed_size_list(arrow::float32(), 96)));
+  REQUIRE(table->column(9)->type()->Equals(arrow::uint8()));
 
   // count number of rows with ok==true
   int ntrueout = 0;
   auto chunks = table->column(0);
-  BOOST_REQUIRE_NE(chunks.get(), nullptr);
+  REQUIRE(!(chunks.get() == nullptr));
 
   auto oks = std::dynamic_pointer_cast<arrow::BooleanArray>(chunks->chunk(0));
-  BOOST_REQUIRE_NE(oks.get(), nullptr);
+  REQUIRE(!(oks.get() == nullptr));
 
   for (int ii = 0; ii < table->num_rows(); ii++) {
     ntrueout += oks->Value(ii) ? 1 : 0;
   }
-  BOOST_REQUIRE_EQUAL(ntruein[0], ntrueout);
+  REQUIRE(ntruein[0] == ntrueout);
 
   // count number of ts with ts==true
   chunks = table->column(7);
-  BOOST_REQUIRE_NE(chunks.get(), nullptr);
+  REQUIRE(!(chunks.get() == nullptr));
 
   auto chunkToUse = std::static_pointer_cast<arrow::FixedSizeListArray>(chunks->chunk(0))->values();
-  BOOST_REQUIRE_NE(chunkToUse.get(), nullptr);
+  REQUIRE(!(chunkToUse.get() == nullptr));
 
   auto tests = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
   ntrueout = 0;
   for (int ii = 0; ii < table->num_rows() * 5; ii++) {
     ntrueout += tests->Value(ii) ? 1 : 0;
   }
-  BOOST_REQUIRE_EQUAL(ntruein[1], ntrueout);
+  REQUIRE(ntruein[1] == ntrueout);
 
   // save table as tree
   TFile* f2 = TFile::Open("table2tree.root", "RECREATE");
@@ -151,10 +147,10 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 
   auto t2 = ta2tr.process();
   auto br = (TBranch*)t2->GetBranch("ok");
-  BOOST_REQUIRE_EQUAL(t2->GetEntries(), ndp);
-  BOOST_REQUIRE_EQUAL(br->GetEntries(), ndp);
+  REQUIRE(t2->GetEntries() == ndp);
+  REQUIRE(br->GetEntries() == ndp);
   br = (TBranch*)t2->GetBranch("tests");
-  BOOST_REQUIRE_EQUAL(br->GetEntries(), ndp);
+  REQUIRE(br->GetEntries() == ndp);
 
   f2->Close();
 }
@@ -173,7 +169,7 @@ DECLARE_SOA_COLUMN(UIvec, uivec, std::vector<uint8_t>);
 DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec, cols::UIvec);
 } // namespace o2::aod
 
-BOOST_AUTO_TEST_CASE(VariableLists)
+TEST_CASE("VariableLists")
 {
   TableBuilder b;
   auto writer = b.cursor<o2::aod::Vectors>();
@@ -225,16 +221,16 @@ BOOST_AUTO_TEST_CASE(VariableLists)
     auto uvr = row.uivec();
     if (count < empty.size() && i != empty[count]) {
       for (auto j = 0; j < i % 10 + 1; ++j) {
-        BOOST_CHECK_EQUAL(ivr[j], j + 2);
-        BOOST_CHECK_EQUAL(fvr[j], (j + 2) * 0.2134f);
-        BOOST_CHECK_EQUAL(dvr[j], (j + 4) * 0.192873819237);
-        BOOST_CHECK_EQUAL(uvr[j], j);
+        REQUIRE(ivr[j] == j + 2);
+        REQUIRE(fvr[j] == (j + 2) * 0.2134f);
+        REQUIRE(dvr[j] == (j + 4) * 0.192873819237);
+        REQUIRE(uvr[j] == j);
       }
     } else {
-      BOOST_CHECK_EQUAL(ivr.size(), 0);
-      BOOST_CHECK_EQUAL(fvr.size(), 0);
-      BOOST_CHECK_EQUAL(dvr.size(), 0);
-      BOOST_CHECK_EQUAL(uvr.size(), 0);
+      REQUIRE(ivr.size() == 0);
+      REQUIRE(fvr.size() == 0);
+      REQUIRE(dvr.size() == 0);
+      REQUIRE(uvr.size() == 0);
       count++;
     }
     ++i;

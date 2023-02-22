@@ -9,21 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <boost/test/tools/old/interface.hpp>
-#define BOOST_TEST_MODULE Test Framework Services
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/CallbackService.h"
 #include "Framework/CommonServices.h"
 #include <Framework/DeviceState.h>
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <fairmq/ProgOptions.h>
 #include <iostream>
 #include <memory>
 
-BOOST_AUTO_TEST_CASE(TestServiceRegistry)
+TEST_CASE("TestServiceRegistry")
 {
   using namespace o2::framework;
   struct InterfaceA {
@@ -58,17 +55,17 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
   ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
   ref.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
-  BOOST_CHECK(registry.get<InterfaceA>(ServiceRegistry::globalDeviceSalt()).method() == true);
-  BOOST_CHECK(registry.get<InterfaceB>(ServiceRegistry::globalDeviceSalt()).method() == false);
-  BOOST_CHECK(registry.get<InterfaceC const>(ServiceRegistry::globalDeviceSalt()).method() == false);
-  BOOST_CHECK(registry.active<InterfaceA>(ServiceRegistry::globalDeviceSalt()) == true);
-  BOOST_CHECK(registry.active<InterfaceB>(ServiceRegistry::globalDeviceSalt()) == true);
-  BOOST_CHECK(registry.active<InterfaceC>(ServiceRegistry::globalDeviceSalt()) == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
+  REQUIRE(registry.get<InterfaceA>(ServiceRegistry::globalDeviceSalt()).method() == true);
+  REQUIRE(registry.get<InterfaceB>(ServiceRegistry::globalDeviceSalt()).method() == false);
+  REQUIRE(registry.get<InterfaceC const>(ServiceRegistry::globalDeviceSalt()).method() == false);
+  REQUIRE(registry.active<InterfaceA>(ServiceRegistry::globalDeviceSalt()) == true);
+  REQUIRE(registry.active<InterfaceB>(ServiceRegistry::globalDeviceSalt()) == true);
+  REQUIRE(registry.active<InterfaceC>(ServiceRegistry::globalDeviceSalt()) == false);
+  REQUIRE_THROWS_AS(registry.get<InterfaceA const>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.get<InterfaceC>(ServiceRegistry::globalDeviceSalt()), RuntimeErrorRef);
 }
 
-BOOST_AUTO_TEST_CASE(TestCallbackService)
+TEST_CASE("TestCallbackService")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -83,7 +80,7 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
 
   // execute and check
   registry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()).call<CallbackService::Id::Stop>();
-  BOOST_CHECK(cbCalled);
+  REQUIRE(cbCalled);
 }
 
 struct DummyService {
@@ -99,7 +96,7 @@ static ServiceRegistry::Salt salt_3 = ServiceRegistry::Salt{3, 0};
 static ServiceRegistry::Salt salt_1_1 = ServiceRegistry::Salt{1, 1};
 }
 
-BOOST_AUTO_TEST_CASE(TestSerialServices)
+TEST_CASE("TestSerialServices")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -111,12 +108,12 @@ BOOST_AUTO_TEST_CASE(TestSerialServices)
   auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
   auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
-  BOOST_CHECK_EQUAL(tt0->threadId, 0);
-  BOOST_CHECK_EQUAL(tt1->threadId, 0);
-  BOOST_CHECK_EQUAL(tt2->threadId, 0);
+  REQUIRE(tt0->threadId == 0);
+  REQUIRE(tt1->threadId == 0);
+  REQUIRE(tt2->threadId == 0);
 }
 
-BOOST_AUTO_TEST_CASE(TestGlobalServices)
+TEST_CASE("TestGlobalServices")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -128,12 +125,12 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices)
   auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Serial));
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Serial));
   auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Serial));
-  BOOST_CHECK_EQUAL(tt0->threadId, 0);
-  BOOST_CHECK_EQUAL(tt1->threadId, 0);
-  BOOST_CHECK_EQUAL(tt2->threadId, 0);
+  REQUIRE(tt0->threadId == 0);
+  REQUIRE(tt1->threadId == 0);
+  REQUIRE(tt2->threadId == 0);
 }
 
-BOOST_AUTO_TEST_CASE(TestGlobalServices02)
+TEST_CASE("TestGlobalServices02")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -151,7 +148,7 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
                    .kind = ServiceKind::Global};
 
   // If the service was not declared, we should not be able to register it from a stream context.
-  BOOST_CHECK_THROW(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1), RuntimeErrorRef);
   // Declare the service
   registry.declareService(spec, state, options, ServiceRegistry::globalDeviceSalt());
 
@@ -160,19 +157,18 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
     registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1);
   } catch (RuntimeErrorRef e) {
     std::cout << error_from_ref(e).what << std::endl;
-    BOOST_CHECK(false);
+    REQUIRE(false);
   }
 
   auto tt0 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Global));
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Global));
   auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Global));
-  BOOST_CHECK_EQUAL(tt0->threadId, 1);
-  BOOST_CHECK_EQUAL(tt1->threadId, 1);
-  BOOST_CHECK_EQUAL(tt2->threadId, 1);
+  REQUIRE(tt0->threadId == 1);
+  REQUIRE(tt1->threadId == 1);
+  REQUIRE(tt2->threadId == 1);
 }
 
-
-BOOST_AUTO_TEST_CASE(TestStreamServices)
+TEST_CASE("TestStreamServices")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -191,7 +187,7 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   DeviceState state;
   fair::mq::ProgOptions options;
   // This will raise an exception because we have not declared the service yet.
-  BOOST_CHECK_THROW(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Stream, ServiceRegistry::Salt{1, 0}), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Stream, ServiceRegistry::Salt{1, 0}), RuntimeErrorRef);
   registry.declareService(spec, state, options, ServiceRegistry::globalDeviceSalt());
 
   /// We register it pretending to be on thread 0
@@ -202,30 +198,30 @@ BOOST_AUTO_TEST_CASE(TestStreamServices)
   auto tt1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1, ServiceKind::Stream));
   auto tt2 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_2, ServiceKind::Stream));
   auto tt3 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_3, ServiceKind::Stream));
-  BOOST_CHECK_EQUAL(tt1->threadId, 1);
-  BOOST_CHECK_EQUAL(tt2->threadId, 2);
-  BOOST_CHECK_EQUAL(tt3->threadId, 3);
+  REQUIRE(tt1->threadId == 1);
+  REQUIRE(tt2->threadId == 2);
+  REQUIRE(tt3->threadId == 3);
   // Check that Context{1,1} throws, because we registerd it for a different data processor.
-  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
 
   // Check that Context{0,0} throws.
-  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_0, ServiceKind::Stream), RuntimeErrorRef);
   registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &t2_d1, ServiceKind::Stream, ServiceRegistry::Salt{3, 1}, "dummy-service", ServiceRegistry::SpecIndex{0});
 
   auto tt2_dp1 = reinterpret_cast<DummyService*>(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, ServiceRegistry::Salt{3, 1}, ServiceKind::Stream));
-  BOOST_CHECK_EQUAL(tt2_dp1->threadId, 2);
+  REQUIRE(tt2_dp1->threadId == 2);
 
-  BOOST_CHECK_THROW(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
 }
 
-BOOST_AUTO_TEST_CASE(TestServiceRegistryCtor)
+TEST_CASE("TestServiceRegistryCtor")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
   registry = ServiceRegistry();
 }
 
-BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
+TEST_CASE("TestServiceDeclaration")
 {
   using namespace o2::framework;
   ServiceRegistry registry;
@@ -237,41 +233,41 @@ BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
   options.SetProperty("configuration", "command-line");
 
   registry.declareService(CommonServices::callbacksSpec(), state, options);
-  BOOST_CHECK(registry.active<CallbackService>(ServiceRegistry::globalDeviceSalt()) == true);
-  BOOST_CHECK(registry.active<DummyService>(ServiceRegistry::globalDeviceSalt()) == false);
+  REQUIRE(registry.active<CallbackService>(ServiceRegistry::globalDeviceSalt()) == true);
+  REQUIRE(registry.active<DummyService>(ServiceRegistry::globalDeviceSalt()) == false);
 }
 
-BOOST_AUTO_TEST_CASE(TestServiceOverride)
+TEST_CASE("TestServiceOverride")
 {
   using namespace o2::framework;
   auto overrides = ServiceSpecHelpers::parseOverrides("foo:enable,bar:disable");
-  BOOST_CHECK(overrides.size() == 2);
-  BOOST_CHECK(overrides[0].name == "foo");
-  BOOST_CHECK(overrides[0].active == true);
-  BOOST_CHECK(overrides[1].name == "bar");
-  BOOST_CHECK(overrides[1].active == false);
+  REQUIRE(overrides.size() == 2);
+  REQUIRE(overrides[0].name == "foo");
+  REQUIRE(overrides[0].active == true);
+  REQUIRE(overrides[1].name == "bar");
+  REQUIRE(overrides[1].active == false);
 
   auto overrides2 = ServiceSpecHelpers::parseOverrides("foo:enable");
-  BOOST_CHECK(overrides2.size() == 1);
-  BOOST_CHECK(overrides[0].name == "foo");
-  BOOST_CHECK(overrides[0].active == true);
+  REQUIRE(overrides2.size() == 1);
+  REQUIRE(overrides[0].name == "foo");
+  REQUIRE(overrides[0].active == true);
 
-  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:enabledisabl"), std::runtime_error);
-  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo"), std::runtime_error);
-  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:"), std::runtime_error);
-  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:a,"), std::runtime_error);
-  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:,"), std::runtime_error);
-  BOOST_CHECK(ServiceSpecHelpers::parseOverrides("").size() == 0);
-  BOOST_CHECK(ServiceSpecHelpers::parseOverrides(nullptr).size() == 0);
+  REQUIRE_THROWS_AS(ServiceSpecHelpers::parseOverrides("foo:enabledisabl"), std::runtime_error);
+  REQUIRE_THROWS_AS(ServiceSpecHelpers::parseOverrides("foo"), std::runtime_error);
+  REQUIRE_THROWS_AS(ServiceSpecHelpers::parseOverrides("foo:"), std::runtime_error);
+  REQUIRE_THROWS_AS(ServiceSpecHelpers::parseOverrides("foo:a,"), std::runtime_error);
+  REQUIRE_THROWS_AS(ServiceSpecHelpers::parseOverrides("foo:,"), std::runtime_error);
+  REQUIRE(ServiceSpecHelpers::parseOverrides("").size() == 0);
+  REQUIRE(ServiceSpecHelpers::parseOverrides(nullptr).size() == 0);
 
   auto overrides3 = ServiceSpecHelpers::parseOverrides("foo:disable,bar:enable,baz:enable");
   ServiceSpecs originalServices{
     {.name = "foo", .active = true},
     {.name = "bar", .active = false},
   };
-  BOOST_CHECK(overrides3.size() == 3);
+  REQUIRE(overrides3.size() == 3);
   auto services = ServiceSpecHelpers::filterDisabled(originalServices, overrides3);
-  BOOST_CHECK(services.size() == 1);
-  BOOST_CHECK_EQUAL(services[0].name, "bar");
-  BOOST_CHECK_EQUAL(services[0].active, true);
+  REQUIRE(services.size() == 1);
+  REQUIRE(services[0].name == "bar");
+  REQUIRE(services[0].active == true);
 }

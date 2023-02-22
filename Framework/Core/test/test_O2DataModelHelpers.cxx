@@ -9,20 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test O2DataModelHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/O2DataModelHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include <fairmq/TransportFactory.h>
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestNoWait)
+TEST_CASE("TestDataModelHelpers01")
 {
   o2::header::DataHeader dh1;
   dh1.dataDescription = "CLUSTERS";
@@ -49,15 +45,15 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
     o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph2}),
     transport->CreateMessage(1000)};
   // Check if any header has dataDescription == "CLUSTERS"
-  BOOST_CHECK(O2DataModelHelpers::all_headers_matching(inputs, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::all_headers_matching(inputs, [](auto const& header) {
     return header != nullptr && header->dataDescription == o2::header::DataDescription("CLUSTERS");
   }));
 
-  BOOST_CHECK(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
     return header != nullptr && header->dataOrigin == o2::header::DataOrigin("ITS");
   }));
 
-  BOOST_CHECK(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
     return header != nullptr && header->dataOrigin == o2::header::DataOrigin("TPC");
   }));
 
@@ -80,30 +76,30 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
     transport->CreateMessage(1000),
   };
 
-  BOOST_CHECK(O2DataModelHelpers::all_headers_matching(inputs, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::all_headers_matching(inputs, [](auto const& header) {
     return header != nullptr && header->dataDescription == o2::header::DataDescription("CLUSTERS");
   }));
 
-  BOOST_CHECK(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
     return header != nullptr && header->dataOrigin == o2::header::DataOrigin("ITS");
   }));
 
-  BOOST_CHECK(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
-                return header != nullptr && header->dataDescription == o2::header::DataDescription("TRACKS");
-              }) == false);
+  REQUIRE(O2DataModelHelpers::any_header_matching(inputs, [](auto const& header) {
+            return header != nullptr && header->dataDescription == o2::header::DataDescription("TRACKS");
+          }) == false);
 
-  BOOST_CHECK(O2DataModelHelpers::any_header_matching(inputs2, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::any_header_matching(inputs2, [](auto const& header) {
     return header != nullptr && header->dataDescription == o2::header::DataDescription("TRACKS");
   }));
 
-  BOOST_CHECK(O2DataModelHelpers::all_headers_matching(inputs2, [](auto const& header) {
+  REQUIRE(O2DataModelHelpers::all_headers_matching(inputs2, [](auto const& header) {
     return header != nullptr && header->subSpecification == 0;
   }));
 }
 
 // Add a test to check that all the Lifetime::Timeframe messages are
 // actually there in the parts.
-BOOST_AUTO_TEST_CASE(TestTimeframePresent)
+TEST_CASE("TestTimeframePresent")
 {
   o2::header::DataHeader dh1;
   dh1.dataDescription = "CLUSTERS";
@@ -137,10 +133,10 @@ BOOST_AUTO_TEST_CASE(TestTimeframePresent)
   std::vector<bool> present;
   present.resize(outputs.size());
   O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
-  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == true);
+  REQUIRE(O2DataModelHelpers::validateOutputs(present) == true);
 }
 
-BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
+TEST_CASE("TestTimeframeMissing")
 {
   o2::header::DataHeader dh1;
   dh1.dataDescription = "CLUSTERS";
@@ -165,13 +161,13 @@ BOOST_AUTO_TEST_CASE(TestTimeframeMissing)
   std::vector<bool> present;
   present.resize(outputs.size());
   O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
-  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == false);
+  REQUIRE(O2DataModelHelpers::validateOutputs(present) == false);
 
-  BOOST_CHECK_EQUAL(O2DataModelHelpers::describeMissingOutputs(outputs, present),
-                    "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA. Present outputs are: TPC/CLUSTERS/0.");
+  REQUIRE(O2DataModelHelpers::describeMissingOutputs(outputs, present) ==
+          "This timeframe has a missing output of lifetime timeframe: ITS/CLUSTERS/0. If this is expected, please change its lifetime to Sporadic / QA. Present outputs are: TPC/CLUSTERS/0.");
 }
 
-BOOST_AUTO_TEST_CASE(TestTimeframeSporadic)
+TEST_CASE("TestTimeframeSporadic")
 {
   o2::header::DataHeader dh1;
   dh1.dataDescription = "CLUSTERS";
@@ -196,5 +192,5 @@ BOOST_AUTO_TEST_CASE(TestTimeframeSporadic)
   std::vector<bool> present;
   present.resize(outputs.size());
   O2DataModelHelpers::updateMissingSporadic(inputs, outputs, present);
-  BOOST_CHECK(O2DataModelHelpers::validateOutputs(present) == true);
+  REQUIRE(O2DataModelHelpers::validateOutputs(present) == true);
 }

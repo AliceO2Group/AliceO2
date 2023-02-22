@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Traits
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Pack.h"
 #include "Framework/CheckTypes.h"
@@ -29,7 +25,7 @@ using is_same_as_second_t = std::is_same<typename std::decay_t<T>, T2>;
 template <int A, int B>
 struct TestStruct {
 };
-BOOST_AUTO_TEST_CASE(TestOverride)
+TEST_CASE("TestOverride")
 {
   static_assert(pack_size(pack<int, float>{}) == 2, "Bad size for the pack");
   static_assert(has_type_v<int, pack<int, float>> == true, "int should be in the pack");
@@ -81,9 +77,9 @@ BOOST_AUTO_TEST_CASE(TestOverride)
 
   bool flag = false;
   call_if_defined<struct Undeclared>([&flag](auto*) { flag = true; });
-  BOOST_REQUIRE_EQUAL(flag, false);
+  REQUIRE(flag == false);
 
   flag = false;
   call_if_defined<struct Declared>([&flag](auto*) { flag = true; });
-  BOOST_REQUIRE_EQUAL(flag, true);
+  REQUIRE(flag == true);
 }
