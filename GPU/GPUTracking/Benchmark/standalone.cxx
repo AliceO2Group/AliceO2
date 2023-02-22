@@ -166,7 +166,7 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 #ifndef GPUCA_HAVE_O2HEADERS
   configStandalone.runTRD = configStandalone.rundEdx = configStandalone.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
-  configStandalone.rec.ForceEarlyTPCTransform = 1;
+  configStandalone.rec.tpc.forceEarlyTransform = 1;
   configStandalone.runRefit = false;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
@@ -618,7 +618,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
     chainTrackingUse->mIOPtrs = ioPtrs;
     if (iteration == (configStandalone.proc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Start();
       }
       if (configStandalone.controlProfiler) {
@@ -628,7 +628,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     int tmpRetVal = recUse->RunChains();
     int iterationEnd = nIterationEnd.fetch_add(1);
     if (iterationEnd == configStandalone.runs - 1) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Stop();
       }
       if (configStandalone.controlProfiler) {
