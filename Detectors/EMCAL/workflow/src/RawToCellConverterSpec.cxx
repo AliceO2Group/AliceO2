@@ -548,7 +548,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     if (cells->size()) {
       LOG(debug) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
-      std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
+      std::sort(cells->begin(), cells->end(), [](const RecCellInfo lhs, const RecCellInfo rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
       for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
           // Treat error only in case the LG is above the noise threshold
