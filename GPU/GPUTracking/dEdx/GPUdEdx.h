@@ -23,7 +23,7 @@
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "DataFormatsTPC/Defs.h"
 #include "CalibdEdxContainer.h"
-#include "CommonUtils/DebugStreamer.h"
+#include "GPUDebugStreamer.h"
 #endif
 
 namespace GPUCA_NAMESPACE

@@ -21,7 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
-#include "CommonUtils/DebugStreamer.h"
+#include "GPUDebugStreamer.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <string>
