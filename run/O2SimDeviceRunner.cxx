@@ -43,8 +43,9 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
   auto pid = getpid();
   LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
-  if (pid == gMasterProcess) {
+  if (pid == gMasterProcess && signal_info->si_pid != gDriverProcess) {
     // master worker forwards signal to whole worker process group
+    // (do this only if not coming from gDriverProcess since this uses killpg and already affected all children)
     killpg(pid, signal);
   } else {
     if (signal_info->si_pid != gDriverProcess) {
