@@ -461,18 +461,34 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     };
 
     auto drainMessages = [](ServiceRegistryRef registry, int state) {
-      auto device = registry.get<RawDeviceService>().device();
+      auto* device = registry.get<RawDeviceService>().device();
+      auto& deviceState = registry.get<DeviceState>();
       // We drop messages in input only when in ready.
       // FIXME: should we drop messages in input the first time we are in ready?
       if (fair::mq::State{state} != fair::mq::State::Ready) {
         return;
       }
-      while (!device->NewStatePending()) {
+      // We keep track of whether or not all channels have seen a new state.
+      std::vector<bool> lastNewStatePending(deviceState.inputChannelInfos.size(), false);
+
+      // Continue iterating until all channels have seen a new state.
+      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; })) {
         fair::mq::Parts parts;
-        for (auto& channel : channels) {
-          device->GetChannel(channel).Receive(parts, -1);
-          if (!device->NewStatePending()) {
-            LOGP(warn, "Unexpected {} message on channel {} while in Ready state. Dropping.", parts.Size(), channel);
+        for (size_t ci = 0; ci < deviceState.inputChannelInfos.size(); ++ci) {
+          auto& info = deviceState.inputChannelInfos[ci];
+          info.channel->Receive(parts, 10);
+          lastNewStatePending[ci] = device->NewStatePending();
+          if (parts.Size() == 0) {
+            continue;
+          }
+          if (!lastNewStatePending[ci]) {
+            LOGP(warn, "Unexpected {} message on channel {} while in Ready state. Dropping.", parts.Size(), info.channel->GetName());
+          } else if (lastNewStatePending[ci]) {
+            LOGP(detail, "Some {} parts were received on channel {} while switching away from Ready. Keeping.", parts.Size(), info.channel->GetName());
+            for (int pi = 0; pi < parts.Size(); ++pi) {
+              info.parts.fParts.emplace_back(std::move(parts.At(pi)));
+            }
+            info.readPolled = true;
           }
         }
       }
