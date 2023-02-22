@@ -52,6 +52,14 @@ class GRPECSObject
   timePoint getTimeEnd() const { return mTimeEnd; }
   void setTimeEnd(timePoint t) { mTimeEnd = t; }
 
+  timePoint getTimeStartCTPasSet() const { return mTimeStartCTP; }
+  timePoint getTimeStartCTP() const { return mTimeStartCTP ? mTimeStartCTP : mTimeStart; }
+  void setTimeStartCTP(timePoint t) { mTimeStartCTP = t; }
+
+  timePoint getTimeEndCTPasSet() const { return mTimeEndCTP; }
+  timePoint getTimeEndCTP() const { return mTimeEndCTP ? mTimeEndCTP : mTimeEnd; }
+  void setTimeEndCTP(timePoint t) { mTimeEndCTP = t; }
+
   void setNHBFPerTF(uint32_t n) { mNHBFPerTF = n; }
   uint32_t getNHBFPerTF() const { return mNHBFPerTF; }
 
@@ -129,8 +137,10 @@ class GRPECSObject
   static constexpr bool alwaysTriggeredRO(DetID::ID det) { return DefTriggeredDets[det]; }
 
  private:
-  timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
-  timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
+  timePoint mTimeStart = 0;    ///< ECS start time
+  timePoint mTimeEnd = 0;      ///< ECS end time
+  timePoint mTimeStartCTP = 0; ///< CTP start time
+  timePoint mTimeEndCTP = 0;   ///< CTP end time
 
   uint32_t mNHBFPerTF = 128; /// Number of HBFrames per TF
 
@@ -146,7 +156,7 @@ class GRPECSObject
   // detectors which are always readout in triggered mode. Others are continuous by default but exceptionally can be triggered
   static constexpr DetID::mask_t DefTriggeredDets = DetID::getMask(DetID::TRD) | DetID::getMask(DetID::PHS) | DetID::getMask(DetID::CPV) | DetID::getMask(DetID::EMC) | DetID::getMask(DetID::HMP);
 
-  ClassDefNV(GRPECSObject, 5);
+  ClassDefNV(GRPECSObject, 6);
 };
 
 } // namespace parameters
