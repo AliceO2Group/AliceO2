@@ -27,7 +27,7 @@
 namespace bpo = boost::program_options;
 
 void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV = 4, bool noEmptyHBF = false,
-              bool zsIR = true, bool zsClass = true, int superPageSizeInB = 1024 * 1024);
+              bool zsIR = true, bool zsClass = true, bool enablePadding = true, int cruPageAlignment = 16, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -51,6 +51,8 @@ int main(int argc, char** argv)
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("no-zs-ir", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress interaction records");
     add_option("no-zs-class", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress trigger class records");
+    add_option("enable-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "pad raw gbt data to 128 bits: 80 bits payload+48 bits 0");
+    add_option("cru-page-alignment,a", bpo::value<int>()->default_value(16), "CRU page alignment");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -85,14 +87,16 @@ int main(int argc, char** argv)
            vm["rdh-version"].as<uint32_t>(),
            vm["no-empty-hbf"].as<bool>(),
            !vm["no-zs-ir"].as<bool>(),
-           !vm["no-zs-class"].as<bool>());
+           !vm["no-zs-class"].as<bool>(),
+           vm["enable-padding"].as<bool>(),
+           vm["cru-page-alignment"].as<int>());
 
   o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, bool zsIR, bool zsClass, int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, bool zsIR, bool zsClass, bool enablePadding, int cruPageAlignment, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -106,7 +110,10 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
-
+  if (rdhV < 7 && !enablePadding) {
+    enablePadding = true;
+    LOG(info) << "padding is always ON for RDH version " << rdhV;
+  }
   std::string outDirName(outDir);
   // if needed, create output directory
   if (!std::filesystem::exists(outDirName)) {
@@ -123,6 +130,14 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   m2r.setOutDir(outDirName);
   m2r.setZeroSuppressedIntRec(zsIR);
   m2r.setZeroSuppressedClassRec(zsClass);
+  m2r.getWriter().useRDHDataFormat(enablePadding ? 0 : 2);
+  m2r.setPadding(enablePadding);
+  if (!enablePadding) { // CRU page alignment padding is used only if no GBT word padding is used
+    // m2r.getWriter().setAlignmentSize(o2::ctp::CRUPageAlignment);
+    LOG(info) << "CRU Page Alignment:" << cruPageAlignment;
+    m2r.getWriter().setAlignmentSize(cruPageAlignment);
+    m2r.getWriter().setAlignmentPaddingFiller(0xff);
+  }
   m2r.init();
   m2r.processDigits(inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));

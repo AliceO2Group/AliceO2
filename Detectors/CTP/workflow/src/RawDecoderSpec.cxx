@@ -27,6 +27,7 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
 {
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
+  LOG(info) << "CTP reco init done";
 }
 
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
@@ -81,7 +82,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
-    // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
+    uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
+    mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
+    // LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+    //  std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
       first = false;
@@ -92,7 +96,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
       payloadCTP = o2::ctp::NClassPayload;
-      if (!mDoDigits) {
+      if (!mDoDigits) { // Do not do TCR if only lumi
         continue;
       }
     } else {
@@ -105,10 +109,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       pldmask[12 + i] = 1;
     }
     //  TF in 128 bits words
-    gsl::span<const uint8_t> payload(it.data(), it.size());
-    gbtword80_t gbtWord = 0;
-    int wordCount = 0;
-    std::vector<gbtword80_t> diglets;
     if (orbit0 != triggerOrbit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
         lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, 0, countsMBT, countsMBV});
@@ -119,49 +119,65 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       size_gbt = 0;
       orbit0 = triggerOrbit;
     }
+    // Create 80 bit words
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    gbtword80_t gbtWord80;
+    gbtWord80.set();
+    int wordCount = 0;
+    int wordSize = 10;
+    std::vector<gbtword80_t> gbtwords80;
+    // mPadding = 0;
+    if (mPadding == 1) {
+      wordSize = 16;
+    }
     // LOG(info) << "payload size:" << payload.size();
     for (auto payloadWord : payload) {
-      // LOG(info) << wordCount << " payload:" << int(payloadWord);
-      if (wordCount == 15) {
-        wordCount = 0;
-      } else if (wordCount > 9) {
-        wordCount++;
-      } else if (wordCount == 9) {
+      int wc = wordCount % wordSize;
+      // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
+      if ((wc == 0) && (wordCount != 0)) {
+        if (gbtWord80.count() != 80) {
+          gbtwords80.push_back(gbtWord80);
+          LOG(debug) << "w80:" << gbtWord80;
+        }
+        gbtWord80.set();
+      }
+      if (wc < 10) {
         for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+          gbtWord80[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
         }
-        wordCount++;
-        diglets.clear();
-        // LOG(info) << " gbtword:" << gbtWord;
-        makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
-        // save digit in buffer recs
-        // LOG(info) << "diglets size:" << diglets.size();
-        for (auto diglet : diglets) {
-          if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
-            gbtword80_t pld = (diglet >> 12) & mTVXMask;
-            if (pld.count() != 0) {
-              countsMBT++;
-            }
-            pld = (diglet >> 12) & mVBAMask;
-            if (pld.count() != 0) {
-              countsMBV++;
-            }
+      }
+      wordCount++;
+    }
+    if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
+      gbtwords80.push_back(gbtWord80);
+      LOG(debug) << "w80l:" << gbtWord80;
+    }
+    // decode 80 bits payload
+    gbtword80_t bcmask = std::bitset<80>("111111111111");
+    for (auto word : gbtwords80) {
+      std::vector<gbtword80_t> diglets;
+      gbtword80_t gbtWord = word;
+      makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
+      for (auto diglet : diglets) {
+        if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
+          gbtword80_t pld = (diglet >> 12) & mTVXMask;
+          if (pld.count() != 0) {
+            countsMBT++;
           }
-          if (!mDoDigits) {
-            continue;
+          pld = (diglet >> 12) & mVBAMask;
+          if (pld.count() != 0) {
+            countsMBV++;
           }
-          addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
         }
-        gbtWord = 0;
-      } else {
-        for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+        if (!mDoDigits) {
+          continue;
         }
-        wordCount++;
+        LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+        addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
       }
     }
-    // LOG(info) << "remnant:" << remnant;
-    if ((remnant.count() > 0) && stopBit) {
+    // if ((remnant.count() > 0) && stopBit) {
+    if (remnant.count() > 0) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
@@ -176,6 +192,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
       addCTPDigit(linkCRU, triggerOrbit, remnant, pldmask, digits);
+      LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
   }
@@ -258,7 +275,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
   uint16_t bcid = (diglet & bcidmask).to_ulong();
-  // LOG(info) << bcid << "    pld:" << pld;
+  LOG(debug) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir = {bcid, triggerOrbit};
   int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
@@ -316,7 +333,18 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   }
   return 0;
 }
-
+//
+//  000 pos2 00000 pos1 0000
+std::bitset<80> RawDecoderSpec::subbitset(int pos, int len, gbtword128_t& bs, int shift)
+{
+  gbtword80_t word;
+  std::string str = bs.to_string();
+  pos = 128 - pos - len;
+  str = str.substr(pos, len);
+  word = std::bitset<80>(str);
+  word = word << shift;
+  return word;
+}
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
   if (!digits && !lumi) {
