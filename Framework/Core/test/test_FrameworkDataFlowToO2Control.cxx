@@ -133,7 +133,8 @@ roles:
 const std::vector expectedTasks{
   R"EXPECTED(name: A
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -155,7 +156,8 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
@@ -220,7 +222,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -242,7 +245,8 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
@@ -307,7 +311,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -329,7 +334,8 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
@@ -394,7 +400,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -415,7 +422,8 @@ bind:
     global: "outta_dpl-{{ it }}"
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
