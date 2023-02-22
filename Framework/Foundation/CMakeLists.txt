@@ -8,6 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+cmake_minimum_required(VERSION 3.5)
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/Framework
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -23,35 +24,19 @@ if (DPL_ENABLE_BACKTRACE)
 target_compile_definitions(${targetName} PUBLIC -DDPL_ENABLE_BACKTRACE)
 endif()
 
+add_executable(o2-test-framework-foundation
+               test/test_FunctionalHelpers.cxx 
+               test/test_Traits.cxx 
+               test/test_StructToTuple.cxx
+               test/test_CompilerBuiltins.cxx 
+               #               test/test_Signpost.cxx 
+               test/test_RuntimeError.cxx)
+target_link_libraries(o2-test-framework-foundation PRIVATE O2::FrameworkFoundation)
+target_link_libraries(o2-test-framework-foundation PRIVATE O2::Catch2)
 
-o2_add_test(test_FunctionalHelpers NAME test_FrameworkFoundation_test_FunctionalHelpers
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_FunctionalHelpers.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
+set_property(TARGET o2-test-framework-foundation PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
-o2_add_test(test_Traits NAME test_FrameworkFoundation_test_Traits
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_Traits.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
-
-o2_add_test(test_StructToTuple NAME test_FrameworkFoundation_StructToTuple
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_StructToTuple.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
-
-o2_add_test(test_CompilerBuiltins NAME test_FrameworkFoundation_CompilerBuiltins
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_CompilerBuiltins.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
-
-o2_add_test(test_Signpost NAME test_FrameworkFoundation_Signpost
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_Signpost.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
-
-o2_add_test(test_RuntimeError NAME test_FrameworkFoundation_RuntimeError
-            COMPONENT_NAME FrameworkFoundation
-            SOURCES test/test_RuntimeError.cxx
-            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+add_test(NAME framework:foundation COMMAND o2-test-framework-foundation)
 
 add_subdirectory(3rdparty)

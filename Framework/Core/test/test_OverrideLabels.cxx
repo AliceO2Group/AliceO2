@@ -9,10 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework OverrideLabels
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 // We prevent runDataProcessing from starting a workflow
 #define main anything_else_than_main
 #include "Framework/runDataProcessing.h"
@@ -39,48 +35,48 @@ std::unique_ptr<o2::framework::ConfigContext> mockupLabels(std::string labelArg)
   return context;
 }
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
-BOOST_AUTO_TEST_CASE(OverrideLabels)
+TEST_CASE("OverrideLabels")
 {
   {
     // invalid format
     WorkflowSpec workflow{{"A"}};
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A:"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels(":A"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A:asdf,:"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A:asdf,:A"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A:asdf,B:"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A:asdf,B"), workflow), std::runtime_error);
-    BOOST_CHECK_THROW(overrideLabels(*mockupLabels("A,B:asdf"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A:"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels(":A"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A:asdf,:"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A:asdf,:A"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A:asdf,B:"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A:asdf,B"), workflow), std::runtime_error);
+    REQUIRE_THROWS_AS(overrideLabels(*mockupLabels("A,B:asdf"), workflow), std::runtime_error);
   }
   {
     // one processor, one label
     WorkflowSpec workflow{{"A"}};
     auto ctx = mockupLabels("A:abc");
     overrideLabels(*ctx, workflow);
-    BOOST_CHECK_EQUAL(workflow[0].labels[0].value, "abc");
+    REQUIRE(workflow[0].labels[0].value == "abc");
   }
   {
     // many processors, many labels
     WorkflowSpec workflow{{"A"}, {"B"}, {"C"}};
     auto ctx = mockupLabels("A:a1:a2,B:b1,C:c1:c2:c3");
     overrideLabels(*ctx, workflow);
-    BOOST_CHECK_EQUAL(workflow[0].labels[0].value, "a1");
-    BOOST_CHECK_EQUAL(workflow[0].labels[1].value, "a2");
-    BOOST_CHECK_EQUAL(workflow[1].labels[0].value, "b1");
-    BOOST_CHECK_EQUAL(workflow[2].labels[0].value, "c1");
-    BOOST_CHECK_EQUAL(workflow[2].labels[1].value, "c2");
-    BOOST_CHECK_EQUAL(workflow[2].labels[2].value, "c3");
+    REQUIRE(workflow[0].labels[0].value == "a1");
+    REQUIRE(workflow[0].labels[1].value == "a2");
+    REQUIRE(workflow[1].labels[0].value == "b1");
+    REQUIRE(workflow[2].labels[0].value == "c1");
+    REQUIRE(workflow[2].labels[1].value == "c2");
+    REQUIRE(workflow[2].labels[2].value == "c3");
   }
   {
     // duplicate labels in arg
     WorkflowSpec workflow{{"A"}};
     auto ctx = mockupLabels("A:a1:a1");
     overrideLabels(*ctx, workflow);
-    BOOST_CHECK_EQUAL(workflow[0].labels.size(), 1);
-    BOOST_CHECK_EQUAL(workflow[0].labels[0].value, "a1");
+    REQUIRE(workflow[0].labels.size() == 1);
+    REQUIRE(workflow[0].labels[0].value == "a1");
   }
   {
     // duplicate labels - one in WF, one in arg
@@ -88,7 +84,7 @@ BOOST_AUTO_TEST_CASE(OverrideLabels)
     workflow[0].labels.push_back({"a1"});
     auto ctx = mockupLabels("A:a1");
     overrideLabels(*ctx, workflow);
-    BOOST_CHECK_EQUAL(workflow[0].labels.size(), 1);
-    BOOST_CHECK_EQUAL(workflow[0].labels[0].value, "a1");
+    REQUIRE(workflow[0].labels.size() == 1);
+    REQUIRE(workflow[0].labels[0].value == "a1");
   }
 }

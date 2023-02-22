@@ -9,17 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework CallbackRegistry
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/CallbackRegistry.h"
 #include <iostream>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestCallbackregistry)
+TEST_CASE("TestCallbackregistry")
 {
   enum class StepId { StateChange,
                       Exit };
@@ -31,7 +27,7 @@ BOOST_AUTO_TEST_CASE(TestCallbackregistry)
                                      RegistryPair<StepId, StepId::Exit, ExitCallback>,                //
                                      RegistryPair<StepId, StepId::StateChange, StateChangeCallback>>; //
   Callbacks callbacks;
-  BOOST_REQUIRE(callbacks.size == 2);
+  REQUIRE(callbacks.size == 2);
 
   bool exitcbWasCalled = false;
   auto exitcb = [&]() {
@@ -47,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestCallbackregistry)
   callbacks.set(StepId::StateChange, statechangecb);
 
   callbacks(StepId::Exit);
-  BOOST_CHECK(exitcbWasCalled);
+  REQUIRE(exitcbWasCalled);
   callbacks(StepId::StateChange, 5);
-  BOOST_CHECK(statechangecbWasCalled == 5);
+  REQUIRE(statechangecbWasCalled == 5);
 }

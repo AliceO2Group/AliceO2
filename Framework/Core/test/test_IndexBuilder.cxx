@@ -9,13 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework IndexBuilder
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
 using namespace arrow;
@@ -62,7 +58,7 @@ DECLARE_SOA_INDEX_COLUMN(Category, category);
 DECLARE_SOA_TABLE(IDXs, "TST", "Index", Index<>, indices::PointId, indices::DistanceId, indices::FlagId, indices::CategoryId);
 DECLARE_SOA_TABLE(IDX2s, "TST", "Index2", Index<>, indices::DistanceId, indices::PointId, indices::FlagId, indices::CategoryId);
 
-BOOST_AUTO_TEST_CASE(TestIndexBuilder)
+TEST_CASE("TestIndexBuilder")
 {
   TableBuilder b1;
   auto w1 = b1.cursor<Points>();
@@ -103,33 +99,33 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
   Categorys st4{t4};
 
   auto t5 = IndexBuilder<Exclusive>::indexBuilder<Points>("test1a", {t1, t2, t3, t4}, typename IDXs::persistent_columns_t{}, o2::framework::pack<Points, Distances, Flags, Categorys>{});
-  BOOST_REQUIRE_EQUAL(t5->num_rows(), 4);
+  REQUIRE(t5->num_rows() == 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
   for (auto& row : idxt) {
-    BOOST_REQUIRE(row.distance().pointId() == row.pointId());
-    BOOST_REQUIRE(row.flag().pointId() == row.pointId());
-    BOOST_REQUIRE(row.category().pointId() == row.pointId());
+    REQUIRE(row.distance().pointId() == row.pointId());
+    REQUIRE(row.flag().pointId() == row.pointId());
+    REQUIRE(row.category().pointId() == row.pointId());
   }
 
   auto t6 = IndexBuilder<Sparse>::indexBuilder<Points>("test3", {t2, t1, t3, t4}, typename IDX2s::persistent_columns_t{}, o2::framework::pack<Distances, Points, Flags, Categorys>{});
-  BOOST_REQUIRE_EQUAL(t6->num_rows(), st2.size());
+  REQUIRE(t6->num_rows() == st2.size());
   IDXs idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
   std::array<int, 7> cs{0, 1, 2, -1, 5, 6, -1};
   idxs.bindExternalIndices(&st1, &st2, &st3, &st4);
   auto i = 0;
   for (auto const& row : idxs) {
-    BOOST_REQUIRE(row.has_distance());
-    BOOST_REQUIRE(row.has_point());
+    REQUIRE(row.has_distance());
+    REQUIRE(row.has_point());
     if (row.has_flag()) {
-      BOOST_REQUIRE(row.flag().pointId() == row.pointId());
+      REQUIRE(row.flag().pointId() == row.pointId());
     }
     if (row.has_category()) {
-      BOOST_REQUIRE(row.category().pointId() == row.pointId());
+      REQUIRE(row.category().pointId() == row.pointId());
     }
-    BOOST_REQUIRE(row.flagId() == fs[i]);
-    BOOST_REQUIRE(row.categoryId() == cs[i]);
+    REQUIRE(row.flagId() == fs[i]);
+    REQUIRE(row.categoryId() == cs[i]);
     ++i;
   }
 }
@@ -151,7 +147,7 @@ DECLARE_SOA_ARRAY_INDEX_COLUMN(ColoredPoint, colorsList);
 
 DECLARE_SOA_TABLE(IDX3s, "TST", "Index3", Index<>, indices::PointId, indices::BinnedPointIdSlice, indices::ColoredPointIds);
 
-BOOST_AUTO_TEST_CASE(AdvancedIndexTables)
+TEST_CASE("AdvancedIndexTables")
 {
   TableBuilder b1;
   auto w1 = b1.cursor<Points>();
@@ -208,23 +204,23 @@ BOOST_AUTO_TEST_CASE(AdvancedIndexTables)
                                                    {8, 31, 42, 46, 58}}};
 
   auto t3 = IndexBuilder<Sparse>::indexBuilder<Points>("test4", {t1, t2, tc}, typename IDX3s::persistent_columns_t{}, o2::framework::pack<Points, BinnedPoints, ColoredPoints>{});
-  BOOST_REQUIRE_EQUAL(t3->num_rows(), st1.size());
+  REQUIRE(t3->num_rows() == st1.size());
   IDX3s idxs{t3};
   idxs.bindExternalIndices(&st1, &st2, &st3);
   count = 0;
   for (auto const& row : idxs) {
-    BOOST_REQUIRE(row.has_point());
+    REQUIRE(row.has_point());
     if (row.has_binsSlice()) {
       auto slice = row.binsSlice();
-      BOOST_REQUIRE_EQUAL(slice.size(), sizes[count]);
+      REQUIRE(slice.size() == sizes[count]);
       for (auto const& bin : slice) {
-        BOOST_REQUIRE_EQUAL(bin.pointId(), row.pointId());
+        REQUIRE(bin.pointId() == row.pointId());
       }
     }
     auto colors = row.colorsList();
-    BOOST_REQUIRE_EQUAL(colors.size(), colorsizes[count]);
+    REQUIRE(colors.size() == colorsizes[count]);
     for (auto j = 0; j < colors.size(); ++j) {
-      BOOST_REQUIRE_EQUAL(colors[j].color(), colorvalues[count][j]);
+      REQUIRE(colors[j].color() == colorvalues[count][j]);
     }
     ++count;
   }

@@ -8,17 +8,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DeviceSpecHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
 #include "../src/DeviceSpecHelpers.h"
-#include <boost/test/unit_test.hpp>
-#include <boost/test/tools/detail/per_element_manip.hpp>
+#include <catch_amalgamated.hpp>
 #include <algorithm>
 #include <sstream>
 #include <cstring>
@@ -95,13 +91,13 @@ void check(const std::vector<std::string>& arguments,
       execArgs << "  " << arg;
     }
     for (auto const& testCase : matrix[deviceSpec.name]) {
-      BOOST_TEST_INFO(std::string("can not find option: ") + testCase.first + " " + testCase.second);
-      BOOST_CHECK(search(deviceExecution, testCase.first, testCase.second));
+      INFO(std::string("can not find option: ") + testCase.first + " " + testCase.second);
+      REQUIRE(search(deviceExecution, testCase.first, testCase.second));
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_prepareArguments)
+TEST_CASE("test_prepareArguments")
 {
   std::vector<ConfigParamSpec> workflowOptions{
     {"foo", VariantType::String, "bar", {"the famous foo option"}},
@@ -181,50 +177,49 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
   check({"--depth", "2", "--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
 }
 
-BOOST_AUTO_TEST_CASE(CheckOptionReworking)
+TEST_CASE("CheckOptionReworking")
 {
   {
     std::vector<DataProcessorInfo> infos = {
       {{}, {}, {"--driver-client-backend", "foo"}},
       {}};
     DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://");
-    BOOST_REQUIRE_EQUAL(infos[0].cmdLineArgs[1], "foo");
-    BOOST_REQUIRE_EQUAL(infos[1].cmdLineArgs[1], "foo");
+    REQUIRE(infos[0].cmdLineArgs[1] == "foo");
+    REQUIRE(infos[1].cmdLineArgs[1] == "foo");
   }
   {
     std::vector<DataProcessorInfo> infos = {
       {{}, {}, {"--driver-client-backend", "foo"}},
       {{}, {}, {"--driver-client-backend", "bar"}}};
-    BOOST_CHECK_THROW(
-      DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://"), o2::framework::RuntimeErrorRef);
+    REQUIRE_THROWS_AS(DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://"), o2::framework::RuntimeErrorRef);
   }
   {
     std::vector<DataProcessorInfo> infos = {
       {{}, {}, {"--driver-client-backend", "foo"}},
       {{}, {}, {"--driver-client-backend", "foo"}}};
     DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://");
-    BOOST_REQUIRE_EQUAL(infos[0].cmdLineArgs[1], "foo");
-    BOOST_REQUIRE_EQUAL(infos[1].cmdLineArgs[1], "foo");
+    REQUIRE(infos[0].cmdLineArgs[1] == "foo");
+    REQUIRE(infos[1].cmdLineArgs[1] == "foo");
   }
   {
     std::vector<DataProcessorInfo> infos = {
       {{}, {}, {"foo", "bar"}},
       {{}, {}, {"fnjcnak", "foo"}}};
     DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://");
-    BOOST_REQUIRE_EQUAL(infos[0].cmdLineArgs[3], "stdout://");
-    BOOST_REQUIRE_EQUAL(infos[1].cmdLineArgs[3], "stdout://");
+    REQUIRE(infos[0].cmdLineArgs[3] == "stdout://");
+    REQUIRE(infos[1].cmdLineArgs[3] == "stdout://");
   }
   {
     std::vector<DataProcessorInfo> infos = {
       {{}, {}, {"foo", "bar", "--driver-client-backend", "bar"}},
       {{}, {}, {"fnjcnak", "foo"}}};
     DeviceSpecHelpers::reworkHomogeneousOption(infos, "--driver-client-backend", "stdout://");
-    BOOST_REQUIRE_EQUAL(infos[0].cmdLineArgs[3], "bar");
-    BOOST_REQUIRE_EQUAL(infos[1].cmdLineArgs[3], "bar");
+    REQUIRE(infos[0].cmdLineArgs[3] == "bar");
+    REQUIRE(infos[1].cmdLineArgs[3] == "bar");
   }
 }
 
-BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
+TEST_CASE("CheckIntegerReworking")
 {
   {
     std::vector<DataProcessorInfo> infos = {
@@ -232,8 +227,8 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", nullptr, 1, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs[1], "2");
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs[1], "2");
+    REQUIRE(infos[0].cmdLineArgs[1] == "2");
+    REQUIRE(infos[1].cmdLineArgs[1] == "2");
   }
   {
     std::vector<DataProcessorInfo> infos = {
@@ -241,8 +236,8 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", nullptr, 1, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs.size(), 0);
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs.size(), 0);
+    REQUIRE(infos[0].cmdLineArgs.size() == 0);
+    REQUIRE(infos[1].cmdLineArgs.size() == 0);
   }
   {
     std::vector<DataProcessorInfo> infos = {
@@ -250,10 +245,10 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", []() { return 1; }, 3, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs[1], "1");
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs[1], "1");
+    REQUIRE(infos[0].cmdLineArgs.size() == 2);
+    REQUIRE(infos[1].cmdLineArgs.size() == 2);
+    REQUIRE(infos[0].cmdLineArgs[1] == "1");
+    REQUIRE(infos[1].cmdLineArgs[1] == "1");
   }
   {
     std::vector<DataProcessorInfo> infos = {
@@ -261,10 +256,10 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {{}, {}, {"--readers", "3"}}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", []() { return 1; }, 1, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs[1], "3");
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs[1], "3");
+    REQUIRE(infos[0].cmdLineArgs.size() == 2);
+    REQUIRE(infos[1].cmdLineArgs.size() == 2);
+    REQUIRE(infos[0].cmdLineArgs[1] == "3");
+    REQUIRE(infos[1].cmdLineArgs[1] == "3");
   }
   {
     std::vector<DataProcessorInfo> infos = {
@@ -272,10 +267,10 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {{}, {}, {"--readers", "2"}}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", []() { return 1; }, 1, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs[1], "3");
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs[1], "3");
+    REQUIRE(infos[0].cmdLineArgs.size() == 2);
+    REQUIRE(infos[1].cmdLineArgs.size() == 2);
+    REQUIRE(infos[0].cmdLineArgs[1] == "3");
+    REQUIRE(infos[1].cmdLineArgs[1] == "3");
   }
   {
     std::vector<DataProcessorInfo> infos = {
@@ -283,10 +278,10 @@ BOOST_AUTO_TEST_CASE(CheckIntegerReworking)
       {{}, {}, {"--readers", "2"}}};
     DeviceSpecHelpers::reworkIntegerOption(
       infos, "--readers", []() { return 1; }, 1, [](long long x, long long y) { return x > y ? x : y; });
-    BOOST_REQUIRE_EQUAL(infos[0].cmdLineArgs.size(), 4);
-    BOOST_REQUIRE_EQUAL(infos[1].cmdLineArgs.size(), 2);
-    BOOST_CHECK_EQUAL(infos[0].cmdLineArgs[3], "3");
-    BOOST_CHECK_EQUAL(infos[1].cmdLineArgs[1], "3");
+    REQUIRE(infos[0].cmdLineArgs.size() == 4);
+    REQUIRE(infos[1].cmdLineArgs.size() == 2);
+    REQUIRE(infos[0].cmdLineArgs[3] == "3");
+    REQUIRE(infos[1].cmdLineArgs[1] == "3");
   }
 }
 } // namespace o2::framework

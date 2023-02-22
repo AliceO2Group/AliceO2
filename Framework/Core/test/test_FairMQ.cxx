@@ -9,17 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test O2Device
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Headers/NameHeader.h"
 
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <iostream>
 #include <vector>
 #include <fairmq/Tools.h>
@@ -108,7 +104,7 @@ auto forEach(fair::mq::Parts& parts, F&& function)
   return forEach(parts.begin(), parts.end(), std::forward<F>(function));
 }
 
-BOOST_AUTO_TEST_CASE(getMessage_Stack)
+TEST_CASE("getMessage_Stack")
 {
   size_t session{fair::mq::tools::UuidHash()};
   fair::mq::ProgOptions config;
@@ -116,12 +112,12 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
-  BOOST_REQUIRE(factorySHM != nullptr);
-  BOOST_REQUIRE(factoryZMQ != nullptr);
+  REQUIRE(factorySHM != nullptr);
+  REQUIRE(factoryZMQ != nullptr);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
-  BOOST_REQUIRE(allocZMQ != nullptr);
+  REQUIRE(allocZMQ != nullptr);
   auto allocSHM = getTransportAllocator(factorySHM.get());
-  BOOST_REQUIRE(allocSHM != nullptr);
+  REQUIRE(allocSHM != nullptr);
   {
     //check that a message is constructed properly with the default new_delete_resource
     Stack s1{DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
@@ -129,44 +125,44 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
 
     auto message = o2::pmr::getMessage(std::move(s1), allocZMQ);
 
-    BOOST_REQUIRE(s1.data() == nullptr);
-    BOOST_REQUIRE(message != nullptr);
+    REQUIRE(s1.data() == nullptr);
+    REQUIRE(message != nullptr);
     auto* h3 = get<NameHeader<0>*>(message->GetData());
-    BOOST_REQUIRE(h3 != nullptr);
-    BOOST_CHECK(h3->getNameLength() == 9);
-    BOOST_CHECK(0 == std::strcmp(h3->getName(), "somename"));
-    BOOST_CHECK(message->GetType() == fair::mq::Transport::ZMQ);
+    REQUIRE(h3 != nullptr);
+    REQUIRE(h3->getNameLength() == 9);
+    REQUIRE(0 == std::strcmp(h3->getName(), "somename"));
+    REQUIRE(message->GetType() == fair::mq::Transport::ZMQ);
   }
   {
     //check that a message is constructed properly, cross resource
     Stack s1{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
              NameHeader<9>{"somename"}};
-    BOOST_TEST(allocZMQ->getNumberOfMessages() == 1);
+    REQUIRE(allocZMQ->getNumberOfMessages() == 1);
 
     auto message = o2::pmr::getMessage(std::move(s1), allocSHM);
 
-    BOOST_TEST(allocZMQ->getNumberOfMessages() == 0);
-    BOOST_TEST(allocSHM->getNumberOfMessages() == 0);
-    BOOST_REQUIRE(s1.data() == nullptr);
-    BOOST_REQUIRE(message != nullptr);
+    REQUIRE(allocZMQ->getNumberOfMessages() == 0);
+    REQUIRE(allocSHM->getNumberOfMessages() == 0);
+    REQUIRE(s1.data() == nullptr);
+    REQUIRE(message != nullptr);
     auto* h3 = get<NameHeader<0>*>(message->GetData());
-    BOOST_REQUIRE(h3 != nullptr);
-    BOOST_CHECK(h3->getNameLength() == 9);
-    BOOST_CHECK(0 == std::strcmp(h3->getName(), "somename"));
-    BOOST_CHECK(message->GetType() == fair::mq::Transport::SHM);
+    REQUIRE(h3 != nullptr);
+    REQUIRE(h3->getNameLength() == 9);
+    REQUIRE(0 == std::strcmp(h3->getName(), "somename"));
+    REQUIRE(message->GetType() == fair::mq::Transport::SHM);
   }
 }
 
-BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
+TEST_CASE("addDataBlockForEach_test")
 {
   size_t session{fair::mq::tools::UuidHash()};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  BOOST_REQUIRE(factoryZMQ);
+  REQUIRE(factoryZMQ);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
-  BOOST_REQUIRE(allocZMQ);
+  REQUIRE(allocZMQ);
 
   {
     //simple addition of a data block from an exisiting message
@@ -175,7 +171,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
     addDataBlock(message,
                  Stack{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}}},
                  std::move(simpleMessage));
-    BOOST_CHECK(message.Size() == 2);
+    REQUIRE(message.Size() == 2);
   }
 
   {
@@ -194,10 +190,11 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
     addDataBlock(message,
                  Stack{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}}},
                  std::move(vec));
-    BOOST_CHECK(message.Size() == 2);
-    BOOST_CHECK(vec.size() == 0);
-    BOOST_CHECK(message[0].GetSize() == sizeofDataHeader);
-    BOOST_CHECK(message[1].GetSize() == 2 * sizeof(elem)); //check the size of the buffer is set correctly
+    REQUIRE(message.Size() == 2);
+    REQUIRE(vec.size() == 0);
+    REQUIRE(message[0].GetSize() == sizeofDataHeader);
+    REQUIRE(message[1].GetSize() == 2 * sizeof(elem));
+    ; // check the size of the buffer is set correctly
 
     //check contents
     int sum{0};
@@ -205,7 +202,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
       const int* numbers = reinterpret_cast<const int*>(data.data());
       sum = numbers[0] + numbers[1] + numbers[2] + numbers[3];
     });
-    BOOST_CHECK(sum == 10);
+    REQUIRE(sum == 10);
 
     //add one more data block and check total size using forEach;
     addDataBlock(message,
@@ -213,7 +210,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
                  factoryZMQ->CreateMessage(10));
     int size{0};
     forEach(message, [&](auto header, auto data) { size += header.size() + data.size(); });
-    BOOST_CHECK(size == sizeofDataHeader + 2 * sizeof(elem) + sizeofDataHeader + 10);
+    REQUIRE(size == sizeofDataHeader + 2 * sizeof(elem) + sizeofDataHeader + 10);
 
     //check contents (headers)
     int checkOK{0};
@@ -223,6 +220,6 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
         checkOK++;
       };
     });
-    BOOST_CHECK(checkOK == 2);
+    REQUIRE(checkOK == 2);
   }
 }

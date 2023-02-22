@@ -8,21 +8,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework StringHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/StringHelpers.h"
 #include <iostream>
 
-BOOST_AUTO_TEST_CASE(StringHelpersHash)
+TEST_CASE("StringHelpersHash")
 {
   std::string s{"test-string"};
   char const* const cs = "test-string";
-  BOOST_CHECK_EQUAL(compile_time_hash(s.c_str()), compile_time_hash("test-string"));
-  BOOST_CHECK_EQUAL(compile_time_hash(cs), compile_time_hash("test-string"));
-  BOOST_CHECK_EQUAL(compile_time_hash(s.c_str()), compile_time_hash(cs));
+  REQUIRE(compile_time_hash(s.c_str()) == compile_time_hash("test-string"));
+  REQUIRE(compile_time_hash(cs) == compile_time_hash("test-string"));
+  REQUIRE(compile_time_hash(s.c_str()) == compile_time_hash(cs));
 }
 
 template <typename T>
@@ -35,7 +32,7 @@ void printString(const T& constStr)
   std::cout << "hash -> " << constStr.hash << std::endl;
 };
 
-BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
+TEST_CASE("StringHelpersConstStr")
 {
   printString(CONST_STR("this/is/a/histogram"));
 
@@ -43,7 +40,7 @@ BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
   printString(myConstStr);
   static_assert(std::is_same_v<decltype(myConstStr), ConstStr<'h', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd'>>);
   static_assert(myConstStr.hash == (uint32_t)942280617);
-  BOOST_CHECK_EQUAL(myConstStr.hash, compile_time_hash("helloWorld"));
+  REQUIRE(myConstStr.hash == compile_time_hash("helloWorld"));
 
   if constexpr (is_const_str_v(myConstStr)) {
     std::cout << "myConstStr is a compile-time string" << std::endl;
@@ -65,5 +62,5 @@ BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
   printString(CONST_STR(hist[1]) + CONST_STR(particleSuffix[kPion]));
   printString(CONST_STR(hist[1]) + CONST_STR(particleSuffix[kKaon]));
 
-  BOOST_CHECK_EQUAL(CONST_STR(hist[0]).hash, CONST_STR("ptDist").hash);
+  REQUIRE(CONST_STR(hist[0]).hash == CONST_STR("ptDist").hash);
 }

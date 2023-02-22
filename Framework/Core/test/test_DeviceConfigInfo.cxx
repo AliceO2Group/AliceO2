@@ -8,14 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DeviceConfigInfo
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/Variant.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <string_view>
@@ -39,7 +36,7 @@ std::string arrayPrinter(boost::property_tree::ptree const& tree)
   return ss.str();
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
+TEST_CASE("TestDeviceConfigInfo")
 {
   using namespace o2::framework;
   std::string configString;
@@ -51,65 +48,65 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   configString = "foo[NOCONFIG] foo=bar 1789372894\n";
   std::string_view config1{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config1, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Something which does not match
   configString = "foo[CONFIG] foobar 1789372894\n";
   std::string_view config2{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config2, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Something which does not match
   configString = "foo[CONFIG] foo=bar1789372894\n";
   std::string_view config3{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config3, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Something which does not match
   configString = "foo[CONFIG] foo=bar\n";
   std::string_view config4{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config4, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Something which does not match
   configString = "foo[CONFIG] foo=bar 1789372894t\n";
   std::string_view config5{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config5, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Parse a simple configuration bit
   configString = "foo[CONFIG] foo=bar 1789372894\n";
   std::string_view config6{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(config6, match);
-  BOOST_REQUIRE_EQUAL(result, false);
+  REQUIRE(result == false);
 
   // Parse a simple configuration bit
   configString = "foo[CONFIG] foo=bar 1789372894 prov\n";
   std::string_view config{configString.data() + 3, configString.size() - 4};
-  BOOST_REQUIRE_EQUAL(config, std::string("[CONFIG] foo=bar 1789372894 prov"));
+  REQUIRE(config == std::string("[CONFIG] foo=bar 1789372894 prov"));
   result = DeviceConfigHelper::parseConfig(config, match);
-  BOOST_REQUIRE_EQUAL(result, true);
-  BOOST_CHECK(strncmp(match.beginKey, "foo", 3) == 0);
-  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
-  BOOST_CHECK(strncmp(match.beginValue, "bar", 3) == 0);
-  BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
+  REQUIRE(result == true);
+  REQUIRE(strncmp(match.beginKey, "foo", 3) == 0);
+  REQUIRE(match.timestamp == 1789372894);
+  REQUIRE(strncmp(match.beginValue, "bar", 3) == 0);
+  REQUIRE(strncmp(match.beginProvenance, "prov", 4) == 0);
 
   // Parse a simple configuration bit with a space in the value
   configString = "foo[CONFIG] foo=bar and foo 1789372894 prov\n";
   std::string_view configWithSpace{configString.data() + 3, configString.size() - 4};
-  BOOST_REQUIRE_EQUAL(configWithSpace, std::string("[CONFIG] foo=bar and foo 1789372894 prov"));
+  REQUIRE(configWithSpace == std::string("[CONFIG] foo=bar and foo 1789372894 prov"));
   result = DeviceConfigHelper::parseConfig(configWithSpace, match);
-  BOOST_REQUIRE_EQUAL(result, true);
-  BOOST_CHECK(strncmp(match.beginKey, "foo", 3) == 0);
-  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
-  BOOST_CHECK(strncmp(match.beginValue, "bar and foo", 11) == 0);
-  BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
+  REQUIRE(result == true);
+  REQUIRE(strncmp(match.beginKey, "foo", 3) == 0);
+  REQUIRE(match.timestamp == 1789372894);
+  REQUIRE(strncmp(match.beginValue, "bar and foo", 11) == 0);
+  REQUIRE(strncmp(match.beginProvenance, "prov", 4) == 0);
 
   // Process a given config entry
   result = DeviceConfigHelper::processConfig(match, info);
-  BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.currentConfig.get<std::string>("foo"), "bar and foo");
-  BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("foo"), "prov");
+  REQUIRE(result == true);
+  REQUIRE(info.currentConfig.get<std::string>("foo") == "bar and foo");
+  REQUIRE(info.currentProvenance.get<std::string>("foo") == "prov");
 
   // Parse an array
   configString = "foo[CONFIG] array={\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"} 1789372894 prov\n";
@@ -117,15 +114,15 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   result = DeviceConfigHelper::parseConfig(configa, match);
   auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
 
-  BOOST_REQUIRE_EQUAL(result, true);
-  BOOST_CHECK(strncmp(match.beginKey, "array", 5) == 0);
-  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
-  BOOST_CHECK(strncmp(match.beginValue, "{\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"}", 35) == 0);
-  BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
+  REQUIRE(result == true);
+  REQUIRE(strncmp(match.beginKey, "array", 5) == 0);
+  REQUIRE(match.timestamp == 1789372894);
+  REQUIRE(strncmp(match.beginValue, "{\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"}", 35) == 0);
+  REQUIRE(strncmp(match.beginProvenance, "prov", 4) == 0);
 
   // Process a given config entry
   result = DeviceConfigHelper::processConfig(match, info);
-  BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("array"), "prov");
-  BOOST_CHECK_EQUAL(arrayPrinter<int>(info.currentConfig.get_child("array")), "i[1,2,3,4,5]");
+  REQUIRE(result == true);
+  REQUIRE(info.currentProvenance.get<std::string>("array") == "prov");
+  REQUIRE(arrayPrinter<int>(info.currentConfig.get_child("array")) == "i[1,2,3,4,5]");
 }
