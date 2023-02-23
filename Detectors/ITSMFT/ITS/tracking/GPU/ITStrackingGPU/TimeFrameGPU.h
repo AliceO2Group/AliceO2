@@ -92,7 +92,7 @@ class GpuTimeFrameChunk
 
   /// Most relevant operations
   void allocate(const size_t, Stream&);
-  void reset(const size_t, const Task, Stream&);
+  void reset(const Task, Stream&);
   size_t loadDataOnDevice(const size_t, const int, Stream&);
 
   /// Interface
@@ -176,6 +176,7 @@ class TimeFrameGPU : public TimeFrame
   size_t getNChunks() const { return mMemChunks.size(); }
   GpuTimeFrameChunk<nLayers>& getChunk(const int chunk) { return mMemChunks[chunk]; }
   Stream& getStream(const size_t stream) { return mGpuStreams[stream]; }
+  void wipe(const int);
 
   /// interface
   int getNClustersInRofSpan(const int, const int, const int) const;
@@ -200,6 +201,7 @@ class TimeFrameGPU : public TimeFrame
   // State
   std::vector<Stream> mGpuStreams;
   size_t mAvailMemGB;
+  bool mFirstInit = true;
 
   // Output
   std::vector<std::vector<Vertex>> mVerticesInChunks;
@@ -213,9 +215,7 @@ size_t TimeFrameGPU<nLayers>::loadChunkData(const size_t chunk, const size_t off
 {
   size_t nRof{0};
 
-  mMemChunks[chunk].reset(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB),
-                          task,
-                          mGpuStreams[chunk]); // Reset chunks memory
+  mMemChunks[chunk].reset(task, mGpuStreams[chunk]); // Reset chunks memory
   if constexpr ((bool)task) {
     nRof = mMemChunks[chunk].loadDataOnDevice(offset, 3, mGpuStreams[chunk]);
   } else {

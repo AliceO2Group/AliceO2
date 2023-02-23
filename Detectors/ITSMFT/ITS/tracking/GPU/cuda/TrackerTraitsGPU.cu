@@ -251,8 +251,8 @@ GPUg() void computeLayerCellsKernel(
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], NLayers);
-  setIsGPU(true);
+  // mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], NLayers);
+  // setIsGPU(true);
 }
 
 template <int NLayers>

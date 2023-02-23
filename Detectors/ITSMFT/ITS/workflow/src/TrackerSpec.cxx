@@ -185,7 +185,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
-  // TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+
   if (mOverrideBeamEstimation) {
     mTimeFrame->setBeamPosition(mMeanVertex->getX(),
                                 mMeanVertex->getY(),
@@ -260,21 +260,13 @@ void TrackerDPL::run(ProcessingContext& pc)
   } else {
     LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
-<<<<<<< HEAD
-
-=======
->>>>>>> 654812a3c6 (cp)
   if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
   } else {
 
     mTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
-<<<<<<< HEAD
     mTracker->clustersToTracks(logger, errorLogger);
-=======
-    // mTracker->clustersToTracks(logger, errorLogger);
->>>>>>> 654812a3c6 (cp)
     if (mTimeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }

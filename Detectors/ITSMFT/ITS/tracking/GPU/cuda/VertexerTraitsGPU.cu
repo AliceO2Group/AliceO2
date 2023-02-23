@@ -706,6 +706,7 @@ void VertexerTraitsGPU::computeTracklets()
         exclusiveFoundLinesHost[nClusters] = exclusiveFoundLinesHost[nClusters - 1] + lastFoundLines;
 
         std::vector<Line> lines(exclusiveFoundLinesHost[nClusters]);
+        // LOGP(info, "rof: {} found {} lines", exclusiveFoundLinesHost[nClusters]);
 
         checkGPUError(cudaMemcpyAsync(lines.data(), mTimeFrameGPU->getChunk(chunkId).getDeviceLines(), sizeof(Line) * lines.size(), cudaMemcpyDeviceToHost, mTimeFrameGPU->getStream(chunkId).get()));
         checkGPUError(cudaStreamSynchronize(mTimeFrameGPU->getStream(chunkId).get()));
@@ -761,7 +762,7 @@ void VertexerTraitsGPU::computeTracklets()
       }
     }
   } while (offset < mTimeFrameGPU->mNrof - 1); // offset is referring to the ROF id
-  mTimeFrameGPU->unregisterHostMemory(3);
+  mTimeFrameGPU->wipe(3);
 }
 
 void VertexerTraitsGPU::computeTrackletMatching()
