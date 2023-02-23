@@ -200,5 +200,11 @@ void BadChannelCalibrationDevice::sendOutput(o2::framework::DataAllocator& outpu
   // this is sent also if statistics is too low, for diagnostics purposes
   output.snapshot(o2::framework::Output{"MCH", "PEDESTALS", 0},
                   mCalibrator->getPedestalsVector());
+  if (mHasEnoughStat) {
+    output.snapshot(o2::framework::Output{"MCH", "BADCHAN", 0},
+                    mCalibrator->getBadChannelsVector());
+  } else {
+    output.cookDeadBeef(o2::framework::Output{"MCH", "BADCHAN"});
+  }
 }
 } // namespace o2::mch::calibration
