@@ -14,6 +14,7 @@
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "Framework/DeviceSpec.h"
 #include "TPCWorkflow/TPCIntegrateClusterReaderSpec.h"
 #include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "TPCWorkflow/TPCIntegrateClusterSpec.h"
@@ -43,7 +44,10 @@ class IntegratedClusterReader : public Task
 
  private:
   void connectTrees();
+  bool checkEOS(ProcessingContext& pc);
 
+  int mLane = 0;
+  int mNLanes = 1;
   int mChainEntry = 0;                                       ///< processed entries in the chain
   std::unique_ptr<TChain> mChain;                            ///< input TChain
   std::vector<std::string> mFileNames;                       ///< input files
@@ -54,6 +58,10 @@ class IntegratedClusterReader : public Task
 
 void IntegratedClusterReader::init(InitContext& ic)
 {
+  mLane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  mChainEntry = mLane;
+  mNLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+
   const auto dontCheckFileAccess = ic.options().get<bool>("dont-check-file-access");
   auto fileList = o2::RangeTokenizer::tokenize<std::string>(ic.options().get<std::string>("tpc-currents-infiles"));
 
@@ -94,7 +102,7 @@ void IntegratedClusterReader::init(InitContext& ic)
 void IntegratedClusterReader::run(ProcessingContext& pc)
 {
   // check time order inside the TChain
-  if (mChainEntry == 0) {
+  if (mChainEntry == mLane) {
     mIndices.clear();
     mIndices.reserve(mChain->GetEntries());
     // disable all branches except the firstTForbit branch to significantly speed up the loop over the TTree
@@ -106,10 +114,14 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
     }
     mChain->SetBranchStatus("*", 1);
     std::sort(mIndices.begin(), mIndices.end());
+    if (checkEOS(pc)) {
+      return;
+    }
   }
 
   LOGP(debug, "Processing entry {}", mIndices[mChainEntry].second);
-  mChain->GetEntry(mIndices[mChainEntry++].second);
+  mChain->GetEntry(mIndices[mChainEntry].second);
+  mChainEntry += mNLanes;
 
   // inject correct timing informations
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
@@ -121,10 +133,7 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTPCC()}, mTPCC);
   usleep(100);
 
-  if (mChainEntry >= mChain->GetEntries()) {
-    pc.services().get<ControlService>().endOfStream();
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  }
+  checkEOS(pc);
 }
 
 void IntegratedClusterReader::connectTrees()
@@ -137,6 +146,16 @@ void IntegratedClusterReader::connectTrees()
   assert(mChain->GetEntries());
   mChain->SetBranchAddress("ITPCC", &mTPCCPtr);
   mChain->SetBranchAddress("tfID", &mTFinfoPtr);
+}
+
+bool IntegratedClusterReader::checkEOS(ProcessingContext& pc)
+{
+  if (mChainEntry >= mChain->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return true;
+  }
+  return false;
 }
 
 DataProcessorSpec getTPCIntegrateClusterReaderSpec()
