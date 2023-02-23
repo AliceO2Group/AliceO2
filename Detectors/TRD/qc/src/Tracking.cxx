@@ -133,8 +133,13 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
       tracklet.getQ2(),
     };
 
-    // Corrected Tracklets
-    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * (std::abs(tracklet.getSlopeBinSigned()) + 1.f);
+    /// Corrected Tracklets
+    // To correct for longer drift lengths in the drfit chamber and hence more energy deposition,
+    // we calculate the variation to reference for the tracklets (exrapolated from the track fit).
+    // \sqrt{ (dx/dx)^2 + (dy/dx)^2 + (dz/dx)^2}
+    auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) * (1.f + trk.getSnp()));
+    auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
+    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * trackletLength;
     float q0{tracklet.getQ0() / cor}, q1{tracklet.getQ1() / cor}, q2{tracklet.getQ2() / cor};
 
     // z-row merging
@@ -145,7 +150,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
         }
         if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) == 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 0) {
           // Add charge information
-          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * (std::abs(trklt.getSlopeBinSigned()) + 1.f);
+          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
           q0 += trklt.getQ0() / cor;
           q1 += trklt.getQ1() / cor;
           q2 += trklt.getQ2() / cor;
