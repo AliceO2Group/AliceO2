@@ -153,7 +153,7 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
           auto& last = mOwnList.back();
           toBeSorted |= last.getMin() < minBC;
         }
-        mOwnList.emplace_back(minBC, maxBC);
+        mOwnList.emplace_back(InteractionRecord::long2IR(minBC), InteractionRecord::long2IR(maxBC));
       }
       done = true;
     }
