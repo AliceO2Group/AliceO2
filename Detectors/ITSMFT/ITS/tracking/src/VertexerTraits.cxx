@@ -441,7 +441,7 @@ void VertexerTraits::computeVertices()
         vertices.emplace_back(o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
                                                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
                                                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]),
-                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),          // Symm matrix. Diagonal: RMS2 components,
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),          // Symmetric matrix. Diagonal: RMS2 components,
                                                                                                    // off-diagonal: square mean of projections on planes.
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),          // Contributors
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
