@@ -196,7 +196,7 @@ class MatchTOF
   void setTS(unsigned long creationTime) { mTimestamp = creationTime; }
   unsigned long getTS() const { return mTimestamp; }
 
-  static void groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls);
+  static void groupingMatch(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls);
   static void printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped);
 
   void storeMatchable(bool val = true) { mStoreMatchable = val; }

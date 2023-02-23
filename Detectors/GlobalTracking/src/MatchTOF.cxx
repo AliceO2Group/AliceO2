@@ -254,7 +254,7 @@ void MatchTOF::printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco
   }
 }
 //______________________________________________
-void MatchTOF::groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls)
+void MatchTOF::groupingMatch(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls)
 {
   grouped.clear();
   firstEls.clear();
@@ -264,23 +264,33 @@ void MatchTOF::groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> orig
   std::vector<int> dummyInt;
 
   int pos = 0;
-  while (origin.size()) { // go ahead if there are elements
+  int posInVector = 0;
+  std::vector<int> alreadyUsed(origin.size(), 0);
+  while (posInVector < origin.size()) { // go ahead if there are elements
+    if (alreadyUsed[posInVector]) {
+      posInVector++;
+      continue;
+    }
     bool found = true;
     grouped.push_back(dummy);
     auto& trkId = firstEls.emplace_back(dummyInt);
     auto& cluId = secondEls.emplace_back(dummyInt);
 
     // first element is the seed
-    const auto& seed = origin[0];
+    const auto& seed = origin[posInVector];
     trkId.push_back(seed.getIdLocal());
     cluId.push_back(seed.getTOFClIndex());
     // remove element added to the current group
     grouped[pos].push_back(seed);
-    origin.erase(origin.begin());
+    alreadyUsed[posInVector] = true;
+    posInVector++;
 
     while (found) {
       found = false;
-      for (int i = 0; i < origin.size(); i++) {
+      for (int i = posInVector; i < origin.size(); i++) {
+        if (alreadyUsed[i]) {
+          continue;
+        }
         const auto& seed = origin[i];
         int matchFirst = -1;
         int matchSecond = -1;
@@ -298,12 +308,14 @@ void MatchTOF::groupingMatch(std::vector<o2::dataformats::MatchInfoTOFReco> orig
         }
 
         if (matchFirst >= 0 || matchSecond >= 0) { // belong to this group
-          if (matchFirst < 0)
+          if (matchFirst < 0) {
             trkId.push_back(seed.getIdLocal());
-          if (matchSecond < 0)
+          }
+          if (matchSecond < 0) {
             cluId.push_back(seed.getTOFClIndex());
+          }
           grouped[pos].push_back(seed);
-          origin.erase(origin.begin() + i);
+          alreadyUsed[i] = true;
           found = true;
           break;
         }
@@ -1180,7 +1192,7 @@ int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FI
   int index = -1;
   int distMax = 5; // require bc distance below 5
 
-  for (int i = 0; i < FITRecPoints.size(); i++) {
+  for (unsigned int i = 0; i < FITRecPoints.size(); i++) {
     const o2::InteractionRecord ir = FITRecPoints[i].getInteractionRecord();
     int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
@@ -1210,7 +1222,7 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
   ///< define the track-TOFcluster pair per sector
 
   // first, we sort according to the chi2
-  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](const o2::dataformats::MatchInfoTOFReco& a, const o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
 
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
@@ -1321,7 +1333,7 @@ void MatchTOF::BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& mat
   std::vector<o2::dataformats::MatchInfoTOFReco> tmpMatch;
 
   // first, we sort according to the chi2
-  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](const o2::dataformats::MatchInfoTOFReco& a, const o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
   for (const o2::dataformats::MatchInfoTOFReco& matchingPair : matchedTracksPairs) {
