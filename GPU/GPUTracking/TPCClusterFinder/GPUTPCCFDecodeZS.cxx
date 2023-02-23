@@ -516,6 +516,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
 
 GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorType& clusterer, int cru, int rawFECChannel, int fecInPartition)
 {
+#ifdef GPUCA_TPC_GEOMETRY_O2
   // Ported from tpc::Mapper (Not available on GPU...)
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
@@ -536,6 +537,9 @@ GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorTy
   const o2::tpc::PadPos pos = gpuMapping->FECIDToPadPos[globalSAMPAId];
 
   return pos;
+#else
+  return o2::tpc::PadPos{};
+#endif
 }
 
 GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, float charge, PadPos padAndRow, TPCFragmentTime localTime, size_t positionOffset)
