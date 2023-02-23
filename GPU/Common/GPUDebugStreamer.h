@@ -14,7 +14,8 @@
 #ifndef GPUDEBUGSTREAMER_H
 #define GPUDEBUGSTREAMER_H
 
-#ifdef GPUCA_HAVE_O2HEADERS
+#include "GPUCommonDef.h"
+#if defined(GPUCA_HAVE_O2HEADERS)
 #include "CommonUtils/DebugStreamer.h"
 #else  // GPUCA_HAVE_O2HEADERS
 
