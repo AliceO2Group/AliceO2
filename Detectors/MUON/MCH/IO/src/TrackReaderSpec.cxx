@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHWorkflow/TrackReaderSpec.h"
+#include "MCHIO/TrackReaderSpec.h"
 
 #include "DPLUtils/RootTreeReader.h"
 #include "CommonUtils/StringUtils.h"
@@ -63,7 +63,9 @@ struct TrackReader {
   std::unique_ptr<RootTreeReader> mTreeReader;
   bool mUseMC = false;
   bool mDigits = false;
-  TrackReader(bool useMC, bool digits) : mUseMC(useMC), mDigits(digits) {}
+  header::DataHeader::SubSpecificationType mSubSpec{0};
+
+  TrackReader(bool useMC, bool digits, uint32_t subSpec = 0) : mUseMC(useMC), mDigits(digits), mSubSpec{subSpec} {}
   void init(InitContext& ic)
   {
     if (!mUseMC) {
@@ -79,11 +81,11 @@ struct TrackReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
-          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
-          RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "TRACKDIGITS", 0}, "trackdigits"},
-          RootTreeReader::BranchDefinition<std::vector<o2::MCCompLabel>>{Output{"MCH", "TRACKLABELS", 0}, "tracklabels"},
+          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", mSubSpec}, "trackrofs"},
+          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", mSubSpec}, "tracks"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", mSubSpec}, "trackclusters"},
+          RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "TRACKDIGITS", mSubSpec}, "trackdigits"},
+          RootTreeReader::BranchDefinition<std::vector<o2::MCCompLabel>>{Output{"MCH", "TRACKLABELS", mSubSpec}, "tracklabels"},
           &logging);
       } else {
         mTreeReader = std::make_unique<RootTreeReader>(
@@ -91,10 +93,10 @@ struct TrackReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
-          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
-          RootTreeReader::BranchDefinition<std::vector<o2::MCCompLabel>>{Output{"MCH", "TRACKLABELS", 0}, "tracklabels"},
+          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", mSubSpec}, "trackrofs"},
+          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", mSubSpec}, "tracks"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", mSubSpec}, "trackclusters"},
+          RootTreeReader::BranchDefinition<std::vector<o2::MCCompLabel>>{Output{"MCH", "TRACKLABELS", mSubSpec}, "tracklabels"},
           &logging);
       }
     } else {
@@ -104,10 +106,10 @@ struct TrackReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
-          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
-          RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "TRACKDIGITS", 0}, "trackdigits"},
+          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", mSubSpec}, "trackrofs"},
+          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", mSubSpec}, "tracks"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", mSubSpec}, "trackclusters"},
+          RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "TRACKDIGITS", mSubSpec}, "trackdigits"},
           &logging);
       } else {
         mTreeReader = std::make_unique<RootTreeReader>(
@@ -115,9 +117,9 @@ struct TrackReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
-          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
+          RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", mSubSpec}, "trackrofs"},
+          RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", mSubSpec}, "tracks"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", mSubSpec}, "trackclusters"},
           &logging);
       }
     }
@@ -134,17 +136,17 @@ struct TrackReader {
   }
 };
 
-DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName, bool digits)
+DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName, bool digits, uint32_t subspec)
 {
   std::vector<OutputSpec> outputSpecs;
-  outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe});
-  outputSpecs.emplace_back(OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
-  outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", subspec, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", subspec, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", subspec, Lifetime::Timeframe});
   if (digits) {
-    outputSpecs.emplace_back(OutputSpec{{"trackdigits"}, "MCH", "TRACKDIGITS", 0, Lifetime::Timeframe});
+    outputSpecs.emplace_back(OutputSpec{{"trackdigits"}, "MCH", "TRACKDIGITS", subspec, Lifetime::Timeframe});
   }
   if (useMC) {
-    outputSpecs.emplace_back(OutputSpec{{"tracklabels"}, "MCH", "TRACKLABELS", 0, Lifetime::Timeframe});
+    outputSpecs.emplace_back(OutputSpec{{"tracklabels"}, "MCH", "TRACKLABELS", subspec, Lifetime::Timeframe});
   }
 
   auto options = Options{
@@ -152,10 +154,10 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName, bool digi
     {"input-dir", VariantType::String, "none", {"Input directory"}}};
 
   return DataProcessorSpec{
-    specName,
+    fmt::format("{}{}", specName, subspec),
     Inputs{},
     outputSpecs,
-    adaptFromTask<TrackReader>(useMC, digits),
+    adaptFromTask<TrackReader>(useMC, digits, subspec),
     options};
 }
 } // namespace o2::mch

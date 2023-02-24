@@ -46,12 +46,18 @@
 #include "MCHBase/TrackBlock.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
-#include "TrackAtVtxStruct.h"
 
 namespace o2
 {
 namespace mch
 {
+
+struct TrackAtVtxStruct {
+  TrackParamStruct paramAtVertex{};
+  double dca = 0.;
+  double rAbs = 0.;
+  int mchTrackIdx = 0;
+};
 
 using namespace std;
 using namespace o2::framework;
