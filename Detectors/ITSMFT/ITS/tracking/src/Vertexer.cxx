@@ -87,7 +87,7 @@ void Vertexer::adoptTimeFrame(TimeFrame& tf)
 
 void Vertexer::printEpilog(std::function<void(std::string s)> logger, const float total)
 {
-  logger(fmt::format(" - Timeframe {} vertexing completed in: {}ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
+  logger(fmt::format(" - Timeframe {} vertexing completed in: {} ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
 }
 
 } // namespace its

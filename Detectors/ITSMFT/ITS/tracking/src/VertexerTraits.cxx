@@ -336,6 +336,7 @@ void VertexerTraits::computeTrackletMatching()
 
 void VertexerTraits::computeVertices()
 {
+  std::vector<Vertex> vertices;
 #ifdef VTX_DEBUG
   std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrame->getNrof());
 #endif
@@ -412,8 +413,8 @@ void VertexerTraits::computeVertices()
       }
     }
   }
-
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    vertices.clear();
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
               [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); }); // ensure clusters are ordered by contributors, so that we can cat after the first.
 #ifdef VTX_DEBUG
@@ -437,14 +438,15 @@ void VertexerTraits::computeVertices()
       float rXY{std::hypot(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0], mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
       if (rXY < 1.98 && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
         atLeastOneFound = true;
-        mVertices.emplace_back(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
+        vertices.emplace_back(o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
+                                                             mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
+                                                             mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]),
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),          // Symmetric matrix. Diagonal: RMS2 components,
                                                                                                    // off-diagonal: square mean of projections on planes.
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),         // Contributors
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2(), // In place of chi2
-                               rofId);
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),          // Contributors
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
+
+        vertices.back().setTimeStamp(rofId);
         if (mTimeFrame->hasMCinformation()) {
           mTimeFrame->getVerticesLabels().emplace_back();
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
@@ -453,13 +455,7 @@ void VertexerTraits::computeVertices()
         }
       }
     }
-    std::vector<Vertex> vertices;
-    for (auto& vertex : mVertices) {
-      vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
-      vertices.back().setTimeStamp(vertex.mTimeStamp);
-    }
     mTimeFrame->addPrimaryVertices(vertices);
-    mVertices.clear();
   }
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");

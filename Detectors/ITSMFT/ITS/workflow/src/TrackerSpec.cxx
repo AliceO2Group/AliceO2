@@ -73,6 +73,9 @@ void TrackerDPL::init(InitContext& ic)
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(mChainITS->GetITSTrackerTraits());
+  mTimeFrame = mChainITS->GetITSTimeframe();
+  mVertexer->adoptTimeFrame(*mTimeFrame);
+  mTracker->adoptTimeFrame(*mTimeFrame);
   mRunVertexer = true;
   mCosmicsProcessing = false;
   std::vector<TrackingParameters> trackParams;
@@ -182,18 +185,14 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
-  TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   if (mOverrideBeamEstimation) {
-    timeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mTracker->getParameters()[0].LayerResolution[0], mTracker->getParameters()[0].SystErrorY2[0]);
+    mTimeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mTracker->getParameters()[0].LayerResolution[0], mTracker->getParameters()[0].SystErrorY2[0]);
   }
-  mTracker->adoptTimeFrame(*timeFrame);
-
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
-  mVertexer->adoptTimeFrame(*timeFrame);
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
-  timeFrame->loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
+  mTimeFrame->loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
@@ -202,7 +201,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   FastMultEst multEst; // mult estimator
   std::vector<bool> processingMask;
   int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
-  timeFrame->setMultiplicityCutMask(processingMask);
+  mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
     // Run seeding vertexer
@@ -214,7 +213,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
-      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
       for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
@@ -225,7 +224,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         selROF = true;
         vertices.push_back(v);
         if (mIsMC) {
-          auto vLabels = timeFrame->getPrimaryVerticesLabels(iRof)[iV];
+          auto vLabels = mTimeFrame->getPrimaryVerticesLabels(iRof)[iV];
           std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
         }
       }
@@ -244,32 +243,32 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      timeFrame->addPrimaryVertices(vtxVecLoc);
+      mTimeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size());
   if (mOverrideBeamEstimation) {
-    LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", timeFrame->getBeamX(), timeFrame->getBeamY());
+    LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
-    LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
+    LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
 
   if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
   } else {
 
-    timeFrame->setMultiplicityCutMask(processingMask);
+    mTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
     mTracker->clustersToTracks(logger, errorLogger);
-    if (timeFrame->hasBogusClusters()) {
-      LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
+    if (mTimeFrame->hasBogusClusters()) {
+      LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
       auto& rof{rofs[iROF]};
-      tracks = timeFrame->getTracks(iROF);
-      trackLabels = timeFrame->getTracksLabel(iROF);
+      tracks = mTimeFrame->getTracks(iROF);
+      trackLabels = mTimeFrame->getTracksLabel(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};
       int offset = -rof.getFirstEntry(); // cluster entry!!!
