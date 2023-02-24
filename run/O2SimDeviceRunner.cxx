@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
   act.sa_sigaction = &sigaction_handler;
   act.sa_flags = SA_SIGINFO; // <--- enable sigaction
 
-  std::vector<int> handledsignals = {SIGTERM, SIGINT, SIGQUIT, SIGSEGV, SIGBUS, SIGFPE}; // <--- may need to be completed
+  std::vector<int> handledsignals = {SIGTERM, SIGINT, SIGQUIT, SIGSEGV, SIGBUS, SIGFPE, SIGABRT}; // <--- may need to be completed
   // remember that SIGKILL can't be handled
   for (auto s : handledsignals) {
     if (sigaction(s, &act, nullptr)) {

@@ -17,7 +17,7 @@
 
 #include <cstdlib>
 #include <unistd.h>
-#include <time.h>
+#include <ctime>
 #include <sstream>
 #include <iostream>
 #include <cstdio>
