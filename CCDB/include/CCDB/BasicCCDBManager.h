@@ -233,8 +233,12 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
         cached.objPtr.reset(ptr);
       }
       cached.uuid = mHeaders["ETag"];
-      cached.startvalidity = std::stol(mHeaders["Valid-From"]);
-      cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+      try { // this conversion can throw, better to catch immediately
+        cached.startvalidity = std::stol(mHeaders["Valid-From"]);
+        cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+      } catch (std::exception const& e) {
+        reportFatal("Failed to read validity from CCDB response (Valid-From :  " + mHeaders["Valid-From"] + std::string(" Valid-Until: ") + mHeaders["Valid-Until"] + std::string(")"));
+      }
     } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
       cached.failures++;
       cached.clear(); // in case of any error clear cache for this object
