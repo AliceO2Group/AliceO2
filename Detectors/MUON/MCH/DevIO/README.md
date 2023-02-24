@@ -9,16 +9,19 @@ This is mostly for debug and/or usage with Run2 (converted) data.
 <!-- vim-markdown-toc GFM -->
 
 * [Digit I/O](#digit-io)
-  * [Digit sampler](#digit-sampler)
-  * [Digit sink](#digit-sink)
-  * [Digit ID converter (from Run2 to Run3)](#digit-id-converter-from-run2-to-run3)
-  * [Digit random generator](#digit-random-generator)
-  * [Digit file dumper](#digit-file-dumper)
+    * [Digit sampler](#digit-sampler)
+    * [Digit sink](#digit-sink)
+    * [Digit ID converter (from Run2 to Run3)](#digit-id-converter-from-run2-to-run3)
+    * [Digit random generator](#digit-random-generator)
+    * [Digit file dumper](#digit-file-dumper)
 * [Precluster I/O](#precluster-io)
-  * [Precluster sink](#precluster-sink)
+    * [Precluster sink](#precluster-sink)
 * [Cluster I/O](#cluster-io)
-  * [Cluster sampler](#cluster-sampler)
-  * [Cluster sink](#cluster-sink)
+    * [Cluster sampler](#cluster-sampler)
+    * [Cluster sink](#cluster-sink)
+* [Track I/O](#track-io)
+    * [Track sampler](#track-sampler)
+    * [Track sink](#track-sink)
 
 <!-- vim-markdown-toc -->
 ## Digit I/O
@@ -205,4 +208,39 @@ Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detect
 Option `--txt` allows to write the clusters in the output file in text format.
 
 Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit data member mPadID into a digit UID in run2 format.
+
+## Track I/O
+
+### Track sampler
+
+```shell
+o2-mch-tracks-sampler-workflow --infile "tracks.in"
+```
+
+where `tracks.in` is a binary file with the same format as the one written by the workflow [o2-mch-tracks-sink-workflow](#track-sink)
+
+Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
+
+Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN", "TRACKCLUSTERSIN" and TRACKROFSIN, respectively, as expected by the workflow [o2-mch-tracks-to-tracks-workflow](#track-fitter).
+
+Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
+
+### Track sink
+
+```shell
+o2-mch-tracks-sink-workflow --outfile "tracks.out"
+```
+
+Take as input the list of all tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)) in the current time frame, the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)), the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the MCH tracks associated to each interaction, with the data description "TRACKSATVERTEX", "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively, and write them event-by-event in the binary file `tracks.out` with the following format for each event:
+
+* number of tracks at vertex (int)
+* number of MCH tracks (int)
+* number of associated clusters (int)
+* list of tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex))
+* list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h))
+* list of associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
+
+Option `--tracksAtVertexOnly` allows to take as input and write only the tracks at vertex (number of MCH tracks and number of associated clusters = 0).
+
+Option `--mchTracksOnly` allows to take as input and write only the MCH tracks and associated clusters (number of tracks at vertex = 0).
 

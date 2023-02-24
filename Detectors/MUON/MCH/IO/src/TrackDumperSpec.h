@@ -9,15 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_WORKFLOW_TRACK_READER_SPEC_H
-#define O2_MCH_WORKFLOW_TRACK_READER_SPEC_H
+#ifndef O2_MCH_IO_TRACK_DUMPER_SPEC_H__
+#define O2_MCH_IO_TRACK_DUMPER_SPEC_H__
 
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2::mch
 {
-o2::framework::DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName = "mch-tracks-reader",
-                                                    bool digits = false);
-}
+
+o2::framework::DataProcessorSpec getTrackDumperSpec(bool useMC, const char* specName = "mch-track-dumper");
+
+};
 
 #endif

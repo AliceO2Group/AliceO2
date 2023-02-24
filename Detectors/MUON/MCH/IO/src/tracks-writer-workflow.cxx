@@ -12,7 +12,7 @@
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
-#include "MCHWorkflow/TrackWriterSpec.h"
+#include "MCHIO/TrackWriterSpec.h"
 
 using namespace o2::framework;
 

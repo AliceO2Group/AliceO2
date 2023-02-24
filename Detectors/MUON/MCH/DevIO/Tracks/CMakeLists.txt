@@ -10,13 +10,14 @@
 # or submit itself to any jurisdiction.
 
 o2_add_executable(
-        tracks-matcher-workflow
-        SOURCES src/TrackMatcherSpec.cxx src/TrackWriterSpec.cxx src/tracks-matcher-workflow.cxx
-        COMPONENT_NAME muon
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHIO O2::MIDWorkflow O2::MUONMatching)
+        tracks-sink-workflow
+        SOURCES TrackSinkSpec.cxx tracks-sink-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
-        tracks-writer-workflow
-        SOURCES src/TrackWriterSpec.cxx src/tracks-writer-workflow.cxx
-        COMPONENT_NAME muon
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat)
+        tracks-sampler-workflow
+        SOURCES TrackSamplerSpec.cxx tracks-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+
