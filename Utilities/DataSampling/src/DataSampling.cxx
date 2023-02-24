@@ -23,6 +23,7 @@
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
+#include <set>
 
 using namespace o2::configuration;
 using namespace o2::framework;

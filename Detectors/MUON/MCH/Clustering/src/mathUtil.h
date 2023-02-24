@@ -17,6 +17,7 @@
 #include <climits>
 #include <cmath>
 #include <cstddef>
+#include <iostream>
 
 #include "MCHClustering/PadsPEM.h"
 

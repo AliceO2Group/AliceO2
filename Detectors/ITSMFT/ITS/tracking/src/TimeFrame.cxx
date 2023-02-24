@@ -158,6 +158,17 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
                                const itsmft::TopologyDictionary* dict,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
+  for (int iLayer{0}; iLayer < mUnsortedClusters.size(); ++iLayer) {
+    mUnsortedClusters[iLayer].clear();
+    mTrackingFrameInfo[iLayer].clear();
+    mClusterExternalIndices[iLayer].clear();
+    mROframesClusters[iLayer].resize(1, 0);
+
+    if (iLayer < 2) {
+      mTrackletsIndexROf[iLayer].clear();
+    }
+  }
+
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
@@ -227,6 +238,10 @@ int TimeFrame::getTotalClusters() const
 void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers)
 {
   if (iteration == 0) {
+    if (maxLayers < trkParam.NLayers) {
+      mROframesPV.resize(1, 0);
+    }
+    mPrimaryVertices.clear();
     mTracks.clear();
     mTracksLabel.clear();
     mLinesLabels.clear();
@@ -253,6 +268,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
       mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
+    mIndexTables.clear();
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);

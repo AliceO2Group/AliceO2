@@ -59,7 +59,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterRMS2(int iRow, float z, float sinPhi, f
   if (rowType > 2) {
     rowType = 2; // TODO: Add type 3
   }
-  z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
+  z = CAMath::Abs(GPUTPCGeometry::TPCLength() - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;
@@ -97,7 +97,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(int iRow, float z, float sinPhi
   if (rowType > 2) {
     rowType = 2; // TODO: Add type 3
   }
-  z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
+  z = CAMath::Abs(GPUTPCGeometry::TPCLength() - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;

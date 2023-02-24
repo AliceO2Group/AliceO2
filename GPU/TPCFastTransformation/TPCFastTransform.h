@@ -21,6 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
+#include "CommonUtils/DebugStreamer.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <string>
@@ -115,6 +116,9 @@ class TPCFastTransform : public FlatObject
   ~TPCFastTransform() CON_DEFAULT;
 #endif
 
+  /// write output of streamer to file
+  GPUd() void flushStreamer() { mStreamer.flush(); }
+
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
   /// Memory alignment
@@ -173,6 +177,7 @@ class TPCFastTransform : public FlatObject
   /// taking calibration + alignment into account.
   ///
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
+  GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
@@ -331,9 +336,12 @@ class TPCFastTransform : public FlatObject
 
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
+  o2::utils::DebugStreamer mStreamer;                     ///<! debug streamer for fast transform
+
+  GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const;
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 2);
+  ClassDefNV(TPCFastTransform, 3);
 #endif
 };
 
@@ -435,6 +443,109 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
   dz = sideC ? dv : -dv;
 }
 
+GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const
+{
+  if (mApplyCorrection) {
+    float dx, du, dv;
+
+#ifndef GPUCA_GPUCODE
+    if (mCorrectionSlow) {
+      float ly, lz;
+      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+
+      float gdxC, gdyC, gdzC;
+      mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
+      getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
+
+      if (slice >= 18) {
+        du = -du; // mirror for c-Side
+      } else {
+        dv = -dv; // mirror z for A-Side
+      }
+    } else
+#endif // GPUCA_GPUCODE
+    {
+      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+      if (ref && scale > 0.f) { // scaling was requested
+        float dxRef, duRef, dvRef;
+        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+        dx = (dx - dxRef) * scale + dxRef;
+        du = (du - duRef) * scale + duRef;
+        dv = (dv - dvRef) * scale + dvRef;
+      }
+    }
+
+    using Streamer = o2::utils::DebugStreamer;
+    if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+      auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+      streamer.setStreamer("debug_fasttransform", "UPDATE");
+
+      float ly, lz;
+      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+
+      float lyT, lzT;
+      float uCorr = u + du;
+      float vCorr = v + dv;
+      float lxT = x + dx;
+      getGeometry().convUVtoLocal(slice, uCorr, vCorr, lyT, lzT);
+
+      float invYZtoX;
+      InverseTransformYZtoX(slice, row, ly, lz, invYZtoX);
+
+      float YZtoNominalY;
+      float YZtoNominalZ;
+      InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
+
+      streamer.getStreamer() << streamer.getUniqueTreeName("tree_Transform").data()
+                             // corrections in x, u, v
+                             << "dx=" << dx
+                             << "du=" << du
+                             << "dv=" << dv
+                             << "v=" << v
+                             << "u=" << u
+                             << "row=" << row
+                             << "slice=" << slice
+                             // original local coordinates
+                             << "ly=" << ly
+                             << "lz=" << lz
+                             << "lx=" << x
+                             // corrected local coordinated
+                             << "lxT=" << lxT
+                             << "lyT=" << lyT
+                             << "lzT=" << lzT
+                             // global uncorrected coordinates
+                             << "gx=" << gx
+                             << "gy=" << gy
+                             << "gz=" << gz
+                             // some transformations which are applied
+                             << "invYZtoX=" << invYZtoX
+                             << "YZtoNominalY=" << YZtoNominalY
+                             << "YZtoNominalZ=" << YZtoNominalZ
+                             << "\n";
+    }
+
+    x += dx;
+    u += du;
+    v += dv;
+  }
+}
+
+GPUdi() void TPCFastTransform::TransformXYZ(int slice, int row, float& x, float& y, float& z, const TPCFastTransform* ref, float scale) const
+{
+  float u, v;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  TransformInternal(slice, row, u, v, x, ref, scale);
+  getGeometry().convUVtoLocal(slice, u, v, y, z);
+  float dzTOF = 0;
+  getTOFcorrection(slice, row, x, y, z, dzTOF);
+  z += dzTOF;
+}
+
 GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime, const TPCFastTransform* ref, float scale) const
 {
   /// _______________ The main method: cluster transformation _______________________
@@ -452,43 +563,7 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
   float u = 0, v = 0;
   convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
 
-  if (mApplyCorrection) {
-    float dx, du, dv;
-
-    if (!mCorrectionSlow) {
-      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
-      if (ref && scale > 0.f) { // scaling was requested
-        float dxRef, duRef, dvRef;
-        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
-        dx = (dx - dxRef) * scale + dxRef;
-        du = (du - duRef) * scale + duRef;
-        dv = (dv - dvRef) * scale + dvRef;
-      }
-    } else {
-      float ly, lz;
-      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
-      float dzTOF = 0;
-      getTOFcorrection(slice, row, x, ly, lz, dzTOF);
-      z += dzTOF;
-
-      float gx, gy, gz;
-      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
-
-      float gdxC, gdyC, gdzC;
-      mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
-      getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
-
-      if (slice >= 18) {
-        du = -du; // mirror for c-Side
-      } else {
-        dv = -dv; // mirror z for A-Side
-      }
-    }
-
-    x += dx;
-    u += du;
-    v += dv;
-  }
+  TransformInternal(slice, row, u, v, x, ref, scale);
 
   getGeometry().convUVtoLocal(slice, u, v, y, z);
 
@@ -663,6 +738,22 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
     ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
     x = (x - xr) * scale + xr;
   }
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    streamer.setStreamer("debug_fasttransform", "UPDATE");
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoX").data()
+                           << "slice=" << slice
+                           << "row=" << row
+                           << "scale=" << scale
+                           << "y=" << y
+                           << "z=" << z
+                           << "x=" << x
+                           << "v=" << v
+                           << "u=" << u
+                           << "\n";
+  }
 }
 
 GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
@@ -678,6 +769,25 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
     vn = (vn - vnr) * scale + vnr;
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    streamer.setStreamer("debug_fasttransform", "UPDATE");
+    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
+                           << "slice=" << slice
+                           << "row=" << row
+                           << "scale=" << scale
+                           << "y=" << y
+                           << "z=" << z
+                           << "ny=" << ny
+                           << "nz=" << nz
+                           << "u=" << u
+                           << "v=" << v
+                           << "un=" << un
+                           << "vn=" << vn
+                           << "\n";
+  }
 }
 
 } // namespace gpu

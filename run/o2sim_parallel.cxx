@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <unistd.h>
+#include <ctime>
 #include <sstream>
 #include <iostream>
 #include <cstdio>
@@ -39,6 +40,7 @@
 #include <cstdio>
 #include <unordered_map>
 #include <filesystem>
+#include <atomic>
 
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
@@ -318,6 +320,30 @@ void launchThreadMonitoringEvents(
   threads.back().detach();
 }
 
+void launchShutdownThread()
+{
+  static std::vector<std::thread> threads;
+  auto lambda = []() {
+    // once started ... we are waiting for some seconds
+    // then **force** shutdown all remaining children by killing them.
+    // This is to make sure that the process does not hang during a final wait
+    // and interrupted/blocked signal delivery.
+
+    struct timespec initial, remaining;
+    initial.tv_sec = 5;
+    // for for specified time ... (and account for possible signal interruptions)
+    while (nanosleep(&initial, &remaining) == -1 && remaining.tv_sec > 0) {
+      initial = remaining;
+    }
+    LOG(info) << "Shutdown timer expired ... force killing remaining children";
+    for (auto p : gChildProcesses) {
+      killpg(p, SIGKILL);
+    }
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
+}
+
 // helper executable to launch all the devices/processes
 // for parallel simulation
 int main(int argc, char* argv[])
@@ -531,6 +557,8 @@ int main(int argc, char* argv[])
   }
 
   pid = fork();
+
+  std::atomic<bool> shutdown_initiated = false;
   if (pid == 0) {
     int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     dup2(fd, 1); // make stdout go to file
@@ -553,7 +581,7 @@ int main(int argc, char* argv[])
     // A simple callback that determines if the simulation is complete and triggers
     // a shutdown of all child processes. This appears to be more robust than leaving
     // that decision upon the children (sometimes there are problems with that).
-    auto finishCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
+    auto finishCallback = [&shutdown_initiated, &conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
       str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
       o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
@@ -561,8 +589,11 @@ int main(int argc, char* argv[])
         o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
         if (!conf.asService()) {
           LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
-          for (auto p : gChildProcesses) {
-            killpg(p, SIGTERM);
+          if (!shutdown_initiated) {
+            shutdown_initiated = true;
+            for (auto p : gChildProcesses) {
+              killpg(p, SIGTERM);
+            }
           }
         } else {
           LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
@@ -581,35 +612,41 @@ int main(int argc, char* argv[])
   bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
-      LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
-                << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
+      if (!shutdown_initiated) {
+        LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
+                  << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
 
-      // we bring down all processes if one of them had problems or got a termination signal
-      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
-      LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
-      for (auto p : gChildProcesses) {
-        LOG(info) << "TERMINATING " << p;
-        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        // we bring down all processes if one of them had problems or got a termination signal
+        // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+        LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
+        for (auto p : gChildProcesses) {
+          LOG(info) << "TERMINATING " << p;
+          killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        }
+        LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+        errored = true;
       }
-      LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
-      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(info) << "Merger process " << mergerpid << " returned";
   LOG(info) << "Simulation process took " << timer.RealTime() << " s";
 
-  if (!errored) {
+  if (!errored && !shutdown_initiated) {
+    shutdown_initiated = true;
     // ordinary shutdown of the rest
     for (auto p : gChildProcesses) {
       if (p != mergerpid) {
-        LOG(info) << "SHUTTING DOWN CHILD PROCESS " << p;
+        LOG(info) << "SHUTTING DOWN CHILD PROCESS (normal thread)" << p;
         killpg(p, SIGTERM);
       }
     }
   }
-  // definitely wait on all children
-  // otherwise this breaks accounting in the /usr/bin/time command
+
+  // Final shutdown section. Here we definitely wait on all children
+  // otherwise this breaks accounting in the /usr/bin/time command. But we install
+  // an asynchronous timeout thread which triggers an emergency kill after some seconds in order to not block.
+  launchShutdownThread();
   while ((cpid = wait(&status))) {
     if (cpid == -1) {
       break;

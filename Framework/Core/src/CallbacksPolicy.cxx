@@ -33,7 +33,7 @@ CallbacksPolicy epnProcessReporting()
       return report;
     },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
-      callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistryRef registry, int op) {
+      callbacks.set<CallbackService::Id::PreProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
           char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
@@ -42,7 +42,7 @@ CallbacksPolicy epnProcessReporting()
         }
         info.lapse = uv_hrtime();
       });
-      callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistryRef registry, int op) {
+      callbacks.set<CallbackService::Id::PostProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
           char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";

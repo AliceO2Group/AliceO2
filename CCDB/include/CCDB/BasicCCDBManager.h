@@ -164,9 +164,10 @@ class CCDBManagerInstance
   /// set the fatal property (when false; nullptr object responses will not abort)
   void setFatalWhenNull(bool b) { mFatalWhenNull = b; }
 
-  /// a convenience function for MC to fetch
-  /// valid timestamps given an ALICE run number
-  std::pair<uint64_t, uint64_t> getRunDuration(int runnumber) const;
+  /// A convenience function for MC to fetch
+  /// valid start and end timestamps given an ALICE run number.
+  /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
+  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true) const;
 
   std::string getSummaryString() const;
 

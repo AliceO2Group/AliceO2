@@ -59,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      Outputs{},
      AlgorithmSpec{
        adaptStateless([](CallbackService& callbacks) {
-         callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+         callbacks.set<CallbackService::Id::EndOfStream>([](EndOfStreamContext& context) {
            context.services().get<ControlService>().readyToQuit(QuitRequest::All);
          });
        }),

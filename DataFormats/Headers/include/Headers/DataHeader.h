@@ -240,7 +240,7 @@ struct Descriptor {
   {
     static_assert(L <= N + 1, "initializer string must not exceed descriptor size");
     unsigned i = 0;
-    for (; in[i] && i < (N < L ? N : L); ++i) {
+    for (; i < (N < L ? N : L) && in[i]; ++i) {
       str[i] = in[i];
     }
   }

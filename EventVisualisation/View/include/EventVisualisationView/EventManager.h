@@ -80,6 +80,7 @@ class EventManager final : public TEveEventManager, public TQObject
   bool mShowDate = true;
   bool getShowDate() const { return mShowDate; }
   void setShowDate(bool value) { this->mShowDate = value; }
+  void createVisualisationSettings(rapidjson::Document& tree, rapidjson::Document::AllocatorType& allocator);
 
  private:
   struct VizSettings {

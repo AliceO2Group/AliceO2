@@ -63,7 +63,7 @@ void CompressedAnalysisTask::init(InitContext& ic)
     LOG(debug) << "CompressedBaseTask finish";
     mAnalysis->finalize();
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
 }
 
 void CompressedAnalysisTask::run(ProcessingContext& pc)

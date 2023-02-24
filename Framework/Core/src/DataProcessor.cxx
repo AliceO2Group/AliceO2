@@ -17,6 +17,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/FairMQResizableBuffer.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 

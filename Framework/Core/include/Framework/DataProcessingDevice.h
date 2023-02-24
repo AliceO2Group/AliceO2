@@ -119,6 +119,7 @@ class DataProcessingDevice : public fair::mq::Device
   /// Handle to wake up the main loop from other threads
   /// e.g. when FairMQ notifies some callback in an asynchronous way
   uv_async_t* mAwakeHandle = nullptr;
+  int64_t mCleanupCount = -1;
 };
 
 } // namespace o2::framework

@@ -180,7 +180,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
     useMC = 0;
   }
-  if (!dgtinput && writedigit && !disableRootOutput) {
+  if ((!dgtinput || disableRootInput) && writedigit && !disableRootOutput) {
     // add TOF digit writer without mc labels
     LOG(debug) << "Insert TOF Digit Writer";
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));

@@ -11,47 +11,48 @@
 
 /// @file   TrackerSpec.cxx
 
-#include <vector>
+// #include <vector>
 
-#include "TGeoGlobalMagField.h"
+// #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITS3Workflow/TrackerSpec.h"
-#include "DataFormatsITS3/CompCluster.h"
-#include "DataFormatsITS/TrackITS.h"
+// #include "DataFormatsITS3/CompCluster.h"
+// #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 
-#include "ITStracking/ROframe.h"
-#include "ITStracking/IOUtils.h"
+// #include "ITStracking/ROframe.h"
+// #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
+// #include "ITSMFTReconstruction/ClustererParam.h"
 
-#include "Field/MagneticField.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/Propagator.h"
+// #include "Field/MagneticField.h"
+// #include "DetectorsBase/GeometryManager.h"
+// #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"
-#include "DetectorsCommonDataFormats/DetectorNameConf.h"
+// #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include <ITS3Reconstruction/IOUtils.h>
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
 namespace o2
 {
 using namespace framework;
-using its::FastMultEst;
-using its::FastMultEstConfig;
+// using its::FastMultEst;
+// using its::FastMultEstConfig;
 using its::TimeFrame;
 using its::Tracker;
 using its::TrackingParameters;
-using its::TrackITSExt;
+// using its::TrackITSExt;
 using its::Vertexer;
 
 namespace its3
@@ -91,15 +92,16 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].PhiBins = 32;
     trackParams[0].ZBins = 64;
     trackParams[0].CellDeltaTanLambdaSigma *= 3.;
-    trackParams[0].LayerMisalignment[0] = 1.e-2;
-    trackParams[0].LayerMisalignment[1] = 1.e-2;
-    trackParams[0].LayerMisalignment[2] = 1.e-2;
-    trackParams[0].LayerMisalignment[3] = 3.e-2;
-    trackParams[0].LayerMisalignment[4] = 3.e-2;
-    trackParams[0].LayerMisalignment[5] = 3.e-2;
-    trackParams[0].LayerMisalignment[6] = 3.e-2;
-    trackParams[0].FitIterationMaxChi2[0] = 50.;
-    trackParams[0].FitIterationMaxChi2[1] = 25.;
+    trackParams[0].SystErrorZ2[0] = 1.e-4;
+    trackParams[0].SystErrorZ2[1] = 1.e-4;
+    trackParams[0].SystErrorZ2[2] = 1.e-4;
+    trackParams[0].SystErrorZ2[3] = 9.e-4;
+    trackParams[0].SystErrorZ2[4] = 9.e-4;
+    trackParams[0].SystErrorZ2[5] = 9.e-4;
+    trackParams[0].SystErrorZ2[6] = 9.e-4;
+    std::copy(trackParams[0].SystErrorZ2.begin(), trackParams[0].SystErrorZ2.end(), trackParams[0].SystErrorY2.begin());
+    trackParams[0].MaxChi2ClusterAttachment = 60.;
+    trackParams[0].MaxChi2NDF = 40.;
     trackParams[1] = trackParams[0];
     trackParams[2] = trackParams[0];
     trackParams[1].MinTrackLength = 6;
@@ -118,21 +120,14 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].PhiBins = 4;
     trackParams[0].ZBins = 16;
     trackParams[0].PVres = 1.e5f;
-    trackParams[0].LayerMisalignment[0] = 1.e-2;
-    trackParams[0].LayerMisalignment[1] = 1.e-2;
-    trackParams[0].LayerMisalignment[2] = 1.e-2;
-    trackParams[0].LayerMisalignment[3] = 3.e-2;
-    trackParams[0].LayerMisalignment[4] = 3.e-2;
-    trackParams[0].LayerMisalignment[5] = 3.e-2;
-    trackParams[0].LayerMisalignment[6] = 3.e-2;
-    trackParams[0].FitIterationMaxChi2[0] = 50.;
-    trackParams[0].FitIterationMaxChi2[1] = 25.;
+    trackParams[0].MaxChi2ClusterAttachment = 60.;
+    trackParams[0].MaxChi2NDF = 40.;
     trackParams[0].TrackletsPerClusterLimit = 100.;
     trackParams[0].CellsPerClusterLimit = 100.;
     LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
   } else {
-    throw std::runtime_error(fmt::format("Unsupported ITS3 tracking mode {:s} ", mMode));
+    throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
   }
 
   for (auto& params : trackParams) {
@@ -168,9 +163,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS3", "ITS3TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "ITS3TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS3", "IRFRAMES", 0, Lifetime::Timeframe});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"IT3", "IRFRAMES", 0, Lifetime::Timeframe});
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
@@ -187,20 +182,17 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
 
   std::vector<o2::its::TrackITSExt> tracks;
-  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS3", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"IT3", "TRACKCLSID", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<MCCompLabel> verticesLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS3", "TRACKS", 0, Lifetime::Timeframe});
+  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"IT3", "TRACKS", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::MCCompLabel> allVerticesLabels;
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS3", "VERTICESROF", 0, Lifetime::Timeframe});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS3", "VERTICES", 0, Lifetime::Timeframe});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "VERTICESROF", 0, Lifetime::Timeframe});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0, Lifetime::Timeframe});
 
-  std::uint32_t roFrame = 0;
-
-  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::IT3);
-  LOG(info) << "ITS3Tracker RO: continuous=" << continuous;
+  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   mTracker->adoptTimeFrame(*timeFrame);
 
@@ -209,22 +201,23 @@ void TrackerDPL::run(ProcessingContext& pc)
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
-  timeFrame->loadROFrameDataITS3(rofspan, compClusters, pattIt, mDict, labels);
+  ioutils::loadROFrameDataITS3(timeFrame, rofspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
-  FastMultEst multEst; // mult estimator
-  std::vector<bool> processingMask;
-  int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  // o2::its::FastMultEst multEst; // mult estimator
+  std::vector<bool> processingMask(rofs.size(), true); // Override mult estimator
+  int cutVertexMult{0};
+  //  cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
   timeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   }
-  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  //   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
@@ -235,9 +228,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       bool selROF = vtxSpan.size() == 0;
       for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
         auto& v = vtxSpan[iV];
-        if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-          continue; // skip vertex of unwanted multiplicity
-        }
+        // if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
+        //           continue; // skip vertex of unwanted multiplicity
+        //         }
         selROF = true;
         vertices.push_back(v);
         if (mIsMC) {
@@ -246,10 +239,10 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                  iRof,
-                                  multEstConf.cutMultVtxLow,
-                                  multEstConf.cutMultVtxHigh);
+                                             //         LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                             //                                   iRof,
+                                             //                                   multEstConf.cutMultVtxLow,
+                                             //                                   multEstConf.cutMultVtxHigh);
         processingMask[iRof] = selROF;
         cutVertexMult++;
       }
@@ -263,7 +256,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       timeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
+  // LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
@@ -272,51 +265,51 @@ void TrackerDPL::run(ProcessingContext& pc)
   } else {
 
     timeFrame->setMultiplicityCutMask(processingMask);
-    // Run CA tracker
-    mTracker->clustersToTracks(logger, errorLogger);
-    if (timeFrame->hasBogusClusters()) {
-      LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
-    }
+    //     // Run CA tracker
+    //     mTracker->clustersToTracks(logger, errorLogger);
+    //     if (timeFrame->hasBogusClusters()) {
+    //       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
+    //     }
 
-    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-      auto& rof{rofs[iROF]};
-      tracks = timeFrame->getTracks(iROF);
-      trackLabels = timeFrame->getTracksLabel(iROF);
-      auto number{tracks.size()};
-      auto first{allTracks.size()};
-      int offset = -rof.getFirstEntry(); // cluster entry!!!
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
+    //     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+    //       auto& rof{rofs[iROF]};
+    //       tracks = timeFrame->getTracks(iROF);
+    //       trackLabels = timeFrame->getTracksLabel(iROF);
+    //       auto number{tracks.size()};
+    //       auto first{allTracks.size()};
+    //       int offset = -rof.getFirstEntry(); // cluster entry!!!
+    //       rof.setFirstEntry(first);
+    //       rof.setNEntries(number);
 
-      if (processingMask[iROF]) {
-        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
-      }
+    //       if (processingMask[iROF]) {
+    //         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
+    //       }
 
-      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-      // Some conversions that needs to be moved in the tracker internals
-      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-        auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-        int ncl = trc.getNumberOfClusters(), nclf = 0;
-        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-          auto clid = trc.getClusterIndex(ic);
-          if (clid >= 0) {
-            allClusIdx.push_back(clid);
-            nclf++;
-          }
-        }
-        assert(ncl == nclf);
-        allTracks.emplace_back(trc);
-      }
-    }
+    //       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+    //       // Some conversions that needs to be moved in the tracker internals
+    //       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+    //         auto& trc{tracks[iTrk]};
+    //         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+    //         int ncl = trc.getNumberOfClusters(), nclf = 0;
+    //         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+    //           auto clid = trc.getClusterIndex(ic);
+    //           if (clid >= 0) {
+    //             allClusIdx.push_back(clid);
+    //             nclf++;
+    //           }
+    //         }
+    //         assert(ncl == nclf);
+    //         allTracks.emplace_back(trc);
+    //       }
+    //     }
     LOGP(info, "ITS3Tracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
     if (mIsMC) {
       LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
 
-      pc.outputs().snapshot(Output{"ITS3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-      pc.outputs().snapshot(Output{"ITS3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
-      pc.outputs().snapshot(Output{"ITS3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+      pc.outputs().snapshot(Output{"IT3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+      pc.outputs().snapshot(Output{"IT3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
+      pc.outputs().snapshot(Output{"IT3", "ITS3TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   }
   mTimer.Stop();
@@ -331,7 +324,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
-    GeometryTGeo* geom = GeometryTGeo::Instance();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
@@ -367,11 +360,11 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "ITS3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS3", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS3", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("compClusters", "IT3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "IT3", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "IT3", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (trgType == 1) {
-    inputs.emplace_back("phystrig", "ITS3", "PHYSTRIG", 0, Lifetime::Timeframe);
+    inputs.emplace_back("phystrig", "IT3", "PHYSTRIG", 0, Lifetime::Timeframe);
   } else if (trgType == 2) {
     inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   }
@@ -386,20 +379,20 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
                                                               inputs,
                                                               true);
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ITS3", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS3", "TRACKCLSID", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS3", "ITSTrackROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS3", "VERTICES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS3", "VERTICESROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS3", "IRFRAMES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "ITS3TrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("IT3", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("labels", "ITS3", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS3", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS3", "VERTICESMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS3", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS3", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS3", "VERTICES", 0, Lifetime::Timeframe);
+    inputs.emplace_back("labels", "IT3", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "IT3", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("IT3", "VERTICESMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("IT3", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("IT3", "ITS3TrackMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("IT3", "VERTICES", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

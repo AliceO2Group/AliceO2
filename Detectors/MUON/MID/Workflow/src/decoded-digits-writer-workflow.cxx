@@ -52,8 +52,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                             outputFilename.c_str(),
                                             treeFilename.c_str(),
                                             -1,
-                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ColumnData>>{InputSpec{"mid_data", o2::header::gDataOriginMID, "DATA"}, "MIDDigit"},
-                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof", o2::header::gDataOriginMID, "DATAROF"}, "MIDROFRecords"})());
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ColumnData>>{InputSpec{"mid_data", o2::header::gDataOriginMID, "DATA", 0}, "MIDDigit"},
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ColumnData>>{InputSpec{"mid_data_1", o2::header::gDataOriginMID, "DATA", 1}, "MIDNoise"},
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ColumnData>>{InputSpec{"mid_data_2", o2::header::gDataOriginMID, "DATA", 2}, "MIDDead"},
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof", o2::header::gDataOriginMID, "DATAROF", 0}, "MIDROFRecords"},
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof_1", o2::header::gDataOriginMID, "DATAROF", 1}, "MIDROFRecordsNoise"},
+                                            MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_data_rof_2", o2::header::gDataOriginMID, "DATAROF", 2}, "MIDROFRecordsDead"})());
 
   return specs;
 }

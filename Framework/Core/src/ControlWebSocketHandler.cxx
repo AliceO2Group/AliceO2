@@ -12,6 +12,7 @@
 #include "ControlWebSocketHandler.h"
 #include "DriverServerContext.h"
 #include "Framework/DeviceMetricsHelper.h"
+#include "Framework/ServiceMetricsInfo.h"
 #include <regex>
 #include "Framework/Logger.h"
 #include "Framework/DeviceConfigInfo.h"
@@ -77,7 +78,7 @@ void ControlWebSocketHandler::endChunk()
   }
   size_t timestamp = uv_now(mContext.loop);
   for (auto& callback : *mContext.metricProcessingCallbacks) {
-    callback(mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+    callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics}, timestamp);
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);

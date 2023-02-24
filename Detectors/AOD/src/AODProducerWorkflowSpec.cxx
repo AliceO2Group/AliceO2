@@ -1989,16 +1989,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   originCursor(0, tfNumber);
 
   // sending metadata to writer
-  if (!mIsMDSent) {
-    TString dataType = mUseMC ? "MC" : "RAW";
-    TString O2Version = o2::fullVersion();
-    TString ROOTVersion = ROOT_RELEASE;
-    mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag"};
-    mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag};
-    pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0, Lifetime::Timeframe}, mMetaDataKeys);
-    pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0, Lifetime::Timeframe}, mMetaDataVals);
-    mIsMDSent = true;
-  }
+  TString dataType = mUseMC ? "MC" : "RAW";
+  TString O2Version = o2::fullVersion();
+  TString ROOTVersion = ROOT_RELEASE;
+  mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag"};
+  mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag};
+  pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0, Lifetime::Timeframe}, mMetaDataKeys);
+  pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0, Lifetime::Timeframe}, mMetaDataVals);
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
   pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
@@ -2244,7 +2241,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   };
 
   // we are at the EMCAL X, check if we are in the good sector
-  if (!propExactSector(XEMCAL) || SECTORTYPE[sector] == SNONE) { // propagation faile or neither EMCAL not DCAL/PHOS
+  if (!propExactSector(XEMCAL) || SECTORTYPE[sector] == SNONE) { // propagation failed or neither EMCAL not DCAL/PHOS
     return;
   }
 
@@ -2262,7 +2259,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
     }
     r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY());
     tg = std::atan2(r, outTr.getZ());
-    eta = std::log(std::tan(0.5f * tg));
+    eta = -std::log(std::tan(0.5f * tg));
   } else if (!(SECTORTYPE[sector] & SEMCAL)) { // are in the sector with PHOS only
     return;
   }

@@ -91,7 +91,7 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
   local NAME_PROC_FACTOR="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
   local NAME_DEFAULT="N_$5"
   local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_PROC_FACTOR:-1} * ${!NAME_DEFAULT:-1}))}
-  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && ($WORKFLOWMODE != "print" || $GEN_TOPO_RUN_HOME_TEST == 1) && $4 != 0 ]]; then
+  if [[ -z ${NAME_PROC} && "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && ($WORKFLOWMODE != "print" || $GEN_TOPO_RUN_HOME_TEST == 1) && $4 != 0 ]]; then
     echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
   else
     echo $1:$MULT
@@ -101,6 +101,10 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
 math_max()
 {
   echo $(($1 > $2 ? $1 : $2))
+}
+math_min()
+{
+  echo $(($1 < $2 ? $1 : $2))
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

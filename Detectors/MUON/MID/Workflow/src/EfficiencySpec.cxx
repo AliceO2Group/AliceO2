@@ -89,7 +89,7 @@ class EfficiencyTask
       // fout.WriteObject(&mEfficiency.getChamberEfficiency().getCountersAsVector(), "counters");
       fout.Close();
     };
-    ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);
+    ic.services().get<o2::framework::CallbackService>().set<o2::framework::CallbackService::Id::Stop>(stop);
   }
 
   /// run the efficiency

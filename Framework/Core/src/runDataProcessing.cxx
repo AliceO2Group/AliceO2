@@ -31,6 +31,7 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DeviceConfig.h"
 #include "DeviceStateHelpers.h"
 #include "Framework/DevicesManager.h"
 #include "Framework/DebugGUI.h"
@@ -55,6 +56,7 @@
 #include "Framework/WorkflowSpecNode.h"
 #include "Framework/GuiCallbackContext.h"
 #include "Framework/DeviceContext.h"
+#include "Framework/ServiceMetricsInfo.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -525,7 +527,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     }
     size_t timestamp = uv_now(mContext.loop);
     for (auto& callback : *mContext.metricProcessingCallbacks) {
-      callback(mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+      callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics}, timestamp);
     }
     for (auto& metricsInfo : *mContext.metrics) {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
@@ -743,7 +745,7 @@ void spawnDevice(DeviceRef ref,
 
   for (auto& service : spec.services) {
     if (service.preFork != nullptr) {
-      service.preFork(serviceRegistry, varmap);
+      service.preFork(serviceRegistry, DeviceConfig{varmap});
     }
   }
   // If we have a framework id, it means we have already been respawned
@@ -1349,7 +1351,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     if (service.driverStartup == nullptr) {
       continue;
     }
-    service.driverStartup(serviceRegistry, varmap);
+    service.driverStartup(serviceRegistry, DeviceConfig{varmap});
   }
 
   ServiceRegistryRef ref{serviceRegistry};
@@ -1522,7 +1524,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         /// would be that we start an application and then we wait for
         /// resource offers from DDS or whatever resource manager we use.
         for (auto& callback : driverInitCallbacks) {
-          callback(serviceRegistry, varmap);
+          callback(serviceRegistry, {varmap});
         }
         driverInfo.states.push_back(DriverState::RUNNING);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
@@ -1880,7 +1882,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         GETCPU(parentCPU);
 #endif
         for (auto& callback : preScheduleCallbacks) {
-          callback(serviceRegistry, varmap);
+          callback(serviceRegistry, {varmap});
         }
         childFds.resize(runningWorkflow.devices.size());
         for (int di = 0; di < (int)runningWorkflow.devices.size(); ++di) {
@@ -1902,7 +1904,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         handleSignals();
         handleChildrenStdio(loop, forwardedStdin.str(), infos, childFds, pollHandles);
         for (auto& callback : postScheduleCallbacks) {
-          callback(serviceRegistry, varmap);
+          callback(serviceRegistry, {varmap});
         }
         assert(infos.empty() == false);
 
@@ -1958,7 +1960,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (outputProcessing.didProcessMetric) {
             size_t timestamp = uv_now(loop);
             for (auto& callback : metricProcessingCallbacks) {
-              callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+              callback(serviceRegistry, ServiceMetricsInfo{metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics}, timestamp);
             }
             for (auto& metricsInfo : metricsInfos) {
               std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
@@ -2002,7 +2004,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         if (outputProcessing.didProcessMetric) {
           size_t timestamp = uv_now(loop);
           for (auto& callback : metricProcessingCallbacks) {
-            callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+            callback(serviceRegistry, ServiceMetricsInfo{metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics}, timestamp);
           }
         }
         hasError = processSigChild(infos, runningWorkflow.devices);

@@ -100,10 +100,10 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     LOG(info) << "Minimum number of noise counts has been reached !";
     if (mMode == ProcessingMode::Full || mMode == ProcessingMode::Normalize) {
       sendOutput(pc.outputs());
-      pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
+      // pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     } else {
       sendAccumulatedMap(pc.outputs());
-      pc.services().get<o2::framework::ControlService>().endOfStream();
+      // pc.services().get<o2::framework::ControlService>().endOfStream();
     }
   }
 

@@ -144,7 +144,7 @@ class TracksToRecords : public Aligner
   /// \brief set the last component of the local equation vector for a given alignment point
   bool setLocalEquationZ();
 
-  ClassDef(TracksToRecords, 0);
+  ClassDefOverride(TracksToRecords, 0);
 };
 
 } // namespace mft

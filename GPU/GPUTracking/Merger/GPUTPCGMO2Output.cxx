@@ -214,6 +214,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         tBwd = time0 - tmax + maxDriftTime;
       }
     }
+    if (tBwd < 0.f) {
+      tBwd = 0.f;
+    }
     oTrack.setTime0(time0);
     oTrack.setDeltaTBwd(tBwd);
     oTrack.setDeltaTFwd(tFwd);

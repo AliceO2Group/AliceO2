@@ -37,10 +37,11 @@
 #include <iomanip>
 
 namespace bpo = boost::program_options;
+constexpr uint32_t DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
               const std::string& outDir, int verbosity, std::string filePerLink,
-              uint32_t rdhV = 6, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024, long startTime = 1547590800000);
+              uint32_t rdhV = DefRDHVersion, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024, long startTime = 1547590800000);
 
 int main(int argc, char** argv)
 {
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("tracklethcheader,x", bpo::value<int>()->default_value(2), "include tracklet half chamber header (for run3). 0 never, 1 if there is tracklet data, 2 always");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
-    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
+    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(DefRDHVersion), "rdh version in use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
 

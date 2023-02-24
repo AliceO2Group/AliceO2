@@ -109,8 +109,20 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
 
   std::vector<int> globalTracksToCheck;
+  bool maxTracksReached = false;
   for (int iSeed = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF); iSeed < nSeeds; ++iSeed) {
-    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+    if (!maxTracksReached && mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      maxTracksReached = true;
+      // if mAddTracksITSTPC > 0 we will still process up to mAddTracksITSTPC tracks,
+      // otherwise the following if statement is also true and we break
+      if (trkCounters.at(GTrackID::Source::ITSTPC) > 0) {
+        iSeed = nSeeds - trkCounters.at(GTrackID::Source::ITSTPC);
+      } else {
+        // no ITS-TPC tracks available which could be processed
+        break;
+      }
+    }
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksITSTPC) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
     }
@@ -120,6 +132,7 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
         // process the ITS-TPC-TRD-TOF track later, in addition to the ITS-TPC-TRD track
         globalTracksToCheck.push_back(search->second);
       } else {
+        // process the ITS-TPC-TRD-TOF track and skip its ITS-TPC-TRD track seed
         interpolateTrack(search->second);
         continue;
       }

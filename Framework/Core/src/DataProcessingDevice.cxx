@@ -125,13 +125,34 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
 {
+  GetConfig()->Subscribe<std::string>("dpl", [&cleanupCount = mCleanupCount, &registry = mServiceRegistry](const std::string& key, std::string value) {
+    if (key == "cleanup") {
+      int64_t newCleanupCount = std::stoll(value);
+      if (newCleanupCount <= cleanupCount) {
+        return;
+      }
+      cleanupCount = newCleanupCount;
+      auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+      auto& deviceState = ref.get<DeviceState>();
+      for (auto& info : deviceState.inputChannelInfos) {
+        FairMQParts parts;
+        while (info.channel->Receive(parts, 0)) {
+          LOGP(debug, "Dropping {} parts", parts.Size());
+          if (parts.Size() == 0) {
+            break;
+          }
+        }
+      }
+    }
+  });
+
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
     auto& deviceState = ref.get<DeviceState>();
     auto& control = ref.get<ControlService>();
     auto& callbacks = ref.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
-    callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
+    callbacks.call<CallbackService::Id::DeviceStateChanged>(ServiceRegistryRef{ref}, (int)state);
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
@@ -594,7 +615,7 @@ void handleRegionCallbacks(ServiceRegistryRef registry, std::vector<fair::mq::Re
           region_read_global_dummy_variable = ((int*)info.ptr)[i];
         }
       }
-      registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+      registry.get<CallbackService>().call<CallbackService::Id::RegionInfoCallback>(info);
     }
   }
 }
@@ -879,12 +900,14 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.wasActive = &mWasActive;
 
   context.isSink = false;
-  context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
   bool enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
 
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& spec = ref.get<DeviceSpec const>();
+
+  // The policy is now allowed to state the default.
+  context.balancingInputs = spec.completionPolicy.balanceChannels;
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
   if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
@@ -976,7 +999,7 @@ void DataProcessingDevice::PreRun()
     context.preStartStreamCallbacks(streamRef);
   }
 
-  ref.get<CallbackService>()(CallbackService::Id::Start);
+  ref.get<CallbackService>().call<CallbackService::Id::Start>();
   startPollers();
 
   // Raise to 1 when we are ready to start processing
@@ -1002,7 +1025,7 @@ void DataProcessingDevice::PostRun()
   monitoring.send(Metric{(uint64_t)0, "device_state"}.addTag(Key::Subsystem, Value::DPL));
 
   stopPollers();
-  ref.get<CallbackService>()(CallbackService::Id::Stop);
+  ref.get<CallbackService>().call<CallbackService::Id::Stop>();
   auto& dpContext = ref.get<DataProcessorContext>();
   dpContext.postStopCallbacks(ref);
 }
@@ -1010,7 +1033,7 @@ void DataProcessingDevice::PostRun()
 void DataProcessingDevice::Reset()
 {
   ServiceRegistryRef ref{mServiceRegistry};
-  ref.get<CallbackService>()(CallbackService::Id::Reset);
+  ref.get<CallbackService>().call<CallbackService::Id::Reset>();
 }
 
 void DataProcessingDevice::Run()
@@ -1054,6 +1077,7 @@ void DataProcessingDevice::Run()
         auto timeout = deviceContext.exitTransitionTimeout;
         if (timeout != 0 && state.streaming != StreamingState::Idle) {
           state.transitionHandling = TransitionHandlingState::Requested;
+          ref.get<CallbackService>()(CallbackService::Id::ExitRequested, ref);
           uv_update_time(state.loop);
           uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
@@ -1226,7 +1250,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   *context.wasActive = false;
   {
     ZoneScopedN("CallbackService::Id::ClockTick");
-    ref.get<CallbackService>()(CallbackService::Id::ClockTick);
+    ref.get<CallbackService>().call<CallbackService::Id::ClockTick>();
   }
   // Whether or not we had something to do.
 
@@ -1383,7 +1407,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
   context.preDanglingCallbacks(danglingContext);
   if (*context.wasActive == false) {
-    ref.get<CallbackService>()(CallbackService::Id::Idle);
+    ref.get<CallbackService>().call<CallbackService::Id::Idle>();
   }
   auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
@@ -1420,7 +1444,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     context.preEOSCallbacks(eosContext);
     auto& streamContext = ref.get<StreamContext>();
     streamContext.preEOSCallbacks(eosContext);
-    ref.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
+    ref.get<CallbackService>().call<CallbackService::Id::EndOfStream>(eosContext);
     streamContext.postEOSCallbacks(eosContext);
     context.postEOSCallbacks(eosContext);
 
@@ -1714,7 +1738,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       info.oldestForChannel = {oldestPossibleTimeslice};
       auto &context = ref.get<DataProcessorContext>();
       context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-      ref.get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+      ref.get<CallbackService>().call<CallbackService::Id::DomainInfoUpdated>((ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
@@ -2046,7 +2070,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
           streamContext.preProcessingCallbacks(processContext);
           dpContext.preProcessingCallbacks(processContext);
           // Callbacks from users
-          ref.get<CallbackService>()(CallbackService::Id::PreProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
+          ref.get<CallbackService>().call<CallbackService::Id::PreProcessing>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
         }
         if (context.statefulProcess) {
           ZoneScopedN("statefull process");
@@ -2066,7 +2090,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
 
         {
           ZoneScopedN("service post processing");
-          ref.get<CallbackService>()(CallbackService::Id::PostProcessing, o2::framework::ServiceRegistryRef{ref}, (int)action.op);
+          ref.get<CallbackService>().call<CallbackService::Id::PostProcessing>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
           dpContext.postProcessingCallbacks(processContext);
           streamContext.postProcessingCallbacks(processContext);
         }
@@ -2109,7 +2133,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       context.postDispatchingCallbacks(processContext);
-      ref.get<CallbackService>()(CallbackService::Id::DataConsumed, o2::framework::ServiceRegistryRef{ref});
+      ref.get<CallbackService>().call<CallbackService::Id::DataConsumed>(o2::framework::ServiceRegistryRef{ref});
     }
     if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
       LOGP(debug, "Late forwarding");

@@ -21,6 +21,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #if defined(DEBUG_STREAMER)
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <tbb/concurrent_unordered_map.h>
 #endif
 #endif
 
@@ -29,10 +30,12 @@ namespace o2::utils
 
 /// struct defining the flags which can be used to check if a certain debug streamer is used
 enum StreamFlags {
-  streamdEdx = 1 << 0,         ///< stream corrections and cluster properties used for the dE/dx
-  streamDigitFolding = 1 << 1, ///< stream ion tail and saturatio information
-  streamDigits = 1 << 2,       ///< stream digit information
-  streamITCorr = 1 << 4,       ///< stream ion tail correction information
+  streamdEdx = 1 << 0,          ///< stream corrections and cluster properties used for the dE/dx
+  streamDigitFolding = 1 << 1,  ///< stream ion tail and saturatio information
+  streamDigits = 1 << 2,        ///< stream digit information
+  streamFastTransform = 1 << 3, ///< stream tpc fast transform
+  streamITCorr = 1 << 4,        ///< stream ion tail correction information
+  streamDistortionsSC = 1 << 5, ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
@@ -59,16 +62,33 @@ class DebugStreamer
 // CPU implementation of the class
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(DEBUG_STREAMER)
  public:
+  /// default constructor
+  DebugStreamer();
+
   /// set the streamer i.e. create the output file and set up the streamer
   /// \param outFile output file name without .root suffix
   /// \param option RECREATE or UPDATE
-  void setStreamer(const char* outFile, const char* option);
+  /// \param id unique id for given streamer (i.e. for defining unique streamers for each thread)
+  void setStreamer(const char* outFile, const char* option, const size_t id = getCPUID());
 
   /// \return returns if the streamer is set
-  bool isStreamerSet() const { return mTreeStreamer ? true : false; }
+  /// \param id unique id of streamer
+  bool isStreamerSet(const size_t id = getCPUID()) const { return getStreamerPtr(id); }
+
+  /// flush TTree for given ID to disc
+  /// \param id unique id of streamer
+  void flush(const size_t id);
+
+  /// flush all TTrees to disc
+  void flush();
+
+  /// \return returns streamer object for given id
+  /// \param id unique id of streamer
+  o2::utils::TreeStreamRedirector& getStreamer(const size_t id = getCPUID()) { return *(mTreeStreamer[id]); }
 
   /// \return returns streamer object
-  o2::utils::TreeStreamRedirector& getStreamer() { return *mTreeStreamer; }
+  /// \param id unique id of streamer
+  o2::utils::TreeStreamRedirector* getStreamerPtr(const size_t id = getCPUID()) const;
 
   /// \return returns streamer level i.e. what will be written to file
   static StreamFlags getStreamFlags() { return ParameterDebugStreamer::Instance().StreamLevel; }
@@ -77,11 +97,13 @@ class DebugStreamer
   static size_t getCPUID();
 
   /// \return returns number of trees in the streamer
-  int getNTrees() const;
+  /// \param id unique id of streamer
+  int getNTrees(const size_t id = getCPUID()) const;
 
   /// \return returns an unique branch name which is not already written in the file
   /// \param tree name of the tree for which to get a unique tree name
-  std::string getUniqueTreeName(const char* tree) const;
+  /// \param id unique id of streamer
+  std::string getUniqueTreeName(const char* tree, const size_t id = getCPUID()) const;
 
   /// set directly the debug level
   static void setStreamFlags(const StreamFlags streamFlags) { o2::conf::ConfigurableParam::setValue("DebugStreamerParam", "StreamLevel", static_cast<int>(streamFlags)); }
@@ -102,7 +124,9 @@ class DebugStreamer
   static void mergeTrees(const char* inpFile, const char* outFile, const char* option = "fast");
 
  private:
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mTreeStreamer; ///< streamer which is used for the debugging
+  using StreamersPerFlag = tbb::concurrent_unordered_map<size_t, std::unique_ptr<o2::utils::TreeStreamRedirector>>;
+  StreamersPerFlag mTreeStreamer; ///< streamer which is used for the debugging
+
 #else
 
   // empty implementation of the class for GPU or when the debug streamer is not build for CPU
@@ -126,13 +150,15 @@ class DebugStreamer
     }
   };
 
-  GPUd() StreamerDummy getStreamer() const { return StreamerDummy{}; };
+  GPUd() StreamerDummy getStreamer(const int id = 0) const { return StreamerDummy{}; };
 
   template <typename Type>
-  GPUd() StreamerDummy getUniqueTreeName(Type) const
+  GPUd() StreamerDummy getUniqueTreeName(Type, const int id = 0) const
   {
     return StreamerDummy{};
   }
+
+  GPUd() void flush() const {};
 
 #endif
 };

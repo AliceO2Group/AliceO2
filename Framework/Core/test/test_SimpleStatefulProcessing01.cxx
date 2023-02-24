@@ -50,9 +50,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
               ++step;
               LOG(info) << "reset " << step;
             };
-            callbacks.set(CallbackService::Id::Start, startcb);
-            callbacks.set(CallbackService::Id::Stop, stopcb);
-            callbacks.set(CallbackService::Id::Reset, resetcb);
+            callbacks.set<CallbackService::Id::Start>(startcb);
+            callbacks.set<CallbackService::Id::Stop>(stopcb);
+            callbacks.set<CallbackService::Id::Reset>(resetcb);
             return adaptStateless([](DataAllocator& outputs, ControlService& control) {
               auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
               auto outI = reinterpret_cast<int*>(out.data());

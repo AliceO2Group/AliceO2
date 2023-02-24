@@ -28,10 +28,15 @@ namespace trd
   See https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md
 */
 struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
-  int digithreads = 4;       // number of digitizer threads
-  float maxMCStepSize = 0.1; // maximum size of MC steps
-  bool doTR = true;          // switch for transition radiation
-  SimParam::GasMixture gas = SimParam::GasMixture::Xenon; // the gas mixture in the TRD
+  // Trigger parameters
+  float readoutTimeNS = 3000;                    ///< the time the readout takes in ns (default 30 time bins = 3 us)
+  float deadTimeNS = 11000;                      ///< trigger deadtime in ns (default 11 us)
+  float busyTimeNS = readoutTimeNS + deadTimeNS; ///< the time for which no new trigger can be received in nanoseconds
+  // digitization settings
+  int digithreads = 4;                                    ///< number of digitizer threads
+  float maxMCStepSize = 0.1;                              ///< maximum size of MC steps
+  bool doTR = true;                                       ///< switch for transition radiation
+  SimParam::GasMixture gas = SimParam::GasMixture::Xenon; ///< the gas mixture in the TRD
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 

@@ -15,7 +15,7 @@
 #define O2_ITS3_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "ITS3Reconstruction/TopologyDictionary.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -47,7 +47,7 @@ class TrackerDPL : public framework::Task
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = static_cast<const o2::its3::TopologyDictionary*>(d); }
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
@@ -58,7 +58,7 @@ class TrackerDPL : public framework::Task
   int mUseTriggers = 0;
   std::string mMode = "sync";
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  const o2::itsmft::TopologyDictionary* mDict = nullptr;
+  const o2::its3::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
   std::unique_ptr<its::Tracker> mTracker = nullptr;

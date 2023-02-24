@@ -57,7 +57,7 @@ class TRDGlobalTracking : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   bool refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
   bool refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
-  bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards);
+  bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, bool tpcSA);
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:

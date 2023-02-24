@@ -374,7 +374,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "period-" + input.binding); });
           if (hasOption == false) {
-            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
+            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer in milliseconds"}});
           }
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer});
         } break;
@@ -644,7 +644,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
+  auto isAOD = [](InputSpec const& spec) {
+    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
+  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);

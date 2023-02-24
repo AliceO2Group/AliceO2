@@ -251,10 +251,10 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   //
   auto consumerInit = [createCounters, checkCounters, inputChecker](RawDeviceService& rds, CallbackService& callbacks) {
     auto counters = createCounters(rds);
-    callbacks.set(CallbackService::Id::Stop, [counters, checkCounters]() {
+    callbacks.set<CallbackService::Id::Stop>([counters, checkCounters]() {
       ASSERT_ERROR(checkCounters(counters));
     });
-    callbacks.set(CallbackService::Id::EndOfStream, [counters, checkCounters](EndOfStreamContext& context) {
+    callbacks.set<CallbackService::Id::EndOfStream>([counters, checkCounters](EndOfStreamContext& context) {
       ASSERT_ERROR(checkCounters(counters));
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     });

@@ -138,6 +138,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/TimerParamSpec.cxx
                        test/TestClasses.cxx
                TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
@@ -157,7 +158,6 @@ o2_add_library(Framework
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
-                                     ${BOOST_FILESYSTEM}
                                      Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
@@ -230,6 +230,7 @@ foreach(t
         TMessageSerializer
         TableBuilder
         TimeParallelPipelining
+        Timers
         TimesliceIndex
         TypeTraits
         Variants
@@ -333,6 +334,7 @@ foreach(w
         ParallelPipeline
         ParallelProducer
         SlowConsumer
+        SlowProducerWithWildCard
         SimpleDataProcessingDevice01
         SimpleStatefulProcessing01
         SimpleStringProcessing

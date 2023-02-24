@@ -39,6 +39,8 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& flpList,
                         long tstart,
                         long tend,
+                        long tstartCTP,
+                        long tendCTP,
                         long marginAtSOR,
                         long marginAtEOR,
                         const std::string& ccdbServer = "",
@@ -74,6 +76,9 @@ void createGRPECSObject(const std::string& dataPeriod,
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
   grpecs.setTimeEnd(tend);
+  grpecs.setTimeStartCTP(tstartCTP);
+  grpecs.setTimeEndCTP(tendCTP);
+
   if (runType == GRPECSObject::RunType::LASER && detMask[DetID::TPC] && detMaskCont[DetID::TPC]) {
     LOGP(important, "Overriding TPC readout mode to triggered for runType={}", o2::parameters::GRPECS::RunTypeNames[runTypeI]);
     detMaskCont.reset(DetID::TPC);
@@ -183,8 +188,10 @@ int main(int argc, char** argv)
     add_option("continuous,c", bpo::value<string>()->default_value("ITS,TPC,TOF,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"), "comma separated list of detectors in continuous readout mode");
     add_option("triggering,g", bpo::value<string>()->default_value("FT0,FV0"), "comma separated list of detectors providing a trigger");
     add_option("flps,f", bpo::value<string>()->default_value(""), "comma separated list of FLPs in the data taking");
-    add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
-    add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
+    add_option("start-time,s", bpo::value<long>()->default_value(0), "ECS run start time in ms, now() if 0");
+    add_option("end-time,e", bpo::value<long>()->default_value(0), "ECS run end time in ms, start-time+3days is used if 0");
+    add_option("start-time-ctp", bpo::value<long>()->default_value(0), "run start CTP time in ms, same as ECS if not set or 0");
+    add_option("end-time-ctp", bpo::value<long>()->default_value(0), "run end CTP time in ms, same as ECS if not set or 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
     add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
@@ -243,6 +250,8 @@ int main(int argc, char** argv)
     vm["flps"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
+    vm["start-time-ctp"].as<long>(),
+    vm["end-time-ctp"].as<long>(),
     vm["marginSOR"].as<long>(),
     vm["marginEOR"].as<long>(),
     vm["ccdb-server"].as<std::string>(),

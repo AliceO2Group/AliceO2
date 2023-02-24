@@ -86,16 +86,18 @@ class TPCMergeIntegrateClusters : public Task
       mSetDataTakingCont = false;
     }
 
+    // check slots to finalize at the beginning to avoid creation of a second slot and thus allocating new memory
+    mCalibrator->checkSlotsToFinalize(mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getMaxSlotsDelay() * mCalibrator->getSlotLength());
+
+    LOGP(debug, "Created {} objects for {} slots with current TF {} and time stamp {}", mCalibrator->getTFinterval().size(), mCalibrator->getNSlots(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
+    if (mCalibrator->hasCalibrationData()) {
+      sendOutput(pc.outputs());
+    }
+
     const auto currents = pc.inputs().get<ITPCC*>(pc.inputs().get("itpcc"));
 
     // accumulate the currents
     mCalibrator->process(mCalibrator->getCurrentTFInfo().tfCounter, *currents);
-
-    LOGP(debug, "Created {} objects for TF {} and time stamp {}", mCalibrator->getTFinterval().size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
-
-    if (mCalibrator->hasCalibrationData()) {
-      sendOutput(pc.outputs());
-    }
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -171,7 +173,19 @@ class TPCMergeIntegrateClusters : public Task
             factorizeqTot.setIDCs(std::vector<float>(currqTot.begin() + indexStart, currqTot.begin() + indexEnd), cru, interval);
             factorizeNCl.setIDCs(std::vector<float>(currNCl.begin() + indexStart, currNCl.begin() + indexEnd), cru, interval);
           }
+
+          // once side changes deallocate the memory for A side
+          if (cru == o2::tpc::CRU::MaxCRU / 2) {
+            object.mIQMaxA = std::vector<float>();
+            object.mIQTotA = std::vector<float>();
+            object.mINClA = std::vector<float>();
+          }
         }
+
+        // deallocate the memory for C side
+        object.mIQMaxC = std::vector<float>();
+        object.mIQTotC = std::vector<float>();
+        object.mINClC = std::vector<float>();
 
         if (mDump3D) {
           LOGP(info, "Writing debug output to file");

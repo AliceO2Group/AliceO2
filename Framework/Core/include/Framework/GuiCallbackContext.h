@@ -16,6 +16,7 @@
 #include "Framework/DeviceState.h"
 
 #include <functional>
+#include <set>
 #include <uv.h>
 
 namespace o2::framework

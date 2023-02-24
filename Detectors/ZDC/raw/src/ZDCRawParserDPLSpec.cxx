@@ -95,7 +95,7 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
       } else if (it.size() == 0) {
         nErr[2]++;
       } else {
-        auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
+        auto const* rdh = it.get_if<o2::header::RAWDataHeader>();
         // retrieving the raw pointer of the page
         auto const* raw = it.raw();
         // retrieving payload pointer of the page

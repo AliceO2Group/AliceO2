@@ -24,13 +24,13 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
       const auto& hbfu = o2::raw::HBFUtils::Instance();
       long startTime = hbfu.startTime > 0 ? hbfu.startTime : std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-      service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                  [startTime](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-                    const auto& hbfu = o2::raw::HBFUtils::Instance();
-                    dh.firstTForbit = hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit + int64_t(hbfu.nHBFPerTF) * dh.tfCounter;
-                    dh.runNumber = hbfu.runNumber;
-                    dph.creation = startTime + (dh.firstTForbit - hbfu.orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-                  });
+      service.set<o2::framework::CallbackService::Id::NewTimeslice>(
+        [startTime](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          dh.firstTForbit = hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit + int64_t(hbfu.nHBFPerTF) * dh.tfCounter;
+          dh.runNumber = hbfu.runNumber;
+          dph.creation = startTime + (dh.firstTForbit - hbfu.orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+        });
     }});
 }
 

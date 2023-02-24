@@ -62,7 +62,7 @@ void RawFileReaderTask::init(framework::InitContext& ic)
     LOG(info) << "stop file reader"; // close the input file
     this->mInputFile.close();
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
 
   mExTimer.start();
   return;

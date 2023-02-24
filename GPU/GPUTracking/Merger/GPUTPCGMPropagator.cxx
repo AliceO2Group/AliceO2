@@ -566,15 +566,17 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
   float bz = GetBz(mT->X(), mT->Y(), mT->Z());
   float k = mT0.QPt() * bz;
   float dx = x - mT->X();
-  float kdx = k * dx;
   float ex = mT0.CosPhi();
   float ey = mT0.SinPhi();
-  float ey1 = kdx + ey;
+  float ey1 = ey - k * dx;
   if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
     return 1;
   }
   float ss = ey + ey1;
   float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
+  if (ex < 0) {
+    ex1 = -ex1;
+  }
   float cc = ex + ex1;
   float dxcci = dx / cc;
   float dy = dxcci * ss;
