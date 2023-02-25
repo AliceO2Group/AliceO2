@@ -9,40 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Stream.h
-/// \brief
-///
-
-#ifndef ITSTRACKINGGPU_STREAM_H_
-#define ITSTRACKINGGPU_STREAM_H_
-
 #include "ITStracking/Definitions.h"
 
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
-
+#if defined(__CUDACC__) && defined(__USE_GPU_TRACER__)
 namespace o2
 {
 namespace its
 {
 namespace gpu
 {
-
-class Stream final
+class Tracer
 {
-
  public:
-  Stream();
-  ~Stream();
-
-  const GPUStream& get() const;
-
- private:
-  GPUStream mStream;
+  Tracer(const char* name, int color_id = 0);
+  ~Tracer();
 };
 } // namespace gpu
 } // namespace its
 } // namespace o2
-
-#endif /* TRAKINGITSU_INCLUDE_GPU_STREAM_H_ */
+#define RANGE(name, cid) o2::its::gpu::Tracer tracer(name, cid);
+#else
+#define RANGE(name, cid)
+#endif

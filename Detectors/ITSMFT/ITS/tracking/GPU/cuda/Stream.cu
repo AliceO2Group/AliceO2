@@ -11,6 +11,8 @@
 ///
 
 #include "ITStrackingGPU/Stream.h"
+#include "ITStrackingGPU/Utils.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {
@@ -18,15 +20,16 @@ namespace its
 {
 namespace gpu
 {
+using utils::checkGPUError;
 
 Stream::Stream()
 {
-  discardResult(cudaStreamCreateWithFlags(&mStream, cudaStreamDefault));
+  checkGPUError(cudaStreamCreate(&mStream));
 }
-// usles
 Stream::~Stream()
 {
-  discardResult(cudaStreamDestroy(mStream));
+  LOGP(info, "Destroying stream");
+  checkGPUError(cudaStreamDestroy(mStream));
 }
 
 const GPUStream& Stream::get() const

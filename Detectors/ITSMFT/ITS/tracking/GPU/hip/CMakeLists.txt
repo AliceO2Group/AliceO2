@@ -38,6 +38,7 @@ if(HIP_ENABLED)
                          TimeFrameGPU.hip.cxx
                          Stream.hip.cxx
                          TrackerTraitsGPU.hip.cxx
+                         TracerGPU.hip.cxx
                          VertexerTraitsGPU.hip.cxx
                          Utils.hip.cxx
                  PUBLIC_INCLUDE_DIRECTORIES ../
