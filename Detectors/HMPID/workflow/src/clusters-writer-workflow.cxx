@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file digits-to-clusters-workflow.h
-/// \brief Workflow for clusterization for HMPID; read upstream/from file write upstream/to file
+/// \brief Workflow for clusterization for HMPID; read upstream/from file write upstream/to file.
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
