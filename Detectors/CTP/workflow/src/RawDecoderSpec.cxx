@@ -40,6 +40,15 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
   // setUpDummyLink
   auto& inputs = ctx.inputs();
+  auto dummyOutput = [&ctx, this]() {
+    if (this->mDoDigits) {
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, this->mOutputDigits);
+    }
+    if (this->mDoLumi) {
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, this->mOutputLumiInfo);
+    }
+  };
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
@@ -55,12 +64,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
-        if (mDoDigits) {
-          ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
-        }
-        if (mDoLumi) {
-          ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
-        }
+        dummyOutput();
         return;
       }
     }
@@ -78,12 +82,19 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   gbtword80_t remnant = 0;
   uint32_t size_gbt = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
-    auto rdh = it.get_if<o2::header::RAWDataHeader>();
+    const o2::header::RDHAny* rdh = nullptr;
+    try {
+      rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
+    } catch (std::exception& e) {
+      LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+      dummyOutput();
+      return;
+    }
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
-    mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
     // LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
     //  std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {

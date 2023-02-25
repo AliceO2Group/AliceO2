@@ -24,6 +24,7 @@
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Framework/InputRecordWalker.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include <string>
 #include <iostream>
 #include <vector>
@@ -97,10 +98,17 @@ class FITDataReaderDPLSpec : public Task
     std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      const o2::header::RDHAny* rdh = nullptr;
       // Proccessing each page
-      auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-      gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
+      try {
+        rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+        gsl::span<const uint8_t> payload(it.data(), it.size());
+        mRawReader.process(payload, o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh));
+      } catch (std::exception& e) {
+        LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+        mRawReader.makeSnapshot(pc); // send empty output
+        return;
+      }
     }
     mRawReader.accumulateDigits();
     mRawReader.emptyTFprotection();
