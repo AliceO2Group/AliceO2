@@ -26,6 +26,13 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
+
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/Lifetime.h"
+
 ClassImp(o2::emcal::DigitizerTRU);
 
 using o2::emcal::Digit;
@@ -61,36 +68,72 @@ void DigitizerTRU::init()
   mAmplitudeInTimeBins.clear();
 
   // for each phase create a template distribution
-  TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 9);
-  RawResponse.SetParameters(3.95714e+03, -4.87952e+03, 2.48989e+03, -6.89067e+02, 1.14413e+02, -1.17744e+01, 7.37825e-01, -2.58461e-02, 3.88652e-04);
+  // TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 9);
+  // RawResponse.SetParameters(3.95714e+03, -4.87952e+03, 2.48989e+03, -6.89067e+02, 1.14413e+02, -1.17744e+01, 7.37825e-01, -2.58461e-02, 3.88652e-04);
 
-  for (int i = 0; i < 4; i++)
-  {
+  // for (int i = 0; i < 4; i++)
+  // {
 
-    std::vector<double> sf;
-    RawResponse.SetParameter(1, 0.25 * i);
-    for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++)
-    {
-      sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
-    }
-    mAmplitudeInTimeBins.push_back(sf);
+  //   std::vector<double> sf;
+  //   RawResponse.SetParameter(1, 0.25 * i);
+  //   for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++)
+  //   {
+  //     sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
+  //   }
+  //   mAmplitudeInTimeBins.push_back(sf);
+  // }
+
+
+
+  // Parameters from data (@Martin Poghosyan)
+  tau = 61.45;  // 61.45 ns, according to the fact that the
+                      // RawResponse.SetParameter(1, 0.25 * i); where 0.25 are 25 ns
+  N = 2.;
+  // for each phase create a template distribution
+  TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
+  RawResponse.SetParameters(1., 0., tau, N, 0.);
+
+  // only one phase
+  std::vector<double> sf;
+  for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
+    sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
   }
+  mAmplitudeInTimeBins.push_back(sf);
 
-  if (mEnableDebugStreaming)
-  {
+  if (mEnableDebugStreaming) {
     mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root", "RECREATE");
   }
+
 }
 
+// //_______________________________________________________________________
+// double DigitizerTRU::rawResponseFunction(double *x, double *par)
+// {
+//   double res = par[9 - 1] + par[9] * x[0];
+//   for (Int_t j = 9 - 1; j > 0; j--)
+//     res = par[j - 1] + x[0] * res;
+//   if (x[0] < 2.99)
+//     return 0;
+//   return res;
+// }
 //_______________________________________________________________________
-double DigitizerTRU::rawResponseFunction(double *x, double *par)
+double DigitizerTRU::rawResponseFunction(double* x, double* par)
 {
-  double res = par[9 - 1] + par[9] * x[0];
-  for (Int_t j = 9 - 1; j > 0; j--)
-    res = par[j - 1] + x[0] * res;
-  if (x[0] < 2.99)
-    return 0;
-  return res;
+  double signal = 0.;
+  double tau = par[2];
+  double n = par[3];
+  double ped = par[4];
+  double xx = (x[0] - par[1] + tau) / tau;
+
+  // par[0] amp, par[1] peak time
+
+  if (xx <= 0) {
+    signal = ped;
+  } else {
+    signal = ped + par[0] * std::pow(xx, n) * std::exp(n * (1 - xx));
+  }
+
+  return signal;
 }
 //_______________________________________________________________________
 void DigitizerTRU::clear()
@@ -101,40 +144,55 @@ void DigitizerTRU::clear()
 // void DigitizerTRU::process(const std::vector<LabeledDigit> &labeledSDigits)
 void DigitizerTRU::process(const std::vector<Digit> &labeledSDigits)
 {
+  LOG(info) << "DIG SIMONE process in digitizer ";
 
   for (auto labeleddigit : labeledSDigits)
   {
 
+    LOG(info) << "DIG SIMONE process in digitizer: labeleddigit.getTower ";
     int tower = labeleddigit.getTower();
 
+    LOG(info) << "DIG SIMONE process in digitizer: before sampleSDigit ";
     // sampleSDigit(labeleddigit.getDigit());
     sampleSDigit(labeleddigit);
+    LOG(info) << "DIG SIMONE process in digitizer: after sampleSDigit ";
 
     if (mTempDigitVector.size() == 0)
     {
       continue;
+      LOG(info) << "DIG SIMONE process in digitizer: continue ";
     }
 
+    LOG(info) << "DIG SIMONE process in digitizer: before addDigits ";
     mDigits.addDigits(tower, mTempDigitVector);
+    LOG(info) << "DIG SIMONE process in digitizer: after addDigits ";
+
   }
 }
 //_______________________________________________________________________
 void DigitizerTRU::sampleSDigit(const Digit &sDigit)
 {
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before mTempDigitVector.clear ";
   mTempDigitVector.clear();
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getTower ";
   Int_t tower = sDigit.getTower();
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getAmplitude ";
   Double_t energy = sDigit.getAmplitude();
 
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before smearEnergy ";
   if (mSmearEnergy)
   {
+    LOG(info) << "DIG SIMONE sampleSDigit in digitizer: beforebefore smearEnergy ";
     energy = smearEnergy(energy);
   }
 
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before __DBL_EPSILON__ ";
   if (energy < __DBL_EPSILON__)
   {
     return;
   }
 
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before TimeResponse ";
   Double_t energies[15];
   if (mSimulateTimeResponse)
   {
@@ -154,6 +212,7 @@ void DigitizerTRU::sampleSDigit(const Digit &sDigit)
     mTempDigitVector.push_back(digit);
   }
 
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before Debug ";
   if (mEnableDebugStreaming)
   {
     double timeStamp = sDigit.getTimeStamp();
@@ -179,11 +238,14 @@ void DigitizerTRU::sampleSDigit(const Digit &sDigit)
                     << "Sample14=" << energies[14]
                     << "\n";
   }
+  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: after Debug ";
+
 }
 
 //_______________________________________________________________________
 double DigitizerTRU::smearEnergy(double energy)
 {
+  LOG(info) << "DIG SIMONE smearEnergy in digitizer: after Debug ";
   Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
   energy *= mRandomGenerator->Poisson(fluct) / fluct;
   return energy;

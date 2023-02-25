@@ -23,6 +23,13 @@
 #include "EMCALBase/TriggerMappingV2.h"
 #include "TMath.h"
 
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/Lifetime.h"
+
+
 using namespace o2::emcal;
 
 //_____________________________________________________________________
@@ -137,6 +144,7 @@ void DigitsWriteoutBufferTRU::finish()
 // Add digits to the buffer
 void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<Digit>& digList)
 {
+  LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU ";
 
   // mTimeBin has to have the absolute time information
   for (int ientry = 0; ientry < digList.size(); ientry++) {

@@ -29,6 +29,9 @@
 #pragma link C++ class o2::emcal::DigitizerTRU + ;
 // #pragma link C++ class o2::emcal::DigitizerTRU + ;
 // #pragma link C++ class o2::emcal::DigitizerTRU + ;
+// #pragma link C++ class o2::emcal::DigitizerTRU + ;
+// #pragma link C++ class o2::emcal::DigitizerTRU + ;
+// #pragma link C++ class o2::emcal::DigitizerTRU + ;
 #pragma link C++ class o2::emcal::DigitTimebinBase < o2::emcal::Digit> + ;
 #pragma link C++ class o2::emcal::DigitTimebinBase < o2::emcal::LabeledDigit> + ;
 #pragma link C++ class o2::emcal::SimParam + ;

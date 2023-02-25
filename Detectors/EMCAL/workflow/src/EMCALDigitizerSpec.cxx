@@ -126,7 +126,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mHits.clear();
       context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
 
-      LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+      // LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+      LOG(info) << "DIG SIMONE For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+
 
       std::vector<o2::emcal::LabeledDigit> summedLabeledDigits = mSumDigitizerTRU.process(mHits);
       std::vector<o2::emcal::Digit> summedDigits;
