@@ -286,6 +286,7 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   // During the carry-over ITS needs to repeat the GBTTrigger and GBTDataTrailer words.
   // Also the GBTDataHeader needs to be repeated right after continuation RDH, but it will be provided in the newRDHMethod
   const int wordSize = RDHUtils::getDataFormat(rdh) == 0 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
+  uint feed = RDHUtils::getFEEID(rdh);
 
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
@@ -293,6 +294,9 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
 
   // this is where we would usually split: account for the trailer to add
   int actualSize = maxSize - wordSize;
+  // make sure we don't split the GBT word
+  actualSize -= actualSize % wordSize;
+
   char* trailPtr = &data[data.size() - wordSize]; // pointer on the payload trailer
 
   if ((maxSize <= 2 * wordSize)) {   // we cannot split trigger+header
@@ -303,6 +307,8 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   } else {
     if (ptr + actualSize >= trailPtr) { // we need to split at least 1 GBT word before the trailer
       actualSize = trailPtr - ptr - wordSize;
+      // make sure we don't split the GBT word
+      actualSize -= actualSize % wordSize;
     }
   }
   // copy the GBTTrigger and GBTHeader from the head of the payload
