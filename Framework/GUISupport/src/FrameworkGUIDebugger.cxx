@@ -258,7 +258,8 @@ void displaySparks(
 #endif
       rty_axis |= ImPlotAxisFlags_LockMin;
     }
-    if (ImPlot::BeginPlot("##sparks", "time", "value", ImVec2(700, 100), 0, rtx_axis, rty_axis)) {
+    if (ImPlot::BeginPlot("##sparks", ImVec2(700, 100), 0)) {
+      ImPlot::SetupAxes("time", "value", rtx_axis, rty_axis);
 #if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
       ImPlot::SetAxis(state.axis);
 #else
@@ -490,7 +491,8 @@ void displayDeviceMetrics(const char* label,
 
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
-      if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
+      if (ImPlot::BeginPlot("##Some plot")) {
+        ImPlot::SetupAxes("time", "value");
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
@@ -506,7 +508,8 @@ void displayDeviceMetrics(const char* label,
       auto xAxisFlags = ImPlotAxisFlags_None;
       auto yAxisFlags = ImPlotAxisFlags_LockMin;
       //ImPlot::FitNextPlotAxes(true, true, true, true);
-      if (ImPlot::BeginPlot("##Some plot", "time", "value", {-1, -1}, axisFlags, xAxisFlags, yAxisFlags)) {
+      if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
+        ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
