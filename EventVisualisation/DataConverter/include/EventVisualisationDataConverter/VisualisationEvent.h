@@ -53,12 +53,6 @@ class VisualisationEvent
   VisualisationEvent();
   VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime);
 
-  struct Statistic {
-    int mTrackCount[o2::dataformats::GlobalTrackID::NSources];
-  };
-  void computeStatistic();
-  static const Statistic& getStatistic() { return mLastStatistic; }
-
   /// constructor parametrisation (Value Object) for VisualisationEvent class
   ///
   /// Simplifies passing parameters to constructor of VisualisationEvent
@@ -206,7 +200,6 @@ class VisualisationEvent
   void setPrimaryVertex(std::size_t pv) { this->mPrimaryVertex = pv; }
 
  private:
-  static Statistic mLastStatistic;                  /// last
   int mClMask;                                      /// clusters requested during aquisition
   int mTrkMask;                                     /// tracks requested during aquisition
   o2::header::DataHeader::RunNumberType mRunNumber; /// run number
