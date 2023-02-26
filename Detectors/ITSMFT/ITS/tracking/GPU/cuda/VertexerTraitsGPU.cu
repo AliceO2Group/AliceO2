@@ -726,6 +726,7 @@ void VertexerTraitsGPU::computeTracklets()
           gsl::span<const o2::its::Line> linesInRof(lines.data() + linesOffsetRof, static_cast<gsl::span<o2::its::Line>::size_type>(nLinesRof));
 
           usedLines.resize(linesInRof.size(), false);
+          usedLines.assign(linesInRof.size(), false);
           clusterLines.clear();
           clusterLines.reserve(nClustersL1Rof);
           computeVerticesInRof(rof,
