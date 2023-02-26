@@ -47,7 +47,7 @@ class FileWatcher
   void setLast();
   void setNext();
   void setPrev();
-  bool rollToNext();                   ///< round robin next item, returns True if restart from beginning happened
+  void rollToNext();                   ///< round robin next item
   bool refresh();                      ///< reads folder content, updates current if points to not existing file
   std::string currentItem() const;     ///< name of the file (without path) but guards replaced with file names
   void setCurrentItem(int no);         ///< sets using index

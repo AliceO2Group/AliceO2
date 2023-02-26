@@ -36,8 +36,6 @@ class Options
   std::string mImageFolder;      // -i './'
   long mMemoryLimit;             // -m 1500 (MB) = 1.5GB
   bool mHideDplGUI;              // -hg
-  bool mGenerateScreenshots;     // -gs
-  bool mSequential;
   std::string mAODConverterPath; // -a 'o2-eve-aodconverter'
 
   // helper methods
@@ -51,17 +49,15 @@ class Options
   bool processCommandLine(int argc, char* argv[]);
 
   // get access methods
-  bool sequential() const { return this->mSequential; }
-  bool json() const { return this->mJSON; }
-  bool online() const { return this->mOnline; }
-  std::string dataFolder() const { return this->mDataFolder; }
-  std::string imageFolder() const { return this->mImageFolder; }
-  std::string savedDataFolder() const { return this->mSavedDataFolder; }
-  std::string fileName() const { return this->mFileName; }
-  bool randomTracks() const { return this->mRandomTracks; }
-  long memoryLimit() const { return this->mMemoryLimit; }
-  bool hideDplGUI() const { return this->mHideDplGUI; }
-  bool generateScreenshots() const { return this->mGenerateScreenshots; }
+  bool json() { return this->mJSON; }
+  bool online() { return this->mOnline; }
+  std::string dataFolder() { return this->mDataFolder; }
+  std::string imageFolder() { return this->mImageFolder; }
+  std::string savedDataFolder() { return this->mSavedDataFolder; }
+  std::string fileName() { return this->mFileName; }
+  bool randomTracks() { return this->mRandomTracks; }
+  long memoryLimit() { return this->mMemoryLimit; }
+  bool hideDplGUI() { return this->mHideDplGUI; }
   std::string AODConverterPath() { return this->mAODConverterPath; }
 };
 

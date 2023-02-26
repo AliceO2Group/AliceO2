@@ -29,7 +29,6 @@ VisualisationEvent DataReaderJSON::getEvent(std::string fileName)
   VisualisationEvent vEvent;
   auto serializer = VisualisationEventSerializer::getInstance(std::filesystem::path(fileName).extension());
   serializer->fromFile(vEvent, fileName);
-  vEvent.computeStatistic();
   return vEvent;
 }
 

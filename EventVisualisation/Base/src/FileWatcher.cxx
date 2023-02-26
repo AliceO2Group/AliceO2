@@ -82,18 +82,16 @@ string FileWatcher::currentItem() const
   return this->mCurrentFile;
 }
 
-bool FileWatcher::rollToNext()
+void FileWatcher::rollToNext()
 {
   if (this->mFiles.size() == 2) { // only guards on the list
-    return true;                  // nothing to do, but means we stay at the beginning
+    return;                       // nothing to do
   }
   this->setNext();
   if (this->mCurrentFile == mEndGuard) {
     this->setFirst();
     this->setNext();
-    return true; // we stay at the beginning
   }
-  return false;
 }
 
 void FileWatcher::setFirst()

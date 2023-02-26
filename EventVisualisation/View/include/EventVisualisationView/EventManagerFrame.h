@@ -79,7 +79,6 @@ class EventManagerFrame : public TGMainFrame
                                      TGNumberEntryField*& minEntry, const TString& minToolTip,
                                      TGNumberEntryField*& maxEntry, const TString& maxToolTip);
   void createOutreachScreenshot();
-  void createManualScreenshot();
 
  protected:
   o2::event_visualisation::EventManager* mEventManager; // Model object.
@@ -95,7 +94,7 @@ class EventManagerFrame : public TGMainFrame
 
   void setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit = kTRUE);
 
-  EventManagerFrame(o2::event_visualisation::EventManager& eventManager, EventManagerFrame::DisplayMode displayMode);
+  EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
   ~EventManagerFrame() override;
   ClassDefOverride(EventManagerFrame, 0); // GUI window for AliEveEventManager.
 
@@ -124,7 +123,7 @@ class EventManagerFrame : public TGMainFrame
   void DoTimeFrameSliderChanged();
 
  public: // static functions
-  static TString getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode);
+  static TString getSourceDirectory(EventManagerFrame::RunMode runMode);
   static RunMode decipherRunMode(TString name, RunMode defaultRun = SyntheticRun);
   static TString getRunTypeString(EventManagerFrame::RunMode runMode);
 };

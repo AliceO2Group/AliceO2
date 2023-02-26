@@ -62,7 +62,7 @@ void Initializer::setup()
 
   if (options->json()) {
     runMode = EventManagerFrame::decipherRunMode(options->dataFolder(), runMode);
-    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode, EventManagerFrame::OnlineMode).Data()));
+    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode).Data()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
@@ -83,8 +83,7 @@ void Initializer::setup()
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(), gClient->GetDisplayHeight() - 32);
 
   browser->StartEmbedding(TRootBrowser::kBottom);
-  EventManagerFrame* frame = new EventManagerFrame(eventManager, Options::Instance()->sequential() ? EventManagerFrame::SequentialMode : Options::Instance()->online() ? EventManagerFrame::OnlineMode
-                                                                                                                                                                       : EventManagerFrame::SavedMode);
+  EventManagerFrame* frame = new EventManagerFrame(eventManager);
   browser->StopEmbedding("EventCtrl");
 
   if (fullscreen) {
