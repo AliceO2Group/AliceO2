@@ -654,7 +654,7 @@ class datamodel:
         print("## ", CER[2])
       elif DMtype == 2:
         print("### ", CER[2])
-      
+
       if href2u != "":
         print("Code file: <a href=\""+href2u+"/"+CER[0].split(path2u)[1] +
               "/"+CER[1]+"\" target=\"_blank\">"+CER[1]+"</a>")
