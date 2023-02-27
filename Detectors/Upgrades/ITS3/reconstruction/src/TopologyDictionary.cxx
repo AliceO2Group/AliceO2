@@ -30,12 +30,12 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
   math_utils::Point3D<float> locCl;
   if (cl.getSensorID() >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
-    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
   } else {
     segmentations[cl.getSensorID()].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
-    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchRow);
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchCol);
     float xCurved{0.f}, yCurved{0.f};
     segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
     locCl.SetXYZ(xCurved, yCurved, locCl.Z());
@@ -62,6 +62,63 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
     refCol -= round(zCOG);
   }
   math_utils::Point3D<float> locCl;
+  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+    o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
+  } else {
+    segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
+    float xCurved{0.f}, yCurved{0.f};
+    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
+  }
+  return locCl;
+}
+
+template <typename T>
+std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl) const
+{
+  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
+  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(2),
+                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+  std::array<T, 3> locCl;
+  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+    o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
+  } else {
+    segmentations[cl.getSensorID()].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchRow);
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchCol);
+    float xCurved{0.f}, yCurved{0.f};
+    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
+  }
+  return locCl;
+}
+
+template <typename T>
+std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
+{
+  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
+  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(0),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(1),
+                                                  SegmentationSuperAlpide(2),
+                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+
+  auto refRow = cl.getRow();
+  auto refCol = cl.getCol();
+  float xCOG = 0, zCOG = 0;
+  patt.getCOG(xCOG, zCOG);
+  if (isGroup) {
+    refRow -= round(xCOG);
+    refCol -= round(zCOG);
+  }
+  std::array<T, 3> locCl;
   if (cl.getSensorID() >= 6) { // TODO: fix NLayers
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
