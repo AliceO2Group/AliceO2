@@ -229,24 +229,25 @@ int* GpuTimeFrameChunk<nLayers>::getDeviceCellsLookupTables(const int layer)
 
 // Load data
 template <int nLayers>
-size_t GpuTimeFrameChunk<nLayers>::loadDataOnDevice(const size_t startRof, const int maxLayers, Stream& stream)
+size_t GpuTimeFrameChunk<nLayers>::loadDataOnDevice(const size_t startRof, const size_t maxRof, const int maxLayers, Stream& stream)
 {
   RANGE("load_clusters_data", 5);
-  mNPopulatedRof = mTimeFramePtr->getNClustersROFrange(startRof, mNRof, 0).size();
+  auto nRofs = std::min(maxRof - startRof, mNRof);
+  mNPopulatedRof = mTimeFramePtr->getNClustersROFrange(startRof, nRofs, 0).size();
   for (int i = 0; i < maxLayers; ++i) {
-    mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, mNRof, i);
+    mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, nRofs, i);
     if (maxLayers < nLayers) { // Vertexer
-      mHostIndexTables[0] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, 0);
-      mHostIndexTables[2] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, 2);
+      mHostIndexTables[0] = mTimeFramePtr->getIndexTablePerROFrange(startRof, nRofs, 0);
+      mHostIndexTables[2] = mTimeFramePtr->getIndexTablePerROFrange(startRof, nRofs, 2);
     } else { // Tracker
-      mHostIndexTables[i] = mTimeFramePtr->getIndexTablePerROFrange(startRof, mNRof, i);
+      mHostIndexTables[i] = mTimeFramePtr->getIndexTablePerROFrange(startRof, nRofs, i);
     }
-    if (mHostClusters[i].size() > mTFGPUParams->clustersPerROfCapacity * mNRof) {
-      LOGP(warning, "Excess of expected clusters on layer {}, resizing to config value: {}, will lose information!", i, mTFGPUParams->clustersPerROfCapacity * mNRof);
+    if (mHostClusters[i].size() > mTFGPUParams->clustersPerROfCapacity * nRofs) {
+      LOGP(warning, "Excess of expected clusters on layer {}, resizing to config value: {}, will lose information!", i, mTFGPUParams->clustersPerROfCapacity * nRofs);
     }
     checkGPUError(cudaMemcpyAsync(mClustersDevice[i],
                                   mHostClusters[i].data(),
-                                  (int)std::min(mHostClusters[i].size(), mTFGPUParams->clustersPerROfCapacity * mNRof) * sizeof(Cluster),
+                                  (int)std::min(mHostClusters[i].size(), mTFGPUParams->clustersPerROfCapacity * nRofs) * sizeof(Cluster),
                                   cudaMemcpyHostToDevice, stream.get()));
     if (mHostIndexTables[i].data()) {
       checkGPUError(cudaMemcpyAsync(mIndexTablesDevice[i],
