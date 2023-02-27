@@ -30,7 +30,7 @@ include(FeatureSummary)
 include(FindThreads)
 
 find_package(Arrow CONFIG)
-if(${Arrow_VERSION} VERSION_LESS 11.0.0)
+if(${Arrow_VERSION} VERSION_LESS 11)
 find_package(Gandiva CONFIG PATHS ${Arrow_DIR} QUIET)
 else()
 find_package(Gandiva CONFIG)
