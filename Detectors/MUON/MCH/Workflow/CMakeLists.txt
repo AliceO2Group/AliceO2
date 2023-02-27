@@ -126,15 +126,16 @@ o2_add_executable(
             src/reco-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
+            O2::MCHConditions
             O2::MCHDigitFiltering
             O2::MCHGeometryTransformer
             O2::MCHIO
+            O2::MCHIO
             O2::MCHMappingImpl4
             O2::MCHTimeClustering
-            O2::MCHTriggering
             O2::MCHTracking
+            O2::MCHTriggering
             O2::MCHWorkflow
-            O2::MCHIO
             O2::SimulationDataFormat
             O2::Steer
         TARGETVARNAME mch-reco-workflow)

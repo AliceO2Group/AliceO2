@@ -41,7 +41,10 @@ o2_add_library(MCHRawElecMap
         src/MapFEC.cxx
         src/Mapper.cxx
         src/dslist.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers Microsoft.GSL::GSL
+        PUBLIC_LINK_LIBRARIES
+          Microsoft.GSL::GSL
+          O2::DataFormatsMCH
+          O2::MCHRawImplHelpers
         PRIVATE_LINK_LIBRARIES O2::MCHConstants)
 
 

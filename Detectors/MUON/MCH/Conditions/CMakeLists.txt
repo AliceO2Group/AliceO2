@@ -11,18 +11,59 @@
 
 o2_add_library(
   MCHConditions
-  SOURCES src/Cathode.cxx
-          src/Chamber.cxx
-          src/DCSAliases.cxx
-          src/DetectionElement.cxx
-          src/HVAliases.cxx
-          src/LVAliases.cxx
-          src/MeasurementType.cxx
-          src/Number.cxx
-          src/Plane.cxx
-          src/Side.cxx
-          src/SolarCrate.cxx
-  PUBLIC_LINK_LIBRARIES fmt::fmt O2::MCHConstants)
+  SOURCES
+    src/Cathode.cxx
+    src/Chamber.cxx
+    src/DCSAliases.cxx
+    src/DetectionElement.cxx
+    src/HVAliases.cxx
+    src/LVAliases.cxx
+    src/MeasurementType.cxx
+    src/Number.cxx
+    src/Plane.cxx
+    src/Side.cxx
+    src/SolarCrate.cxx
+    src/StatusMap.cxx
+    src/StatusMapCreatorParam.cxx
+    src/StatusMapCreatorSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonUtils
+    O2::DataFormatsMCH
+    O2::MCHConstants
+    O2::MCHMappingImpl4
+    O2::MCHRawElecMap
+    fmt::fmt
+    )
+
+o2_add_executable(
+  bad-channels-ccdb
+  COMPONENT_NAME mch
+  SOURCES src/bad-channels-ccdb.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CCDB
+    O2::DataFormatsMCH
+    O2::Framework
+    O2::MCHMappingImpl4
+    O2::MCHRawElecMap
+    )
+
+o2_target_root_dictionary(MCHConditions
+  HEADERS
+    include/MCHConditions/StatusMap.h
+    include/MCHConditions/StatusMapCreatorParam.h)
+
+
+o2_add_executable(
+  statusmap-creator-workflow
+  COMPONENT_NAME mch
+  SOURCES src/statusmap-creator-workflow.cxx src/StatusMapCreatorSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CCDB
+    O2::Framework
+    O2::MCHConditions
+    O2::MCHMappingImpl4
+    O2::MCHRawElecMap
+    )
 
 if(BUILD_TESTING)
   o2_add_test(

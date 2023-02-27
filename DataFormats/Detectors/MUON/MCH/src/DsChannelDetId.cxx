@@ -9,24 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_DIGITFILTERING_DIGITFILTER_H_
-#define O2_MCH_DIGITFILTERING_DIGITFILTER_H_
-
-#include "DataFormatsMCH/Digit.h"
-#include "MCHConditions/StatusMap.h"
-#include <functional>
+#include "DataFormatsMCH/DsChannelDetId.h"
+#include <fmt/core.h>
 
 namespace o2::mch
 {
-
-typedef std::function<bool(const Digit&)> DigitFilter;
-
-DigitFilter createDigitFilter(uint32_t minADC,
-                              bool rejectBackground,
-                              bool selectSignal,
-                              const StatusMap& statusMap = {},
-                              uint32_t statusMask = 0);
-
+std::string DsChannelDetId::asString() const
+{
+  return fmt::format("deid {:4d} dsid {:4d} ch {:2d}",
+                     getDeId(), getDsId(), getChannel());
+}
 } // namespace o2::mch
-
-#endif

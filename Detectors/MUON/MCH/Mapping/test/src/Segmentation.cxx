@@ -507,6 +507,22 @@ BOOST_AUTO_TEST_CASE(CheckAssignment)
   BOOST_TEST(copy.nofPads() == seg.nofPads());
 }
 
+BOOST_AUTO_TEST_CASE(RangeOfDualSampaIdIs1To1361)
+{
+  int minDsId{std::numeric_limits<int>::max()};
+  int maxDsId{std::numeric_limits<int>::min()};
+
+  forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
+    const auto& seg = o2::mch::mapping::segmentation(detElemId);
+    seg.forEachDualSampa([&](int dualSampaId) {
+      minDsId = std::min(minDsId, dualSampaId);
+      maxDsId = std::max(maxDsId, dualSampaId);
+    });
+  });
+  BOOST_CHECK_EQUAL(minDsId, 1);
+  BOOST_CHECK_EQUAL(maxDsId, 1361);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

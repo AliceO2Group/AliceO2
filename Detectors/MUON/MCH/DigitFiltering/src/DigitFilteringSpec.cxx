@@ -20,6 +20,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "MCHBase/SanityCheck.h"
+#include "MCHConditions/StatusMap.h"
 #include "MCHDigitFiltering/DigitFilter.h"
 #include "MCHDigitFiltering/DigitFilterParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -38,21 +39,14 @@ namespace o2::mch
 class DigitFilteringTask
 {
  public:
-  DigitFilteringTask(bool useMC) : mUseMC{useMC} {}
+  DigitFilteringTask(bool useMC, bool useStatusMap) : mUseMC{useMC}, mUseStatusMap{useStatusMap} {}
 
   void init(InitContext& ic)
   {
     mSanityCheck = DigitFilterParam::Instance().sanityCheck;
-    int minADC = DigitFilterParam::Instance().minADC;
-    bool rejectBackground = DigitFilterParam::Instance().rejectBackground;
-    mIsGoodDigit = createDigitFilter(minADC, rejectBackground, false);
-    // at digit filtering stage it is important to keep the 3rd parameter
-    // to false in the call above : the idea is to not cut too much
-    // on the tails of the charge distributions otherwise the clustering
-    // resolution will suffer.
-    // That's why we only apply the "reject background" filter, which
-    // is a loose background cut that does not penalize the signal
-
+    mMinADC = DigitFilterParam::Instance().minADC;
+    mRejectBackground = DigitFilterParam::Instance().rejectBackground;
+    mStatusMask = DigitFilterParam::Instance().statusMask;
     mTimeCalib = DigitFilterParam::Instance().timeOffset;
   }
 
@@ -71,10 +65,13 @@ class DigitFilteringTask
 
   void run(ProcessingContext& pc)
   {
+    StatusMap defaultStatusMap;
+
     // get input
     auto iRofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
     auto iDigits = pc.inputs().get<gsl::span<Digit>>("digits");
     auto iLabels = mUseMC ? pc.inputs().get<MCTruthContainer<MCCompLabel>*>("labels") : nullptr;
+    auto statusMap = mUseStatusMap ? pc.inputs().get<StatusMap*>("statusmap") : nullptr;
 
     bool abort{false};
 
@@ -97,6 +94,19 @@ class DigitFilteringTask
     auto oLabels = mUseMC ? &pc.outputs().make<MCTruthContainer<MCCompLabel>>(OutputRef{"labels"}) : nullptr;
 
     if (!abort) {
+      bool selectSignal = false;
+
+      mIsGoodDigit = createDigitFilter(mMinADC,
+                                       mRejectBackground,
+                                       selectSignal,
+                                       statusMap ? *statusMap : defaultStatusMap,
+                                       mStatusMask);
+      // at digit filtering stage it is important to keep the 3rd parameter
+      // (selectSignal) to false in the call above : the idea is to not cut
+      // too much on the tails of the charge distributions otherwise
+      // the clustering resolution will suffer.
+      // That's why we only apply the "reject background" filter, which
+      // is a loose background cut that does not penalize the signal
       int cursor{0};
       for (const auto& irof : iRofs) {
         const auto digits = iDigits.subspan(irof.getFirstIdx(), irof.getNEntries());
@@ -141,10 +151,14 @@ class DigitFilteringTask
   }
 
  private:
-  bool mSanityCheck;
-  bool mUseMC;
-  DigitFilter mIsGoodDigit;
+  bool mRejectBackground{false};
+  bool mSanityCheck{false};
+  bool mUseMC{false};
+  bool mUseStatusMap{false};
+  int mMinADC{1};
   int32_t mTimeCalib{0};
+  uint32_t mStatusMask{0};
+  DigitFilter mIsGoodDigit;
 };
 
 framework::DataProcessorSpec
@@ -166,6 +180,12 @@ framework::DataProcessorSpec
     input += fmt::format(";labels:MCH/{}/0", inputDigitLabelDataDescription);
   }
 
+  bool useStatusMap = DigitFilterParam::Instance().statusMask != 0;
+
+  if (useStatusMap) {
+    input += ";statusmap:MCH/STATUSMAP/0";
+  }
+
   std::string output =
     fmt::format("digits:MCH/{}/0;rofs:MCH/{}/0",
                 outputDigitDataDescription,
@@ -184,7 +204,7 @@ framework::DataProcessorSpec
     specName.data(),
     Inputs{select(input.c_str())},
     outputs,
-    AlgorithmSpec{adaptFromTask<DigitFilteringTask>(useMC)},
+    AlgorithmSpec{adaptFromTask<DigitFilteringTask>(useMC, useStatusMap)},
     Options{}};
 }
 } // namespace o2::mch

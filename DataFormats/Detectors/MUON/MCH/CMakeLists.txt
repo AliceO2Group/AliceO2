@@ -16,11 +16,13 @@ o2_add_library(DataFormatsMCH
                        src/ROFRecord.cxx
                        src/Cluster.cxx
                        src/DsChannelId.cxx
+                       src/DsChannelDetId.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::DetectorsCommonDataFormats)
 
 o2_target_root_dictionary(DataFormatsMCH
                           HEADERS include/DataFormatsMCH/Digit.h
+                                  include/DataFormatsMCH/DsChannelDetId.h
                                   include/DataFormatsMCH/DsChannelGroup.h
                                   include/DataFormatsMCH/ROFRecord.h
                                   include/DataFormatsMCH/TrackMCH.h
@@ -34,6 +36,12 @@ o2_add_executable(convert-bad-channels
 
 o2_add_test(digit
             SOURCES src/testDigit.cxx
+            PUBLIC_LINK_LIBRARIES O2::MCHBase
+            COMPONENT_NAME mch
+            LABELS muon;mch)
+
+o2_add_test(dschannelid
+            SOURCES src/testDsChannelId.cxx
             PUBLIC_LINK_LIBRARIES O2::MCHBase
             COMPONENT_NAME mch
             LABELS muon;mch)

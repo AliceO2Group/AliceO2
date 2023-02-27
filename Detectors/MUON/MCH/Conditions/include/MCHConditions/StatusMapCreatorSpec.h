@@ -9,24 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_DIGITFILTERING_DIGITFILTER_H_
-#define O2_MCH_DIGITFILTERING_DIGITFILTER_H_
+#ifndef O2_MCH_CONDITIONS_STATUSMAP_CREATOR_SPEC_H
+#define O2_MCH_CONDITIONS_STATUSMAP_CREATOR_SPEC_H
 
-#include "DataFormatsMCH/Digit.h"
-#include "MCHConditions/StatusMap.h"
-#include <functional>
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2::mch
 {
 
-typedef std::function<bool(const Digit&)> DigitFilter;
+o2::framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName = "mch-statusmap-creator");
 
-DigitFilter createDigitFilter(uint32_t minADC,
-                              bool rejectBackground,
-                              bool selectSignal,
-                              const StatusMap& statusMap = {},
-                              uint32_t statusMask = 0);
-
-} // namespace o2::mch
-
+}
 #endif

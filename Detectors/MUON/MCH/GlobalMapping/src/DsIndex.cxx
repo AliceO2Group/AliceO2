@@ -11,9 +11,11 @@
 
 #include "MCHGlobalMapping/DsIndex.h"
 
+#include "MCHMappingInterface/Segmentation.h"
+#include "MCHRawElecMap/DsElecId.h"
+#include "MCHRawElecMap/Mapper.h"
 #include <map>
 #include <vector>
-#include "MCHMappingInterface/Segmentation.h"
 
 namespace o2::mch
 {

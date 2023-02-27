@@ -11,7 +11,7 @@
 
 o2_add_library(MCHDigitFiltering
         SOURCES src/DigitFilter.cxx src/DigitFilterParam.cxx src/DigitFilteringSpec.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework O2::SimulationDataFormat)
+        PUBLIC_LINK_LIBRARIES O2::MCHBase O2::MCHConditions O2::Framework O2::SimulationDataFormat)
 
 o2_add_executable(
         digits-filtering-workflow

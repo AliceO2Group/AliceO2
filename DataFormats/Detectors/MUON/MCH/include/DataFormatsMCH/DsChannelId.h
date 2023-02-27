@@ -46,8 +46,6 @@ class DsChannelId
 
   uint16_t getSolarId() const { return static_cast<uint16_t>((mChannelId >> 16) & 0xFFFF); }
   uint8_t getElinkId() const { return static_cast<uint8_t>((mChannelId >> 8) & 0xFF); }
-
-  [[deprecated("use getElinkId instead which better reflects what it is and avoid confusion with dsId from DsDetId")]] uint8_t getDsId() const { return getElinkId(); }
   uint8_t getChannel() const { return static_cast<uint8_t>(mChannelId & 0xFF); }
 
   std::string asString() const;
@@ -56,10 +54,14 @@ class DsChannelId
 
   bool isValid() const { return (mChannelId != 0); }
 
+  bool operator==(const DsChannelId& chId) const { return mChannelId == chId.mChannelId; }
+  bool operator!=(const DsChannelId& chId) const { return mChannelId != chId.mChannelId; }
+  bool operator<(const DsChannelId& chId) const { return mChannelId < chId.mChannelId; }
+
  private:
   uint32_t mChannelId{0};
 
-  ClassDefNV(DsChannelId, 1); // class for MCH readout channel
+  ClassDefNV(DsChannelId, 1); // An identifier for a MCH channel (readout oriented)
 };
 } // namespace o2::mch
 #endif

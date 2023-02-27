@@ -12,6 +12,8 @@
 #ifndef O2_MCH_RAW_ELECMAP_MAPPER_H
 #define O2_MCH_RAW_ELECMAP_MAPPER_H
 
+#include "DataFormatsMCH/DsChannelId.h"
+#include "DataFormatsMCH/DsChannelDetId.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawElecMap/FeeLinkId.h"
@@ -124,6 +126,10 @@ extern std::array<int, 13> deIdsOfCH10L;
 // @returns vector of error messages. If empty the check is ok
 template <typename T>
 std::vector<std::string> solar2FeeLinkConsistencyCheck();
+
+/** converts a DsChannelId (aka {solar,group,index}) into a DetChannelDetId (aka {de,ds,channel})
+ */
+DsChannelDetId convert(const DsChannelId& id);
 
 } // namespace o2::mch::raw
 

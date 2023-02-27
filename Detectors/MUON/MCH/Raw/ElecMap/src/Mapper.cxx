@@ -35,4 +35,14 @@ std::array<int, 13> deIdsOfCH9L{907, 908, 909, 910, 911, 912, 913, 914, 915, 916
 std::array<int, 13> deIdsOfCH10R{1006, 1005, 1004, 1003, 1002, 1001, 1000, 1025, 1024, 1023, 1022, 1021, 1020}; // from top to bottom
 std::array<int, 13> deIdsOfCH10L{1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019}; // from top to bottom
 
+DsChannelDetId convert(const DsChannelId& id)
+{
+  static auto det2elec = createElec2DetMapper<raw::ElectronicMapperGenerated>();
+  auto group = raw::groupFromElinkId(id.getElinkId());
+  auto index = raw::indexFromElinkId(id.getElinkId());
+  raw::DsElecId dsElecId{id.getSolarId(), group.value(), index.value()};
+  auto dsDetId = det2elec(dsElecId).value();
+  return DsChannelDetId(dsDetId.deId(), dsDetId.dsId(), id.getChannel());
+}
+
 } // namespace o2::mch::raw
