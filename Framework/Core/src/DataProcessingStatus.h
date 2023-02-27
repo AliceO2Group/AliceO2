@@ -17,9 +17,7 @@
 /// probes to be used by the DPL
 #define O2_PROBE_DATARELAYER 3
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Describe the possible states for DataProcessing
@@ -44,7 +42,6 @@ enum struct DriverStatus : uint32_t {
   BUFFER_OVERFLOWS = 2
 };
 
-} // namespace framework
 } // namespace o2
 
 #endif // o2_framework_DataProcessingStatus_H_INCLUDED

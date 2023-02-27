@@ -141,13 +141,6 @@ void ServiceRegistry::lateBindStreamServices(DeviceState& state, fair::mq::ProgO
   }
 }
 
-void ServiceRegistry::postRenderGUICallbacks()
-{
-  for (auto& handle : mPostRenderGUIHandles) {
-    handle.callback(*this);
-  }
-}
-
 void ServiceRegistry::throwError(const char* name, int64_t hash, int64_t streamId, int64_t dataProcessorId) const
 {
   throw runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", name, hash, streamId, dataProcessorId);
