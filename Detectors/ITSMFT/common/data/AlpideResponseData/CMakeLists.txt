@@ -28,7 +28,15 @@ endif()
 
 add_custom_command(TARGET O2exe-alpide-response-generator POST_BUILD
                    COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i ${ITSRESPONSE_DIR}/response/AlpideResponseData/ -o ${CMAKE_CURRENT_BINARY_DIR}/
-                   DEPENDS ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/AlpideResponse.cxx
+                   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root
+                   DEPENDS alpide-response-generator
+                   COMMENT "Generating AlpideResponseData.root"
+)
+
+# # Add a target that depends on the custom command output
+add_custom_target(
+  GenerateAlpideResponse ALL
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/Detectors/ITSMFT/data/AlpideResponseData/")
