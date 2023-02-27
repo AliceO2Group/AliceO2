@@ -55,8 +55,9 @@ T GetFromMacro(const std::string& file, const std::string& funcname, const std::
   }
 
   /** check the return type matches the required one **/
-  if (strcmp(gROOT->GetGlobalFunction(gfunc.c_str())->GetReturnTypeName(), type.c_str())) {
-    LOG(info) << "Global function '" << gfunc << "' does not return a '" << type << "' type";
+  auto returnedtype = gROOT->GetGlobalFunction(gfunc.c_str())->GetReturnTypeName();
+  if (strcmp(returnedtype, type.c_str())) {
+    LOG(info) << "Global function '" << gfunc << "' does not return a '" << type << "' type ( but " << returnedtype << " )";
     return nullptr;
   }
 
