@@ -93,7 +93,7 @@ class GpuTimeFrameChunk
   /// Most relevant operations
   void allocate(const size_t, Stream&);
   void reset(const Task, Stream&);
-  size_t loadDataOnDevice(const size_t, const int, Stream&);
+  size_t loadDataOnDevice(const size_t, const size_t, const int, Stream&);
 
   /// Interface
   Cluster* getDeviceClusters(const int);
@@ -172,7 +172,7 @@ class TimeFrameGPU : public TimeFrame
   void initDevice(const int, const IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int);
   void initDeviceChunks(const int, const int);
   template <Task task>
-  size_t loadChunkData(const size_t, const size_t);
+  size_t loadChunkData(const size_t, const size_t, const size_t);
   size_t getNChunks() const { return mMemChunks.size(); }
   GpuTimeFrameChunk<nLayers>& getChunk(const int chunk) { return mMemChunks[chunk]; }
   Stream& getStream(const size_t stream) { return mGpuStreams[stream]; }
@@ -185,6 +185,7 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<Vertex>>& getVerticesInChunks() { return mVerticesInChunks; }
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
   std::vector<std::vector<o2::MCCompLabel>>& getLabelsInChunks() { return mLabelsInChunks; }
+  int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
 
  private:
   bool mDeviceInitialised = false;
@@ -211,15 +212,15 @@ class TimeFrameGPU : public TimeFrame
 
 template <int nLayers>
 template <Task task>
-size_t TimeFrameGPU<nLayers>::loadChunkData(const size_t chunk, const size_t offset) // offset: readout frame to start from
+size_t TimeFrameGPU<nLayers>::loadChunkData(const size_t chunk, const size_t offset, const size_t maxRofs) // offset: readout frame to start from, maxRofs: to manage boundaries
 {
   size_t nRof{0};
 
   mMemChunks[chunk].reset(task, mGpuStreams[chunk]); // Reset chunks memory
   if constexpr ((bool)task) {
-    nRof = mMemChunks[chunk].loadDataOnDevice(offset, 3, mGpuStreams[chunk]);
+    nRof = mMemChunks[chunk].loadDataOnDevice(offset, maxRofs, 3, mGpuStreams[chunk]);
   } else {
-    nRof = mMemChunks[chunk].loadDataOnDevice(offset, nLayers, mGpuStreams[chunk]);
+    nRof = mMemChunks[chunk].loadDataOnDevice(offset, maxRofs, nLayers, mGpuStreams[chunk]);
   }
   LOGP(debug, "In chunk {}: loaded {} readout frames starting from {}", chunk, nRof, offset);
   return nRof;

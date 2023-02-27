@@ -343,6 +343,7 @@ void VertexerTraits::computeVertices()
   std::vector<int> noClustersVec(mTimeFrame->getNrof(), 0);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
+    // LOGP(info, "rof: {} lines: {}", rofId, numTracklets);
     std::vector<bool> usedTracklets(numTracklets, false);
     for (int line1{0}; line1 < numTracklets; ++line1) {
       if (usedTracklets[line1]) {
@@ -457,6 +458,7 @@ void VertexerTraits::computeVertices()
       }
     }
     mTimeFrame->addPrimaryVertices(vertices);
+    LOGP(info, "rof: {} vertices: {}", rofId, vertices.size());
   }
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
@@ -504,6 +506,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
 {
   int foundVertices{0};
   const int numTracklets{static_cast<int>(lines.size())};
+  // LOGP(info, "rof: {} lines: {}", rofId, numTracklets);
   for (int line1{0}; line1 < numTracklets; ++line1) {
     if (usedLines[line1]) {
       continue;
