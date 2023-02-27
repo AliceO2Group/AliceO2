@@ -104,7 +104,7 @@ class MessageResource : public FairMQMemoryResource
     mUpstream->deallocate(p, bytes, alignment < 64 ? 64 : alignment);
     return;
   }
-  bool do_is_equal(const memory_resource& other) const noexcept override
+  bool do_is_equal(const memory_resource& /*other*/) const noexcept override
   {
     // since this uniquely owns the message it can never be equal to anybody else
     return false;
@@ -143,7 +143,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
 
   // TODO: the underlying resource can be directly the vector or the read only buffer
  protected:
-  void* do_allocate(std::size_t bytes, std::size_t alignment) override
+  void* do_allocate(std::size_t bytes, std::size_t /*alignment*/) override
   {
     if (mSize > 0) {
       if (bytes > mSize) {
@@ -155,7 +155,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
     throw std::runtime_error("Can not allocate: this memory resource is only supposed to provide spectator access to external buffer");
   }
 
-  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
+  void do_deallocate(void* p, std::size_t /*bytes*/, std::size_t /*alignment*/) override
   {
     if (p == mPointer) {
       mBuffer.reset();
@@ -167,7 +167,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
       throw std::logic_error("this resource can only deallocate the controlled resource pointer");
     }
   }
-  bool do_is_equal(const memory_resource& other) const noexcept override
+  bool do_is_equal(const memory_resource& /*other*/) const noexcept override
   {
     // uniquely owns the underlying resource, can never be equal to any other instance
     return false;
@@ -323,6 +323,6 @@ inline static FairMQMemoryResource* getTransportAllocator(fair::mq::TransportFac
   return *factory;
 }
 
-} //namespace o2::pmr
+} // namespace o2::pmr
 
 #endif
