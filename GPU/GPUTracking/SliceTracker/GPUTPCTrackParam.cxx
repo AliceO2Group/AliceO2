@@ -728,6 +728,42 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
 }
 
 MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCTrackParam)::ConstrainZ(float& z, int sector, float& z0, float& lastZ)
+{
+  if (sector < GPUCA_NSLICES / 2) {
+    if (z < 0) {
+      mParam.mZOffset += z;
+      mParam.mP[1] -= z;
+      z0 -= z;
+      lastZ -= z;
+      z = 0;
+    } else if (z > GPUTPCGeometry::TPCLength()) {
+      float shift = z - GPUTPCGeometry::TPCLength();
+      mParam.mZOffset += shift;
+      mParam.mP[1] -= shift;
+      z0 -= shift;
+      lastZ -= shift;
+      z = GPUTPCGeometry::TPCLength();
+    }
+  } else {
+    if (z > 0) {
+      mParam.mZOffset += z;
+      mParam.mP[1] -= z;
+      z0 -= z;
+      lastZ -= z;
+      z = 0;
+    } else if (z < -GPUTPCGeometry::TPCLength()) {
+      float shift = -GPUTPCGeometry::TPCLength() - z;
+      mParam.mZOffset -= shift;
+      mParam.mP[1] += shift;
+      z0 += shift;
+      lastZ += shift;
+      z = -GPUTPCGeometry::TPCLength();
+    }
+  }
+}
+
+MEM_CLASS_PRE()
 GPUd() void MEM_LG(GPUTPCTrackParam)::ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR)
 {
   const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mParam.mP[4] * bz));
