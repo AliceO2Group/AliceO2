@@ -42,7 +42,7 @@ if (NOT TARGET Arrow::arrow_shared)
  add_library(Arrow::arrow_shared ALIAS arrow_shared)
 endif()
 
-if (NOT TARGET Arrow::gandiva_shared)
+if (NOT TARGET Gandiva::gandiva_shared)
   add_library(Gandiva::gandiva_shared ALIAS gandiva_shared)
 endif()
 
