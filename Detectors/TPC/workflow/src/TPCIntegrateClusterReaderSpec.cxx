@@ -44,11 +44,12 @@ class IntegratedClusterReader : public Task
 
  private:
   void connectTrees();
-  bool checkEOS(ProcessingContext& pc);
 
   int mLane = 0;
   int mNLanes = 1;
   int mChainEntry = 0;                                       ///< processed entries in the chain
+  int mFirstTF{0};                                           ///< first TF to process
+  int mLastTF{-1};                                           ///< last TF to process
   std::unique_ptr<TChain> mChain;                            ///< input TChain
   std::vector<std::string> mFileNames;                       ///< input files
   ITPCC mTPCC, *mTPCCPtr = &mTPCC;                           ///< branch integrated number of cluster TPC currents
@@ -58,6 +59,8 @@ class IntegratedClusterReader : public Task
 
 void IntegratedClusterReader::init(InitContext& ic)
 {
+  mFirstTF = ic.options().get<int>("firstTF");
+  mLastTF = ic.options().get<int>("lastTF");
   mLane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   mChainEntry = mLane;
   mNLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
@@ -108,15 +111,36 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
     // disable all branches except the firstTForbit branch to significantly speed up the loop over the TTree
     mChain->SetBranchStatus("*", 0);
     mChain->SetBranchStatus("firstTForbit", 1);
+    uint32_t countTFs = mChain->GetEntries();
+    if (mLastTF != -1) {
+      countTFs = 0;
+      mChain->SetBranchStatus("tfCounter", 1);
+    }
     for (unsigned long i = 0; i < mChain->GetEntries(); i++) {
       mChain->GetEntry(i);
       mIndices.emplace_back(std::make_pair(mTFinfo.firstTForbit, i));
+
+      if ((mLastTF != -1) && (mTFinfo.tfCounter <= mLastTF)) {
+        if ((mTFinfo.tfCounter >= mFirstTF)) {
+          // count number of TFs to process
+          ++countTFs;
+        } else {
+          // keep track of first entry in the chain
+          ++mChainEntry;
+        }
+      }
     }
     mChain->SetBranchStatus("*", 1);
     std::sort(mIndices.begin(), mIndices.end());
-    if (checkEOS(pc)) {
-      return;
-    }
+    mLastTF = countTFs;
+    LOGP(info, "Processing {} TFs out ouf {} TFs with first index in chain {}", mLastTF, mChain->GetEntries(), mChainEntry);
+  }
+
+  if (mChainEntry >= mChain->GetEntries() || (mLastTF != -1 && (pc.services().get<o2::framework::TimingInfo>().tfCounter >= mLastTF))) {
+    LOGP(info, "Quit");
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
   }
 
   LOGP(debug, "Processing entry {}", mIndices[mChainEntry].second);
@@ -132,8 +156,6 @@ void IntegratedClusterReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTPCC()}, mTPCC);
   usleep(100);
-
-  checkEOS(pc);
 }
 
 void IntegratedClusterReader::connectTrees()
@@ -146,16 +168,6 @@ void IntegratedClusterReader::connectTrees()
   assert(mChain->GetEntries());
   mChain->SetBranchAddress("ITPCC", &mTPCCPtr);
   mChain->SetBranchAddress("tfID", &mTFinfoPtr);
-}
-
-bool IntegratedClusterReader::checkEOS(ProcessingContext& pc)
-{
-  if (mChainEntry >= mChain->GetEntries()) {
-    pc.services().get<ControlService>().endOfStream();
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    return true;
-  }
-  return false;
 }
 
 DataProcessorSpec getTPCIntegrateClusterReaderSpec()
@@ -172,6 +184,8 @@ DataProcessorSpec getTPCIntegrateClusterReaderSpec()
       {"tpc-currents-infiles", VariantType::String, "o2currents_tpc.root", {"comma-separated list of input files or .txt file containing list of input files"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"dont-check-file-access", VariantType::Bool, false, {"Deactivate check if all files are accessible before adding them to the list of files"}},
+      {"firstTF", VariantType::Int, 0, {"First TF to process"}},
+      {"lastTF", VariantType::Int, -1, {"Last TF to process"}},
     }};
 }
 
