@@ -15,13 +15,17 @@
 #include "TRDPID/ML.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/HelperMethods.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/TrackParametrization.h"
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/Logger.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DetectorsBase/Propagator.h"
 
 #include <fmt/format.h>
 #include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
@@ -42,17 +46,10 @@ namespace trd
 
 void ML::init(o2::framework::ProcessingContext& pc)
 {
-  LOG(info) << "Finializing model initialization";
+  LOG(info) << "Initializating pid policy";
 
   // fetch the onnx model from the ccdb
-  std::string model_data;
-  switch (mPolicy) {
-    case PIDPolicy::Test:
-      model_data = fetchModelCCDB(pc, "mlTest");
-      break;
-    default:
-      throw std::runtime_error("Could not load ML model from ccdb!");
-  }
+  std::string model_data{fetchModelCCDB(pc, getName().c_str())};
 
   // disable telemtry events
   mEnv.DisableTelemetryEvents();
@@ -89,37 +86,10 @@ void ML::init(o2::framework::ProcessingContext& pc)
   LOG(info) << "Finalization done";
 }
 
-PIDValue ML::process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPC)
-{
-  if (isTPC) {
-    return calculate<true>(trk, input);
-  } else {
-    return calculate<false>(trk, input);
-  }
-}
-
-std::string ML::fetchModelCCDB(o2::framework::ProcessingContext& pc, const char* binding) const
-{
-  auto policyInt = static_cast<unsigned int>(mPolicy);
-  // sanity checks
-  auto ref = pc.inputs().get(binding);
-  if (!ref.spec || !ref.payload) {
-    throw std::runtime_error(fmt::format("A ML model({}) with '{}' as binding does not exist!", PIDPolicyEnum[policyInt], binding));
-  }
-
-  // the model is in binary string format
-  auto model_data = pc.inputs().get<std::string>(binding);
-  if (model_data.empty()) {
-    throw std::runtime_error(fmt::format("Did not get any data for {} model({}) from ccdb!", binding, PIDPolicyEnum[policyInt]));
-  }
-  return model_data;
-}
-
-template <bool isTPCTRD>
-PIDValue ML::calculate(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks)
+float ML::process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& inputTracks, bool isTPCTRD) const
 {
   try {
-    auto input = prepareModelInput<isTPCTRD>(trkTRD, inputTracks);
+    auto input = prepareModelInput(trk, inputTracks);
     // create memory mapping to vector above
     auto inputTensor = Ort::Experimental::Value::CreateTensor<float>(input.data(), input.size(),
                                                                      {static_cast<int64_t>(input.size()) / mInputShapes[0][1], mInputShapes[0][1]});
@@ -135,52 +105,54 @@ PIDValue ML::calculate(const TrackTRD& trkTRD, const o2::globaltracking::RecoCon
   }
 }
 
-template <bool isTPCTRD>
-std::vector<float> ML::prepareModelInput(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks)
+std::string ML::fetchModelCCDB(o2::framework::ProcessingContext& pc, const char* binding) const noexcept
 {
-  // input is [slope0, slope1, ..., slope5, charge0.0, charge0.1, charge0.2, charge1.0, ..., charge5.2, p]
+  // sanity checks
+  auto ref = pc.inputs().get(binding);
+  if (!ref.spec || !ref.payload) {
+    throw std::runtime_error(fmt::format("A ML model with '{}' as binding does not exist!", binding));
+  }
+
+  // the model is in binary string format
+  auto model_data = pc.inputs().get<std::string>(binding);
+  if (model_data.empty()) {
+    throw std::runtime_error(fmt::format("Did not get any data for {} model from ccdb!", binding));
+  }
+  return model_data;
+}
+
+std::vector<float> ML::prepareModelInput(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks) const noexcept
+{
+  // input is [charge0.0, charge0.1, charge0.2, charge1.0, ..., charge5.2, p0, ..., p5]
   std::vector<float> in(mInputShapes[0][1]);
   const auto& trackletsRaw = inputTracks.getTRDTracklets();
-  // std::fill(in.begin(), in.end(), 1.f);
-  auto id = trkTRD.getRefGlobalTrackId();
-  in.back() = trkTRD.getP();
-  // const auto& trkSeed = [&]() {
-  //   if constexpr (isTPCTRD) {
-  //     return mTracksInTPCTRD[id].getParamOut();
-  //   } else {
-  //     return mTracksInITSTPCTRD[id].getParamOut();
-  //   }
-  // };
-
-  for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
+  auto trk = trdTRD;
+  for (int iLayer = 0; iLayer < constants::NLAYER; ++iLayer) {
     int trkltId = trkTRD.getTrackletIndex(iLayer);
     if (trkltId < 0) {
-      /// easy fill with default values e.g. charge=-1., slope=0.
-      in[iLayer] = 0.f;
-      in[NLAYER + iLayer * NCHARGES + 0] = -1.f;
-      in[NLAYER + iLayer * NCHARGES + 1] = -1.f;
-      in[NLAYER + iLayer * NCHARGES + 2] = -1.f;
+      // no tracklet attached, fill with default values e.g. charge=-1.,
+      in[iLayer * NCHARGES + 0] = -1.f;
+      in[iLayer * NCHARGES + 1] = -1.f;
+      in[iLayer * NCHARGES + 2] = -1.f;
+      in[18 + iLayer] = -1.f;
       continue;
+    } else {
+      const auto xCalib = input.getTRDCalibratedTracklets()[trkTRD.getTrackletIndex(iLayer)].getX();
+      auto bz = o2::base::Propagator::Instance()->getNominalBz();
+      const auto tgl = trk.getTgl();
+      const auto snp = trk.getSnpAt(o2::math_utils::sector2Angle(HelperMethods::getSector(input.getTRDTracklets()[trkIn.getTrackletIndex(iLayer)].getDetector())), xCalib, bz);
+      const auto& trklt = trackletsRaw[trkltId];
+      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trkTRD, input, snp, tgl); // correct charges
+      in[iLayer * NCHARGES + 0] = q0;
+      in[iLayer * NCHARGES + 1] = q1;
+      in[iLayer * NCHARGES + 2] = q2;
+      in[18 + iLayer] = trk.getP();
     }
-
-    auto trklt = trackletsRaw[trkltId];
-    auto slope = trackletsRaw[trkltId].getSlopeBinSigned();
-    auto q0 = trackletsRaw[trkltId].getQ0();
-    auto q1 = trackletsRaw[trkltId].getQ1();
-    auto q2 = trackletsRaw[trkltId].getQ2();
-
-    // TODO handel padrow crossing e.g. z-row merging
-
-    in[iLayer] = slope;
-    in[NLAYER + iLayer * 3 + 0] = q0;
-    in[NLAYER + iLayer * 3 + 1] = q1;
-    in[NLAYER + iLayer * 3 + 2] = q2;
   }
 
   return in;
 }
 
-// pretty prints a shape dimension vector
 std::string ML::printShape(const std::vector<int64_t>& v) const noexcept
 {
   std::stringstream ss("");
@@ -189,13 +161,6 @@ std::string ML::printShape(const std::vector<int64_t>& v) const noexcept
   }
   ss << v[v.size() - 1];
   return ss.str();
-}
-
-/// XGBoost export is like this:
-/// (label|eprob, 1-eprob).
-PIDValue XGB::getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept
-{
-  return tensorData[1].GetTensorData<PIDValue>()[1];
 }
 
 } // namespace trd
