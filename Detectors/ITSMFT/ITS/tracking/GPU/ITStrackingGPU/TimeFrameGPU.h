@@ -188,7 +188,6 @@ class TimeFrameGPU : public TimeFrame
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
 
  private:
-  bool mDeviceInitialised = false;
   bool mHostRegistered = false;
   std::vector<GpuTimeFrameChunk<nLayers>> mMemChunks;
   TimeFrameGPUParameters mGpuParams;
