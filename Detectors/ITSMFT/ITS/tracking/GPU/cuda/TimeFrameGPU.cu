@@ -63,7 +63,6 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mFoundCellsDevice));
   }
-  mAllocated = false;
   LOGP(info, "Destroying GpuTimeFrameChunk");
 }
 
@@ -336,7 +335,6 @@ void TimeFrameGPU<nLayers>::initDevice(const int chunks,
                                        const int maxLayers)
 {
   if (mFirstInit) {
-
     mGpuParams = gpuParam;
     if (mGpuParams.maxGPUMemoryGB < 0) {
       // Adaptive to available memory, hungry mode
@@ -365,28 +363,14 @@ void TimeFrameGPU<nLayers>::initDevice(const int chunks,
     LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuParams) / MB);
     LOGP(info, "Allocating {} chunks of {} rofs capacity each.", chunks, GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB));
 
-    initDeviceChunks(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), maxLayers);
+    for (int iChunk{0}; iChunk < mMemChunks.size(); ++iChunk) {
+      mMemChunks[iChunk].allocate(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuStreams[iChunk]);
+    }
     mFirstInit = false;
   }
   for (auto iLayer{0}; iLayer < maxLayers; ++iLayer) {
     checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROframesClustersDevice[iLayer]), mROframesClusters[iLayer].size() * sizeof(int)));
     checkGPUError(cudaMemcpy(mROframesClustersDevice[iLayer], mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice));
-  }
-}
-
-template <int nLayers>
-void TimeFrameGPU<nLayers>::initDeviceChunks(const int nRof, const int maxLayers)
-{
-  if (mDeviceInitialised) {
-    return;
-  } else {
-    mDeviceInitialised = true;
-  }
-  if (!mMemChunks.size()) {
-    LOGP(fatal, "gpu-tracking: TimeFrame GPU chunks not created");
-  }
-  for (int iChunk{0}; iChunk < mMemChunks.size(); ++iChunk) {
-    mMemChunks[iChunk].allocate(nRof, mGpuStreams[iChunk]);
   }
 }
 
