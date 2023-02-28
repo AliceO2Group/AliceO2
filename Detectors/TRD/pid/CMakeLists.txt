@@ -31,12 +31,14 @@ if(ONNXRuntime_FOUND)
                             HEADERS include/TRDPID/PIDBase.h
                                     include/TRDPID/PIDParameters.h
                                     include/TRDPID/ML.h
+                                    include/TRDPID/LQND.h
                                     include/TRDPID/Dummy.h)
 else()
   o2_target_root_dictionary(TRDPID
                             HEADERS include/TRDPID/PIDBase.h
                                     include/TRDPID/PIDParameters.h
                                     include/TRDPID/Dummy.h
+                                    include/TRDPID/LQND.h
                             LINKDEF src/TRDPIDNoMLLinkDef.h)
 endif()
 
