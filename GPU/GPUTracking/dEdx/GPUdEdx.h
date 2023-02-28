@@ -87,7 +87,6 @@ class GPUdEdx
   unsigned char mCount = 0;
   unsigned char mLastROC = 255;
   char mNSubThresh = 0;
-  o2::utils::DebugStreamer mStreamer;
 };
 
 GPUdi() void GPUdEdx::checkSubThresh(int roc)
@@ -177,45 +176,32 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     mSubThreshMinMax = qmax;
   }
 
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
-    mStreamer.setStreamer("debug_dedx", "UPDATE");
-    int regionTmp = region;
-    float absRelPadTmp = absRelPad;
-    float thresholdTmp = threshold;
-    float qMaxTopologyCorrTmp = qMaxTopologyCorr;
-    float qTotTopologyCorrTmp = qTotTopologyCorr;
-    float qMaxResidualCorrTmp = qMaxResidualCorr;
-    float qTotResidualCorrTmp = qTotResidualCorr;
-    float residualGainMapGainTmp = residualGainMapGain;
-    float fullGainMapGainTmp = fullGainMapGain;
-    float tanThetaTmp = tanTheta;
+  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
     float padlx = param.tpcGeometry.Row2X(padRow);
     float padly = param.tpcGeometry.LinearPad2Y(slice, padRow, padPos);
-
-    mStreamer.getStreamer() << mStreamer.getUniqueTreeName("tree").data()
-                            << "qTot=" << mChargeTot[mCount - 1]
-                            << "qMax=" << mChargeMax[mCount - 1]
-                            << "region=" << regionTmp
-                            << "padRow=" << padRow
-                            << "sector=" << slice
-                            << "lx=" << padlx
-                            << "ly=" << padly
-                            << "tanTheta=" << tanThetaTmp
-                            << "trackTgl=" << trackTgl
-                            << "sinPhi=" << trackSnp
-                            << "z=" << z
-                            << "absRelPad=" << absRelPadTmp
-                            << "relTime=" << relTime
-                            << "threshold=" << thresholdTmp
-                            << "qTotIn=" << qTotIn
-                            << "qMaxTopologyCorr=" << qMaxTopologyCorrTmp
-                            << "qTotTopologyCorr=" << qTotTopologyCorrTmp
-                            << "qMaxResidualCorr=" << qMaxResidualCorrTmp
-                            << "qTotResidualCorr=" << qTotResidualCorrTmp
-                            << "residualGainMapGain=" << residualGainMapGainTmp
-                            << "fullGainMapGain=" << fullGainMapGainTmp
-                            << "\n";
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_dedx", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_dedx").data()
+                                                                              << "qTot=" << mChargeTot[mCount - 1]
+                                                                              << "qMax=" << mChargeMax[mCount - 1]
+                                                                              << "region=" << o2::utils::DebugStreamer::constcast(region)
+                                                                              << "padRow=" << padRow
+                                                                              << "sector=" << slice
+                                                                              << "lx=" << padlx
+                                                                              << "ly=" << padly
+                                                                              << "tanTheta=" << o2::utils::DebugStreamer::constcast(tanTheta)
+                                                                              << "trackTgl=" << trackTgl
+                                                                              << "sinPhi=" << trackSnp
+                                                                              << "z=" << z
+                                                                              << "absRelPad=" << o2::utils::DebugStreamer::constcast(absRelPad)
+                                                                              << "relTime=" << relTime
+                                                                              << "threshold=" << o2::utils::DebugStreamer::constcast(threshold)
+                                                                              << "qTotIn=" << qTotIn
+                                                                              << "qMaxTopologyCorr=" << o2::utils::DebugStreamer::constcast(qMaxTopologyCorr)
+                                                                              << "qTotTopologyCorr=" << o2::utils::DebugStreamer::constcast(qTotTopologyCorr)
+                                                                              << "qMaxResidualCorr=" << o2::utils::DebugStreamer::constcast(qMaxResidualCorr)
+                                                                              << "qTotResidualCorr=" << o2::utils::DebugStreamer::constcast(qTotResidualCorr)
+                                                                              << "residualGainMapGain=" << o2::utils::DebugStreamer::constcast(residualGainMapGain)
+                                                                              << "fullGainMapGain=" << o2::utils::DebugStreamer::constcast(fullGainMapGain)
+                                                                              << "\n";
   }
 }
 

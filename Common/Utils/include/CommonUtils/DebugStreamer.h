@@ -36,6 +36,16 @@ enum StreamFlags {
   streamFastTransform = 1 << 3, ///< stream tpc fast transform
   streamITCorr = 1 << 4,        ///< stream ion tail correction information
   streamDistortionsSC = 1 << 5, ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
+  streamUpdateTrack = 1 << 6,   ///< stream update track informations
+  streamRejectCluster = 1 << 7, ///< stream cluster rejection informations
+  streamFlagsCount = 8          ///< total number of streamers
+};
+
+enum SamplingTypes {
+  sampleAll = 0,      ///< use all data (default)
+  sampleRandom = 1,   ///< sample randomly every n points
+  sampleID = 2,       ///< sample every n IDs (per example track)
+  sampleIDGlobal = 3, ///< in case different streamers have access to the same IDs use this gloabl ID
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
@@ -49,7 +59,10 @@ inline StreamFlags operator~(StreamFlags a) { return static_cast<StreamFlags>(~s
 
 /// struct for setting and storing the streamer level
 struct ParameterDebugStreamer : public o2::conf::ConfigurableParamHelper<ParameterDebugStreamer> {
-  StreamFlags StreamLevel{}; /// flag to store what will be streamed
+  int streamLevel{};                                                                              /// flag to store what will be streamed
+  SamplingTypes samplingType[StreamFlags::streamFlagsCount]{};                                    ///< sampling type for each streamer (default = SamplingTypes::sampleAll)
+  float samplingFrequency[StreamFlags::streamFlagsCount]{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1}; ///< frequency which is used for the sampling (0.1 -> 10% is written if sampling is used)
+  int sampleIDGlobal[StreamFlags::streamFlagsCount]{};                                            ///< storage of reference streamer used for sampleIDFromOtherStreamer
   O2ParamDef(ParameterDebugStreamer, "DebugStreamerParam");
 };
 
@@ -64,6 +77,12 @@ class DebugStreamer
  public:
   /// default constructor
   DebugStreamer();
+
+  static DebugStreamer* instance()
+  {
+    static DebugStreamer streamer;
+    return &streamer;
+  }
 
   /// set the streamer i.e. create the output file and set up the streamer
   /// \param outFile output file name without .root suffix
@@ -86,12 +105,21 @@ class DebugStreamer
   /// \param id unique id of streamer
   o2::utils::TreeStreamRedirector& getStreamer(const size_t id = getCPUID()) { return *(mTreeStreamer[id]); }
 
+  /// \return returns streamer object for given id
+  /// \param outFile output file name without .root suffix
+  /// \param option RECREATE or UPDATE
+  /// \param id unique id of streamer
+  o2::utils::TreeStreamRedirector& getStreamer(const char* outFile, const char* option, const size_t id = getCPUID());
+
   /// \return returns streamer object
   /// \param id unique id of streamer
   o2::utils::TreeStreamRedirector* getStreamerPtr(const size_t id = getCPUID()) const;
 
   /// \return returns streamer level i.e. what will be written to file
-  static StreamFlags getStreamFlags() { return ParameterDebugStreamer::Instance().StreamLevel; }
+  static StreamFlags getStreamFlags() { return static_cast<StreamFlags>(ParameterDebugStreamer::Instance().streamLevel); }
+
+  /// \return returns sampling type and sampling frequency for given streamer
+  static std::pair<SamplingTypes, float> getSamplingTypeFrequency(const StreamFlags streamFlag);
 
   ///< return returns unique ID for each CPU thread to give each thread an own output file
   static size_t getCPUID();
@@ -106,7 +134,7 @@ class DebugStreamer
   std::string getUniqueTreeName(const char* tree, const size_t id = getCPUID()) const;
 
   /// set directly the debug level
-  static void setStreamFlags(const StreamFlags streamFlags) { o2::conf::ConfigurableParam::setValue("DebugStreamerParam", "StreamLevel", static_cast<int>(streamFlags)); }
+  static void setStreamFlags(const StreamFlags streamFlags) { o2::conf::ConfigurableParam::setValue("DebugStreamerParam", "streamLevel", static_cast<int>(streamFlags)); }
 
   /// enable specific streamer flag
   static void enableStream(const StreamFlags streamFlag);
@@ -115,13 +143,24 @@ class DebugStreamer
   static void disableStream(const StreamFlags streamFlag);
 
   /// check if streamer for specific flag is enabled
-  static bool checkStream(const StreamFlags streamFlag) { return ((getStreamFlags() & streamFlag) == streamFlag); }
+  /// \param samplingID optional index of the data which is streamed in to perform sampling on this index
+  static bool checkStream(const StreamFlags streamFlag, const size_t samplingID = -1);
 
   /// merge trees with the same content structure, but different naming
   /// \param inpFile input file containing several trees with the same content
   /// \param outFile contains the merged tree from the input file in one branch
   /// \param option setting which is used for the merging
   static void mergeTrees(const char* inpFile, const char* outFile, const char* option = "fast");
+
+  /// \return returns integer index for given streamer flag
+  static int getIndex(const StreamFlags streamFlag);
+
+  /// \return return non const reference to const object
+  template <typename Type>
+  static Type& constcast(const Type& obj)
+  {
+    return (*const_cast<Type*>(&obj));
+  }
 
  private:
   using StreamersPerFlag = tbb::concurrent_unordered_map<size_t, std::unique_ptr<o2::utils::TreeStreamRedirector>>;
@@ -136,7 +175,9 @@ class DebugStreamer
   GPUd() void setStreamer(Args... args){};
 
   /// always false for GPU
-  GPUd() static bool checkStream(const StreamFlags) { return false; }
+  GPUd() static bool checkStream(const StreamFlags, const int samplingID = 0) { return false; }
+
+  GPUd() static DebugStreamer* instance() { return nullptr; }
 
   class StreamerDummy
   {
@@ -151,6 +192,19 @@ class DebugStreamer
   };
 
   GPUd() StreamerDummy getStreamer(const int id = 0) const { return StreamerDummy{}; };
+
+  template <typename Type>
+  GPUd() static Type& constcast(Type& obj)
+  {
+    return obj;
+  }
+
+  /// empty for GPU
+  template <typename... Args>
+  GPUd() StreamerDummy getStreamer(Args... args) const
+  {
+    return StreamerDummy{};
+  };
 
   template <typename Type>
   GPUd() StreamerDummy getUniqueTreeName(Type, const int id = 0) const
