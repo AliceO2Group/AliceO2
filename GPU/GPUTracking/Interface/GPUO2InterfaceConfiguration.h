@@ -39,6 +39,7 @@
 class TH1F;
 class TH1D;
 class TH2F;
+class TGraphAsymmErrors;
 
 namespace o2
 {
@@ -57,6 +58,7 @@ struct GPUInterfaceQAOutputs {
   const std::vector<TH1F>* hist1 = nullptr;
   const std::vector<TH2F>* hist2 = nullptr;
   const std::vector<TH1D>* hist3 = nullptr;
+  const std::vector<TGraphAsymmErrors>* hist4 = nullptr;
   bool newQAHistsCreated = false;
 };
 

@@ -20,6 +20,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TH1D.h"
+#include "TGraphAsymmErrors.h"
 #include "TCanvas.h"
 #include "TPad.h"
 #include "TLegend.h"
@@ -279,6 +280,11 @@ auto GPUQA::getHistArray<TH1D>()
 {
   return std::make_pair(mHist1Dd, &mHist1Dd_pos);
 }
+template <>
+auto GPUQA::getHistArray<TGraphAsymmErrors>()
+{
+  return std::make_pair(mHistGraph, &mHistGraph_pos);
+}
 template <class T, typename... Args>
 void GPUQA::createHist(T*& h, const char* name, Args... args)
 {
@@ -293,7 +299,12 @@ void GPUQA::createHist(T*& h, const char* name, Args... args)
       throw std::runtime_error("Incoming histogram has incorrect name");
     }
   } else {
-    p.first->emplace_back(name, args...);
+    if constexpr (std::is_same_v<T, TGraphAsymmErrors>) {
+      p.first->emplace_back();
+      p.first->back().SetName(name);
+    } else {
+      p.first->emplace_back(name, args...);
+    }
   }
   h = &((*p.first)[p.second->size()]);
   p.second->emplace_back(&h);
@@ -331,6 +342,7 @@ GPUQA::~GPUQA()
     delete mHist1D;
     delete mHist2D;
     delete mHist1Dd;
+    delete mHistGraph;
   }
   clearGarbagageCollector(); // Needed to guarantee correct order for ROOT ownership
 }
@@ -346,7 +358,8 @@ bool GPUQA::clusterRemovable(int attach, bool prot) const
   return (!unattached && !physics && !protect);
 }
 
-void GPUQA::SetAxisSize(TH1F* e)
+template <class T>
+void GPUQA::SetAxisSize(T* e)
 {
   e->GetYaxis()->SetTitleOffset(1.0);
   e->GetYaxis()->SetTitleSize(0.045);
@@ -429,18 +442,18 @@ int GPUQA::InitQACreateHistograms()
       for (int j = 0; j < 2; j++) {
         for (int k = 0; k < 2; k++) {
           for (int l = 0; l < 5; l++) {
-            for (int m = 0; m < 2; m++) {
-              snprintf(name, 2048, "%s%s%s%sVs%s", m ? "eff" : "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
-              if (l == 4) {
-                std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
-                createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], binsPt.get());
-              } else {
-                createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
-              }
-              if (!mHaveExternalHists) {
-                mEff[i][j][k][l][m]->Sumw2();
-              }
+            snprintf(name, 2048, "%s%s%s%sVs%s", "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
+            if (l == 4) {
+              std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+              createHist(mEff[i][j][k][l], name, name, AXIS_BINS[l], binsPt.get());
+            } else {
+              createHist(mEff[i][j][k][l], name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
             }
+            if (!mHaveExternalHists) {
+              mEff[i][j][k][l]->Sumw2();
+            }
+            strcat(name, "_eff");
+            createHist(mEffResult[i][j][k][l], name);
           }
         }
       }
@@ -535,11 +548,14 @@ int GPUQA::InitQACreateHistograms()
   for (unsigned int i = 0; i < mHist1Dd->size(); i++) {
     *mHist1Dd_pos[i] = &(*mHist1Dd)[i];
   }
+  for (unsigned int i = 0; i < mHistGraph->size(); i++) {
+    *mHistGraph_pos[i] = &(*mHistGraph)[i];
+  }
 
   return 0;
 }
 
-int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, int tasks)
+int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, std::vector<TGraphAsymmErrors>& i4, int tasks)
 {
   if (tasks == -1) {
     tasks = taskDefaultPostprocess;
@@ -550,9 +566,11 @@ int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vec
   mHist1D = &i1;
   mHist2D = &i2;
   mHist1Dd = &i3;
+  mHistGraph = &i4;
   mHist1D_pos.clear();
   mHist2D_pos.clear();
   mHist1Dd_pos.clear();
+  mHistGraph_pos.clear();
   mHaveExternalHists = true;
   mQATasks = tasks;
   if (InitQACreateHistograms()) {
@@ -734,6 +752,7 @@ int GPUQA::InitQA(int tasks)
   mHist1D = new std::vector<TH1F>;
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
+  mHistGraph = new std::vector<TGraphAsymmErrors>;
   mQATasks = tasks;
 
   if (mTracking->GetProcessingSettings().qcRunFraction != 100.f && mQATasks != taskClusterCounts) {
@@ -1200,7 +1219,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
                 float pos = l == 0 ? localY : l == 1 ? info.z : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
-                mEff[j][k][!info.prim][l][0]->Fill(pos, val);
+                mEff[j][k][!info.prim][l]->Fill(pos, val);
               }
             }
           }
@@ -1818,6 +1837,9 @@ void GPUQA::resetHists()
   for (auto& h : *mHist1Dd) {
     h.Reset();
   }
+  for (auto& h : *mHistGraph) {
+    h = TGraphAsymmErrors();
+  }
   mClusterCounts = counts_t();
 }
 
@@ -2007,9 +2029,9 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   }
 
   if (mConfig.enableLocalOutput && !mConfig.inputHistogramsOnly && (mQATasks & taskTrackingEff)) {
-    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
-            mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
-            (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
+    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0]->GetEntries(), (int)mEff[3][1][0][3]->GetEntries(), (int)mEff[3][1][0][4]->GetEntries(),
+            mEff[0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0]->GetEntries(), (int)mEff[3][1][1][3]->GetEntries(),
+            (int)mEff[3][1][1][4]->GetEntries(), mEff[0][0][1][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0]->GetSumOfWeights()), mEff[0][1][1][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
             (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
   }
 
@@ -2023,33 +2045,33 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         for (int j = 0; j < 4; j++) {
           if (mConfig.enableLocalOutput || mConfig.shipToQCAsCanvas) {
             mPEff[ii][j]->cd();
+            if (ii == 5) {
+              mPEff[ii][j]->SetLogx();
+            }
           }
           for (int l = 0; l < 3; l++) {
             if (k == 0 && mConfig.inputHistogramsOnly == 0 && ii != 5) {
               if (l == 0) {
                 // Divide eff, compute all for fake/clone
-                mEff[0][j / 2][j % 2][i][1]->Divide(mEff[l][j / 2][j % 2][i][0], mEff[3][j / 2][j % 2][i][0], 1, 1, "B");
-                mEff[3][j / 2][j % 2][i][1]->Reset(); // Sum up rec + clone + fake for clone/fake rate
-                mEff[3][j / 2][j % 2][i][1]->Add(mEff[0][j / 2][j % 2][i][0]);
-                mEff[3][j / 2][j % 2][i][1]->Add(mEff[1][j / 2][j % 2][i][0]);
-                mEff[3][j / 2][j % 2][i][1]->Add(mEff[2][j / 2][j % 2][i][0]);
+                mEffResult[0][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
+                mEff[3][j / 2][j % 2][i]->Reset(); // Sum up rec + clone + fake for clone/fake rate
+                mEff[3][j / 2][j % 2][i]->Add(mEff[0][j / 2][j % 2][i]);
+                mEff[3][j / 2][j % 2][i]->Add(mEff[1][j / 2][j % 2][i]);
+                mEff[3][j / 2][j % 2][i]->Add(mEff[2][j / 2][j % 2][i]);
               } else {
                 // Divide fake/clone
-                mEff[l][j / 2][j % 2][i][1]->Divide(mEff[l][j / 2][j % 2][i][0], mEff[3][j / 2][j % 2][i][1], 1, 1, "B");
+                mEffResult[l][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
               }
             }
 
-            TH1F* e = mEff[l][j / 2][j % 2][i][1];
+            TGraphAsymmErrors* e = mEffResult[l][j / 2][j % 2][i];
 
-            e->SetStats(kFALSE);
-            e->SetMaximum(1.02);
-            e->SetMinimum(-0.02);
             if (!mConfig.inputHistogramsOnly && k == 0) {
               if (tout) {
-                mEff[l][j / 2][j % 2][i][0]->Write();
+                mEff[l][j / 2][j % 2][i]->Write();
                 e->Write();
                 if (l == 2) {
-                  mEff[3][j / 2][j % 2][i][0]->Write(); // Store also all histogram!
+                  mEff[3][j / 2][j % 2][i]->Write(); // Store also all histogram!
                 }
               }
             } else if (GetHist(e, tin, k, nNewInput) == nullptr) {
@@ -2070,14 +2092,12 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             }
             e->SetMarkerColor(kBlack);
             e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
-            e->Draw(k || l ? "same" : "");
+            e->GetHistogram()->GetYaxis()->SetRangeUser(-0.02, 1.02);
+            e->Draw(k || l ? "same P" : "AP");
             if (j == 0) {
               GetName(fname, k);
               snprintf(name, 2048, "%s%s", fname, EFF_NAMES[l]);
               mLEff[ii]->AddEntry(e, name, "l");
-            }
-            if (ii == 5) {
-              mPEff[ii][j]->SetLogx();
             }
           }
           if (!mConfig.enableLocalOutput && !mConfig.shipToQCAsCanvas) {
