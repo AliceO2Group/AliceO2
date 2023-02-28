@@ -23,6 +23,7 @@
 class TH1F;
 class TH2F;
 class TH1D;
+class TGraphAsymmErrors;
 
 //o2 includes
 #include "DataFormatsTPC/Defs.h"
@@ -72,12 +73,14 @@ class Tracking
 
   void processTracks(const std::vector<o2::tpc::TrackTPC>* tracks, const std::vector<o2::MCCompLabel>* tracksMC, const o2::tpc::ClusterNativeAccess* clNative, TObjArray* out = nullptr);
   int postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out); // Inputs are modified, thus must not be const
+  int postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out); // Inputs are modified, thus must not be const
 
   /// Reset all histograms
   void resetHistograms();
 
   /// get histograms
   void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3) const;
+  void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3, const std::vector<TGraphAsymmErrors>*& h4) const;
 
  private:
   std::unique_ptr<o2::gpu::GPUO2InterfaceConfiguration> mQAConfig; //!
