@@ -19,5 +19,6 @@
 #pragma link C++ class o2::trd::Dummy + ;
 #pragma link C++ class o2::trd::TRDPIDParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDPIDParams> + ;
+#pragma link C++ class std::vector < TGraph> + ;
 
 #endif

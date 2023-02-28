@@ -120,8 +120,12 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     /// Get the PID model if requested
     if (mWithPID) {
-      mBase = getTRDPIDBase(mPolicy);
+      mBase = getTRDPIDPolicy(mPolicy);
       mBase->init(pc);
+
+      // calibration
+      auto localGainPtr = pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors");
+      mBase->setLocalGainFactors(localGain);
     }
   }
 
@@ -835,21 +839,30 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
 
   // Request PID policy data
   if (withPID) {
+    // request policy
     switch (policy) {
       case PIDPolicy::LQ1D:
-        // inputs.emplace_back("LQ1D", "TRD", "LQ1D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ1D"));
+        inputs.emplace_back("lq1dlut", "TRD", "LQ1D", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID/LQ1D"));
         break;
       case PIDPolicy::LQ3D:
-        // inputs.emplace_back("LQ3D", "TRD", "LQ3D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ3D"));
+        inputs.emplace_back("lq3dlut", "TRD", "LQ3D", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID/LQ3D"));
         break;
+#ifdef TRDPID_WITH_ONNX
       case PIDPolicy::Test:
-        inputs.emplace_back("mlTest", "TRD", "MLTEST", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/pid/xgb1"));
+        inputs.emplace_back("mlTest", "TRD", "MLTEST", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID_new/xgb"));
         break;
+      case PIDPolicy::XGB:
+        inputs.emplace_back("xgb", "TRD", "XGB", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID_new/xgb"));
+        break;
+      case PIDPolicy::PY:
+        inputs.emplace_back("py", "TRD", "py", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID_new/py"));
+        break;
+#endif
       case PIDPolicy::Dummy:
         break;
-      default:
-        throw std::runtime_error("Unable to load requested PID policy data!");
     }
+    // request calibration data
+    inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   }
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {

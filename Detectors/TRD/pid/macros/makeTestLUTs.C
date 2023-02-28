@@ -9,17 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+// ROOT header
+#include <TFile.h>
+#include <TGraph.h>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::trd::PIDBase + ;
-#pragma link C++ class o2::trd::ML + ;
-#pragma link C++ class o2::trd::Dummy + ;
-#pragma link C++ class o2::trd::TRDPIDParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDPIDParams> + ;
-#pragma link C++ class std::vector < TGraph> + ;
-
+#include <vector>
+#include <memory>
 #endif
+
+/// Generate very simple luts for testing
+void makeTestLUTs(int dim = 1)
+{
+  std::vector<TGraph> luts;
+  double x[4] = {0.0, 10, 70, 317};
+  double y[4] = {0.0, 0.0, 1.0, 1.0};
+  for (int i = 0; i < dim * 2; ++i) {
+    luts.emplace_back(4, x, y);
+  }
+
+  std::unique_ptr<TFile> outFile(TFile::Open("LQND_LUTS.root", "RECREATE"));
+  outFile->WriteObject(&luts, "luts");
+}

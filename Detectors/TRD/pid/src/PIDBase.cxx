@@ -14,31 +14,82 @@
 
 #include "TRDPID/PIDBase.h"
 #include "DataFormatsTRD/PID.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DetectorsBase/Propagator.h"
+#include "Framework/Logger.h"
+
 #ifdef TRDPID_WITH_ONNX
 #include "TRDPID/ML.h"
 #endif
+#include "TRDPID/LQND.h"
 #include "TRDPID/Dummy.h"
-#include "Framework/Logger.h"
-#include "fmt/format.h"
 
 namespace o2
 {
 namespace trd
 {
 
-std::unique_ptr<PIDBase> getTRDPIDBase(PIDPolicy policy)
+std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trkSeed, const o2::globaltracking::RecoContainer& input) const noexcept
 {
-  auto policyInt = static_cast<unsigned int>(policy);
-  LOG(info) << "Creating PID policy. Loading model " << PIDPolicyEnum[policyInt];
+  // propagate track
+  auto propagator = o2::base::Propagator::Instance();
+  auto trk = trkSeed;
+  const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(layer)].getX();
+  if (!propagator->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
+    LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", layer, trk.getPt(), trk.getX(), xCalib);
+    return {0.f, 0.f, 0.f};
+  }
+
+  // Check z-row merging needs to be performed to recover full charge information
+  if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) {  // tracklet needs correction
+    for (const auto& trklt : input.getTRDTracklets()) {            // search for nearby tracklet
+      if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
+        continue;
+      }
+
+      if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
+
+        // Add charge information
+        const auto [aQ0, aQ1, aQ2] = correctCharges(tracklet, trk);
+        const auto [bQ0, bQ1, bQ2] = correctCharges(tracklet, trk);
+        return {aQ0 + bQ0, aQ1 + bQ1, aQ2 + bQ2};
+      }
+    }
+  }
+
+  return correctCharges(tracklet, trk);
+}
+
+std::array<float, constants::NCHARGES> PIDBase::correctCharges(const Tracklet64& trklt, const TrackTRD& trk) const noexcept
+{
+  auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) + (1.f + trk.getSnp()));
+  auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
+  const float correction = mLocalGain->getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
+  return {
+    trklt.getQ0() / correction,
+    trklt.getQ1() / correction,
+    trklt.getQ2() / correction,
+  };
+}
+
+std::unique_ptr<PIDBase> getTRDPIDPolicy(PIDPolicy policy)
+{
+  LOG(info) << "Creating PID policy. Loading model " << policy;
   switch (policy) {
-#ifdef TRDPID_WITH_ONNX
+    case PIDPolicy::LQ1D:
+      return std::make_unique<LQ1D>(PIDPolicy::LQ1D);
+    case PIDPolicy::LQ3D:
+      return std::make_unique<LQ3D>(PIDPolicy::LQ3D);
+#ifdef TRDPID_WITH_ONNX // Add all policies that use ONNX in this ifdef
     case PIDPolicy::Test:
       return std::make_unique<XGB>(PIDPolicy::Test);
+    case PIDPolicy::XGB:
+      return std::make_unique<XGB>(PIDPolicy::XGB);
+    case PIDPolicy::PY:
+      return std::make_unique<PY>(PIDPolicy::PY);
 #endif
     case PIDPolicy::Dummy:
       return std::make_unique<Dummy>(PIDPolicy::Dummy);
-    default:
-      throw std::invalid_argument(fmt::format("Cannot create this PID policy {}({})", PIDPolicyEnum[policyInt], policyInt));
   }
   return nullptr; // cannot be reached
 }
