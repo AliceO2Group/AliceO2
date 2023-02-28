@@ -1197,13 +1197,15 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
 
-// Joins with collisions (only for sparse ones)
-// NOTE: index table needs to be always last argument
 } // namespace aod
 namespace soa
 {
+// equivalences
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::McTrackLabels);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions, aod::McCollisionLabels);
+// Joins with collisions (only for sparse ones)
+// NOTE: index table needs to be always last argument
 extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa
