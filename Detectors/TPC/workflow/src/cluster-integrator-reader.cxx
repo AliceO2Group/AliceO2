@@ -19,7 +19,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes."}},
-  };
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -27,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   const auto time_lanes = cfgc.options().get<int>("time-lanes");
   WorkflowSpec wf;
   wf.emplace_back(timePipeline(o2::tpc::getTPCIntegrateClusterReaderSpec(), time_lanes));
