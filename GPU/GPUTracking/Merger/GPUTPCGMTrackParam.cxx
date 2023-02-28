@@ -308,6 +308,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         }
 #endif
         retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit);
+        if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
+          o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data() << "iTrk=" << iTrk << "ihit=" << ihit << "yy=" << yy << "zz=" << zz << "cluster=" << clusters[ihit] << "track=" << this << "rejectChi2=" << rejectChi2 << "interpolationhit=" << interpolation.hit[ihit] << "refit=" << o2::utils::DebugStreamer::constcast(refit) << "retVal=" << retVal << "\n";
+        }
       }
       // clang-format off
       CADEBUG(if (!CheckCov()) GPUError("INVALID COV AFTER UPDATE!!!"));
@@ -367,6 +370,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
     }
   }
   ConstrainSinPhi();
+
+  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, (size_t)this)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << outerParam << "track=" << this << "ihitStart=" << ihitStart << "\n";
+  }
 
   if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(mP[4] * merger->Param().qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
     return (false); // TODO: NTolerated should never become that large, check what is going wrong!

@@ -629,15 +629,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
   // flushing debug output to file
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    if (mFastTransform) {
-      mFastTransform->flushStreamer();
-    }
-    if (mFastTransformNew) {
-      mFastTransformNew->flushStreamer();
-    }
-  }
+  o2::utils::DebugStreamer::instance()->flush();
 
   // setting TPC calibration objects
   storeUpdatedCalibsTPCPtrs();
