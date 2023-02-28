@@ -59,11 +59,14 @@ class FITDataReaderDPLSpec : public Task
     if (lutPath != "") {
       RawReader_t::LookupTable_t::setLUTpath(lutPath);
     }
-    RawReader_t::LookupTable_t::Instance().printFullMap();
-    auto nReserveVecDig = ic.options().get<int>("reserve-vec-dig");
-    auto nReserveVecChData = ic.options().get<int>("reserve-vec-chdata");
-    auto nReserveVecBuffer = ic.options().get<int>("reserve-vec-buffer");
-    auto nReserveMapDig = ic.options().get<int>("reserve-map-dig");
+    //    if(!useDPLfetcherForCCDB) {
+    RawReader_t::LookupTable_t::Instance().printFullMap(); // Lets keep this option
+                                                           //    }
+    const auto nReserveVecDig = ic.options().get<int>("reserve-vec-dig");
+    const auto nReserveVecChData = ic.options().get<int>("reserve-vec-chdata");
+    const auto nReserveVecBuffer = ic.options().get<int>("reserve-vec-buffer");
+    const auto nReserveMapDig = ic.options().get<int>("reserve-map-dig");
+    const auto reserveOnlyFirst = ic.options().get<int>("reserve-only-first");
     if (nReserveVecDig || nReserveVecChData) {
       mRawReader.reserveVecDPL(nReserveVecDig, nReserveVecChData);
     }
@@ -96,25 +99,48 @@ class FITDataReaderDPLSpec : public Task
     }
     std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);
+    std::size_t cntDF0{0};        // number of pages with DataFormat=0, padded
+    std::size_t cntDF2{0};        // number of pages with DataFormat=2, no padding
+    std::size_t cntDF_unknown{0}; // number of pages with unknown DataFormat
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       // Proccessing each page
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
+      /*
+            if(rdhPtr->dataFormat == 0) {// padded
+              cntDF0++;
+            }
+            else if(rdhPtr->dataFormat == 2) {// no padding
+              cntDF2++;
+            }
+            else {
+              cntDF_unknown++;
+              continue;
+            }
+      */
+      mRawReader.process(true, payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
     }
     mRawReader.accumulateDigits();
     mRawReader.emptyTFprotection();
     mRawReader.makeSnapshot(pc);
     mRawReader.clear();
+    if ((cntDF0 > 0 && cntDF2 > 0) || cntDF_unknown > 0) {
+      LOG(error) << "Strange RDH::dataFormat in TF. Number of pages: DF=0 - " << cntDF0 << " , DF=2 - " << cntDF2 << " , DF=unknown - " << cntDF_unknown;
+    }
   }
 };
 
 template <typename RawReaderType>
-framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawReader, bool askSTFDist)
+framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawReader, bool askSTFDist, bool isSubSampled)
 {
   std::vector<OutputSpec> outputSpec;
   rawReader.configureOutputSpec(outputSpec);
-  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "RAWDATA"}, Lifetime::Optional}};
+  std::vector<InputSpec> inputSpec{};
+  if (isSubSampled) {
+    inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "SUB_RAWDATA"}, Lifetime::Optional}); // in case if one need to use DataSampler
+  } else {
+    inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "RAWDATA"}, Lifetime::Optional});
+  }
   if (askSTFDist) {
     inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
@@ -134,6 +160,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
      o2::framework::ConfigParamSpec{"reserve-vec-buffer", VariantType::Int, 0, {"Reserve memory for DataBlock vector, buffer for each page"}},
      o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}},
      o2::framework::ConfigParamSpec{"disable-empty-tf-protection", VariantType::Bool, false, {"Disable empty TF protection. In case of empty payload within TF, only dummy ChannelData object will be sent."}}}};
+  //     o2::framework::ConfigParamSpec{"reserve-only-first", VariantType::Bool, true, {"Any reservation command will be applied only for main reader"}},
 }
 
 } // namespace fit

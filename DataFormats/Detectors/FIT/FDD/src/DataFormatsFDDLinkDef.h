@@ -33,7 +33,6 @@
 #pragma link C++ class o2::fdd::ChannelDataFloat + ;
 #pragma link C++ class vector < o2::fdd::ChannelDataFloat> + ;
 
-#pragma link C++ class o2::fdd::RawEventData + ;
 #pragma link C++ class o2::fdd::EventHeader + ;
 #pragma link C++ class o2::fdd::EventData + ;
 #pragma link C++ class o2::fdd::TCMdata + ;

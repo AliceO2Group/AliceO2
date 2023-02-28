@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawWriterFDD.h Raw writer class for FDD
+// file RawWriterFDD.h Raw writer class for FDD
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -24,10 +24,12 @@ namespace o2
 {
 namespace fdd
 {
-//Normal TCM mode
+// Normal TCM mode
 using RawWriterFDD = o2::fit::RawWriterFIT<DigitBlockFDD, DataBlockPM, DataBlockTCM>;
-//Extended TCM mode
-//using RawWriterFDDext = o2::fit::RawWriterFIT<DigitBlockFDDext, DataBlockPM, DataBlockTCMext>;
+using RawWriterFDD_padded = o2::fit::RawWriterFIT<DigitBlockFDD, DataBlockPM::DataBlockInvertedPadding_t, DataBlockTCM::DataBlockInvertedPadding_t>;
+
+// Extended TCM mode
+// using RawWriterFDDext = o2::fit::RawWriterFIT<DigitBlockFDDext, DataBlockPM, DataBlockTCMext>;
 } // namespace fdd
 } // namespace o2
 

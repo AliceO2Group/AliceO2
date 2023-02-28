@@ -58,6 +58,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"input-sub-sampled",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"SUB_RAWDATA DPL channel will be used as input, in case of dispatcher usage"}});
 }
 
 // ------------------------------------------------------------------
@@ -71,24 +76,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
+  const auto isSubSampled = configcontext.options().get<bool>("input-sub-sampled");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   LOG(info) << "WorkflowSpec FLPWorkflow";
-  //Type aliases
-  //using RawReaderFDDtrgInput = o2::fit::RawReaderFIT<o2::fdd::RawReaderFV0BaseNorm,true>;
+  // Type aliases
+  // using RawReaderFDDtrgInput = o2::fit::RawReaderFIT<o2::fdd::RawReaderFV0BaseNorm,true>;
   using RawReaderFDD = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseNorm, false>;
-  //using RawReaderFDDtrgInputExt = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseExt,true>;
+  // using RawReaderFDDtrgInputExt = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseExt,true>;
   using RawReaderFDDext = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseExt, false>;
   using MCLabelCont = o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>;
   o2::header::DataOrigin dataOrigin = o2::header::gDataOriginFDD;
   //
   WorkflowSpec specs;
   if (isExtendedMode) {
-    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDDext{dataOrigin, dumpReader}, askSTFDist));
+    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDDext{dataOrigin, dumpReader}, askSTFDist, isSubSampled));
     if (!disableRootOut) {
       specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFDDext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
     }
   } else {
-    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDD{dataOrigin, dumpReader}, askSTFDist));
+    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDD{dataOrigin, dumpReader}, askSTFDist, isSubSampled));
     if (!disableRootOut) {
       specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFDD, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
     }
