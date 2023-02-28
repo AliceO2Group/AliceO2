@@ -63,6 +63,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-data-subspec", VariantType::Int, 0, {"subspec to use for decoded CTF messages (use non-0 if CTF writer will be attached downstream)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   options.push_back(ConfigParamSpec{"ir-frames-files", VariantType::String, "", {"If non empty, inject selected IRFrames from this file"}});
+  options.push_back(ConfigParamSpec{"skip-skimmed-out-tf", VariantType::Bool, false, {"Do not process TFs with empty IR-Frame coverage"}});
   //
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
   options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
@@ -122,6 +123,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
   ctfInput.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
   ctfInput.fileIRFrames = configcontext.options().get<std::string>("ir-frames-files");
+  ctfInput.skipSkimmedOutTF = configcontext.options().get<bool>("skip-skimmed-out-tf");
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
 
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));

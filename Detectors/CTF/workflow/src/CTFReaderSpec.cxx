@@ -24,6 +24,7 @@
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CommonUtils/IRFrameSelector.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "CommonUtils/NameConf.h"
@@ -81,7 +82,7 @@ class CTFReaderSpec : public o2::framework::Task
 
  private:
   void openCTFFile(const std::string& flname);
-  void processTF(ProcessingContext& pc);
+  bool processTF(ProcessingContext& pc);
   void checkTreeEntries();
   void stopReader();
   template <typename C>
@@ -98,6 +99,7 @@ class CTFReaderSpec : public o2::framework::Task
   int mCTFCounter = 0;
   int mNFailedFiles = 0;
   int mFilesRead = 0;
+  int mTFLength = 128;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0L;
   long mImposeRunStartMS = 0L;
@@ -151,6 +153,9 @@ void CTFReaderSpec::init(InitContext& ic)
   mFileFetcher->start();
   if (!mInput.fileIRFrames.empty()) {
     mIRFrameSelector.loadIRFrames(mInput.fileIRFrames);
+    const auto& hbfu = o2::raw::HBFUtils::Instance();
+    mTFLength = hbfu.nHBFPerTF;
+    LOGP(info, "IRFrames will be selected from {}, assumed TF length: {} HBF", mInput.fileIRFrames, mTFLength);
   }
 }
 
@@ -198,14 +203,15 @@ void CTFReaderSpec::run(ProcessingContext& pc)
       if (mInput.ctfIDs.empty() || mInput.ctfIDs[mSelIDEntry] == mCTFCounter) { // no selection requested or matching CTF ID is found
         LOG(debug) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
         mSelIDEntry++;
-        processTF(pc);
-        break;
-      } else { // explict CTF ID selection list was provided and current entry is not selected
-        LOGP(info, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
-        checkTreeEntries();
-        mCTFCounter++;
-        continue;
+        if (processTF(pc)) {
+          break;
+        }
       }
+      // explict CTF ID selection list or IRFrame was provided and current entry is not selected
+      LOGP(info, "Skipping CTF#{} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
+      checkTreeEntries();
+      mCTFCounter++;
+      continue;
     }
     //
     tfFileName = mFileFetcher->getNextFileInQueue();
@@ -229,7 +235,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 }
 
 ///_______________________________________
-void CTFReaderSpec::processTF(ProcessingContext& pc)
+bool CTFReaderSpec::processTF(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
@@ -260,6 +266,20 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
 
+  if (mIRFrameSelector.isSet()) {
+    o2::InteractionRecord ir0(0, timingInfo.firstTForbit);
+    // we cannot have GRPECS via DPL CCDB fetcher in the CTFReader, so we use mTFLength extracted from the HBFUtils
+    o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, timingInfo.firstTForbit < 0xffffffff - (mTFLength - 1) ? timingInfo.firstTForbit + (mTFLength - 1) : 0xffffffff);
+    auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
+    if (irSpan.size() == 0 && mInput.skipSkimmedOutTF) {
+      LOGP(info, "Skimming did not define any selection for TF [{}] : [{}]", ir0.asString(), ir1.asString());
+      return false;
+    } else {
+      LOGP(info, "{} IR-Frames are selected for TF [{}] : [{}]", irSpan.size(), ir0.asString(), ir1.asString());
+    }
+    auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
+  }
+
   // send CTF Header
   pc.outputs().snapshot({"header", mInput.subspec}, ctfHeader);
 
@@ -279,14 +299,6 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   processDetector<o2::cpv::CTF>(DetID::CPV, ctfHeader, pc);
   processDetector<o2::zdc::CTF>(DetID::ZDC, ctfHeader, pc);
   processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
-
-  if (mIRFrameSelector.isSet()) {
-    o2::InteractionRecord ir0(0, timingInfo.firstTForbit);
-    // we cannot have GRPECS via DPL CCDB fetcher in the CTFReader, so we take max possible TF length of 256 orbits
-    o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, timingInfo.firstTForbit < 0xffffffff - 255 ? timingInfo.firstTForbit + 255 : 0xffffffff);
-    auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
-    auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
-  }
 
   // send sTF acknowledge message
   if (!mInput.sup0xccdb) {
@@ -312,6 +324,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, mCTFCounter ? 1e-6 * (tNow - mLastSendTime) : 0.);
   mLastSendTime = tNow;
   mCTFCounter++;
+  return true;
 }
 
 ///_______________________________________

@@ -293,7 +293,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   const o2::ctf::BufferType* bdata = ctfBuffer.data();
   if (bdata) {
     if (warnedEmpty) {
-      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
     }
     const auto ctfImage = C::getImage(bdata);
     ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
@@ -324,7 +324,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
                   try {
                     freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
                   } catch (const std::overflow_error& e) {
-                    LOGP(warning, "unable to frequency table for {}, block {} due to overflow", det.getName(), ib);
+                    LOGP(warning, "unable to add frequency table for {}, block {} due to overflow", det.getName(), ib);
                     mIsSaturatedFrequencyTable[det][ib] = true;
                     return false;
                   }
@@ -341,7 +341,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   } else {
     if (!warnedEmpty) {
       if (mNCTF) {
-        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
       }
       LOGP(important, "Empty CTF provided for {}, skipping and will not report anymore", det.getName());
       warnedEmpty = true;

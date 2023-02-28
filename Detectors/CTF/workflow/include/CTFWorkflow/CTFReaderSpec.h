@@ -32,6 +32,7 @@ struct CTFReaderInp {
   std::string metricChannel{};
   std::string fileIRFrames{};
   std::vector<int> ctfIDs{};
+  bool skipSkimmedOutTF = false;
   bool allowMissingDetectors = false;
   bool sup0xccdb = false;
   int maxFileCache = 1;
