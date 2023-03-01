@@ -14,24 +14,31 @@
 /// @since  2021-07-09
 /// @brief  Unit test for the DPL raw page sequencer utility
 
-#define BOOST_TEST_MODULE Test Framework Utils DPLRawPageSequencer
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "RawPageTestData.h"
 #include "Framework/InputRecord.h"
 #include "Headers/DataHeader.h"
 #include <vector>
 #include <memory>
-#include <iostream>
 #include <random>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 auto const PAGESIZE = test::PAGESIZE;
 
-BOOST_AUTO_TEST_CASE(test_DPLRawPageSequencer)
+#define CHECK_MESSAGE(cond, msg) \
+  do {                           \
+    INFO(msg);                   \
+    CHECK(cond);                 \
+  } while ((void)0, 0)
+#define REQUIRE_MESSAGE(cond, msg) \
+  do {                             \
+    INFO(msg);                     \
+    REQUIRE(cond);                 \
+  } while ((void)0, 0)
+
+TEST_CASE("test_DPLRawPageSequencer")
 {
   const int nPages = 64;
   const int nParts = 16;
@@ -66,11 +73,11 @@ BOOST_AUTO_TEST_CASE(test_DPLRawPageSequencer)
 
   auto dataset = test::createData(inputspecs, dataheaders, amendRdh);
   InputRecord& inputs = dataset.record;
-  BOOST_REQUIRE(dataset.messages.size() > 0);
-  BOOST_REQUIRE(dataset.messages[0].at(0) != nullptr);
-  BOOST_REQUIRE(inputs.size() > 0);
-  BOOST_CHECK((*inputs.begin()).header == dataset.messages[0].at(0)->data());
-  BOOST_REQUIRE(rdhCount == nPages * nParts);
+  REQUIRE(dataset.messages.size() > 0);
+  REQUIRE(dataset.messages[0].at(0) != nullptr);
+  REQUIRE(inputs.size() > 0);
+  CHECK((*inputs.begin()).header == dataset.messages[0].at(0)->data());
+  REQUIRE(rdhCount == nPages * nParts);
   DPLRawPageSequencer parser(inputs);
 
   auto isSameRdh = [](const char* left, const char* right) -> bool {
@@ -98,17 +105,14 @@ BOOST_AUTO_TEST_CASE(test_DPLRawPageSequencer)
 
   LOG(info) << "called RDH amend: " << rdhCount;
   LOG(info) << "created " << feeids.size() << " id(s), got " << pages.size() << " page(s)";
-  BOOST_REQUIRE(pages.size() == feeids.size());
-  BOOST_REQUIRE(pages.size() == pagesByForwardSearch.size());
+  REQUIRE(pages.size() == feeids.size());
+  REQUIRE(pages.size() == pagesByForwardSearch.size());
 
   feeids.emplace_back(rdhCount);
-  auto lastId = feeids.front();
   for (auto i = 0; i < pages.size(); i++) {
     auto length = feeids[i + 1] - feeids[i];
-    BOOST_CHECK_MESSAGE(pages[i].second == length, "sequence " << i << " at " << feeids[i] << " length " << length << ": got " << pages[i].second);
-    BOOST_CHECK_MESSAGE(pages[i].first == pagesByForwardSearch[i].first && pages[i].second == pagesByForwardSearch[i].second,
-                        "mismatch with forward search at sequence " << i
-                                                                    << " [" << (void*)pages[i].first << "," << (void*)pagesByForwardSearch[i].first << "]"
-                                                                    << " [" << pages[i].second << "," << pagesByForwardSearch[i].second << "]");
+    CHECK_MESSAGE(pages[i].second == length, fmt::format("sequence {} at {} length {}: got {}", i, feeids[i], length, pages[i].second));
+    REQUIRE_MESSAGE(((pages[i].first == pagesByForwardSearch[i].first) && (pages[i].second == pagesByForwardSearch[i].second)),
+                    fmt::format("{} [{},{}][{},{}]", i, ((void*)pages[i].first), (void*)pagesByForwardSearch[i].first, pages[i].second, pagesByForwardSearch[i].second));
   }
 }
