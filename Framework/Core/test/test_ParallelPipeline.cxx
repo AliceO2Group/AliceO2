@@ -22,7 +22,6 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRefUtils.h"
 #include <fairmq/Device.h>
-#include <iostream>
 #include <algorithm>
 #include <memory>
 #include <unordered_map>

@@ -12,7 +12,6 @@
 #include <catch_amalgamated.hpp>
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
-#include <iostream>
 
 TEST_CASE("TestBasics")
 {

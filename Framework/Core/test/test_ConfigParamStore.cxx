@@ -17,7 +17,6 @@
 #include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <iostream>
 
 namespace bpo = boost::program_options;
 using namespace o2::framework;

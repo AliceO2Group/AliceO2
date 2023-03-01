@@ -20,7 +20,6 @@
 
 #include <catch_amalgamated.hpp>
 #include <sstream>
-#include <iostream>
 
 using namespace o2::framework;
 

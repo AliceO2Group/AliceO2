@@ -13,7 +13,6 @@
 #include "Framework/DataRef.h"
 #include <vector>
 #include <string>
-#include <iostream>
 #include <catch_amalgamated.hpp>
 
 using namespace o2::framework;

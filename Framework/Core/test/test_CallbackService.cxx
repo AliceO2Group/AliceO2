@@ -18,7 +18,6 @@
 #include "Framework/runDataProcessing.h"
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 using namespace o2::framework;
