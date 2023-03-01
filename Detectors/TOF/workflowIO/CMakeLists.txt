@@ -19,6 +19,7 @@ o2_add_library(TOFWorkflowIO
                        src/CalibClusReaderSpec.cxx
                        src/TOFMatchedWriterSpec.cxx
                        src/TOFCalibWriterSpec.cxx
+                       src/TOFMatchableWriterSpec.cxx
                        src/TOFMatchedReaderSpec.cxx
                        src/CalibInfoReaderSpec.cxx
                        src/TOFIntegrateClusterWriterSpec.cxx

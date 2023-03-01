@@ -135,6 +135,34 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
       doMatchingForTPC(sec);
       mTimerMatchTPC.Stop();
     }
+
+    if (mStoreMatchable) {
+      // fill per sector
+      mMatchedTracksPairsSec[sec].clear();
+      mMatchedTracksPairsSec[sec].insert(mMatchedTracksPairsSec[sec].end(), mMatchedTracksPairs.begin(), mMatchedTracksPairs.end());
+
+      // if MC check if good or fake matches
+      if (mMCTruthON) {
+        for (auto& matchingPair : mMatchedTracksPairsSec[sec]) {
+          int trkType = (int)matchingPair.getTrackType();
+          int itrk = matchingPair.getIdLocal();
+          const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
+          const auto& labelTrack = mTracksLblWork[trkType][itrk];
+
+          // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
+          bool fake = true;
+          for (auto& lbl : labelsTOF) {
+            if (labelTrack == lbl) { // compares src, evID, trID, ignores fake flag.
+              fake = false;
+            }
+          }
+          if (fake) {
+            matchingPair.setFakeMatch();
+          }
+        }
+      }
+    }
+
     LOG(debug) << "...done. Now check the best matches";
     nMatches[sec] = mMatchedTracksPairs.size();
     selectBestMatches();
@@ -207,6 +235,96 @@ int MatchTOF::prepareInteractionTimes()
   // do nothing. If you think it can be useful have a look at MatchTPCITS
   return 0;
 }
+//______________________________________________
+void MatchTOF::printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped)
+{
+  printf("Original vector\n");
+  for (const auto& seed : origin) {
+    printf("Pair: track=%d TOFcl=%d\n", seed.getIdLocal(), seed.getTOFClIndex());
+  }
+
+  printf("\nGroups\n");
+  int ngroups = 0;
+  for (const auto& gr : grouped) {
+    ngroups++;
+    printf("Group %d\n", ngroups);
+    for (const auto& seed : gr) {
+      printf("Pair: track=%d TOFcl=%d\n", seed.getIdLocal(), seed.getTOFClIndex());
+    }
+  }
+}
+//______________________________________________
+void MatchTOF::groupingMatch(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls)
+{
+  grouped.clear();
+  firstEls.clear();
+  secondEls.clear();
+
+  std::vector<o2::dataformats::MatchInfoTOFReco> dummy;
+  std::vector<int> dummyInt;
+
+  int pos = 0;
+  int posInVector = 0;
+  std::vector<int> alreadyUsed(origin.size(), 0);
+  while (posInVector < origin.size()) { // go ahead if there are elements
+    if (alreadyUsed[posInVector]) {
+      posInVector++;
+      continue;
+    }
+    bool found = true;
+    grouped.push_back(dummy);
+    auto& trkId = firstEls.emplace_back(dummyInt);
+    auto& cluId = secondEls.emplace_back(dummyInt);
+
+    // first element is the seed
+    const auto& seed = origin[posInVector];
+    trkId.push_back(seed.getIdLocal());
+    cluId.push_back(seed.getTOFClIndex());
+    // remove element added to the current group
+    grouped[pos].push_back(seed);
+    alreadyUsed[posInVector] = true;
+    posInVector++;
+
+    while (found) {
+      found = false;
+      for (int i = posInVector; i < origin.size(); i++) {
+        if (alreadyUsed[i]) {
+          continue;
+        }
+        const auto& seed = origin[i];
+        int matchFirst = -1;
+        int matchSecond = -1;
+        for (const int& ind : trkId) {
+          if (seed.getIdLocal() == ind) {
+            matchFirst = ind;
+            break;
+          }
+        }
+        for (const int& ind : cluId) {
+          if (seed.getTOFClIndex() == ind) {
+            matchSecond = ind;
+            break;
+          }
+        }
+
+        if (matchFirst >= 0 || matchSecond >= 0) { // belong to this group
+          if (matchFirst < 0) {
+            trkId.push_back(seed.getIdLocal());
+          }
+          if (matchSecond < 0) {
+            cluId.push_back(seed.getTOFClIndex());
+          }
+          grouped[pos].push_back(seed);
+          alreadyUsed[i] = true;
+          found = true;
+          break;
+        }
+      }
+    }
+    pos++; // move to the next group
+  }
+}
+
 //______________________________________________
 bool MatchTOF::prepareTPCData()
 {
@@ -1065,17 +1183,17 @@ void MatchTOF::doMatchingForTPC(int sec)
   return;
 }
 //______________________________________________
-int MatchTOF::findFITIndex(int bc)
+int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints)
 {
-  if (mFITRecPoints.size() == 0) {
+  if (FITRecPoints.size() == 0) {
     return -1;
   }
 
   int index = -1;
   int distMax = 5; // require bc distance below 5
 
-  for (int i = 0; i < mFITRecPoints.size(); i++) {
-    const o2::InteractionRecord ir = mFITRecPoints[i].getInteractionRecord();
+  for (unsigned int i = 0; i < FITRecPoints.size(); i++) {
+    const o2::InteractionRecord ir = FITRecPoints[i].getInteractionRecord();
     int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
 
@@ -1093,29 +1211,34 @@ int MatchTOF::findFITIndex(int bc)
 void MatchTOF::selectBestMatches()
 {
   if (mSetHighPurity) {
-    selectBestMatchesHP();
+    BestMatchesHP(mMatchedTracksPairs, mMatchedTracks, mMatchedTracksIndex, mMatchedClustersIndex, mFITRecPoints, mTOFClusWork, mCalibInfoTOF, mTimestamp, mMCTruthON, mTOFClusLabels, mTracksLblWork, mOutTOFLabels);
     return;
   }
+  BestMatches(mMatchedTracksPairs, mMatchedTracks, mMatchedTracksIndex, mMatchedClustersIndex, mFITRecPoints, mTOFClusWork, mTracksWork, mCalibInfoTOF, mTimestamp, mMCTruthON, mTOFClusLabels, mTracksLblWork, mOutTOFLabels, mMatchParams->calibMaxChi2);
+}
+//______________________________________________
+void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, const std::vector<matchTrack>* TracksWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels, float calibMaxChi2)
+{
   ///< define the track-TOFcluster pair per sector
 
   // first, we sort according to the chi2
-  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](const o2::dataformats::MatchInfoTOFReco& a, const o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
 
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
+  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : matchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
 
     int itrk = matchingPair.getIdLocal();
 
-    if (mMatchedTracksIndex[trkType][itrk] != -1) { // the track was already filled
+    if (matchedTracksIndex[trkType][itrk] != -1) { // the track was already filled
       continue;
     }
-    if (mMatchedClustersIndex[matchingPair.getTOFClIndex()] != -1) { // the cluster was already filled
+    if (matchedClustersIndex[matchingPair.getTOFClIndex()] != -1) { // the cluster was already filled
       continue;
     }
-    mMatchedTracksIndex[trkType][itrk] = mMatchedTracks[trkType].size();                                              // index of the MatchInfoTOF correspoding to this track
-    mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[trkType][itrk];                         // index of the track that was matched to this cluster
+    matchedTracksIndex[trkType][itrk] = matchedTracks[trkType].size();                      // index of the MatchInfoTOF correspoding to this track
+    matchedClustersIndex[matchingPair.getTOFClIndex()] = matchedTracksIndex[trkType][itrk]; // index of the track that was matched to this cluster
 
     int trkTypeSplitted = trkType;
     auto sourceID = matchingPair.getTrackRef().getSource();
@@ -1124,22 +1247,22 @@ void MatchTOF::selectBestMatches()
     } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
       trkTypeSplitted = (int)trkType::ITSTPCTRD;
     }
-    mMatchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
+    matchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     // get fit info
     double t0info = 0;
 
     const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
 
-    if (mFITRecPoints.size() > 0) {
-      int index = findFITIndex(mTOFClusWork[matchingPair.getTOFClIndex()].getBC());
+    if (FITRecPoints.size() > 0) {
+      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC(), FITRecPoints);
 
       if (index > -1) {
-        o2::InteractionRecord ir = mFITRecPoints[index].getInteractionRecord();
+        o2::InteractionRecord ir = FITRecPoints[index].getInteractionRecord();
         t0info = ir.bc2ns() * 1E3;
       }
     } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
-      int bcStarOrbit = int((mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
+      int bcStarOrbit = int((TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
       bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
       t0info = bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
     }
@@ -1157,9 +1280,9 @@ void MatchTOF::selectBestMatches()
     }
 
     int mask = 0;
-    float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
+    float deltat = o2::tof::Utils::subtractInteractionBC(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
 
-    const o2::track::TrackParCov& trc = mTracksWork[trkType][itrk].first;
+    const o2::track::TrackParCov& trc = TracksWork[trkType][itrk].first;
     float pt = trc.getPt(); // from outer parameters!
 
     if (pt > 1.5) {
@@ -1174,20 +1297,20 @@ void MatchTOF::selectBestMatches()
       flags = flags | o2::dataformats::CalibInfoTOF::kNoBC;
     }
 
-    if (mTOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() != 1) {
+    if (TOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() != 1) {
       flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
     }
 
-    if (matchingPair.getChi2() < mMatchParams->calibMaxChi2) { // extra cut in ChiSquare for storing calib info
-      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 deltat,
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    if (matchingPair.getChi2() < calibMaxChi2) { // extra cut in ChiSquare for storing calib info
+      CalibInfoTOF.emplace_back(TOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                Timestamp / 1000 + int(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                deltat,
+                                TOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
     }
 
-    if (mMCTruthON) {
-      const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
-      auto& labelTrack = mTracksLblWork[trkType][itrk];
+    if (MCTruthON) {
+      const auto& labelsTOF = TOFClusLabels->getLabels(matchingPair.getTOFClIndex());
+      auto& labelTrack = TracksLblWork[trkType][itrk];
       // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
       bool fake = true;
       for (auto& lbl : labelsTOF) {
@@ -1195,13 +1318,13 @@ void MatchTOF::selectBestMatches()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
+      OutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
     i++;
   }
 }
 //______________________________________________
-void MatchTOF::selectBestMatchesHP()
+void MatchTOF::BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels)
 {
   ///< define the track-TOFcluster pair per sector
   float chi2SeparationCut = 2;
@@ -1210,41 +1333,41 @@ void MatchTOF::selectBestMatchesHP()
   std::vector<o2::dataformats::MatchInfoTOFReco> tmpMatch;
 
   // first, we sort according to the chi2
-  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(matchedTracksPairs.begin(), matchedTracksPairs.end(), [](const o2::dataformats::MatchInfoTOFReco& a, const o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
+  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : matchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
 
     int itrk = matchingPair.getIdLocal();
 
     bool discard = matchingPair.getChi2() > chi2S;
 
-    if (mMatchedTracksIndex[trkType][itrk] != -1) { // the track was already filled, check if this competitor is not too close
-      auto winnerChi = tmpMatch[mMatchedTracksIndex[trkType][itrk]].getChi2();
+    if (matchedTracksIndex[trkType][itrk] != -1) { // the track was already filled, check if this competitor is not too close
+      auto winnerChi = tmpMatch[matchedTracksIndex[trkType][itrk]].getChi2();
       if (winnerChi < 0) { // the winner was already discarded as ambiguous
         continue;
       }
       if (matchingPair.getChi2() - winnerChi < chi2SeparationCut) { // discard previously validated winner and it has too close competitor
-        tmpMatch[mMatchedTracksIndex[trkType][itrk]].setChi2(-1);
+        tmpMatch[matchedTracksIndex[trkType][itrk]].setChi2(-1);
       }
       continue;
     }
 
-    if (mMatchedClustersIndex[matchingPair.getTOFClIndex()] != -1) { // the cluster was already filled, check if this competitor is not too close
-      auto winnerChi = tmpMatch[mMatchedClustersIndex[matchingPair.getTOFClIndex()]].getChi2();
+    if (matchedClustersIndex[matchingPair.getTOFClIndex()] != -1) { // the cluster was already filled, check if this competitor is not too close
+      auto winnerChi = tmpMatch[matchedClustersIndex[matchingPair.getTOFClIndex()]].getChi2();
       if (winnerChi < 0) { // the winner was already discarded as ambiguous
         continue;
       }
       if (matchingPair.getChi2() - winnerChi < chi2SeparationCut) { // discard previously validated winner and it has too close competitor
-        tmpMatch[mMatchedClustersIndex[matchingPair.getTOFClIndex()]].setChi2(-1);
+        tmpMatch[matchedClustersIndex[matchingPair.getTOFClIndex()]].setChi2(-1);
       }
       continue;
     }
 
     if (!discard) {
-      mMatchedTracksIndex[trkType][itrk] = tmpMatch.size();                                     // index of the MatchInfoTOF correspoding to this track
-      mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[trkType][itrk]; // index of the track that was matched to this clus
+      matchedTracksIndex[trkType][itrk] = tmpMatch.size();                                    // index of the MatchInfoTOF correspoding to this track
+      matchedClustersIndex[matchingPair.getTOFClIndex()] = matchedTracksIndex[trkType][itrk]; // index of the track that was matched to this clus
       tmpMatch.push_back(matchingPair);
     }
   }
@@ -1264,37 +1387,37 @@ void MatchTOF::selectBestMatchesHP()
     } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
       trkTypeSplitted = (int)trkType::ITSTPCTRD;
     }
-    mMatchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
+    matchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
 
     // get fit info
     double t0info = 0;
 
-    if (mFITRecPoints.size() > 0) {
-      int index = findFITIndex(mTOFClusWork[matchingPair.getTOFClIndex()].getBC());
+    if (FITRecPoints.size() > 0) {
+      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC(), FITRecPoints);
 
       if (index > -1) {
-        o2::InteractionRecord ir = mFITRecPoints[index].getInteractionRecord();
+        o2::InteractionRecord ir = FITRecPoints[index].getInteractionRecord();
         t0info = ir.bc2ns() * 1E3;
       }
     } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
-      int bcStarOrbit = int((mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
+      int bcStarOrbit = int((TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
       bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
       t0info = bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
     }
 
     // add also calibration infos
     if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
-      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), 0);
+      CalibInfoTOF.emplace_back(TOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                Timestamp / 1000 + int(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
+                                TOFClusWork[matchingPair.getTOFClIndex()].getTot(), 0);
     }
 
-    if (mMCTruthON) {
-      const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
-      auto& labelTrack = mTracksLblWork[trkType][itrk];
+    if (MCTruthON) {
+      const auto& labelsTOF = TOFClusLabels->getLabels(matchingPair.getTOFClIndex());
+      auto& labelTrack = TracksLblWork[trkType][itrk];
       // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
       bool fake = true;
       for (auto& lbl : labelsTOF) {
@@ -1302,7 +1425,7 @@ void MatchTOF::selectBestMatchesHP()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
+      OutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
   }
 }
