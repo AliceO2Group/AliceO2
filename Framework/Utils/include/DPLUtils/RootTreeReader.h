@@ -35,9 +35,7 @@
 #include <functional> // std::function
 #include <utility>    // std::forward
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace rtr
@@ -558,6 +556,5 @@ class GenericRootTreeReader
 
 using RootTreeReader = GenericRootTreeReader<rtr::DefaultKey>;
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif
