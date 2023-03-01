@@ -9,18 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Framework SimpleOptionsRetriever
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/SimpleOptionsRetriever.h"
-#include <boost/test/unit_test.hpp>
 #include "Framework/ParamRetriever.h"
 #include "Framework/ConfigParamStore.h"
+#include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestInsertion)
+TEST_CASE("TestInsertion")
 {
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"foo", VariantType::Int, 1, {"foo"}}};
@@ -34,5 +30,5 @@ BOOST_AUTO_TEST_CASE(TestInsertion)
   store.preload();
   store.activate();
 
-  BOOST_CHECK_EQUAL(store.store().get<int>("foo"), 123);
+  CHECK(store.store().get<int>("foo") == 123);
 }
