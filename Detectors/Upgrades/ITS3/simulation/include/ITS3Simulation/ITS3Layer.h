@@ -76,6 +76,7 @@ class ITS3Layer : public TObject
   double mLengthSemiCircleFoam{0.}; //! semi-circle foam length
   double mThickGluedFoam{0.};       //! glued foam thickness
   double mGapXDirection{0.};        //! gap between quarter layer(only for layer 4)
+  int mBuildLevel{0};               //! build level for material budget studies
 
   ClassDefOverride(ITS3Layer, 0); // ITS3 geometry
 };                                // namespace its3

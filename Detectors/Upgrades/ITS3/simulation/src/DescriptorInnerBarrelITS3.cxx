@@ -42,14 +42,14 @@ void DescriptorInnerBarrelITS3::configure()
 {
   // set version
   auto& param = DescriptorInnerBarrelITS3Param::Instance();
+  int buildLevel = param.mBuildLevel; // 0 by default
   if (param.getITS3LayerConfigString() != "") {
-    LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
-    LOG(info) << param;
     setVersion(param.getITS3LayerConfigString());
-  } else {
-    LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
-    LOG(info) << "DescriptorInnerBarrelITS3.mVersion : " << mVersion;
   }
+
+  LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
+  LOG(info) << "DescriptorInnerBarrelITS3.mVersion : " << mVersion;
+  LOG(info) << "DescriptorInnerBarrelITS3.mBuildLevel : " << buildLevel;
 
   if (mVersion == "ThreeLayersNoDeadZones") {
     mNumLayers = 3;
@@ -76,6 +76,7 @@ void DescriptorInnerBarrelITS3::configure()
   mHeightStripFoam.resize(mNumLayers);
   mLengthSemiCircleFoam.resize(mNumLayers);
   mThickGluedFoam.resize(mNumLayers);
+  mBuildLevel.resize(mNumLayers);
 
   const double safety = 0.5;
 
@@ -99,6 +100,7 @@ void DescriptorInnerBarrelITS3::configure()
       mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
       mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
       mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mBuildLevel[idLayer] = buildLevel;
       LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
            idLayer, mLayerRadii[idLayer], mDetectorThickness[idLayer], mGap[idLayer],
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
@@ -119,6 +121,7 @@ void DescriptorInnerBarrelITS3::configure()
       mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
       mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
       mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mBuildLevel[idLayer] = buildLevel;
       LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
            idLayer, mLayerRadii[idLayer], mDetectorThickness[idLayer], mGap[idLayer],
            mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
@@ -140,6 +143,7 @@ void DescriptorInnerBarrelITS3::configure()
       mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
       mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
       mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mBuildLevel[idLayer] = buildLevel;
       if (idLayer == 3) {
         mGapXDirection4thLayer = IBtdr5dat[idLayer][9];
         LOGP(info, "ITS3 L# {} R:{} Dthick:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}, GapXDirection4thLayer:{}",

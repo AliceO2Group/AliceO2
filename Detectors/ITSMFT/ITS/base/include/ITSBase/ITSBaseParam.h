@@ -27,6 +27,7 @@ struct ITSBaseParam : public o2::conf::ConfigurableParamHelper<ITSBaseParam> {
   // Geometry Builder parameters
   bool buildCYSSAssembly = true;
   bool buildEndWheels = true;
+  int buildLevel = 0;
   O2ParamDef(ITSBaseParam, "ITSBase");
 };
 
