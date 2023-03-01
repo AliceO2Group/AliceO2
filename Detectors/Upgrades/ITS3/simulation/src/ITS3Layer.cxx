@@ -287,7 +287,7 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
 void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
 {
   TGeoMedium* medCarbonFoam = (mBuildLevel < 1) ? gGeoManager->GetMedium("IT3_ERGDUOCEL$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 1 we do not put carbon foam but air
-  TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 2 we do not put glue but air
+  TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$");   // if build level >= 2 we do not put glue but air
 
   double rmax = mRadius + mSensorThickness;
   double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers

@@ -61,7 +61,7 @@ class DescriptorInnerBarrel : public TObject
   std::vector<double> mDetectorThickness{}; //! Vector of detector thickness
   std::vector<int> mChipTypeID{};           //! Vector of unique chip ID
 
-  std::vector<int> mBuildLevel;             //! Vector of Material Budget Studies
+  std::vector<int> mBuildLevel; //! Vector of Material Budget Studies
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrel, 1); /// ITS inner barrel geometry descriptor
