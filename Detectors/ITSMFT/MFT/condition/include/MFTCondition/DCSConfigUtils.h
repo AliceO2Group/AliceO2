@@ -211,8 +211,8 @@ class DCSConfigUtils
     pairALPIDE.push_back(std::make_pair("VCASP", 1539));
     pairALPIDE.push_back(std::make_pair("VCLIP", 1544));
     pairALPIDE.push_back(std::make_pair("IBIAS", 1549));
-    pairALPIDE.push_back(std::make_pair("VPULSEH", 255));
-    pairALPIDE.push_back(std::make_pair("VPULSEL", 0));
+    pairALPIDE.push_back(std::make_pair("VPULSEH", 1541));
+    pairALPIDE.push_back(std::make_pair("VPULSEL", 1542));
     pairALPIDE.push_back(std::make_pair("VRESETD", 1538));
     pairALPIDE.push_back(std::make_pair("IDB", 1548));
     pairALPIDE.push_back(std::make_pair("AUTO_ROF__NOISE_MASK__MASK_LEV__MC_HIT__MC_ID", 65535));
