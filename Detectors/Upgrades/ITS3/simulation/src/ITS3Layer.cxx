@@ -142,7 +142,7 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
         } else {
           halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
-      } else if (iEl == 1) { 
+      } else if (iEl == 1) {
         halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
       } else { // all the others are simply half cylinders filling all the space
         halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
