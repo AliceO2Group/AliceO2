@@ -62,7 +62,7 @@ TEST_CASE("TestInputSpan")
     for (auto const& ref : it) {
       REQUIRE(inputs[routeNo].at(partNo++) == ref.header);
       REQUIRE(inputs[routeNo].at(partNo++) == ref.payload);
-      std::cout << ref.header << " " << ref.payload << std::endl;
+      INFO(ref.header << " " << ref.payload);
     }
     routeNo++;
   }

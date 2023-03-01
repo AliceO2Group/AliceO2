@@ -13,14 +13,13 @@
 
 #include "Framework/StringHelpers.h"
 #include "Framework/StaticFor.h"
-#include <iostream>
 
 using namespace o2::framework;
 
 template <int someNumber>
 void dummyFunc()
 {
-  std::cout << "calling function with non-type template argument " << someNumber << std::endl;
+  INFO("calling function with non-type template argument " << someNumber);
 }
 
 TEST_CASE("TestStaticFor")
@@ -63,6 +62,6 @@ TEST_CASE("TestStaticFor")
 
     constexpr auto sayHello = CONST_STR("Hello ") + CONST_STR(staticNames[index]);
 
-    std::cout << sayHello.str << std::endl;
+    INFO(sayHello.str);
   });
 }
