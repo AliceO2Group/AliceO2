@@ -123,7 +123,7 @@ class DataRelayer
 
   /// This is to retrieve the oldest possible @a timeslice this relayer can
   /// possibly have in output.
-  TimesliceIndex::OldestOutputInfo getOldestPossibleOutput() const;
+  [[nodiscard]] TimesliceIndex::OldestOutputInfo getOldestPossibleOutput() const;
 
   /// @returns the actions ready to be performed.
   void getReadyToProcess(std::vector<RecordAction>& completed);
@@ -135,13 +135,13 @@ class DataRelayer
   std::vector<MessageSet> consumeExistingInputsForTimeslice(TimesliceSlot id);
 
   /// Returns how many timeslices we can handle in parallel
-  size_t getParallelTimeslices() const;
+  [[nodiscard]] size_t getParallelTimeslices() const;
 
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
 
   /// @return the current stats about the data relaying process
-  DataRelayerStats const& getStats() const;
+  [[nodiscard]] DataRelayerStats const& getStats() const;
 
   /// Send metrics with the VariableContext information
   void sendContextState();
@@ -169,6 +169,10 @@ class DataRelayer
   /// Rescan the whole data to see if there is anything new we should do,
   /// e.g. as consequnce of an OOB event.
   void rescan() { mTimesliceIndex.rescan(); };
+
+  [[nodiscard]] size_t getCacheSize() const { return mCache.size(); }
+  [[nodiscard]] size_t getNumberOfTimeslices() const { return mTimesliceIndex.size(); }
+  [[nodiscard]] size_t getNumberOfUniqueInputs() const { return mDistinctRoutesIndex.size(); }
 
  private:
   monitoring::Monitoring& mMetrics;
