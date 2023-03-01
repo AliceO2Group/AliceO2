@@ -14,7 +14,6 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <catch_amalgamated.hpp>
-#include <iostream>
 #include <vector>
 
 using namespace o2::framework;

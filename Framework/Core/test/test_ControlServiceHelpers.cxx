@@ -11,7 +11,6 @@
 
 #include "../src/ControlServiceHelpers.h"
 #include <catch_amalgamated.hpp>
-#include <iostream>
 #include <regex>
 #include <string_view>
 

@@ -16,7 +16,6 @@
 #include "Headers/Stack.h"
 
 #include <catch_amalgamated.hpp>
-#include <iostream>
 #include <vector>
 #include <fairmq/Tools.h>
 #include <fairmq/ProgOptions.h>

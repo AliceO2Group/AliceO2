@@ -16,7 +16,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include <chrono>
-#include <iostream>
 
 using namespace o2::framework;
 

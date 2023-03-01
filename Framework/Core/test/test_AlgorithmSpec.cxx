@@ -14,7 +14,6 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DataAllocator.h"
 #include <catch_amalgamated.hpp>
-#include <iostream>
 #include <vector>
 
 using namespace o2::framework;

@@ -20,7 +20,6 @@
 #include <catch_amalgamated.hpp>
 #include <vector>
 #include <memory>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
