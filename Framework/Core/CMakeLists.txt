@@ -234,6 +234,8 @@ add_executable(o2-test-framework-core
               test/test_WorkflowSerialization.cxx
               test/test_TreeToTable.cxx
               test/test_DataOutputDirector.cxx
+              test/unittest_SimpleOptionsRetriever.cxx
+              test/unittest_DataSpecUtils.cxx
             )
 target_link_libraries(o2-test-framework-core PRIVATE O2::Framework)
 target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
@@ -293,21 +295,6 @@ o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework ROOT::TreePlayer
                   COMPONENT_NAME Framework)
-
-# tests with a name not starting with test_...
-
-o2_add_test(unittest_DataSpecUtils NAME test_Framework_unittest_DataSpecUtils
-            SOURCES test/unittest_DataSpecUtils.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework)
-
-o2_add_test(unittest_SimpleOptionsRetriever NAME
-            test_Framework_unittest_SimpleOptionsRetriever
-            SOURCES test/unittest_SimpleOptionsRetriever.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework)
 
 # benchmarks
 
