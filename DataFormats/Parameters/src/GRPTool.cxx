@@ -269,7 +269,13 @@ bool create_GRPs(Options const& opts)
     if (fieldmode == o2::conf::SimFieldMode::kCCDB) {
       // we download the object from CCDB
       LOG(info) << "Downloading mag field directly from CCDB";
-      anchor_GRPs(opts, {"GLO/Config/GRPMagField"});
+      if (!anchor_GRPs(opts, {"GLO/Config/GRPMagField"})) {
+        LOG(fatal) << "Downloading mag field failed";
+      }
+      if (opts.print) {
+        // print the object that was downloaded
+        printGRPMAG(std::string(opts.publishto) + std::string("/GLO/Config/GRPMagField/snapshot.root"));
+      }
     } else {
       // let's not create an actual mag field object for this
       // we only need to lookup the currents from the possible
