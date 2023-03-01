@@ -11,7 +11,6 @@
 
 #include "Framework/HistogramRegistry.h"
 #include <catch_amalgamated.hpp>
-#include <iostream>
 
 using namespace o2;
 using namespace o2::framework;
@@ -66,7 +65,7 @@ TEST_CASE("HistogramRegistryLookup")
     registry.add(str1, "", kTH1F, {{20, 0.0f, 10.01f}});
     registry.add(str2, "", kTH1F, {{20, 0.0f, 10.01f}});
   } catch (...) {
-    std::cout << "Hash collision was detected correctly!" << std::endl;
+    INFO("Hash collision was detected correctly!");
   }
   */
 }

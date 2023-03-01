@@ -11,7 +11,6 @@
 
 #include <catch_amalgamated.hpp>
 #include "Framework/StringHelpers.h"
-#include <iostream>
 
 TEST_CASE("StringHelpersHash")
 {
@@ -27,9 +26,9 @@ void printString(const T& constStr)
 {
   static_assert(is_const_str<T>::value, "This function can only print compile-time strings!");
 
-  std::cout << "ConstStr:" << std::endl;
-  std::cout << "str -> " << constStr.str << std::endl;
-  std::cout << "hash -> " << constStr.hash << std::endl;
+  INFO("ConstStr:");
+  INFO("str -> " << constStr.str);
+  INFO("hash -> " << constStr.hash);
 };
 
 TEST_CASE("StringHelpersConstStr")
@@ -43,7 +42,7 @@ TEST_CASE("StringHelpersConstStr")
   REQUIRE(myConstStr.hash == compile_time_hash("helloWorld"));
 
   if constexpr (is_const_str_v(myConstStr)) {
-    std::cout << "myConstStr is a compile-time string" << std::endl;
+    INFO("myConstStr is a compile-time string");
   }
 
   auto myConstStr2 = CONST_STR("hello") + CONST_STR("Universe");

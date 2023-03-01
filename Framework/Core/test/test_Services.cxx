@@ -17,7 +17,6 @@
 #include <Framework/DeviceState.h>
 #include <catch_amalgamated.hpp>
 #include <fairmq/ProgOptions.h>
-#include <iostream>
 #include <memory>
 
 TEST_CASE("TestServiceRegistry")
@@ -156,7 +155,7 @@ TEST_CASE("TestGlobalServices02")
   try {
     registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, nullptr, ServiceKind::Global, salt_1);
   } catch (RuntimeErrorRef e) {
-    std::cout << error_from_ref(e).what << std::endl;
+    INFO(error_from_ref(e).what);
     REQUIRE(false);
   }
 
