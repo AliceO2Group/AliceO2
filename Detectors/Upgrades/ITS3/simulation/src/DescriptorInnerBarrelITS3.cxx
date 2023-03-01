@@ -183,6 +183,7 @@ ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
   mLayer[idLayer]->setHeightStripFoam(mHeightStripFoam[idLayer]);
   mLayer[idLayer]->setLengthSemiCircleFoam(mLengthSemiCircleFoam[idLayer]);
   mLayer[idLayer]->setThickGluedFoam(mThickGluedFoam[idLayer]);
+  mLayer[idLayer]->setBuildLevel(mBuildLevel[idLayer]);
   if (mVersion == "ThreeLayersNoDeadZones") {
     mLayer[idLayer]->createLayer(dest);
   } else if (mVersion == "ThreeLayers") {

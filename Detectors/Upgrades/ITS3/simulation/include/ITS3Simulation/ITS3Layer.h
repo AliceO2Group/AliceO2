@@ -61,6 +61,7 @@ class ITS3Layer : public TObject
   void setLengthSemiCircleFoam(double lengthSemiCircleFoam) { mLengthSemiCircleFoam = lengthSemiCircleFoam; }
   void setThickGluedFoam(double thickGluedFoam) { mThickGluedFoam = thickGluedFoam; }
   void setGapXDirection(double gapXDirection) { mGapXDirection = gapXDirection; }
+  void setBuildLevel(int buildLevel) { mBuildLevel = buildLevel; }
 
  private:
   int mLayerNumber{0};              //! layer number
