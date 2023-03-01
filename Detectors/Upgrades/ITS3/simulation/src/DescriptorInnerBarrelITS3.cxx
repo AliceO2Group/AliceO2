@@ -42,14 +42,16 @@ void DescriptorInnerBarrelITS3::configure()
 {
   // set version
   auto& param = DescriptorInnerBarrelITS3Param::Instance();
-  int buildLevel = param.mBuildLevel; // 0 by default
+  int buildLevel = param.mBuildLevel;
   if (param.getITS3LayerConfigString() != "") {
+    LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
+    LOG(info) << param;
     setVersion(param.getITS3LayerConfigString());
+  } else {
+    LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
+    LOG(info) << "DescriptorInnerBarrelITS3.mVersion : " << mVersion;
+    LOG(info) << "DescriptorInnerBarrelITS3.mBuildLevel : " << buildLevel;
   }
-
-  LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
-  LOG(info) << "DescriptorInnerBarrelITS3.mVersion : " << mVersion;
-  LOG(info) << "DescriptorInnerBarrelITS3.mBuildLevel : " << buildLevel;
 
   if (mVersion == "ThreeLayersNoDeadZones") {
     mNumLayers = 3;
