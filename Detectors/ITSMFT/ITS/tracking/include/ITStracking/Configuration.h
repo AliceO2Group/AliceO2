@@ -106,7 +106,6 @@ struct VertexingParameters {
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
-  float baseBeamError = 0.005f;
   float maxZPositionAllowed = 25.f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
@@ -116,78 +115,46 @@ struct VertexingParameters {
   int nThreads = 1;
 };
 
-struct VertexerHistogramsConfiguration {
-  VertexerHistogramsConfiguration() = default;
-  VertexerHistogramsConfiguration(int nBins[3],
-                                  int binSpan[3],
-                                  float lowBoundaries[3],
-                                  float highBoundaries[3]);
-  int nBinsXYZ[3] = {402, 402, 4002};
-  int binSpanXYZ[3] = {2, 2, 4};
-  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
-  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
-  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
-  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
-  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
-};
-
-inline VertexerHistogramsConfiguration::VertexerHistogramsConfiguration(int nBins[3],
-                                                                        int binSpan[3],
-                                                                        float lowBoundaries[3],
-                                                                        float highBoundaries[3])
-{
-  for (int i{0}; i < 3; ++i) {
-    nBinsXYZ[i] = nBins[i];
-    binSpanXYZ[i] = binSpan[i];
-    lowHistBoundariesXYZ[i] = lowBoundaries[i];
-    highHistBoundariesXYZ[i] = highBoundaries[i];
-  }
-
-  binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
-  binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
-  binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
-}
-
-struct TimeFrameGPUConfig {
-  TimeFrameGPUConfig() = default;
-  TimeFrameGPUConfig(size_t cubBufferSize,
-                     size_t maxTrkClu,
-                     size_t cluLayCap,
-                     size_t cluROfCap,
-                     size_t maxTrkCap,
-                     size_t maxVertCap,
-                     size_t maxROFs);
+struct TimeFrameGPUParameters {
+  TimeFrameGPUParameters() = default;
+  TimeFrameGPUParameters(size_t cubBufferSize,
+                         size_t maxTrkClu,
+                         size_t cluLayCap,
+                         size_t cluROfCap,
+                         size_t maxTrkCap,
+                         size_t maxVertCap,
+                         size_t maxROFs);
 
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
-  size_t clustersPerROfCapacity = 1e4;
+  size_t clustersPerROfCapacity = 5e2;
   size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   size_t validatedTrackletsCapacity = 1e5;
   size_t cellsLUTsize = validatedTrackletsCapacity;
   size_t maxLinesCapacity = 1e2;
-  size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
   size_t maxVerticesCapacity = 10;
   size_t nMaxROFs = 1e3;
+  size_t nTimeFrameChunks = 3;
+  int maxGPUMemoryGB = -1;
 
-  VertexerHistogramsConfiguration histConf; // <==== split into separate configs
+  // VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
 
-inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
-                                              size_t maxTrkClu,
-                                              size_t cluLayCap,
-                                              size_t cluROfCap,
-                                              size_t maxTrkCap,
-                                              size_t maxVertCap,
-                                              size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
-                                                                maxTrackletsPerCluster{maxTrkClu},
-                                                                clustersPerLayerCapacity{cluLayCap},
-                                                                clustersPerROfCapacity{cluROfCap},
-                                                                maxLinesCapacity{maxTrkCap},
-                                                                maxVerticesCapacity{maxVertCap},
-                                                                nMaxROFs{maxROFs}
+inline TimeFrameGPUParameters::TimeFrameGPUParameters(size_t cubBufferSize,
+                                                      size_t maxTrkClu,
+                                                      size_t cluLayCap,
+                                                      size_t cluROfCap,
+                                                      size_t maxTrkCap,
+                                                      size_t maxVertCap,
+                                                      size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
+                                                                        maxTrackletsPerCluster{maxTrkClu},
+                                                                        clustersPerLayerCapacity{cluLayCap},
+                                                                        clustersPerROfCapacity{cluROfCap},
+                                                                        maxLinesCapacity{maxTrkCap},
+                                                                        maxVerticesCapacity{maxVertCap},
+                                                                        nMaxROFs{maxROFs}
 {
-  maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / 2);
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 }
 

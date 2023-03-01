@@ -16,6 +16,7 @@ o2_add_library(EMCALBase
         src/RCUTrailer.cxx
         src/ClusterFactory.cxx
         src/TriggerMappingV2.cxx
+        src/NonlinearityHandler.cxx
         PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers Boost::serialization
         O2::MathUtils O2::DataFormatsEMCAL
         O2::SimulationDataFormat)
@@ -29,6 +30,7 @@ o2_target_root_dictionary(EMCALBase
         include/EMCALBase/RCUTrailer.h
         include/EMCALBase/TriggerMappingV2.h
         include/EMCALBase/ClusterFactory.h
+        include/EMCALBase/NonlinearityHandler.h
 )
 
 o2_data_file(COPY files DESTINATION Detectors/EMC)

@@ -121,6 +121,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   LOGF(info, "Timing prepare FIT data: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 
   mTimerTot.Start();
+  std::array<uint32_t, 18> nMatches = {0};
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mMatchedTracksPairs.clear(); // new sector
     LOG(debug) << "Doing matching for sector " << sec << "...";
@@ -135,9 +136,14 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
       mTimerMatchTPC.Stop();
     }
     LOG(debug) << "...done. Now check the best matches";
+    nMatches[sec] = mMatchedTracksPairs.size();
     selectBestMatches();
   }
-
+  std::string nMatchesStr = "Number of pairs matched per sector: ";
+  for (int sec = o2::constants::math::NSectors; sec--;) {
+    nMatchesStr += fmt::format("{} : {} ; ", sec, nMatches[sec]);
+  }
+  LOG(info) << nMatchesStr;
   // re-arrange outputs from constrained/unconstrained to the 4 cases (TPC, ITS-TPC, TPC-TRD, ITS-TPC-TRD) to be implemented as soon as TPC-TRD and ITS-TPC-TRD tracks available
 
   mIsTPCused = false;
@@ -1092,8 +1098,6 @@ void MatchTOF::selectBestMatches()
   }
   ///< define the track-TOFcluster pair per sector
 
-  LOG(info) << "Number of pair matched = " << mMatchedTracksPairs.size();
-
   // first, we sort according to the chi2
   std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
@@ -1202,8 +1206,6 @@ void MatchTOF::selectBestMatchesHP()
   ///< define the track-TOFcluster pair per sector
   float chi2SeparationCut = 2;
   float chi2S = 3;
-
-  LOG(info) << "Number of pair matched = " << mMatchedTracksPairs.size();
 
   std::vector<o2::dataformats::MatchInfoTOFReco> tmpMatch;
 

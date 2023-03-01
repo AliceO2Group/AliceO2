@@ -9,19 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework InputSpan
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/InputSpan.h"
 #include "Framework/DataRef.h"
 #include <vector>
 #include <string>
-#include <boost/test/unit_test.hpp>
+#include <iostream>
+#include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestInputSpan)
+TEST_CASE("TestInputSpan")
 {
   std::vector<std::vector<std::string>> inputs(3);
   int routeNo = 0;
@@ -42,29 +39,29 @@ BOOST_AUTO_TEST_CASE(TestInputSpan)
   };
 
   InputSpan span{getter, nPartsGetter, inputs.size()};
-  BOOST_REQUIRE(span.size() == inputs.size());
+  REQUIRE(span.size() == inputs.size());
   routeNo = 0;
   for (; routeNo < span.size(); ++routeNo) {
     auto ref = span.get(routeNo);
-    BOOST_CHECK(inputs[routeNo].at(0) == ref.header);
-    BOOST_CHECK(inputs[routeNo].at(1) == ref.payload);
+    REQUIRE(inputs[routeNo].at(0) == ref.header);
+    REQUIRE(inputs[routeNo].at(1) == ref.payload);
     if (routeNo == 1) {
-      BOOST_CHECK(span.getNofParts(routeNo) == 3);
+      REQUIRE(span.getNofParts(routeNo) == 3);
       ref = span.get(routeNo, 1);
-      BOOST_CHECK(inputs[routeNo].at(2) == ref.header);
-      BOOST_CHECK(inputs[routeNo].at(3) == ref.payload);
+      REQUIRE(inputs[routeNo].at(2) == ref.header);
+      REQUIRE(inputs[routeNo].at(3) == ref.payload);
     } else {
-      BOOST_CHECK(span.getNofParts(routeNo) == 1);
+      REQUIRE(span.getNofParts(routeNo) == 1);
     }
   }
 
   routeNo = 0;
   for (auto it = span.begin(), end = span.end(); it != end; ++it) {
     size_t partNo = 0;
-    BOOST_CHECK(it.size() * 2 == inputs[routeNo].size());
+    REQUIRE(it.size() * 2 == inputs[routeNo].size());
     for (auto const& ref : it) {
-      BOOST_CHECK(inputs[routeNo].at(partNo++) == ref.header);
-      BOOST_CHECK(inputs[routeNo].at(partNo++) == ref.payload);
+      REQUIRE(inputs[routeNo].at(partNo++) == ref.header);
+      REQUIRE(inputs[routeNo].at(partNo++) == ref.payload);
       std::cout << ref.header << " " << ref.payload << std::endl;
     }
     routeNo++;

@@ -12,6 +12,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/InputSpec.h"
+#include "Framework/TimerParamSpec.h"
 
 #include <chrono>
 #include <thread>
@@ -26,6 +27,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"dataspec", VariantType::String, "tst:TST/A/0", {"DataSpec for the outputs"}});
   workflowOptions.emplace_back(
     ConfigParamSpec{"name", VariantType::String, "test-source", {"Name of the source"}});
+  workflowOptions.emplace_back(
+    ConfigParamSpec{"timer", VariantType::String, "", {"What to use as timer intervals. Format is <period>:<validity since start>[, ...]"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -35,6 +38,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
   // Get the dataspec option and creates OutputSpecs from it
   auto dataspec = ctx.options().get<std::string>("dataspec");
+  auto timer = ctx.options().get<std::string>("timer");
+  std::vector<InputSpec> inputs;
+  std::vector<TimerSpec> timers;
+
+  if (timer.empty() == false) {
+    // Split timer at every comma, then split each part at every colon
+    // and create a TimerIntervalSpec from it.
+    while (true) {
+      auto comma = timer.find(',');
+      auto colon = timer.find(':');
+      if (colon == std::string::npos) {
+        break;
+      }
+      auto validity = std::stoull(timer.substr(0, colon));
+      auto period = std::stoull(timer.substr(colon + 1, comma - colon - 1));
+      timers.push_back(TimerSpec{.period = period, .validity = validity});
+      if (comma == std::string::npos) {
+        break;
+      }
+      timer = timer.substr(comma + 1);
+    }
+    inputs.emplace_back("timer", "TST", "TIMER", 0, Lifetime::Timer, timerSpecs(timers));
+  }
   std::vector<InputSpec> matchers = select(dataspec.c_str());
   std::vector<std::string> outputRefs;
   std::vector<OutputSpec> outputSpecs;
@@ -46,10 +72,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
   return WorkflowSpec{
     {
       .name = ctx.options().get<std::string>("name"),
+      .inputs = inputs,
       .outputs = outputSpecs,
       .algorithm = AlgorithmSpec{adaptStateless(
         [outputSpecs](DataAllocator& outputs) {
-          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
+          LOGP(info, "Processing callback invoked");
           for (auto const& output : outputSpecs) {
             auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
             outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 1);

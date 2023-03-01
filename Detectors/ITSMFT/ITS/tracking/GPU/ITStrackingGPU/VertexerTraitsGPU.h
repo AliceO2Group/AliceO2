@@ -21,6 +21,7 @@
 #include <array>
 
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
@@ -41,19 +42,19 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   ~VertexerTraitsGPU() override;
-  void initialise(const TrackingParameters& trackingParams) override;
-  void adoptTimeFrame(TimeFrame* tf) override;
+  void initialise(const TrackingParameters&) override;
+  void adoptTimeFrame(TimeFrame*) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
-  void updateVertexingParameters(const VertexingParameters& vrtPar) override;
-  // void computeMCFiltering() override;
+  void updateVertexingParameters(const VertexingParameters&, const TimeFrameGPUParameters&) override;
 
   void computeVerticesHist();
 
  protected:
   IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
+  TimeFrameGPUParameters mTfGPUParams;
 };
 
 inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }

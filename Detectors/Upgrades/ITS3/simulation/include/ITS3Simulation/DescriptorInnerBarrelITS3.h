@@ -39,6 +39,7 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 
   void configure();
   ITS3Layer* createLayer(int idLayer, TGeoVolume* dest);
+  void createServices(TGeoVolume* dest);
 
  private:
   std::string mVersion{"ThreeLayersNoDeadZones"}; //! version of ITS3
@@ -50,11 +51,12 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height
   std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length
   std::vector<double> mThickGluedFoam{};          //! Vector of  glued foam thickness
+  double mGapXDirection4thLayer;                  //! x-direction gap for layer 4
 
   std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
 
   /// \cond CLASSIMP
-  ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS inner barrel geometry descriptor
+  ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS3 inner barrel geometry descriptor
   /// \endcond
 };
 } // namespace its3

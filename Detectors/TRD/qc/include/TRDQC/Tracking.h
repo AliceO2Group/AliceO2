@@ -18,6 +18,7 @@
 
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/Constants.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -25,9 +26,9 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsBase/Propagator.h"
 #include "TRDBase/RecoParam.h"
-#include "TH1.h"
 
 #include "Rtypes.h"
+#include "TH1.h"
 
 #include <gsl/span>
 #include <bitset>
@@ -83,12 +84,14 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletPositionSigned{}; ///< the raw position from Tracklet64 (signed integer)
   std::array<int, constants::NLAYER> trackletDet{};            ///< the chamber of the tracklet
   // some tracklet details to identify its global MCM number to check if it is from noisy MCM
-  std::array<int, constants::NLAYER> trackletHCId{};                                     ///< the half-chamber ID of the tracklet
-  std::array<int, constants::NLAYER> trackletRob{};                                      ///< the ROB number of the tracklet
-  std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
-  std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
-  std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 4);
+  std::array<int, constants::NLAYER> trackletHCId{};                                          ///< the half-chamber ID of the tracklet
+  std::array<int, constants::NLAYER> trackletRob{};                                           ///< the ROB number of the tracklet
+  std::array<int, constants::NLAYER> trackletMcm{};                                           ///< the MCM number of the tracklet
+  std::array<float, constants::NLAYER> trackletChi2{};                                        ///< estimated chi2 for the update of the track with the given tracklet
+  std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{};      ///< charges of tracklets
+  std::array<std::array<float, constants::NCHARGES>, constants::NLAYER> trackletCorCharges{}; ///< corrected charges of tracklets
+
+  ClassDefNV(TrackQC, 5);
 };
 
 class Tracking
@@ -118,13 +121,21 @@ class Tracking
   // Make output accessible to DPL processor
   std::vector<TrackQC>& getTrackQC() { return mTrackQC; }
 
+  // Set the local gain factors with values from the ccdb
+  void setLocalGainFactors(const o2::trd::LocalGainFactor& localGain)
+  {
+    mLocalGain = localGain;
+  }
+
  private:
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
   float mMaxStep{o2::base::Propagator::MAX_STEP};    ///< maximum step for propagation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
+
   // QA results
   std::vector<TrackQC> mTrackQC;
+
   // input from DPL
   gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC; ///< ITS-TPC seeding tracks
   gsl::span<const o2::tpc::TrackTPC> mTracksTPC;               ///< TPC seeding tracks
@@ -133,7 +144,10 @@ class Tracking
   gsl::span<const Tracklet64> mTrackletsRaw;                   ///< array of raw tracklets needed for TRD refit
   gsl::span<const CalibratedTracklet> mTrackletsCalib;         ///< array of calibrated tracklets needed for TRD refit
 
-  ClassDefNV(Tracking, 1);
+  // corrections from ccdb, some need to be loaded only once hence an init flag
+  o2::trd::LocalGainFactor mLocalGain; ///< local gain factors from krypton calibration
+
+  ClassDefNV(Tracking, 2);
 };
 
 } // namespace trd

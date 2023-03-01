@@ -53,7 +53,6 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void adoptTimeFrame(TimeFrame& tf);
-  void setParameters(const VertexingParameters& verPar);
   VertexingParameters& getVertParameters() const;
   void getGlobalConfiguration();
 
@@ -89,11 +88,6 @@ class Vertexer
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 };
 
-// inline void Vertexer::filterMCTracklets()
-// {
-//   mTraits->computeMCFiltering();
-// }
-
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
 {
@@ -104,11 +98,6 @@ template <typename... T>
 void Vertexer::findTracklets(T&&... args)
 {
   mTraits->computeTracklets(std::forward<T>(args)...);
-}
-
-inline void Vertexer::setParameters(const VertexingParameters& verPar)
-{
-  mTraits->updateVertexingParameters(verPar);
 }
 
 inline VertexingParameters& Vertexer::getVertParameters() const
@@ -124,16 +113,6 @@ inline void Vertexer::dumpTraits()
 inline void Vertexer::validateTracklets()
 {
   mTraits->computeTrackletMatching();
-}
-
-inline std::vector<Vertex> Vertexer::exportVertices()
-{
-  std::vector<Vertex> vertices;
-  for (auto& vertex : mTraits->getVertices()) {
-    vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
-    vertices.back().setTimeStamp(vertex.mTimeStamp);
-  }
-  return vertices;
 }
 
 template <typename... T>

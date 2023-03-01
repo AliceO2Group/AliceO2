@@ -521,7 +521,7 @@ struct RAWDataHeaderV2 {
   };
 };
 
-using RAWDataHeader = RAWDataHeaderV6; // default version
+using RAWDataHeader = RAWDataHeaderV7; // default version
 using RDHLowest = RAWDataHeaderV4;     // link this to lowest version
 using RDHHighest = RAWDataHeaderV7;    // link this to highest version
 

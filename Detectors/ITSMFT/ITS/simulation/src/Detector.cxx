@@ -154,6 +154,15 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
   }
 
+  TString detName = GetName();
+  if (detName == "ITS") {
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure();
+  } else if (detName == "IT3") {
+#ifdef ENABLE_UPGRADES
+    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
+#endif
+  }
+
   mNumberInnerLayers = mDescriptorIB.get()->getNumberOfLayers();
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
 
@@ -172,7 +181,6 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
   mGeometry.resize(mNumberLayers);
   mWrapperLayerId.resize(mNumberLayers);
 
-  TString detName = GetName();
   for (int j{0}; j < mNumberLayers; j++) {
     if (detName == "IT3" && j < mNumberInnerLayers) {
       mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j); // See V3Layer
@@ -202,13 +210,6 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  if (detName == "ITS") {
-    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure();
-  } else if (detName == "IT3") {
-#ifdef ENABLE_UPGRADES
-    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
-#endif
-  }
   configOuterBarrelITS(mNumberInnerLayers);
 }
 
@@ -329,7 +330,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == mNumberLayers - 1)) {
+  if (fMC->IsTrackExiting()) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
@@ -944,6 +945,10 @@ void Detector::constructDetectorGeometry()
   TString detName = GetName();
   if (detName == "ITS") {
     ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->createServices(wrapVols[0]);
+  } else if (detName == "IT3" && mNumberInnerLayers == 3) {
+#ifdef ENABLE_UPGRADES
+    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->createServices(wrapVols[0]);
+#endif
   }
 
   mServicesGeometry = new V3Services(detName);

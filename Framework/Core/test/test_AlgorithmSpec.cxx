@@ -9,21 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework AlgorithmSpec
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/InputRecord.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DataAllocator.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <iostream>
 #include <vector>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestAlgorithmSpec)
+TEST_CASE("TestAlgorithmSpec")
 {
   using namespace o2::framework;
   AlgorithmSpec::ProcessCallback foo = [](ProcessingContext&) {};

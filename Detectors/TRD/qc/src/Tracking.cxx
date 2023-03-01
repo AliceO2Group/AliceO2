@@ -77,7 +77,8 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     if (trkltId < 0) {
       continue;
     }
-    int trkltDet = mTrackletsRaw[trkltId].getDetector();
+    const auto& tracklet = mTrackletsRaw[trkltId];
+    int trkltDet = tracklet.getDetector();
     int trkltSec = trkltDet / (NLAYER * NSTACK);
     if (trkltSec != o2::math_utils::angle2Sector(trk.getAlpha())) {
       if (!trk.rotate(o2::math_utils::sector2Angle(trkltSec))) {
@@ -94,14 +95,14 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
     float tiltCorrUp = tilt * (mTrackletsCalib[trkltId].getZ() - trk.getZ());
     float zPosCorrUp = mTrackletsCalib[trkltId].getZ() + mRecoParam.getZCorrCoeffNRC() * trk.getTgl();
-    float padLength = pad->getRowSize(mTrackletsRaw[trkltId].getPadRow());
+    float padLength = pad->getRowSize(tracklet.getPadRow());
     if (!((trk.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trk.getZ()) < padLength))) {
       tiltCorrUp = 0.f;
     }
 
     std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
-    mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp);
+    mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(tracklet.getPadRow()), trkltCovUp);
     auto chi2trklt = trk.getPredictedChi2(trkltPosUp, trkltCovUp);
 
     qcStruct.trackX[iLayer] = trk.getX();
@@ -117,20 +118,43 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     qcStruct.trackletY[iLayer] = trkltPosUp[0];
     qcStruct.trackletZ[iLayer] = trkltPosUp[1];
     qcStruct.trackletDy[iLayer] = mTrackletsCalib[trkltId].getDy();
-    qcStruct.trackletSlope[iLayer] = mTrackletsRaw[trkltId].getSlope();
-    qcStruct.trackletSlopeSigned[iLayer] = mTrackletsRaw[trkltId].getSlopeBinSigned();
-    qcStruct.trackletPosition[iLayer] = mTrackletsRaw[trkltId].getPosition();
-    qcStruct.trackletPositionSigned[iLayer] = mTrackletsRaw[trkltId].getPositionBinSigned();
+    qcStruct.trackletSlope[iLayer] = tracklet.getSlope();
+    qcStruct.trackletSlopeSigned[iLayer] = tracklet.getSlopeBinSigned();
+    qcStruct.trackletPosition[iLayer] = tracklet.getPosition();
+    qcStruct.trackletPositionSigned[iLayer] = tracklet.getPositionBinSigned();
     qcStruct.trackletDet[iLayer] = trkltDet;
-    qcStruct.trackletHCId[iLayer] = mTrackletsRaw[trkltId].getHCID();
-    qcStruct.trackletRob[iLayer] = mTrackletsRaw[trkltId].getROB();
-    qcStruct.trackletMcm[iLayer] = mTrackletsRaw[trkltId].getMCM();
+    qcStruct.trackletHCId[iLayer] = tracklet.getHCID();
+    qcStruct.trackletRob[iLayer] = tracklet.getROB();
+    qcStruct.trackletMcm[iLayer] = tracklet.getMCM();
     qcStruct.trackletChi2[iLayer] = chi2trklt;
     qcStruct.trackletCharges[iLayer] = {
-      mTrackletsRaw[trkltId].getQ0(),
-      mTrackletsRaw[trkltId].getQ1(),
-      mTrackletsRaw[trkltId].getQ2(),
+      tracklet.getQ0(),
+      tracklet.getQ1(),
+      tracklet.getQ2(),
     };
+
+    // Corrected Tracklets
+    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * (std::abs(tracklet.getSlopeBinSigned()) + 1.f);
+    float q0{tracklet.getQ0() / cor}, q1{tracklet.getQ1() / cor}, q2{tracklet.getQ2() / cor};
+
+    // z-row merging
+    if (trkTrd.getIsCrossingNeighbor(iLayer) && trkTrd.getHasNeighbor()) {
+      for (const auto& trklt : mTrackletsRaw) {
+        if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
+          continue;
+        }
+        if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) == 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 0) {
+          // Add charge information
+          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * (std::abs(trklt.getSlopeBinSigned()) + 1.f);
+          q0 += trklt.getQ0() / cor;
+          q1 += trklt.getQ1() / cor;
+          q2 += trklt.getQ2() / cor;
+          break;
+        }
+      }
+    }
+
+    qcStruct.trackletCorCharges[iLayer] = {q0, q1, q2};
   }
   mTrackQC.push_back(qcStruct);
 }

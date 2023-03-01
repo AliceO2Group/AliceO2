@@ -153,8 +153,8 @@ class PedestalsTask
                   << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
       }
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
-    ic.services().get<CallbackService>().set(CallbackService::Id::Reset, [this]() { reset(); });
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Reset>([this]() { reset(); });
   }
 
   //_________________________________________________________________________________________________

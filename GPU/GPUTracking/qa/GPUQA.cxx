@@ -1170,6 +1170,12 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           float s = std::sin(alpha);
           float localY = -info.x * s + info.y * c;
 
+          if (mConfig.dumpToROOT) {
+            static auto effdump = GPUROOTDump<TNtuple>::getNew("eff", "alpha:x:y:z:mcphi:mceta:mcpt:rec:fake:findable:prim");
+            float localX = info.x * c + info.y * s;
+            effdump.Fill(alpha, localX, localY, info.z, mcphi, mceta, mcpt, mRecTracks[iCol][i], mFakeTracks[iCol][i], findable, info.prim);
+          }
+
           for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 2; k++) {
               if (k == 0 && findable == 0) {

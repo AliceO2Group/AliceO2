@@ -75,7 +75,7 @@ AddOptionRTC(sigBitsCharge, unsigned char, 4, "", 0, "Number of significant bits
 AddOptionRTC(sigBitsWidth, unsigned char, 3, "", 0, "Number of significant bits for TPC cluster width in compression mode 1")
 AddOptionRTC(forceEarlyTransform, char, -1, "", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
 AddOptionRTC(dropLoopers, unsigned char, 0, "", 0, "Drop looping tracks starting from second loop")
-AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit")
+AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit (default)")
 AddOptionRTC(mergerInterpolateErrors, unsigned char, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddOptionRTC(mergeCE, unsigned char, 1, "", 0, "Merge tracks accross the central electrode")
 AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit when fit fails")

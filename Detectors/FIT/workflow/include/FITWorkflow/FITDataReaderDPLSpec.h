@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/CallbackService.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Lifetime.h"
@@ -24,6 +25,7 @@
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Framework/InputRecordWalker.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include <string>
 #include <iostream>
 #include <vector>
@@ -41,11 +43,13 @@ template <typename RawReaderType>
 class FITDataReaderDPLSpec : public Task
 {
  public:
-  FITDataReaderDPLSpec(const RawReaderType& rawReader) : mRawReader(rawReader) {}
+  FITDataReaderDPLSpec(const RawReaderType& rawReader, const ConcreteDataMatcher& matcherChMapCCDB) : mRawReader(rawReader), mMatcherChMapCCDB(matcherChMapCCDB) {}
   FITDataReaderDPLSpec() = delete;
   ~FITDataReaderDPLSpec() override = default;
   typedef RawReaderType RawReader_t;
   RawReader_t mRawReader;
+  ConcreteDataMatcher mMatcherChMapCCDB; // matcher for Channel map(LUT) from CCDB
+  bool mUpdateCCDB{true};
   void init(InitContext& ic) final
   {
     auto ccdbUrl = ic.options().get<std::string>("ccdb-path");
@@ -59,14 +63,10 @@ class FITDataReaderDPLSpec : public Task
     if (lutPath != "") {
       RawReader_t::LookupTable_t::setLUTpath(lutPath);
     }
-    //    if(!useDPLfetcherForCCDB) {
-    RawReader_t::LookupTable_t::Instance().printFullMap(); // Lets keep this option
-                                                           //    }
     const auto nReserveVecDig = ic.options().get<int>("reserve-vec-dig");
     const auto nReserveVecChData = ic.options().get<int>("reserve-vec-chdata");
     const auto nReserveVecBuffer = ic.options().get<int>("reserve-vec-buffer");
     const auto nReserveMapDig = ic.options().get<int>("reserve-map-dig");
-    const auto reserveOnlyFirst = ic.options().get<int>("reserve-only-first");
     if (nReserveVecDig || nReserveVecChData) {
       mRawReader.reserveVecDPL(nReserveVecDig, nReserveVecChData);
     }
@@ -102,23 +102,32 @@ class FITDataReaderDPLSpec : public Task
     std::size_t cntDF0{0};        // number of pages with DataFormat=0, padded
     std::size_t cntDF2{0};        // number of pages with DataFormat=2, no padding
     std::size_t cntDF_unknown{0}; // number of pages with unknown DataFormat
+    if (mUpdateCCDB) {
+      pc.inputs().get<typename RawReader_t::LookupTable_t::Table_t*>("channel_map");
+      mUpdateCCDB = false; // Channel map is stable during run
+    }
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      const o2::header::RDHAny* rdhPtr = nullptr;
       // Proccessing each page
-      auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-      gsl::span<const uint8_t> payload(it.data(), it.size());
-      /*
-            if(rdhPtr->dataFormat == 0) {// padded
-              cntDF0++;
-            }
-            else if(rdhPtr->dataFormat == 2) {// no padding
-              cntDF2++;
-            }
-            else {
-              cntDF_unknown++;
-              continue;
-            }
-      */
-      mRawReader.process(true, payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
+      try {
+        rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+        gsl::span<const uint8_t> payload(it.data(), it.size());
+        const auto rdhDataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
+        if (rdhDataFormat == 0) { // padded
+          cntDF0++;
+          mRawReader.process(true, payload, o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
+        } else if (rdhDataFormat == 2) { // no padding
+          cntDF2++;
+          mRawReader.process(false, payload, o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
+        } else {
+          cntDF_unknown++;
+          continue; // or break?
+        }
+      } catch (std::exception& e) {
+        LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+        mRawReader.makeSnapshot(pc); // send empty output
+        return;
+      }
     }
     mRawReader.accumulateDigits();
     mRawReader.emptyTFprotection();
@@ -128,14 +137,24 @@ class FITDataReaderDPLSpec : public Task
       LOG(error) << "Strange RDH::dataFormat in TF. Number of pages: DF=0 - " << cntDF0 << " , DF=2 - " << cntDF2 << " , DF=unknown - " << cntDF_unknown;
     }
   }
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
+  {
+    LOG(info) << "finaliseCCDB";
+    if (matcher == mMatcherChMapCCDB) {
+      LOG(info) << "Channel map is updated";
+      RawReader_t::LookupTable_t::Instance().initFromTable((const typename RawReader_t::LookupTable_t::Table_t*)obj);
+      return;
+    }
+  }
 };
 
 template <typename RawReaderType>
 framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawReader, bool askSTFDist, bool isSubSampled)
 {
   std::vector<OutputSpec> outputSpec;
-  rawReader.configureOutputSpec(outputSpec);
   std::vector<InputSpec> inputSpec{};
+  ConcreteDataMatcher matcherChMapCCDB{rawReader.mDataOrigin, RawReaderType::LookupTable_t::sObjectName, 0};
+  rawReader.configureOutputSpec(outputSpec);
   if (isSubSampled) {
     inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "SUB_RAWDATA"}, Lifetime::Optional}); // in case if one need to use DataSampler
   } else {
@@ -144,6 +163,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
   if (askSTFDist) {
     inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
+  inputSpec.emplace_back("channel_map", matcherChMapCCDB, Lifetime::Condition, ccdbParamSpec(RawReaderType::LookupTable_t::sDefaultLUTpath));
   std::string dataProcName = rawReader.mDataOrigin.template as<std::string>();
   std::for_each(dataProcName.begin(), dataProcName.end(), [](char& c) { c = ::tolower(c); });
   dataProcName += "-datareader-dpl";
@@ -152,7 +172,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
     dataProcName,
     inputSpec,
     outputSpec,
-    adaptFromTask<FITDataReaderDPLSpec<RawReaderType>>(rawReader),
+    adaptFromTask<FITDataReaderDPLSpec<RawReaderType>>(rawReader, matcherChMapCCDB),
     {o2::framework::ConfigParamSpec{"ccdb-path", VariantType::String, "", {"CCDB url which contains LookupTable"}},
      o2::framework::ConfigParamSpec{"lut-path", VariantType::String, "", {"LookupTable path, e.g. FT0/LookupTable"}},
      o2::framework::ConfigParamSpec{"reserve-vec-dig", VariantType::Int, 0, {"Reserve memory for Digit vector, to DPL channel"}},
@@ -160,7 +180,6 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
      o2::framework::ConfigParamSpec{"reserve-vec-buffer", VariantType::Int, 0, {"Reserve memory for DataBlock vector, buffer for each page"}},
      o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}},
      o2::framework::ConfigParamSpec{"disable-empty-tf-protection", VariantType::Bool, false, {"Disable empty TF protection. In case of empty payload within TF, only dummy ChannelData object will be sent."}}}};
-  //     o2::framework::ConfigParamSpec{"reserve-only-first", VariantType::Bool, true, {"Any reservation command will be applied only for main reader"}},
 }
 
 } // namespace fit

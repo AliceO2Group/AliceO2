@@ -121,7 +121,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   };
 
   auto sinkFct = adaptStateful([](CallbackService& callbacks) {
-    callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+    callbacks.set<CallbackService::Id::EndOfStream>([](EndOfStreamContext& context) {
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     });
     return adaptStateless([](InputRecord& inputs) {

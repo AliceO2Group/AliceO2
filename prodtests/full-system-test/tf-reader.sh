@@ -6,7 +6,7 @@ if [ "0$O2_ROOT" == "0" ]; then
 fi
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
-source $GEN_TOPO_MYDIR/setenv.sh
+source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
 ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --shm-throw-bad-alloc 0 --no-cleanup"
 if [[ $NUMAGPUIDS == 1 ]]; then

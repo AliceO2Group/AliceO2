@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            (*count)++;
          };
          fair::mq::RegionInfo dummy;
-         ic.services().get<CallbackService>().set(CallbackService::Id::RegionInfoCallback, callback);
+         ic.services().get<CallbackService>().set<CallbackService::Id::RegionInfoCallback>(callback);
          return [count](ProcessingContext& ctx) {
            if (*count >= 1) {
              ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);

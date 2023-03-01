@@ -62,7 +62,7 @@ class ParamExample : public Parameters<5>
 {
  public:
   ParamExample() : Parameters(std::array<std::string, 5>{"p0", "p1", "p2", "p3", "p4"},
-                              "ParamExample"){}; // Default constructor with default parameters
+                              "ParamExample") { setParameters(std::array<paramvar_t, 5>{0, 1, 2, 3, 4}); }; // Default constructor with default parameters
   ~ParamExample() = default;
 };
 
@@ -73,9 +73,28 @@ int main(int argc, char* argv[])
     LOG(info) << "Nothing to do";
     return 1;
   }
+  ParameterCollection collection;
   ParamExample parameters;
+  ParamExample parameters2;
+  parameters2.setParameters(std::array<paramvar_t, 5>{5, 6, 7, 8, 9});
+  collection.storeParameters(parameters, "test1");
+  collection.storeParameters(parameters2, "test2");
+  TFile f("/tmp/testparamcollection.root", "RECREATE");
+  collection.Write("test");
+  f.Close();
 
+  ParameterCollection collection2;
+  collection2.loadParamFromFile("/tmp/testparamcollection.root", "test");
+  LOG(info) << "Input:";
+  collection.print();
+  LOG(info) << "Retrieved:";
+  collection2.print();
+  ParamExample parameters3;
+  collection.retrieveParameters(parameters3, "test1");
+  LOG(info) << "Input parameters:";
   parameters.print();
+  LOG(info) << "Retrieved parameters:";
+  parameters3.print();
 
   return 0;
 }

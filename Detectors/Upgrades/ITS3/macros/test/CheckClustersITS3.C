@@ -184,18 +184,13 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       auto chipID = cluster.getSensorID();
       if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locC = dict.getClusterCoordinates(chipID, cluster, patt, false);
+        locC = dict.getClusterCoordinates(cluster, patt, false);
       } else {
-        locC = dict.getClusterCoordinates(chipID, cluster);
+        locC = dict.getClusterCoordinates(cluster);
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
         npix = dict.getNpixels(pattID);
         LOGP(info, "I am invalid and I am on chip {}", chipID);
-      }
-      if (chipID / nChipsPerLayer < nITS3layers) {
-        float xCurved{0.f}, yCurved{0.f};
-        segs[chipID].flatToCurved(locC.X(), locC.Y(), xCurved, yCurved);
-        locC.SetXYZ(xCurved, yCurved, locC.Z());
       }
 
       // Transformation to the local --> global

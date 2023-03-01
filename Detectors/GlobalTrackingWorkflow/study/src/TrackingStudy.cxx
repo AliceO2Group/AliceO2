@@ -123,9 +123,8 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       int idMin = vtxRefs[iv].getFirstEntryOfSource(is), idMax = idMin + vtxRefs[iv].getEntriesOfSource(is);
       for (int i = idMin; i < idMax; i++) {
         auto vid = trackIndex[i];
-        if (!vid.isPVContributor()) {
-          continue;
-        }
+        bool pvCont = vid.isPVContributor();
+        bool ambig = vid.isAmbiguous();
         auto trc = recoData.getTrackParam(vid);
         float xmin = trc.getX();
         o2::dataformats::DCA dca;
@@ -133,7 +132,7 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           continue;
         }
         (*mDBGOut) << "dca"
-                   << "gid=" << vid << "pv=" << pv << "trc=" << trc << "dca=" << dca << "xmin=" << xmin << "\n";
+                   << "gid=" << vid << "pv=" << pv << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
       }
     }
   }

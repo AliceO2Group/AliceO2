@@ -23,7 +23,7 @@ fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
-source $GEN_TOPO_MYDIR/setenv.sh
+source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
 if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   # This sets up the hardcoded configuration to run the full system workflow on the EPN

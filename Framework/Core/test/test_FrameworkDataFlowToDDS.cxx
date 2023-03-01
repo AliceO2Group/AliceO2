@@ -8,12 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DDSConfigHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -41,6 +38,8 @@ AlgorithmSpec simplePipe(o2::header::DataDescription what)
   }};
 }
 
+namespace
+{
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing()
 {
@@ -84,8 +83,9 @@ char* strdiffchr(const char* s1, const char* s2)
   }
   return (*s1 == *s2) ? nullptr : (char*)s1;
 }
+} // namespace
 
-BOOST_AUTO_TEST_CASE(TestDDS)
+TEST_CASE("TestDDS")
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(TestDDS)
    </declcollection>
 </topology>
 )EXPECTED";
-  BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), nullptr);
-  BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-  BOOST_CHECK_EQUAL(ss.str(), expected);
+  REQUIRE(strdiffchr(ss.str().data(), expected) == nullptr);
+  REQUIRE(strdiffchr(ss.str().data(), expected) == strdiffchr(expected, ss.str().data()));
+  REQUIRE(ss.str() == expected);
 }

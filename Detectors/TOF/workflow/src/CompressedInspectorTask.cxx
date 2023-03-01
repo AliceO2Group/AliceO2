@@ -79,7 +79,7 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
     }
     mFile->Close();
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
 }
 
 template <typename RDH>

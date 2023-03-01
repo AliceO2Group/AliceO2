@@ -18,7 +18,7 @@ jobs:
         branch=$(echo ${{ github.event.inputs.tag }}-patches | tr . - | sed -e's/-[0-9]*-patches$/-patches/')
         EOF
       id: decide_release_branch
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         ref: "dev"
     - name: Tag branch (or create one before tagging if does not exists)

@@ -19,8 +19,8 @@ ClassImp(o2::its3::SegmentationSuperAlpide);
 
 void o2::its3::SegmentationSuperAlpide::print()
 {
-  LOGP(info, "SegmentationSuperAlpide:");
-  LOGP(info, "Layer {}: Active/Total size {:.2f}/{:.2f} (rows) x {:.2f}/{:.2f}", mLayer, mActiveMatrixSizeRows, mSensorSizeRows, mActiveMatrixSizeCols, mSensorSizeCols);
-  LOGP(info, "Pixel size: {:.2f} (along {} rows) {:.2f} (along {} columns) microns", mPitchRow * 1e4, mNRows, mPitchCol * 1e4, mNCols);
-  LOGP(info, "Passive edges: bottom: {:.6f}, top: {:.6f}, left/right: {:.6f} microns", mPassiveEdgeReadOut * 1e4, mPassiveEdgeTop * 1e4, mPassiveEdgeSide * 1e4);
+  LOGP(debug, "SegmentationSuperAlpide:");
+  LOGP(debug, "Layer {}: Active/Total size {:.2f}/{:.2f} (rows) x {:.2f}/{:.2f}", mLayer, mActiveMatrixSizeRows, mSensorSizeRows, mActiveMatrixSizeCols, mSensorSizeCols);
+  LOGP(debug, "Pixel size: {:.2f} (along {} rows) {:.2f} (along {} columns) microns", mPitchRow * 1e4, mNRows, mPitchCol * 1e4, mNCols);
+  LOGP(debug, "Passive edges: bottom: {:.6f}, top: {:.6f}, left/right: {:.6f} microns", mPassiveEdgeReadOut * 1e4, mPassiveEdgeTop * 1e4, mPassiveEdgeSide * 1e4);
 }

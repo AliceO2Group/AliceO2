@@ -52,7 +52,6 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUpdateCCDB) {
     auto caliboffsets = pc.inputs().get<o2::fv0::FV0ChannelTimeCalibrationObject*>("fv0offsets");
     mReco.SetChannelOffset(caliboffsets.get());
-    LOG(info) << "RecoSpec  mReco.SetChannelOffset(&caliboffsets)";
   }
 
   int nDig = digits.size();

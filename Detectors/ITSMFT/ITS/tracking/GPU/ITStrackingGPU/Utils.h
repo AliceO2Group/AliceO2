@@ -25,17 +25,31 @@ namespace its
 {
 namespace gpu
 {
+template <class T>
+GPUhd() T* getPtrFromRuler(int index, T* src, const int* ruler, const int stride = 1)
+{
+  return src + ruler[index] * stride;
+}
+
+template <class T>
+GPUhd() const T* getPtrFromRuler(int index, const T* src, const int* ruler, const int stride = 1)
+{
+  return src + ruler[index] * stride;
+}
+
+GPUh() void gpuThrowOnError();
+
 namespace utils
 {
-namespace host
-{
-
 #ifdef __CUDACC__
-void checkGPUError(const cudaError_t error, const char* file, const int line);
+void checkGPUError(const cudaError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
 #ifdef __HIPCC__
-void checkGPUError(const hipError_t error, const char* file, const int line);
+void checkGPUError(const hipError_t error, const char* file = __FILE__, const int line = __LINE__);
 #endif
+
+// Dump device properties
+void getDeviceProp(int, bool verbose = true);
 
 dim3 getBlockSize(const int);
 dim3 getBlockSize(const int, const int);
@@ -50,13 +64,9 @@ void gpuMemcpyHostToDevice(void*, const void*, int);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
 void gpuMemcpyToSymbol(const void* symbol, const void* src, int size);
 void gpuMemcpyFromSymbol(void* dst, const void* symbol, int size);
-} // namespace host
 
-namespace device
-{
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
-} // namespace device
 } // namespace utils
 } // namespace gpu
 } // namespace its

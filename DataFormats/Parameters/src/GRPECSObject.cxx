@@ -41,7 +41,8 @@ void GRPECSObject::print() const
   };
   std::string rtypName = int(mRunType) < GRPECS::RunType::NRUNTYPES ? GRPECS::RunTypeNames[int(mRunType)].data() : "INVALID";
   printf("Run %d of type %s, period %s, isMC: %d\n", mRun, rtypName.c_str(), mDataPeriod.c_str(), isMC());
-  printf("Start: %s | End: %s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeEnd).c_str());
+  printf("ECS/CTP Start: %s/%s | End: %s/%s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeStartCTP).c_str(),
+         timeStr(mTimeEnd).c_str(), timeStr(mTimeEndCTP).c_str());
   printf("Number of HBF per timframe: %d\n", mNHBFPerTF);
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {

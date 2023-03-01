@@ -112,6 +112,7 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
   TKey* key;
   std::string clVec{TClass::GetClass("std::vector<o2::dataformats::IRFrame>")->GetName()};
   bool done = false;
+  bool toBeSorted = false;
   while ((key = (TKey*)nextkey())) {
     std::string kcl(key->GetClassName());
     if (kcl == clVec) {
@@ -137,7 +138,30 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
       done = true;
       LOGP(info, "Loaded {} IRFrames from tree {} of {}", mOwnList.size(), key->GetName(), fname);
       break;
+    } else if (kcl == "TDirectoryFile") {
+      TTree* bcRanges = (TTree*)tfl->Get(fmt::format("{}/O2bcranges", key->GetName()).data());
+      if (!bcRanges) {
+        continue;
+      }
+      LOGP(info, "Loading BCrange trees in the directory {}", key->GetName());
+      ULong64_t minBC, maxBC;
+      bcRanges->SetBranchAddress("fBCstart", &minBC);
+      bcRanges->SetBranchAddress("fBCend", &maxBC);
+      for (int i = 0; i < (int)bcRanges->GetEntries(); i++) {
+        bcRanges->GetEntry(i);
+        if (mOwnList.size()) {
+          auto& last = mOwnList.back();
+          toBeSorted |= last.getMin() < minBC;
+        }
+        mOwnList.emplace_back(InteractionRecord::long2IR(minBC), InteractionRecord::long2IR(maxBC));
+      }
+      done = true;
     }
+  }
+
+  if (toBeSorted) {
+    LOGP(info, "Sorting {} IRFrames", mOwnList.size());
+    std::sort(mOwnList.begin(), mOwnList.end(), [](const auto& a, const auto& b) { return a.getMin() < b.getMin(); });
   }
   if (!true) {
     LOGP(fatal, "Did not find neither tree nor vector of IRFrames in {}", fname);

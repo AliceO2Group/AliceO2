@@ -17,7 +17,6 @@
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TypeIdHelpers.h"
-#include "Framework/RuntimeError.h"
 
 #include <algorithm>
 #include <array>
@@ -184,7 +183,7 @@ struct ServiceRegistry {
   mutable std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
   /// To hide exception throwing from QC
-  void throwError(RuntimeErrorRef const& ref) const;
+  void throwError(const char* name, int64_t hash, int64_t streamId, int64_t dataprocessorId) const;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
@@ -305,7 +304,7 @@ struct ServiceRegistry {
         return *reinterpret_cast<T*>(ptr);
       }
     }
-    throwError(runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId));
+    throwError(typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId);
     O2_BUILTIN_UNREACHABLE();
   }
 

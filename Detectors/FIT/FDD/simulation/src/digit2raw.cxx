@@ -32,7 +32,7 @@ struct Configuration {
     mVerbosity = vm["verbosity"].as<int>();
     mFileFor = vm["file-for"].as<std::string>();
     mRdhVersion = vm["rdh-version"].as<uint32_t>();
-    mEnablePadding = vm["enable-padding"].as<uint32_t>();
+    mEnablePadding = vm["enable-padding"].as<bool>();
     mNoEmptyHBF = vm["no-empty-hbf"].as<bool>();
     mFlpName = vm["flp-name"].as<std::string>();
     mCcdbPath = vm["ccdb-path"].as<std::string>();
@@ -143,13 +143,11 @@ void digit2raw(const Configuration& cfg)
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(cfg.mRdhVersion);
   wr.setDontFillEmptyHBF(cfg.mNoEmptyHBF);
-  /*
   wr.useRDHDataFormat(cfg.mDataFormat);
   if (!cfg.mEnablePadding) { // CRU page alignment padding is used only if no GBT word padding is used
-    wr.setAlignmentSize(16);// change to constexpr static field from class?
+    wr.setAlignmentSize(16); // change to constexpr static field from class?
     wr.setAlignmentPaddingFiller(0xff);
   }
-  */
   o2::raw::assertOutputDirectory(cfg.mOutputDir);
 
   std::string outDirName(cfg.mOutputDir);

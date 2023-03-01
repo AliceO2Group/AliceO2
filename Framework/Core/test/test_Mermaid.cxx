@@ -8,9 +8,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework MermaidHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
 #include "../src/ComputingResourceHelpers.h"
@@ -21,12 +18,14 @@
 #include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <sstream>
 #include <iostream>
 
 using namespace o2::framework;
 
+namespace
+{
 // because comparing the whole thing is a pain.
 void lineByLineComparison(const std::string& as, const std::string& bs)
 {
@@ -38,10 +37,10 @@ void lineByLineComparison(const std::string& as, const std::string& bs)
   while (a.good() && b.good()) {
     a.getline(bufferA, 1024);
     b.getline(bufferB, 1024);
-    BOOST_CHECK_EQUAL(std::string(bufferA), std::string(bufferB));
+    REQUIRE(std::string(bufferA) == std::string(bufferB));
   }
-  BOOST_CHECK(a.eof());
-  BOOST_CHECK(b.eof());
+  REQUIRE(a.eof());
+  REQUIRE(b.eof());
 }
 
 // This is how you can define your processing in a declarative way
@@ -60,6 +59,7 @@ WorkflowSpec defineDataProcessing()
                   InputSpec{"i2", "TST", "C1"}},
            Outputs{}}};
 }
+} // namespace
 
 WorkflowSpec defineDataProcessing2()
 {
@@ -80,13 +80,13 @@ WorkflowSpec defineDataProcessing2()
   };
 }
 
-BOOST_AUTO_TEST_CASE(TestMermaid)
+TEST_CASE("TestMermaid")
 {
   auto workflow = defineDataProcessing();
   std::ostringstream str;
   std::vector<DeviceSpec> devices;
   for (auto& device : devices) {
-    BOOST_CHECK(device.id != "");
+    REQUIRE(device.id != "");
   }
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
@@ -109,13 +109,13 @@ BOOST_AUTO_TEST_CASE(TestMermaid)
 )EXPECTED");
 }
 
-BOOST_AUTO_TEST_CASE(TestMermaidWithPipeline)
+TEST_CASE("TestMermaidWithPipeline")
 {
   auto workflow = defineDataProcessing2();
   std::ostringstream str;
   std::vector<DeviceSpec> devices;
   for (auto& device : devices) {
-    BOOST_CHECK(device.id != "");
+    REQUIRE(device.id != "");
   }
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);

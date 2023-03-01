@@ -35,6 +35,7 @@ o2_add_library(FT0Decoder
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                                      O2::Framework
                                      O2::DetectorsCommonDataFormats
+                                     O2::DetectorsRaw
                                      O2::DPLUtils
                                      TARGETVARNAME targetDecoderAVX512)
 target_compile_options(${targetDecoderAVX512} PRIVATE -mavx512f -mavx512vl -mavx512bw -mavx512dq)

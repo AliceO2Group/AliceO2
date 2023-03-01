@@ -112,7 +112,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   } else {
     static int warningCount = 0;
     if (warningCount++ < 100) {
-      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << static_cast<uint16_t>(pmData.channelID);
     }
   }
 }
@@ -127,7 +127,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   } else {
     static int warningCount = 0;
     if (warningCount++ < 100) {
-      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << static_cast<uint16_t>(pmData.channelID);
     }
   }
 }

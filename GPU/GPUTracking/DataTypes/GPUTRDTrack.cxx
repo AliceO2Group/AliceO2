@@ -71,7 +71,6 @@ GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
   for (int i = 0; i < kNLayers; i++) {
     t.fAttachedTracklets[i] = getTrackletIndex(i);
   }
-  t.mIsCrossingNeighbor = getIsCrossingNeighbor();
 }
 
 template <typename T>
