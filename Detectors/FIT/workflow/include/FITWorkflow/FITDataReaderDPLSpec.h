@@ -104,7 +104,7 @@ class FITDataReaderDPLSpec : public Task
     std::size_t cntDF_unknown{0}; // number of pages with unknown DataFormat
     if (mUpdateCCDB) {
       pc.inputs().get<typename RawReader_t::LookupTable_t::Table_t*>("channel_map");
-      mUpdateCCDB = false; // Channel map is stable during run
+      mUpdateCCDB = false;
     }
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       const o2::header::RDHAny* rdhPtr = nullptr;
