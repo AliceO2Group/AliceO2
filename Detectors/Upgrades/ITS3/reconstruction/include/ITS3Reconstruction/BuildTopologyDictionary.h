@@ -15,7 +15,7 @@
 #ifndef ALICEO2_ITS3_BUILDTOPOLOGYDICTIONARY_H
 #define ALICEO2_ITS3_BUILDTOPOLOGYDICTIONARY_H
 
-#include "DataFormatsITSMFT/BuildTopologyDictionary.h"
+#include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITS3Base/SuperAlpideParams.h"
 namespace o2
@@ -23,17 +23,17 @@ namespace o2
 namespace its3
 {
 
-class BuildTopologyDictionary : public itsmft::BuildTopologyDictionary
+class BuildTopologyDictionary : protected itsmft::BuildTopologyDictionary
 {
  public:
   /// Updates the information of the found cluster topology
   /// \param cluster cluster topology whose information is updatet
   /// \param dX hit - COG positions along x, expressed in fraction of pixel pitches
   /// \param dZ hit - COG positions along z, expressed in fraction of pixel pitches
-  void accountTopology(const ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
+  void accountTopology(const itsmft::ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
 
   /// Creates entries for common topologies and groups of rare topologies
-  void BuildTopologyDictionary::groupRareTopologies();
+  void groupRareTopologies();
 };
 } // namespace its3
 } // namespace o2

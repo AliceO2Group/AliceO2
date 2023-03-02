@@ -12,13 +12,14 @@
 /// \file TopologyDictionary.cxx
 
 #include "ITS3Reconstruction/BuildTopologyDictionary.h"
+#include "ITSMFTReconstruction/LookUp.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
 namespace o2::its3
 {
 
-void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, float dX, float dZ)
+void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& cluster, float dX, float dZ)
 {
   mTotClusters++;
   bool useDf = dX < IgnoreVal / 2; // we may need to account the frequency but to not update the centroid
@@ -30,7 +31,7 @@ void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, fl
   if (topoStat.countsTotal == 1) { // a new topology is inserted
     topoStat.topology = cluster;
     //___________________DEFINING_TOPOLOGY_CHARACTERISTICS__________________
-    TopologyInfo topInf;
+    itsmft::TopologyInfo topInf;
     topInf.mPattern.setPattern(cluster.getPattern().data());
     int& rs = topInf.mSizeX = cluster.getRowSpan();
     int& cs = topInf.mSizeZ = cluster.getColumnSpan();
@@ -68,7 +69,7 @@ void BuildTopologyDictionary::groupRareTopologies()
 
   double totFreq = 0.;
   for (int j = 0; j < mNCommonTopologies; j++) {
-    GroupStruct gr;
+    itsmft::GroupStruct gr;
     gr.mHash = mTopologyFrequency[j].second;
     gr.mFrequency = ((double)(mTopologyFrequency[j].first)) / mTotClusters;
     totFreq += gr.mFrequency;
@@ -83,7 +84,7 @@ void BuildTopologyDictionary::groupRareTopologies()
     gr.mPattern = mMapInfo.find(gr.mHash)->second.mPattern;
     gr.mIsGroup = false;
     mDictionary.mVectorOfIDs.push_back(gr);
-    if (j == int(CompCluster::InvalidPatternID - 1)) {
+    if (j == int(itsmft::CompCluster::InvalidPatternID - 1)) {
       LOGP(warning, "Limiting N unique topologies to {}, threshold freq. to {}, cumulative freq. to {} to be below InvalidPatternID", j, gr.mFrequency, totFreq);
       mNCommonTopologies = j;
       mFrequencyThreshold = gr.mFrequency;
@@ -93,21 +94,21 @@ void BuildTopologyDictionary::groupRareTopologies()
   // groupRareTopologies based on binning over number of rows and columns (TopologyDictionary::NumberOfRowClasses *
   // NumberOfColClasses)
 
-  std::unordered_map<int, std::pair<GroupStruct, unsigned long>> tmp_GroupMap; //<group ID, <Group struct, counts>>
+  std::unordered_map<int, std::pair<itsmft::GroupStruct, unsigned long>> tmp_GroupMap; //<group ID, <Group struct, counts>>
 
   int grNum = 0;
   int rowBinEdge = 0;
   int colBinEdge = 0;
-  for (int iRowClass = 0; iRowClass < TopologyDictionary::MaxNumberOfRowClasses; iRowClass++) {
-    for (int iColClass = 0; iColClass < TopologyDictionary::MaxNumberOfColClasses; iColClass++) {
-      rowBinEdge = (iRowClass + 1) * TopologyDictionary::RowClassSpan;
-      colBinEdge = (iColClass + 1) * TopologyDictionary::ColClassSpan;
-      grNum = LookUp::groupFinder(rowBinEdge, colBinEdge);
+  for (int iRowClass = 0; iRowClass < itsmft::TopologyDictionary::MaxNumberOfRowClasses; iRowClass++) {
+    for (int iColClass = 0; iColClass < itsmft::TopologyDictionary::MaxNumberOfColClasses; iColClass++) {
+      rowBinEdge = (iRowClass + 1) * itsmft::TopologyDictionary::RowClassSpan;
+      colBinEdge = (iColClass + 1) * itsmft::TopologyDictionary::ColClassSpan;
+      grNum = itsmft::LookUp::groupFinder(rowBinEdge, colBinEdge);
       // Create a structure for a group of rare topologies
-      GroupStruct gr;
+      itsmft::GroupStruct gr;
       gr.mHash = (((unsigned long)(grNum)) << 32) & 0xffffffff00000000;
-      gr.mErrX = TopologyDictionary::RowClassSpan / std::sqrt(12 * std::min(10, rowBinEdge));
-      gr.mErrZ = TopologyDictionary::ColClassSpan / std::sqrt(12 * std::min(10, colBinEdge));
+      gr.mErrX = itsmft::TopologyDictionary::RowClassSpan / std::sqrt(12 * std::min(10, rowBinEdge));
+      gr.mErrZ = itsmft::TopologyDictionary::ColClassSpan / std::sqrt(12 * std::min(10, colBinEdge));
       gr.mErr2X = gr.mErrX * gr.mErrX;
       gr.mErr2Z = gr.mErrZ * gr.mErrZ;
       gr.mXCOG = 0;
@@ -116,7 +117,7 @@ void BuildTopologyDictionary::groupRareTopologies()
       gr.mIsGroup = true;
       gr.mFrequency = 0.;
       /// A dummy pattern with all fired pixels in the bounding box is assigned to groups of rare topologies.
-      unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {0};
+      unsigned char dummyPattern[itsmft::ClusterPattern::kExtendedPatternBytes] = {0};
       dummyPattern[0] = (unsigned char)rowBinEdge;
       dummyPattern[1] = (unsigned char)colBinEdge;
       int nBits = rowBinEdge * colBinEdge;
@@ -147,33 +148,33 @@ void BuildTopologyDictionary::groupRareTopologies()
     unsigned long hash1 = mTopologyFrequency[j].second;
     rs = mTopologyMap.find(hash1)->second.topology.getRowSpan();
     cs = mTopologyMap.find(hash1)->second.topology.getColumnSpan();
-    index = LookUp::groupFinder(rs, cs);
+    index = itsmft::LookUp::groupFinder(rs, cs);
     tmp_GroupMap[index].second += mTopologyFrequency[j].first;
   }
 
   for (auto&& p : tmp_GroupMap) {
-    GroupStruct& group = p.second.first;
+    itsmft::GroupStruct& group = p.second.first;
     group.mFrequency = ((double)p.second.second) / mTotClusters;
     mDictionary.mVectorOfIDs.push_back(group);
   }
 
   // Sorting the dictionary preserving all unique topologies
-  std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const GroupStruct& a, const GroupStruct& b) {
+  std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const itsmft::GroupStruct& a, const itsmft::GroupStruct& b) {
     return (!a.mIsGroup) && b.mIsGroup ? true : (a.mIsGroup && (!b.mIsGroup) ? false : (a.mFrequency > b.mFrequency));
   });
-  if (mDictionary.mVectorOfIDs.size() >= CompCluster::InvalidPatternID - 1) {
-    LOGP(warning, "Max allowed {} patterns is reached, stopping", CompCluster::InvalidPatternID - 1);
-    mDictionary.mVectorOfIDs.resize(CompCluster::InvalidPatternID - 1);
+  if (mDictionary.mVectorOfIDs.size() >= itsmft::CompCluster::InvalidPatternID - 1) {
+    LOGP(warning, "Max allowed {} patterns is reached, stopping", itsmft::CompCluster::InvalidPatternID - 1);
+    mDictionary.mVectorOfIDs.resize(itsmft::CompCluster::InvalidPatternID - 1);
   }
   // Sorting the dictionary to final form
-  std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const GroupStruct& a, const GroupStruct& b) { return a.mFrequency > b.mFrequency; });
+  std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const itsmft::GroupStruct& a, const itsmft::GroupStruct& b) { return a.mFrequency > b.mFrequency; });
   // Creating the map for common topologies
   for (int iKey = 0; iKey < mDictionary.getSize(); iKey++) {
-    GroupStruct& gr = mDictionary.mVectorOfIDs[iKey];
+    itsmft::GroupStruct& gr = mDictionary.mVectorOfIDs[iKey];
     if (!gr.mIsGroup) {
       mDictionary.mCommonMap.insert(std::make_pair(gr.mHash, iKey));
       if (gr.mPattern.getUsedBytes() == 1) {
-        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = iKey;
+        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.getByte(2)] = iKey;
       }
     } else {
       mDictionary.mGroupMap.insert(std::make_pair((int)(gr.mHash >> 32) & 0x00000000ffffffff, iKey));
