@@ -54,7 +54,7 @@ using namespace o2::itsmft;
 using CompClusterExt = o2::itsmft::CompClusterExt;
 using ITSCluster = o2::BaseCluster<float>;
 using Vec3 = ROOT::Math::SVector<double, 3>;
-using StrangeTrack = o2::strangeness_tracking::StrangeTrack;
+using StrangeTrack = o2::dataformats::StrangeTrack;
 
 const int motherPDG = 3312;
 const int v0PDG = 3122;
