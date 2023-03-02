@@ -961,8 +961,8 @@ using TrackedCascades = TrackedCascades;
 using TrackedCascade = TrackedCascades::iterator;
 using TrackedV0s = TrackedV0s;
 using TrackedV0 = TrackedV0s::iterator;
-using Tracked3bodies = Tracked3bodies;
-using Tracked3body = Tracked3bodies::iterator;
+using Tracked3bodys = Tracked3bodys;
+using Tracked3body = Tracked3bodys::iterator;
 
 namespace origin
 {
