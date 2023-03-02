@@ -313,7 +313,7 @@ struct RecoContainer {
   std::array<AccSlots, GTrackID::NSources> commonPool;
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
-  STrackAccessor  strkPool; // containers for strangeness tracking related objects
+  STrackAccessor strkPool;  // containers for strangeness tracking related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;

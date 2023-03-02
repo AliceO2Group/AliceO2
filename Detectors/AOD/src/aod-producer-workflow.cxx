@@ -75,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
   }
-    if (enableST) {
+  if (enableST) {
     o2::globaltracking::InputHelper::addInputSpecsStrangeTrack(configcontext, inputspecs, useMC);
   }
   if (configcontext.options().get<bool>("combine-source-devices")) {
