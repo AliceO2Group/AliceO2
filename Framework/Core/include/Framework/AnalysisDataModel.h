@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
+#define O2_ZDC_NEWDATAMODEL
+
 #include "Framework/ASoA.h"
 #include <cmath>
 #include <bitset>
@@ -730,7 +732,7 @@ DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
-// New summarized table, minimal disk footprint
+// New summarized table, minimal disk footprint, per channel like other detectors
 DECLARE_SOA_COLUMN(Energy, energy, std::vector<float>);         //! Energy of non-zero channels. The channel IDs are given in ChannelE (at the same index)
 DECLARE_SOA_COLUMN(ChannelE, channelE, std::vector<uint8_t>);   //! Channel IDs which have reconstructed energy. There are at maximum 26 channels.
 DECLARE_SOA_COLUMN(Amplitude, amplitude, std::vector<float>);   //! Amplitudes of non-zero channels. The channel IDs are given in ChannelT (at the same index)
@@ -982,11 +984,10 @@ DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! Full ZDC information,
                   zdc::AmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>, 
                   zdc::AmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZNC<zdc::ChannelT, zdc::Amplitude>, 
                   zdc::AmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
-#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
-using Zdcs = Zdcs_001; //! this defines the current default version
-#endif
-#ifndef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
-using Zdcs = Zdcs_000; //! this defines the current default version
+#ifdef O2_ZDC_NEWDATAMODEL
+using Zdcs = Zdcs_001; //! new version
+#else
+using Zdcs = Zdcs_000; //! old version
 #endif
 using Zdc = Zdcs::iterator;
 

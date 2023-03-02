@@ -1431,7 +1431,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
-#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
+#ifdef O2_ZDC_NEWDATAMODEL
   // Initialize ZDC helper maps
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
     mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
@@ -1541,11 +1541,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ambigMFTTracksCursor = ambigMFTTracksBuilder.cursor<o2::aod::AmbiguousMFTTracks>();
   auto ambigFwdTracksCursor = ambigFwdTracksBuilder.cursor<o2::aod::AmbiguousFwdTracks>();
   auto v0sCursor = v0sBuilder.cursor<o2::aod::V0s>();
-#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
-#else
-  auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
-#endif
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto cpvClustersCursor = cpvClustersBuilder.cursor<o2::aod::CPVClusters>();
@@ -1600,7 +1596,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                fv0RecPoint.getTrigger().getTriggersignals());
   }
 
-#ifdef O2_AODPRODUCER_WORKFLOW_SPEC_ZDC_RUN2
+#ifndef O2_ZDC_NEWDATAMODEL
   for (auto zdcRecData : zdcBCRecData) {
     uint64_t bc = zdcRecData.ir.toLong();
     auto item = bcsMap.find(bc);
