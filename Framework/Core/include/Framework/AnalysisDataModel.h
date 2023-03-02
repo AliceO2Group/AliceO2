@@ -862,10 +862,10 @@ using Decay3Body = Decays3Body::iterator;
 
 namespace strangenesstracking
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(ITSIdx, Idx, int, Tracks, "");                       //! ITS index
-DECLARE_SOA_INDEX_COLUMN_FULL(CascadeIdx, cascadeIdx, int, Cascades, "");          //! Cascade index
-DECLARE_SOA_INDEX_COLUMN_FULL(V0Idx, v0Idx, int, V0s, "");                         //! V0 index
-DECLARE_SOA_INDEX_COLUMN_FULL(Decay3BodyIdx, decay3BodyIdx, int, Decays3Body, ""); //! Decay 3 body index
+DECLARE_SOA_INDEX_COLUMN_FULL(ITSIdx, Idx, int, Tracks, "");                    //! ITS index
+DECLARE_SOA_INDEX_COLUMN(Cascade, cascadeIdx);                                  //! Cascade index
+DECLARE_SOA_INDEX_COLUMN(V0, v0Idx);                                            //! V0 index
+DECLARE_SOA_INDEX_COLUMN_FULL(Decay3Body, decay3BodyIdx, int, Decays3Body, ""); //! Decay 3 body index
 
 DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
 DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
@@ -885,7 +885,7 @@ DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster s
 DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
-                       strangenesstracking::CascadeIdxId,
+                       strangenesstracking::CascadeId,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
@@ -910,7 +910,7 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
 DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
-                       strangenesstracking::V0IdxId,
+                       strangenesstracking::V0Id,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
@@ -932,10 +932,10 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>);
 
-DECLARE_SOA_TABLE_FULL(Tracked3bodies, "Tracked3body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
+DECLARE_SOA_TABLE_FULL(Tracked3bodys, "Tracked3body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
                        strangenesstracking::ITSIdxId,
-                       strangenesstracking::Decay3BodyIdxId,
+                       strangenesstracking::Decay3BodyId,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
