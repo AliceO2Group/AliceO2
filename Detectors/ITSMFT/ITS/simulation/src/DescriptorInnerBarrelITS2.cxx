@@ -59,7 +59,7 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2(int nlayers) : DescriptorIn
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS2::configure()
+void DescriptorInnerBarrelITS2::configure(int buildLevel)
 {
   // build ITS2 upgrade detector
   mTurboLayer.resize(mNumLayers);
@@ -92,7 +92,7 @@ void DescriptorInnerBarrelITS2::configure()
     mStaveTilt[idLayer] = radii2Turbo(IBdat[idLayer][0], IBdat[idLayer][1], IBdat[idLayer][2], o2::itsmft::SegmentationAlpide::SensorSizeRows);
     mDetectorThickness[idLayer] = mSensorLayerThickness;
     mChipTypeID[idLayer] = 0;
-    mBuildLevel[idLayer] = 0;
+    mBuildLevel[idLayer] = buildLevel;
 
     LOG(info) << "L# " << idLayer << " Phi:" << mLayerPhi0[idLayer] << " R:" << mLayerRadii[idLayer] << " Nst:" << mStavePerLayer[idLayer] << " Nunit:" << mUnitPerStave[idLayer]
               << " W:" << mStaveWidth[idLayer] << " Tilt:" << mStaveTilt[idLayer] << " Lthick:" << mChipThickness[idLayer] << " Dthick:" << mDetectorThickness[idLayer]

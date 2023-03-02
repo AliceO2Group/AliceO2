@@ -39,6 +39,7 @@ enum class ITS3Version {
 
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
   ITS3Version mVersion = ITS3Version::None;
+  int mBuildLevel{0};
   std::string const& getITS3LayerConfigString() const;
   O2ParamDef(DescriptorInnerBarrelITS3Param, "DescriptorInnerBarrelITS3");
 };
