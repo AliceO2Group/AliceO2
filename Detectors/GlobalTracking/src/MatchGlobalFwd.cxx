@@ -257,8 +257,9 @@ bool MatchGlobalFwd::prepareMFTData()
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
     int irofUp = irof + 1;
-    if (irofUp == nROFs)
+    if (irofUp == nROFs) {
       irofUp = irof;
+    }
     const auto& rofRecCopyUp = mMFTTrackROFRecCopyUp[irofUp];
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
