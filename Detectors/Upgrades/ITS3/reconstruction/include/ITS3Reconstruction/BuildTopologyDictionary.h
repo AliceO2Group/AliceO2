@@ -23,7 +23,7 @@ namespace o2
 namespace its3
 {
 
-class BuildTopologyDictionary : protected itsmft::BuildTopologyDictionary
+class BuildTopologyDictionary : public itsmft::BuildTopologyDictionary
 {
  public:
   /// Updates the information of the found cluster topology
