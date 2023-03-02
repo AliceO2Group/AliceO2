@@ -151,6 +151,8 @@ bool MatchGlobalFwd::prepareMCHData()
     return false;
   }
   mMCHWork.reserve(mMCHTracks.size());
+  mMCHID2Work.clear();
+  mMCHID2Work.resize(mMCHTracks.size(), -1);
   static int BCDiffErrCount = 0;
   constexpr int MAXBCDiffErrCount = 2;
 
@@ -173,6 +175,7 @@ bool MatchGlobalFwd::prepareMCHData()
     for (int it = rofRec.getFirstIdx(); it < trlim; it++) {
       auto& trcOrig = mMCHTracks[it];
       int nWorkTracks = mMCHWork.size();
+      mMCHID2Work[it] = nWorkTracks;
       // working copy MCH track propagated to matching plane and converted to the forward track format
       o2::mch::TrackParam tempParam(trcOrig.getZ(), trcOrig.getParameters(), trcOrig.getCovariances());
       if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(tempParam, mMatchingPlaneZ)) {
@@ -202,7 +205,8 @@ bool MatchGlobalFwd::processMCHMIDMatches()
     for (const auto& MIDMatch : mMCHMIDMatches) {
       const auto& MCHId = MIDMatch.getMCHRef().getIndex();
       const auto& MIDId = MIDMatch.getMIDRef().getIndex();
-      auto& thisMuonTrack = mMCHWork[MCHId];
+      auto& thisMuonTrack = mMCHWork[mMCHID2Work[MCHId]];
+      LOG(debug) << " MCHId: " << MCHId << " --> mMCHID2Work[MCHId]:" << mMCHID2Work[MCHId];
       const auto& IR = MIDMatch.getIR();
       int nBC = IR.differenceInBC(mStartIR);
       float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -236,6 +240,7 @@ bool MatchGlobalFwd::prepareMFTData()
   // Load MFT tracks
   mMFTTracks = inp.getMFTTracks();
   mMFTTrackROFRec = inp.getMFTTracksROFRecords();
+  mMFTTrackROFRecCopyUp = inp.getMFTTracksROFRecords();
   if (mMCTruthON) {
     mMFTTrkLabels = inp.getMFTTracksMCLabels();
   }
@@ -251,7 +256,10 @@ bool MatchGlobalFwd::prepareMFTData()
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
-
+    int irofUp = irof + 1;
+    if (irofUp == nROFs)
+      irofUp = irof;
+    const auto& rofRecCopyUp = mMFTTrackROFRecCopyUp[irofUp];
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
       if (BCDiffErrCount++ < MAXBCDiffErrCount) {
@@ -271,7 +279,8 @@ bool MatchGlobalFwd::prepareMFTData()
     mMFTROFTimes.emplace_back(tMin, tMax); // MFT ROF min/max time
     LOG(debug) << "MFT ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
 
-    int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
+    // int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
+    int trlim = rofRec.getFirstEntry() + (rofRecCopyUp.getFirstEntry() - rofRec.getFirstEntry());
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
       const auto& trcOrig = mMFTTracks[it];
 
@@ -306,7 +315,8 @@ void MatchGlobalFwd::loadMatches()
     auto MCHId = match.getMCHTrackID();
     LOG(debug) << "     ==> MFTId = " << MFTId << " MCHId =  " << MCHId << std::endl;
 
-    auto& thisMCHTrack = mMCHWork[MCHId];
+    auto& thisMCHTrack = mMCHWork[mMCHID2Work[MCHId]];
+    LOG(info) << " MFTId: " << MFTId << " MCHId: " << MCHId << " --> mMCHID2Work[MCHId]:" << mMCHID2Work[MCHId];
     thisMCHTrack.setMatchInfo(match);
     mMatchedTracks.emplace_back(thisMCHTrack);
     if (mMCTruthON) {
@@ -332,6 +342,8 @@ void MatchGlobalFwd::doMatching()
   // ROFrame of first MFT track
   auto firstMFTTrackIdInROF = 0;
   auto MFTROFId = mMFTWork.front().roFrame;
+  LOG(debug) << "(*) nMCHROFs: " << nMCHROFs << ", mMFTTracks.size(): " << mMFTTracks.size() << " MFTROFId: " << MFTROFId << ",  mMFTTrackROFRec.size(): " << mMFTTrackROFRec.size();
+
   while ((firstMFTTrackIdInROF < mMFTTracks.size()) && (MFTROFId < mMFTTrackROFRec.size())) {
     auto MFTROFId = mMFTWork[firstMFTTrackIdInROF].roFrame;
     const auto& thisMFTBracket = mMFTROFTimes[MFTROFId];
@@ -502,7 +514,7 @@ void MatchGlobalFwd::doMCMatching()
   // loop over all MCH tracks
   for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
     auto& thisMCHTrack = mMCHWork[MCHId];
-    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[MCHId];
+    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[mMCHID2Work[MCHId]];
 
     LOG(debug) << "   MCH Track # " << MCHId << " Label: " << thisMCHLabel;
     if (!((thisMCHLabel).isSet())) {

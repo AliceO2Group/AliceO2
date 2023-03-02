@@ -306,6 +306,7 @@ class MatchGlobalFwd
   gsl::span<const o2::mch::ROFRecord> mMCHTrackROFRec;                  ///< MCH tracks ROFRecords
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;                        ///< input MFT tracks
   gsl::span<const o2::itsmft::ROFRecord> mMFTTrackROFRec;               ///< MFT tracks ROFRecords
+  gsl::span<const o2::itsmft::ROFRecord> mMFTTrackROFRecCopyUp;         ///< MFT tracks ROFRecords copy for next ROF
   gsl::span<const o2::dataformats::TrackMCHMID> mMCHMIDMatches;         ///< input MCH MID Matches
   gsl::span<const int> mMFTTrackClusIdx;                                ///< input MFT track cluster indices span
   gsl::span<const o2::itsmft::ROFRecord> mMFTClusterROFRec;             ///< input MFT clusters ROFRecord span
@@ -315,6 +316,7 @@ class MatchGlobalFwd
 
   std::vector<BracketF> mMCHROFTimes;                          ///< min/max times of MCH ROFs in \mus
   std::vector<TrackLocMCH> mMCHWork;                           ///< MCH track params prepared for matching
+  std::vector<int> mMCHID2Work;                                ///< MCH track id to ensure correct indexing for matching
   std::vector<BracketF> mMFTROFTimes;                          ///< min/max times of MFT ROFs in \mus
   std::vector<TrackLocMFT> mMFTWork;                           ///< MFT track params prepared for matching
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters
