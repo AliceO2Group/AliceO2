@@ -855,18 +855,18 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 in
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
 } // namespace decay3body
 
-DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table
+DECLARE_SOA_TABLE(Decay3Bodys, "AOD", "DECAY3BODY", //! Run 2 cascade table
                   o2::soa::Index<>, decay3body::CollisionId, decay3body::Track0Id, decay3body::Track1Id, decay3body::Track2Id);
 
-using Decays3Body = Decays3Body; //! this defines the current default version
-using Decay3Body = Decays3Body::iterator;
+using Decay3Bodys = Decay3Bodys; //! this defines the current default version
+using Decay3Body = Decay3Bodys::iterator;
 
 namespace strangenesstracking
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(ITSIdx, Idx, int, Tracks, "");                       //! ITS index
-DECLARE_SOA_INDEX_COLUMN_FULL(CascadeIdx, cascadeIdx, int, Cascades, "");          //! Cascade index
-DECLARE_SOA_INDEX_COLUMN_FULL(V0Idx, v0Idx, int, V0s, "");                         //! V0 index
-DECLARE_SOA_INDEX_COLUMN_FULL(Decay3BodyIdx, decay3BodyIdx, int, Decays3Body, ""); //! Decay 3 body index
+DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, ""); //! ITS index
+DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                         //! Cascade index
+DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index
+DECLARE_SOA_INDEX_COLUMN(Decay3Body, decay3Body);                   //! Decay 3 body index
 
 DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
 DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
@@ -885,8 +885,8 @@ DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster s
 /// Strangeness tracks
 DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
-                       strangenesstracking::ITSIdxId,
-                       strangenesstracking::CascadeIdxId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::CascadeId,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
@@ -910,8 +910,8 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
 
 DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
-                       strangenesstracking::ITSIdxId,
-                       strangenesstracking::V0IdxId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::V0Id,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
@@ -933,10 +933,10 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>);
 
-DECLARE_SOA_TABLE_FULL(Tracked3bodies, "Tracked3body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
+DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
-                       strangenesstracking::ITSIdxId,
-                       strangenesstracking::Decay3BodyIdxId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::Decay3BodyId,
                        strangenesstracking::DecayX,
                        strangenesstracking::DecayY,
                        strangenesstracking::DecayZ,
@@ -962,8 +962,8 @@ using TrackedCascades = TrackedCascades;
 using TrackedCascade = TrackedCascades::iterator;
 using TrackedV0s = TrackedV0s;
 using TrackedV0 = TrackedV0s::iterator;
-using Tracked3bodies = Tracked3bodies;
-using Tracked3body = Tracked3bodies::iterator;
+using Tracked3Bodys = Tracked3Bodys;
+using Tracked3body = Tracked3Bodys::iterator;
 
 namespace origin
 {

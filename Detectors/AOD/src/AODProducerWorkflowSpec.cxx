@@ -1574,10 +1574,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
-  auto decay3BodyCursor = decay3BodyBuilder.cursor<o2::aod::Decays3Body>();
+  auto decay3BodyCursor = decay3BodyBuilder.cursor<o2::aod::Decay3Bodys>();
   auto trackedCascadeCursor = trackedCascadeBuilder.cursor<o2::aod::TrackedCascades>();
   auto trackedV0Cursor = trackedV0Builder.cursor<o2::aod::TrackedV0s>();
-  auto tracked3BodyCurs = tracked3BodyBuilder.cursor<o2::aod::Tracked3bodies>();
+  auto tracked3BodyCurs = tracked3BodyBuilder.cursor<o2::aod::Tracked3Bodys>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
