@@ -41,6 +41,13 @@ using RDHUtils = o2::raw::RDHUtils;
 
 const std::string DEFAULTINPUT = "A:TPC/RAWDATA";
 
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-raw.*", CompletionPolicy::CompletionOp::Consume));
+}
+
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
