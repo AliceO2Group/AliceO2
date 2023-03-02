@@ -63,6 +63,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"input-sub-sampled",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"SUB_RAWDATA DPL channel will be used as input, in case of dispatcher usage"}});
+
 #if defined(FT0_NEW_DECOER_ON)
   workflowOptions.push_back(
     ConfigParamSpec{"new-decoder",
@@ -83,6 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
+  const auto isSubSampled = configcontext.options().get<bool>("input-sub-sampled");
   bool isNewDecoder = false;
 #if defined(FT0_NEW_DECOER_ON)
   isNewDecoder = configcontext.options().get<bool>("new-decoder");
@@ -100,12 +107,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   if (!isNewDecoder) {
     if (isExtendedMode) {
-      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist));
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist, isSubSampled));
       if (!disableRootOut) {
         specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0ext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
       }
     } else {
-      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist));
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist, isSubSampled));
       if (!disableRootOut) {
         specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
       }

@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawReaderFITBase.h Base class for RAW data reading
+// file RawReaderFITBase.h Base class for RAW data reading
 //
 // Artur.Furs
 // afurs@cern.ch
 //
-//Main purpuse is to decode FIT data blocks and push them to DigitBlockFIT for proccess
-//Base class only provides static linkID-moduleType conformity
+// Main purpuse is to decode FIT data blocks and push them to DigitBlockFIT for proccess
+// Base class only provides static linkID-moduleType conformity
 
 #ifndef ALICEO2_FIT_RAWREADERBASEFIT_H_
 #define ALICEO2_FIT_RAWREADERBASEFIT_H_
@@ -40,9 +40,14 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
  public:
   typedef DigitBlockFITtype DigitBlockFIT_t;
   typedef typename DigitBlockFIT_t::LookupTable_t LookupTable_t;
-  typedef DataBlockPMtype DataBlockPM_t;
-  typedef DataBlockTCMtype DataBlockTCM_t;
-  typedef RawReaderBase<DigitBlockFIT_t, DataBlockPM_t, DataBlockTCM_t> RawReaderBase_t;
+
+  typedef std::conditional_t<!DataBlockPMtype::sIsPadded, DataBlockPMtype, typename DataBlockPMtype::DataBlockInvertedPadding_t> DataBlockPM_t;
+  typedef std::conditional_t<!DataBlockTCMtype::sIsPadded, DataBlockTCMtype, typename DataBlockTCMtype::DataBlockInvertedPadding_t> DataBlockTCM_t;
+
+  typedef std::conditional_t<DataBlockPMtype::sIsPadded, typename DataBlockPMtype::DataBlockInvertedPadding_t, DataBlockPMtype> DataBlockPMpadded_t;
+  typedef std::conditional_t<DataBlockTCMtype::sIsPadded, typename DataBlockTCMtype::DataBlockInvertedPadding_t, DataBlockTCMtype> DataBlockTCMpadded_t;
+
+  typedef RawReaderBase<DigitBlockFITtype, DataBlockPMtype, DataBlockTCMtype> RawReaderBase_t;
   RawReaderBaseFIT() = default;
   ~RawReaderBaseFIT() = default;
   void reserve(std::size_t nElements, std::size_t nElemMap = 0)
@@ -51,22 +56,30 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
     vecDataBlocksPM.reserve(nElements);
     auto& vecDataBlocksTCM = RawReaderBase_t::template getVecDataBlocks<DataBlockTCM_t>();
     vecDataBlocksTCM.reserve(nElements);
-    //one need to reserve memory for map
+    // one need to reserve memory for map
     for (std::size_t iElem = 0; iElem < nElemMap; iElem++) {
       RawReaderBase_t::mMapDigits.emplace(o2::InteractionRecord(0, iElem), o2::InteractionRecord(0, iElem));
     }
     RawReaderBase_t::mMapDigits.clear();
   }
-  //deserialize payload to raw data blocks and proccesss them to digits
+  // deserialize payload to raw data blocks and proccesss them to digits
   template <typename... T>
-  void process(gsl::span<const uint8_t> payload, T&&... feeParameters)
+  void process(bool isPadded, gsl::span<const uint8_t> payload, T&&... feeParameters)
   {
     if (LookupTable_t::Instance().isTCM(std::forward<T>(feeParameters)...)) {
-      //TCM data proccessing
-      RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, std::forward<T>(feeParameters)...);
+      // TCM data proccessing
+      if (isPadded) {
+        RawReaderBase_t::template processBinaryData<DataBlockTCMpadded_t>(payload, std::forward<T>(feeParameters)...);
+      } else {
+        RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, std::forward<T>(feeParameters)...);
+      }
     } else {
-      //PM data proccessing
-      RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, std::forward<T>(feeParameters)...);
+      // PM data proccessing
+      if (isPadded) {
+        RawReaderBase_t::template processBinaryData<DataBlockPMpadded_t>(payload, std::forward<T>(feeParameters)...);
+      } else {
+        RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, std::forward<T>(feeParameters)...);
+      }
     }
   }
 };

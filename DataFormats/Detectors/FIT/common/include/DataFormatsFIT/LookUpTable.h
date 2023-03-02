@@ -32,7 +32,7 @@ namespace o2
 {
 namespace fit
 {
-struct EntryCRU { //This is specific struct for CRU entry
+struct EntryCRU { // This is specific struct for CRU entry
   int mLinkID;
   int mEndPointID;
   int mCRUID;
@@ -102,7 +102,7 @@ struct HasherPM {
 };
 
 struct ComparerPM {
-  //Always true due to perfect hasher
+  // Always true due to perfect hasher
   bool operator()(const EntryPM& entry1, const EntryPM& entry2) const
   {
     return ((entry1.mEntryCRU.mLinkID << 8) | (entry1.mLocalChannelID << 4) | (entry1.mEntryCRU.mEndPointID)) == ((entry2.mEntryCRU.mLinkID << 8) | (entry2.mLocalChannelID << 4) | (entry2.mEntryCRU.mEndPointID));
@@ -111,9 +111,9 @@ struct ComparerPM {
 
 struct EntryFEE {
   EntryCRU mEntryCRU;
-  std::string mChannelID;      //ChannelID, string type because some entries containes N/A
-  std::string mLocalChannelID; //Local channelID, string type because some entries containes N/A
-  std::string mModuleType;     //PM, PM-LCS, TCM
+  std::string mChannelID;      // ChannelID, string type because some entries containes N/A
+  std::string mLocalChannelID; // Local channelID, string type because some entries containes N/A
+  std::string mModuleType;     // PM, PM-LCS, TCM
   std::string mModuleName;
   std::string mBoardHV;
   std::string mChannelHV;
@@ -161,8 +161,7 @@ template <typename MapEntryCRU2ModuleType = std::unordered_map<EntryCRU, EModule
 class LookupTableBase
 {
  public:
-  LookupTableBase(const std::string& pathToFile) { initFromFile(pathToFile); }
-  LookupTableBase(const std::string& urlCCDB, const std::string& pathToStorageInCCDB) { initCCDB(urlCCDB, pathToStorageInCCDB); }
+  typedef std::vector<EntryFEE> Table_t;
   typedef MapEntryPM2ChannelID MapEntryPM2ChannelID_t;
   typedef MapEntryCRU2ModuleType MapEntryCRU2ModuleType_t;
   typedef typename MapEntryPM2ChannelID_t::key_type EntryPM_t;
@@ -170,10 +169,15 @@ class LookupTableBase
   typedef typename MapEntryPM2ChannelID_t::mapped_type ChannelID_t;
   typedef std::map<ChannelID_t, EntryPM_t> MapChannelID2EntryPM_t;  // for digit2raw
   typedef std::map<EModuleType, EntryCRU_t> MapModuleType2EntryCRU; // for digit2raw
-  typedef EntryPM_t Topo_t;                                         //temporary for common interface
-  //Map of str module names -> enum types
+  typedef EntryPM_t Topo_t;                                         // temporary for common interface
+
+  LookupTableBase() = default;
+  LookupTableBase(const Table_t& vecEntryFEE) { initFromTable(vecEntryFEE); }
+  LookupTableBase(const std::string& pathToFile) { initFromFile(pathToFile); }
+  LookupTableBase(const std::string& urlCCDB, const std::string& pathToStorageInCCDB) { initCCDB(urlCCDB, pathToStorageInCCDB); }
+  // Map of str module names -> enum types
   const std::map<std::string, EModuleType> mMapModuleTypeStr2Enum = {{"PM", EModuleType::kPM}, {"PM-LCS", EModuleType::kPM_LCS}, {"TCM", EModuleType::kTCM}};
-  //Warning! To exclude double mapping do not use isTCM and isPM in the same time
+  // Warning! To exclude double mapping do not use isTCM and isPM in the same time
   bool isTCM(int linkID, int epID) const
   {
     return mEntryCRU_TCM.mLinkID == linkID && mEntryCRU_TCM.mEndPointID == epID;
@@ -235,7 +239,12 @@ class LookupTableBase
   {
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     mgr.setURL(urlCCDB);
-    mVecEntryFEE = *(mgr.get<std::vector<EntryFEE>>(pathToStorageInCCDB));
+    mVecEntryFEE = *(mgr.get<Table_t>(pathToStorageInCCDB));
+    prepareLUT();
+  }
+  void initFromTable(const Table_t* vecEntryFEE)
+  {
+    mVecEntryFEE = *vecEntryFEE;
     prepareLUT();
   }
   ChannelID_t getGlobalChannelID(const EntryPM_t& entryPM, bool& isValid) const
@@ -270,9 +279,9 @@ class LookupTableBase
     boost::property_tree::read_json(pathToConfigFile.c_str(), propertyTree);
     mVecEntryFEE = prepareEntriesFEE(propertyTree);
   }
-  std::vector<EntryFEE> prepareEntriesFEE(const boost::property_tree::ptree& propertyTree)
+  Table_t prepareEntriesFEE(const boost::property_tree::ptree& propertyTree)
   {
-    std::vector<EntryFEE> vecEntryFEE;
+    Table_t vecEntryFEE;
     for (const auto& pairEntry : propertyTree) {
       const auto& propertyTreeSingle = pairEntry.second;
       EntryFEE entryFEE{};
@@ -321,12 +330,12 @@ class LookupTableBase
     }
     */
   }
-  const std::vector<EntryFEE>& getVecMetadataFEE() const { return mVecEntryFEE; }
+  const Table_t& getVecMetadataFEE() const { return mVecEntryFEE; }
   const MapEntryCRU2ModuleType_t& getMapEntryCRU2ModuleType() const { return mMapEntryCRU2ModuleType; }
   const MapEntryPM2ChannelID_t& getMapEntryPM2ChannelID() const { return mMapEntryPM2ChannelID; }
   const EntryCRU_t& getEntryCRU_TCM() const { return mEntryCRU_TCM; }
-  //Temporary
-  //Making topo for FEE recognizing(Local channelID is supressed)
+  // Temporary
+  // Making topo for FEE recognizing(Local channelID is supressed)
   static Topo_t makeGlobalTopo(const Topo_t& topo)
   {
     return Topo_t{topo.mEntryCRU, 0};
@@ -351,15 +360,15 @@ class LookupTableBase
     });
     return Topo_t{findResult->first, 0};
   }
-  //Prepare full map for FEE metadata(for digit2raw convertion)
+  // Prepare full map for FEE metadata(for digit2raw convertion)
   template <typename RDHtype, typename RDHhelper = void>
   auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
   {
     std::map<Topo_t, RDHtype> mapResult;
-    const uint16_t cruID = 0; //constant
-    uint64_t feeID = 0;       //increments
+    const uint16_t cruID = 0; // constant
+    uint64_t feeID = 0;       // increments
     const auto& mapEntryPM2ChannelID = getMapEntryPM2ChannelID();
-    //Temporary for sorting FEEIDs without using them from LUT(for digit2raw convertion), and by using GlobalChannelID
+    // Temporary for sorting FEEIDs without using them from LUT(for digit2raw convertion), and by using GlobalChannelID
     std::map<int, Topo_t> mapBuf;
     for (const auto& entry : mapEntryPM2ChannelID) {
       mapBuf.insert({entry.second, entry.first});
@@ -381,7 +390,7 @@ class LookupTableBase
           rdhObj.endPointID = topoObj.mEntryCRU.mEndPointID;
           rdhObj.feeId = feeID;
           rdhObj.cruID = cruID;
-        } else //Using RDHUtils
+        } else // Using RDHUtils
         {
           RDHhelper::setLinkID(&rdhObj, topoObj.mEntryCRU.mLinkID);
           RDHhelper::setEndPointID(&rdhObj, topoObj.mEntryCRU.mEndPointID);
@@ -399,7 +408,7 @@ class LookupTableBase
 
  private:
   EntryCRU_t mEntryCRU_TCM;
-  std::vector<EntryFEE> mVecEntryFEE;
+  Table_t mVecEntryFEE;
   MapEntryCRU2ModuleType_t mMapEntryCRU2ModuleType;
   MapEntryPM2ChannelID_t mMapEntryPM2ChannelID;
 };
