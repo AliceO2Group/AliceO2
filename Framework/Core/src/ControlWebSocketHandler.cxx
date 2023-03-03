@@ -22,15 +22,16 @@ namespace o2::framework
 void ControlWebSocketHandler::frame(char const* frame, size_t s)
 {
   bool hasNewMetric = false;
-  auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
-                                                           &(*mContext.infos)[mIndex].variablesViewIndex,
-                                                           &(*mContext.infos)[mIndex].queriesViewIndex,
-                                                           &(*mContext.infos)[mIndex].outputsViewIndex,
-                                                           &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
-                                                           &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex});
+  std::array<Metric2DViewIndex*, 6> model = {&(*mContext.infos)[mIndex].dataRelayerViewIndex,
+                                             &(*mContext.infos)[mIndex].variablesViewIndex,
+                                             &(*mContext.infos)[mIndex].queriesViewIndex,
+                                             &(*mContext.infos)[mIndex].outputsViewIndex,
+                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
+                                             &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex};
+  auto updateMetricsViews = Metric2DViewIndex::getUpdater();
 
-  auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
-    updateMetricsViews(name, metric, value, metricIndex);
+  auto newMetricCallback = [&](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    updateMetricsViews(model, name, metric, value, metricIndex);
     hasNewMetric = true;
   };
   std::string_view tokenSV(frame, s);
