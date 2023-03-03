@@ -29,17 +29,19 @@
 #include <TTree.h>
 #include <TStopwatch.h>
 
-#include "MathUtils/Utils.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITS3Reconstruction/BuildTopologyDictionary.h"
-#include "ITS3Reconstruction/TopologyDictionary.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS3/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#include "ITS3Reconstruction/BuildTopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian.h"
+#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
