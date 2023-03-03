@@ -2180,6 +2180,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
 {
   constexpr float XEMCAL = 440.f, XPHOS = 460.f, XEMCAL2 = XEMCAL * XEMCAL;
   constexpr float ETAEMCAL = 0.75;                                  // eta of EMCAL/DCAL with margin
+  constexpr float ZEMCALFastCheck = 460.;                           // Max Z (with margin to check with straightline extrapolarion)
   constexpr float ETADCALINNER = 0.22;                              // eta of the DCAL PHOS Hole (at XEMCAL)
   constexpr float ETAPHOS = 0.13653194;                             // nominal eta of the PHOS acceptance (at XPHOS): -log(tan((TMath::Pi()/2 - atan2(63, 460))/2))
   constexpr float ETAPHOSMARGIN = 0.17946979;                       // etat of the PHOS acceptance with 20 cm margin (at XPHOS): -log(tan((TMath::Pi()/2 + atan2(63+20., 460))/2)), not used, for the ref only
@@ -2198,7 +2199,9 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   auto prop = o2::base::Propagator::Instance();
   // 1st propagate to EMCAL nominal radius
   float xtrg = 0;
+  // quick check with straight line propagtion
   if (!outTr.getXatLabR(XEMCAL, xtrg, prop->getNominalBz(), o2::track::DirType::DirOutward) ||
+      !(std::abs(outTr.getZAt(xtrg, 0)) > ZEMCALFastCheck) ||
       !prop->PropagateToXBxByBz(outTr, xtrg, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
     LOGP(debug, "preliminary step: does not reach R={} {}", XEMCAL, outTr.asString());
     return;
