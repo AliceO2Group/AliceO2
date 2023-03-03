@@ -14,6 +14,7 @@
 #include <functional>
 #include <cstddef>
 #include <string>
+#include <array>
 #include <vector>
 
 namespace o2::framework
@@ -34,10 +35,10 @@ struct Metric2DViewIndex {
   /// The row major list of indices for the metrics which compose the 2D view
   std::vector<std::size_t> indexes = {};
   /// Whether or not the view is ready to be used.
-  bool isComplete() const { return (w * h) != 0; }
+  [[nodiscard]] bool isComplete() const { return (w * h) != 0; }
 
   /// Get the right updated function given a list of Metric views
-  static Updater getUpdater(std::vector<Metric2DViewIndex*> views);
+  static Updater getUpdater(std::array<Metric2DViewIndex*, 6> views);
 };
 
 } // namespace o2::framework
