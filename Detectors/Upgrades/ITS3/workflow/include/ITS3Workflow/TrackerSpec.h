@@ -47,7 +47,7 @@ class TrackerDPL : public framework::Task
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = static_cast<const o2::its3::TopologyDictionary*>(d); } //TODO: remove casting from Run3 to RUn2 dictionary
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = static_cast<const o2::its3::TopologyDictionary*>(d); } // TODO: remove casting from Run3 to RUn2 dictionary
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
