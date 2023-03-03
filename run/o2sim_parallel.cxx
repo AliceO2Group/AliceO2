@@ -44,6 +44,7 @@
 
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
+#include <CCDB/BasicCCDBManager.h>
 
 std::string getServerLogName()
 {
@@ -344,6 +345,48 @@ void launchShutdownThread()
   threads.back().detach();
 }
 
+// We do some early checks on the arguments passed. In particular we fix
+// missing timestamps for consistent application in all sub-processes. An empty
+// vector is returned upon errors.
+std::vector<char*> checkArgs(int argc, char* argv[])
+{
+  auto conf = o2::conf::SimConfig::make();
+  std::vector<std::string> modifiedArgs;
+#ifdef SIM_RUN5
+  conf.setRun5();
+#endif
+  if (conf.resetFromArguments(argc, argv)) {
+    for (int i = 0; i < argc; ++i) {
+      modifiedArgs.push_back(argv[i]);
+    }
+
+    // Check the run and the time arguments and enforce consistency.
+    // This is important as queries to CCDB are done using the timestamp.
+    if (conf.getRunNumber() != -1) {
+      // if we have a run number we should fix or check the timestamp
+
+      // fetch the actual timestamp ranges for this run
+      auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+      auto soreor = ccdbmgr.getRunDuration(conf.getRunNumber());
+      auto timestamp = conf.getTimestamp();
+      if (conf.getConfigData().mTimestampMode == o2::conf::kNow) {
+        timestamp = soreor.first;
+        LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
+        modifiedArgs.push_back("--timestamp");
+        modifiedArgs.push_back(std::to_string(timestamp));
+      } else if (conf.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+        LOG(fatal) << "The given timestamp is incompatible with the given run number";
+      }
+    }
+  }
+  std::vector<char*> final(modifiedArgs.size(), nullptr);
+  for (int i = 0; i < modifiedArgs.size(); ++i) {
+    final[i] = new char[modifiedArgs[i].size() + 1];
+    strcpy(final[i], modifiedArgs[i].c_str());
+  }
+  return final;
+}
+
 // helper executable to launch all the devices/processes
 // for parallel simulation
 int main(int argc, char* argv[])
@@ -392,18 +435,24 @@ int main(int argc, char* argv[])
   // auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
+  // check initial arguments and complete
+  auto finalArgs = checkArgs(argc, argv);
+  if (finalArgs.size() == 0) {
+    return 1;
+  }
+
   auto& conf = o2::conf::SimConfig::Instance();
 #ifdef SIM_RUN5
   conf.setRun5();
 #endif
-  if (!conf.resetFromArguments(argc, argv)) {
+  if (!conf.resetFromArguments(finalArgs.size(), &finalArgs[0])) {
     return 1;
   }
   // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
   // (otherwise we would need to add more synchronization between the actors)
   if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(info) << "No events to be simulated; Switching to non-distributed mode";
-    const int Nargs = argc + 1;
+    const int Nargs = finalArgs.size() + 1;
 #ifdef SIM_RUN5
     std::string name("o2-sim-serial-run5");
 #else
@@ -411,10 +460,10 @@ int main(int argc, char* argv[])
 #endif
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
-    for (int i = 1; i < argc; ++i) {
-      arguments[i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[i] = finalArgs[i];
     }
-    arguments[argc] = nullptr;
+    arguments[finalArgs.size()] = nullptr;
     std::string path = installpath + "/" + name;
     auto r = execv(path.c_str(), (char* const*)arguments);
     if (r != 0) {
@@ -469,7 +518,7 @@ int main(int argc, char* argv[])
 #else
     const int addNArgs = 9;
 #endif
-    const int Nargs = argc + addNArgs;
+    const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -483,8 +532,8 @@ int main(int argc, char* argv[])
 #ifdef SIM_RUN5
     arguments[9] = "--isRun5";
 #endif
-    for (int i = 1; i < argc; ++i) {
-      arguments[addNArgs - 1 + i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[addNArgs - 1 + i] = finalArgs[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {
