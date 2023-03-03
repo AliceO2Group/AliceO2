@@ -137,7 +137,8 @@ Option `--mch-config "file.json"` or `--mch-config "file.ini"` allows to change 
 {
     "MCHClustering": {
         "lowestPadCharge": "4.",
-        "defaultClusterResolution": "0.4"
+        "defaultClusterResolutionX": "0.4",
+        "defaultClusterResolutionY": "0.4"
     }
 }
 ```
@@ -145,14 +146,15 @@ Option `--mch-config "file.json"` or `--mch-config "file.ini"` allows to change 
 ```ini
 [MCHClustering]
 lowestPadCharge=4.
-defaultClusterResolution=0.4
+defaultClusterResolutionX=0.4
+defaultClusterResolutionY=0.4
 ```
 
 Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the clustering parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
 
 * Example of parameters changed from the command line:
 ```shell
---configKeyValues "MCHClustering.lowestPadCharge=4.;MCHClustering.defaultClusterResolution=0.4"
+--configKeyValues "MCHClustering.lowestPadCharge=4.;MCHClustering.defaultClusterResolutionX=0.4;MCHClustering.defaultClusterResolutionY=0.4"
 ```
 
 ## CTF encoding/decoding

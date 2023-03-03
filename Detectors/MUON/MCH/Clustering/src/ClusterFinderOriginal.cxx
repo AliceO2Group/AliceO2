@@ -2064,8 +2064,8 @@ void ClusterFinderOriginal::setClusterResolution(Cluster& cluster) const
   if (cluster.getChamberId() < 4) {
 
     // do not consider mono-cathode clusters in stations 1 and 2
-    cluster.ex = ClusterizerParam::Instance().defaultClusterResolution;
-    cluster.ey = ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ex = ClusterizerParam::Instance().defaultClusterResolutionX;
+    cluster.ey = ClusterizerParam::Instance().defaultClusterResolutionY;
 
   } else {
 
@@ -2086,10 +2086,10 @@ void ClusterFinderOriginal::setClusterResolution(Cluster& cluster) const
     }
 
     // set the cluster resolution accordingly
-    cluster.ex = (itPadNB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
-                                                : ClusterizerParam::Instance().defaultClusterResolution;
-    cluster.ey = (itPadB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
-                                               : ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolutionX
+                                                : ClusterizerParam::Instance().defaultClusterResolutionX;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolutionY
+                                               : ClusterizerParam::Instance().defaultClusterResolutionY;
   }
 }
 

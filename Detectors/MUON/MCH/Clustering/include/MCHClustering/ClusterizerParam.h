@@ -29,8 +29,11 @@ struct ClusterizerParam : public o2::conf::ConfigurableParamHelper<ClusterizerPa
 
   double lowestPadCharge = 4.f * 0.22875f; ///< minimum charge of a pad
 
-  double defaultClusterResolution = 0.2; ///< default cluster resolution (cm)
-  double badClusterResolution = 10.;     ///< bad (e.g. mono-cathode) cluster resolution (cm)
+  double defaultClusterResolutionX = 0.2; ///< default cluster resolution in x direction (cm)
+  double defaultClusterResolutionY = 0.2; ///< default cluster resolution in y direction (cm)
+
+  double badClusterResolutionX = 10.; ///< bad (e.g. mono-cathode) cluster resolution in x direction (cm)
+  double badClusterResolutionY = 10.; ///< bad (e.g. mono-cathode) cluster resolution in y direction (cm)
 
   bool legacy = true; ///< use original (run2) clustering
 
