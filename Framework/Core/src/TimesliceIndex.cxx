@@ -183,13 +183,16 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
       result.channel = {(int)-1};
     }
   }
-  mOldestPossibleOutput = result;
   if (changed) {
     LOGP(debug, "Oldest possible output {} due to {} {}",
-         mOldestPossibleOutput.timeslice.value,
+         result.timeslice.value,
          result.channel.value == -1 ? "slot" : "channel",
          result.channel.value == -1 ? mOldestPossibleOutput.slot.index : mOldestPossibleOutput.channel.value);
+  } else if (mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Oldest possible output updated from oldest Input : " << mOldestPossibleOutput.timeslice.value << " --> " << result.timeslice.value;
   }
+  mOldestPossibleOutput = result;
+
   return result;
 }
 
