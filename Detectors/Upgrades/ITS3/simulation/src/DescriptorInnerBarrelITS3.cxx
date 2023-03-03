@@ -82,7 +82,7 @@ void DescriptorInnerBarrelITS3::configure()
 
   const double safety = 0.5;
 
-  // radius, length, gap, num of chips in half layer, fringe chip width, middle chip width, strip foam height, semi-cicle foam length, guled foam width
+  // radius, length, gap, num of chips in half layer, fringe chip width, middle chip width, strip foam height, semi-cicle foam length, guled foam width, gapx for layer 4
   std::vector<std::array<double, 10>> IBtdr5dat;
   IBtdr5dat.emplace_back(std::array<double, 10>{1.8f, 27.15, 0.1, 3., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
   IBtdr5dat.emplace_back(std::array<double, 10>{2.4f, 27.15, 0.1, 4., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
