@@ -640,7 +640,6 @@ class datamodel:
 
   def printTables(self, DMtype, tabs, uses, CER, tabs2u):
     print("")
-    print("#### ", CER[2])
 
     # add source code information if available
     if "O2Physics" in CER[0]:
@@ -650,7 +649,12 @@ class datamodel:
       href2u = self.O2href
       path2u = self.O2path
 
-    if DMtype == 1:
+    if DMtype != 0:
+      if DMtype == 1:
+        print("## ", CER[2])
+      elif DMtype == 2:
+        print("### ", CER[2])
+
       if href2u != "":
         print("Code file: <a href=\""+href2u+"/"+CER[0].split(path2u)[1] +
               "/"+CER[1]+"\" target=\"_blank\">"+CER[1]+"</a>")
@@ -676,21 +680,20 @@ class datamodel:
       others = [i for i, x in enumerate(tabInCat) if x == False]
 
       # print available categories
-      txt2print = "For better overview the tables are grouped into the following categories: |"
+      txt2print = "For better overview the tables are grouped into the following categories: \|"
       for cat in self.categories:
-        txt2print = txt2print+' ['+cat.name+'](#cat_'+cat.name+') |'
+        txt2print = txt2print+' ['+cat.name+'](#cat_'+cat.name+') \|'
       if len(others) > 0:
-        txt2print = txt2print+' [Others](#cat_Others) |'
+        txt2print = txt2print+' [Others](#cat_Others) \|'
       print(txt2print)
       print()
-
-    print("<div>")
-    print("")
 
     # loop over all table categories
     if DMtype == 0:
       for cat in self.categories:
-        txt2print = '<h4 id="cat_'+cat.name+'">'+cat.name+'</h4>'
+        txt2print = '<a name="cat_'+cat.name+'"></a>'
+        print(txt2print)
+        txt2print = '## '+cat.name
         print(txt2print)
         print("<div>")
 
@@ -705,7 +708,8 @@ class datamodel:
 
       # print non-categorized tables
       if len(others) > 0:
-        print('<h4 id="cat_Others">Others</h4>')
+        print('<a name="cat_Others"></a>')
+        print('## Others')
         print("<div>")
         for i in others:
           print()
@@ -714,10 +718,11 @@ class datamodel:
 
     else:
       # print all tables of given producer
+      print("<div>")
+      print("")
       for tab in tabs2u:
         self.printSingleTable(tabs, uses, tab)
-
-    print("</div>")
+      print("</div>")
 
   def printHTML(self):
     # gather all tables and columns
@@ -778,7 +783,7 @@ class datamodel:
       for CER in CER2u:
         inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
         tabs2u = [tabs[i] for i in inds]
-        self.printTables(1, tabs, uses, CER, tabs2u)
+        self.printTables(2, tabs, uses, CER, tabs2u)
 
     print(self.delimPWGs)
     print("")
@@ -788,7 +793,6 @@ class datamodel:
       print(self.delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
-      print("#### List of defined joins and iterators")
       print("<div>")
       for use in uses:
         print("")
