@@ -10,4 +10,3 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(tracking)
-add_subdirectory(macros)
