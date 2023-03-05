@@ -131,11 +131,11 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
   bool changed = false;
   for (int ci = 0; ci < mChannels.size(); ci++) {
     // Check if this is a real channel. Skip otherwise.
-    auto& channel = mChannels[ci];
-    if (channel.channelType != ChannelAccountingType::DPL) {
+    auto& channelRef = mChannels[ci];
+    if (channelRef.channelType != ChannelAccountingType::DPL) {
       continue;
     }
-    auto& a = channel.oldestForChannel;
+    auto& a = channelRef.oldestForChannel;
     if (a.value < result.timeslice.value) {
       changed = true;
       result = {a, ChannelIndex{ci}};
