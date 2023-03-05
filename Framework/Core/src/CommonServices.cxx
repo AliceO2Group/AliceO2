@@ -510,7 +510,6 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
-      LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
       auto &queue = services.get<AsyncQueue>();
       auto& spec = services.get<DeviceSpec const>();
       auto *device = services.get<RawDeviceService>().device();
