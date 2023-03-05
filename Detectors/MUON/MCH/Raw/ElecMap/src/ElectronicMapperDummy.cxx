@@ -171,4 +171,10 @@ std::set<DsDetId> getDualSampasPerFeeId<ElectronicMapperDummy>(uint16_t feeId)
   return impl::getDualSampasPerFeeId<ElectronicMapperDummy>(feeId);
 }
 
+template <>
+std::optional<uint16_t> solarIndex2Id<ElectronicMapperDummy>(uint16_t solarIndex)
+{
+  return impl::solarIndex2Id<ElectronicMapperDummy>(solarIndex);
+}
+
 } // namespace o2::mch::raw
