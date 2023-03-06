@@ -35,7 +35,7 @@ namespace o2
 {
 namespace its
 {
-using gpu::utils::host::checkGPUError;
+using gpu::utils::checkGPUError;
 using namespace constants::its2;
 
 namespace gpu
@@ -251,209 +251,209 @@ GPUg() void computeLayerCellsKernel(
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], NLayers);
-  setIsGPU(true);
+  // mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], NLayers);
+  // setIsGPU(true);
 }
 
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 {
-  const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
-  gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
-  size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
+  // const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  // gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
+  // size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
 
-  for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
-    gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
-    std::vector<Vertex> paddedVertices;
-    for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
-      if (iVertex < primaryVertices.size()) {
-        paddedVertices.emplace_back(primaryVertices[iVertex]);
-      } else {
-        paddedVertices.emplace_back(Vertex());
-      }
-    }
-    checkGPUError(cudaMemcpy(mTimeFrameGPU->getDeviceVertices(rof0), paddedVertices.data(), mTimeFrameGPU->getConfig().maxVerticesCapacity * sizeof(Vertex), cudaMemcpyHostToDevice), __FILE__, __LINE__);
-    for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-      const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
-      const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
-      const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
+  // for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
+  //   gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
+  //   std::vector<Vertex> paddedVertices;
+  //   for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
+  //     if (iVertex < primaryVertices.size()) {
+  //       paddedVertices.emplace_back(primaryVertices[iVertex]);
+  //     } else {
+  //       paddedVertices.emplace_back(Vertex());
+  //     }
+  //   }
+  //   checkGPUError(cudaMemcpy(mTimeFrameGPU->getDeviceVertices(rof0), paddedVertices.data(), mTimeFrameGPU->getConfig().maxVerticesCapacity * sizeof(Vertex), cudaMemcpyHostToDevice), __FILE__, __LINE__);
+  //   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //     const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
+  //     const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
+  //     const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
 
-      if (!mTimeFrameGPU->getClustersOnLayer(rof0, iLayer).size()) {
-        LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
-        continue;
-      }
+  //     if (!mTimeFrameGPU->getClustersOnLayer(rof0, iLayer).size()) {
+  //       LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
+  //       continue;
+  //     }
 
-      gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-        rof0,
-        mTimeFrameGPU->getNrof(),
-        iLayer,
-        mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),       // :checked:
-        mTimeFrameGPU->getDeviceClustersOnLayer(0, iLayer + 1),      // :checked:
-        mTimeFrameGPU->getDeviceIndexTables(iLayer + 1),             // :checked:
-        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer),     // :checked:
-        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer + 1), // :checked:
-        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer),      // :checked:
-        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer + 1),  // :checked:
-        mTimeFrameGPU->getDeviceVertices(rof0),
-        mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
-        mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),
-        mTimeFrameGPU->getConfig().maxVerticesCapacity,
-        mTimeFrameGPU->getNClustersLayer(rof0, iLayer),
-        mTimeFrameGPU->getPhiCut(iLayer),
-        mTimeFrameGPU->getMinR(iLayer + 1),
-        mTimeFrameGPU->getMaxR(iLayer + 1),
-        meanDeltaR,
-        mTimeFrameGPU->getPositionResolution(iLayer),
-        mTimeFrameGPU->getMSangle(iLayer),
-        mTimeFrameGPU->getDeviceTrackingParameters(),
-        mTimeFrameGPU->getDeviceIndexTableUtils(),
-        mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
-    }
-  }
+  //     gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
+  //       rof0,
+  //       mTimeFrameGPU->getNrof(),
+  //       iLayer,
+  //       mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),       // :checked:
+  //       mTimeFrameGPU->getDeviceClustersOnLayer(0, iLayer + 1),      // :checked:
+  //       mTimeFrameGPU->getDeviceIndexTables(iLayer + 1),             // :checked:
+  //       mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer),     // :checked:
+  //       mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer + 1), // :checked:
+  //       mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer),      // :checked:
+  //       mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer + 1),  // :checked:
+  //       mTimeFrameGPU->getDeviceVertices(rof0),
+  //       mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
+  //       mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),
+  //       mTimeFrameGPU->getConfig().maxVerticesCapacity,
+  //       mTimeFrameGPU->getNClustersLayer(rof0, iLayer),
+  //       mTimeFrameGPU->getPhiCut(iLayer),
+  //       mTimeFrameGPU->getMinR(iLayer + 1),
+  //       mTimeFrameGPU->getMaxR(iLayer + 1),
+  //       meanDeltaR,
+  //       mTimeFrameGPU->getPositionResolution(iLayer),
+  //       mTimeFrameGPU->getMSangle(iLayer),
+  //       mTimeFrameGPU->getDeviceTrackingParameters(),
+  //       mTimeFrameGPU->getDeviceIndexTableUtils(),
+  //       mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+  //   }
+  // }
 
-  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    // Sort tracklets to put empty ones on the right side of the array.
-    auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-    auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getConfig().trackletsCapacity);
-    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortEmptyFunctor<o2::its::Tracklet>());
+  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //   // Sort tracklets to put empty ones on the right side of the array.
+  //   auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
+  //   auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getConfig().trackletsCapacity);
+  //   thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortEmptyFunctor<o2::its::Tracklet>());
 
-    // Get number of found tracklets
-    // With thrust:
-    // auto thrustTrackletsLUTbegin = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer));
-    // auto thrustTrackletsLUTend = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size());
-    // mTimeFrameGPU->getTrackletSizeHost()[iLayer] = thrust::reduce(thrustTrackletsLUTbegin, thrustTrackletsLUTend, 0);
+  //   // Get number of found tracklets
+  //   // With thrust:
+  //   // auto thrustTrackletsLUTbegin = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer));
+  //   // auto thrustTrackletsLUTend = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size());
+  //   // mTimeFrameGPU->getTrackletSizeHost()[iLayer] = thrust::reduce(thrustTrackletsLUTbegin, thrustTrackletsLUTend, 0);
 
-    discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-                                         bufferSize,                                                         // temp_storage_bytes
-                                         mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
-                                         mTimeFrameGPU->getDeviceNFoundTracklets() + iLayer,                 // d_out
-                                         mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
-                                         mTimeFrameGPU->getStream(iLayer).get()));
-  }
-  discardResult(cudaDeviceSynchronize());
-  checkGPUError(cudaMemcpy(mTimeFrameGPU->getTrackletSizeHost().data(), mTimeFrameGPU->getDeviceNFoundTracklets(), (NLayers - 1) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+  //                                        bufferSize,                                                         // temp_storage_bytes
+  //                                        mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
+  //                                        mTimeFrameGPU->getDeviceNFoundTracklets() + iLayer,                 // d_out
+  //                                        mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
+  //                                        mTimeFrameGPU->getStream(iLayer).get()));
+  // }
+  // discardResult(cudaDeviceSynchronize());
+  // checkGPUError(cudaMemcpy(mTimeFrameGPU->getTrackletSizeHost().data(), mTimeFrameGPU->getDeviceNFoundTracklets(), (NLayers - 1) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
 
-    // Sort tracklets according to cluster ids
-    auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-    auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
-    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortIndexFunctor<o2::its::Tracklet>());
-  }
-  discardResult(cudaDeviceSynchronize());
-  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    // Remove duplicate entries in LUTs, done by single thread so far
-    gpu::removeDuplicateTrackletsEntriesLUTKernel<<<1, 1, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-      mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
-      mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
-      mTimeFrameGPU->getDeviceNFoundTracklets(),
-      iLayer);
-  }
-  // Remove actual tracklet duplicates
-  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
+  //   // Sort tracklets according to cluster ids
+  //   auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
+  //   auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
+  //   thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortIndexFunctor<o2::its::Tracklet>());
+  // }
+  // discardResult(cudaDeviceSynchronize());
+  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //   // Remove duplicate entries in LUTs, done by single thread so far
+  //   gpu::removeDuplicateTrackletsEntriesLUTKernel<<<1, 1, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
+  //     mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
+  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
+  //     mTimeFrameGPU->getDeviceNFoundTracklets(),
+  //     iLayer);
+  // }
+  // // Remove actual tracklet duplicates
+  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //   auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
+  //   auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
 
-    auto new_end = thrust::unique(begin, end);
-    mTimeFrameGPU->getTrackletSizeHost()[iLayer] = new_end - begin;
-  }
-  discardResult(cudaDeviceSynchronize());
-  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    // Compute LUT
-    discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-                                                bufferSize,                                                         // temp_storage_bytes
-                                                mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
-                                                mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_out
-                                                mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
-                                                mTimeFrameGPU->getStream(iLayer).get()));
-  }
-  discardResult(cudaDeviceSynchronize());
+  //   auto new_end = thrust::unique(begin, end);
+  //   mTimeFrameGPU->getTrackletSizeHost()[iLayer] = new_end - begin;
+  // }
+  // discardResult(cudaDeviceSynchronize());
+  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  //   // Compute LUT
+  //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+  //                                               bufferSize,                                                         // temp_storage_bytes
+  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
+  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_out
+  //                                               mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
+  //                                               mTimeFrameGPU->getStream(iLayer).get()));
+  // }
+  // discardResult(cudaDeviceSynchronize());
 
-  // Create tracklets labels, at the moment on the host
-  if (mTimeFrameGPU->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
-      std::vector<o2::its::Tracklet> tracklets(mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
-      checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), mTimeFrameGPU->getTrackletSizeHost()[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-      for (auto& trk : tracklets) {
-        MCCompLabel label;
-        int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
-        int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId};
-        for (auto& lab1 : mTimeFrameGPU->getClusterLabels(iLayer, currentId)) {
-          for (auto& lab2 : mTimeFrameGPU->getClusterLabels(iLayer + 1, nextId)) {
-            if (lab1 == lab2 && lab1.isValid()) {
-              label = lab1;
-              break;
-            }
-          }
-          if (label.isValid()) {
-            break;
-          }
-        }
-        mTimeFrameGPU->getTrackletsLabel(iLayer).emplace_back(label);
-      }
-    }
-  }
+  // // Create tracklets labels, at the moment on the host
+  // if (mTimeFrameGPU->hasMCinformation()) {
+  //   for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+  //     std::vector<o2::its::Tracklet> tracklets(mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
+  //     checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), mTimeFrameGPU->getTrackletSizeHost()[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  //     for (auto& trk : tracklets) {
+  //       MCCompLabel label;
+  //       int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
+  //       int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId};
+  //       for (auto& lab1 : mTimeFrameGPU->getClusterLabels(iLayer, currentId)) {
+  //         for (auto& lab2 : mTimeFrameGPU->getClusterLabels(iLayer + 1, nextId)) {
+  //           if (lab1 == lab2 && lab1.isValid()) {
+  //             label = lab1;
+  //             break;
+  //           }
+  //         }
+  //         if (label.isValid()) {
+  //           break;
+  //         }
+  //       }
+  //       mTimeFrameGPU->getTrackletsLabel(iLayer).emplace_back(label);
+  //     }
+  //   }
+  // }
 }
 
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 {
-  size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
-  for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    if (!mTimeFrameGPU->getTrackletSizeHost()[iLayer + 1] ||
-        !mTimeFrameGPU->getTrackletSizeHost()[iLayer]) {
-      continue;
-    }
-    const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
-    const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
-    gpu::computeLayerCellsKernel<true><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-      mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
-      mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
-      mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
-      mTimeFrameGPU->getTrackletSizeHost()[iLayer],
-      nullptr,
-      mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
-      mTimeFrameGPU->getDeviceTrackingParameters());
+  // size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
+  // for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
+  //   if (!mTimeFrameGPU->getTrackletSizeHost()[iLayer + 1] ||
+  //       !mTimeFrameGPU->getTrackletSizeHost()[iLayer]) {
+  //     continue;
+  //   }
+  //   const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
+  //   const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
+  //   gpu::computeLayerCellsKernel<true><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
+  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
+  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
+  //     mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
+  //     mTimeFrameGPU->getTrackletSizeHost()[iLayer],
+  //     nullptr,
+  //     mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
+  //     mTimeFrameGPU->getDeviceTrackingParameters());
 
-    // Compute number of found Cells
-    discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-                                         bufferSize,                                                         // temp_storage_bytes
-                                         mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
-                                         mTimeFrameGPU->getDeviceNFoundCells() + iLayer,                     // d_out
-                                         mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
-                                         mTimeFrameGPU->getStream(iLayer).get()));
+  //   // Compute number of found Cells
+  //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+  //                                        bufferSize,                                                         // temp_storage_bytes
+  //                                        mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
+  //                                        mTimeFrameGPU->getDeviceNFoundCells() + iLayer,                     // d_out
+  //                                        mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
+  //                                        mTimeFrameGPU->getStream(iLayer).get()));
 
-    // Compute LUT
-    discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-                                                bufferSize,                                                         // temp_storage_bytes
-                                                mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
-                                                mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_out
-                                                mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
-                                                mTimeFrameGPU->getStream(iLayer).get()));
-    discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(iLayer).get()));
+  //   // Compute LUT
+  //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+  //                                               bufferSize,                                                         // temp_storage_bytes
+  //                                               mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
+  //                                               mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_out
+  //                                               mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
+  //                                               mTimeFrameGPU->getStream(iLayer).get()));
+  //   discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(iLayer).get()));
 
-    gpu::computeLayerCellsKernel<false><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-      mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
-      mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
-      mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
-      mTimeFrameGPU->getTrackletSizeHost()[iLayer],
-      mTimeFrameGPU->getDeviceCells(iLayer),
-      mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
-      mTimeFrameGPU->getDeviceTrackingParameters());
-  }
+  //   gpu::computeLayerCellsKernel<false><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
+  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
+  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
+  //     mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
+  //     mTimeFrameGPU->getTrackletSizeHost()[iLayer],
+  //     mTimeFrameGPU->getDeviceCells(iLayer),
+  //     mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
+  //     mTimeFrameGPU->getDeviceTrackingParameters());
+  // }
 
-  checkGPUError(cudaMemcpy(mTimeFrameGPU->getCellSizeHost().data(), mTimeFrameGPU->getDeviceNFoundCells(), (NLayers - 2) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  /// Create cells labels
-  if (mTimeFrameGPU->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-      std::vector<o2::its::Cell> cells(mTimeFrameGPU->getCellSizeHost()[iLayer]);
-      checkGPUError(cudaMemcpy(cells.data(), mTimeFrameGPU->getDeviceCells(iLayer), mTimeFrameGPU->getCellSizeHost()[iLayer] * sizeof(o2::its::Cell), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-      for (auto& cell : cells) {
-        MCCompLabel currentLab{mTimeFrameGPU->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
-        MCCompLabel nextLab{mTimeFrameGPU->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
-        mTimeFrameGPU->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-      }
-    }
-  }
+  // checkGPUError(cudaMemcpy(mTimeFrameGPU->getCellSizeHost().data(), mTimeFrameGPU->getDeviceNFoundCells(), (NLayers - 2) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  // /// Create cells labels
+  // if (mTimeFrameGPU->hasMCinformation()) {
+  //   for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
+  //     std::vector<o2::its::Cell> cells(mTimeFrameGPU->getCellSizeHost()[iLayer]);
+  //     checkGPUError(cudaMemcpy(cells.data(), mTimeFrameGPU->getDeviceCells(iLayer), mTimeFrameGPU->getCellSizeHost()[iLayer] * sizeof(o2::its::Cell), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  //     for (auto& cell : cells) {
+  //       MCCompLabel currentLab{mTimeFrameGPU->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
+  //       MCCompLabel nextLab{mTimeFrameGPU->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
+  //       mTimeFrameGPU->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+  //     }
+  //   }
+  // }
 }
 
 // void TrackerTraitsGPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)

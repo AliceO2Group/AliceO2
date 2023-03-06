@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file DataBlockFIT.h class  for RAW data format data blocks at FIT
+// file DataBlockFIT.h class  for RAW data format data blocks at FIT
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -29,84 +29,90 @@ namespace o2
 {
 namespace fit
 {
-//FIT DATA BLOCK DEFINITIONS
+// FIT DATA BLOCK DEFINITIONS
 
-//standard data block from PM
-template <typename RawHeaderPMtype, typename RawDataPMtype>
-class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPMtype>
+// standard data block from PM
+template <typename ConfigType, typename RawHeaderPMtype, typename RawDataPMtype>
+class DataBlockPM : public DataBlockBase<DataBlockPM, ConfigType, RawHeaderPMtype, RawDataPMtype>
 {
  public:
   DataBlockPM() = default;
   DataBlockPM(const DataBlockPM&) = default;
   typedef RawHeaderPMtype RawHeaderPM;
   typedef RawDataPMtype RawDataPM;
+  typedef DataBlockWrapper<ConfigType, RawHeaderPM> HeaderPM;
+  typedef DataBlockWrapper<ConfigType, RawDataPM> DataPM;
+
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
-    DataBlockWrapper<RawHeaderPM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderPM>::MaxNwords, srcByteShift);
-    DataBlockWrapper<RawDataPM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords, srcByteShift);
+    HeaderPM::deserialize(srcBytes, HeaderPM::MaxNwords, srcByteShift);
+    DataPM::deserialize(srcBytes, HeaderPM::mData[0].nGBTWords, srcByteShift);
   }
-  const std::size_t getNgbtWords() const { return DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords; }
+  const std::size_t getNgbtWords() const { return HeaderPM::mData[0].nGBTWords; }
   std::vector<char> serialize() const
   {
-    std::size_t nBytes = DataBlockWrapper<RawHeaderPM>::MaxNwords * SIZE_WORD;
-    nBytes += DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords * SIZE_WORD;
+    std::size_t nBytes = HeaderPM::MaxNwords * HeaderPM::sSizeWord;
+    nBytes += HeaderPM::mData[0].nGBTWords * HeaderPM::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    DataBlockWrapper<RawHeaderPM>::serialize(vecBytes, DataBlockWrapper<RawHeaderPM>::MaxNwords, destBytes);
-    DataBlockWrapper<RawDataPM>::serialize(vecBytes, DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords, destBytes);
+    HeaderPM::serialize(vecBytes, HeaderPM::MaxNwords, destBytes);
+    DataPM::serialize(vecBytes, HeaderPM::mData[0].nGBTWords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-    if (DataBlockWrapper<RawDataPM>::mNelements == 0) {
+    if (DataPM::mNelements == 0) {
       flag = false;
       return;
     }
-    if (DataBlockWrapper<RawDataPM>::mNelements % 2 == 0 && DataBlockWrapper<RawDataPM>::mData[DataBlockWrapper<RawDataPM>::mNelements - 1].channelID == 0) {
-      DataBlockWrapper<RawDataPM>::mNelements--; //in case of half GBT-word filling
+    if (DataPM::mNelements % 2 == 0 && DataPM::mData[DataPM::mNelements - 1].channelID == 0) {
+      DataPM::mNelements--; // in case of half GBT-word filling
     }
-    //TODO, Descriptor checking, Channel range
+    // TODO, Descriptor checking, Channel range
   }
 };
 
-//standard data block from TCM
-template <typename RawHeaderTCMtype, typename RawDataTCMtype>
-class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCMtype, RawDataTCMtype>
+// standard data block from TCM
+template <typename ConfigType, typename RawHeaderTCMtype, typename RawDataTCMtype>
+class DataBlockTCM : public DataBlockBase<DataBlockTCM, ConfigType, RawHeaderTCMtype, RawDataTCMtype>
 {
  public:
   DataBlockTCM() = default;
   DataBlockTCM(const DataBlockTCM&) = default;
   typedef RawHeaderTCMtype RawHeaderTCM;
   typedef RawDataTCMtype RawDataTCM;
-  const std::size_t getNgbtWords() const { return DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords; }
+  typedef DataBlockWrapper<ConfigType, RawHeaderTCM> HeaderTCM;
+  typedef DataBlockWrapper<ConfigType, RawDataTCM> DataTCM;
+
+  const std::size_t getNgbtWords() const { return HeaderTCM::mData[0].nGBTWords; }
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
-    DataBlockWrapper<RawHeaderTCM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCM>::MaxNwords, srcByteShift);
-    DataBlockWrapper<RawDataTCM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords, srcByteShift);
+    HeaderTCM::deserialize(srcBytes, HeaderTCM::MaxNwords, srcByteShift);
+    DataTCM::deserialize(srcBytes, HeaderTCM::mData[0].nGBTWords, srcByteShift);
   }
   std::vector<char> serialize() const
   {
-    std::size_t nBytes = DataBlockWrapper<RawHeaderTCM>::MaxNwords * SIZE_WORD;
-    nBytes += DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords * SIZE_WORD;
+    std::size_t nBytes = HeaderTCM::MaxNwords * HeaderTCM::sSizeWord;
+    nBytes += HeaderTCM::mData[0].nGBTWords * HeaderTCM::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    DataBlockWrapper<RawHeaderTCM>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCM>::MaxNwords, destBytes);
-    DataBlockWrapper<RawDataTCM>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords, destBytes);
+    HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
+    DataTCM::serialize(vecBytes, HeaderTCM::mData[0].nGBTWords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-    //TODO, Descriptor checking
+    // TODO, Descriptor checking
   }
 };
 
-//extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
-template <typename RawHeaderTCMextType, typename RawDataTCMtype, typename RawDataTCMextType>
-class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>
+// extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
+template <typename ConfigType, typename RawHeaderTCMextType, typename RawDataTCMtype, typename RawDataTCMextType>
+class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, ConfigType, RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>
 {
  public:
   DataBlockTCMext() = default;
@@ -114,31 +120,35 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextTyp
   typedef RawHeaderTCMextType RawHeaderTCMext;
   typedef RawDataTCMtype RawDataTCM;
   typedef RawDataTCMextType RawDataTCMext;
-  const std::size_t getNgbtWords() const { return DataBlockWrapper<RawHeaderTCMext>::mData[0].nGBTWords; }
+  typedef DataBlockWrapper<ConfigType, RawHeaderTCMext> HeaderTCMext;
+  typedef DataBlockWrapper<ConfigType, RawDataTCM> DataTCM;
+  typedef DataBlockWrapper<ConfigType, RawDataTCMext> DataTCMext;
+
+  const std::size_t getNgbtWords() const { return HeaderTCMext::mData[0].nGBTWords; }
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
-    DataBlockWrapper<RawHeaderTCMext>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCMext>::MaxNwords, srcByteShift);
-    DataBlockWrapper<RawDataTCM>::deserialize(srcBytes, DataBlockWrapper<RawDataTCM>::MaxNwords, srcByteShift);
-    DataBlockWrapper<RawDataTCMext>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCMext>::mData[0].nGBTWords - DataBlockWrapper<RawDataTCM>::MaxNwords, srcByteShift);
+    HeaderTCMext::deserialize(srcBytes, HeaderTCMext::MaxNwords, srcByteShift);
+    DataTCM::deserialize(srcBytes, DataTCM::MaxNwords, srcByteShift);
+    DataTCMext::deserialize(srcBytes, HeaderTCMext::mData[0].nGBTWords - DataTCM::MaxNwords, srcByteShift);
   }
 
   std::vector<char> serialize() const
   {
-    std::size_t nBytes = DataBlockWrapper<RawHeaderTCMext>::MaxNwords * SIZE_WORD;
-    nBytes += DataBlockWrapper<RawHeaderTCMext>::mData[0].nGBTWords * SIZE_WORD;
+    std::size_t nBytes = HeaderTCMext::MaxNwords * HeaderTCMext::sSizeWord;
+    nBytes += HeaderTCMext::mData[0].nGBTWords * HeaderTCMext::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    DataBlockWrapper<RawHeaderTCMext>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCMext>::MaxNwords, destBytes);
-    DataBlockWrapper<RawDataTCM>::serialize(vecBytes, DataBlockWrapper<RawDataTCM>::MaxNwords, destBytes);
-    DataBlockWrapper<RawDataTCMext>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCMext>::mData[0].nGBTWords - DataBlockWrapper<RawDataTCM>::MaxNwords, destBytes);
+    HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
+    DataTCM::serialize(vecBytes, DataTCM::MaxNwords, destBytes);
+    DataTCMext::serialize(vecBytes, HeaderTCMext::mData[0].nGBTWords - DataTCM::MaxNwords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
 
-    //TODO, Descriptor checking
+    // TODO, Descriptor checking
   }
 };
 

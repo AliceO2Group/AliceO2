@@ -127,6 +127,7 @@ if workflow_has_parameter CALIB_PROXIES; then
       [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
       for flp in $(seq -f "%03g" 1 144); do
+        [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
         [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done

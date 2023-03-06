@@ -231,9 +231,11 @@ void GPUChainTracking::PrintOutputStat()
     int nTRDTracklets = 0;
     for (unsigned int k = 0; k < mIOPtrs.nTRDTracks; k++) {
       if (mIOPtrs.trdTracksO2) {
+#ifdef GPUCA_HAVE_O2HEADERS
         auto& trk = mIOPtrs.trdTracksO2[k];
         nTRDTracklets += trk.getNtracklets();
         nTRDTracks += trk.getNtracklets() != 0;
+#endif
       } else {
         auto& trk = mIOPtrs.trdTracks[k];
         nTRDTracklets += trk.getNtracklets();

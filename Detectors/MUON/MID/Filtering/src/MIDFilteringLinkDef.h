@@ -9,15 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_WORKFLOW_TRACK_READER_SPEC_H
-#define O2_MCH_WORKFLOW_TRACK_READER_SPEC_H
+#ifdef __CLING__
 
-#include "Framework/DataProcessorSpec.h"
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-namespace o2::mch
-{
-o2::framework::DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName = "mch-tracks-reader",
-                                                    bool digits = false);
-}
+#pragma link C++ class o2::mid::FiltererBCParam + ;
 
 #endif

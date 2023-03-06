@@ -19,7 +19,6 @@
 #include "Framework/Logger.h"
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 using namespace o2::framework;

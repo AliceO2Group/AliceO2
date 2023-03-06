@@ -150,16 +150,4 @@ void VisualisationEvent::afterLoading()
   }
 }
 
-VisualisationEvent::Statistic VisualisationEvent::mLastStatistic;
-
-void VisualisationEvent::computeStatistic()
-{
-  for (int i = 0; i < o2::dataformats::GlobalTrackID::NSources; i++) {
-    mLastStatistic.mTrackCount[i] = 0;
-  }
-  for (auto track : this->getTracksSpan()) {
-    mLastStatistic.mTrackCount[track.getSource()]++;
-  }
-}
-
 } // namespace o2

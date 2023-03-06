@@ -17,7 +17,6 @@ o2_add_library(EventVisualisationDataConverter
                        src/VisualisationEventSerializer.cxx
                        src/VisualisationEventJSONSerializer.cxx
                        src/VisualisationEventROOTSerializer.cxx
-                       src/Statistic.cxx
                PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON
                         O2::ReconstructionDataFormats
                         O2::DataFormatsParameters

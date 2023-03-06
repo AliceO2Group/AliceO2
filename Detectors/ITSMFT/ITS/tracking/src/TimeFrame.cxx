@@ -74,6 +74,7 @@ TimeFrame::TimeFrame(int nLayers)
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
   mROframesClusters.resize(nLayers, {0}); /// TBC: if resetting the timeframe is required, then this has to be done
+  mNClustersPerROF.resize(nLayers);
   mTrackletsIndexROf.resize(2, {0});
 }
 
@@ -140,6 +141,7 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   }
 
   for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+    mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
     mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     if (iL < 2) {
       mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed starting from L1
@@ -210,6 +212,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+      mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
       mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
     mNrof++;
@@ -506,6 +509,18 @@ void TimeFrame::printROFoffsets()
   for (unsigned int iLayer{0}; iLayer < mROframesClusters.size(); ++iLayer) {
     std::cout << "Layer " << iLayer << std::endl;
     for (auto value : mROframesClusters[iLayer]) {
+      std::cout << value << "\t";
+    }
+    std::cout << std::endl;
+  }
+}
+
+void TimeFrame::printNClsPerROF()
+{
+  std::cout << "--------" << std::endl;
+  for (unsigned int iLayer{0}; iLayer < mNClustersPerROF.size(); ++iLayer) {
+    std::cout << "Layer " << iLayer << std::endl;
+    for (auto& value : mNClustersPerROF[iLayer]) {
       std::cout << value << "\t";
     }
     std::cout << std::endl;

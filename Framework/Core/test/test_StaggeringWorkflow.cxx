@@ -26,7 +26,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Output.h"
 #include <cstring>
-#include <iostream>
 #include <regex>
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)

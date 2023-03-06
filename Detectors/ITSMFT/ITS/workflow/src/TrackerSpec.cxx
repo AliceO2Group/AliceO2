@@ -185,10 +185,17 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
+
   if (mOverrideBeamEstimation) {
-    mTimeFrame->setBeamPosition(mMeanVertex->getX(), mMeanVertex->getY(), mMeanVertex->getSigmaY2(), mTracker->getParameters()[0].LayerResolution[0], mTracker->getParameters()[0].SystErrorY2[0]);
+    mTimeFrame->setBeamPosition(mMeanVertex->getX(),
+                                mMeanVertex->getY(),
+                                mMeanVertex->getSigmaY2(),
+                                mTracker->getParameters()[0].LayerResolution[0],
+                                mTracker->getParameters()[0].SystErrorY2[0]);
   }
+
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
+
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
@@ -248,12 +255,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size());
+
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
     LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
-
   if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
   } else {

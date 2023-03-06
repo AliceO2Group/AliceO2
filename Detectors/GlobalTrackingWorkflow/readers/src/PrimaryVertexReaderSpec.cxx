@@ -101,7 +101,7 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
         if (mUseMC) {
           lb = mLabels[cnt];
         }
-        LOG(info) << "#" << cnt << " " << mVertices[cnt] << " | MC:" << lb;
+        LOG(info) << "#" << cnt << " " << mVertices[cnt] << " | MC:" << lb.asString();
       } else {
         LOG(info) << "#" << cnt << " this is not a vertex";
       }

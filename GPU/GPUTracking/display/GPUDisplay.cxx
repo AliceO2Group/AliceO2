@@ -49,13 +49,13 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
-#include "GPUTrackParamConvert.h"
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
+#include "GPUTrackParamConvert.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -749,12 +749,14 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
 
 void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
 {
+#ifdef GPUCA_HAVE_O2HEADERS
   const auto& trk = mIOPtrs->itsTracks[trackId];
   for (int k = 0; k < trk.getNClusters(); k++) {
     int cid = mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
     mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosITS[cid].z);
     mGlobalPosITS[cid].w = tITSATTACHED;
   }
+#endif
 }
 
 GPUDisplay::vboList GPUDisplay::DrawFinalITS()
@@ -844,7 +846,13 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       };
       if (std::is_same_v<T, GPUTPCGMMergedTrack> || (!mIOPtrs->tpcLinkTRD && mIOPtrs->trdTracksO2)) {
         if (mChain && ((int)mConfig.showTPCTracksFromO2Format == (int)mChain->GetProcessingSettings().trdTrackModelO2) && mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
-          mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2[mTRDTrackIds[i]]) : tmpDoTRDTracklets(mIOPtrs->trdTracks[mTRDTrackIds[i]]);
+          if (mIOPtrs->trdTracksO2) {
+#ifdef GPUCA_HAVE_O2HEADERS
+            tmpDoTRDTracklets(mIOPtrs->trdTracksO2[mTRDTrackIds[i]]);
+#endif
+          } else {
+            tmpDoTRDTracklets(mIOPtrs->trdTracks[mTRDTrackIds[i]]);
+          }
         }
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
@@ -1274,7 +1282,13 @@ void GPUDisplay::DrawGLScene_updateEventData()
       }
     }
   };
-  mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
+  if (mIOPtrs->trdTracksO2) {
+#ifdef GPUCA_HAVE_O2HEADERS
+    tmpDoTRDTracklets(mIOPtrs->trdTracksO2);
+#endif
+  } else {
+    tmpDoTRDTracklets(mIOPtrs->trdTracks);
+  }
   if (mIOPtrs->nItsTracks) {
     std::fill(mITSStandaloneTracks.begin(), mITSStandaloneTracks.end(), true);
     if (mIOPtrs->tpcLinkITS) {
@@ -1356,8 +1370,10 @@ void GPUDisplay::DrawGLScene_updateEventData()
   for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
     while (mParam->par.continuousTracking && trdTriggerRecord < (int)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
       trdTriggerRecord++;
+#ifdef GPUCA_HAVE_O2HEADERS
       float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
       trdZoffset = fabsf(mCalib->fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
+#endif
     }
     const auto& sp = mIOPtrs->trdSpacePoints[i];
     int iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
@@ -1790,6 +1806,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       }
     }
     if (mConfig.showTPCTracksFromO2Format) {
+#ifdef GPUCA_HAVE_O2HEADERS
       unsigned int col = 0;
       GPUCA_OPENMP(for)
       for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
@@ -1801,6 +1818,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         }
         mThreadTracks[numThread][col][sector][0].emplace_back(i);
       }
+#endif
     } else {
       GPUCA_OPENMP(for)
       for (unsigned int i = 0; i < mIOPtrs->nMergedTracks; i++) {

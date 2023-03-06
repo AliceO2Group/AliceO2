@@ -302,12 +302,13 @@ GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::get
 #elif defined GPUCA_ALIROOT_LIB
   return nullptr;
 #else
+#ifdef GPUCA_HAVE_O2HEADERS
   if (externalDefaultO2Propagator) {
     return o2::base::Propagator::Instance();
-  } else {
-    return GetConstantMem()->calibObjects.o2Propagator;
   }
 #endif
+#endif
+  return GetConstantMem()->calibObjects.o2Propagator;
 }
 
 template <class TRDTRK, class PROP>
@@ -1166,7 +1167,9 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 // instantiate version for AliExternalTrackParam / o2::TrackParCov data types
+#if defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_HAVE_O2HEADERS)
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
+#endif
 // always instantiate version for GPU Track Model
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
 } // namespace gpu

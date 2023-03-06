@@ -9,10 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework ASoA
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/ASoA.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/Expressions.h"
@@ -21,7 +17,7 @@
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <arrow/util/key_value_metadata.h>
 
 using namespace o2::framework;
@@ -73,7 +69,7 @@ DECLARE_SOA_COLUMN(L2, l2, std::vector<int>);
 
 DECLARE_SOA_TABLE(Lists, "TST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
 
-BOOST_AUTO_TEST_CASE(TestMarkers)
+TEST_CASE("TestMarkers")
 {
   TableBuilder b1;
   auto pwriter = b1.cursor<Points3Ds>();
@@ -86,12 +82,12 @@ BOOST_AUTO_TEST_CASE(TestMarkers)
   auto pt1 = Points3DsMk1{t1};
   auto pt2 = Points3DsMk2{t1};
   auto pt3 = Points3DsMk3{t1};
-  BOOST_REQUIRE_EQUAL(pt1.begin().mark(), (size_t)1);
-  BOOST_REQUIRE_EQUAL(pt2.begin().mark(), (size_t)2);
-  BOOST_REQUIRE_EQUAL(pt3.begin().mark(), (size_t)3);
+  REQUIRE(pt1.begin().mark() == (size_t)1);
+  REQUIRE(pt2.begin().mark() == (size_t)2);
+  REQUIRE(pt3.begin().mark() == (size_t)3);
 }
 
-BOOST_AUTO_TEST_CASE(TestTableIteration)
+TEST_CASE("TestTableIteration")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -108,37 +104,37 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto i = ColumnIterator<int32_t>(table->column(0).get());
   int64_t pos = 0;
   i.mCurrentPos = &pos;
-  BOOST_CHECK_EQUAL(*i, 0);
+  REQUIRE(*i == 0);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 0);
+  REQUIRE(*i == 0);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 0);
+  REQUIRE(*i == 0);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 0);
+  REQUIRE(*i == 0);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 1);
+  REQUIRE(*i == 1);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 1);
+  REQUIRE(*i == 1);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 1);
+  REQUIRE(*i == 1);
   pos++;
-  BOOST_CHECK_EQUAL(*i, 1);
+  REQUIRE(*i == 1);
 
   arrow::ChunkedArray* chunks[2] = {
     table->column(0).get(),
     table->column(1).get()};
   Points::iterator tests(chunks, {table->num_rows(), 0});
-  BOOST_CHECK_EQUAL(tests.x(), 0);
-  BOOST_CHECK_EQUAL(tests.y(), 0);
+  REQUIRE(tests.x() == 0);
+  REQUIRE(tests.y() == 0);
   ++tests;
-  BOOST_CHECK_EQUAL(tests.x(), 0);
-  BOOST_CHECK_EQUAL(tests.y(), 1);
+  REQUIRE(tests.x() == 0);
+  REQUIRE(tests.y() == 1);
   using Test = o2::soa::Table<test::X, test::Y>;
   Test tests2{table};
   size_t value = 0;
   auto b = tests2.begin();
   auto e = tests2.end();
-  BOOST_CHECK(b != e);
+  REQUIRE(b != e);
   ++b;
   ++b;
   ++b;
@@ -147,19 +143,19 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   ++b;
   ++b;
   ++b;
-  BOOST_CHECK(b == e);
+  REQUIRE(b == e);
 
   b = tests2.begin();
-  BOOST_CHECK(b != e);
-  BOOST_CHECK((b + 1) == (b + 1));
-  BOOST_CHECK((b + 7) != b);
-  BOOST_CHECK((b + 7) != e);
-  BOOST_CHECK((b + 8) == e);
+  REQUIRE(b != e);
+  REQUIRE((b + 1) == (b + 1));
+  REQUIRE((b + 7) != b);
+  REQUIRE((b + 7) != e);
+  REQUIRE((b + 8) == e);
 
   for (auto& t : tests2) {
-    BOOST_CHECK_EQUAL(t.x(), value / 4);
-    BOOST_CHECK_EQUAL(t.y(), value);
-    BOOST_REQUIRE(value < 8);
+    REQUIRE(t.x() == value / 4);
+    REQUIRE(t.y() == value);
+    REQUIRE(value < 8);
     value++;
   }
 
@@ -169,7 +165,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestDynamicColumns)
+TEST_CASE("TestDynamicColumns")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -187,18 +183,18 @@ BOOST_AUTO_TEST_CASE(TestDynamicColumns)
 
   Test tests{table};
   for (auto& test : tests) {
-    BOOST_CHECK_EQUAL(test.sum(), test.x() + test.y());
+    REQUIRE(test.sum() == test.x() + test.y());
   }
 
   using Test2 = o2::soa::Table<test::X, test::Y, test::Sum<test::Y, test::Y>>;
 
   Test2 tests2{table};
   for (auto& test : tests2) {
-    BOOST_CHECK_EQUAL(test.sum(), test.y() + test.y());
+    REQUIRE(test.sum() == test.y() + test.y());
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestColumnIterators)
+TEST_CASE("TestColumnIterators")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -218,21 +214,21 @@ BOOST_AUTO_TEST_CASE(TestColumnIterators)
   foo.mCurrentPos = &index1;
   auto bar{foo};
   bar.mCurrentPos = &index2;
-  BOOST_REQUIRE_EQUAL(foo.mCurrent, bar.mCurrent);
-  BOOST_REQUIRE_EQUAL(foo.mLast, bar.mLast);
-  BOOST_REQUIRE_EQUAL(foo.mColumn, bar.mColumn);
-  BOOST_REQUIRE_EQUAL(foo.mFirstIndex, bar.mFirstIndex);
-  BOOST_REQUIRE_EQUAL(foo.mCurrentChunk, bar.mCurrentChunk);
+  REQUIRE(foo.mCurrent == bar.mCurrent);
+  REQUIRE(foo.mLast == bar.mLast);
+  REQUIRE(foo.mColumn == bar.mColumn);
+  REQUIRE(foo.mFirstIndex == bar.mFirstIndex);
+  REQUIRE(foo.mCurrentChunk == bar.mCurrentChunk);
 
   auto foobar = std::move(foo);
-  BOOST_REQUIRE_EQUAL(foobar.mCurrent, bar.mCurrent);
-  BOOST_REQUIRE_EQUAL(foobar.mLast, bar.mLast);
-  BOOST_REQUIRE_EQUAL(foobar.mColumn, bar.mColumn);
-  BOOST_REQUIRE_EQUAL(foobar.mFirstIndex, bar.mFirstIndex);
-  BOOST_REQUIRE_EQUAL(foobar.mCurrentChunk, bar.mCurrentChunk);
+  REQUIRE(foobar.mCurrent == bar.mCurrent);
+  REQUIRE(foobar.mLast == bar.mLast);
+  REQUIRE(foobar.mColumn == bar.mColumn);
+  REQUIRE(foobar.mFirstIndex == bar.mFirstIndex);
+  REQUIRE(foobar.mCurrentChunk == bar.mCurrentChunk);
 }
 
-BOOST_AUTO_TEST_CASE(TestJoinedTables)
+TEST_CASE("TestJoinedTables")
 {
   TableBuilder builderX;
   auto rowWriterX = builderX.persist<int32_t>({"x"});
@@ -275,40 +271,40 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   using TestZ = o2::soa::Table<test::Z>;
   using Test = Join<TestX, TestY>;
 
-  BOOST_CHECK(Test::contains<TestX>());
-  BOOST_CHECK(Test::contains<TestY>());
-  BOOST_CHECK(!Test::contains<TestZ>());
+  REQUIRE(Test::contains<TestX>());
+  REQUIRE(Test::contains<TestY>());
+  REQUIRE(!Test::contains<TestZ>());
 
   Test tests{0, tableX, tableY};
 
-  BOOST_CHECK(tests.contains<TestX>());
-  BOOST_CHECK(tests.contains<TestY>());
-  BOOST_CHECK(!tests.contains<TestZ>());
+  REQUIRE(tests.contains<TestX>());
+  REQUIRE(tests.contains<TestY>());
+  REQUIRE(!tests.contains<TestZ>());
 
   for (auto& test : tests) {
-    BOOST_CHECK_EQUAL(7, test.x() + test.y());
+    REQUIRE(7 == test.x() + test.y());
   }
 
   auto tests2 = join(TestX{tableX}, TestY{tableY});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
                 "Joined tables should have the same type, regardless how we construct them");
   for (auto& test : tests2) {
-    BOOST_CHECK_EQUAL(7, test.x() + test.y());
+    REQUIRE(7 == test.x() + test.y());
   }
 
   auto tests3 = join(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
 
   for (auto& test : tests3) {
-    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
+    REQUIRE(15 == test.x() + test.y() + test.z());
   }
   using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
   TestMoreThanTwo tests4{0, tableX, tableY, tableZ};
   for (auto& test : tests4) {
-    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
+    REQUIRE(15 == test.x() + test.y() + test.z());
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestConcatTables)
+TEST_CASE("TestConcatTables")
 {
   TableBuilder builderA;
   auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
@@ -321,7 +317,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterA(0, 6, 0);
   rowWriterA(0, 7, 0);
   auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  REQUIRE(tableA->num_rows() == 8);
 
   TableBuilder builderB;
   auto rowWriterB = builderB.persist<int32_t>({"x"});
@@ -372,9 +368,9 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
 
   static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
   ConcatTest tests{tableA, tableB};
-  BOOST_REQUIRE_EQUAL(16, tests.size());
+  REQUIRE(16 == tests.size());
   for (auto& test : tests) {
-    BOOST_CHECK_EQUAL(test.index(), test.x());
+    REQUIRE(test.index() == test.x());
   }
 
   static_assert(std::is_same_v<NestedConcatTest::table_t, o2::soa::Table<test::X>>, "Bad nested concat");
@@ -385,12 +381,12 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   expressions::Filter testf = (test::x == 1) || (test::x == 3);
   gandiva::Selection selection;
   auto status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selection);
-  BOOST_REQUIRE(status.ok());
+  REQUIRE(status.ok());
 
   auto fptr = tableA->schema()->GetFieldByName("x");
-  BOOST_REQUIRE(fptr != nullptr);
-  BOOST_REQUIRE(fptr->name() == "x");
-  BOOST_REQUIRE(fptr->type()->id() == arrow::Type::INT32);
+  REQUIRE(fptr != nullptr);
+  REQUIRE(fptr->name() == "x");
+  REQUIRE(fptr->type()->id() == arrow::Type::INT32);
 
   auto node_x = gandiva::TreeExprBuilder::MakeField(fptr);
   auto literal_1 = gandiva::TreeExprBuilder::MakeLiteral(static_cast<int32_t>(1));
@@ -399,71 +395,71 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto equals_to_3 = gandiva::TreeExprBuilder::MakeFunction("equal", {node_x, literal_3}, arrow::boolean());
   auto node_or = gandiva::TreeExprBuilder::MakeOr({equals_to_1, equals_to_3});
   auto condition = gandiva::TreeExprBuilder::MakeCondition(node_or);
-  BOOST_REQUIRE_EQUAL(condition->ToString(), "bool equal((int32) x, (const int32) 1) || bool equal((int32) x, (const int32) 3)");
+  REQUIRE(condition->ToString() == "bool equal((int32) x, (const int32) 1) || bool equal((int32) x, (const int32) 3)");
   std::shared_ptr<gandiva::Filter> filter;
   status = gandiva::Filter::Make(tableA->schema(), condition, &filter);
-  BOOST_REQUIRE_EQUAL(status.ToString(), "OK");
+  REQUIRE(status.ToString() == "OK");
 
   arrow::TableBatchReader reader(*tableA);
   std::shared_ptr<RecordBatch> batch;
   auto s = reader.ReadNext(&batch);
-  BOOST_REQUIRE(s.ok());
-  BOOST_REQUIRE(batch != nullptr);
-  BOOST_REQUIRE_EQUAL(batch->num_rows(), 8);
+  REQUIRE(s.ok());
+  REQUIRE(batch != nullptr);
+  REQUIRE(batch->num_rows() == 8);
   auto st = filter->Evaluate(*batch, selection);
-  BOOST_REQUIRE_EQUAL(st.ToString(), "OK");
+  REQUIRE(st.ToString() == "OK");
 
   gandiva::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
   FilteredTest filtered{{testA.asArrowTable()}, selection_f};
-  BOOST_CHECK_EQUAL(2, filtered.size());
+  REQUIRE(2 == filtered.size());
 
   auto i = 0;
-  BOOST_CHECK(filtered.begin() != filtered.end());
+  REQUIRE(filtered.begin() != filtered.end());
   for (auto& f : filtered) {
-    BOOST_CHECK_EQUAL(i * 2 + 1, f.x());
-    BOOST_CHECK_EQUAL(i * 2 + 1, f.index());
+    REQUIRE(i * 2 + 1 == f.x());
+    REQUIRE(i * 2 + 1 == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 2);
+  REQUIRE(i == 2);
 
   // Hardcode a selection for the first 5 odd numbers
   using FilteredConcatTest = Filtered<ConcatTest::table_t>;
   using namespace o2::framework;
   gandiva::Selection selectionConcat;
   status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selectionConcat);
-  BOOST_CHECK_EQUAL(status.ok(), true);
+  REQUIRE(status.ok() == true);
   selectionConcat->SetIndex(0, 0);
   selectionConcat->SetIndex(1, 5);
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
   FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
-  BOOST_CHECK_EQUAL(3, concatTestTable.size());
+  REQUIRE(3 == concatTestTable.size());
 
   i = 0;
   auto b = concatTestTable.begin();
   auto e = concatTestTable.end();
 
-  BOOST_CHECK_EQUAL(b.mRowIndex, 0);
-  BOOST_CHECK_EQUAL(b.getSelectionRow(), 0);
-  BOOST_CHECK_EQUAL(e.index, 3);
+  REQUIRE(b.mRowIndex == 0);
+  REQUIRE(b.getSelectionRow() == 0);
+  REQUIRE(e.index == 3);
 
-  BOOST_CHECK(concatTestTable.begin() != concatTestTable.end());
+  REQUIRE(concatTestTable.begin() != concatTestTable.end());
   for (auto& f : concatTestTable) {
-    BOOST_CHECK_EQUAL(i * 5, f.x());
-    BOOST_CHECK_EQUAL(i * 5, f.index());
-    BOOST_CHECK_EQUAL(i, f.filteredIndex());
+    REQUIRE(i * 5 == f.x());
+    REQUIRE(i * 5 == f.index());
+    REQUIRE(i == f.filteredIndex());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 3);
+  REQUIRE(i == 3);
 
   // Test with a Joined table
   using FilteredJoinTest = Filtered<JoinedTest::table_t>;
   gandiva::Selection selectionJoin;
   status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selectionJoin);
-  BOOST_CHECK_EQUAL(status.ok(), true);
+  REQUIRE(status.ok() == true);
   selectionJoin->SetIndex(0, 0);
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
@@ -472,16 +468,16 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
-  BOOST_CHECK(filteredJoin.begin() != filteredJoin.end());
+  REQUIRE(filteredJoin.begin() != filteredJoin.end());
   for (auto& f : filteredJoin) {
-    BOOST_CHECK_EQUAL(i * 2, f.x());
-    BOOST_CHECK_EQUAL(i * 2, f.index());
+    REQUIRE(i * 2 == f.x());
+    REQUIRE(i * 2 == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 3);
+  REQUIRE(i == 3);
 }
 
-BOOST_AUTO_TEST_CASE(TestDereference)
+TEST_CASE("TestDereference")
 {
   TableBuilder builderA;
   auto pointsWriter = builderA.cursor<Points>();
@@ -489,7 +485,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   pointsWriter(0, 3, 4);
   auto pointsT = builderA.finalize();
   Points points{pointsT};
-  BOOST_REQUIRE_EQUAL(pointsT->num_rows(), 2);
+  REQUIRE(pointsT->num_rows() == 2);
 
   TableBuilder builderA2;
   auto infoWriter = builderA2.cursor<Infos>();
@@ -498,71 +494,71 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   infoWriter(0, 4, true);
   auto infosT = builderA2.finalize();
   Infos infos{infosT};
-  BOOST_REQUIRE_EQUAL(infos.begin().someBool(), true);
-  BOOST_REQUIRE_EQUAL((infos.begin() + 1).someBool(), false);
-  BOOST_REQUIRE_EQUAL((infos.begin() + 2).someBool(), true);
-  BOOST_REQUIRE_EQUAL((infos.begin() + 2).color(), 4);
-  BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
+  REQUIRE(infos.begin().someBool() == true);
+  REQUIRE((infos.begin() + 1).someBool() == false);
+  REQUIRE((infos.begin() + 2).someBool() == true);
+  REQUIRE((infos.begin() + 2).color() == 4);
+  REQUIRE(infosT->num_rows() == 3);
 
   TableBuilder builderB;
   auto segmentsWriter = builderB.cursor<Segments>();
   segmentsWriter(0, 10, 0, 1, 2);
   auto segmentsT = builderB.finalize();
   Segments segments{segmentsT};
-  BOOST_REQUIRE_EQUAL(segmentsT->num_rows(), 1);
+  REQUIRE(segmentsT->num_rows() == 1);
 
   TableBuilder builderC;
   auto segmentsExtraWriter = builderC.cursor<SegmentsExtras>();
   segmentsExtraWriter(0, 1);
   auto segmentsExtraT = builderC.finalize();
   SegmentsExtras segmentsExtras{segmentsExtraT};
-  BOOST_REQUIRE_EQUAL(segmentsExtraT->num_rows(), 1);
+  REQUIRE(segmentsExtraT->num_rows() == 1);
 
-  BOOST_CHECK_EQUAL(segments.begin().pointAId(), 0);
-  BOOST_CHECK_EQUAL(segments.begin().pointBId(), 1);
+  REQUIRE(segments.begin().pointAId() == 0);
+  REQUIRE(segments.begin().pointBId() == 1);
   static_assert(std::is_same_v<decltype(segments.begin().pointA()), Points::iterator>);
   auto i = segments.begin();
   using namespace o2::framework;
   i.bindExternalIndices(&points, &infos);
-  BOOST_CHECK_EQUAL(i.n(), 10);
-  BOOST_CHECK_EQUAL(i.info().color(), 4);
-  BOOST_CHECK_EQUAL(i.info().someBool(), true);
-  BOOST_CHECK_EQUAL(i.pointA().x(), 0);
-  BOOST_CHECK_EQUAL(i.pointA().y(), 0);
-  BOOST_CHECK_EQUAL(i.pointB().x(), 3);
-  BOOST_CHECK_EQUAL(i.pointB().y(), 4);
+  REQUIRE(i.n() == 10);
+  REQUIRE(i.info().color() == 4);
+  REQUIRE(i.info().someBool() == true);
+  REQUIRE(i.pointA().x() == 0);
+  REQUIRE(i.pointA().y() == 0);
+  REQUIRE(i.pointB().x() == 3);
+  REQUIRE(i.pointB().y() == 4);
 
   segments.bindExternalIndices(&points, &infos);
   auto j = segments.begin();
-  BOOST_CHECK_EQUAL(j.n(), 10);
-  BOOST_CHECK_EQUAL(j.info().color(), 4);
-  BOOST_CHECK_EQUAL(j.info().someBool(), true);
-  BOOST_CHECK_EQUAL(j.pointA().x(), 0);
-  BOOST_CHECK_EQUAL(j.pointA().y(), 0);
-  BOOST_CHECK_EQUAL(j.pointB().x(), 3);
-  BOOST_CHECK_EQUAL(j.pointB().y(), 4);
+  REQUIRE(j.n() == 10);
+  REQUIRE(j.info().color() == 4);
+  REQUIRE(j.info().someBool() == true);
+  REQUIRE(j.pointA().x() == 0);
+  REQUIRE(j.pointA().y() == 0);
+  REQUIRE(j.pointB().x() == 3);
+  REQUIRE(j.pointB().y() == 4);
 
   auto joined = join(segments, segmentsExtras);
   joined.bindExternalIndices(&points, &infos);
   auto se = joined.begin();
-  BOOST_CHECK_EQUAL(se.n(), 10);
-  BOOST_CHECK_EQUAL(se.info().color(), 4);
-  BOOST_CHECK_EQUAL(se.pointA().x(), 0);
-  BOOST_CHECK_EQUAL(se.pointA().y(), 0);
-  BOOST_CHECK_EQUAL(se.pointB().x(), 3);
-  BOOST_CHECK_EQUAL(se.pointB().y(), 4);
-  BOOST_CHECK_EQUAL(se.thickness(), 1);
+  REQUIRE(se.n() == 10);
+  REQUIRE(se.info().color() == 4);
+  REQUIRE(se.pointA().x() == 0);
+  REQUIRE(se.pointA().y() == 0);
+  REQUIRE(se.pointB().x() == 3);
+  REQUIRE(se.pointB().y() == 4);
+  REQUIRE(se.thickness() == 1);
 }
 
-BOOST_AUTO_TEST_CASE(TestSchemaCreation)
+TEST_CASE("TestSchemaCreation")
 {
   auto schema = std::make_shared<arrow::Schema>(createFieldsFromColumns(Points::persistent_columns_t{}));
-  BOOST_CHECK_EQUAL(schema->num_fields(), 2);
-  BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
-  BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
+  REQUIRE(schema->num_fields() == 2);
+  REQUIRE(schema->field(0)->name() == "x");
+  REQUIRE(schema->field(1)->name() == "y");
 }
 
-BOOST_AUTO_TEST_CASE(TestFilteredOperators)
+TEST_CASE("TestFilteredOperators")
 {
   TableBuilder builderA;
   auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
@@ -575,7 +571,7 @@ BOOST_AUTO_TEST_CASE(TestFilteredOperators)
   rowWriterA(0, 6, 14);
   rowWriterA(0, 7, 15);
   auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  REQUIRE(tableA->num_rows() == 8);
 
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using FilteredTest = Filtered<TestA>;
@@ -588,57 +584,57 @@ BOOST_AUTO_TEST_CASE(TestFilteredOperators)
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
   FilteredTest filtered1{{testA.asArrowTable()}, s1};
-  BOOST_CHECK_EQUAL(4, filtered1.size());
-  BOOST_CHECK(filtered1.begin() != filtered1.end());
+  REQUIRE(4 == filtered1.size());
+  REQUIRE(filtered1.begin() != filtered1.end());
 
   auto s2 = expressions::createSelection(testA.asArrowTable(), f2);
   FilteredTest filtered2{{testA.asArrowTable()}, s2};
-  BOOST_CHECK_EQUAL(2, filtered2.size());
-  BOOST_CHECK(filtered2.begin() != filtered2.end());
+  REQUIRE(2 == filtered2.size());
+  REQUIRE(filtered2.begin() != filtered2.end());
 
   FilteredTest filteredUnion = filtered1 + filtered2;
-  BOOST_CHECK_EQUAL(6, filteredUnion.size());
+  REQUIRE(6 == filteredUnion.size());
 
   std::vector<std::tuple<int32_t, int32_t>> expectedUnion{
     {0, 8}, {1, 9}, {2, 10}, {3, 11}, {6, 14}, {7, 15}};
   auto i = 0;
   for (auto& f : filteredUnion) {
-    BOOST_CHECK_EQUAL(std::get<0>(expectedUnion[i]), f.x());
-    BOOST_CHECK_EQUAL(std::get<1>(expectedUnion[i]), f.y());
-    BOOST_CHECK_EQUAL(std::get<0>(expectedUnion[i]), f.index());
+    REQUIRE(std::get<0>(expectedUnion[i]) == f.x());
+    REQUIRE(std::get<1>(expectedUnion[i]) == f.y());
+    REQUIRE(std::get<0>(expectedUnion[i]) == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 6);
+  REQUIRE(i == 6);
 
   FilteredTest filteredIntersection = filtered1 * filtered2;
-  BOOST_CHECK_EQUAL(0, filteredIntersection.size());
+  REQUIRE(0 == filteredIntersection.size());
 
   i = 0;
   for (auto& f : filteredIntersection) {
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 0);
+  REQUIRE(i == 0);
 
   expressions::Filter f3 = test::x < 3;
   auto s3 = expressions::createSelection(testA.asArrowTable(), f3);
   FilteredTest filtered3{{testA.asArrowTable()}, s3};
-  BOOST_CHECK_EQUAL(3, filtered3.size());
-  BOOST_CHECK(filtered3.begin() != filtered3.end());
+  REQUIRE(3 == filtered3.size());
+  REQUIRE(filtered3.begin() != filtered3.end());
 
   FilteredTest unionIntersection = (filtered1 + filtered2) * filtered3;
-  BOOST_CHECK_EQUAL(3, unionIntersection.size());
+  REQUIRE(3 == unionIntersection.size());
 
   i = 0;
   for (auto& f : unionIntersection) {
-    BOOST_CHECK_EQUAL(i, f.x());
-    BOOST_CHECK_EQUAL(i + 8, f.y());
-    BOOST_CHECK_EQUAL(i, f.index());
+    REQUIRE(i == f.x());
+    REQUIRE(i + 8 == f.y());
+    REQUIRE(i == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 3);
+  REQUIRE(i == 3);
 }
 
-BOOST_AUTO_TEST_CASE(TestNestedFiltering)
+TEST_CASE("TestNestedFiltering")
 {
   TableBuilder builderA;
   auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
@@ -651,7 +647,7 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
   rowWriterA(0, 6, 14);
   rowWriterA(0, 7, 15);
   auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  REQUIRE(tableA->num_rows() == 8);
 
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using FilteredTest = Filtered<TestA>;
@@ -666,35 +662,35 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
   FilteredTest filtered{{testA.asArrowTable()}, s1};
-  BOOST_CHECK_EQUAL(4, filtered.size());
-  BOOST_CHECK(filtered.begin() != filtered.end());
+  REQUIRE(4 == filtered.size());
+  REQUIRE(filtered.begin() != filtered.end());
 
   auto s2 = expressions::createSelection(filtered.asArrowTable(), f2);
   NestedFilteredTest nestedFiltered{{filtered}, s2};
-  BOOST_CHECK_EQUAL(2, nestedFiltered.size());
+  REQUIRE(2 == nestedFiltered.size());
   auto i = 0;
   for (auto& f : nestedFiltered) {
-    BOOST_CHECK_EQUAL(i + 2, f.x());
-    BOOST_CHECK_EQUAL(i + 10, f.y());
-    BOOST_CHECK_EQUAL(i + 2, f.index());
+    REQUIRE(i + 2 == f.x());
+    REQUIRE(i + 10 == f.y());
+    REQUIRE(i + 2 == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 2);
+  REQUIRE(i == 2);
 
   auto s3 = expressions::createSelection(nestedFiltered.asArrowTable(), f3);
   TripleNestedFilteredTest tripleFiltered{{nestedFiltered}, s3};
-  BOOST_CHECK_EQUAL(1, tripleFiltered.size());
+  REQUIRE(1 == tripleFiltered.size());
   i = 0;
   for (auto& f : tripleFiltered) {
-    BOOST_CHECK_EQUAL(i + 2, f.x());
-    BOOST_CHECK_EQUAL(i + 10, f.y());
-    BOOST_CHECK_EQUAL(i + 2, f.index());
+    REQUIRE(i + 2 == f.x());
+    REQUIRE(i + 10 == f.y());
+    REQUIRE(i + 2 == f.index());
     i++;
   }
-  BOOST_CHECK_EQUAL(i, 1);
+  REQUIRE(i == 1);
 }
 
-BOOST_AUTO_TEST_CASE(TestEmptyTables)
+TEST_CASE("TestEmptyTables")
 {
   TableBuilder bPoints;
   auto pwriter = bPoints.cursor<Points>();
@@ -709,9 +705,9 @@ BOOST_AUTO_TEST_CASE(TestEmptyTables)
 
   using PI = Join<Points, Infos>;
   PI pi{0, pempty, iempty};
-  BOOST_CHECK_EQUAL(pi.size(), 0);
+  REQUIRE(pi.size() == 0);
   auto spawned = Extend<Points, test::ESum>(p);
-  BOOST_CHECK_EQUAL(spawned.size(), 0);
+  REQUIRE(spawned.size() == 0);
 }
 
 DECLARE_SOA_TABLE(Origins, "TST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
@@ -721,7 +717,7 @@ DECLARE_SOA_INDEX_COLUMN(Origin, origin);
 }
 DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OriginId);
 
-BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
+TEST_CASE("TestIndexToFiltered")
 {
   TableBuilder b;
   auto writer = b.cursor<Origins>();
@@ -744,11 +740,11 @@ BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);
-  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 3);
+  REQUIRE(it.origin().globalIndex() == 3);
   it++;
-  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 4);
+  REQUIRE(it.origin().globalIndex() == 4);
   it++;
-  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 5);
+  REQUIRE(it.origin().globalIndex() == 5);
 }
 
 namespace test
@@ -766,7 +762,7 @@ DECLARE_SOA_TABLE(PointsRefF, "TST", "PTSREFF", test::SinglePointId, test::Point
 DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
                   test::PointSeqIdSlice, test::PointSetIds);
 
-BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
+TEST_CASE("TestAdvancedIndices")
 {
   TableBuilder b1;
   auto pwriter = b1.cursor<Points3Ds>();
@@ -793,26 +789,26 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   auto s1 = it.pointSlice();
   auto g1 = it.pointGroup();
   auto bb = std::is_same_v<decltype(s1), Points3Ds>;
-  BOOST_CHECK(bb);
-  BOOST_CHECK_EQUAL(s1.size(), 2);
+  REQUIRE(bb);
+  REQUIRE(s1.size() == 2);
   aa = {2, 3, 4};
   for (int i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(g1[i].globalIndex(), aa[i]);
+    REQUIRE(g1[i].globalIndex() == aa[i]);
   }
 
   // Check the X coordinate of the points in the pointGroup
   // for the first point.
   for (auto& p : it.pointGroup_as<Points3Ds>()) {
-    BOOST_CHECK_EQUAL(p.x(), -1 * p.globalIndex());
+    REQUIRE(p.x() == -1 * p.globalIndex());
   }
 
   ++it;
   auto s2 = it.pointSlice();
   auto g2 = it.pointGroup();
-  BOOST_CHECK_EQUAL(s2.size(), 7);
+  REQUIRE(s2.size() == 7);
   aa = {12, 2, 19};
   for (int i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(g2[i].globalIndex(), aa[i]);
+    REQUIRE(g2[i].globalIndex() == aa[i]);
   }
 
   using Flt = o2::soa::Filtered<Points3Ds>;
@@ -823,19 +819,19 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   auto it2 = prt.begin();
   auto s1f = it2.pointSlice_as<Flt>();
   auto g1f = it2.pointGroup_as<Flt>();
-  BOOST_CHECK_EQUAL(s1f.size(), 2);
+  REQUIRE(s1f.size() == 2);
   aa = {2, 3, 4};
   for (int i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(g1f[i].globalIndex(), aa[i]);
+    REQUIRE(g1f[i].globalIndex() == aa[i]);
   }
 
   ++it2;
   auto s2f = it2.pointSlice_as<Flt>();
   auto g2f = it2.pointGroup_as<Flt>();
-  BOOST_CHECK_EQUAL(s2f.size(), 7);
+  REQUIRE(s2f.size() == 7);
   aa = {12, 2, 19};
   for (int i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(g2f[i].globalIndex(), aa[i]);
+    REQUIRE(g2f[i].globalIndex() == aa[i]);
   }
 
   TableBuilder b3;
@@ -874,40 +870,40 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   for (auto& p : pst) {
     auto op = p.otherPoint_as<PointsSelfIndex>();
     auto bbb = std::is_same_v<decltype(op), PointsSelfIndex::iterator>;
-    BOOST_CHECK(bbb);
-    BOOST_CHECK_EQUAL(op.globalIndex(), references[i]);
+    REQUIRE(bbb);
+    REQUIRE(op.globalIndex() == references[i]);
 
     auto ops = p.pointSeq_as<PointsSelfIndex>();
     if (i == withSlices[c1]) {
       auto it = ops.begin();
-      BOOST_CHECK_EQUAL(ops.size(), 2);
-      BOOST_CHECK_EQUAL(it.globalIndex(), i - 2);
+      REQUIRE(ops.size() == 2);
+      REQUIRE(it.globalIndex() == i - 2);
       ++it;
-      BOOST_CHECK_EQUAL(it.globalIndex(), i - 1);
+      REQUIRE(it.globalIndex() == i - 1);
       ++c1;
     } else {
-      BOOST_CHECK_EQUAL(ops.size(), 0);
+      REQUIRE(ops.size() == 0);
     }
     auto opss = p.pointSet_as<PointsSelfIndex>();
     auto opss_ids = p.pointSetIds();
     if (c2 < withSets.size() && i == withSets[c2]) {
-      BOOST_CHECK_EQUAL(opss.size(), sizes[c2]);
-      BOOST_CHECK_EQUAL(opss.begin()->globalIndex(), i + 1);
-      BOOST_CHECK_EQUAL(opss.back().globalIndex(), i + sizes[c2]);
+      REQUIRE(opss.size() == sizes[c2]);
+      REQUIRE(opss.begin()->globalIndex() == i + 1);
+      REQUIRE(opss.back().globalIndex() == i + sizes[c2]);
       int c3 = 0;
       for (auto& id : opss_ids) {
-        BOOST_CHECK_EQUAL(id, i + 1 + c3);
+        REQUIRE(id == i + 1 + c3);
         ++c3;
       }
       ++c2;
     } else {
-      BOOST_CHECK_EQUAL(opss.size(), 0);
+      REQUIRE(opss.size() == 0);
     }
     ++i;
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestListColumns)
+TEST_CASE("TestListColumns")
 {
   TableBuilder b;
   auto writer = b.cursor<Lists>();
@@ -931,20 +927,20 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
     auto i = row.l2();
     auto constexpr bf = std::is_same_v<decltype(f), gsl::span<const float, (size_t)-1>>;
     auto constexpr bi = std::is_same_v<decltype(i), gsl::span<const int, (size_t)-1>>;
-    BOOST_CHECK(bf);
-    BOOST_CHECK(bi);
-    BOOST_CHECK_EQUAL(f.size(), s);
-    BOOST_CHECK_EQUAL(i.size(), s);
+    REQUIRE(bf);
+    REQUIRE(bi);
+    REQUIRE(f.size() == s);
+    REQUIRE(i.size() == s);
 
     for (auto j = 0u; j < f.size(); ++j) {
-      BOOST_CHECK_EQUAL(f[j], 0.1231233f * (float)j + 0.1982798f);
-      BOOST_CHECK_EQUAL(i[j], j + 10);
+      REQUIRE(f[j] == 0.1231233f * (float)j + 0.1982798f);
+      REQUIRE(i[j] == j + 10);
     }
     ++s;
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestSliceBy)
+TEST_CASE("TestSliceBy")
 {
   o2::framework::Preslice<References> slices = test::originId;
   slices.setNewDF();
@@ -971,14 +967,14 @@ BOOST_AUTO_TEST_CASE(TestSliceBy)
 
   for (auto& oi : o) {
     auto cachedSlice = r.sliceBy(slices, oi.globalIndex());
-    BOOST_CHECK_EQUAL(cachedSlice.size(), 5);
+    REQUIRE(cachedSlice.size() == 5);
     for (auto& ri : cachedSlice) {
-      BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+      REQUIRE(ri.originId() == oi.globalIndex());
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestIndexUnboundExceptions)
+TEST_CASE("TestIndexUnboundExceptions")
 {
   TableBuilder b;
   auto prwriter = b.cursor<PointsRefF>();
@@ -995,17 +991,17 @@ BOOST_AUTO_TEST_CASE(TestIndexUnboundExceptions)
     try {
       auto sp = row.singlePoint();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+      REQUIRE(std::string{error_from_ref(ref).what} == "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
     try {
       auto ps = row.pointSlice();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+      REQUIRE(std::string{error_from_ref(ref).what} == "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
     try {
       auto pg = row.pointGroup();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+      REQUIRE(std::string{error_from_ref(ref).what} == "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
   }
 }

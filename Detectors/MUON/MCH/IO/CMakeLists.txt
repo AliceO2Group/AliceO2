@@ -17,11 +17,15 @@ o2_add_library(MCHIO
            src/DigitWriterSpec.cxx
            src/PreClusterReaderSpec.cxx
            src/PreClusterWriterSpec.cxx
+           src/TrackReaderSpec.cxx
+           src/TrackDumperSpec.cxx
+           src/TrackWriterSpec.cxx
         PUBLIC_LINK_LIBRARIES
            O2::DPLUtils
            O2::DataFormatsMCH
            O2::Framework
            O2::MCHBase
+           O2::SimulationDataFormat
            )
 
 o2_add_executable(
@@ -46,7 +50,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES
           O2::DetectorsRaw
           O2::MCHIO
-          O2::SimulationDataFormat
           )
 
 o2_add_executable(
@@ -56,7 +59,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES
           O2::DetectorsRaw
           O2::MCHIO
-          O2::SimulationDataFormat
           )
 
 o2_add_executable(
@@ -73,4 +75,25 @@ o2_add_executable(
           O2::DetectorsRaw
           O2::MCHIO
           )
+
+o2_add_executable(tracks-dumper-workflow
+        SOURCES src/tracks-dumper-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+          O2::DetectorsRaw
+          O2::MCHIO
+          )
+
+o2_add_executable(tracks-reader-workflow
+        SOURCES src/tracks-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+          O2::DetectorsRaw
+          O2::MCHIO
+          )
+
+o2_add_executable(tracks-writer-workflow
+        SOURCES src/tracks-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHIO)
 

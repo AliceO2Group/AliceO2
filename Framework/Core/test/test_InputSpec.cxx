@@ -9,21 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework InputSpec
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Headers/DataHeader.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <algorithm>
 #include <vector>
 
 using namespace o2::framework;
 using namespace o2::framework::data_matcher;
 
-BOOST_AUTO_TEST_CASE(TestSorting)
+TEST_CASE("TestSorting")
 {
   // At some point
   std::vector<InputSpec> inputs{
@@ -36,7 +32,7 @@ BOOST_AUTO_TEST_CASE(TestSorting)
   std::stable_sort(inputs.begin(), inputs.end(), sorter);
 }
 
-BOOST_AUTO_TEST_CASE(TestCreation)
+TEST_CASE("TestInputSpecCreation")
 {
   // At some point
   std::vector<InputSpec> inputs{

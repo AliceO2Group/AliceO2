@@ -9,13 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Utils RawParser
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include <boost/mpl/list.hpp>
+#include <catch_amalgamated.hpp>
 #include "DPLUtils/RawParser.h"
-#include <iostream>
 
 namespace o2::framework
 {
@@ -46,46 +41,44 @@ void fillPages(Container& buffer)
   }
 }
 
-typedef boost::mpl::list<V5, V6, V7> testTypes;
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_RawParser, RDH, testTypes)
+TEMPLATE_TEST_CASE("test_RawParser", "[RDH][template]", V5, V6, V7)
 {
   constexpr size_t NofPages = 3;
   std::array<unsigned char, NofPages * PageSize> buffer;
-  fillPages<RDH>(buffer);
+  fillPages<TestType>(buffer);
 
   size_t count = 0;
   auto processor = [&count](auto data, size_t size) {
-    BOOST_CHECK(size == PageSize - sizeof(RDH));
-    BOOST_CHECK(*reinterpret_cast<size_t const*>(data) == count);
-    std::cout << "Processing block of size " << size << std::endl;
+    REQUIRE(size == PageSize - sizeof(TestType));
+    REQUIRE(*reinterpret_cast<size_t const*>(data) == count);
+    INFO("Processing block of size " << size);
     count++;
   };
   RawParser parser(buffer.data(), buffer.size());
   parser.parse(processor);
-  BOOST_CHECK(count == NofPages);
+  REQUIRE(count == NofPages);
 
   parser.reset();
 
-  std::cout << parser << std::endl;
+  INFO(parser);
   count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
-    BOOST_CHECK(it.size() == PageSize - sizeof(RDH));
-    BOOST_CHECK(*reinterpret_cast<size_t const*>(it.data()) == count);
+    REQUIRE(it.size() == PageSize - sizeof(TestType));
+    REQUIRE(*reinterpret_cast<size_t const*>(it.data()) == count);
     // FIXME: there is a problem with invoking get_if<T>, but only if the code is templatized
     // and called from within boost unit test macros.
     //    expected primary-expression before ‘>’ token
     //    BOOST_CHECK(it.get_if<RDH>() != nullptr);
     //                             ^
     // That's why the type is deduced by argument until the problem is understood.
-    BOOST_CHECK(it.get_if((RDH*)nullptr) != nullptr);
-    if constexpr (std::is_same<RDH, V4>::value == false) {
-      BOOST_CHECK(it.get_if((V4*)nullptr) == nullptr);
+    REQUIRE(it.get_if((TestType*)nullptr) != nullptr);
+    if constexpr (std::is_same<TestType, V4>::value == false) {
+      REQUIRE(it.get_if((V4*)nullptr) == nullptr);
     } else {
-      BOOST_CHECK(it.get_if((V5*)nullptr) == nullptr);
+      REQUIRE(it.get_if((V5*)nullptr) == nullptr);
     }
-    BOOST_CHECK(it.raw() + it.offset() == it.data());
-    std::cout << it << ": block size " << it.size() << std::endl;
+    REQUIRE(it.raw() + it.offset() == it.data());
+    INFO(it << ": block size " << it.size());
   }
 }
 

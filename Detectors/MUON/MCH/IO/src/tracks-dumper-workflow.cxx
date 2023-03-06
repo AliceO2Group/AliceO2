@@ -9,17 +9,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <vector>
+#include "DataFormatsMCH/ROFRecord.h"
+#include "DataFormatsMCH/TrackMCH.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/ConfigParamSpec.h"
-#include "MCHWorkflow/TrackReaderSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "TrackDumperSpec.h"
+#include <fmt/format.h>
+#include <gsl/span>
+#include <iostream>
+#include <vector>
+
+void dump(std::ostream& os, const o2::mch::TrackMCH& t)
+{
+  auto pt = std::sqrt(t.getPx() * t.getPx() + t.getPy() * t.getPy());
+  os << fmt::format("({:s}) p {:7.2f} pt {:7.2f} nclusters: {} \n", t.getSign() == -1 ? "-" : "+", t.getP(), pt, t.getNClusters());
+}
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.emplace_back("enable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Propagate MC info"});
-  workflowOptions.emplace_back("digits", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read associated digits"});
+  std::vector<ConfigParamSpec> options{
+    {"enable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read MC info"}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -27,6 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool useMC = config.options().get<bool>("enable-mc");
-  bool digits = config.options().get<bool>("digits");
-  return WorkflowSpec{o2::mch::getTrackReaderSpec(useMC, "mch-tracks-reader", digits)};
+  WorkflowSpec specs{o2::mch::getTrackDumperSpec(useMC, "mch-tracks-dumper")};
+  o2::raw::HBFUtilsInitializer hbfIni(config, specs);
+  return specs;
 }

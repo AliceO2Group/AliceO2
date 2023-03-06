@@ -147,6 +147,8 @@ class MatchTOF
   std::vector<o2::dataformats::MatchInfoTOF>& getMatchedTrackVector(trkType index) { return mMatchedTracks[index]; }
   std::vector<o2::dataformats::CalibInfoTOF>& getCalibVector() { return mCalibInfoTOF; }
 
+  std::vector<o2::dataformats::MatchInfoTOFReco>& getMatchedTracksPair(int sec) { return mMatchedTracksPairsSec[sec]; }
+
   std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(trkType index) { return mOutTOFLabels[index]; } ///< get vector of TOF labels of matched tracks
 
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -171,7 +173,7 @@ class MatchTOF
   }
 
   void setFIT(bool value = true) { mIsFIT = value; }
-  int findFITIndex(int bc);
+  static int findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints);
 
   void checkRefitter();
   bool makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCTOF& trConstr);
@@ -194,6 +196,11 @@ class MatchTOF
   void setTS(unsigned long creationTime) { mTimestamp = creationTime; }
   unsigned long getTS() const { return mTimestamp; }
 
+  static void groupingMatch(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped, std::vector<std::vector<int>>& firstEls, std::vector<std::vector<int>>& secondEls);
+  static void printGrouping(const std::vector<o2::dataformats::MatchInfoTOFReco>& origin, const std::vector<std::vector<o2::dataformats::MatchInfoTOFReco>>& grouped);
+
+  void storeMatchable(bool val = true) { mStoreMatchable = val; }
+
  private:
   bool prepareFITData();
   int prepareInteractionTimes();
@@ -209,7 +216,8 @@ class MatchTOF
   void doMatching(int sec);
   void doMatchingForTPC(int sec);
   void selectBestMatches();
-  void selectBestMatchesHP();
+  static void BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, const std::vector<matchTrack>* TracksWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels, float calibMaxChi2);
+  static void BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels);
   bool propagateToRefX(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, o2::track::TrackLTIntegral& intLT);
   bool propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, float bz);
 
@@ -257,6 +265,7 @@ class MatchTOF
   bool mIsTPCTRDused = false;
   bool mIsITSTPCTRDused = false;
   bool mSetHighPurity = false;
+  bool mStoreMatchable = false;
 
   unsigned long mTimestamp = 0; ///< in ms
 
@@ -301,6 +310,7 @@ class MatchTOF
 
   ///<array of track-TOFCluster pairs from the matching
   std::vector<o2::dataformats::MatchInfoTOFReco> mMatchedTracksPairs;
+  std::vector<o2::dataformats::MatchInfoTOFReco> mMatchedTracksPairsSec[o2::constants::math::NSectors];
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;

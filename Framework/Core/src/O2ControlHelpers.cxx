@@ -225,7 +225,8 @@ void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, con
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
 {
   dumpOut << indLevel << "shell: true\n";
-  dumpOut << indLevel << "log: \"{{ log_task_output }}\"\n";
+  dumpOut << indLevel << "stdout: \"{{ log_task_stdout }}\"\n";
+  dumpOut << indLevel << "stderr: \"{{ log_task_stderr }}\"\n";
   dumpOut << indLevel << "env:\n";
   dumpOut << indLevel << indLevel << "- O2_DETECTOR={{ detector }}\n";
   dumpOut << indLevel << indLevel << "- O2_PARTITION={{ environment_id }}\n";
@@ -368,7 +369,8 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
 {
   dumpOut << indLevel << "name: " << taskName << "\n";
   dumpOut << indLevel << "defaults:\n";
-  dumpOut << indLevel << indScheme << "log_task_output: none\n";
+  dumpOut << indLevel << indScheme << "log_task_stdout: none\n";
+  dumpOut << indLevel << indScheme << "log_task_stderr: none\n";
   std::string exitTransitionTimeout = "15";
   if (execution.args.size() > 2) {
     for (size_t i = 0; i < execution.args.size() - 1; ++i) {

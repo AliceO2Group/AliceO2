@@ -95,7 +95,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// We need this as a method to access members
-  void configOuterBarrelITS(int nInnerBarrelLayers);
+  void configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel = 0);
 
   /// Gets the produced collections
   std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const

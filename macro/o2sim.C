@@ -34,6 +34,7 @@
 #include <CommonUtils/NameConf.h>
 #include "DetectorsBase/Aligner.h"
 #include <FairRootFileSink.h>
+#include <FairField.h>
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -63,22 +64,6 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   // fix the timestamp early
   uint64_t timestamp = confref.getTimestamp();
-  // fix or check timestamp based on given run number if any
-  if (confref.getRunNumber() != -1) {
-    // if we have a run number we should fix or check the timestamp
-
-    // fetch the actual timestamp ranges for this run
-    auto soreor = ccdbmgr.getRunDuration(confref.getRunNumber());
-    if (confref.getConfigData().mTimestampMode == o2::conf::kNow) {
-      timestamp = soreor.first;
-      LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
-      // communicate decision back to sim config object
-      confref.getConfigData().mTimestampMode = o2::conf::kRun;
-      confref.getConfigData().mTimestamp = timestamp;
-    } else if (confref.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
-      LOG(error) << "The given timestamp is incompatible with the given run number";
-    }
-  }
   ccdbmgr.setTimestamp(timestamp);
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
   // try to verify connection
@@ -249,17 +234,25 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     o2::parameters::GRPMagField grp;
     auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
     if (!field) {
-      LOGP(fatal, "Failed to get magnetic field from the FairRunSim");
-    }
-    o2::units::Current_t currDip = field->getCurrentDipole();
-    o2::units::Current_t currL3 = field->getCurrentSolenoid();
-    grp.setL3Current(currL3);
-    grp.setDipoleCurrent(currDip);
-    grp.setFieldUniformity(field->IsUniform());
+      // this is not the ordinary Run3 MagneticField
+      // Let's see if it is another FairField implementation.
+      LOG(warn) << "No o2::field::MagneticField instance available; Not writing GRP - beware that propagation to other tasks may not work. Checking if it is at least a FairFied...";
+      if (!dynamic_cast<FairField*>(run->GetField())) {
+        LOGP(fatal, "Failed to get magnetic field from the FairRunSim");
+      } else {
+        LOG(warn) << " ... FairField found";
+      }
+    } else {
+      o2::units::Current_t currDip = field->getCurrentDipole();
+      o2::units::Current_t currL3 = field->getCurrentSolenoid();
+      grp.setL3Current(currL3);
+      grp.setDipoleCurrent(currDip);
+      grp.setFieldUniformity(field->IsUniform());
 
-    std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(confref.getOutPrefix());
-    TFile grpF(grpfilename.c_str(), "recreate");
-    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+      std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(confref.getOutPrefix());
+      TFile grpF(grpfilename.c_str(), "recreate");
+      grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+    }
   }
   // create GRPLHCIF object (just a placeholder, bunch filling will be set in digitization)
   {

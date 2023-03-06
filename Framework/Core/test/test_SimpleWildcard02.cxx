@@ -17,7 +17,6 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/DataRefUtils.h"
-#include <iostream>
 #include <algorithm>
 #include <memory>
 #include <unordered_map>

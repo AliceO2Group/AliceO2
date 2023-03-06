@@ -19,7 +19,9 @@
 #include "NDPiecewisePolynomials.h"
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/Defs.h"
+#endif
 #ifndef GPUCA_ALIGPUCODE
 #include <string_view>
 #endif
@@ -59,6 +61,13 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// destructor
   ~CalibdEdxTrackTopologyPol() CON_DEFAULT;
 
+#ifdef GPUCA_HAVE_O2HEADERS
+  /// \return returns the track topology correction
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  /// \param x coordinates where the correction is evaluated
+  GPUd() float getCorrection(const int region, const ChargeType charge, float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
+
   /// \return returns the track topology correction
   /// \param region region of the TPC
   /// \param chargeT correction for maximum or total charge
@@ -74,6 +83,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
     const float corr = (chargeT == ChargeType::Tot) ? getCorrectionqTot(region, tanTheta, sinPhi, z, threshold, charge) : getCorrectionqMax(region, tanTheta, sinPhi, z, relPad, relTime);
     return corr;
   }
+#endif
 
   /// \return returns the track topology correction for qTot
   /// \param region region of the TPC
@@ -103,12 +113,6 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
     return corr;
   }
 
-  /// \return returns the track topology correction
-  /// \param region region of the TPC
-  /// \param charge correction for maximum or total charge
-  /// \param x coordinates where the correction is evaluated
-  GPUd() float getCorrection(const int region, const ChargeType charge, float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
-
   /// returns the minimum zero supression threshold for which the polynomials are valid
   /// \param region region of the TPC
   GPUd() float getMinThreshold(const int region = 0) const { return mCalibPolsqTot[region].getXMin(3); };
@@ -125,7 +129,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the scaling factor
   GPUd() float getScalingFactorqMax(const int region) const { return mScalingFactorsqMax[region]; };
 
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE) && defined(GPUCA_HAVE_O2HEADERS)
   /// \return returns polynomial for qTot
   /// \param region region of the TPC
   const auto& getPolyqTot(const int region) const { return mCalibPolsqTot[region]; }

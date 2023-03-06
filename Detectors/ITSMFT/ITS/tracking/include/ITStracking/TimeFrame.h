@@ -118,7 +118,12 @@ class TimeFrame
 
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
+  gsl::span<const Cluster> getClustersPerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
+  gsl::span<const int> getROframesClustersPerROFrange(int rofMin, int range, int layerId) const;
+  gsl::span<const int> getROframeClusters(int layerId) const;
+  gsl::span<const int> getNClustersROFrange(int rofMin, int range, int layerId) const;
+  gsl::span<const int> getIndexTablePerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<int> getIndexTable(int rofId, int layerId);
   std::vector<int>& getIndexTableWhole(int layerId) { return mIndexTables[layerId]; }
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
@@ -173,7 +178,8 @@ class TimeFrame
   gsl::span<const MCCompLabel> getLabelsFoundTracklets(int rofId, int combId) const;
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
   uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
-
+  int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
+  std::array<float, 2>& getBeamXY() { return mBeamPos; }
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -191,6 +197,7 @@ class TimeFrame
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
+  void printNClsPerROF();
   void printVertices();
   void printTrackletLUTonLayer(int i);
   void printCellLUTonLayer(int i);
@@ -206,6 +213,7 @@ class TimeFrame
   std::vector<std::vector<int>> mROframesClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
+  std::vector<std::vector<int>> mNClustersPerROF;
   std::vector<std::vector<int>> mIndexTables;
   std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
@@ -219,7 +227,7 @@ class TimeFrame
  private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
-  float mBeamPos[2] = {0.f, 0.f};
+  std::array<float, 2> mBeamPos = {0.f, 0.f};
   bool isBeamPositionOverridden = false;
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
@@ -248,7 +256,6 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
@@ -314,6 +321,11 @@ inline float TimeFrame::getBeamX() const { return mBeamPos[0]; }
 
 inline float TimeFrame::getBeamY() const { return mBeamPos[1]; }
 
+inline gsl::span<const int> TimeFrame::getROframeClusters(int layerId) const
+{
+  return {&mROframesClusters[layerId][0], static_cast<gsl::span<const int>::size_type>(mROframesClusters[layerId].size())};
+}
+
 inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
 {
   if (rofId < 0 || rofId >= mNrof) {
@@ -330,6 +342,42 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
   }
   int startIdx{mROframesClusters[layerId][rofId]};
   return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
+}
+
+inline gsl::span<const Cluster> TimeFrame::getClustersPerROFrange(int rofMin, int range, int layerId) const
+{
+  if (rofMin < 0 || rofMin >= mNrof) {
+    return gsl::span<const Cluster>();
+  }
+  int startIdx{mROframesClusters[layerId][rofMin]}; // First cluster of rofMin
+  int endIdx{mROframesClusters[layerId][std::min(rofMin + range, mNrof)]};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(endIdx - startIdx)};
+}
+
+inline gsl::span<const int> TimeFrame::getROframesClustersPerROFrange(int rofMin, int range, int layerId) const
+{
+  int chkdRange{std::min(range, mNrof - rofMin)};
+  return {&mROframesClusters[layerId][rofMin], static_cast<gsl::span<int>::size_type>(chkdRange)};
+}
+
+inline gsl::span<const int> TimeFrame::getNClustersROFrange(int rofMin, int range, int layerId) const
+{
+  int chkdRange{std::min(range, mNrof - rofMin)};
+  return {&mNClustersPerROF[layerId][rofMin], static_cast<gsl::span<int>::size_type>(chkdRange)};
+}
+
+inline int TimeFrame::getTotalClustersPerROFrange(int rofMin, int range, int layerId) const
+{
+  int startIdx{rofMin}; // First cluster of rofMin
+  int endIdx{std::min(rofMin + range, mNrof)};
+  return mROframesClusters[layerId][endIdx] - mROframesClusters[layerId][startIdx];
+}
+
+inline gsl::span<const int> TimeFrame::getIndexTablePerROFrange(int rofMin, int range, int layerId) const
+{
+  const int iTableSize{mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1};
+  int chkdRange{std::min(range, mNrof - rofMin)};
+  return {&mIndexTables[layerId][rofMin * iTableSize], static_cast<gsl::span<int>::size_type>(chkdRange * iTableSize)};
 }
 
 inline int TimeFrame::getClusterROF(int iLayer, int iCluster)

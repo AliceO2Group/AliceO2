@@ -11,6 +11,7 @@
 
 o2_add_library(CCDB
                SOURCES  src/CcdbApi.cxx
+                        src/CCDBDownloader.cxx
                         src/BasicCCDBManager.cxx
                         src/CCDBTimeStampUtils.cxx
         src/IdPath.cxx src/CCDBQuery.cxx
@@ -19,6 +20,7 @@ o2_add_library(CCDB
                                     O2::CommonUtils
                                     FairMQ::FairMQ
                                     libjalien::libjalienO2
+                                    LibUV::LibUV
                TARGETVARNAME targetName)
 
 o2_target_root_dictionary(CCDB
@@ -29,7 +31,8 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h
                                   include/CCDB/CCDBTimeStampUtils.h
-                                  include/CCDB/CCDBQuery.h)
+                                  include/CCDB/CCDBQuery.h
+                                  include/CCDB/CCDBDownloader.h)
 
 o2_add_executable(inspectccdbfile
             COMPONENT_NAME ccdb
@@ -73,6 +76,12 @@ o2_add_test(BasicCCDBManager
 
 o2_add_test(CcdbApiMultipleUrls
             SOURCES test/testCcdbApiMultipleUrls.cxx
+            COMPONENT_NAME ccdb
+            PUBLIC_LINK_LIBRARIES O2::CCDB
+            LABELS ccdb)
+
+o2_add_test(CcdbDownloader
+            SOURCES test/testCcdbApiDownloader.cxx
             COMPONENT_NAME ccdb
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)

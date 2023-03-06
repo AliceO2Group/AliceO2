@@ -21,6 +21,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -81,8 +82,8 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
   static uint64_t nErr[3] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Processing each page
-    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-    if (rdhPtr == nullptr) {
+    auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    if (rdhPtr == nullptr || !o2::raw::RDHUtils::checkRDH(rdhPtr, true)) {
       nErr[0]++;
       if (nErr[0] < 5) {
         LOG(warning) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
@@ -95,7 +96,6 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
       } else if (it.size() == 0) {
         nErr[2]++;
       } else {
-        auto const* rdh = it.get_if<o2::header::RAWDataHeader>();
         // retrieving the raw pointer of the page
         auto const* raw = it.raw();
         // retrieving payload pointer of the page
@@ -105,7 +105,7 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
         // offset of payload in the raw page
         size_t offset = it.offset();
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
+        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << o2::raw::RDHUtils::getLinkID(rdhPtr);
 #endif
         for (int32_t ip = 0; ip < payloadSize; ip += 16) {
           // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);

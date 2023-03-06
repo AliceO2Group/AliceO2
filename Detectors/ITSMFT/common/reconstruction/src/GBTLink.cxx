@@ -382,7 +382,7 @@ uint8_t GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
     } else if (gbtD->isStatus()) {
       printCableStatus((GBTCableStatus*)gbtD);
     }
-    gbtD->printX(true);
+    gbtD->printX(expectPadding);
     LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrGBTWordNotRecognized];
     err |= uint8_t(ErrorPrinted);
   }

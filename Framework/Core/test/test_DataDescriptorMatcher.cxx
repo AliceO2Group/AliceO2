@@ -9,23 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework DataDescriptorMatcher
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/InputSpec.h"
 #include "Headers/Stack.h"
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <variant>
 
 using namespace o2::framework;
 using namespace o2::header;
 using namespace o2::framework::data_matcher;
 
-BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
+TEST_CASE("TestMatcherInvariants")
 {
   DataHeader header0;
   header0.dataOrigin = "TPC";
@@ -64,18 +60,18 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
         SubSpecificationTypeValueMatcher{1},
         ConstantValueMatcher{true}))};
   DataDescriptorMatcher matcher2 = matcher;
-  BOOST_CHECK(matcher.match(header0, context) == true);
-  BOOST_CHECK(matcher.match(header1, context) == false);
-  BOOST_CHECK(matcher.match(header2, context) == false);
-  BOOST_CHECK(matcher.match(header3, context) == false);
-  BOOST_CHECK(matcher.match(header4, context) == false);
-  BOOST_CHECK(matcher2.match(header0, context) == true);
-  BOOST_CHECK(matcher2.match(header1, context) == false);
-  BOOST_CHECK(matcher2.match(header2, context) == false);
-  BOOST_CHECK(matcher2.match(header3, context) == false);
-  BOOST_CHECK(matcher2.match(header4, context) == false);
+  REQUIRE(matcher.match(header0, context) == true);
+  REQUIRE(matcher.match(header1, context) == false);
+  REQUIRE(matcher.match(header2, context) == false);
+  REQUIRE(matcher.match(header3, context) == false);
+  REQUIRE(matcher.match(header4, context) == false);
+  REQUIRE(matcher2.match(header0, context) == true);
+  REQUIRE(matcher2.match(header1, context) == false);
+  REQUIRE(matcher2.match(header2, context) == false);
+  REQUIRE(matcher2.match(header3, context) == false);
+  REQUIRE(matcher2.match(header4, context) == false);
 
-  BOOST_CHECK(matcher2 == matcher);
+  REQUIRE(matcher2 == matcher);
 
   {
     DataDescriptorMatcher matcherA{
@@ -84,7 +80,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       OriginValueMatcher{"TPC"}};
-    BOOST_CHECK_EQUAL(matcherA, matcherB);
+    REQUIRE(matcherA == matcherB);
   }
 
   {
@@ -94,7 +90,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       DescriptionValueMatcher{"TRACKS"}};
-    BOOST_CHECK_EQUAL(matcherA, matcherB);
+    REQUIRE(matcherA == matcherB);
   }
 
   {
@@ -104,7 +100,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       SubSpecificationTypeValueMatcher{1}};
-    BOOST_CHECK_EQUAL(matcherA, matcherB);
+    REQUIRE(matcherA == matcherB);
   }
 
   {
@@ -114,7 +110,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       ConstantValueMatcher{1}};
-    BOOST_CHECK_EQUAL(matcherA, matcherB);
+    REQUIRE(matcherA == matcherB);
   }
 
   {
@@ -126,7 +122,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
       DataDescriptorMatcher::Op::Just,
       ConstantValueMatcher{1},
       DescriptionValueMatcher{"TPC"}};
-    BOOST_CHECK_NE(matcherA, matcherB);
+    REQUIRE(!(matcherA == matcherB));
   }
 
   {
@@ -151,7 +147,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
           DataDescriptorMatcher::Op::And,
           SubSpecificationTypeValueMatcher{1},
           ConstantValueMatcher{true}))};
-    BOOST_CHECK_EQUAL(matcherA, matcherB);
+    REQUIRE(matcherA == matcherB);
   }
 
   {
@@ -165,19 +161,19 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
       DataDescriptorMatcher::Op::Not,
       SubSpecificationTypeValueMatcher{1}};
 
-    BOOST_CHECK(matcherA.match(header0, context) == false);
-    BOOST_CHECK(matcherA.match(header1, context) == true);
-    BOOST_CHECK(matcherA.match(header4, context) == true);
-    BOOST_CHECK(matcherB.match(header0, context) == true);
-    BOOST_CHECK(matcherB.match(header1, context) == false);
-    BOOST_CHECK(matcherB.match(header4, context) == false);
-    BOOST_CHECK(matcherC.match(header0, context) == false);
-    BOOST_CHECK(matcherC.match(header1, context) == true);
-    BOOST_CHECK(matcherC.match(header4, context) == true);
+    REQUIRE(matcherA.match(header0, context) == false);
+    REQUIRE(matcherA.match(header1, context) == true);
+    REQUIRE(matcherA.match(header4, context) == true);
+    REQUIRE(matcherB.match(header0, context) == true);
+    REQUIRE(matcherB.match(header1, context) == false);
+    REQUIRE(matcherB.match(header4, context) == false);
+    REQUIRE(matcherC.match(header0, context) == false);
+    REQUIRE(matcherC.match(header1, context) == true);
+    REQUIRE(matcherC.match(header4, context) == true);
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestSimpleMatching)
+TEST_CASE("TestSimpleMatching")
 {
   DataHeader header0;
   header0.dataOrigin = "TPC";
@@ -216,35 +212,35 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
         ConstantValueMatcher{true}))};
 
   VariableContext context;
-  BOOST_CHECK(matcher.match(header0, context) == true);
-  BOOST_CHECK(matcher.match(header1, context) == false);
-  BOOST_CHECK(matcher.match(header2, context) == false);
-  BOOST_CHECK(matcher.match(header3, context) == false);
-  BOOST_CHECK(matcher.match(header4, context) == false);
+  REQUIRE(matcher.match(header0, context) == true);
+  REQUIRE(matcher.match(header1, context) == false);
+  REQUIRE(matcher.match(header2, context) == false);
+  REQUIRE(matcher.match(header3, context) == false);
+  REQUIRE(matcher.match(header4, context) == false);
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
     OriginValueMatcher{"TPC"},
     OriginValueMatcher{"ITS"}};
 
-  BOOST_CHECK(matcher1.match(header0, context) == true);
-  BOOST_CHECK(matcher1.match(header1, context) == true);
-  BOOST_CHECK(matcher1.match(header2, context) == true);
-  BOOST_CHECK(matcher1.match(header3, context) == true);
-  BOOST_CHECK(matcher1.match(header4, context) == false);
+  REQUIRE(matcher1.match(header0, context) == true);
+  REQUIRE(matcher1.match(header1, context) == true);
+  REQUIRE(matcher1.match(header2, context) == true);
+  REQUIRE(matcher1.match(header3, context) == true);
+  REQUIRE(matcher1.match(header4, context) == false);
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
     DescriptionValueMatcher{"TRACKLET"}};
 
-  BOOST_CHECK(matcher2.match(header0, context) == false);
-  BOOST_CHECK(matcher2.match(header1, context) == true);
-  BOOST_CHECK(matcher2.match(header2, context) == true);
-  BOOST_CHECK(matcher2.match(header3, context) == false);
-  BOOST_CHECK(matcher2.match(header4, context) == true);
+  REQUIRE(matcher2.match(header0, context) == false);
+  REQUIRE(matcher2.match(header1, context) == true);
+  REQUIRE(matcher2.match(header2, context) == true);
+  REQUIRE(matcher2.match(header3, context) == false);
+  REQUIRE(matcher2.match(header4, context) == true);
 }
 
-BOOST_AUTO_TEST_CASE(TestQueryBuilder)
+TEST_CASE("TestDataDescriptorQueryBuilder")
 {
   DataHeader header0;
   header0.dataOrigin = "TPC";
@@ -275,36 +271,36 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
   VariableContext context;
 
   auto matcher1 = DataDescriptorQueryBuilder::buildFromKeepConfig("TPC/CLUSTERS/1");
-  BOOST_CHECK(matcher1.matcher->match(header0, context) == true);
-  BOOST_CHECK(matcher1.matcher->match(header1, context) == false);
-  BOOST_CHECK(matcher1.matcher->match(header2, context) == false);
-  BOOST_CHECK(matcher1.matcher->match(header3, context) == false);
-  BOOST_CHECK(matcher1.matcher->match(header4, context) == false);
+  REQUIRE(matcher1.matcher->match(header0, context) == true);
+  REQUIRE(matcher1.matcher->match(header1, context) == false);
+  REQUIRE(matcher1.matcher->match(header2, context) == false);
+  REQUIRE(matcher1.matcher->match(header3, context) == false);
+  REQUIRE(matcher1.matcher->match(header4, context) == false);
 
   auto matcher2 = DataDescriptorQueryBuilder::buildFromKeepConfig("ITS/TRACKLET/2");
-  BOOST_CHECK(matcher2.matcher->match(header0, context) == false);
-  BOOST_CHECK(matcher2.matcher->match(header1, context) == true);
-  BOOST_CHECK(matcher2.matcher->match(header2, context) == false);
-  BOOST_CHECK(matcher2.matcher->match(header3, context) == false);
-  BOOST_CHECK(matcher2.matcher->match(header4, context) == false);
+  REQUIRE(matcher2.matcher->match(header0, context) == false);
+  REQUIRE(matcher2.matcher->match(header1, context) == true);
+  REQUIRE(matcher2.matcher->match(header2, context) == false);
+  REQUIRE(matcher2.matcher->match(header3, context) == false);
+  REQUIRE(matcher2.matcher->match(header4, context) == false);
 
   auto matcher3 = DataDescriptorQueryBuilder::buildFromKeepConfig("TPC/CLUSTERS/1,ITS/TRACKLET/2");
-  BOOST_CHECK(matcher3.matcher->match(header0, context) == true);
-  BOOST_CHECK(matcher3.matcher->match(header1, context) == true);
-  BOOST_CHECK(matcher3.matcher->match(header2, context) == false);
-  BOOST_CHECK(matcher3.matcher->match(header3, context) == false);
-  BOOST_CHECK(matcher3.matcher->match(header4, context) == false);
+  REQUIRE(matcher3.matcher->match(header0, context) == true);
+  REQUIRE(matcher3.matcher->match(header1, context) == true);
+  REQUIRE(matcher3.matcher->match(header2, context) == false);
+  REQUIRE(matcher3.matcher->match(header3, context) == false);
+  REQUIRE(matcher3.matcher->match(header4, context) == false);
 
   auto matcher4 = DataDescriptorQueryBuilder::buildFromKeepConfig("");
-  BOOST_CHECK(matcher4.matcher->match(header0, context) == false);
-  BOOST_CHECK(matcher4.matcher->match(header1, context) == false);
-  BOOST_CHECK(matcher4.matcher->match(header2, context) == false);
-  BOOST_CHECK(matcher4.matcher->match(header3, context) == false);
-  BOOST_CHECK(matcher4.matcher->match(header4, context) == false);
+  REQUIRE(matcher4.matcher->match(header0, context) == false);
+  REQUIRE(matcher4.matcher->match(header1, context) == false);
+  REQUIRE(matcher4.matcher->match(header2, context) == false);
+  REQUIRE(matcher4.matcher->match(header3, context) == false);
+  REQUIRE(matcher4.matcher->match(header4, context) == false);
 }
 
 // This checks matching using variables
-BOOST_AUTO_TEST_CASE(TestMatchingVariables)
+TEST_CASE("TestMatchingVariables")
 {
   VariableContext context;
 
@@ -324,13 +320,13 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   header0.dataDescription = "CLUSTERS";
   header0.subSpecification = 1;
 
-  BOOST_CHECK(matcher.match(header0, context) == true);
+  REQUIRE(matcher.match(header0, context) == true);
   auto s = std::get_if<std::string>(&context.get(0));
-  BOOST_CHECK(s != nullptr);
-  BOOST_CHECK(*s == "TPC");
+  REQUIRE(s != nullptr);
+  REQUIRE(*s == "TPC");
   auto v = std::get_if<o2::header::DataHeader::SubSpecificationType>(&context.get(1));
-  BOOST_CHECK(v != nullptr);
-  BOOST_CHECK(*v == 1);
+  REQUIRE(v != nullptr);
+  REQUIRE(*v == 1);
 
   // This will not match, because ContextRef{0} is bound
   // to TPC already.
@@ -339,13 +335,13 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   header1.dataDescription = "CLUSTERS";
   header1.subSpecification = 1;
 
-  BOOST_CHECK(matcher.match(header1, context) == false);
+  REQUIRE(matcher.match(header1, context) == false);
   auto s1 = std::get_if<std::string>(&context.get(0));
-  BOOST_CHECK(s1 != nullptr);
-  BOOST_CHECK(*s1 == "TPC");
+  REQUIRE(s1 != nullptr);
+  REQUIRE(*s1 == "TPC");
 }
 
-BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
+TEST_CASE("TestInputSpecMatching")
 {
   ConcreteDataMatcher spec0{"TPC", "CLUSTERS", 1};
   ConcreteDataMatcher spec1{"ITS", "TRACKLET", 2};
@@ -366,35 +362,35 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 
   VariableContext context;
 
-  BOOST_CHECK(matcher.match(spec0, context) == true);
-  BOOST_CHECK(matcher.match(spec1, context) == false);
-  BOOST_CHECK(matcher.match(spec2, context) == false);
-  BOOST_CHECK(matcher.match(spec3, context) == false);
-  BOOST_CHECK(matcher.match(spec4, context) == false);
+  REQUIRE(matcher.match(spec0, context) == true);
+  REQUIRE(matcher.match(spec1, context) == false);
+  REQUIRE(matcher.match(spec2, context) == false);
+  REQUIRE(matcher.match(spec3, context) == false);
+  REQUIRE(matcher.match(spec4, context) == false);
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
     OriginValueMatcher{"TPC"},
     OriginValueMatcher{"ITS"}};
 
-  BOOST_CHECK(matcher1.match(spec0, context) == true);
-  BOOST_CHECK(matcher1.match(spec1, context) == true);
-  BOOST_CHECK(matcher1.match(spec2, context) == true);
-  BOOST_CHECK(matcher1.match(spec3, context) == true);
-  BOOST_CHECK(matcher1.match(spec4, context) == false);
+  REQUIRE(matcher1.match(spec0, context) == true);
+  REQUIRE(matcher1.match(spec1, context) == true);
+  REQUIRE(matcher1.match(spec2, context) == true);
+  REQUIRE(matcher1.match(spec3, context) == true);
+  REQUIRE(matcher1.match(spec4, context) == false);
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
     DescriptionValueMatcher{"TRACKLET"}};
 
-  BOOST_CHECK(matcher2.match(spec0, context) == false);
-  BOOST_CHECK(matcher2.match(spec1, context) == true);
-  BOOST_CHECK(matcher2.match(spec2, context) == true);
-  BOOST_CHECK(matcher2.match(spec3, context) == false);
-  BOOST_CHECK(matcher2.match(spec4, context) == true);
+  REQUIRE(matcher2.match(spec0, context) == false);
+  REQUIRE(matcher2.match(spec1, context) == true);
+  REQUIRE(matcher2.match(spec2, context) == true);
+  REQUIRE(matcher2.match(spec3, context) == false);
+  REQUIRE(matcher2.match(spec4, context) == true);
 }
 
-BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
+TEST_CASE("TestStartTimeMatching")
 {
   VariableContext context;
 
@@ -412,17 +408,17 @@ BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
 
   Stack s{dh, dph};
   auto s2dph = o2::header::get<DataProcessingHeader*>(s.data());
-  BOOST_CHECK(s2dph != nullptr);
-  BOOST_CHECK_EQUAL(s2dph->startTime, 123);
-  BOOST_CHECK(matcher.match(s, context) == true);
+  REQUIRE(s2dph != nullptr);
+  REQUIRE(s2dph->startTime == 123);
+  REQUIRE(matcher.match(s, context) == true);
   auto vPtr = std::get_if<uint64_t>(&context.get(0));
-  BOOST_REQUIRE(vPtr != nullptr);
-  BOOST_CHECK_EQUAL(*vPtr, 123);
+  REQUIRE(vPtr != nullptr);
+  REQUIRE(*vPtr == 123);
 }
 
 /// If a query matches only partially, we do not want
 /// to pollute the context with partial results.
-BOOST_AUTO_TEST_CASE(TestAtomicUpdatesOfContext)
+TEST_CASE("TestAtomicUpdatesOfContext")
 {
   VariableContext context;
 
@@ -445,18 +441,18 @@ BOOST_AUTO_TEST_CASE(TestAtomicUpdatesOfContext)
 
   auto vPtr0 = std::get_if<None>(&context.get(0));
   auto vPtr1 = std::get_if<None>(&context.get(1));
-  BOOST_CHECK(vPtr0 != nullptr);
-  BOOST_CHECK(vPtr1 != nullptr);
-  BOOST_REQUIRE_EQUAL(matcher.match(dh, context), false);
+  REQUIRE(vPtr0 != nullptr);
+  REQUIRE(vPtr1 != nullptr);
+  REQUIRE(matcher.match(dh, context) == false);
   // We discard the updates, because there was no match
   context.discard();
   vPtr0 = std::get_if<None>(&context.get(0));
   vPtr1 = std::get_if<None>(&context.get(1));
-  BOOST_CHECK(vPtr0 != nullptr);
-  BOOST_CHECK(vPtr1 != nullptr);
+  REQUIRE(vPtr0 != nullptr);
+  REQUIRE(vPtr1 != nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(TestVariableContext)
+TEST_CASE("TestVariableContext")
 {
   VariableContext context;
   // Put some updates, but do not commit them
@@ -465,133 +461,133 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   context.put(ContextUpdate{0, "A TEST"});
   context.put(ContextUpdate{10, uint32_t{77}});
   auto v1 = std::get_if<std::string>(&context.get(0));
-  BOOST_REQUIRE(v1 != nullptr);
-  BOOST_CHECK(*v1 == "A TEST");
+  REQUIRE(v1 != nullptr);
+  REQUIRE(*v1 == "A TEST");
   auto v2 = std::get_if<std::string>(&context.get(1));
-  BOOST_CHECK(v2 == nullptr);
+  REQUIRE(v2 == nullptr);
   auto v3 = std::get_if<uint32_t>(&context.get(10));
-  BOOST_CHECK(v3 != nullptr);
-  BOOST_CHECK(*v3 == 77);
+  REQUIRE(v3 != nullptr);
+  REQUIRE(*v3 == 77);
   context.commit();
   // After commits everything is the same
   v1 = std::get_if<std::string>(&context.get(0));
-  BOOST_REQUIRE(v1 != nullptr);
-  BOOST_CHECK(*v1 == "A TEST");
+  REQUIRE(v1 != nullptr);
+  REQUIRE(*v1 == "A TEST");
   v2 = std::get_if<std::string>(&context.get(1));
-  BOOST_CHECK(v2 == nullptr);
+  REQUIRE(v2 == nullptr);
   v3 = std::get_if<uint32_t>(&context.get(10));
-  BOOST_CHECK(v3 != nullptr);
-  BOOST_CHECK(*v3 == 77);
+  REQUIRE(v3 != nullptr);
+  REQUIRE(*v3 == 77);
 
   // Let's update again. New values should win.
   context.put(ContextUpdate{0, "SOME MORE"});
   context.put(ContextUpdate{10, uint32_t{16}});
   v1 = std::get_if<std::string>(&context.get(0));
-  BOOST_REQUIRE(v1 != nullptr);
-  BOOST_CHECK(*v1 == "SOME MORE");
+  REQUIRE(v1 != nullptr);
+  REQUIRE(*v1 == "SOME MORE");
   v2 = std::get_if<std::string>(&context.get(1));
-  BOOST_CHECK(v2 == nullptr);
+  REQUIRE(v2 == nullptr);
   v3 = std::get_if<uint32_t>(&context.get(10));
-  BOOST_CHECK(v3 != nullptr);
-  BOOST_CHECK(*v3 == 16);
+  REQUIRE(v3 != nullptr);
+  REQUIRE(*v3 == 16);
 
   // Until we discard
   context.discard();
   v1 = std::get_if<std::string>(&context.get(0));
-  BOOST_REQUIRE(v1 != nullptr);
-  BOOST_CHECK(*v1 == "A TEST");
+  REQUIRE(v1 != nullptr);
+  REQUIRE(*v1 == "A TEST");
   auto n = std::get_if<None>(&context.get(1));
-  BOOST_CHECK(n != nullptr);
+  REQUIRE(n != nullptr);
   v3 = std::get_if<uint32_t>(&context.get(10));
-  BOOST_CHECK(v3 != nullptr);
-  BOOST_CHECK(*v3 == 77);
+  REQUIRE(v3 != nullptr);
+  REQUIRE(*v3 == 77);
 
   // Let's update again. New values should win.
   context.put(ContextUpdate{0, "SOME MORE"});
   context.put(ContextUpdate{10, uint32_t{16}});
   v1 = std::get_if<std::string>(&context.get(0));
-  BOOST_REQUIRE(v1 != nullptr);
-  BOOST_CHECK(*v1 == "SOME MORE");
+  REQUIRE(v1 != nullptr);
+  REQUIRE(*v1 == "SOME MORE");
   v2 = std::get_if<std::string>(&context.get(1));
-  BOOST_CHECK(v2 == nullptr);
+  REQUIRE(v2 == nullptr);
   v3 = std::get_if<uint32_t>(&context.get(10));
-  BOOST_CHECK(v3 != nullptr);
-  BOOST_CHECK(*v3 == 16);
+  REQUIRE(v3 != nullptr);
+  REQUIRE(*v3 == 16);
 
   // Until we discard again, using reset
   context.reset();
   auto n1 = std::get_if<None>(&context.get(0));
-  BOOST_REQUIRE(n1 != nullptr);
+  REQUIRE(n1 != nullptr);
   auto n2 = std::get_if<None>(&context.get(1));
-  BOOST_CHECK(n2 != nullptr);
+  REQUIRE(n2 != nullptr);
   auto n3 = std::get_if<None>(&context.get(10));
-  BOOST_CHECK(n3 != nullptr);
+  REQUIRE(n3 != nullptr);
 
-  //auto d3 = std::get_if<uint64_t>(&context.get(0));
-  //BOOST_CHECK(d1 == nullptr);
-  //BOOST_CHECK(d2 == nullptr);
-  //BOOST_CHECK(d3 == nullptr);
+  // auto d3 = std::get_if<uint64_t>(&context.get(0));
+  // REQUIRE(d1 == nullptr);;
+  // REQUIRE(d2 == nullptr);;
+  // REQUIRE(d3 == nullptr);;
 }
 
-BOOST_AUTO_TEST_CASE(DataQuery)
+TEST_CASE("DataQuery")
 {
   auto empty_bindings = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: empty binding string");
+    REQUIRE(std::string(ex.what()) == "Parse error: empty binding string");
     return true;
   };
   auto missing_origin = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: origin needs to be between 1 and 4 char long");
+    REQUIRE(std::string(ex.what()) == "Parse error: origin needs to be between 1 and 4 char long");
     return true;
   };
   auto missing_description = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: description needs to be between 1 and 16 char long");
+    REQUIRE(std::string(ex.what()) == "Parse error: description needs to be between 1 and 16 char long");
     return true;
   };
   auto missing_subspec = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Expected a number");
+    REQUIRE(std::string(ex.what()) == "Parse error: Expected a number");
     return true;
   };
   auto missing_timemodulo = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Expected a number");
+    REQUIRE(std::string(ex.what()) == "Parse error: Expected a number");
     return true;
   };
   auto trailing_semicolon = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Remove trailing ;");
+    REQUIRE(std::string(ex.what()) == "Parse error: Remove trailing ;");
     return true;
   };
 
   auto missing_value = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: value needs to be between 1 and 1000 char long");
+    REQUIRE(std::string(ex.what()) == "Parse error: value needs to be between 1 and 1000 char long");
     return true;
   };
   auto missing_key = [](std::runtime_error const& ex) -> bool {
-    BOOST_CHECK_EQUAL(ex.what(), "Parse error: missing value for attribute key");
+    REQUIRE(std::string(ex.what()) == "Parse error: missing value for attribute key");
     return true;
   };
   // Empty query.
-  BOOST_CHECK(DataDescriptorQueryBuilder::parse().empty() == true);
+  REQUIRE(DataDescriptorQueryBuilder::parse().empty() == true);
   // Empty bindings.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse(":"), std::runtime_error, empty_bindings);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse(":"), std::runtime_error);
   // Missing origin
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:"), std::runtime_error, missing_origin);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:"), std::runtime_error);
   // Origin too long
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:bacjasbjkca"), std::runtime_error, missing_origin);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:bacjasbjkca"), std::runtime_error);
   // This is a valid expression, short for x:TST/*/* or x:TST/$1/$2
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST"));
   // This one is not, as we expect a description after a /
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/"), std::runtime_error, missing_description);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/"), std::runtime_error);
   // This one is not, as the description is too long
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/cdjancajncjancjkancjkadncancnacaklmcak"), std::runtime_error, missing_description);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/cdjancajncjancjkancjkadncancnacaklmcak"), std::runtime_error);
   // This one is ok, short for "x:TST/A1/*"
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST/A1"));
   // This one is not, as subspec needs to be a value or a range.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/"), std::runtime_error, missing_subspec);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/"), std::runtime_error);
   // Not valid as subspec should be a number.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/a0"), std::runtime_error, missing_subspec);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/a0"), std::runtime_error);
 
   // Let's verify that the contents are correct.
   auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A1/77");
-  BOOST_CHECK_EQUAL(result0.size(), 1);
+  REQUIRE(result0.size() == 1);
   DataDescriptorMatcher expectedMatcher00{
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{"TST"},
@@ -604,72 +600,72 @@ BOOST_AUTO_TEST_CASE(DataQuery)
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                                 StartTimeValueMatcher{ContextRef{0}})))};
   auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
-  BOOST_REQUIRE(matcher != nullptr);
-  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
+  REQUIRE(matcher != nullptr);
+  REQUIRE(expectedMatcher00 == *matcher);
   std::ostringstream ss0;
   ss0 << *matcher;
   std::ostringstream expectedSS00;
   expectedSS00 << expectedMatcher00;
-  BOOST_CHECK_EQUAL(ss0.str(), "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
-  BOOST_CHECK_EQUAL(expectedSS00.str(), "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
-  BOOST_CHECK_EQUAL(ss0.str(), expectedSS00.str());
+  REQUIRE(ss0.str() == "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
+  REQUIRE(expectedSS00.str() == "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
+  REQUIRE(ss0.str() == expectedSS00.str());
 
   // This is valid. TimeModulo is 1.
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0"));
   // Not valid as timemodulo should be a number.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%"), std::runtime_error, missing_timemodulo);
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0\%oabdian"), std::runtime_error, missing_timemodulo);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0%"), std::runtime_error);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0\%oabdian"), std::runtime_error);
   // This is valid.
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1"));
   // This is not valid.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;:"), std::runtime_error, empty_bindings);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;:"), std::runtime_error);
   // This is not valid.
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;"), std::runtime_error, trailing_semicolon);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;"), std::runtime_error);
   // This is valid.
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;x:TST/A2"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;x:TST/A2"));
   // Let's verify that the contents are correct.
   auto result1 = DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;y:TST/A2");
-  BOOST_CHECK_EQUAL(result1.size(), 2);
+  REQUIRE(result1.size() == 2);
 
   std::ostringstream ops;
   ops << DataDescriptorMatcher::Op::And
       << DataDescriptorMatcher::Op::Or
       << DataDescriptorMatcher::Op::Xor
       << DataDescriptorMatcher::Op::Just;
-  BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
+  REQUIRE(ops.str() == "andorxorjust");
 
   // Let's check the metadata associated to a query
   auto result2 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition");
-  BOOST_CHECK(result2[0].lifetime == Lifetime::Condition);
+  REQUIRE(result2[0].lifetime == Lifetime::Condition);
 
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime="), std::runtime_error, missing_value);
-  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?"), std::runtime_error, missing_key);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime="), std::runtime_error);
+  REQUIRE_THROWS_AS(DataDescriptorQueryBuilder::parse("x:TST/A1/0?"), std::runtime_error);
 
   auto result3 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?key=value&key2=value2");
-  BOOST_CHECK_EQUAL(result3[0].metadata.size(), 2);
+  REQUIRE(result3[0].metadata.size() == 2);
 
   auto result4 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition&ccdb-path=GLO/Config/GRPECS&key3=value3");
-  BOOST_CHECK_EQUAL(result4.size(), 1);
+  REQUIRE(result4.size() == 1);
   result4[0].lifetime = Lifetime::Condition;
-  BOOST_CHECK_EQUAL(result4[0].metadata.size(), 3);
-  BOOST_CHECK_EQUAL(result4[0].metadata[0].name, "lifetime");
-  BOOST_CHECK_EQUAL(result4[0].metadata[0].defaultValue.get<std::string>(), "condition");
-  BOOST_CHECK_EQUAL(result4[0].metadata[1].name, "ccdb-path");
-  BOOST_CHECK_EQUAL(result4[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
-  BOOST_CHECK_EQUAL(result4[0].metadata[2].name, "key3");
-  BOOST_CHECK_EQUAL(result4[0].metadata[2].defaultValue.get<std::string>(), "value3");
+  REQUIRE(result4[0].metadata.size() == 3);
+  REQUIRE(result4[0].metadata[0].name == "lifetime");
+  REQUIRE(result4[0].metadata[0].defaultValue.get<std::string>() == "condition");
+  REQUIRE(result4[0].metadata[1].name == "ccdb-path");
+  REQUIRE(result4[0].metadata[1].defaultValue.get<std::string>() == "GLO/Config/GRPECS");
+  REQUIRE(result4[0].metadata[2].name == "key3");
+  REQUIRE(result4[0].metadata[2].defaultValue.get<std::string>() == "value3");
 
   // This is valid.
-  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0xccdb"));
+  REQUIRE_NOTHROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0xccdb"));
 
   auto result5 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=sporadic&ccdb-path=GLO/Config/GRPECS&key3=value3");
-  BOOST_CHECK_EQUAL(result5.size(), 1);
+  REQUIRE(result5.size() == 1);
   result5[0].lifetime = Lifetime::Sporadic;
-  BOOST_CHECK_EQUAL(result5[0].metadata.size(), 3);
-  BOOST_CHECK_EQUAL(result5[0].metadata[0].name, "lifetime");
-  BOOST_CHECK_EQUAL(result5[0].metadata[0].defaultValue.get<std::string>(), "sporadic");
-  BOOST_CHECK_EQUAL(result5[0].metadata[1].name, "ccdb-path");
-  BOOST_CHECK_EQUAL(result5[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
-  BOOST_CHECK_EQUAL(result5[0].metadata[2].name, "key3");
-  BOOST_CHECK_EQUAL(result5[0].metadata[2].defaultValue.get<std::string>(), "value3");
+  REQUIRE(result5[0].metadata.size() == 3);
+  REQUIRE(result5[0].metadata[0].name == "lifetime");
+  REQUIRE(result5[0].metadata[0].defaultValue.get<std::string>() == "sporadic");
+  REQUIRE(result5[0].metadata[1].name == "ccdb-path");
+  REQUIRE(result5[0].metadata[1].defaultValue.get<std::string>() == "GLO/Config/GRPECS");
+  REQUIRE(result5[0].metadata[2].name == "key3");
+  REQUIRE(result5[0].metadata[2].defaultValue.get<std::string>() == "value3");
 }

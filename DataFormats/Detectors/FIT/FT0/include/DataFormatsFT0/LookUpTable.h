@@ -45,22 +45,24 @@ namespace ft0
 
 namespace new_lut
 {
-//Singleton for LookUpTable
+// Singleton for LookUpTable
 template <typename LUT>
 class SingleLUT : public LUT
 {
  private:
   SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
   SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
+  SingleLUT() = default;
   SingleLUT(const SingleLUT&) = delete;
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
   static constexpr char sDetectorName[] = "FT0";
   static constexpr char sDefaultLUTpath[] = "FT0/Config/LookupTable";
+  static constexpr char sObjectName[] = "LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
-  //Before instance() call, setup url and path
+  // Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
@@ -72,7 +74,7 @@ class SingleLUT : public LUT
     return instanceLUT;
   }
 };
-} //namespace new_lut
+} // namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
 

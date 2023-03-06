@@ -144,6 +144,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
     outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.hist4 = &mChain->GetQA()->getGraphs();
     outputs->qa.newQAHistsCreated = true;
   }
   *data = mChain->mIOPtrs;

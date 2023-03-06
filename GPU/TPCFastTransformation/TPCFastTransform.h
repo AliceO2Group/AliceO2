@@ -21,7 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
-#include "CommonUtils/DebugStreamer.h"
+#include "GPUDebugStreamer.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <string>
@@ -479,7 +479,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
 
     using Streamer = o2::utils::DebugStreamer;
     if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-      auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+      auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
       streamer.setStreamer("debug_fasttransform", "UPDATE");
 
       float ly, lz;
@@ -741,7 +741,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
 
   using Streamer = o2::utils::DebugStreamer;
   if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
     streamer.setStreamer("debug_fasttransform", "UPDATE");
     streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoX").data()
                            << "slice=" << slice
@@ -772,7 +772,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
 
   using Streamer = o2::utils::DebugStreamer;
   if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    auto& streamer = (const_cast<o2::gpu::TPCFastTransform*>(this))->mStreamer;
+    auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
     streamer.setStreamer("debug_fasttransform", "UPDATE");
     streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
                            << "slice=" << slice

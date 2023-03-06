@@ -63,6 +63,8 @@ struct Fixture {
     char hostname[_POSIX_HOST_NAME_MAX];
     gethostname(hostname, _POSIX_HOST_NAME_MAX);
     basePath = string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
+    // Replace dashes by underscores to avoid problems in the creation of local directories
+    std::replace(basePath.begin(), basePath.end(), '-','_');
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()

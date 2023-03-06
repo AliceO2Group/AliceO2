@@ -36,7 +36,7 @@
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
-#include "MCHWorkflow/TrackReaderSpec.h"
+#include "MCHIO/TrackReaderSpec.h"
 #include "MCHIO/ClusterReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"

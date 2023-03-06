@@ -14,6 +14,7 @@
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 
@@ -87,8 +88,8 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   static uint64_t nErr[3] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Processing each page
-    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-    if (rdhPtr == nullptr) {
+    auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    if (rdhPtr == nullptr || !o2::raw::RDHUtils::checkRDH(rdhPtr, true)) {
       nErr[0]++;
       if (nErr[0] < 5) {
         LOG(warning) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
@@ -102,10 +103,11 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
         nErr[2]++;
       } else {
         gsl::span<const uint8_t> payload(it.data(), it.size());
+        auto lid = o2::raw::RDHUtils::getLinkID(rdhPtr);
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
+        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << lid;
 #endif
-        mRawReader.processBinaryData(payload, rdhPtr->linkID);
+        mRawReader.processBinaryData(payload, lid);
       }
     }
     count++;

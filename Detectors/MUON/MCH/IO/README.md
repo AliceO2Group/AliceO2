@@ -12,6 +12,8 @@
 * [Precluster writer](#precluster-writer)
 * [Cluster reader](#cluster-reader)
 * [Cluster writer](#cluster-writer)
+* [Track reader](#track-reader)
+* [Track writer](#track-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -94,4 +96,33 @@ Option `--local` allows to write the list of clusters in the local coordinate sy
 Option `--no-digits` allows to do not write the associated digits.
 
 Option `--enable-mc` allows to also write the cluster MC labels, with the data description "CLUSTERLABELS".
+
+## Track reader
+
+```shell
+o2-mch-tracks-reader-workflow --infile mchtracks.root
+```
+
+Does the same work as the [Track sampler](#track-sampler) but starting from a Root file (`mchtracks.root`)  containing `TRACKS`, `TRACKROFS` and `TRACKCLUSTERS` containers written e.g. by the [o2-mch-tracks-writer-workflow](#track-writer).
+Note that a very basic utility also exists to get a textual dump of a Root tracks file : `o2-mch-tracks-file-dumper`.
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
+
+Option `--digits` allows to also read the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and send them with the data description "TRACKDIGITS".
+
+Option `--enable-mc` allows to also read the track MC labels and send them with the data description "TRACKLABELS".
+
+Option `--subspec` allows to specify a subspec (default is 0) so that several `mchtracks.root` files can be read in the same workflow (usefull for instance in a comparison workflow).
+
+## Track writer
+
+```shell
+o2-mch-tracks-writer-workflow --outfile "mchtracks.root"
+```
+
+Does the same kind of work as the [track sink](#track-sink) but the output is in Root format instead of custom binary one. It is implemented using the generic [MakeRootTreeWriterSpec](/DPLUtils/MakeRootTreeWriterSpec.h) and thus offers the same options.
+
+Option `--digits` allows to also write the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) from the input message with the data description "TRACKDIGITS".
+
+Option `--enable-mc` allows to also write the track MC labels from the input message with the data description "TRACKLABELS".
 

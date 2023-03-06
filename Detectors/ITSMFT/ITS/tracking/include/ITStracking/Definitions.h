@@ -17,6 +17,7 @@
 
 // #define CA_DEBUG
 // #define VTX_DEBUG
+#define __USE_GPU_TRACER__
 
 template <typename T>
 void discardResult(const T&)

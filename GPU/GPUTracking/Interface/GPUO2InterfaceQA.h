@@ -32,6 +32,7 @@
 class TH1F;
 class TH1D;
 class TH2F;
+class TGraphAsymmErrors;
 class TObjArray;
 
 namespace o2
@@ -63,9 +64,11 @@ class GPUO2InterfaceQA
   void updateGRP(GPUSettingsGRP* grp);
 
   // Input might be modified, so we assume non-const. If it is const, a copy should be created before.
-  int postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks);
+  int postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks); // FIXME: Compatibility for old QC, remove me!
+  int postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out, int tasks);
 
-  void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3);
+  void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3); // FIXME: Compatibility for old QC, remove me!
+  void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3, const std::vector<TGraphAsymmErrors>*& h4);
   void resetHists();
   void cleanup();
 

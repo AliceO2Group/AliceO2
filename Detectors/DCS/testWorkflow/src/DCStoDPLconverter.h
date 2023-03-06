@@ -96,8 +96,11 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         szInpFBI += sz;
       }
       auto nDPCOM = sz / sizeof(DPCOM); // number of DPCOM in current part
+      LOGP(debug, "sz={} szof={} -> /={} %={} | {} {}", sz, sizeof(DPCOM), nDPCOM, sz % sizeof(DPCOM), sizeof(o2::dcs::DataPointIdentifier), sizeof(o2::dcs::DataPointValue));
       for (size_t j = 0; j < nDPCOM; j++) {
-        const auto& src = *(reinterpret_cast<const DPCOM*>(parts.At(i)->GetData()) + j);
+        const auto* ptr = (reinterpret_cast<const DPCOM*>(parts.At(i)->GetData()) + j);
+        DPCOM src;
+        memcpy(&src, ptr, sizeof(DPCOM));
         // do we want to check if this DP was requested ?
         auto mapEl = dpid2group.find(src.id);
         if (verbose) {

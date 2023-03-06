@@ -18,8 +18,10 @@ namespace its
 {
 static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
 static auto& sCATrackerParamITS = o2::its::TrackerParamConfig::Instance();
+static auto& sGpuRecoParamITS = o2::its::GpuRecoParamConfig::Instance();
 
 O2ParamImpl(o2::its::VertexerParamConfig);
 O2ParamImpl(o2::its::TrackerParamConfig);
+O2ParamImpl(o2::its::GpuRecoParamConfig);
 } // namespace its
 } // namespace o2

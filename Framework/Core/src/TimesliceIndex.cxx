@@ -131,22 +131,24 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
   bool changed = false;
   for (int ci = 0; ci < mChannels.size(); ci++) {
     // Check if this is a real channel. Skip otherwise.
-    auto& channel = mChannels[ci];
-    if (channel.channelType != ChannelAccountingType::DPL) {
+    auto& channelRef = mChannels[ci];
+    if (channelRef.channelType != ChannelAccountingType::DPL) {
       continue;
     }
-    auto& a = channel.oldestForChannel;
+    auto& a = channelRef.oldestForChannel;
     if (a.value < result.timeslice.value) {
       changed = true;
       result = {a, ChannelIndex{ci}};
     }
   }
-  mOldestPossibleInput = result;
-  if (changed) {
-    LOG(debug) << "Success: Oldest possible input is " << mOldestPossibleInput.timeslice.value << " due to channel " << mOldestPossibleInput.channel.value;
+  if (changed && mOldestPossibleInput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Success: Oldest possible input is " << result.timeslice.value << " due to channel " << result.channel.value;
+  } else if (mOldestPossibleInput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Oldest possible input updated from timestamp: " << mOldestPossibleInput.timeslice.value << " --> " << result.timeslice.value;
   } else {
     LOG(debug) << "No change in oldest possible input";
   }
+  mOldestPossibleInput = result;
   return mOldestPossibleInput;
 }
 
@@ -183,13 +185,16 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
       result.channel = {(int)-1};
     }
   }
-  mOldestPossibleOutput = result;
-  if (changed) {
+  if (changed && mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
     LOGP(debug, "Oldest possible output {} due to {} {}",
-         mOldestPossibleOutput.timeslice.value,
+         result.timeslice.value,
          result.channel.value == -1 ? "slot" : "channel",
          result.channel.value == -1 ? mOldestPossibleOutput.slot.index : mOldestPossibleOutput.channel.value);
+  } else if (mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Oldest possible output updated from oldest Input : " << mOldestPossibleOutput.timeslice.value << " --> " << result.timeslice.value;
   }
+  mOldestPossibleOutput = result;
+
   return result;
 }
 

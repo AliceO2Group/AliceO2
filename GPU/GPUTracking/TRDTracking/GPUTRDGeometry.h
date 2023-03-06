@@ -40,6 +40,7 @@ class GPUTRDGeometry : public AliTRDgeometry
   double GetPadPlaneRowPos(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowPos(row); }
   double GetPadPlaneRowSize(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowSize(row); }
   int GetGeomManagerVolUID(int det, int modId) const { return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1 + GetLayer(det)), modId); }
+  float GetCdrHght() const { return CdrHght(); }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

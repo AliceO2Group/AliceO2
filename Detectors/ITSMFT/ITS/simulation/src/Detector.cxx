@@ -15,6 +15,7 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSBase/ITSBaseParam.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
 #include "ITSSimulation/V3Services.h"
@@ -79,11 +80,10 @@ Detector::Detector()
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
 }
 
-void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
+void Detector::configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel)
 {
   // build ITS outer barrel detector
   const int kNLr = 4;
-  const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
   const double ChipThicknessOB = 100.e-4;
@@ -122,7 +122,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers)
     nStaveLr = TMath::Nint(tdr5dat[idLr][kNStave]);
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     defineLayer(idLr + nInnerBarrelLayers, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
-                kSensTypeID, kBuildLevel);
+                kSensTypeID, buildLevel);
   }
 }
 
@@ -154,9 +154,12 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
   }
 
+  auto& param = ITSBaseParam::Instance();
+  int buildLevelITS = param.buildLevel;
+
   TString detName = GetName();
   if (detName == "ITS") {
-    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure();
+    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure(buildLevelITS);
   } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
     ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
@@ -210,7 +213,7 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  configOuterBarrelITS(mNumberInnerLayers);
+  configOuterBarrelITS(mNumberInnerLayers, buildLevelITS);
 }
 
 Detector::Detector(const Detector& rhs)

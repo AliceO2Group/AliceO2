@@ -30,7 +30,7 @@
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHIO/ClusterWriterSpec.h"
 #include "MCHWorkflow/ErrorWriterSpec.h"
-#include "MCHWorkflow/TrackWriterSpec.h"
+#include "MCHIO/TrackWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
 using namespace o2::framework;

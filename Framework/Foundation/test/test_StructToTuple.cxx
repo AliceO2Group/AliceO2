@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Traits
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/StructToTuple.h"
 
 struct Foo {
@@ -121,14 +117,14 @@ struct Foo2 {
   int foo3 = 40;
 };
 
-BOOST_AUTO_TEST_CASE(TestStructToTuple)
+TEST_CASE("TestStructToTuple")
 {
   FooMax fooMax;
 
   auto t5 = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 20; }, fooMax);
-  BOOST_CHECK_EQUAL(t5[0], false);
-  BOOST_CHECK_EQUAL(t5[19], false);
-  BOOST_CHECK_EQUAL(t5[20], true);
+  REQUIRE(t5[0] == false);
+  REQUIRE(t5[19] == false);
+  REQUIRE(t5[20] == true);
   Foo2 nestedFoo;
   auto t6 = o2::framework::homogeneous_apply_refs([](auto e) -> bool {
     if constexpr (std::is_same_v<decltype(e), FooNested>) {

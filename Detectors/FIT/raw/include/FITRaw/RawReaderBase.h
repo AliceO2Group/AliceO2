@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawReaderBase.h base class for RAW data reading
+// file RawReaderBase.h base class for RAW data reading
 //
 // Artur.Furs
 // afurs@cern.ch
 //
-//Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for process
+// Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for process
 
 #ifndef ALICEO2_FIT_RAWREADERBASE_H_
 #define ALICEO2_FIT_RAWREADERBASE_H_
@@ -33,6 +33,7 @@
 #include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
 #include <Framework/Logger.h>
+#include <FITRaw/DataBlockBase.h>
 
 #include <gsl/span>
 namespace o2
@@ -46,8 +47,11 @@ class RawReaderBase
   RawReaderBase() = default;
   ~RawReaderBase() = default;
   typedef DigitBlockType DigitBlock_t;
-  typedef boost::mpl::vector<DataBlockTypes...> VecDataBlocks_t;
-  std::tuple<std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
+  typedef boost::mpl::vector<typename DataBlockTypes::DataBlockInvertedPadding_t..., DataBlockTypes...> VecDataBlocks_t;
+  //  typedef boost::mpl::vector<DataBlockTypes...> VecDataBlocks_t;
+  //  std::tuple<std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
+  std::tuple<std::vector<typename DataBlockTypes::DataBlockInvertedPadding_t>..., std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
+
   std::map<InteractionRecord, DigitBlock_t> mMapDigits;
   template <typename T>
   constexpr std::vector<T>& getVecDataBlocks()
@@ -55,17 +59,21 @@ class RawReaderBase
     typedef typename boost::mpl::find<VecDataBlocks_t, T>::type it_t;
     return std::get<it_t::pos::value>(mTupleVecDataBlocks);
   }
-  //decoding binary data into data blocks
+  // decoding binary data into data blocks
   template <class DataBlockType>
   size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
   {
     size_t srcPos = 0;
-    while (srcPos < binaryPayload.size()) {
+    const auto payloadSize = binaryPayload.size();
+    const int padding = payloadSize % DataBlockType::DataBlockWrapperHeader_t::sSizeWord;
+    const int nCruWords = payloadSize / SIZE_WORD;
+    const int pageSizeThreshold = SIZE_WORD * (nCruWords - int(padding > 0));
+    while (srcPos < pageSizeThreshold) {
       auto& refDataBlock = vecDataBlocks.emplace_back();
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
-      if (refDataBlock.mSize == 16) {
-        //exclude data block in case of single header(no data, total size == 16 bytes)
+      if (refDataBlock.isOnlyHeader()) {
+        // exclude data block in case of single header(no data, total size == 16 bytes)
         vecDataBlocks.pop_back();
         continue;
       }
@@ -79,7 +87,7 @@ class RawReaderBase
     return srcPos;
   }
 
-  //processing data blocks into digits
+  // processing data blocks into digits
   template <class DataBlockType, typename... T>
   void processBinaryData(gsl::span<const uint8_t> payload, T&&... feeParameters)
   {
@@ -108,7 +116,7 @@ class RawReaderBase
     }
     */
   }
-  //pop digits
+  // pop digits
   template <typename... VecDigitType>
   int getDigits(VecDigitType&... vecDigit)
   {
@@ -121,8 +129,8 @@ class RawReaderBase
   }
 
  private:
-  //Check for unique DataBlock classes
-  //Line below will not be compiled in case of duplicates among DataBlockTypes
+  // Check for unique DataBlock classes
+  // Line below will not be compiled in case of duplicates among DataBlockTypes
   typedef std::void_t<std::enable_if_t<boost::mpl::count<boost::mpl::set<DataBlockTypes...>, DataBlockTypes>::value == 1>...> CheckUniqueTypes;
 };
 

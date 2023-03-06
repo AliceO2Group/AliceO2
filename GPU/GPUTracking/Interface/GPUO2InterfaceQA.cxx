@@ -16,6 +16,7 @@
 #include "GPUQA.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
+#include "TGraphAsymmErrors.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -45,7 +46,13 @@ int GPUO2InterfaceQA::postprocess(TObjArray& out)
 
 int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks)
 {
-  if (mQA->loadHistograms(in1, in2, in3, tasks)) {
+  static std::vector<TGraphAsymmErrors> dummy;
+  return postprocessExternal(in1, in2, in3, dummy, out, tasks);
+}
+
+int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out, int tasks)
+{
+  if (mQA->loadHistograms(in1, in2, in3, in4, tasks)) {
     return 1;
   }
   return mQA->DrawQAHistograms(&out);
@@ -58,9 +65,17 @@ void GPUO2InterfaceQA::cleanup()
 
 void GPUO2InterfaceQA::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3)
 {
+  static std::vector<TGraphAsymmErrors> dummy;
+  const auto* pDummy = &dummy;
+  getHists(h1, h2, h3, pDummy);
+}
+
+void GPUO2InterfaceQA::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3, const std::vector<TGraphAsymmErrors>*& h4)
+{
   h1 = &mQA->getHistograms1D();
   h2 = &mQA->getHistograms2D();
   h3 = &mQA->getHistograms1Dd();
+  h4 = &mQA->getGraphs();
 }
 
 void GPUO2InterfaceQA::resetHists()

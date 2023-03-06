@@ -30,11 +30,11 @@ GPUd() ClusterLinesGPU::ClusterLinesGPU(const Line& firstLine, const Line& secon
     covarianceSecond[i] = 1.f;
   }
 
-  float determinantFirst =
+  double determinantFirst =
     firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
     firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[0] * covarianceFirst[2] +
     firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[1] * covarianceFirst[2];
-  float determinantSecond =
+  double determinantSecond =
     secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[0] * covarianceSecond[1] +
     secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[0] * covarianceSecond[2] +
     secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[1] * covarianceSecond[2];
@@ -111,9 +111,9 @@ GPUd() ClusterLinesGPU::ClusterLinesGPU(const Line& firstLine, const Line& secon
 GPUd() void ClusterLinesGPU::computeClusterCentroid()
 {
 
-  float determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
-                    mAMatrix[1] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
-                    mAMatrix[2] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])};
+  double determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
+                     mAMatrix[1] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
+                     mAMatrix[2] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])};
 
   if (determinant == 0) {
     return;

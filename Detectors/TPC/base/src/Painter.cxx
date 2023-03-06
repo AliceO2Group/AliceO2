@@ -989,6 +989,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   calibValMsg->AddText(fmt::format("dvCorrectionA: {}", ltr.dvCorrectionA).data());
   calibValMsg->AddText(fmt::format("dvCorrectionC: {}", ltr.dvCorrectionC).data());
   calibValMsg->AddText(fmt::format("dvCorrection: {}", ltr.getDriftVCorrection()).data());
+  calibValMsg->AddText(fmt::format("dvAbsolute: {}", ltr.getDriftVCorrection() * ltr.refVDrift).data());
   calibValMsg->AddText(fmt::format("dvOffsetA: {}", ltr.dvOffsetA).data());
   calibValMsg->AddText(fmt::format("dvOffsetC: {}", ltr.dvOffsetC).data());
   calibValMsg->AddText(fmt::format("nTracksA: {}", ltr.nTracksA).data());
