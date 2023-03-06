@@ -323,8 +323,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
                                            spec.inputs,
-                                           services.get<Monitoring>(),
-                                           services.get<TimesliceIndex>())};
+                                           services.get<TimesliceIndex>(),
+                                           services)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -598,13 +598,6 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
   }
 
   ZoneScopedN("send metrics");
-  auto& relayerStats = registry.get<DataRelayer>().getStats();
-
-  stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Set, (int)relayerStats.malformedInputs});
-  stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), DataProcessingStats::Op::Set, (int)relayerStats.droppedComputations});
-  stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), DataProcessingStats::Op::Set, (int)relayerStats.droppedIncomingMessages});
-  stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Set, (int)relayerStats.relayedMessages});
-
   auto device = registry.get<RawDeviceService>().device();
 
   int64_t totalBytesIn = 0;
@@ -682,11 +675,6 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       stats->registerMetric({"dropped_incoming_messages", static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), 0, quickUpdateInterval});
       stats->registerMetric({"relayed_messages", static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), 0, quickUpdateInterval});
 
-      auto& relayer = services.get<DataRelayer>();
-
-      for (size_t i = 0; i < relayer.getCacheSize(); ++i) {
-        stats->registerMetric({fmt::format("data_relayer/{}", i), static_cast<int>((int)ProcessingStatsId::RELAYER_METRIC_BASE + i), 0, 100});
-      }
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
@@ -811,10 +799,10 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     rootFileSpec(),
     parallelSpec(),
     callbacksSpec(),
+    dataProcessingStats(),
     dataRelayer(),
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
-    dataProcessingStats(),
     objectCache(),
     ccdbSupportSpec(),
     CommonMessageBackends::fairMQBackendSpec(),

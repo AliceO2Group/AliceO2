@@ -251,10 +251,12 @@ void DataProcessingStats::registerMetric(MetricSpec const& spec)
     throw runtime_error_f("Metric id %d is out of range. Max is %d", spec.metricId, metricSpecs.size());
   }
   if (metricSpecs[spec.metricId].name.size() != 0 && spec.name != metricSpecs[spec.metricId].name) {
-    throw runtime_error_f("Metric %s already registered", spec.name.data());
+    auto currentName = metricSpecs[spec.metricId].name;
+    throw runtime_error_f("Metric %d already registered with name %s", spec.metricId, currentName.data(), spec.name.data());
   }
-  if (std::find_if(metricSpecs.begin(), metricSpecs.end(), [&spec](MetricSpec const& s) { return s.name == spec.name; }) != metricSpecs.end()) {
-    throw runtime_error_f("Metric %s already registered", spec.name.data());
+  auto currentMetric = std::find_if(metricSpecs.begin(), metricSpecs.end(), [&spec](MetricSpec const& s) { return s.name == spec.name && s.metricId != spec.metricId; });
+  if (currentMetric != metricSpecs.end()) {
+    throw runtime_error_f("Metric %s already registered with id %d. Cannot reregister with %d.", spec.name.data(), currentMetric->metricId, spec.metricId);
   }
   metricSpecs[spec.metricId] = spec;
   metricsNames[spec.metricId] = spec.name;
