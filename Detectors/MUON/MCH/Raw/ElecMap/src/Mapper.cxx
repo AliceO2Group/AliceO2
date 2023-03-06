@@ -10,9 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHRawElecMap/Mapper.h"
-#include "MCHConstants/DetectionElements.h"
-#include <optional>
-#include <unordered_map>
 
 namespace o2::mch::raw
 {

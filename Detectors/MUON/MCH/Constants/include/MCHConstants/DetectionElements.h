@@ -38,8 +38,6 @@ inline bool isValidDetElemId(int deId)
 }
 
 /** deIndex returns an index (in the range 0..155) corresponding the deId. */
-std::optional<int> deId2DeIndex(int deId);
-
 inline std::optional<int> deId2DeIndex(int deId)
 {
   if (!o2::mch::constants::isValidDetElemId(deId)) {

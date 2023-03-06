@@ -24,7 +24,6 @@
 #include <fmt/format.h>
 #include <gsl/span>
 #include <set>
-#include <unordered_map>
 
 using namespace o2::mch::raw;
 
