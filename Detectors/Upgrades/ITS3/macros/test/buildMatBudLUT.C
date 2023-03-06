@@ -192,14 +192,15 @@ void configLayers()
 
   // beam pipe
   lrData.emplace_back(LrData(lrData.back().rMax, 1.8f, 30.f));
+  
   //===================================================================================
   // ITS3 Inner Barrel
   drStep = 0.2;
   zSpanH = 20.;
   rphiBin = 0.2; // 0.1
   zBin = 0.5;
-  float drStepChip = 0.053;
-  float drStepChip4Layer = 0.075;
+  float drStepChip = 0.054;       // gap and chip width
+  float drStepChip4Layer = 0.074; // gap and chip width
 
   // Layer 1
   lrData.emplace_back(LrData(1.8f, 1.8f + drStepChip, zSpanH, zBin, rphiBin));
@@ -219,15 +220,26 @@ void configLayers()
 
   // Layer 3
   lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStepChip, zSpanH, zBin, rphiBin));
-  // Air
-  do {
-    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
-  } while (lrData.back().rMax < 6.0f - drStep + kToler);
-  lrData.emplace_back(LrData(lrData.back().rMax, 6.0f, zSpanH, zBin, rphiBin));
 
-  // Layer 4
-  lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStepChip4Layer, zSpanH, zBin, rphiBin));
+  // Check if the layer 4 is present
+  TGeoVolume* cave = gGeoManager->FindVolumeFast("cave");
+  TGeoVolume* barrel_1 = cave->FindNode("barrel_1")->GetVolume();
+  TGeoVolume* ITSV_2 = barrel_1->FindNode("ITSV_2")->GetVolume();
+  TGeoVolume* ITSUWrapVol0_1 = ITSV_2->FindNode("ITSUWrapVol0_1")->GetVolume();
+  if (ITSUWrapVol0_1->FindNode("ITS3Layer3_1")) {
+    LOG(info) << "FourLayers version of ITS3 IB geometry is used";
+    // Air
+    do {
+      lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+    } while (lrData.back().rMax < 6.0f - drStep + kToler);
+    lrData.emplace_back(LrData(lrData.back().rMax, 6.0f, zSpanH, zBin, rphiBin));
+    // Layer 4
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStepChip4Layer, zSpanH, zBin, rphiBin));
+  } else {
+    LOG(info) << "ThreeLayers version of ITS3 IB geometry is used";
+  }
 
+  //===================================================================================
   // air space between Inner and Middle Barrels
   zSpanH = 40.;
   zBin = 5.;
