@@ -19,7 +19,6 @@
 
 #include <array>
 #include <boost/mpl/list.hpp>
-#include <fmt/format.h>
 #include <set>
 #include <unordered_map>
 
