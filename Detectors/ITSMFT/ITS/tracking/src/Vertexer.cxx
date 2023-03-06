@@ -79,6 +79,7 @@ void Vertexer::getGlobalConfiguration()
 
   TimeFrameGPUParameters tfGPUpar;
   tfGPUpar.maxGPUMemoryGB = grc.maxGPUMemoryGB;
+  tfGPUpar.maxVerticesCapacity = grc.maxVerticesCapacity;
 
   mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }

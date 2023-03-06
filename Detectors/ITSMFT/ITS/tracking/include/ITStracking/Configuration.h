@@ -133,7 +133,7 @@ struct TimeFrameGPUParameters {
   size_t validatedTrackletsCapacity = 1e5;
   size_t cellsLUTsize = validatedTrackletsCapacity;
   size_t maxLinesCapacity = 1e2;
-  size_t maxVerticesCapacity = 10;
+  size_t maxVerticesCapacity = 5e4;
   size_t nMaxROFs = 1e3;
   size_t nTimeFrameChunks = 3;
   int maxGPUMemoryGB = -1;

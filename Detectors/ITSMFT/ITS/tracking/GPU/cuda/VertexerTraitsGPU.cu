@@ -617,7 +617,7 @@ void VertexerTraitsGPU::computeTracklets()
       auto maxROF = offset + rofPerChunk;
       while (offset < maxROF) {
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Vertexer>(chunkId, offset, maxROF);
-        RANGE("chunk_gpu_processing", 1);
+        RANGE("chunk_gpu_vertexing", 1);
         gpu::trackleterKernelMultipleRof<TrackletMode::Layer0Layer1><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),         // const Cluster* clustersNextLayer,    // 0 2
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
