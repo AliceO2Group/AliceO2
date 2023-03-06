@@ -240,7 +240,6 @@ bool MatchGlobalFwd::prepareMFTData()
   // Load MFT tracks
   mMFTTracks = inp.getMFTTracks();
   mMFTTrackROFRec = inp.getMFTTracksROFRecords();
-  mMFTTrackROFRecCopyUp = inp.getMFTTracksROFRecords();
   if (mMCTruthON) {
     mMFTTrkLabels = inp.getMFTTracksMCLabels();
   }
@@ -256,11 +255,6 @@ bool MatchGlobalFwd::prepareMFTData()
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
-    int irofUp = irof + 1;
-    if (irofUp == nROFs) {
-      irofUp = irof;
-    }
-    const auto& rofRecCopyUp = mMFTTrackROFRecCopyUp[irofUp];
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
       if (BCDiffErrCount++ < MAXBCDiffErrCount) {
@@ -280,8 +274,7 @@ bool MatchGlobalFwd::prepareMFTData()
     mMFTROFTimes.emplace_back(tMin, tMax); // MFT ROF min/max time
     LOG(debug) << "MFT ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
 
-    // int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
-    int trlim = rofRec.getFirstEntry() + (rofRecCopyUp.getFirstEntry() - rofRec.getFirstEntry());
+    int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
       const auto& trcOrig = mMFTTracks[it];
 
