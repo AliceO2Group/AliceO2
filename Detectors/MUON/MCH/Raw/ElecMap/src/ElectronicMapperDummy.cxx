@@ -177,4 +177,10 @@ std::optional<uint16_t> solarIndex2Id<ElectronicMapperDummy>(uint16_t solarIndex
   return impl::solarIndex2Id<ElectronicMapperDummy>(solarIndex);
 }
 
+template <>
+std::optional<uint16_t> solarId2Index<ElectronicMapperDummy>(uint16_t solarId)
+{
+  return impl::solarId2Index<ElectronicMapperDummy>(solarId);
+}
+
 } // namespace o2::mch::raw

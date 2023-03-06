@@ -38,27 +38,4 @@ std::array<int, 13> deIdsOfCH9L{907, 908, 909, 910, 911, 912, 913, 914, 915, 916
 std::array<int, 13> deIdsOfCH10R{1006, 1005, 1004, 1003, 1002, 1001, 1000, 1025, 1024, 1023, 1022, 1021, 1020}; // from top to bottom
 std::array<int, 13> deIdsOfCH10L{1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019}; // from top to bottom
 
-std::optional<int> deId2DeIndex(int deId)
-{
-  if (!o2::mch::constants::isValidDetElemId(deId)) {
-    return std::nullopt;
-  }
-  static const std::unordered_map<int, int> id2ix = {
-    {100, 0},
-    {200, 4},
-    {300, 8},
-    {400, 12},
-    {500, 16},
-    {600, 34},
-    {700, 52},
-    {800, 78},
-    {900, 104},
-    {1000, 130},
-    {1025, 155}};
-
-  int firstDeOfChamber = 100 * (deId / 100);
-  auto firstIndexOfChamber = id2ix.find(firstDeOfChamber);
-  return firstIndexOfChamber->second + (deId - firstDeOfChamber);
-}
-
 } // namespace o2::mch::raw

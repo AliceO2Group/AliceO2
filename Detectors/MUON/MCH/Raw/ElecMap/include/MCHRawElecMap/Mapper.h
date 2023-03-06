@@ -125,9 +125,6 @@ extern std::array<int, 13> deIdsOfCH10L;
 template <typename T>
 std::vector<std::string> solar2FeeLinkConsistencyCheck();
 
-/** deIndex returns an index (in the range 0..155) corresponding the deId. */
-std::optional<int> deId2DeIndex(int deId);
-
 /** Convert a solar index into a solarId */
 template <typename T>
 std::optional<uint16_t> solarIndex2Id(uint16_t solarIndex);
