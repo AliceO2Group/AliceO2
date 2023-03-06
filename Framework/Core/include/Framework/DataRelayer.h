@@ -20,6 +20,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Tracing.h"
 #include "Framework/TimesliceSlot.h"
+#include "Framework/ServiceRegistryRef.h"
 
 #include <cstddef>
 #include <mutex>
@@ -35,14 +36,6 @@ class Monitoring;
 
 namespace o2::framework
 {
-
-/// Helper struct to hold statistics about the relaying process.
-struct DataRelayerStats {
-  uint64_t malformedInputs = 0;         /// Malformed inputs which the user attempted to process
-  uint64_t droppedComputations = 0;     /// How many computations have been dropped because one of the inputs was late
-  uint64_t droppedIncomingMessages = 0; /// How many messages have been dropped (not relayed) because they were late
-  uint64_t relayedMessages = 0;         /// How many messages have been successfully relayed
-};
 
 enum struct CacheEntryStatus : int {
   EMPTY,
@@ -90,8 +83,8 @@ class DataRelayer
 
   DataRelayer(CompletionPolicy const&,
               std::vector<InputRoute> const& routes,
-              monitoring::Monitoring&,
-              TimesliceIndex&);
+              TimesliceIndex&,
+              ServiceRegistryRef);
 
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
@@ -148,9 +141,6 @@ class DataRelayer
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
 
-  /// @return the current stats about the data relaying process
-  [[nodiscard]] DataRelayerStats const& getStats() const;
-
   /// Send metrics with the VariableContext information
   void sendContextState();
   void publishMetrics();
@@ -183,7 +173,7 @@ class DataRelayer
   [[nodiscard]] size_t getNumberOfUniqueInputs() const { return mDistinctRoutesIndex.size(); }
 
  private:
-  monitoring::Monitoring& mMetrics;
+  ServiceRegistryRef mContext;
 
   /// This is the actual cache of all the parts in flight.
   /// Notice that we store them as a NxM sized vector, where
@@ -208,7 +198,6 @@ class DataRelayer
   static std::vector<std::string> sVariablesMetricsNames;
   static std::vector<std::string> sQueriesMetricsNames;
 
-  DataRelayerStats mStats;
   TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
