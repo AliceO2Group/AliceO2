@@ -125,7 +125,9 @@ bool TimesliceIndex::didReceiveData() const
 TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(TimesliceId timestamp, ChannelIndex channel)
 {
   // Each channel oldest possible input must be monotoically increasing.
-  assert(mChannels[channel.value].oldestForChannel.value <= timestamp.value);
+  if (timestamp.value < mChannels[channel.value].oldestForChannel.value <= timestamp.value) {
+    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << " Excpected >= " << mChannels[channel.value].oldestForChannel.value;
+  }
   mChannels[channel.value].oldestForChannel = timestamp;
   OldestInputInfo result{timestamp, channel};
   bool changed = false;
