@@ -109,6 +109,10 @@ void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorre
 
   mTimeStamp = obj.mTimeStamp;
 
+  for (int i = 0; i < TPCFastTransformGeo::getNumberOfSlices(); ++i) {
+    mSliceInfo[i] = obj.mSliceInfo[i];
+  }
+
   mSliceDataSizeBytes[0] = obj.mSliceDataSizeBytes[0];
   mSliceDataSizeBytes[1] = obj.mSliceDataSizeBytes[1];
   mSliceDataSizeBytes[2] = obj.mSliceDataSizeBytes[2];

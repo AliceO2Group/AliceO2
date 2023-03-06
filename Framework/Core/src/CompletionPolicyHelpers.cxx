@@ -127,7 +127,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
       }
       long int startTime = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime;
       if (startTime == 0) {
-        LOGP(info, "startTime is 0, which means we have the first message, so we can process it.");
+        LOGP(debug, "startTime is 0, which means we have the first message, so we can process it.");
         *nextTimeSlice = 0;
       }
       if (framework::DataRefUtils::isValid(input) && startTime != *nextTimeSlice) {
