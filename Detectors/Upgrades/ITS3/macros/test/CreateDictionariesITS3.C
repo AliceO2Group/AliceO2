@@ -13,6 +13,7 @@
 /// \brief Macros to test the generation of a dictionary of topologies. Three dictionaries are generated: one with signal-cluster only, one with noise-clusters only and one with all the clusters.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#define ENABLE_UPGRADES
 
 #include <string>
 #include <unordered_map>
@@ -311,7 +312,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
       }
     }
   }
-  auto dID = o2::detectors::DetID::ITS;
+  auto dID = o2::detectors::DetID::IT3;
 
   completeDictionary.setThreshold(probThreshold);
   completeDictionary.groupRareTopologies();
