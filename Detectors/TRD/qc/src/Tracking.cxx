@@ -148,7 +148,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
         if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
           continue;
         }
-        if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) == 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 0) {
+        if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
           // Add charge information
           auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
           q0 += trklt.getQ0() / cor;
