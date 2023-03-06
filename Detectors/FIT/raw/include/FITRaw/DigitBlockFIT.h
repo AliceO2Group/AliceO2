@@ -192,7 +192,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     // Preparing map of global Topo(related to PM module) to DataBlockPMs
     for (const auto& entry : mapTopo2SortedCh) {
       auto pairInserted = mapResult.insert({LookupTable_t::makeGlobalTopo(entry.first), {}});
-      auto& refDataBlock = pairInserted.first->second;
+      DataBlockType& refDataBlock = pairInserted.first->second;
       if (pairInserted.second) {
         // Header preparation
         refDataBlock.HeaderPM::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
