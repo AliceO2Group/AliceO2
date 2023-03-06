@@ -1855,7 +1855,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         // - "part" denotes a sequence of messages belonging together, the first message of the
         //   sequence is the header message
         // - each part has one or more payload messages
-        // - InputRecord provides all payloads as header-payload pairs
+        // - InputRecord provides all payloads as header-payload pair
         auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
         auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
         headerptr = static_cast<char const*>(headerMsg->GetData());
