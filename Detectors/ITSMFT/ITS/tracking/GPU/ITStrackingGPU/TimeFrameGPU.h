@@ -107,8 +107,6 @@ class GpuTimeFrameChunk
   int* getDeviceCellsLookupTables(const int);
   TimeFrameGPUParameters* getTimeFrameGPUParameters() const { return mTFGPUParams; }
 
-  void downloadDeviceLines(std::vector<Line>&, Stream&);
-
   int* getDeviceCUBTmpBuffer() { return mCUBTmpBufferDevice; }
   int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
   int* getDeviceFoundCells() { return mFoundCellsDevice; }
@@ -186,6 +184,9 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
   std::vector<std::vector<o2::MCCompLabel>>& getLabelsInChunks() { return mLabelsInChunks; }
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
+  StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
+  Vertex* getDeviceVertices() { return mVerticesDevice; }
+  int* getDeviceROframesPV() { return mROframesPVDevice; }
 
  private:
   bool mHostRegistered = false;
@@ -197,6 +198,8 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
   std::array<int*, nLayers> mROframesClustersDevice;
+  Vertex* mVerticesDevice;
+  int* mROframesPVDevice;
 
   // State
   std::vector<Stream> mGpuStreams;

@@ -48,6 +48,7 @@ class TrackerTraitsGPU : public TrackerTraits
   int getTFNumberOfCells() const override;
 
  private:
+  IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
   gpu::StaticTrackingParameters<NLayers>* mStaticTrkPars;
 };

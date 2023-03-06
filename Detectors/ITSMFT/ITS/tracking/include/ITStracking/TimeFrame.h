@@ -196,6 +196,12 @@ class TimeFrame
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
+  template <typename... T>
+  void addClusterToLayer(int layer, T&&... args);
+  template <typename... T>
+  void addTrackingFrameInfoToLayer(int layer, T&&... args);
+  void addClusterExternalIndexToLayer(int layer, const int idx);
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -220,11 +226,8 @@ class TimeFrame
   std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
-  template <typename... T>
-  void addClusterToLayer(int layer, T&&... args);
-  template <typename... T>
-  void addTrackingFrameInfoToLayer(int layer, T&&... args);
-  void addClusterExternalIndexToLayer(int layer, const int idx);
+  std::vector<int> mROframesPV = {0};
+  std::vector<Vertex> mPrimaryVertices;
 
  private:
   float mBz = 5.;
@@ -237,8 +240,6 @@ class TimeFrame
   std::vector<float> mPhiCuts;
   std::vector<float> mPositionResolution;
   std::vector<bool> mMultiplicityCutMask;
-  std::vector<int> mROframesPV = {0};
-  std::vector<Vertex> mPrimaryVertices;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
