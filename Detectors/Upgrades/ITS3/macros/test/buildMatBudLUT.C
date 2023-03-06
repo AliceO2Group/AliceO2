@@ -192,7 +192,7 @@ void configLayers()
 
   // beam pipe
   lrData.emplace_back(LrData(lrData.back().rMax, 1.8f, 30.f));
-  
+
   //===================================================================================
   // ITS3 Inner Barrel
   drStep = 0.2;
