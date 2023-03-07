@@ -255,7 +255,7 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
   static const std::string nullstring{"null"};
 
   context.publish([](ContextElement::Value const& var, std::string const& name, void* context) {
-    monitoring::Monitoring* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
+    auto* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
     if (auto pval = std::get_if<uint64_t>(&var)) {
       metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval = std::get_if<uint32_t>(&var)) {
@@ -372,12 +372,6 @@ DataRelayer::RelayChoice
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
-  // STATE HOLDING VARIABLES
-  // This is the class level state of the relaying. If we start supporting
-  // multithreading this will have to be made thread safe before we can invoke
-  // relay concurrently.
-  auto const& readonlyCache = mCache;
-
   // IMPLEMENTATION DETAILS
   //
   // This returns true if a given slot is available for the current number of lanes
@@ -514,7 +508,7 @@ DataRelayer::RelayChoice
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
     mStats.relayedMessages++;
-    return WillRelay;
+    return RelayChoice{RelayChoice::Type::WillRelay, timeslice};
   }
 
   /// If not, we find which timeslice we really were looking at
@@ -541,7 +535,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return Invalid;
+    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
@@ -551,7 +545,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return Invalid;
+    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
   }
 
   TimesliceIndex::ActionTaken action;
@@ -561,7 +555,7 @@ DataRelayer::RelayChoice
 
   switch (action) {
     case TimesliceIndex::ActionTaken::Wait:
-      return Backpressured;
+      return RelayChoice{.type = RelayChoice::Type::Backpressured, timeslice};
     case TimesliceIndex::ActionTaken::DropObsolete:
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
@@ -571,7 +565,7 @@ DataRelayer::RelayChoice
           mult = mult * 10;
         }
       }
-      return Dropped;
+      return RelayChoice{.type = RelayChoice::Type::Dropped, timeslice};
     case TimesliceIndex::ActionTaken::DropInvalid:
       LOG(warning) << "Incoming data is invalid, not relaying.";
       mStats.malformedInputs++;
@@ -579,7 +573,7 @@ DataRelayer::RelayChoice
       for (size_t pi = 0; pi < nMessages; ++pi) {
         messages[pi].reset(nullptr);
       }
-      return Invalid;
+      return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
     case TimesliceIndex::ActionTaken::ReplaceUnused:
     case TimesliceIndex::ActionTaken::ReplaceObsolete:
       // At this point the variables match the new input but the
@@ -589,7 +583,7 @@ DataRelayer::RelayChoice
       saveInSlot(timeslice, input, slot);
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
-      return WillRelay;
+      return RelayChoice{.type = RelayChoice::Type::WillRelay};
   }
   O2_BUILTIN_UNREACHABLE();
 }

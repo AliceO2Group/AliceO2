@@ -335,10 +335,10 @@ TEST_CASE("TestCache")
     fair::mq::MessagePtr& header = messages[0];
     fair::mq::MessagePtr& payload = messages[1];
     auto res = relayer.relay(header->GetData(), messages.data(), messages.size());
-    REQUIRE((res != DataRelayer::RelayChoice::WillRelay || header.get() == nullptr));
-    REQUIRE((res != DataRelayer::RelayChoice::WillRelay || payload.get() == nullptr));
-    REQUIRE((res != DataRelayer::RelayChoice::Backpressured || header.get() != nullptr));
-    REQUIRE((res != DataRelayer::RelayChoice::Backpressured || payload.get() != nullptr));
+    REQUIRE((res.type != DataRelayer::RelayChoice::Type::WillRelay || header.get() == nullptr));
+    REQUIRE((res.type != DataRelayer::RelayChoice::Type::WillRelay || payload.get() == nullptr));
+    REQUIRE((res.type != DataRelayer::RelayChoice::Type::Backpressured || header.get() != nullptr));
+    REQUIRE((res.type != DataRelayer::RelayChoice::Type::Backpressured || payload.get() != nullptr));
   };
 
   // This fills the cache, and then empties it.
@@ -415,26 +415,25 @@ TEST_CASE("TestPolicies")
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
     fair::mq::MessagePtr& header = messages[0];
-    fair::mq::MessagePtr& payload = messages[1];
     return relayer.relay(header->GetData(), messages.data(), messages.size());
   };
 
   // This fills the cache, and then empties it.
-  auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
+  createMessage(dh1, DataProcessingHeader{0, 1});
   std::vector<RecordAction> ready1;
   relayer.getReadyToProcess(ready1);
   REQUIRE(ready1.size() == 1);
   REQUIRE(ready1[0].slot.index == 0);
   REQUIRE(ready1[0].op == CompletionPolicy::CompletionOp::Process);
 
-  auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
+  createMessage(dh1, DataProcessingHeader{1, 1});
   std::vector<RecordAction> ready2;
   relayer.getReadyToProcess(ready2);
   REQUIRE(ready2.size() == 1);
   REQUIRE(ready2[0].slot.index == 1);
   REQUIRE(ready2[0].op == CompletionPolicy::CompletionOp::Process);
 
-  auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
+  createMessage(dh2, DataProcessingHeader{1, 1});
   std::vector<RecordAction> ready3;
   relayer.getReadyToProcess(ready3);
   REQUIRE(ready3.size() == 1);
@@ -486,14 +485,13 @@ TEST_CASE("TestClear")
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
     fair::mq::MessagePtr& header = messages[0];
-    fair::mq::MessagePtr& payload = messages[1];
     return relayer.relay(header->GetData(), messages.data(), messages.size());
   };
 
   // This fills the cache, and then empties it.
-  auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
-  auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
-  auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
+  createMessage(dh1, DataProcessingHeader{0, 1});
+  createMessage(dh1, DataProcessingHeader{1, 1});
+  createMessage(dh2, DataProcessingHeader{1, 1});
   relayer.clear();
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
@@ -554,7 +552,7 @@ TEST_CASE("TestTooMany")
   fair::mq::MessagePtr& header2 = messages[2];
   fair::mq::MessagePtr& payload2 = messages[3];
   auto action = relayer.relay(header2->GetData(), &messages[2], 2);
-  REQUIRE(action == DataRelayer::Backpressured);
+  REQUIRE(action.type == DataRelayer::RelayChoice::Type::Backpressured);
   REQUIRE(header2.get() != nullptr);
   REQUIRE(payload2.get() != nullptr);
 }
@@ -612,16 +610,16 @@ TEST_CASE("SplitParts")
   fair::mq::MessagePtr& header2 = messages[2];
   fair::mq::MessagePtr& payload2 = messages[3];
   auto action = relayer.relay(header2->GetData(), &messages[2], 2);
-  REQUIRE(action == DataRelayer::Backpressured);
+  REQUIRE(action.type == DataRelayer::RelayChoice::Type::Backpressured);
+  CHECK(action.timeslice.value == 1);
   REQUIRE(header2.get() != nullptr);
   REQUIRE(payload2.get() != nullptr);
   // This fills the cache, and then waits.
   messages[4] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{1, 1}});
   messages[5] = transport->CreateMessage(1000);
-  fair::mq::MessagePtr& header3 = messages[2];
-  fair::mq::MessagePtr& payload3 = messages[3];
   auto action2 = relayer.relay(header2->GetData(), &messages[4], 2);
-  REQUIRE(action == DataRelayer::Backpressured);
+  REQUIRE(action2.type == DataRelayer::RelayChoice::Type::Backpressured);
+  CHECK(action2.timeslice.value == 1);
   REQUIRE(header2.get() != nullptr);
   REQUIRE(payload2.get() != nullptr);
 }
