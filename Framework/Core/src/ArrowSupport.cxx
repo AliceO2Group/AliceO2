@@ -530,12 +530,14 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
     .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCache>(),
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) { return ServiceHandle{TypeIdHelpers::uniqueId<ArrowTableSlicingCache>(), new ArrowTableSlicingCache(std::vector<std::pair<std::string, std::string>>{services.get<ArrowTableSlicingCacheDef>().bindingsKeys}), ServiceKind::Stream, typeid(ArrowTableSlicingCache).name()}; },
     .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
-      auto service = static_cast<ArrowTableSlicingCache*>(service_ptr);
+      auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
       auto& caches = service->bindingsKeys;
       for (auto i = 0; i < caches.size(); ++i) {
-        auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].first.c_str())->asArrowTable());
-        if (!status.ok()) {
-          throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].first.c_str(), caches[i].second.c_str());
+        if (pc.inputs().getPos(caches[i].first.c_str()) >= 0) {
+          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].first.c_str())->asArrowTable());
+          if (!status.ok()) {
+            throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].first.c_str(), caches[i].second.c_str());
+          }
         }
       } },
     .configure = CommonServices::noConfiguration(),
