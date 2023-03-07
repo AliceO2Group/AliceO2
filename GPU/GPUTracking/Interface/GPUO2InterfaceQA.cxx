@@ -44,12 +44,6 @@ int GPUO2InterfaceQA::postprocess(TObjArray& out)
   return mQA->DrawQAHistograms(&out);
 }
 
-int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks)
-{
-  static std::vector<TGraphAsymmErrors> dummy;
-  return postprocessExternal(in1, in2, in3, dummy, out, tasks);
-}
-
 int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out, int tasks)
 {
   if (mQA->loadHistograms(in1, in2, in3, in4, tasks)) {
@@ -61,13 +55,6 @@ int GPUO2InterfaceQA::postprocessExternal(std::vector<TH1F>& in1, std::vector<TH
 void GPUO2InterfaceQA::cleanup()
 {
   mQA->DrawQAHistogramsCleanup();
-}
-
-void GPUO2InterfaceQA::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3)
-{
-  static std::vector<TGraphAsymmErrors> dummy;
-  const auto* pDummy = &dummy;
-  getHists(h1, h2, h3, pDummy);
 }
 
 void GPUO2InterfaceQA::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3, const std::vector<TGraphAsymmErrors>*& h4)
