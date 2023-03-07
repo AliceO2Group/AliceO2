@@ -164,22 +164,26 @@ struct AnalysisDataProcessorBuilder {
   template <typename G, typename Arg>
   static void appendGroupingCandidate(std::vector<std::pair<std::string, std::string>>& bk, std::string& key)
   {
-    if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>()) {
+    if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>() && !o2::soa::is_smallgroups_v<std::decay_t<Arg>>) {
       auto binding = soa::getLabelFromType<std::decay_t<Arg>>();
-      bk.emplace_back(binding, key);
+      if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
+        bk.emplace_back(binding, key);
+      }
     }
+  }
+
+  static auto cutString(std::string&& str)
+  {
+    auto pos = str.find('_');
+    if (pos != std::string::npos) {
+      str.erase(pos);
+    }
+    return str;
   }
 
   template <typename G, typename... Args>
   static void appendGroupingCandidates(std::vector<std::pair<std::string, std::string>>& bk, framework::pack<G, Args...>)
   {
-    auto cutString = [](std::string&& str) -> std::string {
-      auto pos = str.find('_');
-      if (pos != std::string::npos) {
-        str.erase(pos);
-      }
-      return str;
-    };
     auto key = std::string{"fIndex"} + cutString(soa::getLabelFromType<std::decay_t<G>>());
     (appendGroupingCandidate<G, Args>(bk, key), ...);
   }
