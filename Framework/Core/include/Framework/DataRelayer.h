@@ -58,6 +58,8 @@ class DataRelayer
   /// each method and there is no particular order in which
   /// methods need to be called.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
+  /// This represents what the DataRelayer did when
+  /// inserting a set of messages in the cache.
   struct RelayChoice {
     enum struct Type {
       WillRelay,     /// Ownership of the data has been taken
@@ -65,7 +67,10 @@ class DataRelayer
       Backpressured, /// The incoming data was not relayed, because we are backpressured
       Dropped        /// The incoming data was not relayed and has been dropped
     };
+    /// What was the outcome of the relay operation.
     Type type;
+    // The timeslice affected by the given operation.
+    TimesliceId timeslice;
   };
 
   struct ActivityStats {

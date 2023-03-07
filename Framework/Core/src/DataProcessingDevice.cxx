@@ -1665,8 +1665,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
-          switch (relayed) {
-            case DataRelayer::Backpressured:
+          switch (relayed.type) {
+            case DataRelayer::RelayChoice::Type::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
                 LOGP(alarm, "Backpressure on channel {}. Waiting.", info.channel->GetName());
                 auto& monitoring = ref.get<o2::monitoring::Monitoring>();
@@ -1677,9 +1677,9 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
               policy.backpressure(info);
               hasBackpressure = true;
               break;
-            case DataRelayer::Dropped:
-            case DataRelayer::Invalid:
-            case DataRelayer::WillRelay:
+            case DataRelayer::RelayChoice::Type::Dropped:
+            case DataRelayer::RelayChoice::Type::Invalid:
+            case DataRelayer::RelayChoice::Type::WillRelay:
               if (info.normalOpsNotified == false && info.backpressureNotified == true) {
                 LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
                 auto& monitoring = ref.get<o2::monitoring::Monitoring>();
