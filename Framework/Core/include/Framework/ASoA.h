@@ -1001,23 +1001,15 @@ struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typ
 template <typename T>
 static std::string getLabelFromType()
 {
-  auto cutString = [](std::string&& str) -> std::string {
-    auto pos = str.find('_');
-    if (pos != std::string::npos) {
-      str.erase(pos);
-    }
-    return str;
-  };
-
   if constexpr (soa::is_index_table_v<std::decay_t<T>>) {
     using TT = typename std::decay_t<T>::first_t;
     if constexpr (soa::is_type_with_originals_v<std::decay_t<TT>>) {
       using O = typename framework::pack_head_t<typename std::decay_t<TT>::originals>;
       using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-      return cutString(std::string{groupingMetadata::tableLabel()});
+      return std::string{groupingMetadata::tableLabel()};
     } else {
       using groupingMetadata = typename aod::MetadataTrait<TT>::metadata;
-      return cutString(std::string{groupingMetadata::tableLabel()});
+      return std::string{groupingMetadata::tableLabel()};
     }
   } else if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
     using TT = typename framework::pack_head_t<typename std::decay_t<T>::originals>;
@@ -1026,7 +1018,7 @@ static std::string getLabelFromType()
       return getLabelFromType<TTT>();
     } else {
       using groupingMetadata = typename aod::MetadataTrait<TT>::metadata;
-      return cutString(std::string{groupingMetadata::tableLabel()});
+      return std::string{groupingMetadata::tableLabel()};
     }
   } else {
     if constexpr (soa::is_with_base_table_v<typename aod::MetadataTrait<T>::metadata>) {
@@ -1034,7 +1026,7 @@ static std::string getLabelFromType()
       return getLabelFromType<TT>();
     } else {
       using groupingMetadata = typename aod::MetadataTrait<std::decay_t<T>>::metadata;
-      return cutString(std::string{groupingMetadata::tableLabel()});
+      return std::string{groupingMetadata::tableLabel()};
     }
   }
 }

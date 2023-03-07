@@ -173,7 +173,14 @@ struct AnalysisDataProcessorBuilder {
   template <typename G, typename... Args>
   static void appendGroupingCandidates(std::vector<std::pair<std::string, std::string>>& bk, framework::pack<G, Args...>)
   {
-    auto key = std::string{"fIndex"} + soa::getLabelFromType<std::decay_t<G>>();
+    auto cutString = [](std::string&& str) -> std::string {
+      auto pos = str.find('_');
+      if (pos != std::string::npos) {
+        str.erase(pos);
+      }
+      return str;
+    };
+    auto key = std::string{"fIndex"} + cutString(soa::getLabelFromType<std::decay_t<G>>());
     (appendGroupingCandidate<G, Args>(bk, key), ...);
   }
 
