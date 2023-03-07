@@ -2467,12 +2467,10 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   if (src[GID::CTP]) {
-    LOGF(info, "Requesting CTP digits");
     dataRequest->requestCTPDigits(useMC);
   }
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
-    LOGF(info, "requestSecondaryVertertices Finish");
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
@@ -2535,7 +2533,6 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputSpec{"AMD", "AODMetadataKeys"});
   outputs.emplace_back(OutputSpec{"AMD", "AODMetadataVals"});
 
-  LOGF(info, "Call for DataProcessorSPec aod-produce-workflow");
   return DataProcessorSpec{
     "aod-producer-workflow",
     dataRequest->inputs,

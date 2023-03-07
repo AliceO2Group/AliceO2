@@ -89,7 +89,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  LOGP(info, "in define dataprocessing is {}", beamPosOVerride);
   auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, beamPosOVerride, gpuDevice, extDigits, extClusters, disableRootOutput, trType);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
