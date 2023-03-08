@@ -27,7 +27,7 @@ namespace mch
 /// Configurable parameters to group MCH digits based on MID information
 struct EventFinderParam : public o2::conf::ConfigurableParamHelper<EventFinderParam> {
 
-  int triggerRange[2] = {0, 1}; ///< BC range of the trigger window around the MID IR
+  int triggerRange[2] = {-12, 13}; ///< BC range [min, max[ of the trigger window around the MID IR
 
   O2ParamDef(EventFinderParam, "MCHTriggering");
 };

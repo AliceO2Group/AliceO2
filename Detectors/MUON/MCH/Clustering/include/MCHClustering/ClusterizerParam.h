@@ -27,7 +27,7 @@ namespace mch
 /// Configurable parameters for MCH clustering
 struct ClusterizerParam : public o2::conf::ConfigurableParamHelper<ClusterizerParam> {
 
-  double lowestPadCharge = 4.f * 0.22875f; ///< minimum charge of a pad
+  double lowestPadCharge = 15.; ///< minimum charge of a pad
 
   double defaultClusterResolutionX = 0.2; ///< default cluster resolution in x direction (cm)
   double defaultClusterResolutionY = 0.2; ///< default cluster resolution in y direction (cm)

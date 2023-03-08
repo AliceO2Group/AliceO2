@@ -28,7 +28,7 @@ struct DigitFilterParam : public o2::conf::ConfigurableParamHelper<DigitFilterPa
   uint32_t minADC = 1;          ///< digits with an ADC below this value are discarded
   bool rejectBackground = true; ///< attempts to reject background (loose background selection, don't kill signal)
   bool selectSignal = false;    ///< attempts to select only signal (strict background selection, might loose signal)
-  int timeOffset = 0;           ///< digit time calibration offset
+  int timeOffset = 120;         ///< digit time calibration offset
 
   O2ParamDef(DigitFilterParam, "MCHDigitFilter");
 };
