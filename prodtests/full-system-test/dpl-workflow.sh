@@ -269,11 +269,11 @@ if [[ ! -z $WORKFLOW_DETECTORS_USE_GLOBAL_READER ]]; then
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER $GLOBAL_READER_OPTIONS $DISABLE_MC --hbfutils-config o2_tfidinfo.root"
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "--hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "--hbfutils-config o2_tfidinfo.root"
-  has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "--input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
+  has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$DISABLE_MC --input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
 fi
 
 if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
@@ -383,7 +383,7 @@ has_detector_reco ITS && ! has_detector_from_global_reader ITS && add_W o2-its-r
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
 has_detector_reco TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL --pipeline $(get_N itstpc-track-matcher MATCH REST 1 TPCITS)" "$ITSMFT_STROBES"
-has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES"
+has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES"
 has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES"
 has_detectors TPC && [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
@@ -419,6 +419,7 @@ has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
 has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
 has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-clusters-writer-workflow ) && add_W o2-mch-clusters-writer-workflow "" "" 0
 has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-preclusters-writer-workflow ) && add_W o2-mch-preclusters-writer-workflow "" "" 0
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)

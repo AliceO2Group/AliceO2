@@ -28,7 +28,6 @@
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITS3/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -100,15 +99,14 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
   if (dictfile.empty()) {
     dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", ".bin");
   }
-  o2::itsmft::TopologyDictionary dict2;
+  o2::its3::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict2.readFromFile(dictfile);
+    dict.readFromFile(dictfile);
   } else {
     LOG(info) << "Running without dictionary !";
   }
-  o2::its3::TopologyDictionary dict = dict2;
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
@@ -189,6 +187,13 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
         locC = dict.getClusterCoordinates(cluster);
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
+        if (chipID / nChipsPerLayer >= nITS3layers) {
+          errX *= Segmentation::PitchRow;
+          errZ *= Segmentation::PitchCol;
+        } else {
+          errX *= segs[chipID].mPitchRow;
+          errZ *= segs[chipID].mPitchCol;
+        }
         npix = dict.getNpixels(pattID);
         LOGP(info, "I am invalid and I am on chip {}", chipID);
       }

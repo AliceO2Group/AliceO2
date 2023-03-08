@@ -73,7 +73,7 @@ class BuildTopologyDictionary
   int getNotInGroups() const { return mNCommonTopologies; }
   TopologyDictionary getDictionary() const { return mDictionary; }
 
- private:
+ protected:
   TopologyDictionary mDictionary;                                          ///< Dictionary of topologies
   std::map<unsigned long, TopoStat> mTopologyMap;                          //! Temporary map of type <hash,TopStat>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold

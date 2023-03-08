@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file TopologyDictionary.h
-/// \brief Definition of the ClusterTopology class for ITS3
+/// \brief Definition of the TopologyDictionary class for ITS3
 
 #ifndef ALICEO2_ITS3_TOPOLOGYDICTIONARY_H
 #define ALICEO2_ITS3_TOPOLOGYDICTIONARY_H
@@ -18,21 +18,30 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITS3/CompCluster.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 
 namespace o2
 {
 namespace its3
 {
 
+class BuildTopologyDictionary;
+
 class TopologyDictionary : public itsmft::TopologyDictionary
 {
  public:
-  TopologyDictionary(itsmft::TopologyDictionary top) : itsmft::TopologyDictionary{top} {}
-
+  // array version of getClusterCoordinates
+  template <typename T = float>
+  std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl) const;
+  /// Returns the local position of a compact cluster
+  template <typename T = float>
+  static std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
   /// Returns the local position of a compact cluster
   math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl) const;
   /// Returns the local position of a compact cluster
   static math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
+
+  friend BuildTopologyDictionary;
 };
 } // namespace its3
 } // namespace o2

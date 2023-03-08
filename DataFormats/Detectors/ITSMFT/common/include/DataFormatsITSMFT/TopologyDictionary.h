@@ -72,6 +72,13 @@ class TopologyDictionary
   /// Constructor
   TopologyDictionary(const std::string& fileName);
   TopologyDictionary& operator=(const TopologyDictionary& dict) = default;
+
+  static constexpr int STopoSize = 8 * 255 + 1;
+  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
+  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
+  int mSmallTopologiesLUT[STopoSize];                ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
+
   /// constexpr for the definition of the groups of rare topologies.
   /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
   static constexpr int RowClassSpan = 4;                                                            ///< Row span of the classes of rare topologies
@@ -179,13 +186,6 @@ class TopologyDictionary
   friend BuildTopologyDictionary;
   friend LookUp;
   friend TopologyFastSimulation;
-
- private:
-  static constexpr int STopoSize = 8 * 255 + 1;
-  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
-  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
-  int mSmallTopologiesLUT[STopoSize];                ///< Look-Up Table for the topologies with 1-byte linearised matrix
-  std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 4);
 }; // namespace itsmft
