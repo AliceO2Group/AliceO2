@@ -116,3 +116,15 @@ void notBoundTable(const char* tableName)
 }
 
 } // namespace o2::soa
+
+namespace o2::framework
+{
+std::string cutString(std::string&& str)
+{
+  auto pos = str.find('_');
+  if (pos != std::string::npos) {
+    str.erase(pos);
+  }
+  return str;
+}
+} // namespace o2::framework

@@ -3037,4 +3037,9 @@ template <typename T>
 constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
 } // namespace o2::soa
 
+namespace o2::framework
+{
+std::string cutString(std::string&& str);
+}
+
 #endif // O2_FRAMEWORK_ASOA_H_

@@ -55,7 +55,7 @@ void ArrowTableSlicingCache::setCaches(std::vector<std::pair<std::string, std::s
   counts.resize(bindingsKeys.size());
 }
 
-arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table>&& table)
+arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> table)
 {
   if (table->num_rows() == 0) {
     values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>();

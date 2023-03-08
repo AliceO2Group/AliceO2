@@ -172,19 +172,10 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  static auto cutString(std::string&& str)
-  {
-    auto pos = str.find('_');
-    if (pos != std::string::npos) {
-      str.erase(pos);
-    }
-    return str;
-  }
-
   template <typename G, typename... Args>
   static void appendGroupingCandidates(std::vector<std::pair<std::string, std::string>>& bk, framework::pack<G, Args...>)
   {
-    auto key = std::string{"fIndex"} + cutString(soa::getLabelFromType<std::decay_t<G>>());
+    auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
     (appendGroupingCandidate<G, Args>(bk, key), ...);
   }
 
@@ -308,13 +299,6 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename C>
   using is_external_index_to_t = std::is_same<typename C::binding_t, T>;
 
-  template <typename Task, typename... T>
-  static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo>& infos)
-  {
-    pack<T...> p;
-    (invokeProcess<o2::framework::has_type_at_v<T>(p)>(task, inputs, std::get<T>(processTuple), infos), ...);
-  }
-
   template <typename... As>
   static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
   {
@@ -322,17 +306,11 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos)
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
 
-    auto presliceTable = [&task](auto& table) {
-      homogeneous_apply_refs([&table](auto& x) {
-        return PresliceManager<std::decay_t<decltype(x)>>::processTable(x, table);
-      },
-                             task);
-    };
     // set filtered tables for partitions with grouping
     homogeneous_apply_refs([&groupingTable](auto& x) {
       PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable);
@@ -402,7 +380,7 @@ struct AnalysisDataProcessorBuilder {
                              task);
 
       if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
-        auto slicer = GroupSlicer(groupingTable, associatedTables);
+        auto slicer = GroupSlicer(groupingTable, associatedTables, slices);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);
@@ -716,14 +694,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // execute process()
       if constexpr (has_process_v<T>) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
+        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()
       homogeneous_apply_refs(
-        [&pc, &expressionInfos, &task](auto& x) mutable {
+        [&pc, &expressionInfos, &task, &slices](auto& x) mutable {
           if constexpr (is_base_of_template_v<ProcessConfigurable, std::decay_t<decltype(x)>>) {
             if (x.value == true) {
-              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos);
+              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos, slices);
               return true;
             }
           }
