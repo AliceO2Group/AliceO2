@@ -46,7 +46,7 @@ struct ArrowTableSlicingCache {
   void setCaches(std::vector<std::pair<std::string, std::string>>&& bsks);
 
   // update slicing info cache entry (assumes it is already present)
-  arrow::Status updateCacheEntry(int pos, std::shared_ptr<arrow::Table>&& table);
+  arrow::Status updateCacheEntry(int pos, std::shared_ptr<arrow::Table> table);
 
   // get slice from cache for a given value
   SliceInfoPtr getCacheFor(std::pair<std::string, std::string> const& bindingKey) const;
