@@ -527,10 +527,10 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   auto n3 = std::get_if<None>(&context.get(10));
   BOOST_CHECK(n3 != nullptr);
 
-  //auto d3 = std::get_if<uint64_t>(&context.get(0));
-  //BOOST_CHECK(d1 == nullptr);
-  //BOOST_CHECK(d2 == nullptr);
-  //BOOST_CHECK(d3 == nullptr);
+  // auto d3 = std::get_if<uint64_t>(&context.get(0));
+  // BOOST_CHECK(d1 == nullptr);
+  // BOOST_CHECK(d2 == nullptr);
+  // BOOST_CHECK(d3 == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(DataQuery)

@@ -323,6 +323,6 @@ inline static FairMQMemoryResource* getTransportAllocator(fair::mq::TransportFac
   return *factory;
 }
 
-} //namespace o2::pmr
+} // namespace o2::pmr
 
 #endif

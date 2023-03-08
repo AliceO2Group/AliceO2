@@ -29,10 +29,10 @@ struct DigitWriterImpl {
   virtual ~DigitWriterImpl() = default;
 
   /** write rofs, digits at the current position in the output stream
-  * @param digits vector of Digits, must not be empty
-  * @param rofs vector of ROFRecord, might be empty
-  * @returns true if writing was successull, false otherwise
-  */
+   * @param digits vector of Digits, must not be empty
+   * @param rofs vector of ROFRecord, might be empty
+   * @returns true if writing was successull, false otherwise
+   */
   virtual bool write(std::ostream& out,
                      gsl::span<const Digit> digits,
                      gsl::span<const ROFRecord> rofs) = 0;

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file DigitBlockFIT.h class  for proccessing RAW data into Digits
+// file DigitBlockFIT.h class  for proccessing RAW data into Digits
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -33,7 +33,7 @@ namespace o2
 {
 namespace fit
 {
-//Temporary helper
+// Temporary helper
 namespace DigitBlockFIThelper
 {
 
@@ -72,7 +72,7 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData)
   tcmData.dataIsValid = digit.mTriggers.getDataIsValid();
   tcmData.nChanA = digit.mTriggers.getNChanA();
   tcmData.nChanC = digit.mTriggers.getNChanC();
-  const int64_t thresholdSignedInt17bit = 65535; //pow(2,17)/2-1
+  const int64_t thresholdSignedInt17bit = 65535; // pow(2,17)/2-1
   if (digit.mTriggers.getAmplA() > thresholdSignedInt17bit) {
     tcmData.amplA = thresholdSignedInt17bit;
   } else {
@@ -131,7 +131,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
     }
   }
 }
-//Interface for extracting interaction record from Digit
+// Interface for extracting interaction record from Digit
 template <typename T>
 auto GetIntRecord(const T& digit)
 {
@@ -139,7 +139,7 @@ auto GetIntRecord(const T& digit)
 }
 } // namespace DigitBlockFIThelper
 
-//Normal data taking mode
+// Normal data taking mode
 template <typename LookupTableType, typename DigitType, typename ChannelDataType>
 class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
 {
@@ -154,7 +154,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   DigitBlockFIT() = default;
   DigitBlockFIT(const DigitBlockFIT& other) = default;
   ~DigitBlockFIT() = default;
-  //Filling data from PM
+  // Filling data from PM
   template <class DataBlockType>
   auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
   {
@@ -163,15 +163,15 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
       DigitBlockFIThelper::ConvertEventData2ChData<LookupTable_t>(DigitBlockBase_t::mSubDigit, pmData, linkID, ep);
     }
   }
-  //Filling data from TCM (normal mode)
+  // Filling data from TCM (normal mode)
   template <class DataBlockType>
   auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCM, DataBlockType>::value>
   {
     auto& tcmData = dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     DigitBlockFIThelper::ConvertTCMData2Digit(DigitBlockBase_t::mDigit, tcmData);
   }
-  //Decompose digits into DataBlocks
-  //DataBlockPM
+  // Decompose digits into DataBlocks
+  // DataBlockPM
   template <class DataBlockType>
   auto decomposeDigits() const -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value, std::map<typename LookupTable_t::Topo_t, DataBlockType>>
   {
@@ -179,19 +179,19 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     std::map<Topo_t, DataBlockType> mapResult;
     std::map<Topo_t, std::reference_wrapper<const ChannelDataType>> mapTopo2SortedCh;
     std::map<Topo_t, std::size_t> mapTopoCounter;
-    //Preparing map "Topo to ChannelData refs" and map "Global Topo(FEE metadata) to number of ChannelData"
+    // Preparing map "Topo to ChannelData refs" and map "Global Topo(FEE metadata) to number of ChannelData"
     for (const auto& entry : DigitBlockBase_t::mSubDigit) {
       auto topoPM = LookupTable_t::Instance().getTopoPM(static_cast<int>(entry.getChannelID()));
       mapTopo2SortedCh.insert({topoPM, entry});
       auto pairInserted = mapTopoCounter.insert({LookupTable_t::makeGlobalTopo(topoPM), 0});
       pairInserted.first->second++;
     }
-    //Preparing map of global Topo(related to PM module) to DataBlockPMs
+    // Preparing map of global Topo(related to PM module) to DataBlockPMs
     for (const auto& entry : mapTopo2SortedCh) {
       auto pairInserted = mapResult.insert({LookupTable_t::makeGlobalTopo(entry.first), {}});
       auto& refDataBlock = pairInserted.first->second;
       if (pairInserted.second) {
-        //Header preparation
+        // Header preparation
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].startDescriptor = 0xf;
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
@@ -199,7 +199,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].nGBTWords = nWords;
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mNelements = 1;
       }
-      //Data preparation
+      // Data preparation
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
       auto& refData = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[refPos];
       refPos++;
@@ -207,12 +207,12 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     }
     return mapResult;
   }
-  //DataBlockTCM
+  // DataBlockTCM
   template <class DataBlockType>
   auto decomposeDigits() const -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCM, DataBlockType>::value, std::pair<typename LookupTable_t::Topo_t, DataBlockType>>
   {
     DataBlockType dataBlockTCM{};
-    //Header preparation
+    // Header preparation
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].nGBTWords =
@@ -221,11 +221,11 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     auto& refTCMdata = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
 
-    //Data preparation
+    // Data preparation
     DigitBlockFIThelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
     return {LookupTable_t::Instance().getTopoTCM(), dataBlockTCM};
   }
-  //Process DigitBlocks from TTree
+  // Process DigitBlocks from TTree
   template <typename DigitBlockProcType>
   static void processDigitBlocks(TTree* inputTree, DigitBlockProcType& digitBlockProc)
   {
@@ -271,7 +271,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   }
 };
 
-//TCM extended data taking mode
+// TCM extended data taking mode
 template <typename LookupTableType, typename DigitType, typename ChannelDataType, typename TriggersExtType>
 class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, TriggersExtType>
 {
@@ -286,7 +286,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   DigitBlockFIText() = default;
   DigitBlockFIText(const DigitBlockFIText& other) = default;
   ~DigitBlockFIText() = default;
-  //Filling data from PM
+  // Filling data from PM
   template <class DataBlockType>
   auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
   {
@@ -295,7 +295,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
       DigitBlockFIThelper::ConvertEventData2ChData<LookupTable_t>(DigitBlockBase_t::mSubDigit, pmData, linkID, ep);
     }
   }
-  //Filling data from TCM (extended mode)
+  // Filling data from TCM (extended mode)
   template <class DataBlockType>
   auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value>
   {
@@ -306,8 +306,8 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
       DigitBlockBase_t::mSingleSubDigit.setTrgWord(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[iTriggerWord].triggerWord, iTriggerWord);
     }
   }
-  //Decompose digits into DataBlocks
-  //DataBlockPM
+  // Decompose digits into DataBlocks
+  // DataBlockPM
   template <class DataBlockType>
   auto decomposeDigits() const -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value, std::map<typename LookupTable_t::Topo_t, DataBlockType>>
   {
@@ -315,19 +315,19 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     std::map<Topo_t, DataBlockType> mapResult;
     std::map<Topo_t, std::reference_wrapper<const ChannelDataType>> mapTopo2SortedCh;
     std::map<Topo_t, std::size_t> mapTopoCounter;
-    //Preparing map "Topo to ChannelData refs" and map "Global Topo(FEE metadata) to number of ChannelData"
+    // Preparing map "Topo to ChannelData refs" and map "Global Topo(FEE metadata) to number of ChannelData"
     for (const auto& entry : DigitBlockBase_t::mSubDigit) {
       auto topoPM = LookupTable_t::Instance().getTopoPM(static_cast<int>(entry.getChannelID()));
       mapTopo2SortedCh.insert({topoPM, entry});
       auto pairInserted = mapTopoCounter.insert({LookupTable_t::makeGlobalTopo(topoPM), 0});
       pairInserted.first->second++;
     }
-    //Preparing map of global Topo(related to PM module) to DataBlockPMs
+    // Preparing map of global Topo(related to PM module) to DataBlockPMs
     for (const auto& entry : mapTopo2SortedCh) {
       auto pairInserted = mapResult.insert({LookupTable_t::makeGlobalTopo(entry.first), {}});
       auto& refDataBlock = pairInserted.first->second;
       if (pairInserted.second) {
-        //Header preparation
+        // Header preparation
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].startDescriptor = 0xf;
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
@@ -335,7 +335,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].nGBTWords = nWords;
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mNelements = 1;
       }
-      //Data preparation
+      // Data preparation
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
       auto& refData = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[refPos];
       refPos++;
@@ -343,12 +343,12 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     }
     return mapResult;
   }
-  //DataBlockTCM
+  // DataBlockTCM
   template <class DataBlockType>
   auto decomposeDigits() const -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value, std::pair<typename LookupTable_t::Topo_t, DataBlockType>>
   {
     DataBlockType dataBlockTCM{};
-    //Header preparation
+    // Header preparation
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].nGBTWords = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::MaxNwords +
@@ -356,10 +356,10 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
 
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mNelements = 1;
     auto& refTCMdata = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
-    //Data preparation
+    // Data preparation
     DigitBlockFIThelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
-    //Extended mode
+    // Extended mode
     static_assert(std::decay<decltype(dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[0])>::type::MaxNelements == std::tuple_size<decltype(DigitBlockBase_t::mSingleSubDigit.mTriggerWords)>::value);
     for (int i = 0; i < std::decay<decltype(dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[0])>::type::MaxNelements; i++) {
       dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[i].triggerWord = DigitBlockBase_t::mSingleSubDigit.mTriggerWords[i];

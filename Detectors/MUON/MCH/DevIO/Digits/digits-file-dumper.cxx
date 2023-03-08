@@ -22,7 +22,7 @@
 namespace po = boost::program_options;
 
 /**
- * o2-mch-digits-file-dumper is a small helper program to inspect 
+ * o2-mch-digits-file-dumper is a small helper program to inspect
  * MCH digit binary files (the ones that are not in CTF format)
  */
 

@@ -73,10 +73,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   LOG(info) << "WorkflowSpec FLPWorkflow";
-  //Type aliases
-  //using RawReaderFV0trgInput = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm,true>;
+  // Type aliases
+  // using RawReaderFV0trgInput = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm,true>;
   using RawReaderFV0 = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm, false>;
-  //using RawReaderFV0trgInputExt = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseExt,true>;
+  // using RawReaderFV0trgInputExt = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseExt,true>;
   using RawReaderFV0ext = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseExt, false>;
   using MCLabelCont = o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>;
   o2::header::DataOrigin dataOrigin = o2::header::gDataOriginFV0;

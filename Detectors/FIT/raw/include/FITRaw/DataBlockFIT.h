@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file DataBlockFIT.h class  for RAW data format data blocks at FIT
+// file DataBlockFIT.h class  for RAW data format data blocks at FIT
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -29,9 +29,9 @@ namespace o2
 {
 namespace fit
 {
-//FIT DATA BLOCK DEFINITIONS
+// FIT DATA BLOCK DEFINITIONS
 
-//standard data block from PM
+// standard data block from PM
 template <typename RawHeaderPMtype, typename RawDataPMtype>
 class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPMtype>
 {
@@ -56,8 +56,8 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPM
     DataBlockWrapper<RawDataPM>::serialize(vecBytes, DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
     if (DataBlockWrapper<RawDataPM>::mNelements == 0) {
@@ -65,13 +65,13 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPM
       return;
     }
     if (DataBlockWrapper<RawDataPM>::mNelements % 2 == 0 && DataBlockWrapper<RawDataPM>::mData[DataBlockWrapper<RawDataPM>::mNelements - 1].channelID == 0) {
-      DataBlockWrapper<RawDataPM>::mNelements--; //in case of half GBT-word filling
+      DataBlockWrapper<RawDataPM>::mNelements--; // in case of half GBT-word filling
     }
-    //TODO, Descriptor checking, Channel range
+    // TODO, Descriptor checking, Channel range
   }
 };
 
-//standard data block from TCM
+// standard data block from TCM
 template <typename RawHeaderTCMtype, typename RawDataTCMtype>
 class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCMtype, RawDataTCMtype>
 {
@@ -96,15 +96,15 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCMtype, RawDat
     DataBlockWrapper<RawDataTCM>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-    //TODO, Descriptor checking
+    // TODO, Descriptor checking
   }
 };
 
-//extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
+// extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
 template <typename RawHeaderTCMextType, typename RawDataTCMtype, typename RawDataTCMextType>
 class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>
 {
@@ -133,12 +133,12 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextTyp
     DataBlockWrapper<RawDataTCMext>::serialize(vecBytes, DataBlockWrapper<RawHeaderTCMext>::mData[0].nGBTWords - DataBlockWrapper<RawDataTCM>::MaxNwords, destBytes);
     return vecBytes;
   }
-  //Custom sanity checking for current deserialized block
-  // put here code for raw data checking
+  // Custom sanity checking for current deserialized block
+  //  put here code for raw data checking
   void sanityCheck(bool& flag)
   {
 
-    //TODO, Descriptor checking
+    // TODO, Descriptor checking
   }
 };
 

@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
     BOOST_CHECK(message.Size() == 2);
     BOOST_CHECK(vec.size() == 0);
     BOOST_CHECK(message[0].GetSize() == sizeofDataHeader);
-    BOOST_CHECK(message[1].GetSize() == 2 * sizeof(elem)); //check the size of the buffer is set correctly
+    BOOST_CHECK(message[1].GetSize() == 2 * sizeof(elem)); // check the size of the buffer is set correctly
 
     //check contents
     int sum{0};

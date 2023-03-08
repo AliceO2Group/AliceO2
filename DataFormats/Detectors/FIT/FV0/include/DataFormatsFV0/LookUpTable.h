@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawEventData.h class  for RAW data format
+// file RawEventData.h class  for RAW data format
 // Alla.Maevskaya
 //  simple look-up table just to feed digits 2 raw procedure.
-//Will be really set after module/electronics connections
+// Will be really set after module/electronics connections
 //
 #ifndef ALICEO2_FV0_LOOKUPTABLE_H_
 #define ALICEO2_FV0_LOOKUPTABLE_H_
@@ -42,7 +42,7 @@ inline bool operator<(Topo const& a, Topo const& b)
 namespace new_lut
 
 {
-//Singleton for LookUpTable
+// Singleton for LookUpTable
 template <typename LUT>
 class SingleLUT : public LUT
 {
@@ -57,7 +57,7 @@ class SingleLUT : public LUT
   static constexpr char sDefaultLUTpath[] = "FV0/Config/LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
-  //Before instance() call, setup url and path
+  // Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
@@ -69,7 +69,7 @@ class SingleLUT : public LUT
     return instanceLUT;
   }
 };
-} //namespace new_lut
+} // namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
 

@@ -37,9 +37,9 @@ BOOST_AUTO_TEST_CASE(TestStaticFor)
     BOOST_CHECK_EQUAL(i, 0);
 
     // the following checks will fail
-    //static_assert(std::is_same_v<decltype(i), std::integral_constant<int, 1>>);
-    //BOOST_CHECK_EQUAL(i.value, 1);
-    //BOOST_CHECK_EQUAL(i, 1);
+    // static_assert(std::is_same_v<decltype(i), std::integral_constant<int, 1>>);
+    // BOOST_CHECK_EQUAL(i.value, 1);
+    // BOOST_CHECK_EQUAL(i, 1);
   });
 
   // dont start at 0

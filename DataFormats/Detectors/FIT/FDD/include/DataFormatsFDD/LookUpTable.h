@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawEventData.h class  for RAW data format
+// file RawEventData.h class  for RAW data format
 // Alla.Maevskaya
 //  simple look-up table just to feed digits 2 raw procedure.
-//Will be really set after module/electronics connections
+// Will be really set after module/electronics connections
 //
 #ifndef ALICEO2_FDD_LOOKUPTABLE_H_
 #define ALICEO2_FDD_LOOKUPTABLE_H_
@@ -84,7 +84,7 @@ class LookUpTable
   bool isTCM(int link, int ep) const { return link == 2 && ep == 0; }
   Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
   Topo getTopoTCM() const { return Topo{getTcmLink(), 0}; }
-  std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
+  std::size_t getNchannels() const { return mTopoVector.size(); } // get number of global PM channels
   void printFullMap() const
   {
     LOG(info) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
@@ -119,7 +119,7 @@ class LookUpTable
 
 namespace deprecated
 {
-//Singleton for LookUpTable
+// Singleton for LookUpTable
 class SingleLUT : public LookUpTable
 {
  private:
@@ -135,8 +135,8 @@ class SingleLUT : public LookUpTable
     static SingleLUT instanceLUT;
     return instanceLUT;
   }
-  //Temporary
-  //Making topo for FEE recognizing(Local channelID is supressed)
+  // Temporary
+  // Making topo for FEE recognizing(Local channelID is supressed)
   static Topo_t makeGlobalTopo(const Topo_t& topo)
   {
     return Topo_t{topo.modLink, 0};
@@ -145,15 +145,15 @@ class SingleLUT : public LookUpTable
   {
     return topo.modCh;
   }
-  //Prepare full map for FEE metadata
+  // Prepare full map for FEE metadata
   template <typename RDHtype, typename RDHhelper = void>
   auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
   {
     std::map<Topo_t, RDHtype> mapResult;
-    const uint16_t cruID = 0;      //constant
-    const uint32_t endPointID = 0; //constant
-    uint64_t feeID = 0;            //increments
-    //PM
+    const uint16_t cruID = 0;      // constant
+    const uint32_t endPointID = 0; // constant
+    uint64_t feeID = 0;            // increments
+    // PM
     for (int iCh = 0; iCh < Instance().getNchannels(); iCh++) {
       auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoPM(iCh)), RDHtype{}});
       if (pairInserted.second) {
@@ -164,7 +164,7 @@ class SingleLUT : public LookUpTable
           rdhObj.endPointID = endPointID;
           rdhObj.feeId = feeID;
           rdhObj.cruID = cruID;
-        } else //Using RDHUtils
+        } else // Using RDHUtils
         {
           RDHhelper::setLinkID(&rdhObj, topoObj.modLink);
           RDHhelper::setEndPointID(&rdhObj, endPointID);
@@ -174,7 +174,7 @@ class SingleLUT : public LookUpTable
         feeID++;
       }
     }
-    //TCM
+    // TCM
     {
       auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoTCM()), RDHtype{}});
       if (pairInserted.second) {
@@ -185,7 +185,7 @@ class SingleLUT : public LookUpTable
           rdhObj.endPointID = endPointID;
           rdhObj.feeId = feeID;
           rdhObj.cruID = cruID;
-        } else //Using RDHUtils
+        } else // Using RDHUtils
         {
           RDHhelper::setLinkID(&rdhObj, topoObj.modLink);
           RDHhelper::setEndPointID(&rdhObj, endPointID);
@@ -203,7 +203,7 @@ class SingleLUT : public LookUpTable
 } // namespace deprecated
 namespace new_lut
 {
-//Singleton for LookUpTable
+// Singleton for LookUpTable
 template <typename LUT>
 class SingleLUT : public LUT
 {
@@ -218,7 +218,7 @@ class SingleLUT : public LUT
   static constexpr char sDefaultLUTpath[] = "FDD/Config/LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
-  //Before instance() call, setup url and path
+  // Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
@@ -230,7 +230,7 @@ class SingleLUT : public LUT
     return instanceLUT;
   }
 };
-} //namespace new_lut
+} // namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
 

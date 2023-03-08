@@ -174,7 +174,6 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
   BOOST_CHECK_EQUAL(tt2->threadId, 1);
 }
 
-
 BOOST_AUTO_TEST_CASE(TestStreamServices)
 {
   using namespace o2::framework;

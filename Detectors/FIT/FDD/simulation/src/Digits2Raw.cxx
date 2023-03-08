@@ -132,10 +132,10 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
   float ampA = mTriggers.getAmplA();
   float ampC = mTriggers.getAmplC();
   if (ampA > 131071) {
-    ampA = 131071; //2^17
+    ampA = 131071; // 2^17
   }
   if (ampC > 131071) {
-    ampC = 131071; //2^17
+    ampC = 131071; // 2^17
   }
   tcmdata.vertex = mTriggers.getVertex();
   tcmdata.orA = mTriggers.getOrA();
@@ -163,7 +163,7 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
              << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
              << " size " << sizeof(tcmdata);
 
-  auto data = mRawEventData.to_vector(kTRUE); //for tcm module
+  auto data = mRawEventData.to_vector(kTRUE); // for tcm module
   uint32_t linkId = uint32_t(sTcmLink);
   uint64_t feeId = uint64_t(sTcmLink);
   mWriter.addData(feeId, sCruId, linkId, sEndPointId, intRecord, data);

@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawEventData.h class  for RAW data format
-//Alla.Maevskaya@cern.ch
+// file RawEventData.h class  for RAW data format
+// Alla.Maevskaya@cern.ch
 // with Artur.Furs
 //
 #ifndef ALICEO2_FT0_RAWEVENTDATA_H_
@@ -32,7 +32,7 @@ namespace o2
 {
 namespace ft0
 {
-//constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
+// constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
 static constexpr int Nchannels_FT0 = o2::ft0::Constants::sNCHANNELS_PM;
 using EventHeader = o2::fit::EventHeader;
 using EventData = o2::fit::EventData;

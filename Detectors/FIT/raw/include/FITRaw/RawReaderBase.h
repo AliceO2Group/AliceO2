@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawReaderBase.h base class for RAW data reading
+// file RawReaderBase.h base class for RAW data reading
 //
 // Artur.Furs
 // afurs@cern.ch
 //
-//Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for process
+// Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for process
 
 #ifndef ALICEO2_FIT_RAWREADERBASE_H_
 #define ALICEO2_FIT_RAWREADERBASE_H_
@@ -55,7 +55,7 @@ class RawReaderBase
     typedef typename boost::mpl::find<VecDataBlocks_t, T>::type it_t;
     return std::get<it_t::pos::value>(mTupleVecDataBlocks);
   }
-  //decoding binary data into data blocks
+  // decoding binary data into data blocks
   template <class DataBlockType>
   size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
   {
@@ -65,7 +65,7 @@ class RawReaderBase
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
       if (refDataBlock.mSize == 16) {
-        //exclude data block in case of single header(no data, total size == 16 bytes)
+        // exclude data block in case of single header(no data, total size == 16 bytes)
         vecDataBlocks.pop_back();
         continue;
       }
@@ -79,7 +79,7 @@ class RawReaderBase
     return srcPos;
   }
 
-  //processing data blocks into digits
+  // processing data blocks into digits
   template <class DataBlockType, typename... T>
   void processBinaryData(gsl::span<const uint8_t> payload, T&&... feeParameters)
   {
@@ -108,7 +108,7 @@ class RawReaderBase
     }
     */
   }
-  //pop digits
+  // pop digits
   template <typename... VecDigitType>
   int getDigits(VecDigitType&... vecDigit)
   {
@@ -121,8 +121,8 @@ class RawReaderBase
   }
 
  private:
-  //Check for unique DataBlock classes
-  //Line below will not be compiled in case of duplicates among DataBlockTypes
+  // Check for unique DataBlock classes
+  // Line below will not be compiled in case of duplicates among DataBlockTypes
   typedef std::void_t<std::enable_if_t<boost::mpl::count<boost::mpl::set<DataBlockTypes...>, DataBlockTypes>::value == 1>...> CheckUniqueTypes;
 };
 

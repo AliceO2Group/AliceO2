@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file DataBlockFDD.h class  for RAW data format data blocks at FDD
+// file DataBlockFDD.h class  for RAW data format data blocks at FDD
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -24,14 +24,14 @@ namespace o2
 {
 namespace fdd
 {
-//Raw event data for FDD
+// Raw event data for FDD
 using RawHeaderPM = o2::fdd::EventHeader;
 using RawDataPM = o2::fdd::EventData;
 using RawHeaderTCM = o2::fdd::EventHeader;
 using RawDataTCM = o2::fdd::TCMdata;
 using RawHeaderTCMext = o2::fdd::EventHeader;
 using RawDataTCMext = o2::fdd::TCMdataExtended;
-//Data block for FDD modules
+// Data block for FDD modules
 using DataBlockPM = o2::fit::DataBlockPM<RawHeaderPM, RawDataPM>;
 using DataBlockTCM = o2::fit::DataBlockTCM<RawHeaderTCM, RawDataTCM>;
 using DataBlockTCMext = o2::fit::DataBlockTCMext<RawHeaderTCMext, RawDataTCM, RawDataTCMext>;

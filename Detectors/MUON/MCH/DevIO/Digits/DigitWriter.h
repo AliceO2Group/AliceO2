@@ -33,16 +33,16 @@ class DigitWriter
 {
  public:
   /** Create a text digit writer
-  * @param os output stream to write to
-  */
+   * @param os output stream to write to
+   */
   DigitWriter(std::ostream& os);
 
   /** Create a binary digit writer
-  * @param os output stream to write to
-  * @param dff the digit file format to be used
-  * @param maxSize if not zero indicate that writing should stop past
-  * this size, expressed in KB.
-  */
+   * @param os output stream to write to
+   * @param dff the digit file format to be used
+   * @param maxSize if not zero indicate that writing should stop past
+   * this size, expressed in KB.
+   */
   DigitWriter(std::ostream& os, DigitFileFormat format,
               size_t maxSize = std::numeric_limits<size_t>::max());
 
@@ -50,10 +50,10 @@ class DigitWriter
   ~DigitWriter();
 
   /** write rofs, digits at the current position in the output stream
-  * @param digits vector of Digits, must not be empty
-  * @param rofs vector of ROFRecord, might be empty
-  * @returns true if writing was successull, false otherwise
-  */
+   * @param digits vector of Digits, must not be empty
+   * @param rofs vector of ROFRecord, might be empty
+   * @returns true if writing was successull, false otherwise
+   */
   bool write(gsl::span<const Digit> digits,
              gsl::span<const ROFRecord> rofs = {});
 

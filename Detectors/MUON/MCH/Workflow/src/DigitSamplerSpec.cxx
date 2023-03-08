@@ -96,7 +96,7 @@ class DigitSamplerTask
     // stop if requested event(s) already processed or eof reached
     if (mNevents == 0 || (mEvent >= 0 && mCurrentEvent > mEvent) || mInputFile.peek() == EOF) {
       pc.services().get<ControlService>().endOfStream();
-      //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      // pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       return;
     }
 

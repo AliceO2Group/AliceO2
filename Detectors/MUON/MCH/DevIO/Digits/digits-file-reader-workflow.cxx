@@ -143,8 +143,8 @@ o2::framework::DataProcessorSpec getDigitsFileReaderSpec(const char* specName, b
 }
 
 /** add workflow options. Note that customization needs to be declared
-* before including Framework/runDataProcessing
-*/
+ * before including Framework/runDataProcessing
+ */
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back(OPTNAME_RUN2, VariantType::Bool, false,

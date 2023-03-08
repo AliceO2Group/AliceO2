@@ -46,10 +46,10 @@ class DigitReaderV0 : public DigitReaderImpl
 struct DigitWriterV0 : public DigitWriterImpl {
 
   /** write rofs, digits at the current position in the output stream
-  * @param digits vector of Digits, must not be empty
-  * @param rofs vector of ROFRecord, might be empty
-  * @returns true if writing was successull, false otherwise
-  */
+   * @param digits vector of Digits, must not be empty
+   * @param rofs vector of ROFRecord, might be empty
+   * @returns true if writing was successull, false otherwise
+   */
   bool write(std::ostream& out,
              gsl::span<const Digit> digits,
              gsl::span<const ROFRecord> rofs) override;

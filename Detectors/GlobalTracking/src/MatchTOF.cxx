@@ -1109,8 +1109,8 @@ void MatchTOF::selectBestMatches()
     if (mMatchedClustersIndex[matchingPair.getTOFClIndex()] != -1) { // the cluster was already filled
       continue;
     }
-    mMatchedTracksIndex[trkType][itrk] = mMatchedTracks[trkType].size();                                              // index of the MatchInfoTOF correspoding to this track
-    mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[trkType][itrk];                         // index of the track that was matched to this cluster
+    mMatchedTracksIndex[trkType][itrk] = mMatchedTracks[trkType].size();                      // index of the MatchInfoTOF correspoding to this track
+    mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[trkType][itrk]; // index of the track that was matched to this cluster
 
     int trkTypeSplitted = trkType;
     auto sourceID = matchingPair.getTrackRef().getSource();

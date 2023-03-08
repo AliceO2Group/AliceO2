@@ -179,11 +179,11 @@ TF createDummyData(int ndigits, int nrofs, uint32_t firstOrbit)
 }
 
 /** The test data is used to check the internal consistency
-  * of the reader and writer (i.e. data written by the writer must be readable
-  * by the reader).
-  * A complete test requires, in addition, the usage of externally created data
-  * (see for instance V0File in testDigitIOV0)
-  */
+ * of the reader and writer (i.e. data written by the writer must be readable
+ * by the reader).
+ * A complete test requires, in addition, the usage of externally created data
+ * (see for instance V0File in testDigitIOV0)
+ */
 constexpr int NROF_1 = 1;
 constexpr int NROF_2 = 1;
 constexpr int NROF_3 = 1;
