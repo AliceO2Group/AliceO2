@@ -2201,7 +2201,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   float xtrg = 0;
   // quick check with straight line propagtion
   if (!outTr.getXatLabR(XEMCAL, xtrg, prop->getNominalBz(), o2::track::DirType::DirOutward) ||
-      !(std::abs(outTr.getZAt(xtrg, 0)) > ZEMCALFastCheck) ||
+      (std::abs(outTr.getZAt(xtrg, 0)) > ZEMCALFastCheck) ||
       !prop->PropagateToXBxByBz(outTr, xtrg, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
     LOGP(debug, "preliminary step: does not reach R={} {}", XEMCAL, outTr.asString());
     return;
@@ -2222,7 +2222,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
     while (ntri < 2) {
       auto outTrTmp = outTr;
       float alpha = o2::math_utils::sector2Angle(sector);
-      if (!outTrTmp.rotateParam(alpha) ||
+      if ((std::abs(outTr.getZ()) > ZEMCALFastCheck) || !outTrTmp.rotateParam(alpha) ||
           !prop->PropagateToXBxByBz(outTrTmp, xprop, 0.95, 10, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
         LOGP(debug, "failed on rotation to {} (sector {}) or propagation to X={} {}", alpha, sector, xprop, outTrTmp.asString());
         return false;
