@@ -31,7 +31,7 @@ SignalContainer PileupTool::addSignals(std::deque<std::array<SignalContainer, co
         if (signalArray.firstTBtime < triggerTime) {
           pileupSignalBecomesObsolete = true;
           if ((triggerTime - signalArray.firstTBtime) > TRDSimParams::Instance().readoutTimeNS) { // OS: READOUT_TIME should actually be drift time (we want to ignore signals which don't contribute signal anymore at triggerTime)
-            continue;                                                              // ignore the signal if it  is too old.
+            continue;                                                                             // ignore the signal if it  is too old.
           }
           // add only what's leftover from this signal
           // 0.01 = samplingRate/1000, 1/1000 to go from ns to micro-s, the sampling rate is in 1/micro-s
