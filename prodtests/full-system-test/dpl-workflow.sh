@@ -197,7 +197,7 @@ if [[ $GPUTYPE == "HIP" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
   export TIMESLICEOFFSET=$(($GPU_FIRST_ID + ($NUMAGPUIDS != 0 ? ($NGPUS * $NUMAID) : 0)))
   GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
-  export HSA_NO_SCRATCH_RECLAIM=1
+  [[ "0$EPN_NODE_MI100" != "01" ]] && export HSA_NO_SCRATCH_RECLAIM=1
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
 else
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
