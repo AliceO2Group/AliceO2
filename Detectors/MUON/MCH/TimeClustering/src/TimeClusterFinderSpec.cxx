@@ -95,7 +95,7 @@ class TimeClusterFinderTask
 
     auto stop = [this]() {
       if (mTFcount) {
-        LOGP(info, "\nduration = {} us / TF\n", mTimeProcess.count() * 1000 / mTFcount);
+        LOGP(info, "duration = {} us / TF", mTimeProcess.count() * 1000 / mTFcount);
       }
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);

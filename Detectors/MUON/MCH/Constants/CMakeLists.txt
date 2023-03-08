@@ -11,3 +11,11 @@
 
 o2_add_header_only_library(MCHConstants)
 
+
+if(BUILD_TESTING)
+  o2_add_test(constants
+              SOURCES test/testDetectionElements.cxx
+              COMPONENT_NAME mch
+              LABELS "muon;mch"
+              PUBLIC_LINK_LIBRARIES O2::MCHConstants)
+endif()

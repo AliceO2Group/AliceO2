@@ -64,22 +64,6 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   // fix the timestamp early
   uint64_t timestamp = confref.getTimestamp();
-  // fix or check timestamp based on given run number if any
-  if (confref.getRunNumber() != -1) {
-    // if we have a run number we should fix or check the timestamp
-
-    // fetch the actual timestamp ranges for this run
-    auto soreor = ccdbmgr.getRunDuration(confref.getRunNumber());
-    if (confref.getConfigData().mTimestampMode == o2::conf::kNow) {
-      timestamp = soreor.first;
-      LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
-      // communicate decision back to sim config object
-      confref.getConfigData().mTimestampMode = o2::conf::kRun;
-      confref.getConfigData().mTimestamp = timestamp;
-    } else if (confref.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
-      LOG(error) << "The given timestamp is incompatible with the given run number";
-    }
-  }
   ccdbmgr.setTimestamp(timestamp);
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
   // try to verify connection

@@ -30,7 +30,7 @@ constexpr uint16_t NumberOfDualSampas = 16820;
 /** getDsIndex returns the unique index of one dual sampa. */
 DsIndex getDsIndex(const o2::mch::raw::DsDetId& dsDetId);
 
-/** decodeDsIndex converts a unique dual sampa index into a pair (deId,dsId). */
+/** getDsDetId converts a unique dual sampa index into a pair (deId,dsId). */
 o2::mch::raw::DsDetId getDsDetId(DsIndex dsIndex);
 
 /** get the number of channels for a given dual sampa (will be 64 in most of the cases. */

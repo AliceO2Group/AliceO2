@@ -440,7 +440,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
   return ServiceSpec{
     .name = "decongestion",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      DecongestionService* decongestion = new DecongestionService();
+      auto* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
         if (input.matcher.lifetime == Lifetime::Timeframe) {
           LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
@@ -453,7 +453,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
     },
     .postForwarding = [](ProcessingContext& ctx, void* service) {
-      DecongestionService* decongestion = reinterpret_cast<DecongestionService*>(service);
+      auto* decongestion = reinterpret_cast<DecongestionService*>(service);
       if (decongestion->isFirstInTopology == false) {
         LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
         return;
@@ -492,7 +492,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .domainInfoUpdated = [](ServiceRegistryRef services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
-      DecongestionService& decongestion = services.get<DecongestionService>();
+      auto& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
       auto& timesliceIndex = services.get<TimesliceIndex>();
       auto& proxy = services.get<FairMQDeviceProxy>();
@@ -510,11 +510,10 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
-      LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
       auto &queue = services.get<AsyncQueue>();
       auto& spec = services.get<DeviceSpec const>();
       auto *device = services.get<RawDeviceService>().device();
-      /// We use the oldest possible timeslice to debuounce, so that only the latest one
+      /// We use the oldest possible timeslice to debounce, so that only the latest one
       /// at the end of one iteration is sent.
       LOGP(debug, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
       AsyncQueueHelpers::post(
@@ -553,13 +552,13 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
   return ServiceSpec{
     .name = "threadpool",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      ThreadPool* pool = new ThreadPool();
+      auto* pool = new ThreadPool();
       // FIXME: this will require some extra argument for the configuration context of a service
       pool->poolSize = 1;
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
     .configure = [](InitContext&, void* service) -> void* {
-      ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
+      auto* t = reinterpret_cast<ThreadPool*>(service);
       // FIXME: this will require some extra argument for the configuration context of a service
       t->poolSize = 1;
       return service;

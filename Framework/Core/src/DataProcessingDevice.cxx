@@ -1616,6 +1616,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     // We relay execution to make sure we have a complete set of parts
     // available.
     bool hasBackpressure = false;
+    size_t minBackpressureTimeslice = -1;
     bool hasData = false;
     size_t oldestPossibleTimeslice = -1;
     static std::vector<int> ordering;
@@ -1665,8 +1666,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
-          switch (relayed) {
-            case DataRelayer::Backpressured:
+          switch (relayed.type) {
+            case DataRelayer::RelayChoice::Type::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
                 LOGP(alarm, "Backpressure on channel {}. Waiting.", info.channel->GetName());
                 auto& monitoring = ref.get<o2::monitoring::Monitoring>();
@@ -1676,10 +1677,11 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
               }
               policy.backpressure(info);
               hasBackpressure = true;
+              minBackpressureTimeslice = std::min<size_t>(minBackpressureTimeslice, relayed.timeslice.value);
               break;
-            case DataRelayer::Dropped:
-            case DataRelayer::Invalid:
-            case DataRelayer::WillRelay:
+            case DataRelayer::RelayChoice::Type::Dropped:
+            case DataRelayer::RelayChoice::Type::Invalid:
+            case DataRelayer::RelayChoice::Type::WillRelay:
               if (info.normalOpsNotified == false && info.backpressureNotified == true) {
                 LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
                 auto& monitoring = ref.get<o2::monitoring::Monitoring>();
@@ -1710,9 +1712,6 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         case InputType::DomainInfo: {
           /// We have back pressure, therefore we do not process DomainInfo anymore.
           /// until the previous message are processed.
-          if (hasBackpressure) {
-            break;
-          }
           auto &context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
@@ -1722,6 +1721,9 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
           //        split parts.
 
           auto dih = o2::header::get<DomainInfoHeader*>(parts.At(headerIndex)->GetData());
+          if (hasBackpressure && dih->oldestPossibleTimeslice >= minBackpressureTimeslice) {
+            break;
+          }
           oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
           LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
           parts.At(headerIndex).reset(nullptr);
@@ -1855,7 +1857,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         // - "part" denotes a sequence of messages belonging together, the first message of the
         //   sequence is the header message
         // - each part has one or more payload messages
-        // - InputRecord provides all payloads as header-payload pairs
+        // - InputRecord provides all payloads as header-payload pair
         auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
         auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
         headerptr = static_cast<char const*>(headerMsg->GetData());

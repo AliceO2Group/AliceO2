@@ -97,6 +97,12 @@ class SimConfig
     return conf;
   }
 
+  // makes a new instance that can be used as a local object
+  static SimConfig make()
+  {
+    return SimConfig();
+  }
+
   static void initOptions(boost::program_options::options_description&);
 
   // initializes the configuration from command line arguments

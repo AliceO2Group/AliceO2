@@ -8,8 +8,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef ALICEO2_EMCAL_RAWHEADERSTREAM_H
-#define ALICEO2_EMCAL_RAWHEADERSTREAM_H
-// Temporary file, needed for compatibility in the QC package
-#include "DetectorsRaw/RawHeaderStream.h"
-#endif // ALICEO2_EMCAL_RAWHEADERSTREAM_H
+
+#ifdef __CLING__
+
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+
+#pragma link C++ class o2::mch::ChannelCode + ;
+#pragma link C++ class std::vector < o2::mch::ChannelCode> + ;
+
+#endif
