@@ -139,7 +139,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         }
       }
 
-      mDigitizer.setEventTime(triggerTime.getTimeNS());
+      mDigitizer.setEventTime(currentTime.getTimeNS());
       if (isNewTrigger) {
         mDigitizer.setTriggerTime(triggerTime.getTimeNS());
         currTrig = collID;
