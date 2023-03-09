@@ -119,7 +119,7 @@ bool MatchITSTPCQC::init()
   mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   mPhiVsPt = new TH2F("mPhiVsPt", "Phi distribution of matched tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 100, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
   mPhiVsPtTPC = new TH2F("mPhiVsPtTPC", "Phi distribution of TPC tracks vs Pt; #it{p}_{T} [GeV#it{c}]; Phi [rad]; dNdPhi", 100, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
-  mFractionITSTPCmatchPhiVsPt = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; #it{p}_{T} [GeV#it{c}]; Phi [rad]; Eff", 100, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
+  mFractionITSTPCmatchPhiVsPt = new TEfficiency("mFractionITSTPCmatchPhiVsPt", "Fraction of ITSTPC matched tracks vs Phi; #it{p}_{T} [GeV#it{c}]; Phi [rad]; Eff", 100, 0.f, 20.f, 100, 0.f, 2 * TMath::Pi());
   // Eta
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mEtaTPC = new TH1F("mEtaTPC", "Eta distribution of TPC tracks; Eta; dNdEta", 100, -2.f, 2.f);
