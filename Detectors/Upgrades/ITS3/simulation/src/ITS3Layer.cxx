@@ -43,7 +43,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
 
   double rmin = mRadius;
   double rmax = rmin + mChipThickness;
-  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard-coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
