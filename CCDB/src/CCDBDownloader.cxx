@@ -408,7 +408,7 @@ CURLcode CCDBDownloader::perform(CURL* handle)
   return batchBlockingPerform(handleVector).back();
 }
 
-std::vector<CURLcode>* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> handleVector, bool* completionFlag)
+std::vector<CURLcode>* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag)
 {
   auto codeVector = new std::vector<CURLcode>(handleVector.size());
   size_t* requestsLeft = new size_t();
@@ -433,7 +433,7 @@ std::vector<CURLcode>* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> han
   return codeVector;
 }
 
-std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> handleVector)
+std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> const& handleVector)
 {
   std::condition_variable cv;
   std::mutex cv_m;
@@ -461,7 +461,7 @@ std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> ha
   return codeVector;
 }
 
-std::vector<CURLcode>* CCDBDownloader::asynchBatchPerformWithCallback(std::vector<CURL*> handleVector, bool* completionFlag, void (*cbFun)(void*), void* cbData)
+std::vector<CURLcode>* CCDBDownloader::asynchBatchPerformWithCallback(std::vector<CURL*> const& handleVector, bool* completionFlag, void (*cbFun)(void*), void* cbData)
 {
   auto codeVector = new std::vector<CURLcode>(handleVector.size());
   size_t* requestsLeft = new size_t();
