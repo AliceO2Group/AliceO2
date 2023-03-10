@@ -45,7 +45,7 @@ enum class MergedObjectTimespan {
 };
 
 enum class PublicationDecision {
-  EachNSeconds,       // Merged object is published each N seconds. This can evolve over time, thus we expect pairs specifying N:duration1, M:duration2...
+  EachNSeconds, // Merged object is published each N seconds. This can evolve over time, thus we expect pairs specifying N:duration1, M:duration2...
 };
 
 enum class TopologySize {
