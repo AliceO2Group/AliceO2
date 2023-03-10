@@ -26,7 +26,6 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
-
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -65,6 +64,9 @@ void DigitizerTRU::init()
   //   mDigits.reserve();
   // }
 
+  mTriggerMap = new TriggerMappingV2(mGeometry);
+  LZERO.setGeometry(mGeometry);
+  LZERO.init();
   mAmplitudeInTimeBins.clear();
 
   // for each phase create a template distribution
@@ -83,11 +85,9 @@ void DigitizerTRU::init()
   //   mAmplitudeInTimeBins.push_back(sf);
   // }
 
-
-
   // Parameters from data (@Martin Poghosyan)
-  tau = 61.45;  // 61.45 ns, according to the fact that the
-                      // RawResponse.SetParameter(1, 0.25 * i); where 0.25 are 25 ns
+  tau = 61.45; // 61.45 ns, according to the fact that the
+               // RawResponse.SetParameter(1, 0.25 * i); where 0.25 are 25 ns
   N = 2.;
   // for each phase create a template distribution
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
@@ -103,7 +103,6 @@ void DigitizerTRU::init()
   if (mEnableDebugStreaming) {
     mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root", "RECREATE");
   }
-
 }
 
 // //_______________________________________________________________________
@@ -141,80 +140,112 @@ void DigitizerTRU::clear()
   mDigits.clear();
 }
 //_______________________________________________________________________
-// void DigitizerTRU::process(const std::vector<LabeledDigit> &labeledSDigits)
-void DigitizerTRU::process(const std::vector<Digit> &labeledSDigits)
+// void DigitizerTRU::process(const std::vector<Digit>& labeledSDigits)
+void DigitizerTRU::process(const gsl::span<const Digit> labeledSDigits)
 {
   LOG(info) << "DIG SIMONE process in digitizer ";
+  int i = 0;
 
-  for (auto labeleddigit : labeledSDigits)
-  {
+  auto processedSDigits = makeAnaloguesFastorSums(labeledSDigits);
 
-    LOG(info) << "DIG SIMONE process in digitizer: labeleddigit.getTower ";
+  for (auto vectorelement : processedSDigits) {
+    // for (auto labeleddigit : processedSDigits) {
+
+    int& fastorID = std::get<0>(vectorelement);
+    auto& labeleddigit = std::get<1>(vectorelement);
+
+    // LOG(info) << "DIG SIMONE process in digitizer: labeleddigit.getTower ";
     int tower = labeleddigit.getTower();
 
-    LOG(info) << "DIG SIMONE process in digitizer: before sampleSDigit ";
+    // LOG(info) << "DIG SIMONE process in digitizer: before sampleSDigit ";
     // sampleSDigit(labeleddigit.getDigit());
     sampleSDigit(labeleddigit);
-    LOG(info) << "DIG SIMONE process in digitizer: after sampleSDigit ";
+    // LOG(info) << "DIG SIMONE process in digitizer: after sampleSDigit ";
 
-    if (mTempDigitVector.size() == 0)
-    {
+    if (mTempDigitVector.size() == 0) {
       continue;
-      LOG(info) << "DIG SIMONE process in digitizer: continue ";
+      // LOG(info) << "DIG SIMONE process in digitizer: continue ";
     }
 
     LOG(info) << "DIG SIMONE process in digitizer: before addDigits ";
-    mDigits.addDigits(tower, mTempDigitVector);
+    mDigits.addDigits(fastorID, mTempDigitVector);
+    // mDigits.addDigits(tower, mTempDigitVector);
     LOG(info) << "DIG SIMONE process in digitizer: after addDigits ";
-
+    ++i;
+    LOG(info) << "DIG SIMONE process in digitizer: after addDigits processed   " << i;
   }
 }
 //_______________________________________________________________________
-void DigitizerTRU::sampleSDigit(const Digit &sDigit)
+// std::vector<Digit> DigitizerTRU::makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits)
+std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits)
 {
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before mTempDigitVector.clear ";
+  std::unordered_map<int, Digit> sdigitsFastOR;
+  std::vector<int> fastorIndicesFound;
+  for (const auto& dig : sdigits) {
+    o2::emcal::TriggerMappingV2::IndexCell towerid = dig.getTower();
+    int fastorIndex = mTriggerMap->getAbsFastORIndexFromCellIndex(towerid);
+    auto found = sdigitsFastOR.find(fastorIndex);
+    if (found != sdigitsFastOR.end()) {
+      // sum energy
+      (found->second) += dig;
+    } else {
+      // create new digit
+      fastorIndicesFound.emplace_back(fastorIndex);
+      sdigitsFastOR.emplace(fastorIndex, dig);
+    }
+  }
+  // sort digits for output
+  std::sort(fastorIndicesFound.begin(), fastorIndicesFound.end(), std::less<>());
+  // std::vector<Digit> outputFastorSDigits;
+  // std::for_each(fastorIndicesFound.begin(), fastorIndicesFound.end(), [&outputFastorSDigits, &sdigitsFastOR](int fastorIndex) { outputFastorSDigits.push_back(sdigitsFastOR[fastorIndex]); });
+  // return outputFastorSDigits;
+  std::vector<std::tuple<int, Digit>> outputFastorSDigits;
+  std::for_each(fastorIndicesFound.begin(), fastorIndicesFound.end(), [&outputFastorSDigits, &sdigitsFastOR](int fastorIndex) { outputFastorSDigits.emplace_back(fastorIndex, sdigitsFastOR[fastorIndex]); });
+  return outputFastorSDigits;
+}
+
+//_______________________________________________________________________
+void DigitizerTRU::sampleSDigit(const Digit& sDigit)
+{
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before mTempDigitVector.clear ";
   mTempDigitVector.clear();
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getTower ";
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getTower ";
   Int_t tower = sDigit.getTower();
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getAmplitude ";
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before sDigit.getAmplitude ";
   Double_t energy = sDigit.getAmplitude();
 
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before smearEnergy ";
-  if (mSmearEnergy)
-  {
-    LOG(info) << "DIG SIMONE sampleSDigit in digitizer: beforebefore smearEnergy ";
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before smearEnergy ";
+  if (mSmearEnergy) {
+    // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: beforebefore smearEnergy ";
     energy = smearEnergy(energy);
   }
 
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before __DBL_EPSILON__ ";
-  if (energy < __DBL_EPSILON__)
-  {
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before __DBL_EPSILON__ ";
+  if (energy < __DBL_EPSILON__) {
     return;
   }
 
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before TimeResponse ";
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before TimeResponse ";
   Double_t energies[15];
-  if (mSimulateTimeResponse)
-  {
-    for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++)
-    {
-
-      double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
+  if (mSimulateTimeResponse) {
+    // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse ";
+    for (int j = 0; j < mAmplitudeInTimeBins.at(0).size(); j++) {
+      // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse mAmplitudeInTimeBins";
+      double val = energy * (mAmplitudeInTimeBins.at(0).at(j));
       energies[j] = val;
+      // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse digitTime";
       double digitTime = (mEventTimeOffset + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
+      // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse push_back";
       mTempDigitVector.push_back(digit);
     }
-  }
-  else
-  {
+  } else {
     Digit digit(tower, energy, (mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE);
     mTempDigitVector.push_back(digit);
   }
 
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before Debug ";
-  if (mEnableDebugStreaming)
-  {
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: before Debug ";
+  if (mEnableDebugStreaming) {
     double timeStamp = sDigit.getTimeStamp();
     (*mDebugStream).GetFile()->cd();
     (*mDebugStream) << "DigitsTimeSamples"
@@ -238,14 +269,13 @@ void DigitizerTRU::sampleSDigit(const Digit &sDigit)
                     << "Sample14=" << energies[14]
                     << "\n";
   }
-  LOG(info) << "DIG SIMONE sampleSDigit in digitizer: after Debug ";
-
+  // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: after Debug ";
 }
 
 //_______________________________________________________________________
 double DigitizerTRU::smearEnergy(double energy)
 {
-  LOG(info) << "DIG SIMONE smearEnergy in digitizer: after Debug ";
+  // LOG(info) << "DIG SIMONE smearEnergy in digitizer: after Debug ";
   Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
   energy *= mRandomGenerator->Poisson(fluct) / fluct;
   return energy;
@@ -260,8 +290,9 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
   // fill the corresponding LZEROElectronics object and
   // launch the peak finder.
   // If a trigger is found the logic is set to be live.
+  // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mDigits.fillOutputContainer";
   mDigits.fillOutputContainer(false, record, patchesFromAllTRUs, LZERO);
-
+  // LOG(info) << "DIG SIMONE setEventTime in digitizer: after  mDigits.fillOutputContainer";
 
   // mPhase = mSimParam->doSimulateL1Phase() ? mDigits.getPhase() : 0;
 
@@ -283,31 +314,32 @@ void DigitizerTRU::setPatches()
 
   patchesFromAllTRUs.clear();
   // patchesFromAllTRUs.resize();
-  Patches FullAside(2,0,0);
-  Patches FullCside(2,1,0);
-  Patches ThirdAside(2,0,1);
-  Patches ThirdCside(2,1,1);
+  Patches FullAside(2, 0, 0);
+  Patches FullCside(2, 1, 0);
+  Patches ThirdAside(2, 0, 1);
+  Patches ThirdCside(2, 1, 1);
   FullAside.init();
   FullCside.init();
   ThirdAside.init();
   ThirdCside.init();
 
   // EMCAL
-  for(int i = 0; i < 5; i++){
-    for(int i = 0; i < 3; i++) patchesFromAllTRUs.push_back(FullAside);
-    for(int i = 0; i < 3; i++) patchesFromAllTRUs.push_back(FullCside);
+  for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++)
+      patchesFromAllTRUs.push_back(FullAside);
+    for (int i = 0; i < 3; i++)
+      patchesFromAllTRUs.push_back(FullCside);
   }
   patchesFromAllTRUs.push_back(ThirdAside);
   patchesFromAllTRUs.push_back(ThirdCside);
 
   // DCAL
-  for(int i = 0; i < 3; i++){
-    for(int i = 0; i < 2; i++) patchesFromAllTRUs.push_back(FullAside);
-    for(int i = 0; i < 2; i++) patchesFromAllTRUs.push_back(FullCside);
+  for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++)
+      patchesFromAllTRUs.push_back(FullAside);
+    for (int i = 0; i < 2; i++)
+      patchesFromAllTRUs.push_back(FullCside);
   }
   patchesFromAllTRUs.push_back(ThirdAside);
   patchesFromAllTRUs.push_back(ThirdCside);
-
-
-
 }

@@ -47,6 +47,7 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
 
   mSumDigitizer.setGeometry(geom);
   mSumDigitizerTRU.setGeometry(geom);
+  mDigitizerTRU.setGeometry(geom);
 
   if (ctx.options().get<bool>("debug-stream")) {
     mDigitizer.setDebugStreaming(true);
@@ -76,6 +77,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   o2::emcal::SimParam::Instance().printKeyValues(true, true);
 
   mDigitizer.flush();
+  mDigitizerTRU.flush();
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -96,8 +98,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   auto& eventParts = context->getEventParts();
 
-
-
   // ------------------------------
   // TRIGGER Simulation
   // ------------------------------
@@ -107,9 +107,15 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   //
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
+  int collisionN = 0;
   for (int collID = 0; collID < timesview.size(); ++collID) {
 
+    LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime  collN = " << collisionN;
+    collisionN++;
+
+    LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime ";
     mDigitizerTRU.setEventTime(timesview[collID]);
+    LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.setEventTime ";
 
     // if (!mDigitizerTRU.isLive()) {
     //   continue;
@@ -129,22 +135,23 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       // LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
       LOG(info) << "DIG SIMONE For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
-
       std::vector<o2::emcal::LabeledDigit> summedLabeledDigits = mSumDigitizerTRU.process(mHits);
       std::vector<o2::emcal::Digit> summedDigits;
-      for(auto labeledsummeddigit : summedLabeledDigits){
+      for (auto labeledsummeddigit : summedLabeledDigits) {
         summedDigits.push_back(labeledsummeddigit.getDigit());
       }
 
+      LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.process ";
+
       // call actual digitization procedure
       mDigitizerTRU.process(summedDigits);
+      LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.process ";
     }
   }
 
+  LOG(info) << "DIG SIMONE in SPEC: before  mDigitizerTRU.finish ";
   mDigitizerTRU.finish();
-
-
-
+  LOG(info) << "DIG SIMONE in SPEC: after  mDigitizerTRU.finish ";
 
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
@@ -199,6 +206,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 void DigitizerSpec::configure()
 {
   mDigitizer.init();
+  mDigitizerTRU.init();
 }
 
 void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)

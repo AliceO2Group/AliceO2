@@ -23,6 +23,7 @@
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Hit.h"
+#include "EMCALBase/TriggerMappingV2.h"
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsWriteoutBufferTRU.h"
@@ -33,97 +34,109 @@
 
 namespace o2
 {
-  namespace utils
-  {
-    class TreeStreamRedirector;
-  }
-  namespace emcal
-  {
+namespace utils
+{
+class TreeStreamRedirector;
+}
+namespace emcal
+{
 
-    /// \class DigitizerTRU
-    /// \brief EMCAL DigitizerTRU, digitizes with the help of a temporary description based upon a pol9*Heavyside
-    /// \ingroup EMCALsimulation
-    /// \author Anders Knospe, University of Houston
-    /// \author Hadi Hassan, ORNL
-    /// \author Simone Ragoni, Creighton
-    class DigitizerTRU : public TObject
-    {
-    public:
-      DigitizerTRU() = default;
-      ~DigitizerTRU() override = default;
-      DigitizerTRU(const DigitizerTRU &) = delete;
-      DigitizerTRU &operator=(const DigitizerTRU &) = delete;
+/// \class DigitizerTRU
+/// \brief EMCAL DigitizerTRU, digitizes with the help of a temporary description based upon a pol9*Heavyside
+/// \ingroup EMCALsimulation
+/// \author Anders Knospe, University of Houston
+/// \author Hadi Hassan, ORNL
+/// \author Simone Ragoni, Creighton
+class DigitizerTRU : public TObject
+{
+ public:
+  DigitizerTRU() = default;
+  ~DigitizerTRU() override = default;
+  DigitizerTRU(const DigitizerTRU&) = delete;
+  DigitizerTRU& operator=(const DigitizerTRU&) = delete;
 
-      void init();
-      void clear();
+  void init();
+  void clear();
 
-      /// \brief Sets patches for the current geometry
-      void setPatches();
+  /// \brief Sets patches for the current geometry
+  void setPatches();
 
-      /// clear DigitsVectorStream
-      void flush() { mDigits.flush(); }
+  /// clear DigitsVectorStream
+  void flush() { mDigits.flush(); }
 
-      /// This is for the readout window that was interrupted by the end of the run
-      void finish() { mDigits.finish(); }
+  /// This is for the readout window that was interrupted by the end of the run
+  void finish() { mDigits.finish(); }
 
-      /// Steer conversion of hits to digits
-      // void process(const std::vector<LabeledDigit> &labeledDigit);
-      void process(const std::vector<Digit> &labeledDigit);
+  /// Steer conversion of hits to digits
+  void process(const gsl::span<const Digit> labeledDigit);
+  // void process(const std::vector<Digit>& labeledDigit);
 
-      void setEventTime(o2::InteractionTimeRecord record);
-      // double getTriggerTime() const { return mDigits.getTriggerTime(); }
-      // double getEventTime() const { return mDigits.getEventTime(); }
-      // bool isLive(double t) const { return mDigits.isLive(t); }
-      // bool isLive() const { return mDigits.isLive(); }
+  /// Postprocessing of the digits, gathers by Fastors, not by Tower/Cell
+  /// \param sdigits results of the SDigitizer
+  std::vector<std::tuple<int, Digit>> makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits);
+  // std::vector<Digit> makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits);
 
-      void setWindowStartTime(int time) { mTimeWindowStart = time; }
-      void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
+  void setEventTime(o2::InteractionTimeRecord record);
+  // double getTriggerTime() const { return mDigits.getTriggerTime(); }
+  // double getEventTime() const { return mDigits.getEventTime(); }
+  // bool isLive(double t) const { return mDigits.isLive(t); }
+  // bool isLive() const { return mDigits.isLive(); }
 
-      // function returns true if the collision occurs 600ns before the readout window is open
-      // bool preTriggerCollision() const { return mDigits.preTriggerCollision(); }
+  /// Sets geometry for trigger mapping
+  void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
-      void fillOutputContainer(std::vector<Digit> &digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> &labels);
+  void setWindowStartTime(int time) { mTimeWindowStart = time; }
+  void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
 
-      bool doSmearEnergy() const { return mSmearEnergy; }
-      double smearEnergy(double energy);
-      bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
+  // function returns true if the collision occurs 600ns before the readout window is open
+  // bool preTriggerCollision() const { return mDigits.preTriggerCollision(); }
 
-      void sampleSDigit(const Digit &sdigit);
+  void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
-      /// raw pointers used here to allow interface with TF1
-      static double rawResponseFunction(double *x, double *par);
+  bool doSmearEnergy() const { return mSmearEnergy; }
+  double smearEnergy(double energy);
+  bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
 
-      // const std::vector<o2::emcal::Digit> &getDigits() const { return mDigits.getDigits(); }
-      // const std::vector<o2::emcal::TriggerRecord> &getTriggerRecords() const { return mDigits.getTriggerRecords(); }
-      // const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> &getMCLabels() const { return mDigits.getMCLabels(); }
+  void sampleSDigit(const Digit& sdigit);
 
-    private:
-      short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
-      short mPhase = 0;                    ///< event phase
-      UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
-      UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
-      bool mSmearEnergy = true;            ///< do time and energy smearing
-      bool mSimulateTimeResponse = true;   ///< simulate time response
-      const SimParam *mSimParam = nullptr; ///< SimParam object
+  /// raw pointers used here to allow interface with TF1
+  static double rawResponseFunction(double* x, double* par);
 
-      std::vector<Digit> mTempDigitVector; ///< temporary digit storage
-      // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
-      o2::emcal::DigitsWriteoutBufferTRU mDigits; ///< used to sort digits by tower
-      o2::emcal::LZEROElectronics LZERO; ///< to start the trigger
-      std::vector<Patches> patchesFromAllTRUs; ///< patches from all TRUs
+  // const std::vector<o2::emcal::Digit> &getDigits() const { return mDigits.getDigits(); }
+  // const std::vector<o2::emcal::TriggerRecord> &getTriggerRecords() const { return mDigits.getTriggerRecords(); }
+  // const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> &getMCLabels() const { return mDigits.getMCLabels(); }
 
-      TRandom3 *mRandomGenerator = nullptr;                  ///< random number generator
-      std::vector<std::vector<double>> mAmplitudeInTimeBins; ///< amplitude of signal for each time bin
+ private:
+  short mEventTimeOffset = 0; ///< event time difference from trigger time (in number of bins)
+  short mPhase = 0;           ///< event phase
+  UInt_t mROFrameMin = 0;     ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;     ///< highest RO frame of current digits
+  // bool mSmearEnergy = false;            ///< do time and energy smearing
+  bool mSmearEnergy = true;            ///< do time and energy smearing
+  bool mSimulateTimeResponse = true;   ///< simulate time response
+  const SimParam* mSimParam = nullptr; ///< SimParam object
 
-      int mTimeWindowStart = 7; ///< The start of the time window
-      int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
+  std::vector<Digit> mTempDigitVector; ///< temporary digit storage
+  // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
+  o2::emcal::DigitsWriteoutBufferTRU mDigits; ///< used to sort digits by tower
+  o2::emcal::LZEROElectronics LZERO;          ///< to start the trigger
+  std::vector<Patches> patchesFromAllTRUs;    ///< patches from all TRUs
 
-      std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
-      bool mEnableDebugStreaming = false;
+  TRandom3* mRandomGenerator = nullptr;                  ///< random number generator
+  std::vector<std::vector<double>> mAmplitudeInTimeBins; ///< amplitude of signal for each time bin
 
-      ClassDefOverride(DigitizerTRU, 1);
-    };
-  } // namespace emcal
+  TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map for tower to fastor ID
+  Geometry* mGeometry = nullptr;           ///< EMCAL geometry
+
+  int mTimeWindowStart = 7; ///< The start of the time window
+  int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
+
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
+  bool mEnableDebugStreaming = false;
+
+  ClassDefOverride(DigitizerTRU, 1);
+};
+} // namespace emcal
 } // namespace o2
 
 #endif /* ALICEO2_EMCAL_TRIGGERDIGITIZER_H */

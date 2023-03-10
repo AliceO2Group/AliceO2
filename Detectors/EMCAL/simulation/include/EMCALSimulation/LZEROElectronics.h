@@ -41,7 +41,7 @@ namespace emcal
 struct EMCALTriggerInputs {
   int mDelay = 8;                                                   ///< Typical delay in BCs
   int mRollback = 1;                                                ///< Rollback from EMCALReconstruction/RecoParam.h
-  o2::InteractionRecord mInterRecord;                ///< Last known interaction record
+  o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
   std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
   ClassDefNV(EMCALTriggerInputs, 1);
 };
@@ -68,6 +68,9 @@ class LZEROElectronics
 
   /// Initialize the L0 electronics
   void init();
+
+  /// Sets geometry for trigger mapping
+  void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
   /// Set Threshold for LZERO algorithm
   /// \param threshold LZERO algorithm threshold
@@ -107,10 +110,11 @@ class LZEROElectronics
 
  private:
   double mThreshold = 0;
-  TRandom3* mRandomGenerator = nullptr; ///< random number generator
-  const SimParam* mSimParam = nullptr;  ///< SimParam object
-  bool mSimulateNoiseDigits = true;     ///< simulate noise digits
-  TriggerMappingV2 triggerMap;          ///< trigger map to properly assign an absolute FastOr to TRU FastOr
+  TRandom3* mRandomGenerator = nullptr;    ///< random number generator
+  const SimParam* mSimParam = nullptr;     ///< SimParam object
+  bool mSimulateNoiseDigits = true;        ///< simulate noise digits
+  TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
+  Geometry* mGeometry = nullptr;           ///< EMCAL geometry
 
   ClassDefNV(LZEROElectronics, 2);
 };

@@ -20,6 +20,7 @@
 #include "EMCALSimulation/DigitsVectorStream.h"
 #include "EMCALSimulation/LZEROElectronics.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include <fairlogger/Logger.h> // for LOG
 #include "EMCALBase/TriggerMappingV2.h"
 #include "TMath.h"
 
@@ -48,15 +49,18 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
   // Checking the Interaction Record for the time of the next event in BC units
   // Difference becomes the new marker if the collision happens before 13 samples
   auto difference = nextInteractionRecord.toLong() - mCurrentInteractionRecord.toLong();
+  // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: beginning";
   if (mNoPileupMode || difference >= 13 || isEnd) {
     // Next collision happening way after the current one, just
     // send out and clear entire buffer
     // Simplification and optimization at software level - hardware would continuosly sample, but here we don't need to allocate memory dynamically which we are never going to use
     // Also in a dedicated no-pileup mode we always write out after each collision.
     for (auto& time : mTimeBins) {
+      // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before mDequeTime.push_back";
       mDequeTime.push_back(time);
     }
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
@@ -77,6 +81,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
         break;
       }
 
+      // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before mDequeTime.push_back";
       mDequeTime.push_back(time);
       // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
 
@@ -84,6 +89,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     }
 
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
+    // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
@@ -98,6 +104,8 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
       }
     }
   }
+  // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: end";
+
 }
 //________________________________________________________
 // Constructor: reserves space to keep always a minimum buffer size
@@ -133,6 +141,7 @@ void DigitsWriteoutBufferTRU::init()
 void DigitsWriteoutBufferTRU::clear()
 {
   mTimeBins.clear();
+  reserve(15);
   // mEndOfRun = 0;
 }
 //________________________________________________________
@@ -144,15 +153,21 @@ void DigitsWriteoutBufferTRU::finish()
 // Add digits to the buffer
 void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<Digit>& digList)
 {
-  LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU ";
-
+  // LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU ";
+  // int i = 0;
   // mTimeBin has to have the absolute time information
   for (int ientry = 0; ientry < digList.size(); ientry++) {
+    // LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU: loop = " << i;
+    // i++;
+
     auto& buffEntry = mTimeBins[ientry];
     auto& dig = digList.at(ientry);
 
+    // LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU: before buffEntry.mDigitMap->find ";
     auto towerEntry = buffEntry.mDigitMap->find(towerID);
+    // LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU: before buffEntry.mDigitMap->end ";
     if (towerEntry == buffEntry.mDigitMap->end()) {
+      // LOG(info) << "DIG SIMONE addDigits in DigitsWriteoutBufferTRU: before buffEntry.mDigitMap->insert ";
       towerEntry = buffEntry.mDigitMap->insert(std::pair<int, std::list<o2::emcal::Digit>>(towerID, std::list<o2::emcal::Digit>())).first;
     }
     towerEntry->second.push_back(dig);
