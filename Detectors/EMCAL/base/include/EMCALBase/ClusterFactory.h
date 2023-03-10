@@ -271,7 +271,7 @@ class ClusterFactory
 
   /// \brief Look to cell neighbourhood and reject if it seems exotic
   /// \param towerId: tower ID of cell with largest energy fraction in cluster
-  /// \param ecell: energy of the cell with largest energy fraction in cluster 
+  /// \param ecell: energy of the cell with largest energy fraction in cluster
   /// \param exoticTime time of the cell with largest energy fraction in cluster
   /// \return bool true if cell is found exotic
   bool isExoticCell(short towerId, float ecell, float const exoticTime) const;
