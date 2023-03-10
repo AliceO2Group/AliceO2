@@ -17,8 +17,8 @@
 #include <curl/curl.h>
 #include <chrono>
 #include <iostream>
-#include <CCDB/CcdbApi.h>
 #include <unistd.h> // Sleep function to wait for asynch results
+#include <fairlogger/Logger.h>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional.hpp>
@@ -45,7 +45,7 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   return size * nmemb;
 }
 
-CURL* testHandle(std::string* dst)
+CURL* createTestHandle(std::string* dst)
 {
   CURL* handle = curl_easy_init();
   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(perform_test)
 
   CCDBDownloader downloader;
   std::string dst = "";
-  CURL* handle = testHandle(&dst);
+  CURL* handle = createTestHandle(&dst);
 
   CURLcode curlCode = downloader.perform(handle);
 
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(blocking_batch_test)
   std::vector<std::string*> destinations;
   for (int i = 0; i < 100; i++) {
     destinations.push_back(new std::string());
-    handleVector.push_back(testHandle(destinations.back()));
+    handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(asynch_batch_test)
   std::vector<std::string*> destinations;
   for (int i = 0; i < 10; i++) {
     destinations.push_back(new std::string());
-    handleVector.push_back(testHandle(destinations.back()));
+    handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   bool flag = false;
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(test_with_break)
   std::vector<std::string*> destinations;
   for (int i = 0; i < 100; i++) {
     destinations.push_back(new std::string());
-    handleVector.push_back(testHandle(destinations.back()));
+    handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(test_with_break)
   std::vector<std::string*> destinations2;
   for (int i = 0; i < 100; i++) {
     destinations2.push_back(new std::string());
-    handleVector2.push_back(testHandle(destinations2.back()));
+    handleVector2.push_back(createTestHandle(destinations2.back()));
   }
 
   auto curlCodes2 = downloader.batchBlockingPerform(handleVector2);
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(asynch_batch_callback)
   std::vector<std::string*> destinations;
   for (int i = 0; i < 10; i++) {
     destinations.push_back(new std::string());
-    handleVector.push_back(testHandle(destinations.back()));
+    handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   int testValue = 0;
@@ -284,7 +284,7 @@ BOOST_AUTO_TEST_CASE(external_loop_test)
 
   CCDBDownloader downloader(&loop);
   std::string dst = "";
-  CURL* handle = testHandle(&dst);
+  CURL* handle = createTestHandle(&dst);
 
   CURLcode curlCode = downloader.perform(handle);
 

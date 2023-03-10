@@ -60,6 +60,8 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
  */
 void onUVClose(uv_handle_t* handle);
 
+/// A class encapsulating and performing CURL requests. Adds functionality on top
+/// of simple CURL (aysync requests, timeout handling, event loop, etc).
 class CCDBDownloader
 {
  public:
@@ -67,25 +69,25 @@ class CCDBDownloader
    * Timer starts for each socket when its respective transfer finishes, and is stopped when another transfer starts for that handle.
    * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimoutMS.
    */
-  std::unordered_map<curl_socket_t, uv_timer_t*> socketTimerMap;
+  std::unordered_map<curl_socket_t, uv_timer_t*> mSocketTimerMap;
 
   /**
    * The UV loop which handles transfers.
    */
-  uv_loop_t* loop;
+  uv_loop_t* mUVLoop;
 
-  std::unordered_map<uv_handle_t*, bool> handleMap;
+  std::unordered_map<uv_handle_t*, bool> mHandleMap;
   // ADD COMMENT
 
   /**
    * Time for which sockets will stay open after last download finishes
    */
-  int socketTimoutMS = 4000;
+  int mSocketTimeoutMS = 4000;
 
   /**
    * Max number of handles that can be used at the same time
    */
-  int maxHandlesInUse = 3;
+  int mMaxHandlesInUse = 3;
 
   // CCDBDownloader(uv_loop_t uv_loop);
   CCDBDownloader(uv_loop_t* uv_loop = nullptr);
@@ -133,47 +135,47 @@ class CCDBDownloader
    * Indicates whether the loop that the downloader is running on has been created by it or provided externally.
    * In case of external loop, the loop will not be closed after downloader is deleted.
    */
-  bool externalLoop;
+  bool mIsExternalLoop;
 
   /**
    * Current amount of handles which are performed on.
    */
-  int handlesInUse = 0;
+  int mHandlesInUse = 0;
 
   /**
    * Multi handle which controlls all network flow.
    */
-  CURLM* curlMultiHandle = nullptr;
+  CURLM* mCurlMultiHandle = nullptr;
 
   /**
    * The timeout clock that is be used by CURL.
    */
-  uv_timer_t* timeout;
+  uv_timer_t* mTimeoutTimer;
 
   /**
    * Queue of handles awaiting their transfers to start.
    */
-  std::vector<CURL*> handlesToBeAdded;
+  std::vector<CURL*> mHandlesToBeAdded;
 
   /**
-   * Lock protecting the handleToBeAdded queue.
+   * Lock protecting the mHandlesToBeAdded container
    */
-  std::mutex handlesQueueLock;
+  std::mutex mHandlesQueueLock;
 
   /**
    * Thread on which the thread with uv_loop runs.
    */
-  std::thread* loopThread;
+  std::thread* mLoopThread;
 
   /**
    * Vector with reference to callback threads with a flag marking whether they finished running.
    */
-  std::vector<std::pair<std::thread*, bool*>> threadFlagPairVector;
+  std::vector<std::pair<std::thread*, bool*>> mThreadFlagPairVector;
 
   /**
    * Flag used to signall the loop to close.
    */
-  bool closeLoop = false;
+  bool mCloseLoop = false;
 
   /**
    * Types of requests.
