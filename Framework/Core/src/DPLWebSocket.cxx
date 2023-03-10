@@ -230,7 +230,9 @@ void remoteGuiCallback(uv_timer_s* ctx)
     draw_data = renderer->gui->lastFrame;
   }
 
-  renderer->gui->plugin->getFrameRaw(draw_data, &frame, &size);
+  renderer->gui->plugin->getFrameRaw(draw_data, &frame, &size, renderer->updateTextures);
+  // For now we only sent the text atlas once
+  renderer->updateTextures = false;
   std::vector<uv_buf_t> outputs;
   encode_websocket_frames(outputs, (const char*)frame, size, WebSocketOpCode::Binary, 0);
   renderer->handler->write(outputs);

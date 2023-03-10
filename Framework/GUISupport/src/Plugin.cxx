@@ -78,9 +78,9 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::disposeGUI();
   }
-  void getFrameRaw(void* data, void** raw_data, int* size) override
+  void getFrameRaw(void* data, void** raw_data, int* size, bool updateTextures = false) override
   {
-    o2::framework::getFrameRaw(data, raw_data, size);
+    o2::framework::getFrameRaw(data, raw_data, size, updateTextures);
   }
   bool pollGUIPreRender(void* context, float delta) override
   {
