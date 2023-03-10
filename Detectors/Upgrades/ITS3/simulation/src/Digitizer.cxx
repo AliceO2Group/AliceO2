@@ -334,8 +334,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
   // local coordinates has Y = +SensorLayerThickness/2
+  int thickness = innerBarrel ? SuperSegmentation::mSensorLayerThickness : Segmentation::SensorLayerThickness;
 
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - thickness / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {

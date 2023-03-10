@@ -49,7 +49,7 @@ class ITS3Layer : public TObject
   void createCarbonFoamStructure(TGeoVolume* motherVolume);
   void create4thLayer(TGeoVolume* motherVolume);
 
-  void setSensorThick(double thick) { mSensorThickness = thick; }
+  void setChipThick(double thick) { mChipThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }
   void setLayerZLen(double zLen) { mZLen = zLen; }
   void setGapBetweenEmispheres(double gap) { mGap = gap; }
@@ -65,7 +65,7 @@ class ITS3Layer : public TObject
 
  private:
   int mLayerNumber{0};              //! layer number
-  double mSensorThickness{0.};      //! sensor thickness
+  double mChipThickness{0.};        //! chip thickness
   double mRadius{0.};               //! radius of layer
   double mZLen{0.};                 //! length of a layer
   double mGap{0.};                  //! gap between emispheres
