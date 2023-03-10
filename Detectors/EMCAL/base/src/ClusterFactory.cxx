@@ -618,10 +618,12 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
   short towerId1 = -1;
   short towerId2 = -1;
 
-  if (iphi < o2::emcal::EMCAL_ROWS - 1)
+  if (iphi < o2::emcal::EMCAL_ROWS - 1) {
     towerId1 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi + 1, ieta);
-  if (iphi > 0)
+  }
+  if (iphi > 0) {
     towerId2 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi - 1, ieta);
+  }
 
   // In case of cell in eta = 0 border, depending on SM shift the cross cell index
 
@@ -635,65 +637,75 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
     towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
     towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM - 1, iphi, o2::emcal::EMCAL_COLS - 1);
   } else {
-    if (ieta < o2::emcal::EMCAL_COLS - 1)
+    if (ieta < o2::emcal::EMCAL_COLS - 1) {
       towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
-    if (ieta > 0)
+    }
+    if (ieta > 0) {
       towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+    }
   }
 
   LOG(debug) << "iSM " << iSM << ", towerId " << towerId << ", a " << towerId1 << ", b " << towerId2 << ", c " << towerId3 << ", e " << towerId3;
 
-  float ecell1 = 0, ecell2 = 0, ecell3 = 0, ecell4 = 0;
-  float tcell1 = 0, tcell2 = 0, tcell3 = 0, tcell4 = 0;
+  std::vector<float> ecell(4, 0.);
+  std::vector<float> tcell(4, 0.);
 
   short iTowerId = -1;
   for (auto const& cell : mInputsContainer) {
     iTowerId = cell.getTower();
     if (towerId1 == iTowerId) {
-      ecell1 = cell.getEnergy();
-      tcell1 = cell.getTimeStamp();
+      ecell[0] = cell.getEnergy();
+      tcell[0] = cell.getTimeStamp();
     }
     if (towerId2 == iTowerId) {
-      ecell2 = cell.getEnergy();
-      tcell2 = cell.getTimeStamp();
+      ecell[1] = cell.getEnergy();
+      tcell[1] = cell.getTimeStamp();
     }
     if (towerId3 == iTowerId) {
-      ecell3 = cell.getEnergy();
-      tcell3 = cell.getTimeStamp();
+      ecell[2] = cell.getEnergy();
+      tcell[2] = cell.getTimeStamp();
     }
     if (towerId4 == iTowerId) {
-      ecell4 = cell.getEnergy();
-      tcell4 = cell.getTimeStamp();
+      ecell[3] = cell.getEnergy();
+      tcell[3] = cell.getTimeStamp();
     }
   }
 
-  if (std::abs(exoticTime - tcell1) > mExoticCellDiffTime)
-    ecell1 = 0;
-  if (std::abs(exoticTime - tcell2) > mExoticCellDiffTime)
-    ecell2 = 0;
-  if (std::abs(exoticTime - tcell3) > mExoticCellDiffTime)
-    ecell3 = 0;
-  if (std::abs(exoticTime - tcell4) > mExoticCellDiffTime)
-    ecell4 = 0;
+  if (std::abs(exoticTime - tcell[0]) > mExoticCellDiffTime) {
+    ecell[0] = 0;
+  }
+  if (std::abs(exoticTime - tcell[1]) > mExoticCellDiffTime) {
+    ecell[1] = 0;
+  }
+  if (std::abs(exoticTime - tcell[2]) > mExoticCellDiffTime) {
+    ecell[2] = 0;
+  }
+  if (std::abs(exoticTime - tcell[3]) > mExoticCellDiffTime) {
+    ecell[3] = 0;
+  }
 
   float w1 = 1, w2 = 1, w3 = 1, w4 = 1;
   if (mUseWeightExotic) {
-    w1 = GetCellWeight(ecell1, energy);
-    w2 = GetCellWeight(ecell2, energy);
-    w3 = GetCellWeight(ecell3, energy);
-    w4 = GetCellWeight(ecell4, energy);
+    w1 = GetCellWeight(ecell[0], energy);
+    w2 = GetCellWeight(ecell[1], energy);
+    w3 = GetCellWeight(ecell[2], energy);
+    w4 = GetCellWeight(ecell[3], energy);
   }
 
-  if (ecell1 < mExoticCellInCrossMinAmplitude || w1 <= 0)
-    ecell1 = 0;
-  if (ecell2 < mExoticCellInCrossMinAmplitude || w2 <= 0)
-    ecell2 = 0;
-  if (ecell3 < mExoticCellInCrossMinAmplitude || w3 <= 0)
-    ecell3 = 0;
-  if (ecell4 < mExoticCellInCrossMinAmplitude || w4 <= 0)
-    ecell4 = 0;
+  if (ecell[0] < mExoticCellInCrossMinAmplitude || w1 <= 0) {
+    ecell[0] = 0;
+  }
+  if (ecell[1] < mExoticCellInCrossMinAmplitude || w2 <= 0) {
+    ecell[1] = 0;
+  }
+  if (ecell[2] < mExoticCellInCrossMinAmplitude || w3 <= 0) {
+    ecell[2] = 0;
+  }
+  if (ecell[3] < mExoticCellInCrossMinAmplitude || w4 <= 0) {
+    ecell[3] = 0;
+  }
 
-  return ecell1 + ecell2 + ecell3 + ecell4;
+  return ecell[0] + ecell[1] + ecell[2] + ecell[3];
 }
 
 ///
@@ -703,12 +715,14 @@ template <class InputType>
 float ClusterFactory<InputType>::GetCellWeight(float eCell, float eCluster) const
 {
   if (eCell > 0 && eCluster > 0) {
-    if (mLogWeight > 0)
+    if (mLogWeight > 0) {
       return std::max(0.f, mLogWeight + std::log(eCell / eCluster));
-    else
+    } else {
       return std::log(eCluster / eCell);
-  } else
+    }
+  } else {
     return 0.;
+  }
 }
 
 ///
