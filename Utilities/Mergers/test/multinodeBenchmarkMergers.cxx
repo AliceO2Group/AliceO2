@@ -74,7 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   mergersBuilder.setOutputSpec({{"main"}, "TST", "FULLHISTO", 0});
   MergerConfig mergerConfig;
   mergerConfig.inputObjectTimespan = {mergersOwnershipMode};
-  mergerConfig.publicationDecision = {mergersPublicationDecision, mergersPublicationDecision == PublicationDecision::EachNSeconds ? mergersPublicationInterval : 1.0};
+  mergerConfig.publicationDecision = {mergersPublicationDecision,  {{mergersPublicationInterval, 1}}};
   mergerConfig.mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   mergerConfig.topologySize = {TopologySize::NumberOfLayers, mergersLayers};
   mergersBuilder.setConfig(mergerConfig);

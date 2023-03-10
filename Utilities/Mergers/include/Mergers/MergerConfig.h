@@ -45,7 +45,7 @@ enum class MergedObjectTimespan {
 };
 
 enum class PublicationDecision {
-  EachNSeconds,       // Merged object is published each N seconds.
+  EachNSeconds,       // Merged object is published each N seconds. This can evolve over time, thus we expect pairs specifying N:duration1, M:duration2...
 };
 
 enum class TopologySize {
@@ -70,7 +70,7 @@ struct ConfigEntry {
 struct MergerConfig {
   ConfigEntry<InputObjectsTimespan> inputObjectTimespan = {InputObjectsTimespan::FullHistory};
   ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
-  ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
+  ConfigEntry<PublicationDecision, std::vector<std::pair<size_t, size_t>>> publicationDecision = {PublicationDecision::EachNSeconds, {{10, 1}}};
   ConfigEntry<TopologySize, std::variant<int, std::vector<size_t>>> topologySize = {TopologySize::NumberOfLayers, 1};
   std::string monitoringUrl = "infologger:///debug?qc";
   std::string detectorName = "TST";

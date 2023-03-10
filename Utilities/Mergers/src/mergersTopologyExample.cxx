@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "HISTO", 0 });
     MergerConfig config;
     config.inputObjectTimespan = { InputObjectsTimespan::LastDifference };
-    config.publicationDecision = { PublicationDecision::EachNSeconds, 5 };
+    config.publicationDecision = {PublicationDecision::EachNSeconds, {{ 5, 1 }}};
     config.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     config.topologySize = { TopologySize::NumberOfLayers, 2 };
     mergersBuilder.setConfig(config);
@@ -152,7 +152,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "CUSTOM", 0 });
     MergerConfig config;
     config.inputObjectTimespan = { InputObjectsTimespan::LastDifference };
-    config.publicationDecision = { PublicationDecision::EachNSeconds, 5 };
+    config.publicationDecision = {PublicationDecision::EachNSeconds, {{ 5, 1 }}};
     config.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     config.topologySize = { TopologySize::NumberOfLayers, 1 };
     mergersBuilder.setConfig(config);
