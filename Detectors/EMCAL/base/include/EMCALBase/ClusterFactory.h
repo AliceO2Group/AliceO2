@@ -266,7 +266,27 @@ class ClusterFactory
   /// \return the index of the cells with max enegry
   /// \return the maximum energy
   /// \return the total energy of the cluster
-  std::tuple<int, float, float> getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const;
+  /// \return if cluster is shared between super models
+  std::tuple<int, float, float, bool> getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const;
+
+  /// \brief Look to cell neighbourhood and reject if it seems exotic
+  /// \param towerId: tower ID of cell with largest energy fraction in cluster
+  /// \param ecell: energy of the cell with largest energy fraction in cluster
+  /// \param exoticTime time of the cell with largest energy fraction in cluster
+  /// \return bool true if cell is found exotic
+  bool isExoticCell(short towerId, float ecell, float const exoticTime) const;
+
+  /// \brief Calculate the energy in the cross around the energy of a given cell.
+  /// \param absID: controlled cell absolute ID number
+  /// \param energy: cluster or cell max energy, used for weight calculation
+  /// \param exoticTime time of the cell with largest energy fraction in cluster
+  /// \return the energy in the cross around the energy of a given cell
+  float getECross(short absID, float energy, float const exoticTime) const;
+
+  /// \param eCell: cluster cell energy
+  /// \param eCluster: cluster or cell max energy
+  /// \return weight of cell for shower shape calculation
+  float GetCellWeight(float eCell, float eCluster) const;
 
   ///
   /// Calculates the multiplicity of digits/cells with energy larger than level*energy
@@ -292,6 +312,21 @@ class ClusterFactory
 
   bool getCoreRadius() const { return mCoreRadius; }
   void setCoreRadius(float radius) { mCoreRadius = radius; }
+
+  float getExoticCellFraction() const { return mExoticCellFraction; }
+  void setExoticCellFraction(float exoticCellFraction) { mExoticCellFraction = exoticCellFraction; }
+
+  float getExoticCellDiffTime() const { return mExoticCellDiffTime; }
+  void setExoticCellDiffTime(float exoticCellDiffTime) { mExoticCellDiffTime = exoticCellDiffTime; }
+
+  float getExoticCellMinAmplitude() const { return mExoticCellMinAmplitude; }
+  void setExoticCellMinAmplitude(float exoticCellMinAmplitude) { mExoticCellMinAmplitude = exoticCellMinAmplitude; }
+
+  float getExoticCellInCrossMinAmplitude() const { return mExoticCellInCrossMinAmplitude; }
+  void setExoticCellInCrossMinAmplitude(float exoticCellInCrossMinAmplitude) { mExoticCellInCrossMinAmplitude = exoticCellInCrossMinAmplitude; }
+
+  bool getUseWeightExotic() const { return mUseWeightExotic; }
+  void setUseWeightExotic(float useWeightExotic) { mUseWeightExotic = useWeightExotic; }
 
   void setClustersContainer(gsl::span<const o2::emcal::Cluster> clusterContainer)
   {
@@ -358,9 +393,14 @@ class ClusterFactory
 
   bool mJustCluster = kFALSE; ///< Flag to evaluates local to "tracking" c.s. transformation (B.P.).
 
-  mutable int mSuperModuleNumber = 0; ///<  number identifying supermodule containing cluster, reference is cell with maximum energy.
-  float mDistToBadTower = -1;         ///<  Distance to nearest bad tower
-  bool mSharedCluster = false;        ///<  States if cluster is shared by 2 SuperModules in same phi rack (0,1), (2,3) ... (10,11).
+  mutable int mSuperModuleNumber = 0;         ///<  number identifying supermodule containing cluster, reference is cell with maximum energy.
+  float mDistToBadTower = -1;                 ///<  Distance to nearest bad tower
+  bool mSharedCluster = false;                ///<  States if cluster is shared by 2 SuperModules in same phi rack (0,1), (2,3) ... (10,11).
+  float mExoticCellFraction = 0.97;           ///<  Good cell if fraction < 1-ecross/ecell
+  float mExoticCellDiffTime = 1e6;            ///<  If time of candidate to exotic and close cell is too different (in ns), it must be noisy, set amp to 0
+  float mExoticCellMinAmplitude = 4.;         ///<  Check for exotic only if amplitud is larger than this value
+  float mExoticCellInCrossMinAmplitude = 0.1; ///<  Minimum energy of cells in cross, if lower not considered in cross
+  bool mUseWeightExotic = false;              ///<  States if weights should be used for exotic cell cut
 
   gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
   gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
