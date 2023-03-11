@@ -39,6 +39,7 @@ ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> cl
   setClustersContainer(clustersContainer);
   setCellsContainer(inputsContainer);
   setCellsIndicesContainer(cellsIndices);
+  setLookUpTable();
 }
 
 template <class InputType>
@@ -647,65 +648,45 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
 
   LOG(debug) << "iSM " << iSM << ", towerId " << towerId << ", a " << towerId1 << ", b " << towerId2 << ", c " << towerId3 << ", e " << towerId3;
 
-  std::vector<float> ecell(4, 0.);
-  std::vector<float> tcell(4, 0.);
+  short index1 = (towerId1 > -1) ? mLoolUpTowerToIndex.at(towerId1) : -1;
+  short index2 = (towerId2 > -1) ? mLoolUpTowerToIndex.at(towerId2) : -1;
+  short index3 = (towerId3 > -1) ? mLoolUpTowerToIndex.at(towerId3) : -1;
+  short index4 = (towerId4 > -1) ? mLoolUpTowerToIndex.at(towerId4) : -1;
 
-  short iTowerId = -1;
-  for (auto const& cell : mInputsContainer) {
-    iTowerId = cell.getTower();
-    if (towerId1 == iTowerId) {
-      ecell[0] = cell.getEnergy();
-      tcell[0] = cell.getTimeStamp();
-    }
-    if (towerId2 == iTowerId) {
-      ecell[1] = cell.getEnergy();
-      tcell[1] = cell.getTimeStamp();
-    }
-    if (towerId3 == iTowerId) {
-      ecell[2] = cell.getEnergy();
-      tcell[2] = cell.getTimeStamp();
-    }
-    if (towerId4 == iTowerId) {
-      ecell[3] = cell.getEnergy();
-      tcell[3] = cell.getTimeStamp();
-    }
-  }
+  std::array<std::pair<float, float>, 4> cellData = {
+    {{(index1 > -1) ? mInputsContainer[index1].getEnergy() : 0., (index1 > -1) ? mInputsContainer[index1].getTimeStamp() : 0.},
+     {(index2 > -1) ? mInputsContainer[index2].getEnergy() : 0., (index2 > -1) ? mInputsContainer[index2].getTimeStamp() : 0.},
+     {(index3 > -1) ? mInputsContainer[index3].getEnergy() : 0., (index3 > -1) ? mInputsContainer[index3].getTimeStamp() : 0.},
+     {(index4 > -1) ? mInputsContainer[index4].getEnergy() : 0., (index4 > -1) ? mInputsContainer[index4].getTimeStamp() : 0.}}};
 
-  if (std::abs(exoticTime - tcell[0]) > mExoticCellDiffTime) {
-    ecell[0] = 0;
-  }
-  if (std::abs(exoticTime - tcell[1]) > mExoticCellDiffTime) {
-    ecell[1] = 0;
-  }
-  if (std::abs(exoticTime - tcell[2]) > mExoticCellDiffTime) {
-    ecell[2] = 0;
-  }
-  if (std::abs(exoticTime - tcell[3]) > mExoticCellDiffTime) {
-    ecell[3] = 0;
+  for (auto& cell : cellData) {
+    if (std::abs(exoticTime - cell.second) > mExoticCellDiffTime) {
+      cell.first = 0;
+    }
   }
 
   float w1 = 1, w2 = 1, w3 = 1, w4 = 1;
   if (mUseWeightExotic) {
-    w1 = GetCellWeight(ecell[0], energy);
-    w2 = GetCellWeight(ecell[1], energy);
-    w3 = GetCellWeight(ecell[2], energy);
-    w4 = GetCellWeight(ecell[3], energy);
+    w1 = GetCellWeight(cellData[0].first, energy);
+    w2 = GetCellWeight(cellData[1].first, energy);
+    w3 = GetCellWeight(cellData[2].first, energy);
+    w4 = GetCellWeight(cellData[3].first, energy);
   }
 
-  if (ecell[0] < mExoticCellInCrossMinAmplitude || w1 <= 0) {
-    ecell[0] = 0;
+  if (cellData[0].first < mExoticCellInCrossMinAmplitude || w1 <= 0) {
+    cellData[0].first = 0;
   }
-  if (ecell[1] < mExoticCellInCrossMinAmplitude || w2 <= 0) {
-    ecell[1] = 0;
+  if (cellData[1].first < mExoticCellInCrossMinAmplitude || w2 <= 0) {
+    cellData[1].first = 0;
   }
-  if (ecell[2] < mExoticCellInCrossMinAmplitude || w3 <= 0) {
-    ecell[2] = 0;
+  if (cellData[2].first < mExoticCellInCrossMinAmplitude || w3 <= 0) {
+    cellData[2].first = 0;
   }
-  if (ecell[3] < mExoticCellInCrossMinAmplitude || w4 <= 0) {
-    ecell[3] = 0;
+  if (cellData[3].first < mExoticCellInCrossMinAmplitude || w4 <= 0) {
+    cellData[3].first = 0;
   }
 
-  return ecell[0] + ecell[1] + ecell[2] + ecell[3];
+  return cellData[0].first + cellData[1].first + cellData[2].first + cellData[3].first;
 }
 
 ///
