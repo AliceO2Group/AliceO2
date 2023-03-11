@@ -159,19 +159,19 @@ struct RegularGrid3D {
 
  private:
   ParamSpaceCharge mParamGrid{};
-  static constexpr unsigned int FDIM = 3;                                                                                                                                 ///< dimensions of the grid (only 3 supported)
-  static constexpr unsigned int FZ = 0;                                                                                                                                   ///< index for x coordinate
-  static constexpr unsigned int FR = 1;                                                                                                                                   ///< index for y coordinate
-  static constexpr unsigned int FPHI = 2;                                                                                                                                 ///< index for z coordinate
-  Vector<DataT, FDIM> mMin{};                                                                                                                                             ///< min vertices positions of the grid
-  Vector<DataT, FDIM> mMax{};                                                                                                                                             ///< max vertices positions of the grid
-  Vector<DataT, FDIM> mSpacing{};                                                                                                                                         ///<  spacing of the grid
-  Vector<DataT, FDIM> mInvSpacing{};                                                                                                                                      ///< inverse spacing of grid
+  static constexpr unsigned int FDIM = 3;                                                                                                                                          ///< dimensions of the grid (only 3 supported)
+  static constexpr unsigned int FZ = 0;                                                                                                                                            ///< index for x coordinate
+  static constexpr unsigned int FR = 1;                                                                                                                                            ///< index for y coordinate
+  static constexpr unsigned int FPHI = 2;                                                                                                                                          ///< index for z coordinate
+  Vector<DataT, FDIM> mMin{};                                                                                                                                                      ///< min vertices positions of the grid
+  Vector<DataT, FDIM> mMax{};                                                                                                                                                      ///< max vertices positions of the grid
+  Vector<DataT, FDIM> mSpacing{};                                                                                                                                                  ///<  spacing of the grid
+  Vector<DataT, FDIM> mInvSpacing{};                                                                                                                                               ///< inverse spacing of grid
   Vector<DataT, FDIM> sMaxIndex{{static_cast<DataT>(mParamGrid.NZVertices - 1.), static_cast<DataT>(mParamGrid.NRVertices - 1), static_cast<DataT>(mParamGrid.NPhiVertices - 1)}}; ///< max index which is on the grid in all dimensions
   Vector<int, FDIM> sNdim{{static_cast<int>(mParamGrid.NZVertices), static_cast<int>(mParamGrid.NRVertices), static_cast<int>(mParamGrid.NPhiVertices)}};                          ///< number of vertices for each dimension
-  std::vector<DataT> mZVertices{};                                                                                                                                        ///< positions of vertices in x direction
-  std::vector<DataT> mRVertices{};                                                                                                                                        ///< positions of vertices in y direction
-  std::vector<DataT> mPhiVertices{};                                                                                                                                      ///< positions of vertices in z direction
+  std::vector<DataT> mZVertices{};                                                                                                                                                 ///< positions of vertices in x direction
+  std::vector<DataT> mRVertices{};                                                                                                                                                 ///< positions of vertices in y direction
+  std::vector<DataT> mPhiVertices{};                                                                                                                                               ///< positions of vertices in z direction
 
   void initLists();
 
