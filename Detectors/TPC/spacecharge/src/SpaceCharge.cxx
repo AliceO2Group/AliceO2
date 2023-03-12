@@ -2428,7 +2428,7 @@ void SpaceCharge<DataT>::initBField(const int field)
     LOG(error) << " Could not lookup currents for fieldvalue " << field;
     return;
   }
-
+  mBField.setBField(field);
   o2::parameters::GRPMagField magField;
   magField.setL3Current((*currents_iter).second.first);
   magField.setDipoleCurrent((*currents_iter).second.second);
@@ -2889,12 +2889,13 @@ void SpaceCharge<DataT>::dumpMetaData(std::string_view file, std::string_view op
   auto dfStore = dFrame.DefineSlotEntry("paramsC", [&params = params](unsigned int, ULong64_t entry) { return params; });
   dfStore = dfStore.DefineSlotEntry("grid_A", [&helperA = helperA](unsigned int, ULong64_t entry) { return helperA; });
   dfStore = dfStore.DefineSlotEntry("grid_C", [&helperC = helperC](unsigned int, ULong64_t entry) { return helperC; });
+  dfStore = dfStore.DefineSlotEntry("BField", [field = mBField.getBField()](unsigned int, ULong64_t entry) { return field; });
 
   // write to TTree
   ROOT::RDF::RSnapshotOptions opt;
   opt.fMode = option;
   opt.fOverwriteIfExists = true; // overwrite if already exists
-  dfStore.Snapshot("meta", file, {"paramsC", "grid_A", "grid_C"}, opt);
+  dfStore.Snapshot("meta", file, {"paramsC", "grid_A", "grid_C", "BField"}, opt);
 }
 
 template <typename DataT>
@@ -2911,16 +2912,17 @@ void SpaceCharge<DataT>::readMetaData(std::string_view file)
   }
   f.Close();
 
-  auto readMeta = [&mC0 = mC0, &mC1 = mC1, &mC2 = mC2, &mGrid3D = mGrid3D](const std::vector<float>& paramsC, const RegularGridHelper<double>& gridA, const RegularGridHelper<double>& gridC) {
+  auto readMeta = [&mC0 = mC0, &mC1 = mC1, &mC2 = mC2, &mGrid3D = mGrid3D, &mBField = mBField](const std::vector<float>& paramsC, const RegularGridHelper<double>& gridA, const RegularGridHelper<double>& gridC, int field) {
     mC0 = paramsC[0];
     mC1 = paramsC[1];
     mC2 = paramsC[2];
     mGrid3D[Side::A] = RegularGrid3D<DataT>(gridA.zmin, gridA.rmin, gridA.phimin, gridA.spacingZ, gridA.spacingR, gridA.spacingPhi, gridA.params);
     mGrid3D[Side::C] = RegularGrid3D<DataT>(gridC.zmin, gridC.rmin, gridC.phimin, gridC.spacingZ, gridC.spacingR, gridC.spacingPhi, gridC.params);
+    mBField.setBField(field);
   };
 
   ROOT::RDataFrame dFrame("meta", file);
-  dFrame.Foreach(readMeta, {"paramsC", "grid_A", "grid_C"});
+  dFrame.Foreach(readMeta, {"paramsC", "grid_A", "grid_C", "BField"});
   LOGP(info, "Setting meta data: mC0={}  mC1={}  mC2={}", mC0, mC1, mC2);
   mReadMetaData = true;
 }

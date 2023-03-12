@@ -300,6 +300,9 @@ class SpaceCharge
   /// \return returns parameter C2
   auto getC2() const { return mC2; }
 
+  /// \return returns BField in kG
+  int getBField() const { return mBField.getBField(); }
+
   const auto& getPotential(const Side side) const& { return mPotential[side]; }
 
   /// get the space charge density for given coordinate
@@ -1075,7 +1078,7 @@ class SpaceCharge
   NumericalFields<DataT> mInterpolatorEField[FNSIDES]{{mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A}, {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}};        ///<! interpolator for the electric fields
   AnalyticalDistCorr<DataT> mAnaDistCorr;                                                                                                                                                                                                                                                     ///< analytical distortions and corrections
   bool mUseAnaDistCorr{false};                                                                                                                                                                                                                                                                ///< flag if analytical distortions will be used in the distortElectron() and getCorrections() function
-  BField mBField{};                                                                                                                                                                                                                                                                           ///<! B-Field                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///< B field
+  BField mBField{};                                                                                                                                                                                                                                                                           ///<! B-Field                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///<! B field
 
   /// check if the addition of two values are close to zero.
   /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
