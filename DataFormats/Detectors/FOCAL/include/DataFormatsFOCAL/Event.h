@@ -38,16 +38,23 @@ class PadLayerEvent
     uint16_t mTOA;
     uint16_t mTOT;
   };
+  struct TriggerWindow {
+    uint32_t mHeader0;
+    uint32_t mHeader1;
+    std::array<uint8_t, 8> mTriggers;
+  };
 
   void setHeader(unsigned int half, uint8_t header, uint8_t bc, uint8_t wadd, uint8_t fourbits, uint8_t trialer);
   void setChannel(unsigned int channel, uint16_t adc, uint16_t toa, uint16_t tot);
   void setCMN(unsigned int half, uint16_t adc, uint16_t toa, uint16_t tot);
   void setCalib(unsigned int half, uint16_t adc, uint16_t toa, uint16_t tot);
+  void setTrigger(unsigned int window, uint32_t header0, uint32_t header1, const gsl::span<uint8_t> triggers);
 
   const Header& getHeader(unsigned int half) const;
   const Channel& getChannel(unsigned int channel) const;
   const Channel& getCMN(unsigned int half) const;
   const Channel& getCalib(unsigned int half) const;
+  const TriggerWindow& getTrigger(unsigned int window) const;
 
   std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> getADCs() const;
   std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> getTOAs() const;
@@ -63,6 +70,7 @@ class PadLayerEvent
   std::array<Channel, constants::PADLAYER_MODULE_NCHANNELS> mChannels;
   std::array<Channel, constants::PADLAYER_MODULE_NHALVES> mCMN;
   std::array<Channel, constants::PADLAYER_MODULE_NHALVES> mCalib;
+  std::array<TriggerWindow, constants::PADLAYER_WINDOW_LENGTH> mTriggers;
   ClassDefNV(PadLayerEvent, 1);
 };
 

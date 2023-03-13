@@ -148,6 +148,17 @@ void PadLayerEvent::setCalib(unsigned int channel, uint16_t adc, uint16_t toa, u
   calib.mTOT = tot;
 }
 
+void PadLayerEvent::setTrigger(unsigned int window, uint32_t header0, uint32_t header1, const gsl::span<uint8_t> triggers)
+{
+  if (window >= constants::PADLAYER_WINDOW_LENGTH) {
+    throw IndexExceptionEvent(window, constants::PADLAYER_WINDOW_LENGTH, IndexExceptionEvent::IndexType_t::TRIGGER_WINDOW);
+  }
+  auto& currenttrigger = mTriggers[window];
+  currenttrigger.mHeader0 = header0;
+  currenttrigger.mHeader1 = header1;
+  std::copy(triggers.begin(), triggers.end(), currenttrigger.mTriggers.begin());
+}
+
 const PadLayerEvent::Header& PadLayerEvent::getHeader(unsigned int half) const
 {
   check_halfs(half);
@@ -168,6 +179,14 @@ const PadLayerEvent::Channel& PadLayerEvent::getCalib(unsigned int half) const
 {
   check_halfs(half);
   return mCalib[half];
+}
+
+const PadLayerEvent::TriggerWindow& PadLayerEvent::getTrigger(unsigned int window) const
+{
+  if (window >= constants::PADLAYER_WINDOW_LENGTH) {
+    throw IndexExceptionEvent(window, constants::PADLAYER_WINDOW_LENGTH, IndexExceptionEvent::IndexType_t::TRIGGER_WINDOW);
+  }
+  return mTriggers[window];
 }
 
 std::array<uint16_t, constants::PADLAYER_MODULE_NCHANNELS> PadLayerEvent::getADCs() const
@@ -218,6 +237,11 @@ void PadLayerEvent::reset()
     cmn.mADC = 0;
     cmn.mTOA = 0;
     cmn.mTOT = 0;
+  }
+  for (auto& trg : mTriggers) {
+    trg.mHeader0 = 0;
+    trg.mHeader1 = 0;
+    std::fill(trg.mTriggers.begin(), trg.mTriggers.end(), 0);
   }
 }
 

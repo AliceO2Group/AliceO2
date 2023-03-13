@@ -143,8 +143,8 @@ struct PadTreeData {
       }
       auto triggerdata = asicdata.getTriggerWords();
       for (auto iwin = 0; iwin < WINDUR; iwin++) {
-        mTriggerhead0[iasic][iwin] = triggerdata[iwin].mHeader;
-        mTriggerhead1[iasic][iwin] = triggerdata[iwin].mHeader;
+        mTriggerhead0[iasic][iwin] = triggerdata[iwin].mHeader0;
+        mTriggerhead1[iasic][iwin] = triggerdata[iwin].mHeader1;
         mTriggerdata[iasic][0][iwin] = triggerdata[iwin].mTrigger0;
         mTriggerdata[iasic][1][iwin] = triggerdata[iwin].mTrigger1;
         mTriggerdata[iasic][2][iwin] = triggerdata[iwin].mTrigger2;
