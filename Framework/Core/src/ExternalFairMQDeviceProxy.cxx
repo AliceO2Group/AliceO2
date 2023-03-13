@@ -175,15 +175,13 @@ void sendOnChannel(fair::mq::Device& device, fair::mq::MessagePtr&& headerMessag
 
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t /*step*/)
 {
-  auto timesliceId = std::make_shared<size_t>(startTime);
-  return [timesliceId, spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
     for (int i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
-      DataProcessingHeader dph{*timesliceId, 0};
+      DataProcessingHeader dph{newTimesliceId, 0};
       o2::header::Stack headerStack{*dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i * 2 + 1)), spec, channelRetriever);
-      *timesliceId += 1;
     }
   };
 }
@@ -224,13 +222,11 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     std::string descriptions;
   };
 
-  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](TimingInfo& timingInfo, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](TimingInfo& timingInfo, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
     // FIXME: this in not thread safe, but better than an alloc of a map per message...
     std::unordered_map<std::string, fair::mq::Parts> outputs;
     std::vector<std::string> unmatchedDescriptions;
 
-    static int64_t dplCounter = -1;
-    dplCounter++;
     static bool override_creation_env = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
     bool override_creation = false;
     uint64_t creationVal = 0;
@@ -265,13 +261,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
-      static size_t currentRunNumber = -1;
-      if (dh->runNumber != currentRunNumber) {
-        LOGP(detail, "Run number changed from {} to {}. Resetting DPL timeslice counter", currentRunNumber, dh->runNumber);
-        currentRunNumber = dh->runNumber;
-        dplCounter = 0;
-      }
-      const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
+      const_cast<DataProcessingHeader*>(dph)->startTime = newTimesliceId;
       if (override_creation) {
         const_cast<DataProcessingHeader*>(dph)->creation = creationVal + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
       }
@@ -348,7 +338,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       if (channelParts.Size() == 0) {
         continue;
       }
-      sendOnChannel(device, channelParts, channelName, dplCounter);
+      sendOnChannel(device, channelParts, channelName, newTimesliceId);
     }
     if (not unmatchedDescriptions.empty()) {
       if (throwOnUnmatchedInputs) {
@@ -378,8 +368,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
 InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::SerializationMethod method, uint64_t startTime, uint64_t step)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
-
-  return [timesliceId, spec, step, method](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, spec, step, method](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
     for (int i = 0; i < parts.Size(); ++i) {
@@ -393,7 +382,10 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::Serial
       dh.subSpecification = matcher.subSpec;
       dh.payloadSize = parts.At(i)->GetSize();
 
-      DataProcessingHeader dph{*timesliceId, 0};
+      DataProcessingHeader dph{newTimesliceId, 0};
+      if (*timesliceId != newTimesliceId) {
+        LOG(fatal) << "Time slice ID provided from oldestPossible mechanism " << newTimesliceId << " is out of sync with expected value " << *timesliceId;
+      }
       *timesliceId += step;
       // we have to move the incoming data
       o2::header::Stack headerStack{dh, dph};
@@ -406,11 +398,7 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::Serial
 DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    std::vector<OutputSpec> const& outputs,
                                                    char const* defaultChannelConfig,
-                                                   std::function<void(TimingInfo&,
-                                                                      fair::mq::Device&,
-                                                                      fair::mq::Parts&,
-                                                                      ChannelRetriever)>
-                                                     converter,
+                                                   InjectorFunction converter,
                                                    uint64_t minSHM)
 {
   DataProcessorSpec spec;
@@ -531,6 +519,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
+                        timesliceIndex = &ctx.services().get<TimesliceIndex>(),
                         outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
@@ -555,7 +544,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       if (numberOfEoS[ci]) {
         eosPeersCount[ci] = std::max<int>(eosPeersCount[ci], device->GetNumberOfConnectedPeers(channel));
       }
-      converter(timingInfo, *device, inputs, channelRetriever);
+      // For reference, the oldest possible timeframe passed as newTimesliceId here comes from LifetimeHelpers::enumDrivenCreation()
+      converter(timingInfo, *device, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value);
 
       // If we have enough EoS messages, we can stop the device
       // Notice that this has a number of failure modes:

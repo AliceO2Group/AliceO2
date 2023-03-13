@@ -473,9 +473,9 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
 
-      LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
+      LOGP(debug, "Broadcasting oldest possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
-           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
+           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value : oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
 
       for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
