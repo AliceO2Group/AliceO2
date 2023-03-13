@@ -40,7 +40,8 @@ struct PadASICWord {
 struct TriggerWord {
   union {
     struct {
-      uint64_t mHeader : 8;
+      uint64_t mHeader0 : 4;
+      uint64_t mHeader1 : 4;
       uint64_t mTrigger0 : 7;
       uint64_t mTrigger1 : 7;
       uint64_t mTrigger2 : 7;

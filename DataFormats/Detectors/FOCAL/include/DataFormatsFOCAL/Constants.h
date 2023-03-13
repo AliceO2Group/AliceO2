@@ -17,6 +17,7 @@ constexpr int PADLAYER_MODULE_NCHANNELS = 72;
 constexpr int PADLAYER_MODULE_NHALVES = 2;
 constexpr int PADS_NLAYERS = 20;
 constexpr int PIXELS_NLAYERS = 2;
+constexpr int PADLAYER_WINDOW_LENGTH = 20;
 
 } // namespace o2::focal::constants
 
