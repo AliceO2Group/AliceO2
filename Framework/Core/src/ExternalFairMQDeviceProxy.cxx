@@ -419,6 +419,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   spec.outputs = outputs;
   static std::vector<std::string> channels;
   static std::vector<int> numberOfEoS(channels.size(), 0);
+  static std::vector<int> eosPeersCount(channels.size(), 0);
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
@@ -439,6 +440,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       auto& deviceState = services.get<DeviceState>();
       channels.clear();
       numberOfEoS.clear();
+      eosPeersCount.clear();
       for (auto& [channelName, _] : services.get<RawDeviceService>().device()->fChannels) {
         // Out of band channels must start with the proxy name, at least for now
         if (strncmp(channelName.c_str(), deviceName.c_str(), deviceName.size()) == 0) {
@@ -458,6 +460,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         });
       }
       numberOfEoS.resize(channels.size(), 0);
+      eosPeersCount.resize(channels.size(), 0);
     };
 
     auto drainMessages = [](ServiceRegistryRef registry, int state) {
@@ -536,6 +539,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
       numberOfEoS[ci] += countEoS(inputs);
+      if (eosPeersCount[ci] == 0 && numberOfEoS[ci]) {
+        eosPeersCount[ci] = device->GetNumberOfConnectedPeers(channel);
+      }
       converter(timingInfo, *device, inputs, channelRetriever);
 
       // If we have enough EoS messages, we can stop the device
@@ -543,7 +549,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       // * If a connection sends the EoS and then closes.
       // * If a connection sends two EoS.
       // * If a connection sends an end of stream closes and another one opens.
-      if (numberOfEoS[ci] < device->GetNumberOfConnectedPeers(channel)) {
+      if (numberOfEoS[ci] < eosPeersCount[ci]) {
         everyEoS = false;
       }
 
@@ -553,6 +559,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
           info.state = InputChannelState::Completed;
         }
         std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
+        std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
         control->endOfStream();
       }
     };
