@@ -111,7 +111,7 @@ void calculateDistortionsCorrectionsAnalytical(o2::tpc::SpaceCharge<DataT>& spac
     spaceChargeCalc.setPotentialBoundaryFromFormula(anaFields);
 
     if (staticDistGEMFrame) {
-      LOGP(info, "setting static distortions at GEM frame");
+      std::cout << "setting static distortions at GEM frame" << std::endl;
       spaceChargeCalc.setDefaultStaticDistortionsGEMFrameChargeUp(side);
     }
 
