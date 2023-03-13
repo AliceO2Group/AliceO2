@@ -233,6 +233,7 @@ int main(int argc, char** argv)
 
   std::vector<std::string> inputfiles;
   if (rawfilename.find(",") != std::string::npos) {
+    // Multiple input file mode
     std::stringstream parser(rawfilename);
     std::string buffer;
     while (std::getline(parser, buffer, ',')) {
@@ -240,6 +241,10 @@ int main(int argc, char** argv)
       inputfiles.push_back(buffer);
     }
     LOG(info) << "Found " << inputfiles.size() << " input files to process";
+  } else {
+    // Processing just a single input file
+    LOG(info) << "Adding " << rawfilename;
+    inputfiles.push_back(rawfilename);
   }
 
   o2::raw::RawFileReader::ReadoutCardType readout = o2::raw::RawFileReader::RORC;
@@ -259,6 +264,7 @@ int main(int argc, char** argv)
   reader.setDefaultDataDescription(o2::header::gDataDescriptionRawData);
   reader.setDefaultReadoutCardType(readout);
   for (auto rawfile : inputfiles) {
+    LOG(debug) << "Adding " << rawfile << " to raw reader";
     reader.addFile(rawfile);
   }
   reader.init();
