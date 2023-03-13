@@ -543,28 +543,27 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         return {""};
       };
 
-      bool everyEoS = true;
       std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
       bool newRun = false;
-      numberOfEoS[ci] += countEoS(inputs, newRun);
+      int nEos = countEoS(inputs, newRun);
+      numberOfEoS[ci] += nEos;
       if (newRun) {
         std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
         std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
       }
-      if (eosPeersCount[ci] == 0 && numberOfEoS[ci]) {
-        eosPeersCount[ci] = device->GetNumberOfConnectedPeers(channel);
+      if (numberOfEoS[ci]) {
+        eosPeersCount[ci] = std::max<int>(eosPeersCount[ci], device->GetNumberOfConnectedPeers(channel));
       }
       converter(timingInfo, *device, inputs, channelRetriever);
 
       // If we have enough EoS messages, we can stop the device
       // Notice that this has a number of failure modes:
-      // * If a connection sends the EoS and then closes.
+      // * If a connection sends the EoS and then closes before the GetNumberOfConnectedPeers command above.
       // * If a connection sends two EoS.
       // * If a connection sends an end of stream closes and another one opens.
-      if (numberOfEoS[ci] < eosPeersCount[ci]) {
-        everyEoS = false;
-      }
+      // Finally, if we didn't receive an EoS this time, out counting of the connected peers is off, so the best thing we can do is delay the EoS reporting
+      bool everyEoS = numberOfEoS[ci] >= eosPeersCount[ci] && nEos;
 
       if (everyEoS) {
         // Mark all input channels as closed
