@@ -2257,6 +2257,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Sector& secto
   std::vector<std::vector<float>> ephiOut(nZPoints);
   std::vector<std::vector<float>> potentialOut(nZPoints);
   std::vector<std::vector<int>> izOut(nZPoints);
+  std::vector<std::vector<size_t>> globalIdxOut(nZPoints);
 
 #pragma omp parallel for num_threads(sNThreads)
   for (int iZ = 0; iZ < nZPoints; ++iZ) {
@@ -2276,6 +2277,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Sector& secto
     ephiOut[iZ].reserve(nPads);
     izOut[iZ].reserve(nPads);
     potentialOut[iZ].reserve(nPads);
+    globalIdxOut[iZ].reserve(nPads);
 
     DataT zPos = getZMin(side) + iZ * zSpacing;
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
@@ -2318,6 +2320,8 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Sector& secto
           xOut[iZ].emplace_back(x);
           yOut[iZ].emplace_back(y);
           izOut[iZ].emplace_back(iZ);
+          const size_t idx = globalpad + Mapper::getPadsInSector() * iZ;
+          globalIdxOut[iZ].emplace_back(idx);
         }
       }
     }
@@ -2346,6 +2350,7 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Sector& secto
   dfStore = dfStore.DefineSlotEntry("ez", [&ezOut = ezOut](unsigned int, ULong64_t entry) { return ezOut[entry]; });
   dfStore = dfStore.DefineSlotEntry("ephi", [&ephiOut = ephiOut](unsigned int, ULong64_t entry) { return ephiOut[entry]; });
   dfStore = dfStore.DefineSlotEntry("potential", [&potentialOut = potentialOut](unsigned int, ULong64_t entry) { return potentialOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("globalIndex", [&globalIdxOut = globalIdxOut](unsigned int, ULong64_t entry) { return globalIdxOut[entry]; });
   dfStore.Snapshot("tree", outFileName);
   timer.Print("u");
 }
@@ -2561,7 +2566,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setElectricFieldsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  std::string_view treeEr = fmt::format("fieldEr_side{}", sideName);
+  std::string_view treeEr{fmt::format("fieldEr_side{}", sideName)};
   if (!checkGridFromFile(file, treeEr)) {
     return;
   }
@@ -2593,7 +2598,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setGlobalDistortionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  std::string_view tree = fmt::format("distR_side{}", sideName);
+  std::string_view tree{fmt::format("distR_side{}", sideName)};
   if (!checkGridFromFile(file, tree)) {
     return;
   }
@@ -2638,7 +2643,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setGlobalCorrectionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename = fmt::format("corrR_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("corrR_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -2684,7 +2689,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalCorrectionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename = fmt::format("lcorrR_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("lcorrR_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -2731,7 +2736,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalDistortionsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename = fmt::format("ldistR_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("ldistR_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -2748,7 +2753,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setLocalDistCorrVectorsFromFile(std::string_view file, const Side side)
 {
   const std::string sideName = getSideName(side);
-  const std::string_view treename = fmt::format("lvecdistR_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("lvecdistR_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -2776,7 +2781,7 @@ int SpaceCharge<DataT>::dumpPotential(std::string_view file, const Side side, st
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialFromFile(std::string_view file, const Side side)
 {
-  const std::string_view treename = fmt::format("potential_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("potential_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
@@ -2820,7 +2825,7 @@ bool SpaceCharge<DataT>::checkGridFromFile(std::string_view file, std::string_vi
 template <typename DataT>
 void SpaceCharge<DataT>::setDensityFromFile(std::string_view file, const Side side)
 {
-  const std::string_view treename = fmt::format("density_side{}", getSideName(side));
+  const std::string_view treename{fmt::format("density_side{}", getSideName(side))};
   if (!checkGridFromFile(file, treename)) {
     return;
   }
