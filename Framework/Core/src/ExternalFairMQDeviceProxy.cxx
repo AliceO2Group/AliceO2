@@ -503,7 +503,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       ctx.services().get<CallbackService>().set<CallbackService::Id::DeviceStateChanged>(drainMessages);
     }
 
-    static auto countEoS = [](fair::mq::Parts& inputs) -> int {
+    static auto countEoS = [](fair::mq::Parts& inputs, bool& newRun) -> int {
       int count = 0;
       for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
         // Skip when we have nullptr for the header.
@@ -514,6 +514,14 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
         if (sih != nullptr && sih->state == InputChannelState::Completed) {
           count++;
+        }
+        static size_t currentRunNumber = -1;
+        const auto dh = o2::header::get<DataHeader*>(inputs.At(msgidx * 2)->GetData());
+        if (dh) {
+          if (currentRunNumber != -1 && dh->runNumber != currentRunNumber) {
+            newRun = true;
+          }
+          currentRunNumber = dh->runNumber;
         }
       }
       return count;
@@ -538,7 +546,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       bool everyEoS = true;
       std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
-      numberOfEoS[ci] += countEoS(inputs);
+      bool newRun = false;
+      numberOfEoS[ci] += countEoS(inputs, newRun);
+      if (newRun) {
+        std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
+        std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
+      }
       if (eosPeersCount[ci] == 0 && numberOfEoS[ci]) {
         eosPeersCount[ci] = device->GetNumberOfConnectedPeers(channel);
       }
