@@ -1383,7 +1383,6 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
 
   if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    auto& streamer = o2::utils::DebugStreamer::instance()->getStreamer("debug_distortElectron", "UPDATE");
 
     GlobalPosition3D pos(point);
     float phi = std::atan2(pos.Y(), pos.X());
@@ -1394,15 +1393,15 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
     const Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
     LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sector);
 
-    streamer << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortElectron").data()
-             << "pos=" << pos
-             << "lPos=" << lPos
-             << "phi=" << phi
-             << "secNum=" << secNum
-             << "distX=" << distX
-             << "distY=" << distY
-             << "distZ=" << distZ
-             << "\n";
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_distortElectron", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortElectron").data()
+                                                                                         << "pos=" << pos
+                                                                                         << "lPos=" << lPos
+                                                                                         << "phi=" << phi
+                                                                                         << "secNum=" << secNum
+                                                                                         << "distX=" << distX
+                                                                                         << "distY=" << distY
+                                                                                         << "distZ=" << distZ
+                                                                                         << "\n";
   }
 
   // set distorted coordinates
@@ -1629,17 +1628,16 @@ void SpaceCharge<DataT>::getDistortionsCorrectionsAnalytical(const DataT x, cons
   distZ = globalPosDist.Z() - z;
 
   if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    auto& streamer = o2::utils::DebugStreamer::instance()->getStreamer("debug_distortions_analytical", "UPDATE");
-    streamer << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortions_analytical").data()
-             << "pos=" << (*const_cast<GlobalPosition3D*>(&pos))
-             << "lPos=" << (*const_cast<LocalPosition3D*>(&lPos))
-             << "dlX=" << (*const_cast<DataT*>(&dlX))
-             << "dlY=" << (*const_cast<DataT*>(&dlY))
-             << "dlZ=" << (*const_cast<DataT*>(&dlZ))
-             << "distX=" << distX
-             << "distY=" << distY
-             << "distZ=" << distZ
-             << "\n";
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_distortions_analytical", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortions_analytical").data()
+                                                                                                << "pos=" << (*const_cast<GlobalPosition3D*>(&pos))
+                                                                                                << "lPos=" << (*const_cast<LocalPosition3D*>(&lPos))
+                                                                                                << "dlX=" << (*const_cast<DataT*>(&dlX))
+                                                                                                << "dlY=" << (*const_cast<DataT*>(&dlY))
+                                                                                                << "dlZ=" << (*const_cast<DataT*>(&dlZ))
+                                                                                                << "distX=" << distX
+                                                                                                << "distY=" << distY
+                                                                                                << "distZ=" << distZ
+                                                                                                << "\n";
   }
 }
 
@@ -2521,24 +2519,23 @@ void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const 
   }
 
   if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    auto& streamer = o2::utils::DebugStreamer::instance()->getStreamer("debug_calcDistCorr", "UPDATE");
-    streamer << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_calcDistCorr").data()
-             << "p1r=" << (*const_cast<DataT*>(&p1r))
-             << "p1phi=" << (*const_cast<DataT*>(&p1phi))
-             << "p1z=" << (*const_cast<DataT*>(&p1z))
-             << "p2z=" << (*const_cast<DataT*>(&p2z))
-             << "localIntErOverEz=" << localIntErOverEz
-             << "localIntEPhiOverEz=" << localIntEPhiOverEz
-             << "localIntDeltaEz=" << localIntDeltaEz
-             << "ddR=" << ddR
-             << "ddPhi=" << ddPhi
-             << "ddZ=" << ddZ
-             << "localIntBrOverBz=" << localIntBrOverBz
-             << "localIntBPhiOverBz=" << localIntBPhiOverBz
-             << "localIntDeltaBz=" << localIntDeltaBz
-             << "ddRExB=" << ddRExB
-             << "ddPhiExB=" << ddPhiExB
-             << "\n";
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_calcDistCorr", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_calcDistCorr").data()
+                                                                                      << "p1r=" << (*const_cast<DataT*>(&p1r))
+                                                                                      << "p1phi=" << (*const_cast<DataT*>(&p1phi))
+                                                                                      << "p1z=" << (*const_cast<DataT*>(&p1z))
+                                                                                      << "p2z=" << (*const_cast<DataT*>(&p2z))
+                                                                                      << "localIntErOverEz=" << localIntErOverEz
+                                                                                      << "localIntEPhiOverEz=" << localIntEPhiOverEz
+                                                                                      << "localIntDeltaEz=" << localIntDeltaEz
+                                                                                      << "ddR=" << ddR
+                                                                                      << "ddPhi=" << ddPhi
+                                                                                      << "ddZ=" << ddZ
+                                                                                      << "localIntBrOverBz=" << localIntBrOverBz
+                                                                                      << "localIntBPhiOverBz=" << localIntBPhiOverBz
+                                                                                      << "localIntDeltaBz=" << localIntDeltaBz
+                                                                                      << "ddRExB=" << ddRExB
+                                                                                      << "ddPhiExB=" << ddPhiExB
+                                                                                      << "\n";
   }
 
   ddR += ddRExB;
