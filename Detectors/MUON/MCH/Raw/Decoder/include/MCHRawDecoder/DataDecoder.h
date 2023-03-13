@@ -150,9 +150,14 @@ class DataDecoder
 
   DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
               std::string mapCRUfile, std::string mapFECfile,
-              bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode = TimeRecoMode::HBPackets);
+              bool ds2manu, bool verbose, bool useDummyElecMap,
+              TimeRecoMode timeRecoMode = TimeRecoMode::HBPackets,
+              uint32_t nofOrbitsPerTF = 32);
 
   void reset();
+
+  /* set the number of orbits that comprise one time frame. */
+  void setOrbitsInTF(uint32_t nofOrbitsPerTF) { mOrbitsInTF = nofOrbitsPerTF; }
 
   /// Store the value of the first orbit in the TimeFrame to be processed
   /// Must be called before processing the TmeFrame buffer
@@ -239,7 +244,7 @@ class DataDecoder
   std::vector<o2::mch::DecoderError> mErrors;           ///< list of decoding errors in the processed buffer
   std::vector<o2::mch::HeartBeatPacket> mHBPackets;     ///< list of heart-beat packets in the processed buffer
 
-  uint32_t mOrbitsInTF{128};    ///< number of orbits in one time frame
+  uint32_t mOrbitsInTF;         ///< number of orbits in one time frame
   uint32_t mBcInOrbit;          ///< number of bunch crossings in one orbit
   uint32_t mFirstOrbitInTF;     ///< first orbit in the processed time-frame
   uint32_t mSampaTimeOffset{0}; ///< SAMPA BC counter value to be subtracted from the HBPacket BC at the TF start
