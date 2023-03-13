@@ -1447,7 +1447,7 @@ void TrackFinder::prepareForwardTracking(std::list<Track>::iterator& itTrack, bo
 
   if (runSmoother) {
     auto itStartingParam = std::prev(itTrack->rend());
-    mTrackFitter.fit(*itTrack, true, false, &itStartingParam);
+    mTrackFitter.fit(*itTrack, true, false, &itStartingParam, true);
   }
 
   setCurrentParam(*itTrack, itTrack->last(), itTrack->last().getClusterPtr()->getChamberId(), runSmoother);
