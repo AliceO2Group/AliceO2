@@ -55,8 +55,8 @@ class MatchITSTPCQC
   void finalize();
   void reset();
 
-  TH1F* getHistoPt() const { return mPt; }
-  TH1F* getHistoPtTPC() const { return mPtTPC; }
+  TH1D* getHistoPt() const { return mPt; }
+  TH1D* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
 
   TH1F* getHistoPhi() const { return mPhi; }
@@ -130,8 +130,8 @@ class MatchITSTPCQC
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
   // Pt
-  TH1F* mPt = nullptr;
-  TH1F* mPtTPC = nullptr;
+  TH1D* mPt = nullptr;
+  TH1D* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
   TH1F* mPtPhysPrim = nullptr;
   TH1F* mPtTPCPhysPrim = nullptr;
