@@ -12,21 +12,14 @@
 #ifndef O2_TRDTRAPCONFIG3_H
 #define O2_TRDTRAPCONFIG3_H
 
-#include <fairlogger/Logger.h>
-#include "DataFormatsTRD/Constants.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include <chrono>  // chrono::system_clock
-#include <ctime>   // localtime
-#include <sstream> // stringstream
-#include <iomanip> // put_time
-#include <string>  // string
-#include <vector>
-#include <memory>
+#include <fairlogger/Logger.h>
+
+#include "DataFormatsTRD/Constants.h"
+
+#include <string>
 #include <map>
 #include <bitset>
-
-#include "Rtypes.h"
-#include "TH2F.h"
 
 namespace o2::trd
 {
@@ -478,7 +471,7 @@ class TrapRegInfo
   // class to store the parameters associated with a register
   // some info related to the hardware, some to the packing/unpacking we do here.
  public:
-  TrapRegInfo();
+  TrapRegInfo() = default;
   TrapRegInfo(const std::string& name, int addr, int nBits, int base, int wordoffset, bool ignorechange, uint32_t max);
 
   ~TrapRegInfo();

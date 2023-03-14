@@ -22,14 +22,10 @@
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
 #include "DataFormatsTRD/RawData.h"
+
 #include <fairlogger/Logger.h>
 
-#include <fstream>
-#include <iostream>
-#include <iomanip>
 #include <array>
-#include <bitset>
-#include <math.h>
 
 using namespace o2::trd;
 
@@ -593,8 +589,9 @@ std::string TrapConfig3::getRegNameByIdx(unsigned int regidx)
 {
   if ((regidx >= 0) && (regidx < kLastReg)) {
     return mTrapRegisters[regidx].getName();
-  } else
+  } else {
     return "";
+  }
 }
 
 int32_t TrapConfig3::getRegIndexByAddr(unsigned int addr)
@@ -761,11 +758,6 @@ uint32_t TrapConfig3::getTrapReg(uint32_t index, int detector, int rob, int mcm)
   return data;
 }
 
-TrapRegInfo::TrapRegInfo()
-{
-  // default constructor
-}
-
 TrapRegInfo::TrapRegInfo(const std::string& name, int addr, int nBits, int base, int wordoffset, bool ignorechange, uint32_t max)
 {
   init(name, addr, nBits, base, wordoffset, ignorechange, max);
@@ -793,8 +785,9 @@ void TrapRegInfo::init(const std::string& name, int addr, int nbits, int base, i
     packedwordsize = 30;
     if (mNbits > 30 || mNbits == 16 || mNbits == 4) { // these are 32 bit aligned the rest are 30 bit aligned.
       packedwordsize = 32;
-      if (mNbits == 31)
+      if (mNbits == 31) {
         gapbits = 1;
+      }
     }
     mDataWordNumber = mWordNumber * (nbits + gapbits) / packedwordsize; // the 32 bit word offset to the word containing the register in question
     bitoffset = mWordNumber * (nbits)-mDataWordNumber * packedwordsize; // the offset bit with in that word for the start of this register
