@@ -40,6 +40,7 @@ o2_add_library(Framework
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DataProcessingStats.cxx
+                       src/DataProcessingStates.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
@@ -192,6 +193,7 @@ add_executable(o2-test-framework-core
               test/test_DataDescriptorMatcher.cxx
               test/test_DataDescriptorQueryBuilder.cxx
               test/test_DataProcessingStats.cxx
+              test/test_DataProcessingStates.cxx
               test/test_DataProcessorSpec.cxx
               test/test_DataRefUtils.cxx
               test/test_DataRelayer.cxx
