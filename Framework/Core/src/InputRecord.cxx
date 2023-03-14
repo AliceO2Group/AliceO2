@@ -177,6 +177,8 @@ size_t InputRecord::countValidInputs() const
   for (auto const& route : mInputsSchema) {
     if (!first) {
       ss << ", ";
+    } else {
+      first = false;
     }
     ss << route.matcher.binding;
   }
