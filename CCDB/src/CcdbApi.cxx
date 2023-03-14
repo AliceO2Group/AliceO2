@@ -57,11 +57,19 @@ CcdbApi::CcdbApi()
 {
   std::string host = boost::asio::ip::host_name();
   mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+
+  mIsCCDBDownloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  if (mIsCCDBDownloaderEnabled) {
+    mDownloader = new CCDBDownloader();
+  }
 }
 
 CcdbApi::~CcdbApi()
 {
   curl_global_cleanup();
+  if (mDownloader) {
+    delete mDownloader;
+  }
 }
 
 bool CcdbApi::checkAlienToken()
@@ -90,6 +98,17 @@ void CcdbApi::curlInit()
   CcdbApi::mJAlienCredentials = std::make_unique<TJAlienCredentials>();
   CcdbApi::mJAlienCredentials->loadCredentials();
   CcdbApi::mJAlienCredentials->selectPreferedCredentials();
+
+  // allow to configure the socket timeout of CCDBDownloader, if activated (for some tuning studies)
+  if (mIsCCDBDownloaderEnabled) {
+    if (getenv("ALICEO2_CCDB_SOCKET_TIMEOUT")) {
+      auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
+      if (timeoutMS >= 0) {
+        LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
+        mDownloader->setSocketTimoutTime(timeoutMS);
+      }
+    }
+  }
 }
 
 void CcdbApi::init(std::string const& host)
@@ -1728,9 +1747,8 @@ void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::s
 
 CURLcode CcdbApi::CURL_perform(CURL* handle) const
 {
-  static bool downloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
-  if (downloaderEnabled) {
-    return mDownloader.perform(handle);
+  if (mIsCCDBDownloaderEnabled) {
+    return mDownloader->perform(handle);
   }
   return curl_easy_perform(handle);
 }
