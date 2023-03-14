@@ -22,25 +22,22 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
 fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
-[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
-source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
-
 if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   # This sets up the hardcoded configuration to run the full system workflow on the EPN
   if [[ "0$EPN_NODE_MI100" == "01" && -z $EPN_GLOBAL_SCALING ]]; then
     export EPN_GLOBAL_SCALING="3 / 2"
   fi
-  export NGPUS=4
-  export GPUTYPE=HIP
-  export SHMSIZE=$(( (112 << 30) * ${EPN_GLOBAL_SCALING:-1} )) # Please keep these defaults in sync with those in shm-tool.sh
-  export DDSHMSIZE=$(( (112 << 10) * ${EPN_GLOBAL_SCALING:-1} ))
-  export GPUMEMSIZE=$(( 24 << 30 ))
-  export NUMAGPUIDS=1
-  export EPNPIPELINES=1
+  [[ -z $NGPUS ]] && export NGPUS=4
+  [[ -z $GPUTYPE ]] && export GPUTYPE=HIP
+  [[ -z $SHMSIZE ]] && export SHMSIZE=$(( (112 << 30) * ${EPN_GLOBAL_SCALING:-1} )) # Please keep these defaults in sync with those in shm-tool.sh
+  [[ -z $DDSHMSIZE ]] && export DDSHMSIZE=$(( (112 << 10) * ${EPN_GLOBAL_SCALING:-1} ))
+  [[ -z $GPUMEMSIZE ]] && export GPUMEMSIZE=$(( 24 << 30 ))
+  [[ -z $NUMAGPUIDS ]] && export NUMAGPUIDS=1
+  [[ -z $EPNPIPELINES ]] && export EPNPIPELINES=1
   [[ -z $DPL_CONDITION_BACKEND ]] && export DPL_CONDITION_BACKEND="http://localhost:8084"
   export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=${DPL_CONDITION_BACKEND};"
-  export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="http://localhost:8084"
-  NUM_DPL_WORKFLOWS=2
+  export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="${DPL_CONDITION_BACKEND}"
+  [[ -z $NUM_DPL_WORKFLOWS ]] && NUM_DPL_WORKFLOWS=2
   if [[ `lspci | grep "Vega 20\|Arcturus GL-XL" | wc -l` != "8" ]]; then
     echo "Could not detect 8 EPN GPUs, aborting" 1>&2
     exit 1
@@ -53,6 +50,9 @@ export SYNCMODE=1
 export SHMTHROW=0
 export IS_SIMULATED_DATA=1
 export DATADIST_NEW_DPL_CHAN=1
+
+[[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
+source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
 workflow_has_parameter QC && export QC_REDIRECT_MERGER_TO_LOCALHOST=1
 
