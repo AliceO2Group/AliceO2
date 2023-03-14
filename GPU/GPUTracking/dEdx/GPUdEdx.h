@@ -182,25 +182,25 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     o2::utils::DebugStreamer::instance()->getStreamer("debug_dedx", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_dedx").data()
                                                                               << "qTot=" << mChargeTot[mCount - 1]
                                                                               << "qMax=" << mChargeMax[mCount - 1]
-                                                                              << "region=" << o2::utils::DebugStreamer::constcast(region)
+                                                                              << "region=" << region
                                                                               << "padRow=" << padRow
                                                                               << "sector=" << slice
                                                                               << "lx=" << padlx
                                                                               << "ly=" << padly
-                                                                              << "tanTheta=" << o2::utils::DebugStreamer::constcast(tanTheta)
+                                                                              << "tanTheta=" << tanTheta
                                                                               << "trackTgl=" << trackTgl
                                                                               << "sinPhi=" << trackSnp
                                                                               << "z=" << z
-                                                                              << "absRelPad=" << o2::utils::DebugStreamer::constcast(absRelPad)
+                                                                              << "absRelPad=" << absRelPad
                                                                               << "relTime=" << relTime
-                                                                              << "threshold=" << o2::utils::DebugStreamer::constcast(threshold)
+                                                                              << "threshold=" << threshold
                                                                               << "qTotIn=" << qTotIn
-                                                                              << "qMaxTopologyCorr=" << o2::utils::DebugStreamer::constcast(qMaxTopologyCorr)
-                                                                              << "qTotTopologyCorr=" << o2::utils::DebugStreamer::constcast(qTotTopologyCorr)
-                                                                              << "qMaxResidualCorr=" << o2::utils::DebugStreamer::constcast(qMaxResidualCorr)
-                                                                              << "qTotResidualCorr=" << o2::utils::DebugStreamer::constcast(qTotResidualCorr)
-                                                                              << "residualGainMapGain=" << o2::utils::DebugStreamer::constcast(residualGainMapGain)
-                                                                              << "fullGainMapGain=" << o2::utils::DebugStreamer::constcast(fullGainMapGain)
+                                                                              << "qMaxTopologyCorr=" << qMaxTopologyCorr
+                                                                              << "qTotTopologyCorr=" << qTotTopologyCorr
+                                                                              << "qMaxResidualCorr=" << qMaxResidualCorr
+                                                                              << "qTotResidualCorr=" << qTotResidualCorr
+                                                                              << "residualGainMapGain=" << residualGainMapGain
+                                                                              << "fullGainMapGain=" << fullGainMapGain
                                                                               << "\n";
   })
 }

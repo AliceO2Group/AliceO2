@@ -155,13 +155,6 @@ class DebugStreamer
   /// \return returns integer index for given streamer flag
   static int getIndex(const StreamFlags streamFlag);
 
-  /// \return return non const reference to const object
-  template <typename Type>
-  static Type& constcast(const Type& obj)
-  {
-    return (*const_cast<Type*>(&obj));
-  }
-
  private:
   using StreamersPerFlag = tbb::concurrent_unordered_map<size_t, std::unique_ptr<o2::utils::TreeStreamRedirector>>;
   StreamersPerFlag mTreeStreamer; ///< streamer which is used for the debugging
@@ -192,12 +185,6 @@ class DebugStreamer
   };
 
   GPUd() StreamerDummy getStreamer(const int id = 0) const { return StreamerDummy{}; };
-
-  template <typename Type>
-  GPUd() static Type& constcast(Type& obj)
-  {
-    return obj;
-  }
 
   /// empty for GPU
   template <typename... Args>
