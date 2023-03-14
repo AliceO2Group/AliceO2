@@ -102,6 +102,7 @@ o2_add_library(Framework
                        src/OutputSpec.cxx
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
+                       src/ProcessingContext.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
                        src/ReadoutAdapter.cxx
