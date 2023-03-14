@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_DEVICESTATE_H_
 
 #include "Framework/ChannelInfo.h"
+#include "Framework/DeviceStateEnums.h"
 #include "Framework/ComputingQuotaOffer.h"
 
 #include <vector>
@@ -27,26 +28,6 @@ typedef struct uv_async_s uv_async_t;
 
 namespace o2::framework
 {
-
-/// enumeration representing the current state of a given
-/// device.
-enum struct StreamingState {
-  /// Data is being processed
-  Streaming = 0,
-  /// End of streaming requested, but not notified
-  EndOfStreaming = 1,
-  /// End of streaming notified
-  Idle = 2,
-};
-
-enum struct TransitionHandlingState {
-  /// No pending transitions
-  NoTransition,
-  /// A transition was notified to be requested
-  Requested,
-  /// A transition needs to be fullfilled ASAP
-  Expired
-};
 
 /// Running state information of a given device
 struct DeviceState {
@@ -116,4 +97,4 @@ struct DeviceState {
 };
 
 } // namespace o2::framework
-#endif
+#endif // O2_FRAMEWORK_DEVICESTATE_H_
