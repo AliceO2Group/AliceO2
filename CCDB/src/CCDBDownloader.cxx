@@ -81,6 +81,9 @@ CCDBDownloader::~CCDBDownloader()
     uv_timer_stop(socketTimerPair.second);
     uv_close((uv_handle_t*)socketTimerPair.second, onUVClose);
   }
+  // all timers have been closed --> so clear this map (otherwise it may get accessed in different callbacks again
+  // ... for instance when called from within curl_multi_cleanup)
+  mSocketTimerMap.clear();
 
   // Close loop thread
   mCloseLoop = true;
@@ -172,7 +175,6 @@ void CCDBDownloader::closeSocketByTimer(uv_timer_t* handle)
     uv_timer_stop(CD->mSocketTimerMap[sock]);
     CD->mSocketTimerMap.erase(sock);
     close(sock);
-    return;
   }
 }
 
