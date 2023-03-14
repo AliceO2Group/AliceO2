@@ -21,11 +21,11 @@
 #pragma link C++ nestedclasses;
 #pragma link C++ nestedtypedef;
 
-#pragma link C++ struct o2::tpc::ParameterSpaceCharge + ;
 #pragma link C++ struct o2::tpc::MGParameters + ;
 #pragma link C++ struct o2::tpc::TPCParameters < double> + ;
 #pragma link C++ class o2::tpc::AnalyticalFields < double> + ;
 #pragma link C++ class o2::tpc::RegularGrid3D < double> + ;
+#pragma link C++ struct o2::tpc::RegularGridHelper < double> + ;
 #pragma link C++ class o2::tpc::TriCubicInterpolator < double> + ;
 #pragma link C++ class o2::tpc::DataContainer3D < double> + ;
 #pragma link C++ class o2::tpc::PoissonSolver < double> + ;
@@ -36,6 +36,7 @@
 #pragma link C++ struct o2::tpc::TPCParameters < float> + ;
 #pragma link C++ class o2::tpc::AnalyticalFields < float> + ;
 #pragma link C++ class o2::tpc::RegularGrid3D < float> + ;
+#pragma link C++ struct o2::tpc::RegularGridHelper < float> + ;
 #pragma link C++ class o2::tpc::TriCubicInterpolator < float> + ;
 #pragma link C++ class o2::tpc::DataContainer3D < float> + ;
 #pragma link C++ class o2::tpc::PoissonSolver < float> + ;
@@ -45,4 +46,5 @@
 #pragma link C++ class o2::tpc::GridProperties < float> + ;
 #pragma link C++ class o2::tpc::AnalyticalDistCorr < double> + ;
 #pragma link C++ class o2::tpc::AnalyticalDistCorr < float> + ;
+#pragma link C++ struct o2::tpc::ParamSpaceCharge + ;
 #endif

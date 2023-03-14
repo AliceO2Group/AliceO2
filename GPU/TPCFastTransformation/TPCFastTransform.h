@@ -27,9 +27,11 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-#include "TPCSpaceCharge/SpaceCharge.h"
-#endif
+namespace o2::tpc
+{
+template <class T>
+class SpaceCharge;
+}
 
 namespace GPUCA_NAMESPACE
 {
@@ -40,15 +42,16 @@ namespace gpu
 struct TPCSlowSpaceChargeCorrection {
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-  /// getting the corrections for global coordinates
-  void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
-  {
-    const o2::tpc::Side side = (slice < o2::tpc::SECTORSPERSIDE) ? o2::tpc::Side::A : o2::tpc::Side::C;
-    mCorr.getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
-  }
+  /// destructor
+  ~TPCSlowSpaceChargeCorrection();
 
-  o2::tpc::SpaceCharge<float> mCorr; ///< reference space charge corrections
+  /// getting the corrections for global coordinates
+  void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const;
+
+  o2::tpc::SpaceCharge<float>* mCorr{nullptr}; ///< reference space charge corrections
 #else
+  ~TPCSlowSpaceChargeCorrection() CON_DEFAULT;
+
   /// setting dummy corrections for GPU
   GPUd() void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
   {
@@ -59,7 +62,7 @@ struct TPCSlowSpaceChargeCorrection {
 #endif
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCSlowSpaceChargeCorrection, 1);
+  ClassDefNV(TPCSlowSpaceChargeCorrection, 2);
 #endif
 };
 
@@ -265,14 +268,7 @@ class TPCFastTransform : public FlatObject
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
   /// setting the reference corrections
-  /// \tparam DataTIn data type of the corrections on the root file (float or double)
-  template <typename DataTIn = double>
-  void setSlowTPCSCCorrection(TFile& inpf)
-  {
-    mCorrectionSlow = new TPCSlowSpaceChargeCorrection;
-    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::A);
-    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::C);
-  }
+  void setSlowTPCSCCorrection(TFile& inpf);
 
   /// \return returns the space charge object which is used for the slow correction
   const auto& getCorrectionSlow() const { return *mCorrectionSlow; }
