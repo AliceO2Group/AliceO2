@@ -70,8 +70,8 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float
 
   ErrY2 = GetClusterErrorSeeding(0, rowType, z, angleY2);
   ErrZ2 = GetClusterErrorSeeding(1, rowType, z, angleZ2);
-  ErrY2 *= ErrY2;
-  ErrZ2 *= ErrZ2;
+  ErrY2 *= ErrY2 * rec.tpc.clusterError2CorrectionY;
+  ErrZ2 *= ErrZ2 * rec.tpc.clusterError2CorrectionZ;
 }
 
 MEM_CLASS_PRE()
