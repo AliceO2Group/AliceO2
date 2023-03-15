@@ -71,7 +71,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   using o2::its3::BuildTopologyDictionary;
   using o2::its3::CompClusterExt;
   using o2::itsmft::ClusterTopology;
-  using o2::itsmft::CompCluster;
+  using o2::its3::CompCluster;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;
