@@ -49,6 +49,15 @@ RawErrorType_t RawDecoder::readChannels()
   // }
   // mErrors.emplace_back(-1, 0, 0, 0, kOK); //5 is non-existing link with general errors
 
+  uint8_t dataFormat = mRawReader.getDataFormat();
+  int wordLength;
+  if (dataFormat == 0x0) {
+    wordLength = 16; // 128 bits word with padding
+  } else if (dataFormat == 0x2) {
+    wordLength = 10; // 80 bits word without padding
+  } else {
+    return RawErrorType_t::kWRONG_DATAFORMAT;
+  }
   auto& payloadWords = mRawReader.getPayload();
   uint32_t wordCountFromLastHeader = 1; // header word is included
   int nDigitsAddedFromLastHeader = 0;
@@ -87,7 +96,7 @@ RawErrorType_t RawDecoder::readChannels()
       }
     } else {
       if (skipUntilNextHeader) {
-        b += 16;
+        b += wordLength;
         continue; // continue while'ing until it's not header
       }
       CpvWord word(b, e);
@@ -147,7 +156,7 @@ RawErrorType_t RawDecoder::readChannels()
         }
       }
     }
-    b += 16;
+    b += wordLength;
   }
   mChannelsInitialized = true;
   return kOK;

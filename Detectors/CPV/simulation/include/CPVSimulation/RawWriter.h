@@ -83,6 +83,8 @@ class RawWriter
   void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
   void setCcdbUrl(const char* ccdbUrl) { mCcdbUrl = ccdbUrl; }
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
+  void setRDHVersion(int v) {}
+  void setDataFormat(unsigned char v) { mDataFormat = v; }
 
   void init();
   void digitsToRaw(gsl::span<o2::cpv::Digit> digits, gsl::span<o2::cpv::TriggerRecord> triggers);
@@ -101,11 +103,13 @@ class RawWriter
   Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
   BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map
   int64_t mLM_L0_delay = 15;                                      ///< LM-L0 delay
+  unsigned char mDataFormat = 0;                                  ///< data format (0 or 2)
+  int mRDHVersion = 7;                                            ///< RDH version
   std::vector<char> mPayload[kNGBTLinks];                         ///< Preformatted payload for every link to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
-  ClassDefNV(RawWriter, 2);
+  ClassDefNV(RawWriter, 3);
 };
 
 } // namespace cpv
