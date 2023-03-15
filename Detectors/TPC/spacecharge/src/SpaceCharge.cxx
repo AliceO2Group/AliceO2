@@ -1382,8 +1382,7 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
   // get the distortions for input coordinate
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
 
-  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
     GlobalPosition3D pos(point);
     float phi = std::atan2(pos.Y(), pos.X());
     if (phi < 0.) {
@@ -1402,7 +1401,7 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
                                                                                          << "distY=" << distY
                                                                                          << "distZ=" << distZ
                                                                                          << "\n";
-  }
+  })
 
   // set distorted coordinates
   point.SetXYZ(point.X() + distX, point.Y() + distY, point.Z() + distZ);
@@ -1627,7 +1626,7 @@ void SpaceCharge<DataT>::getDistortionsCorrectionsAnalytical(const DataT x, cons
   distY = globalPosDist.Y() - y;
   distZ = globalPosDist.Z() - z;
 
-  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_distortions_analytical", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortions_analytical").data()
                                                                                                 << "pos=" << (*const_cast<GlobalPosition3D*>(&pos))
                                                                                                 << "lPos=" << (*const_cast<LocalPosition3D*>(&lPos))
@@ -1638,7 +1637,7 @@ void SpaceCharge<DataT>::getDistortionsCorrectionsAnalytical(const DataT x, cons
                                                                                                 << "distY=" << distY
                                                                                                 << "distZ=" << distZ
                                                                                                 << "\n";
-  }
+  })
 }
 
 template <typename DataT>
@@ -2523,7 +2522,7 @@ void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const 
       }
   }
 
-  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_calcDistCorr", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_calcDistCorr").data()
                                                                                       << "p1r=" << (*const_cast<DataT*>(&p1r))
                                                                                       << "p1phi=" << (*const_cast<DataT*>(&p1phi))
@@ -2541,7 +2540,7 @@ void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const 
                                                                                       << "ddRExB=" << ddRExB
                                                                                       << "ddPhiExB=" << ddPhiExB
                                                                                       << "\n";
-  }
+  })
 
   ddR += ddRExB;
   ddPhi += ddPhiExB;
