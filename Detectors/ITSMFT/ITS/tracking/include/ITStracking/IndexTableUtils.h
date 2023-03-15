@@ -41,6 +41,8 @@ class IndexTableUtils
   GPUhdi() int getNzBins() const { return mNzBins; }
   GPUhdi() int getNphiBins() const { return mNphiBins; }
   GPUhdi() float getLayerZ(int i) const { return mLayerZ[i]; }
+  GPUhdi() void setNzBins(const int zBins) { mNzBins = zBins; }
+  GPUhdi() void setNphiBins(const int phiBins) { mNphiBins = phiBins; }
 
  private:
   int mNzBins = 0;
