@@ -642,7 +642,7 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit)
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit GPUCA_DEBUG_STREAMER_CHECK(, iTrk))
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
@@ -652,7 +652,7 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
       rejectChi2 = 1;
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster)) {
+      GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
         o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data() << "mAlpha=" << mAlpha << "iRow=" << iRow << "posY=" << posY << "posZ=" << posZ << "clusterState=" << clusterState << "rejectChi2=" << rejectChi2 << "interpolationhit=" << *inter << "refit=" << refit << "retVal=" << retVal << "err2Y=" << err2Y << "err2Z=" << err2Z << "track=" << mT << "\n";
       })
       if (retVal) {
