@@ -197,7 +197,7 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
   std::array<int*, nLayers> mROframesClustersDevice;
-  std::array<unsigned char*, nLayers> mUsedClustersDevice;
+  std::array<unsigned char*, nLayers> mUsedClustersDevice; 
   Vertex* mVerticesDevice;
   int* mROframesPVDevice;
 
