@@ -69,6 +69,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/DebugStreamer.h"
 #include <filesystem>
 #include <memory> // for make_shared
 #include <vector>

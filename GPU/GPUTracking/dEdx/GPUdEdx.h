@@ -176,7 +176,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     mSubThreshMinMax = qmax;
   }
 
-  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
     float padlx = param.tpcGeometry.Row2X(padRow);
     float padly = param.tpcGeometry.LinearPad2Y(slice, padRow, padPos);
     o2::utils::DebugStreamer::instance()->getStreamer("debug_dedx", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_dedx").data()
@@ -202,7 +202,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
                                                                               << "residualGainMapGain=" << o2::utils::DebugStreamer::constcast(residualGainMapGain)
                                                                               << "fullGainMapGain=" << o2::utils::DebugStreamer::constcast(fullGainMapGain)
                                                                               << "\n";
-  }
+  })
 }
 
 GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& GPUrestrict() param)
