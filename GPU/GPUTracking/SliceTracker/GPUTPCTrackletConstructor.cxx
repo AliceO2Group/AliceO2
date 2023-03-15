@@ -207,11 +207,11 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
           const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f;
           float sy2 = kFactor * (tParam.Err2Y() + err2Y);
           float sz2 = kFactor * (tParam.Err2Z() + err2Z);
-          if (sy2 > 2.f) {
-            sy2 = 2.f;
+          if (sy2 > tracker.Param().rec.tpc.hitSearchArea2) {
+            sy2 = tracker.Param().rec.tpc.hitSearchArea2;
           }
-          if (sz2 > 2.f) {
-            sz2 = 2.f;
+          if (sz2 > tracker.Param().rec.tpc.hitSearchArea2) {
+            sz2 = tracker.Param().rec.tpc.hitSearchArea2;
           }
           dy = y - tParam.Y();
           dz = z - tParam.Z();
