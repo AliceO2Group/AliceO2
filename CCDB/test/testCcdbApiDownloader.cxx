@@ -22,6 +22,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional.hpp>
+#include <uv.h>
 
 using namespace std;
 
