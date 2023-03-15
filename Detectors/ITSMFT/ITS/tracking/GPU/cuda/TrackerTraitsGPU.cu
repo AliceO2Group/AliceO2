@@ -58,9 +58,9 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
     return getEmptyBinsRect();
   }
 
-  return int4{o2::gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
@@ -84,6 +84,17 @@ struct trackletSortIndexFunctor : public thrust::binary_function<T, T, bool> {
     return lhs.firstClusterIndex < rhs.firstClusterIndex || (lhs.firstClusterIndex == rhs.firstClusterIndex && lhs.secondClusterIndex < rhs.secondClusterIndex);
   }
 };
+
+// Dump vertices
+GPUg() void printVertices(const Vertex* v, size_t size, const unsigned int tId = 0)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
+    printf("vertices: ");
+    for (int i{0}; i < size; ++i) {
+      printf("x=%f y=%f z=%f\n", v[i].getX(), v[i].getY(), v[i].getZ());
+    }
+  }
+}
 
 // Compute the tracklets for a given layer
 template <int NLayers = 7>
@@ -195,6 +206,7 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const Cluster* clustersNextLayer,           // input data rof0-delta <rof0< rof0+delta (up to 3 rofs)
   const int* roFrameClustersCurrentLayer,     // Number of clusters on layer 0 per ROF
   const int* roFrameClustersNextLayer,        // Number of clusters on layer 1 per ROF
+  const int* indexTablesNext,                 // input data rof0-delta <rof0< rof0+delta (up to 3 rofs)
   const unsigned char* usedClustersLayer,     // input data rof0
   const unsigned char* usedClustersNextLayer, // input data rof1
   int* trackletsLookUpTable,                  // output data
@@ -209,14 +221,17 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const float mSAngle,
   const StaticTrackingParameters<NLayers>* trkPars,
   const IndexTableUtils* utils,
+  const unsigned int maxClustersPerROf = 5e2,
   const unsigned int maxTrackletsPerCluster = 50)
 {
+  const int phiBins{utils->getNphiBins()};
+  const int zBins{utils->getNzBins()};
   for (unsigned int iRof{blockIdx.x}; iRof < rofSize; iRof += gridDim.x) {
     auto rof0 = iRof + startRofId;
     auto nClustersCurrentLayerRof = roFrameClustersCurrentLayer[rof0 + 1] - roFrameClustersCurrentLayer[rof0];
     auto* clustersCurrentLayerRof = clustersCurrentLayer + (roFrameClustersCurrentLayer[rof0] - roFrameClustersCurrentLayer[startRofId]);
     auto nVerticesRof0 = nVertices[rof0 + 1] - nVertices[rof0];
-
+    auto* trackletsLookUpTableRof = trackletsLookUpTable + maxClustersPerROf * iRof;
     for (int currentClusterIndex = threadIdx.x; currentClusterIndex < nClustersCurrentLayerRof; currentClusterIndex += blockDim.x) {
       unsigned int storedTracklets{0};
       const Cluster& currentCluster{clustersCurrentLayerRof[currentClusterIndex]};
@@ -226,69 +241,64 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
       }
 
       int minRof = (rof0 >= trkPars->DeltaROF) ? rof0 - trkPars->DeltaROF : 0;
-      int maxRof = (rof0 == maxRofs - trkPars->DeltaROF) ? rof0 : rof0 + trkPars->DeltaROF;
+      int maxRof = (rof0 == maxRofs - trkPars->DeltaROF) ? rof0 : rof0 + trkPars->DeltaROF; // works with delta = {0, 1}
       const float inverseR0{1.f / currentCluster.radius};
-      if (!threadIdx.x) {
-        // printf("rof: %d vertices: %d\n", rof0, nVerticesRof0);
-      }
+
       for (int iPrimaryVertex{0}; iPrimaryVertex < nVerticesRof0; iPrimaryVertex++) {
-        //   const auto& primaryVertex{vertices[iPrimaryVertex]};
-        //   if (primaryVertex.getX() == 0.f && primaryVertex.getY() == 0.f && primaryVertex.getZ() == 0.f) {
-        //     continue;
-        //   }
-        //   const float resolution{o2::gpu::GPUCommonMath::Sqrt(Sq(trkPars->PVres) / primaryVertex.getNContributors() + Sq(positionResolution))};
-        //   const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
-        //   const float zAtRmin{tanLambda * (minR - currentCluster.radius) + currentCluster.zCoordinate};
-        //   const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
-        //   const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
-        //   const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
+        const auto& primaryVertex{vertices[nVertices[rof0] + iPrimaryVertex]};
+        const float resolution{o2::gpu::GPUCommonMath::Sqrt(Sq(trkPars->PVres) / primaryVertex.getNContributors() + Sq(positionResolution))};
+        const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
+        const float zAtRmin{tanLambda * (minR - currentCluster.radius) + currentCluster.zCoordinate};
+        const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
+        const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
+        const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
 
-        //   const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, *utils, zAtRmin, zAtRmax, sigmaZ * trkPars->NSigmaCut, phiCut)};
-        //   if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
-        //     continue;
-        //   }
-        //   int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
-        //   if (phiBinsNum < 0) {
-        //     phiBinsNum += trkPars->PhiBins;
-        //   }
-        //   constexpr int tableSize{256 * 128 + 1}; // hardcoded for the time being
+        const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, *utils, zAtRmin, zAtRmax, sigmaZ * trkPars->NSigmaCut, phiCut)};
 
-        //   for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
-        //     if (!(roFrameClustersNext[rof1 + 1] - roFrameClustersNext[rof1])) { // number of clusters on next layer > 0
-        //       continue;
-        //     }
-        //     for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
-        //       int iPhiBin = (selectedBinsRect.y + iPhiCount) % trkPars->PhiBins;
-        //       const int firstBinIndex{utils->getBinIndex(selectedBinsRect.x, iPhiBin)};
-        //       const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-        //       const int firstRowClusterIndex = indexTable[rof1 * tableSize + firstBinIndex];
-        //       const int maxRowClusterIndex = indexTable[rof1 * tableSize + maxBinIndex];
-        //       for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
-        //         if (iNextCluster >= (roFrameClustersNext[rof1 + 1] - roFrameClustersNext[rof1])) {
-        //           break;
-        //         }
-        //         const Cluster& nextCluster{getPtrFromRuler<Cluster>(rof1, clustersNextLayer, roFrameClustersNext)[iNextCluster]};
-        //         if (usedClustersNextLayer[nextCluster.clusterId]) {
-        //           continue;
-        //         }
-        //         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
-        //         const float deltaZ{o2::gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
+        if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
+          continue;
+        }
+        int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
+        if (phiBinsNum < 0) {
+          phiBinsNum += trkPars->PhiBins;
+        }
+        const int tableSize{phiBins * zBins + 1};
+        for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
+          if (!(roFrameClustersNextLayer[rof1 + 1] - roFrameClustersNextLayer[rof1])) { // number of clusters on next layer > 0
+            continue;
+          }
+          for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
+            int iPhiBin = (selectedBinsRect.y + iPhiCount) % trkPars->PhiBins;
+            const int firstBinIndex{utils->getBinIndex(selectedBinsRect.x, iPhiBin)};
+            const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
+            const int firstRowClusterIndex = indexTablesNext[rof1 * tableSize + firstBinIndex];
+            const int maxRowClusterIndex = indexTablesNext[rof1 * tableSize + maxBinIndex];
+            for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
+              if (iNextCluster >= (roFrameClustersNextLayer[rof1 + 1] - roFrameClustersNextLayer[rof1])) {
+                break;
+              }
+              const Cluster& nextCluster{clustersNextLayer[roFrameClustersNextLayer[rof1] - roFrameClustersNextLayer[startRofId] + iNextCluster]};
+              if (usedClustersNextLayer[nextCluster.clusterId]) {
+                continue;
+              }
+              const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
+              const float deltaZ{o2::gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
 
-        //         if (deltaZ / sigmaZ < trkPars->NSigmaCut && (deltaPhi < phiCut || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < phiCut)) {
-        //           trackletsLookUpTable[currentSortedIndex]++; // Race-condition safe
-        //           const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
-        //           const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
-        //           const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
-        //           new (tracklets + stride + storedTracklets) Tracklet{currentSortedIndex, roFrameClustersNext[rof1] + iNextCluster, tanL, phi, rof0, rof1};
-        //           ++storedTracklets;
-        //         }
-        //       }
-        //     }
-        //   }
+              if (deltaZ / sigmaZ < trkPars->NSigmaCut && (deltaPhi < phiCut || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < phiCut)) {
+                trackletsLookUpTableRof[currentSortedIndex]++; // Race-condition safe
+                const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
+                const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
+                const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
+                new (tracklets + stride + storedTracklets) Tracklet{currentSortedIndex, roFrameClustersNextLayer[rof1] + iNextCluster, tanL, phi, static_cast<int>(rof0), rof1};
+                ++storedTracklets;
+              }
+            }
+          }
+        }
       }
-      // if (storedTracklets > maxTrackletsPerCluster) {
-      //   printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", maxTrackletsPerCluster, storedTracklets);
-      // }
+      if (storedTracklets > maxTrackletsPerCluster) {
+        printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", storedTracklets, maxTrackletsPerCluster);
+      }
     }
   }
 }
@@ -381,6 +391,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
     auto doTrackReconstruction = [&, chunkId, rofPerChunk, iteration]() -> void {
       auto offset = chunkId * rofPerChunk;
       auto maxROF = offset + rofPerChunk;
+      // gpu::printVertices<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(mTimeFrameGPU->getDeviceVertices(), mTimeFrameGPU->getPrimaryVertices(0, 2304).size());
       while (offset < maxROF) {
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Tracker>(chunkId, offset, maxROF);
         RANGE("chunk_gpu_tracking", 1);
@@ -391,13 +402,14 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
             iteration,                                                               // const int iteration,
             offset,                                                                  // const unsigned int startRofId,
             rofs,                                                                    // const unsigned int rofSize,
-            0,                                                                       // const unsigned int maxRof,
+            0,                                                                       // const unsigned int deltaRof,
             mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(iLayer),              // const Cluster* clustersCurrentLayer,
             mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(iLayer + 1),          // const Cluster* clustersNextLayer,
             mTimeFrameGPU->getDeviceROframesClusters(iLayer),                        // const int* sizeClustersCurrentLayer, // Number of clusters on layer 0 per ROF
             mTimeFrameGPU->getDeviceROframesClusters(iLayer + 1),                    // const int* roFrameClustersNextLayer,    // Number of clusters on layer 1 per ROF
-            mTimeFrameGPU->getChunk(chunkId).getDeviceUsedClusters(iLayer),          // const int* usedClustersCurrentLayer,
-            mTimeFrameGPU->getChunk(chunkId).getDeviceUsedClusters(iLayer + 1),      // const int* usedClustersNextLayer,
+            mTimeFrameGPU->getChunk(chunkId).getDeviceIndexTables(iLayer + 1),       // const int* indexTableNextLayer,
+            mTimeFrameGPU->getDeviceUsedClusters(iLayer),                            // const int* usedClustersCurrentLayer,
+            mTimeFrameGPU->getDeviceUsedClusters(iLayer + 1),                        // const int* usedClustersNextLayer,
             mTimeFrameGPU->getChunk(chunkId).getDeviceTrackletsLookupTables(iLayer), // int* trackletsLookUpTable, // output data
             mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer),             // Tracklet* tracklets,       // output data
             mTimeFrameGPU->getDeviceVertices(),                                      // const Vertex* vertices,

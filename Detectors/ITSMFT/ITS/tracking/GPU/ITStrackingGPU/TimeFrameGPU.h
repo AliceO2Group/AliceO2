@@ -97,7 +97,6 @@ class GpuTimeFrameChunk
 
   /// Interface
   Cluster* getDeviceClusters(const int);
-  unsigned char* getDeviceUsedClusters(const int);
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   int* getDeviceClusterExternalIndices(const int);
   int* getDeviceIndexTables(const int);
@@ -127,7 +126,6 @@ class GpuTimeFrameChunk
 
   /// Device
   std::array<Cluster*, nLayers> mClustersDevice;
-  std::array<unsigned char*, nLayers> mUsedClustersDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   std::array<int*, nLayers> mClusterExternalIndicesDevice;
   std::array<int*, nLayers> mIndexTablesDevice;
@@ -166,8 +164,8 @@ class TimeFrameGPU : public TimeFrame
   /// Most relevant operations
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, const IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(const int, const IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int);
+  void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
+  void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -187,6 +185,7 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
+  unsigned char* getDeviceUsedClusters(const int);
 
  private:
   bool mHostRegistered = false;
@@ -198,6 +197,7 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
   std::array<int*, nLayers> mROframesClustersDevice;
+  std::array<unsigned char*, nLayers> mUsedClustersDevice;
   Vertex* mVerticesDevice;
   int* mROframesPVDevice;
 

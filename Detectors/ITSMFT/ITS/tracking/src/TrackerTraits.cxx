@@ -67,7 +67,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     int maxRof = (rof0 == tf->getNrof() - mTrkParams[iteration].DeltaROF) ? rof0 : rof0 + mTrkParams[iteration].DeltaROF;
     for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
-      printf("rof: %d layer %d nclusters %d iteration %d \n", rof0, iLayer, layer0.size(), iteration);
       if (layer0.empty()) {
         continue;
       }
@@ -96,7 +95,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
                                                   sigmaZ * mTrkParams[iteration].NSigmaCut, tf->getPhiCut(iLayer))};
-
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
           }
