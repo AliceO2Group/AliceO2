@@ -99,8 +99,8 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   // Create the TimerSpec for cycleDurations
   std::vector<o2::framework::TimerSpec> timers;
-  for (auto& [cycleDuration, period] : mConfig.publicationDecisionNew.param) {
-    timers.push_back({cycleDuration * 1000000000 /*µs*/, period});
+  for (auto& [cycleDuration, validity] : mConfig.publicationDecision.param.decision) {
+    timers.push_back({cycleDuration * 1000000000 /*µs*/, validity});
   }
 
   merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer, timerSpecs(timers)});

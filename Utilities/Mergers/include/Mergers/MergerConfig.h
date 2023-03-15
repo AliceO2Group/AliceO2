@@ -65,13 +65,25 @@ struct ConfigEntry {
   P param = P();
 };
 
+/**
+ * This class just serves the purpose of allowing for both the old and the new way of specifying the
+ * cycles duration.
+ */
+class PublicationDecisionParameter
+{
+ public:
+  PublicationDecisionParameter(size_t param) : decision({{param, 1}}) {}
+  PublicationDecisionParameter(const std::vector<std::pair<size_t, size_t>>& decision) : decision(decision) {}
+
+  std::vector<std::pair<size_t, size_t>> decision;
+};
+
 // todo rework configuration in a way that user cannot create an invalid configuration
 // \brief MergerAlgorithm configuration structure. Default configuration should work in most cases, out of the box.
 struct MergerConfig {
   ConfigEntry<InputObjectsTimespan> inputObjectTimespan = {InputObjectsTimespan::FullHistory};
   ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
-  ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
-  ConfigEntry<PublicationDecision, std::vector<std::pair<size_t, size_t>>> publicationDecisionNew = {PublicationDecision::EachNSeconds, {{10, 1}}};
+  ConfigEntry<PublicationDecision, PublicationDecisionParameter> publicationDecision = {PublicationDecision::EachNSeconds, {10}};
   ConfigEntry<TopologySize, std::variant<int, std::vector<size_t>>> topologySize = {TopologySize::NumberOfLayers, 1};
   std::string monitoringUrl = "infologger:///debug?qc";
   std::string detectorName = "TST";
