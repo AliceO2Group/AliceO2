@@ -70,8 +70,8 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float
 
   ErrY2 = GetClusterErrorSeeding(0, rowType, z, angleY2);
   ErrZ2 = GetClusterErrorSeeding(1, rowType, z, angleZ2);
-  ErrY2 *= ErrY2 * rec.tpc.clusterError2CorrectionY;
-  ErrZ2 *= ErrZ2 * rec.tpc.clusterError2CorrectionZ;
+  ErrY2 *= ErrY2 * rec.tpc.clusterError2CorrectionY + rec.tpc.clusterError2AdditionalY;
+  ErrZ2 *= ErrZ2 * rec.tpc.clusterError2CorrectionZ + rec.tpc.clusterError2AdditionalZ;
 }
 
 MEM_CLASS_PRE()
@@ -86,6 +86,7 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
     v = 0.0001f;
   }
   v *= yz ? rec.tpc.clusterError2CorrectionZ : rec.tpc.clusterError2CorrectionY;
+  v += yz ? rec.tpc.clusterError2AdditionalZ : rec.tpc.clusterError2AdditionalY;
   return v;
 }
 
