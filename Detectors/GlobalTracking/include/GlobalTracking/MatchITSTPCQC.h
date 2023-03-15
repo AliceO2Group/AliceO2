@@ -130,7 +130,7 @@ class MatchITSTPCQC
                                                               // with that label so far, and the flag to say if it is a physical primary or not
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
-  // Pt
+  // Pt.
   TH1D* mPt = nullptr;
   TH1D* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
