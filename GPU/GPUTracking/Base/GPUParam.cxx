@@ -53,7 +53,7 @@ void GPUParam::SetDefaults(float solenoidBz)
     { 1.15970033221e-03, 1.30452335725e-05, 1.87015570700e-02, 5.39766737973e-08, 1.64790824056e-02, 1.44115634612e-04 },
     { 6.27940462437e-04, 1.78520094778e-05, 2.83537860960e-02, 1.16867742150e-08, 5.02607785165e-02, 1.88510020962e-04 } }
   };
-  const float kParamRMS0[2][3][4] =
+  const float kParamErrorsSeeding0[2][3][4] =
   {
     { { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01, },
     { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01, },
@@ -76,7 +76,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 4; k++) {
-        ParamRMS0[i][j][k] = kParamRMS0[i][j][k];
+        ParamErrorsSeeding0[i][j][k] = kParamErrorsSeeding0[i][j][k];
       }
     }
   }
@@ -189,7 +189,7 @@ void GPUParam::LoadClusterErrors(bool Print)
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 4; k++) {
-        ParamRMS0[i][j][k] = clparam->GetParamRMS0(i, j, k);
+        ParamErrorsSeeding0[i][j][k] = clparam->GetParamErrorsSeeding0(i, j, k);
       }
     }
   }
@@ -215,14 +215,14 @@ void GPUParam::LoadClusterErrors(bool Print)
     }
     std::cout << " }; " << std::endl;
 
-    std::cout << "ParamRMS0[2][3][4]=" << std::endl;
+    std::cout << "ParamErrorsSeeding0[2][3][4]=" << std::endl;
     std::cout << " { " << std::endl;
     for (int i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
       for (int j = 0; j < 3; j++) {
         std::cout << " { ";
         for (int k = 0; k < 4; k++) {
-          std::cout << ParamRMS0[i][j][k] << ", ";
+          std::cout << ParamErrorsSeeding0[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
       }

@@ -602,7 +602,7 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
   if (!mSeedingErrors) {
     param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   } else {
-    param.GetClusterRMS2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
+    param.GetClusterErrorsSeeding2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
   mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
