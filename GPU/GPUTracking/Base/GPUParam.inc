@@ -42,18 +42,18 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterRMS(int yz, int type, float z, float angle2) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z, float angle2) const
 {
-  //* recalculate the cluster RMS wih respect to the track slope
+  //* recalculate the cluster ErrorsSeeding wih respect to the track slope
 
-  MakeType(const float*) c = ParamRMS0[yz][type];
+  MakeType(const float*) c = ParamErrorsSeeding0[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2;
   v = CAMath::Abs(v);
   return v;
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterRMS2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   int rowType = tpcGeometry.GetROC(iRow);
   if (rowType > 2) {
@@ -68,8 +68,8 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterRMS2(int iRow, float z, float sinPhi, f
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
 
-  ErrY2 = GetClusterRMS(0, rowType, z, angleY2);
-  ErrZ2 = GetClusterRMS(1, rowType, z, angleZ2);
+  ErrY2 = GetClusterErrorSeeding(0, rowType, z, angleY2);
+  ErrZ2 = GetClusterErrorSeeding(1, rowType, z, angleZ2);
   ErrY2 *= ErrY2;
   ErrZ2 *= ErrZ2;
 }

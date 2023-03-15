@@ -129,7 +129,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
   {
     merger->Param().GetClusterErrors2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, mParam.mC0, mParam.mC2);
     float C0a, C2a;
-    merger->Param().GetClusterRMS2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
+    merger->Param().GetClusterErrorsSeeding2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
     if (C0a > mParam.mC0) {
       mParam.mC0 = C0a;
     }
@@ -187,7 +187,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
       {
         merger->Param().GetClusterErrors2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, err2Y, err2Z);
         float C0a, C2a;
-        merger->Param().GetClusterRMS2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
+        merger->Param().GetClusterErrorsSeeding2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
         if (C0a > err2Y) {
           err2Y = C0a;
         }
