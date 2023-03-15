@@ -325,7 +325,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   cComplete->cd();
   cComplete->SetLogy();
   TH1F* hComplete = nullptr;
-  o2::itsmft::TopologyDictionary::getTopologyDistribution(completeDictionary.getDictionary(), hComplete, "hComplete");
+  o2::its3::TopologyDictionary::getTopologyDistribution(completeDictionary.getDictionary(), hComplete, "hComplete");
   hComplete->SetDirectory(0);
   hComplete->Draw("hist");
   hComplete->Write();
