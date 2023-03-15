@@ -80,7 +80,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   std::unordered_map<int, int> hadronicMCMap;            // mapping from MC event entry to hadronic event ID
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
-  o2::itsmft::TopologyDictionary clusDictOld;
+  o2::its3::TopologyDictionary clusDictOld;
   if (!clusDictFile.empty()) {
     clusDictOld.readFromFile(clusDictFile);
     LOGP(info, "Loaded external cluster dictionary with {} entries from {}", clusDictOld.getSize(), clusDictFile);
@@ -350,7 +350,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
     cNoise->cd();
     cNoise->SetLogy();
-    o2::itsmft::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
+    o2::its3::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
     hNoise->SetDirectory(0);
     hNoise->Draw("hist");
     histogramOutput.cd();
@@ -359,7 +359,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     cSignal = new TCanvas("cSignal", "cSignal");
     cSignal->cd();
     cSignal->SetLogy();
-    o2::itsmft::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hSignal, "hSignal");
+    o2::its3::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hSignal, "hSignal");
     hSignal->SetDirectory(0);
     hSignal->Draw("hist");
     histogramOutput.cd();
