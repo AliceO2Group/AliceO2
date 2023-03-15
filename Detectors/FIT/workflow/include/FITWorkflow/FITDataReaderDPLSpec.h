@@ -43,12 +43,13 @@ template <typename RawReaderType>
 class FITDataReaderDPLSpec : public Task
 {
  public:
-  FITDataReaderDPLSpec(const RawReaderType& rawReader, const ConcreteDataMatcher& matcherChMapCCDB) : mRawReader(rawReader), mMatcherChMapCCDB(matcherChMapCCDB) {}
+  FITDataReaderDPLSpec(const RawReaderType& rawReader, const ConcreteDataMatcher& matcherChMapCCDB, bool isSampledRawData) : mRawReader(rawReader), mMatcherChMapCCDB(matcherChMapCCDB), mIsSampledRawData(isSampledRawData) {}
   FITDataReaderDPLSpec() = delete;
   ~FITDataReaderDPLSpec() override = default;
   typedef RawReaderType RawReader_t;
   RawReader_t mRawReader;
   ConcreteDataMatcher mMatcherChMapCCDB; // matcher for Channel map(LUT) from CCDB
+  bool mIsSampledRawData;
   bool mUpdateCCDB{true};
   void init(InitContext& ic) final
   {
@@ -78,7 +79,7 @@ class FITDataReaderDPLSpec : public Task
   {
     // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
     // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
-    {
+    if (!mIsSampledRawData) {         // do not check 0xDEADBEEF if raw data is sampled
       static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
       std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
       for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
@@ -97,7 +98,7 @@ class FITDataReaderDPLSpec : public Task
       }
       contDeadBeef = 0; // if good data, reset the counter
     }
-    std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
+    std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, mIsSampledRawData ? "SUB_RAWDATA" : o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);
     std::size_t cntDF0{0};        // number of pages with DataFormat=0, padded
     std::size_t cntDF2{0};        // number of pages with DataFormat=2, no padding
@@ -172,7 +173,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
     dataProcName,
     inputSpec,
     outputSpec,
-    adaptFromTask<FITDataReaderDPLSpec<RawReaderType>>(rawReader, matcherChMapCCDB),
+    adaptFromTask<FITDataReaderDPLSpec<RawReaderType>>(rawReader, matcherChMapCCDB, isSubSampled),
     {o2::framework::ConfigParamSpec{"ccdb-path", VariantType::String, "", {"CCDB url which contains LookupTable"}},
      o2::framework::ConfigParamSpec{"lut-path", VariantType::String, "", {"LookupTable path, e.g. FT0/LookupTable"}},
      o2::framework::ConfigParamSpec{"reserve-vec-dig", VariantType::Int, 0, {"Reserve memory for Digit vector, to DPL channel"}},
