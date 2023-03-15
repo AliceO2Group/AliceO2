@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -8,10 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_CCDBDOWNLOADER_H_
+#define O2_CCDBDOWNLOADER_H_
 
 #include <cstdio>
 #include <cstdlib>
-#include <uv.h>
 #include <curl/curl.h>
 #include <string>
 #include <vector>
@@ -21,14 +22,16 @@
 #include <condition_variable>
 #include <unordered_map>
 
-#ifndef ALICEO2_CCDBDOWNLOADER_H
-#define ALICEO2_CCDBDOWNLOADER_H
+typedef struct uv_loop_s uv_loop_t;
+typedef struct uv_timer_s uv_timer_t;
+typedef struct uv_poll_s uv_poll_t;
+typedef struct uv_signal_s uv_signal_t;
+typedef struct uv_async_s uv_async_t;
+typedef struct uv_handle_s uv_handle_t;
 
 using namespace std;
 
-namespace o2
-{
-namespace ccdb
+namespace o2::ccdb
 {
 
 /*
@@ -195,7 +198,7 @@ class CCDBDownloader
    * Information about a socket.
    */
   typedef struct curl_context_s {
-    uv_poll_t poll_handle;
+    uv_poll_t* poll_handle;
     curl_socket_t sockfd = -1;
     CCDBDownloader* CD = nullptr;
   } curl_context_t;
@@ -355,7 +358,6 @@ typedef struct DataForClosingSocket {
   curl_socket_t socket;
 } DataForClosingSocket;
 
-} // namespace ccdb
 } // namespace o2
 
-#endif
+#endif // O2_CCDB_CCDBDOWNLOADER_H
