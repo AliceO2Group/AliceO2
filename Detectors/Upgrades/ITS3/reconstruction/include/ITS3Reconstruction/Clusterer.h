@@ -30,7 +30,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
-#include "ITSMFTReconstruction/LookUp.h"
+#include "ITS3Reconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Rtypes.h"
@@ -209,7 +209,7 @@ class Clusterer
   void process(int nThreads, PixelReader& r, CompClusCont* compClus, PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl = nullptr);
 
   template <typename VCLUS, typename VPAT>
-  static void streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const BBox& bbox, const itsmft::LookUp& pattIdConverter,
+  static void streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const BBox& bbox, const its3::LookUp& pattIdConverter,
                             VCLUS* compClusPtr, VPAT* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge = false);
 
   bool isContinuousReadOut() const { return mContinuousReadout; }
@@ -238,7 +238,7 @@ class Clusterer
 
   ///< load the dictionary of cluster topologies
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
-  void setDictionary(const itsmft::TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
+  void setDictionary(const its3::TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
 
   TStopwatch& getTimer() { return mTimer; }           // cannot be const
   TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
@@ -263,14 +263,14 @@ class Clusterer
   std::vector<ChipPixelData> mChipsOld;                   // previously processed ROF's chips data (for masking)
   std::vector<ChipPixelData*> mFiredChipsPtr;             // pointers on the fired chips data in the decoder cache
 
-  itsmft::LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
+  its3::LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
   TStopwatch mTimer;
   TStopwatch mTimerMerge;
 };
 
 template <typename VCLUS, typename VPAT>
-void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const Clusterer::BBox& bbox, const itsmft::LookUp& pattIdConverter,
+void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const Clusterer::BBox& bbox, const its3::LookUp& pattIdConverter,
                               VCLUS* compClusPtr, VPAT* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge)
 {
   if (labelsClusPtr && lblBuff) { // MC labels were requested
