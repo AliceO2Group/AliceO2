@@ -642,7 +642,7 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit GPUCA_DEBUG_STREAMER_CHECK(, iTrk))
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit GPUCA_DEBUG_STREAMER_CHECK(, int iTrk))
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
