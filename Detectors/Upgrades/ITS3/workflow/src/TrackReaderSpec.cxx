@@ -116,5 +116,5 @@ DataProcessorSpec getITS3TrackReaderSpec(bool useMC)
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-} // namespace its
+} // namespace its3
 } // namespace o2
