@@ -2868,7 +2868,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::dumpToFile(std::string_view file) const
 {
   dumpToFile(file, Side::A, "RECREATE");
-  dumpToFile(file, Side::A, "UPDATE");
+  dumpToFile(file, Side::C, "UPDATE");
 }
 
 template <typename DataT>

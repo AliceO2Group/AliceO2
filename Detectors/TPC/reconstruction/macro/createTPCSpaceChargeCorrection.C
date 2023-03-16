@@ -115,9 +115,8 @@ void createTPCSpaceChargeCorrection(
   const int debug = 0)
 {
   spaceCharge = std::make_unique<SC>(mField, nZ, nR, nPhi);
-  TFile f(scFile, "READ");
-  spaceCharge->setGlobalCorrectionsFromFile<float>(f, Side::A);
-  spaceCharge->setGlobalCorrectionsFromFile<float>(f, Side::C);
+  spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::A);
+  spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::C);
   TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
