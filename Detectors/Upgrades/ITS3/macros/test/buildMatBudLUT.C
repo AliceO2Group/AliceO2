@@ -24,7 +24,7 @@
 #include <TStopwatch.h>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE // this part is not visible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is invisible on GPU version
 
 o2::base::MatLayerCylSet mbLUT;
 
