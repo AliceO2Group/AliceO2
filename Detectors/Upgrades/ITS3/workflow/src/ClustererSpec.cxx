@@ -41,7 +41,7 @@ namespace its3
 void ClustererDPL::init(InitContext& ic)
 {
   mClusterer = std::make_unique<o2::its3::Clusterer>();
-  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); //FIXME
+  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); // FIXME
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mState = 1;
