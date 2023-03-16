@@ -413,7 +413,7 @@ class ClusterFactory
   gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
   gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
   gsl::span<const int> mCellsIndices;                     ///< Container for cells indices in the event
-  std::array<short, 17644> mLoolUpTowerToIndex;           ///< Lookup table to match tower id with and cell index, needed for exotic check
+  std::array<short, 17664> mLoolUpTowerToIndex;           ///< Lookup table to match tower id with and cell index, needed for exotic check
 
   ClassDefNV(ClusterFactory, 2);
 };
