@@ -272,6 +272,7 @@ void TimeFrameGPU<nLayers>::registerHostMemory(const int maxLayers)
     checkGPUError(cudaHostRegister(mNClustersPerROF[iLayer].data(), mNClustersPerROF[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
     checkGPUError(cudaHostRegister(mIndexTables[iLayer].data(), (mStaticTrackingParams.ZBins * mStaticTrackingParams.PhiBins + 1) * mNrof * sizeof(int), cudaHostRegisterPortable));
   }
+  checkGPUError(cudaHostRegister(mHostNTracklets.data(), (nLayers - 1) * mGpuParams.nTimeFrameChunks * sizeof(int), cudaHostRegisterPortable));
 }
 
 template <int nLayers>
@@ -285,6 +286,7 @@ void TimeFrameGPU<nLayers>::unregisterHostMemory(const int maxLayers)
     checkGPUError(cudaHostUnregister(mNClustersPerROF[iLayer].data()));
     checkGPUError(cudaHostUnregister(mIndexTables[iLayer].data()));
   }
+  checkGPUError(cudaHostUnregister(mHostNTracklets.data()));
   mHostRegistered = false;
 }
 
@@ -296,6 +298,8 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
                                        const TimeFrameGPUParameters* gpuParam)
 {
   mGpuStreams.resize(mGpuParams.nTimeFrameChunks);
+  mHostNTracklets.resize((nLayers - 1) * mGpuParams.nTimeFrameChunks, 0);
+
   auto init = [&](int p) -> void {
     this->initDevice(p, utils, trkParam, *gpuParam, maxLayers, iteration);
   };
