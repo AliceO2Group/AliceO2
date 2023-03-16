@@ -300,6 +300,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
         }
         completeDictionary.accountTopology(topology, dX, dZ);
       }
+
       // clean MC cache for events which are not needed anymore
       if (clusLabArr) {
         int irfNext = irof;
