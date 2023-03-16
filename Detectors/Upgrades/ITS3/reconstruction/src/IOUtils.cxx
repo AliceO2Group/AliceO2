@@ -58,12 +58,24 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
-      // Inverse transformation to the local --> tracking
-      auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
-      tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+      // for cylindrical layers we have a different alpha for each cluster, for regular silicon detectors instead a single alpha for the whole sensor
+      float alpha = 0.;
+      o2::math_utils::Point3D<float> trkXYZ;
+      if (layer < geom->getNumberOfLayers() - 4) {
+        alpha = geom->getAlphaFromGlobalITS3(sensorID, gloXYZ);
+        // Inverse transformation to the local --> tracking
+        trkXYZ = geom->getT2LMatrixITS3(sensorID, alpha) ^ locXYZ;
+      } else {
+        alpha = geom->getSensorRefAlpha(sensorID);
+        // Inverse transformation to the local --> tracking
+        trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+      }
+
+      tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), alpha,
                                       std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                       std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
 
