@@ -197,7 +197,7 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
   std::array<int*, nLayers> mROframesClustersDevice;
-  std::array<unsigned char*, nLayers> mUsedClustersDevice; 
+  std::array<unsigned char*, nLayers> mUsedClustersDevice;
   Vertex* mVerticesDevice;
   int* mROframesPVDevice;
 
@@ -210,6 +210,9 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<Vertex>> mVerticesInChunks;
   std::vector<std::vector<int>> mNVerticesInChunks;
   std::vector<std::vector<o2::MCCompLabel>> mLabelsInChunks;
+
+  // Host memeory used only in GPU tracking
+  std::vector<int> mHostNTracklets;
 };
 
 template <int nLayers>

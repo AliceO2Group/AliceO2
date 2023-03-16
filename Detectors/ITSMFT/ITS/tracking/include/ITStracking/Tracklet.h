@@ -38,6 +38,8 @@ struct Tracklet final {
   }
   GPUhdi() void dump();
   GPUhdi() void dump() const;
+  GPUhdi() void dump(const int, const int);
+  GPUhdi() void dump(const int, const int) const;
   GPUhdi() unsigned char operator<(const Tracklet&) const;
 
   int firstClusterIndex;
@@ -109,8 +111,16 @@ GPUhdi() void Tracklet::dump() const
 {
   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
 }
-// tanL: %f phi: %f
-// tanLambda, phi,
+
+GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond)
+{
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1]);
+}
+
+GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond) const
+{
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1]);
+}
 
 } // namespace its
 } // namespace o2

@@ -103,6 +103,26 @@ GPUg() void printVertices(const Vertex* v, size_t size, const unsigned int tId =
   }
 }
 
+// Dump tracklets
+GPUg() void printTracklets(const Tracklet* t,
+                           const int startRof,
+                           const int rof,
+                           const int* roFrameClustersCurrentLayer, // Number of clusters on layer 0 per ROF
+                           const int* roFrameClustersNextLayer,    // Number of clusters on layer 1 per ROF
+                           const int maxClustersPerROf = 5e2,
+                           const int maxTrackletsPerCluster = 50,
+                           const unsigned int tId = 0)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
+    auto offsetCurrent{roFrameClustersCurrentLayer[startRof]};
+    auto offsetNext{roFrameClustersNextLayer[startRof]};
+    printf("tracklets in rof: %d\n", startRof + rof);
+    for (int i{rof * maxClustersPerROf * maxTrackletsPerCluster}; i < 2 * maxClustersPerROf * maxTrackletsPerCluster; ++i) {
+      t[i].dump(offsetCurrent, offsetNext);
+    }
+  }
+}
+
 // Compute the tracklets for a given layer
 template <int NLayers = 7>
 GPUg() void computeLayerTrackletsKernelSingleRof(
@@ -229,7 +249,7 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const StaticTrackingParameters<NLayers>* trkPars,
   const IndexTableUtils* utils,
   const unsigned int maxClustersPerROf = 5e2,
-  const unsigned int maxTrackletsPerCluster = 50)
+  const unsigned int maxTrackletsPerCluster = 30)
 {
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
@@ -412,7 +432,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
             0,                                                                       // const unsigned int deltaRof,
             mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(iLayer),              // const Cluster* clustersCurrentLayer,
             mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(iLayer + 1),          // const Cluster* clustersNextLayer,
-            mTimeFrameGPU->getDeviceROframesClusters(iLayer),                        // const int* sizeClustersCurrentLayer, // Number of clusters on layer 0 per ROF
+            mTimeFrameGPU->getDeviceROframesClusters(iLayer),                        // const int* roFrameClustersCurrentLayer, // Number of clusters on layer 0 per ROF
             mTimeFrameGPU->getDeviceROframesClusters(iLayer + 1),                    // const int* roFrameClustersNextLayer,    // Number of clusters on layer 1 per ROF
             mTimeFrameGPU->getChunk(chunkId).getDeviceIndexTables(iLayer + 1),       // const int* indexTableNextLayer,
             mTimeFrameGPU->getDeviceUsedClusters(iLayer),                            // const int* usedClustersCurrentLayer,
@@ -431,14 +451,22 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
             mTimeFrameGPU->getDeviceIndexTableUtils());                              // const IndexTableUtils* utils
 
           // Sort tracklets to put empty ones on the right side of the array.
-          int maxTracklets{(int)mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxTrackletsPerCluster * (int)mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->clustersPerROfCapacity};
+          int maxTracklets{500 * 30};
           auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer));
           auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer) + (int)rofs * maxTracklets);
           thrust::sort(THRUST_NAMESPACE::par.on(mTimeFrameGPU->getStream(chunkId).get()),
                        thrustTrackletsBegin,
                        thrustTrackletsEnd,
                        gpu::trackletSortEmptyFunctor<o2::its::Tracklet>());
+          auto clrange = mTimeFrameGPU->getNClustersROFrange(offset, rofs, iLayer);
+          discardResult(cub::DeviceReduce::Sum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
+                                               mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
+                                               mTimeFrameGPU->getChunk(chunkId).getDeviceTrackletsLookupTables(iLayer),        // d_in
+                                               mTimeFrameGPU->getChunk(chunkId).getDeviceFoundTracklets() + iLayer,            // d_out
+                                               clrange.back() - clrange[0],                                                    // num_items
+                                               mTimeFrameGPU->getStream(chunkId).get()));
         }
+
         offset += rofs;
       }
     };
