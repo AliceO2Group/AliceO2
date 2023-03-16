@@ -455,4 +455,7 @@ TEST_CASE("optionalConcreteDataMatcherFrom")
   check(matcher6, false);
   check(matcher7, true, ConcreteDataMatcher{"ITS", "RAWDATA", 0});
   check(matcher8, false);
+
+  REQUIRE(DataSpecUtils::asOptionalConcreteDataMatcher(ConcreteDataMatcher{"ITS", "RAWDATA", 0}) == ConcreteDataMatcher{"ITS", "RAWDATA", 0});
+  REQUIRE(DataSpecUtils::asOptionalConcreteDataMatcher(ConcreteDataTypeMatcher{"ITS", "RAWDATA"}) == std::nullopt);
 }
