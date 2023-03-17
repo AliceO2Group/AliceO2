@@ -25,6 +25,8 @@
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
@@ -95,6 +97,21 @@ struct TrackDataCompact {
   uint8_t nResiduals;        ///< total number of residuals associated to this track
   uint8_t sourceId;          ///< source ID obtained from the global track ID
   ClassDefNV(TrackDataCompact, 1);
+};
+
+/// Heavy structure with track parameterizations + track points for debugging
+struct TrackDataExtended {
+  o2::dataformats::GlobalTrackID gid{};              ///< GID of the most global barrel track
+  o2::its::TrackITS trkITS{};                        ///< ITS seeding track
+  o2::trd::TrackTRD trkTRD{};                        ///< TRD seeding track
+  o2::track::TrackPar trkOuter{};                    ///< refit of TRD and/or TOF points
+  o2::dataformats::MatchInfoTOF matchTOF{};          ///< TOF matching information
+  std::vector<o2::BaseCluster<float>> clsITS{};      ///< attached ITS clusters
+  std::vector<o2::trd::Tracklet64> trkltTRD{};       ///< attached TRD tracklets (if available)
+  std::vector<o2::trd::CalibratedTracklet> clsTRD{}; ///< the TRD space points (if available)
+  o2::tof::Cluster clsTOF{};                         ///< the TOF cluster (if available)
+  o2::dataformats::RangeReference<> clIdx{};         ///< index of first cluster residual and total number of cluster residuals of this track
+  ClassDefNV(TrackDataExtended, 1);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
@@ -221,9 +238,16 @@ class TrackInterpolation
   /// In addition to mMaxTracksPerTF up to the set number of ITS-TPC only tracks can be processed
   void setAddITSTPCTracksPerTF(int n) { mAddTracksITSTPC = n; }
 
+  /// Enable full output
+  void setDumpTrackPoints() { mDumpTrackPoints = true; }
+
+  /// Allow setting the ITS cluster dictionary from outside
+  void setITSClusterDictionary(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
+  std::vector<TrackDataExtended>& getTrackDataExtended() { return mTrackDataExtended; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
   std::vector<TPCClusterResiduals>& getClusterResidualsUnfiltered() { return mClResUnfiltered; }
   std::vector<TrackData>& getReferenceTracksUnfiltered() { return mTrackDataUnfiltered; }
@@ -240,6 +264,7 @@ class TrackInterpolation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
   int mAddTracksITSTPC{0};                           ///< number of ITS-TPC tracks which can be processed in addition to mMaxTracksPerTF
+  bool mDumpTrackPoints{false};                      ///< dump also track points in ITS, TRD and TOF
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
@@ -249,10 +274,15 @@ class TrackInterpolation
   std::vector<o2::track::TrackParCov>* mSeeds = nullptr;                                   ///< seeding track parameters (ITS tracks)
   gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                                         ///< input TPC cluster indices from span
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  // ITS specific input only needed for debugging
+  gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
+  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 
   // output
   std::vector<TrackData> mTrackData{};                 ///< this vector is used to store the track quality information on a per track basis
   std::vector<TrackDataCompact> mTrackDataCompact{};   ///< required to connect each residual to a global track
+  std::vector<TrackDataExtended> mTrackDataExtended{}; ///< full tracking information for debugging
   std::vector<UnbinnedResid> mClRes{};                 ///< residuals for each available TPC cluster of all tracks
   std::vector<TrackData> mTrackDataUnfiltered{};       ///< same as mTrackData, but for all tracks before outlier filtering
   std::vector<TPCClusterResiduals> mClResUnfiltered{}; ///< same as mClRes, but for all residuals before outlier filtering

@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 #include "DataFormatsITS/TrackITS.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -79,6 +80,7 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
       LOG(error) << "No tracks will be processed. maxTracksPerCalibSlot must be greater than slot length in TFs";
     }
     mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
+    o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
   }
   // we may have other params which need to be queried regularly
   if (mTPCVDriftHelper.isUpdated()) {
@@ -89,6 +91,10 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
   }
+  if (mDebugOutput) {
+    mInterpolation.setDumpTrackPoints();
+    mInterpolation.setITSClusterDictionary(mITSDict);
+  }
 }
 
 void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -97,6 +103,11 @@ void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
     return;
   }
 }
@@ -215,6 +226,9 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   if (mSendTrackData) {
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   }
+  if (mDebugOutput) {
+    pc.outputs().snapshot(Output{"GLO", "TRKDATAEXT", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataExtended());
+  }
 
   mInterpolation.reset();
 }
@@ -225,7 +239,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool sendTrackData)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -257,12 +271,15 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
   if (sendTrackData) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
   }
+  if (debugOutput) {
+    outputs.emplace_back("GLO", "TRKDATAEXT", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
     Options{
       {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
       {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
