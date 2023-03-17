@@ -147,27 +147,44 @@ class EMCALCalibExtractor
           auto meanPerCellNHits = calibrationInformation.nHitsMap[sliceIndex][cellID];
           LOG(debug) << "Energy Per Hit: Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
           LOG(debug) << "NHits: Mean per cell is " << meanPerCellNHits << " Good Cell Window: [ " << rangesNHits.first << " , " << rangesNHits.second << " ]";
-          // for the cut on the mean energy per hit we require at least 100 hits, as otherwise the distribution is very instable
-          double meanNHits = 0.5 * (ranges.first + ranges.second);
-          if (meanNHits > EMCALCalibParams::Instance().minNHitsForMeanEnergyCut && (meanPerCell < ranges.first || meanPerCell > ranges.second)) {
-            LOG(debug) << "********* FAILED for mean energy **********";
-            failed = true;
-            break;
-          }
-          if (meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
+
+          // for the cut on the mean number of hits we require at least 2 hits on average
+          double meanNHits = 0.5 * (rangesNHits.first + rangesNHits.second);
+          if (meanNHits < EMCALCalibParams::Instance().minNHitsForNHitCut || (std::abs(ranges.first) < 0.001 && std::abs(ranges.second) < 0.001)) {
+            LOG(debug) << "On average, only " << meanNHits << " found in energy interval [" << slice.first << " - " << slice.second << "]. Will do untight cut on upper limit";
+            if (meanPerCellNHits > EMCALCalibParams::Instance().minNHitsForNHitCut * 10) {
+              LOG(debug) << "********* FAILED for number of hits **********";
+              failed = true;
+              break;
+            }
+            // Case were enough statistics is present
+          } else if (meanPerCellNHits < rangesNHits.first || meanPerCellNHits > rangesNHits.second) {
             LOG(debug) << "********* FAILED for mean NHits **********";
             failed = true;
             break;
           }
 
-          // check if the cell is bad due to timing signal.
-          if (!failed && doIncludeTime) {
+          // for the cut on the mean energy per hit we require at least 100 hits, as otherwise the distribution is very instable
+          if (meanNHits > EMCALCalibParams::Instance().minNHitsForMeanEnergyCut && (meanPerCell < ranges.first || meanPerCell > ranges.second)) {
+            LOG(debug) << "********* FAILED for mean energy **********";
+            failed = true;
+            break;
+          }
+        }
+
+        // check if the cell is bad due to timing signal.
+        if (!failed && doIncludeTime) {
+          if (std::abs(calibrationTimeInfo.goodCellWindow) < 0.001) {
+            LOG(warning) << "Good cell window for time distribution is 0. Will skip the cut on time distribution";
+          } else {
+            LOG(debug) << " calibrationTimeInfo.goodCellWindow " << calibrationTimeInfo.goodCellWindow << " calibrationTimeInfo.sigmaCell[cellID] " << calibrationTimeInfo.sigmaCell[cellID];
             if (calibrationTimeInfo.sigmaCell[cellID] > calibrationTimeInfo.goodCellWindow) {
               LOG(debug) << "Cell " << cellID << " is flagged due to time distribution";
               failed = true;
             }
           }
         }
+
         if (failed) {
           LOG(debug) << "Cell " << cellID << " is bad.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
@@ -244,12 +261,18 @@ class EMCALCalibExtractor
       TRobustEstimator robustEstimator;
       auto& means = outputMapEnergyPerHit[sliceIndex];
       robustEstimator.EvaluateUni(means.size(), means.data(), meanPerSlice, sigmaPerSlice, 0);
+      if (std::abs(meanPerSlice) < 0.001 && std::abs(sigmaPerSlice) < 0.001) {
+        robustEstimator.EvaluateUni(means.size(), means.data(), meanPerSlice, sigmaPerSlice, means.size() * 0.95);
+      }
 
       Double_t meanPerSlice_NHits = 0.0;  // mean energy per slice to be compared to the cell
       Double_t sigmaPerSlice_NHits = 0.0; // sigma energy per slice to be compared to the cell
       TRobustEstimator robustEstimatorNHits;
       auto& meansNHits = outputMapNHits[sliceIndex];
       robustEstimatorNHits.EvaluateUni(meansNHits.size(), meansNHits.data(), meanPerSlice_NHits, sigmaPerSlice_NHits, 0);
+      if (std::abs(meanPerSlice_NHits) < 0.001 && std::abs(sigmaPerSlice_NHits) < 0.001) {
+        robustEstimator.EvaluateUni(meansNHits.size(), meansNHits.data(), meanPerSlice_NHits, sigmaPerSlice_NHits, meansNHits.size() * 0.95);
+      }
 
       LOG(debug) << "Energy Per hit: Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
       LOG(debug) << "NHits: Mean per slice is: " << meanPerSlice_NHits << " Sigma Per Slice: " << sigmaPerSlice_NHits << " with size " << outputMapNHits[sliceIndex].size();
@@ -282,15 +305,25 @@ class EMCALCalibExtractor
       const int indexLow = histCellTime.axis(1).index(i);
       const int indexHigh = histCellTime.axis(1).index(i + 1);
       auto boostHistCellSlice = o2::utils::ProjectBoostHistoXFast(histCellTime, indexLow, indexHigh);
-      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice));
-      LOG(debug) << "meanSigma[" << i << "] " << meanSigma[i];
+
+      int maxElementIndex = std::max_element(boostHistCellSlice.begin(), boostHistCellSlice.end()) - boostHistCellSlice.begin() - 1;
+      if (maxElementIndex < 0) {
+        maxElementIndex = 0;
+      }
+      float maxElementCenter = 0.5 * (boostHistCellSlice.axis(0).bin(maxElementIndex).upper() + boostHistCellSlice.axis(0).bin(maxElementIndex).lower());
+      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice, -999999, maxElementCenter - 50, maxElementCenter + 50));
     }
 
     // get the mean sigma and the std. deviation of the sigma distribution
     // those will be the values we cut on
     double avMean = 0, avSigma = 0;
     TRobustEstimator robustEstimator;
-    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0);
+    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.5 * meanSigma.size());
+    // protection for the following case: For low statistics cases, it can happen that more than half of the cells is in one bin
+    // in that case the sigma will be close to zero. In that case, we take 95% of the data to calculate the truncated mean
+    if (std::abs(avMean) < 0.001 && std::abs(avSigma) < 0.001) {
+      robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.95 * meanSigma.size());
+    }
 
     BadChannelCalibTimeInfo timeInfo;
     timeInfo.sigmaCell = meanSigma;
@@ -334,19 +367,23 @@ class EMCALCalibExtractor
       auto boostHist1d = o2::utils::ProjectBoostHistoXFast(histReduced, indexLow, indexHigh);
 
       LOG(debug) << "calibrate cell time " << i << " of " << mNcells;
+      int maxElementIndex = std::max_element(boostHist1d.begin(), boostHist1d.end()) - boostHist1d.begin() - 1;
+      if (maxElementIndex < 0) {
+        maxElementIndex = 0;
+      }
+      float maxElementCenter = 0.5 * (boostHist1d.axis(0).bin(maxElementIndex).upper() + boostHist1d.axis(0).bin(maxElementIndex).lower());
       // Restrict fit range to maximum +- restrictFitRangeToMax
       if (restrictFitRangeToMax > 0) {
-        int maxElementIndex = std::max_element(boostHist1d.begin(), boostHist1d.end()) - boostHist1d.begin() - 1;
-        if (maxElementIndex < 0) {
-          maxElementIndex = 0;
-        }
-        float maxElementCenter = 0.5 * (boostHist1d.axis(0).bin(maxElementIndex).upper() + boostHist1d.axis(0).bin(maxElementIndex).lower());
         boostHist1d = boost::histogram::algorithm::reduce(boostHist1d, boost::histogram::algorithm::shrink(maxElementCenter - restrictFitRangeToMax, maxElementCenter + restrictFitRangeToMax));
       }
 
       try {
         auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(boostHist1d);
-        mean = fitValues.at(1);
+        if (maxElementCenter + EMCALCalibParams::Instance().maxAllowedDeviationFromMax < fitValues.at(1) || maxElementCenter - EMCALCalibParams::Instance().maxAllowedDeviationFromMax > fitValues.at(1)) {
+          mean = maxElementCenter;
+        } else {
+          mean = fitValues.at(1);
+        }
         // add mean to time calib params
         TCP.addTimeCalibParam(i, mean, false);                                                // highGain calib factor
         TCP.addTimeCalibParam(i, mean + EMCALCalibParams::Instance().lowGainOffset_tc, true); // lowGain calib factor
