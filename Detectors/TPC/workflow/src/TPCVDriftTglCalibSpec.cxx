@@ -44,10 +44,10 @@ class TPCVDriftTglCalibSpec : public Task
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto data = pc.inputs().get<gsl::span<o2::dataformats::Pair<float, float>>>("input");
+    auto data = pc.inputs().get<gsl::span<o2::dataformats::Triplet<float, float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     if (data.size()) {
-      LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 1 << " tracks"; // 1st entry is for VDrift
+      LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 2 << " tracks"; // 1st entry is for VDrift, 2nd for the offset
     }
     mCalibrator->process(data);
     sendOutput(pc.outputs());

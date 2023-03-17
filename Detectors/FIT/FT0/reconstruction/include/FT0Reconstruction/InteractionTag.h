@@ -26,11 +26,11 @@ namespace ft0
 
 // These are configurable params for FT0 selection as interaction tag
 struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag> {
-  int minAmplitudeAC = 20; ///< use only FT0 triggers with high enough amplitude
+  int minAmplitudeAC = 0; ///< use only FT0 triggers with high enough amplitude
 
   bool isSelected(const RecPoints& rp) const
   {
-    return rp.isValidTime(RecPoints::TimeMean) && (rp.getTrigger().getAmplA() + rp.getTrigger().getAmplC()) > minAmplitudeAC;
+    return rp.getTrigger().getVertex() && (rp.getTrigger().getAmplA() + rp.getTrigger().getAmplC()) > minAmplitudeAC;
   }
 
   O2ParamDef(InteractionTag, "ft0tag");
