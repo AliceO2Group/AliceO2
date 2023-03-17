@@ -221,6 +221,55 @@ void Detector::buildFT3V1()
   }
 }
 
+//_________________________________________________________________________________________________                                                                                                     
+void Detector::buildFT3V3a()
+{
+  //Build FT3 detector according to                                                                                                                                                                    
+  //https://www.overleaf.com/project/6051acc870e39aaeb4653621                                                                     
+
+  LOG(info) << "Building FT3 Detector: V3a";
+
+  mNumberOfLayers = 12;
+  Float_t sensorThickness = 30.e-4;
+  Float_t layersx2X0 = 1.e-2;
+  std::vector<std::array<Float_t, 5>> layersConfig{
+    {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}                                                                                                                             
+    {30., .5, 3., 0.1f * layersx2X0},
+    {34., .5, 3., 0.1f * layersx2X0},
+    {77., 5.0, 35., layersx2X0},
+    {100., 5.0, 35., layersx2X0},
+    {122., 5.0, 35., layersx2X0},
+    {150., 5.5, 100., layersx2X0},
+    {180., 6.6, 100., layersx2X0},
+    {220., 8.1, 100., layersx2X0},
+    {279., 10.2, 100., layersx2X0},
+    {340., 12.5, 100., layersx2X0},
+    {400., 14.7, 100., layersx2X0}};
+
+  mLayerName.resize(2);
+  mLayerName[0].resize(mNumberOfLayers);
+  mLayerName[1].resize(mNumberOfLayers);
+  mLayerID.clear();
+  mLayers.resize(2);
+
+  for (auto direction : {0, 1}) {
+    for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+      std::string directionName = std::to_string(direction);
+      std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + std::string("_") + std::to_string(layerNumber);
+      mLayerName[direction][layerNumber] = layerName;
+      auto& z = layersConfig[layerNumber][0];
+
+      auto& rIn = layersConfig[layerNumber][1];
+      auto& rOut = layersConfig[layerNumber][2];
+      auto& x0 = layersConfig[layerNumber][3];
+
+      LOG(info) << "Adding Layer " << layerName << " at z = " << z;
+      // Add layers                                                                                                                                                                                     
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, x0);
+    }
+  }
+}
+
 //_________________________________________________________________________________________________
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("FT3", active),
@@ -238,7 +287,7 @@ Detector::Detector(Bool_t active)
   } else {
     switch (ft3BaseParam.geoModel) {
       case Default:
-        buildFT3V1(); // FT3V1
+        buildFT3V3a(); // FT3V3a
         break;
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
