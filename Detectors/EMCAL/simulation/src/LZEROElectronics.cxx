@@ -143,29 +143,20 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         addNoiseDigits(summedDigit);
       }
 
-      // if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
-      //   continue;
-      // }
       LOG(info) << "DIG SIMONE fill in LZEROElectronics: before summedDigit.getAmplitude, fastor  =  " << fastor;
-      // REMOVE
-      // if (fastor == 11245 || fastor == 11291 || fastor == 11290 || fastor > 11000) {
-      //   // continue;
-      //   // fastor = 2771;
-      // }
 
       if (summedDigit.getAmplitude() < 0) {
         continue;
       }
-      // if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
-      //   continue;
-      // }
-
-      // outputList[fastor].push_back(ld);
 
       auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto whichFastOr = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
+      patchTRU.init();
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
+
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRwhichFastOrU = " << whichFastOr;
 
       LOG(info) << "DIG SIMONE fill in LZEROElectronics: before fastOrPatchTRU.updateADC, counterhelp = " << counterhelp;
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
@@ -186,7 +177,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
     bool foundPeak = false;
     for (auto& patches : patchesFromAllTRUs) {
-      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       if (foundPeakCurrentTRU)
