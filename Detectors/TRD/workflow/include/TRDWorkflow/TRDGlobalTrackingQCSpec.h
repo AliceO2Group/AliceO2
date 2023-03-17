@@ -46,9 +46,15 @@ namespace trd
 class TRDGlobalTrackingQC : public Task
 {
  public:
-  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mGGCCDBRequest(gr) {}
+  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool tpcAvailable) : mDataRequest(dr), mGGCCDBRequest(gr), mTPCavailable(tpcAvailable) {}
   ~TRDGlobalTrackingQC() override = default;
-  void init(InitContext& ic) final { o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest); }
+  void init(InitContext& ic) final
+  {
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+    if (!mTPCavailable) {
+      mQC.disablePID();
+    }
+  }
   void run(ProcessingContext& pc) final
   {
     RecoContainer recoData;
@@ -85,6 +91,7 @@ class TRDGlobalTrackingQC : public Task
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  bool mTPCavailable{false};
   Tracking mQC;
 };
 
@@ -93,14 +100,16 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKINGQC", 0, Lifetime::Timeframe);
   auto dataRequest = std::make_shared<DataRequest>();
+  bool isTPCavailable = false;
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
-    LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
+    LOGF(debug, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
     src |= GTrackID::getSourcesMask("ITS-TPC-TRD");
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
-    LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
+    LOGF(debug, "Found TPC tracks as input, loading TPC-TRD");
     src |= GTrackID::getSourcesMask("TPC-TRD");
+    isTPCavailable = true;
   }
   GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD"); // we don't need all clusters, only TRD tracklets
 
@@ -119,7 +128,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
     "trd-tracking-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable)},
     Options{}};
 }
 
