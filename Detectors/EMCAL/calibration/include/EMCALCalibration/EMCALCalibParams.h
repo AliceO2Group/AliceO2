@@ -46,21 +46,23 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   unsigned int slotLength_bc = 0;       ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
   bool UpdateAtEndOfRunOnly_bc = false; ///< switch to enable trigger of calibration only at end of run
   float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
+  float minNHitsForNHitCut = 1;         ///< mean number of hits per cell that is needed to cut on the mean number of hits. Needed for high energy intervals as outliers can distort the distribution
 
   // parameters for time calibration
-  unsigned int minNEvents_tc = 1e7;     ///< minimum number of events to trigger the calibration
-  unsigned int minNEntries_tc = 1e6;    ///< minimum number of entries to trigger the calibration
-  bool useNEventsForCalib_tc = true;    ///< use the minimum number of events to trigger the calibration
-  float minCellEnergy_tc = 0.5;         ///< minimum cell energy to enter the time calibration (typical minimum seed energy for clusters), time resolution gets better with rising energy
-  int minTimeForFit_tc = -300;          ///< minimum cell time considered for the time calibration in ns
-  int maxTimeForFit_tc = 300;           ///< maximum cell time considered for the time calibration in ns
-  int restrictFitRangeToMax_tc = 25;    ///< window around the largest entry within the minTimeForFit in which the fit is performed in ns
-  int nBinsTimeAxis_tc = 1500;          ///< number of bins used for the time calibration
-  int minValueTimeAxis_tc = -500;       ///< minimum value of the time axis in the time calibration
-  int maxValueTimeAxis_tc = 1000;       ///< maximum value of the time axis in the time calibration
-  float lowGainOffset_tc = 8.8;         ///< Offset between high gain and low gain in ns. This is needed since the low gain calib will not be possible due to insuficient statistics
-  unsigned int slotLength_tc = 0;       ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
-  bool UpdateAtEndOfRunOnly_tc = false; ///< switsch to enable trigger of calibration only at end of run
+  unsigned int minNEvents_tc = 1e7;      ///< minimum number of events to trigger the calibration
+  unsigned int minNEntries_tc = 1e6;     ///< minimum number of entries to trigger the calibration
+  bool useNEventsForCalib_tc = true;     ///< use the minimum number of events to trigger the calibration
+  float minCellEnergy_tc = 0.5;          ///< minimum cell energy to enter the time calibration (typical minimum seed energy for clusters), time resolution gets better with rising energy
+  int minTimeForFit_tc = -300;           ///< minimum cell time considered for the time calibration in ns
+  int maxTimeForFit_tc = 300;            ///< maximum cell time considered for the time calibration in ns
+  int restrictFitRangeToMax_tc = 25;     ///< window around the largest entry within the minTimeForFit in which the fit is performed in ns
+  int nBinsTimeAxis_tc = 1500;           ///< number of bins used for the time calibration
+  int minValueTimeAxis_tc = -500;        ///< minimum value of the time axis in the time calibration
+  int maxValueTimeAxis_tc = 1000;        ///< maximum value of the time axis in the time calibration
+  float lowGainOffset_tc = 8.8;          ///< Offset between high gain and low gain in ns. This is needed since the low gain calib will not be possible due to insuficient statistics
+  unsigned int slotLength_tc = 0;        ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
+  bool UpdateAtEndOfRunOnly_tc = false;  ///< switch to enable trigger of calibration only at end of run
+  float maxAllowedDeviationFromMax = 10; ///< maximum deviation allowed between the estimated maximum of the fit and the true maximum from the distribution. If deviation is larger then value, the fit likely failed. In this case, the true value is taken
 
   // common parameters
   std::string calibType = "time";     ///< type of calibration to run
