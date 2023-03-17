@@ -2573,7 +2573,11 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2ambiguousMFTtrack"}, "AOD", "AMBIGUOUSMFTTR", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguousFwdtrack"}, "AOD", "AMBIGUOUSFWDTR", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2v0_001"}, "AOD", "V0_001", 0, Lifetime::Timeframe);
+#ifdef O2_ZDC_NEWDATAMODEL
+  outputs.emplace_back(OutputLabel{"O2zdc_001"}, "AOD", "ZDC_001", 0, Lifetime::Timeframe);
+#else
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
+#endif
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cpvCluster"}, "AOD", "CPVCLUSTER", 0, Lifetime::Timeframe);
