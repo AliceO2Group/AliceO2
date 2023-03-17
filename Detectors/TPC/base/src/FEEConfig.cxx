@@ -29,13 +29,13 @@ bool CRUConfig::setValues(std::string_view cruData)
     return false;
   }
 
-  linkOn = bool(std::stoi(cruDataV[0]));
-  cmcEnabled = bool(std::stoi(cruDataV[1]));
-  itfEnabled = bool(std::stoi(cruDataV[2]));
-  zsEnabled = bool(std::stoi(cruDataV[3]));
-  zsOffset = std::stof(cruDataV[4]);
+  linkOn = static_cast<decltype(linkOn)>(std::stol(cruDataV[0]));
+  cmcEnabled = static_cast<decltype(cmcEnabled)>(std::stol(cruDataV[1]));
+  zsOffset = static_cast<decltype(zsOffset)>(std::stol(cruDataV[4]));
   itCorr0 = std::stof(cruDataV[5]);
-  resyncEnabled = bool(std::stoi(cruDataV[6]));
+  itfEnabled = static_cast<decltype(itfEnabled)>(std::stol(cruDataV[2]));
+  zsEnabled = static_cast<decltype(zsEnabled)>(std::stol(cruDataV[3]));
+  resyncEnabled = static_cast<decltype(resyncEnabled)>(std::stol(cruDataV[6]));
 
   return true;
 }
