@@ -138,6 +138,11 @@ class TimeFrame
 
   bool hasMCinformation() const;
   void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
+  void resetRofPV()
+  {
+    mPrimaryVertices.clear();
+    mROframesPV.resize(1, 0);
+  };
 
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
