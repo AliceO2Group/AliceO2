@@ -145,14 +145,23 @@ RawErrorType_t RawDecoder::readChannels()
           }
           isHeaderExpected = true;
         } else {
-          wordCountFromLastHeader++;
-          // error
-          if (!mIsMuteErrors) {
-            LOG(error) << "RawDecoder::readChannels() : "
-                       << "Read unknown word";
+          uint8_t unknownWord[10];
+          bool isPadding = isHeaderExpected && dataFormat == 0x2; // may this be padding?
+          for (int i = 0; i < 10 && (b + i) != e; i++) {          // read up to 10 mBytes
+            unknownWord[i] = *(b + i);
+            if (unknownWord[i] != 0xff) { // padding
+              isPadding = false;
+            }
           }
-          mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); // add error for non-existing row
-          // what to do?
+          if (!isPadding) { // this is unknown word error
+            if (!mIsMuteErrors) {
+              LOGF(info, "RawDecoder::readChannels() : Read unknown word  0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+                   unknownWord[9], unknownWord[8], unknownWord[7], unknownWord[6], unknownWord[5], unknownWord[4], unknownWord[3],
+                   unknownWord[2], unknownWord[1], unknownWord[0]);
+            }
+            mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); // add error for non-existing row
+            wordCountFromLastHeader++;
+          }
         }
       }
     }
