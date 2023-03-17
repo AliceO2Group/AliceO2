@@ -58,6 +58,12 @@ class SimParam
   void setPadResponse(bool flag = true) { mPRFOn = flag; }
   void setExB(bool flag = true) { mExBOn = flag; }
   void setSamplingFrequency(float freq) { mSamplingFrequency = freq; }
+  void setTRF(int trf, float mu = 0., float sigma = 0.3)
+  {
+    mTRF = trf;
+    mMu = mu;
+    mSigma = sigma;
+  }
 
   // Getters
   float getGasGain() const { return mGasGain; }
@@ -121,6 +127,9 @@ class SimParam
   /// The parameters below depend on the gas mixture and are re-evaluated upon a change
   std::array<float, mNBinsMax> mTRFsmp{};                            ///< Integrated time response
   std::array<float, mNBinsMax> mCTsmp{};                             ///< Integrated cross talk
+  int mTRF{0};                                                       ///< Sampled TRF function. 0: default TRF, 1: TRF described in TRF TDR, 2: No TRF, 3: Landau dist as TRF (parameters specified below)
+  float mMu{0.};                                                     ///< Mu of the Landau distribution used to describe TRF
+  float mSigma{0.03};                                                ///< Sigma of the Landau distribution used to describe TRF
   int mTRFbin{200};                                                  ///<  Number of bins for the TRF and x-talk
   float mTRFlo{-.4f};                                                ///<  Lower boundary of the TRF and x-talk
   float mTRFhi{3.58f};                                               ///<  Higher boundary of the TRF and x-talk
