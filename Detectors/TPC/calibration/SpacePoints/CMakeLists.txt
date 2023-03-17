@@ -21,6 +21,7 @@ o2_add_library(SpacePoints
                                      O2::TRDBase
                                      O2::TPCReconstruction
                                      O2::TPCFastTransformation
+                                     O2::ITStracking
                                      O2::DetectorsCalibration
                                      O2::DataFormatsITS
                                      O2::DataFormatsITSMFT

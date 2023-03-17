@@ -22,6 +22,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 using namespace o2::framework;
 
@@ -37,7 +38,7 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool sendTrackData) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -50,16 +51,18 @@ class TPCInterpolationDPL : public Task
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< steers the input
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   bool mProcessSeeds{false};      ///< process not only most complete track, but also its shorter parts
+  bool mDebugOutput{false};       ///< add more information to the output (track points of ITS, TRD and TOF)
   bool mSendTrackData{false};     ///< if true, not only the clusters but also corresponding track data will be sent
   uint32_t mSlotLength{600u};     ///< the length of one calibration slot required to calculate max number of tracks per TF
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool processITSTPConly, bool sendTrackData);
+framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput);
 
 } // namespace tpc
 } // namespace o2
