@@ -68,6 +68,9 @@
 #pragma link C++ class o2::dataformats::Pair < float, float> + ;
 #pragma link C++ class std::vector < o2::dataformats::Pair < float, float>> + ;
 
+#pragma link C++ class o2::dataformats::Triplet < float, float, float> + ;
+#pragma link C++ class std::vector < o2::dataformats::Triplet < float, float, float>> + ;
+
 #include "CommonDataFormat/TFIDInfo.h"
 #pragma link C++ class o2::dataformats::TFIDInfo + ;
 #pragma link C++ class std::vector < o2::dataformats::TFIDInfo> + ;

@@ -20,7 +20,7 @@
 #include "DetectorsCalibration/TimeSlot.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "CommonDataFormat/Pair.h"
+#include "CommonDataFormat/Triplet.h"
 #include "CCDB/CcdbObjectInfo.h"
 
 namespace o2::tpc
@@ -43,7 +43,7 @@ struct TPCVDTglContainer {
     entries = src.entries;
   }
 
-  void fill(const gsl::span<const o2::dataformats::Pair<float, float>> data)
+  void fill(const gsl::span<const o2::dataformats::Triplet<float, float, float>> data)
   {
     if (data.size() < 3) { // first 2 entres always contains the {full and reference VDrift} and {full and reference DriftTimeOffset} used for the TF
       return;
