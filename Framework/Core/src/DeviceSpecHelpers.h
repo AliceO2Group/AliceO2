@@ -62,6 +62,7 @@ struct DeviceSpecHelpers {
     std::string const& channelPrefix = "",
     OverrideServiceSpecs const& overrideServices = {});
 
+  static void validate(WorkflowSpec const& workflow);
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,

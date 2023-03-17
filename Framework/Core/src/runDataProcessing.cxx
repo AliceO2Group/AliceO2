@@ -1516,6 +1516,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
           // These allow services customization via an environment variable
           OverrideServiceSpecs overrides = ServiceSpecHelpers::parseOverrides(getenv("DPL_OVERRIDE_SERVICES"));
+          DeviceSpecHelpers::validate(altered_workflow);
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
