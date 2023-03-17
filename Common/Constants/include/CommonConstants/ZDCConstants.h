@@ -14,6 +14,14 @@
 
 /// @author pietro.cortese@cern.ch
 
+#ifndef ALICEO2_ZDCCONSTANTS_H_
+#define ALICEO2_ZDCCONSTANTS_H_
+
+namespace o2
+{
+namespace zdc
+{
+
 //< map detector/tower to continuous channel Id
 constexpr int IdDummy = -1;
 constexpr int IdVoid = -2;
@@ -48,3 +56,8 @@ constexpr int IdZPC2 = 22;
 constexpr int IdZPC3 = 23;
 constexpr int IdZPC4 = 24;
 constexpr int IdZPCSum = 25;
+
+} // namespace zdc
+} // namespace o2
+
+#endif

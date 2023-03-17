@@ -14,6 +14,7 @@
 
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/LHCConstants.h"
+#include "CommonConstants/ZDCConstants.h"
 #include <cstdint>
 #include <cstdlib>
 #include <array>
