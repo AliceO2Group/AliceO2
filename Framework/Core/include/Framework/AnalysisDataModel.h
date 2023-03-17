@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
-#define O2_ZDC_NEWDATAMODEL
+// #define O2_ZDC_NEWDATAMODEL
 
 #include "Framework/ASoA.h"
 #include <cmath>
