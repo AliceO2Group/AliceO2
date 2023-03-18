@@ -86,7 +86,6 @@ class GpuTimeFrameChunk
   {
     mTimeFramePtr = tf;
     mTFGPUParams = &conf;
-    LOGP(info, "GpuTimeFrameChunk: mTimeFramePtr = {}", (void*)mTimeFramePtr);
   }
   ~GpuTimeFrameChunk();
 
@@ -186,6 +185,7 @@ class TimeFrameGPU : public TimeFrame
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
+  gsl::span<int> getHostNTracklets(const int chunkId);  
 
  private:
   bool mHostRegistered = false;
