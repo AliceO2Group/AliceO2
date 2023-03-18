@@ -27,6 +27,41 @@ namespace trd
 /// \brief Simple noise status bit for each MCM of the TRD
 /// \author Ole Schmidt
 
+class ChannelInfo
+{
+ public:
+  ChannelInfo() = default;
+
+  bool isDummy() const { return mNEntries == 0; }
+  float getMean() const { return mMean; }
+  float getRMS() const { return mRMS; }
+  uint32_t getEntries() const { return mNEntries; }
+
+  void setMean(float mean) { mMean = mean; }
+  void setRMS(float rms) { mRMS = rms; }
+  void setNentries(uint32_t n) { mNEntries = n; }
+
+ private:
+  float mMean{0.f};
+  float mRMS{0.f};
+  uint32_t mNEntries{0};
+  ClassDefNV(ChannelInfo, 1);
+};
+
+class ChannelInfoContainer
+{
+ public:
+  ChannelInfoContainer() { mData.resize(constants::NCHANNELSTOTAL); }
+  ChannelInfo& getChannel(int index) { return mData[index]; }
+  ChannelInfo getChannel(int index) const { return mData[index]; }
+
+  const std::vector<ChannelInfo>& getData() const { return mData; }
+
+ private:
+  std::vector<ChannelInfo> mData{};
+  ClassDefNV(ChannelInfoContainer, 1);
+};
+
 class NoiseStatusMCM
 {
 
@@ -59,15 +94,6 @@ class NoiseStatusMCM
   std::bitset<constants::MAXHALFCHAMBER * constants::NMCMHCMAX> mNoiseFlag{};
 
   ClassDefNV(NoiseStatusMCM, 1);
-};
-
-struct PadAdcInfo {
-  // Struct for holding the relevant ADC information
-  // This is what is send to the aggregator
-  void fill(const gsl::span<const PadAdcInfo> input) {}
-  void merge(const PadAdcInfo* prev) {}
-  void print() {}
-  ClassDefNV(PadAdcInfo, 1);
 };
 
 } // namespace trd

@@ -29,6 +29,9 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   size_t minEntriesChamber = 75;   ///< minimum number of entries per chamber to fit single time slot
   size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
 
+  // parameters related to noise calibration
+  size_t minNumberOfDigits = 100'000'000'000UL; ///< when reached, noise calibration will be finalized
+
   // boilerplate
   O2ParamDef(TRDCalibParams, "TRDCalibParams");
 };

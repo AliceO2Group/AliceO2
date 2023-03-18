@@ -50,6 +50,12 @@ constexpr int NROBC0 = 6;       ///< the number of ROBs per C0 chamber
 constexpr int NROBC1 = 8;       ///< the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     ///< the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     ///< the number of pads per MCM
+constexpr int NCHANNELSPERROW = NMCMROBINCOL * 2 * NADCMCM;                                                    ///< the number of readout channels per pad row
+constexpr int NCHANNELSC0 = NROWC0 * NCHANNELSPERROW;                                                          ///< the number of readout channels per C0 chamber
+constexpr int NCHANNELSC1 = NROWC1 * NCHANNELSPERROW;                                                          ///< the number of readout channels per C1 chamber
+constexpr int NCHANNELSTOTAL = NSECTOR * NLAYER * (NSTACK - 1) * NCHANNELSC1 + NSECTOR * NLAYER * NCHANNELSC0; ///< the total number of readout channels for TRD
+constexpr int NCHANNELSPERSECTOR = NCHANNELSTOTAL / NSECTOR;                                                   ///< then number of readout channels per sector
+constexpr int NCHANNELSPERLAYER = NCHANNELSPERSECTOR / NLAYER;                                                 ///< then number of readout channels per layer
 constexpr int NCPU = 4;         ///< the number of CPUs inside the TRAP chip
 constexpr int NCHARGES = 3;     ///< the number of charges per tracklet (Q0/1/2)
 
