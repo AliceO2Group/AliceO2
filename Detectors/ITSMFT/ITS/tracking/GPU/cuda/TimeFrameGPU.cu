@@ -62,7 +62,6 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mFoundCellsDevice));
   }
-  LOGP(info, "Destroying GpuTimeFrameChunk");
 }
 
 template <int nLayers>
@@ -95,7 +94,7 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mClusteredLinesDevice), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * mTFGPUParams->maxTrackletsPerCluster * nrof, stream.get()));
 
   /// Invariant allocations
-  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get())); // No need to reset, we always read it after writing
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundCellsDevice), (nLayers - 2) * sizeof(int) * nrof, stream.get()));
 
   mAllocated = true;
@@ -110,7 +109,6 @@ void GpuTimeFrameChunk<nLayers>::reset(const Task task, Stream& stream)
       auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsDevice[i]);
       auto thrustTrackletsEnd = thrustTrackletsBegin + mTFGPUParams->maxTrackletsPerCluster * mTFGPUParams->clustersPerROfCapacity * mNRof;
       thrust::fill(THRUST_NAMESPACE::par.on(stream.get()), thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
-      // checkGPUError(cudaMemsetAsync(mTrackletsLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->clustersPerROfCapacity * mNRof, stream.get()));
       checkGPUError(cudaMemsetAsync(mNTrackletsPerClusterDevice[i], 0, sizeof(int) * mTFGPUParams->clustersPerROfCapacity * mNRof, stream.get()));
     }
     checkGPUError(cudaMemsetAsync(mUsedTrackletsDevice, false, sizeof(unsigned char) * mTFGPUParams->maxTrackletsPerCluster * mTFGPUParams->clustersPerROfCapacity * mNRof, stream.get()));
@@ -387,6 +385,12 @@ template <int nLayers>
 unsigned char* TimeFrameGPU<nLayers>::getDeviceUsedClusters(const int layer)
 {
   return mUsedClustersDevice[layer];
+}
+
+template <int nLayers>
+gsl::span<int> TimeFrameGPU<nLayers>::getHostNTracklets(const int chunkId)
+{
+  return gsl::span<int>(mHostNTracklets.data() + (nLayers - 1) * chunkId, nLayers - 1);
 }
 
 template class TimeFrameGPU<7>;
