@@ -732,19 +732,10 @@ void spawnDevice(DeviceRef ref,
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
 
-struct LogProcessingState {
-  bool didProcessLog = false;
-  bool didProcessControl = true;
-  bool didProcessConfig = true;
-  bool didProcessMetric = false;
-  bool hasNewMetric = false;
-};
-
-LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
-                                         DeviceInfos& infos,
-                                         DeviceSpecs const& specs,
-                                         DeviceControls& controls,
-                                         std::vector<DeviceMetricsInfo>& metricsInfos)
+void processChildrenOutput(DriverInfo& driverInfo,
+                           DeviceInfos& infos,
+                           DeviceSpecs const& specs,
+                           DeviceControls& controls)
 {
   // Display part. All you need to display should actually be in
   // `infos`.
@@ -758,13 +749,10 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   ParsedMetricMatch metricMatch;
   ParsedConfigMatch configMatch;
   const std::string delimiter("\n");
-  bool hasNewMetric = false;
-  LogProcessingState result;
 
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
-    DeviceMetricsInfo& metrics = metricsInfos[di];
     assert(specs.size() == infos.size());
     DeviceSpec const& spec = specs[di];
 
@@ -779,19 +767,8 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
-    auto updateMetricsViews =
-      Metric2DViewIndex::getUpdater({&info.dataRelayerViewIndex,
-                                     &info.variablesViewIndex,
-                                     &info.queriesViewIndex,
-                                     &info.outputsViewIndex});
-
-    auto newMetricCallback = [&updateMetricsViews, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
-      updateMetricsViews(name, metric, value, metricIndex);
-      hasNewMetric = true;
-    };
-
     while ((pos = s.find(delimiter)) != std::string::npos) {
-      std::string token{s.substr(0, pos)};
+      std::string_view token{s.substr(0, pos)};
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
 
       // Check if the token is a metric from SimpleMetricsService
@@ -799,17 +776,10 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       // in the GUI.
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
-      if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
-        // We use this callback to cache which metrics are needed to provide a
-        // the DataRelayer view.
-        DeviceMetricsHelper::processMetric(metricMatch, metrics, newMetricCallback);
-        result.didProcessMetric = true;
-      } else if (logLevel == LogParsingHelpers::LogLevel::Info && ControlServiceHelpers::parseControl(token, match)) {
-        ControlServiceHelpers::processCommand(infos, info.pid, match[1].str(), match[2].str());
-        result.didProcessControl = true;
+      if (logLevel == LogParsingHelpers::LogLevel::Info && ControlServiceHelpers::parseControl(token, match)) {
+        throw runtime_error("stdout is not supported anymore as a driver backend. Please use ws://");
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token.substr(16), configMatch)) {
-        DeviceConfigHelper::processConfig(configMatch, info);
-        result.didProcessConfig = true;
+        throw runtime_error("stdout is not supported anymore as a driver backend. Please use ws://");
       } else if (!control.quiet && (token.find(control.logFilter) != std::string::npos) &&
                  logLevel >= control.logLevel) {
         assert(info.historyPos >= 0);
@@ -818,7 +788,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
         fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
-        result.didProcessLog = true;
       }
       // We keep track of the maximum log error a
       // device has seen.
@@ -840,11 +809,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
     info.unprinted = std::string(s);
     O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
   }
-  result.hasNewMetric = hasNewMetric;
-  if (hasNewMetric) {
-    hasNewMetric = false;
-  }
-  return result;
 }
 
 // Process all the sigchld which are pending
@@ -1837,16 +1801,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         {
-          auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
-          if (outputProcessing.didProcessMetric) {
-            size_t timestamp = uv_now(loop);
-            for (auto& callback : metricProcessingCallbacks) {
-              callback(serviceRegistry, ServiceMetricsInfo{metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics}, timestamp);
-            }
-            for (auto& metricsInfo : metricsInfos) {
-              std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
-            }
-          }
+          processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
         }
         break;
       case DriverState::QUIT_REQUESTED:
@@ -1881,13 +1836,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
-        auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
-        if (outputProcessing.didProcessMetric) {
-          size_t timestamp = uv_now(loop);
-          for (auto& callback : metricProcessingCallbacks) {
-            callback(serviceRegistry, ServiceMetricsInfo{metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics}, timestamp);
-          }
-        }
+        processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
         hasError = processSigChild(infos, runningWorkflow.devices);
         bool allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);

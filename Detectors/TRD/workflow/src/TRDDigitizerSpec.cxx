@@ -83,14 +83,14 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
-    std::vector<o2::trd::Digit> digits;                         // digits which get filled
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;  // labels which get filled
+    std::vector<o2::trd::Digit> digits;                        // digits which get filled
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; // labels which get filled
 
-    o2::InteractionTimeRecord currentTime; // the current time
+    o2::InteractionTimeRecord currentTime;  // the current time
     o2::InteractionTimeRecord previousTime; // the time of the previous collision
-    o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
-    size_t currTrig = 0;                   // from which collision is the current TRD trigger (only needed for debug information)
-    bool firstEvent = true;                // Flag for the first event processed
+    o2::InteractionTimeRecord triggerTime;  // the time at which the TRD start reading out a signal
+    size_t currTrig = 0;                    // from which collision is the current TRD trigger (only needed for debug information)
+    bool firstEvent = true;                 // Flag for the first event processed
 
     TStopwatch timer;
     timer.Start();
@@ -139,7 +139,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         }
       }
 
-      mDigitizer.setEventTime(triggerTime.getTimeNS());
+      mDigitizer.setEventTime(currentTime.getTimeNS());
       if (isNewTrigger) {
         mDigitizer.setTriggerTime(triggerTime.getTimeNS());
         currTrig = collID;

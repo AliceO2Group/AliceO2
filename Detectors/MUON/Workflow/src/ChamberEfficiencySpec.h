@@ -9,7 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCSpaceCharge/SpaceChargeParameter.h"
+/// \file   MUONWorkflow/ChamberEfficiencySpec.h
+/// \brief  Device that computes the MID chamber efficiency
+/// \author Livia Terlizzi <Livia.Terlizzi at cern.ch>
+/// \date   20 September 2022
 
-using namespace o2::tpc;
-O2ParamImpl(o2::tpc::ParameterSpaceCharge);
+#ifndef O2_MID_CHAMBEREFFICIENCYSPEC_H
+#define O2_MID_CHAMBEREFFICIENCYSPEC_H
+
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2
+{
+namespace mid
+{
+
+framework::DataProcessorSpec getChamberEfficiencySpec(bool selectMatched);
+
+} // namespace mid
+} // namespace o2
+
+#endif // O2_MID_CHAMBEREFFICIENCYSPEC_H

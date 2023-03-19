@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Workflow/src/EfficiencySpec.cxx
+/// \file   MUON/Workflow/src/ChamberEfficiencySpec.cxx
 /// \brief  Device that computes the MID chamber efficiency
 /// \author Livia Terlizzi <Livia.Terlizzi at cern.ch>
 /// \date   20 September 2022
 
-#include "MIDWorkflow/EfficiencySpec.h"
+#include "ChamberEfficiencySpec.h"
 
 #include <string>
 #include <unordered_map>
@@ -24,11 +24,10 @@
 #include "TH1.h"
 
 #include "Framework/CallbackService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
-#include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMID/Track.h"
+#include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDEfficiency/Efficiency.h"
@@ -43,6 +42,8 @@ using namespace o2::framework;
 class EfficiencyTask
 {
  public:
+  EfficiencyTask(bool selectMatched) : mSelectMatched(selectMatched){};
+
   std::vector<TH1F> buildHistos()
   {
     Mapping mapping;
@@ -52,11 +53,12 @@ class EfficiencyTask
     std::array<Efficiency::ElementType, 3> elTypes{Efficiency::ElementType::Board, Efficiency::ElementType::RPC, Efficiency::ElementType::Plane};
     std::array<std::string, 3> elName{"Board", "RPC", "Plane"};
     std::array<int, 3> nBins{4 * detparams::NLocalBoards, detparams::NDetectionElements, detparams::NChambers};
+    std::array<double, 3> firstVal{1., 0., 0.};
     for (size_t iel = 0; iel < elTypes.size(); ++iel) {
       for (size_t itype = 0; itype < types.size(); ++itype) {
         std::string name = names[itype] + "per";
         name += elName[iel];
-        histos.emplace_back(name.c_str(), name.c_str(), nBins[iel], 0., nBins[iel]);
+        histos.emplace_back(name.c_str(), name.c_str(), nBins[iel], firstVal[iel], nBins[iel] + static_cast<int>(firstVal[iel]));
         histos.back().GetXaxis()->SetTitle(elName[iel].c_str());
         for (auto& count : mEfficiency.getChamberEfficiency(elTypes[iel]).getCountersAsVector()) {
           int ibin = count.deId + 1;
@@ -96,22 +98,41 @@ class EfficiencyTask
   void run(ProcessingContext& pc)
   {
     auto midTracks = pc.inputs().get<gsl::span<mid::Track>>("midtracks");
+    if (mSelectMatched) {
+      auto matchTracks = pc.inputs().get<gsl::span<dataformats::TrackMCHMID>>("matchtracks");
+      std::vector<mid::Track> selectedTracks;
+      selectedTracks.reserve(midTracks.size());
+      for (auto& matchTrack : matchTracks) {
+        auto idx = matchTrack.getMIDRef().getIndex();
+        selectedTracks.emplace_back(midTracks[idx]);
+      }
+      midTracks = gsl::span<mid::Track>(selectedTracks);
+    }
+
     mEfficiency.process(midTracks);
   }
 
  private:
-  Efficiency mEfficiency{};
+  Efficiency mEfficiency{}; /// Efficiency calculator
+  bool mSelectMatched;      /// Select matched tracks
 };
 
-DataProcessorSpec getEfficiencySpec()
+DataProcessorSpec getChamberEfficiencySpec(bool selectMatched)
 {
+
+  Inputs inputSpecs{InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}};
+  if (selectMatched) {
+    inputSpecs.emplace_back(InputSpec{
+      "matchtracks", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  }
 
   return DataProcessorSpec{
     "MIDEfficiency",
-    Inputs{InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}},
+    inputSpecs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<EfficiencyTask>()},
-    Options{{"mid-eff", VariantType::String, "mid-efficiency.root", {"Root MID RPCs Efficiency"}}}};
+    AlgorithmSpec{adaptFromTask<EfficiencyTask>(selectMatched)},
+    Options{
+      {"mid-eff", VariantType::String, "mid-efficiency.root", {"Root MID RPCs Efficiency"}}}};
 }
 
 } // namespace mid

@@ -24,6 +24,7 @@
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBDownloader.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <type_traits>
 #include <vector>
@@ -519,6 +520,13 @@ class CcdbApi //: public DatabaseInterface
   {
     return getSnapshotDir(topdir, path) + '/' + sfile;
   }
+
+  // tmp helper and single point of entry for a CURL perform call
+  // helps to switch between easy handle perform and multi handles in a single place
+  CURLcode CURL_perform(CURL* handle) const;
+
+  mutable CCDBDownloader* mDownloader = nullptr; //! the multi-handle (async) CURL downloader
+  bool mIsCCDBDownloaderEnabled = false;
   /// Base URL of the CCDB (with port)
   std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};

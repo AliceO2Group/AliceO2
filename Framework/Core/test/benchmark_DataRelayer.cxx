@@ -63,9 +63,9 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   std::vector<ForwardRoute> forwards;
   std::vector<InputChannelInfo> infos{1};
   TimesliceIndex index{1, infos};
-
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, index, {registry});
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -116,7 +116,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, index, {registry});
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -173,7 +174,8 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, index, {registry});
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -247,7 +249,8 @@ static void BM_RelaySplitParts(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, index, {registry});
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -305,7 +308,8 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
   TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, metrics, index);
+  ServiceRegistry registry;
+  DataRelayer relayer(policy, inputs, index, {registry});
   relayer.setPipelineLength(4);
 
   // DataHeader matching the one provided in the input

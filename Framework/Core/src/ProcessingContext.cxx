@@ -8,8 +8,20 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef ALICEO2_EMCAL_RAWHEADERSTREAM_H
-#define ALICEO2_EMCAL_RAWHEADERSTREAM_H
-// Temporary file, needed for compatibility in the QC package
-#include "DetectorsRaw/RawHeaderStream.h"
-#endif // ALICEO2_EMCAL_RAWHEADERSTREAM_H
+#include "Framework/ProcessingContext.h"
+#include "Framework/DeviceState.h"
+
+namespace o2::framework
+{
+
+TransitionHandlingState ProcessingContext::transitionState() const
+{
+  return mServices.get<DeviceState>().transitionHandling;
+}
+
+StreamingState ProcessingContext::streamingState() const
+{
+  return mServices.get<DeviceState>().streaming;
+}
+
+} // namespace o2::framework

@@ -42,6 +42,7 @@ if [[ -z $TIMEFRAME_RATE_LIMIT ]] && [[ $DIGITINPUT != 1 ]]; then
   TIMEFRAME_RATE_LIMIT=$((12 * 230 / $RECO_NUM_NODES_WORKFLOW * ($NUMAGPUIDS != 0 ? 1 : 2)))
   [[ $BEAMTYPE != "PbPb" ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 3))
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
+  [[ ! -z $EPN_GLOBAL_SCALING ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * $EPN_GLOBAL_SCALING))
 fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
 if [[ $EPNSYNCMODE == 1 ]]; then
@@ -196,7 +197,7 @@ if [[ $GPUTYPE == "HIP" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
   export TIMESLICEOFFSET=$(($GPU_FIRST_ID + ($NUMAGPUIDS != 0 ? ($NGPUS * $NUMAID) : 0)))
   GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
-  export HSA_NO_SCRATCH_RECLAIM=1
+  [[ "0$EPN_NODE_MI100" != "01" ]] && export HSA_NO_SCRATCH_RECLAIM=1
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
 else
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
@@ -409,18 +410,18 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Writers for detectors whose reco workflow cannot write the output
-has_detector_reco TRD && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-trd-digittracklet-writer ) && add_W o2-trd-digittracklet-writer
-has_detector_reco TPC && [[ "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]] && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-gpu-reco-workflow ) && add_W o2-tpc-reco-workflow "--input-type digitizer --output-type digits $DISABLE_MC"
-has_detector_reco CPV && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-cpv-cluster-writer-workflow ) && add_W o2-cpv-cluster-writer-workflow "$DISABLE_MC"
+has_detector_reco TRD && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-trd-digittracklet-writer ) && ! has_detector_from_global_reader TRD && add_W o2-trd-digittracklet-writer
+has_detector_reco TPC && [[ "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]] && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-gpu-reco-workflow ) && ! has_detector_from_global_reader TPC && add_W o2-tpc-reco-workflow "--input-type digitizer --output-type digits $DISABLE_MC"
+has_detector_reco CPV && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-cpv-cluster-writer-workflow ) && ! has_detector_from_global_reader CPV && add_W o2-cpv-cluster-writer-workflow "$DISABLE_MC"
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && ! has_detector_from_global_reader EMC && has_detector EMC && add_W o2-emcal-cell-writer-workflow "--disable-mc --subspec 10 --cell-writer-name emcal-led-cells-writer --emcal-led-cells-writer \"--outfile emcledcells.root\""
 [[ $CTFINPUT == 1 ]] && has_detector CTP && ! has_detector_from_global_reader CTP && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-ctp-digit-writer ) && add_W o2-ctp-digit-writer "$DISABLE_ROOT_OUTPUT"
-has_detector_reco EMC && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && add_W o2-emcal-cell-writer-workflow "$DISABLE_MC"
-has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-phos-cell-writer-workflow ) && add_W o2-phos-cell-writer-workflow "$DISABLE_MC"
-has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
-has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
-has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && add_W o2-mch-digits-writer-workflow "" "" 0
-has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-clusters-writer-workflow ) && add_W o2-mch-clusters-writer-workflow "" "" 0
-has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-preclusters-writer-workflow ) && add_W o2-mch-preclusters-writer-workflow "" "" 0
+has_detector_reco EMC && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && ! has_detector_from_global_reader EMC && add_W o2-emcal-cell-writer-workflow "$DISABLE_MC"
+has_detector_reco PHS && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-phos-cell-writer-workflow ) && ! has_detector_from_global_reader PHS && add_W o2-phos-cell-writer-workflow "$DISABLE_MC"
+has_detector_reco FV0 && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-fv0-digits-writer-workflow ) && ! has_detector_from_global_reader FV0 && add_W o2-fv0-digits-writer-workflow "$DISABLE_MC"
+has_detector_reco MID && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mid-decoded-digits-writer-workflow ) && ! has_detector_from_global_reader MID && add_W o2-mid-decoded-digits-writer-workflow "--mid-digits-tree-name o2sim" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-digits-writer-workflow ) && ! has_detector_from_global_reader MCH && add_W o2-mch-digits-writer-workflow "" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-clusters-writer-workflow ) && ! has_detector_from_global_reader MCH && add_W o2-mch-clusters-writer-workflow "" "" 0
+has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-mch-preclusters-writer-workflow ) && ! has_detector_from_global_reader MCH && add_W o2-mch-preclusters-writer-workflow "" "" 0
 
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"

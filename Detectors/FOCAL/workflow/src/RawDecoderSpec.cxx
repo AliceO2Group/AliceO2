@@ -355,6 +355,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
 std::array<o2::focal::PadLayerEvent, o2::focal::constants::PADS_NLAYERS> RawDecoderSpec::createPadLayerEvent(const o2::focal::PadData& data) const
 {
   std::array<PadLayerEvent, constants::PADS_NLAYERS> result;
+  std::array<uint8_t, 8> triggertimes;
   for (std::size_t ilayer = 0; ilayer < constants::PADS_NLAYERS; ilayer++) {
     auto& asic = data.getDataForASIC(ilayer).getASIC();
     int bc[2];
@@ -370,6 +371,19 @@ std::array<o2::focal::PadLayerEvent, o2::focal::constants::PADS_NLAYERS> RawDeco
     for (std::size_t ichannel = 0; ichannel < constants::PADLAYER_MODULE_NCHANNELS; ichannel++) {
       auto channel = asic.getChannel(ichannel);
       result[ilayer].setChannel(ichannel, channel.getADC(), channel.getTOA(), channel.getTOT());
+    }
+    auto triggers = data.getDataForASIC(ilayer).getTriggerWords();
+    for (std::size_t window = 0; window < constants::PADLAYER_WINDOW_LENGTH; window++) {
+      std::fill(triggertimes.begin(), triggertimes.end(), 0);
+      triggertimes[0] = triggers[window].mTrigger0;
+      triggertimes[1] = triggers[window].mTrigger1;
+      triggertimes[2] = triggers[window].mTrigger2;
+      triggertimes[3] = triggers[window].mTrigger3;
+      triggertimes[4] = triggers[window].mTrigger4;
+      triggertimes[5] = triggers[window].mTrigger5;
+      triggertimes[6] = triggers[window].mTrigger6;
+      triggertimes[7] = triggers[window].mTrigger7;
+      result[ilayer].setTrigger(window, triggers[window].mHeader0, triggers[window].mHeader1, triggertimes);
     }
   }
 

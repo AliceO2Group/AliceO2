@@ -19,6 +19,7 @@
 #pragma link C++ class o2::focal::PadLayerEvent + ;
 #pragma link C++ class o2::focal::PadLayerEvent::Header + ;
 #pragma link C++ class o2::focal::PadLayerEvent::Channel + ;
+#pragma link C++ class o2::focal::PadLayerEvent::TriggerWindow + ;
 #pragma link C++ class o2::focal::PixelLayerEvent + ;
 #pragma link C++ class o2::focal::PixelHit + ;
 #pragma link C++ class o2::focal::PixelChip + ;

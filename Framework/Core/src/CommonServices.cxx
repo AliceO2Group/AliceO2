@@ -323,8 +323,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
                                            spec.inputs,
-                                           services.get<Monitoring>(),
-                                           services.get<TimesliceIndex>())};
+                                           services.get<TimesliceIndex>(),
+                                           services)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -473,9 +473,9 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
 
-      LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
+      LOGP(debug, "Broadcasting oldest possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
-           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
+           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value : oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
 
       for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
@@ -573,15 +573,8 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 
 namespace
 {
-/// This will send metrics for the relayer at regular intervals of
-/// 15 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
-  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
-  auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
-  if (timeSinceLastUpdate < 15000) {
-    return;
-  }
   // Derive the amount of shared memory used
   auto& runningWorkflow = registry.get<RunningWorkflowInfo const>();
   using namespace fair::mq::shmem;
@@ -601,113 +594,43 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
       } catch (...) {
       }
     }
-    if (freeMemory != -1) {
-      stats.availableManagedShm.store(freeMemory);
-    }
+    stats.updateStats({static_cast<short>(static_cast<short>(ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE) + runningWorkflow.shmSegmentId), DataProcessingStats::Op::SetIfPositive, freeMemory});
   }
-
-  auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
 
   ZoneScopedN("send metrics");
-  auto& relayerStats = registry.get<DataRelayer>().getStats();
-  auto& monitoring = registry.get<Monitoring>();
-
-  O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-
-  monitoring.send(Metric{(int)relayerStats.malformedInputs, "malformed_inputs"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.droppedComputations, "dropped_computations"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
-
-  monitoring.send(Metric{(int)stats.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.exceptionCount, "exceptions"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastProcessedSize, "last_processed_input_size_byte"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
-                         "processing_rate_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(uint64_t)stats.performedComputations, "performed_computations"}.addTag(Key::Subsystem, Value::DPL));
-
-  if (stats.availableManagedShm) {
-    monitoring.send(Metric{(uint64_t)stats.availableManagedShm, fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId)}.addTag(Key::Subsystem, Value::DPL));
-  }
-
-  if (stats.consumedTimeframes) {
-    monitoring.send(Metric{(uint64_t)stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
-  }
-
-  stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
-  stats.lastReportedPerformedComputations.store(stats.performedComputations.load());
-  O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-
   auto device = registry.get<RawDeviceService>().device();
 
-  uint64_t lastTotalBytesIn = stats.totalBytesIn.exchange(0);
-  uint64_t lastTotalBytesOut = stats.totalBytesOut.exchange(0);
-  uint64_t totalBytesIn = 0;
-  uint64_t totalBytesOut = 0;
+  int64_t totalBytesIn = 0;
+  int64_t totalBytesOut = 0;
 
   for (auto& channel : device->fChannels) {
     totalBytesIn += channel.second[0].GetBytesRx();
     totalBytesOut += channel.second[0].GetBytesTx();
   }
 
-  monitoring.send(Metric{(float)(totalBytesOut - lastTotalBytesOut) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_out_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(float)(totalBytesIn - lastTotalBytesIn) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_in_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  stats.totalBytesIn.store(totalBytesIn);
-  stats.totalBytesOut.store(totalBytesOut);
-  // Things which we report every 30s
-  if (timeSinceLastLongUpdate < 30000) {
-    return;
-  }
-  stats.lastVerySlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_IN), DataProcessingStats::Op::CumulativeRate, totalBytesIn});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_OUT), DataProcessingStats::Op::CumulativeRate, totalBytesOut});
 };
 
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
-  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
-  static int counter = 0;
-  if (timeSinceLastUpdate < 1000) {
-    if (counter++ > 10) {
-      return;
-    }
-  } else {
-    counter = 0;
-  }
-
   ZoneScopedN("flush metrics");
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
 
   O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   // Send all the relevant metrics for the relayer to update the GUI
-  // FIXME: do a delta with the previous version if too many metrics are still
-  // sent...
-  for (size_t si = 0; si < stats.statesSize.load(); ++si) {
-    auto value = std::atomic_load_explicit(&stats.relayerState[si], std::memory_order_relaxed);
-    std::atomic_thread_fence(std::memory_order_acquire);
-    monitoring.send({value, fmt::format("data_relayer/{}", si), o2::monitoring::Verbosity::Debug});
-  }
+  stats.flushChangedMetrics([&monitoring](std::string const& name, int64_t timestamp, uint64_t value) mutable -> void {
+    // convert timestamp to a time_point
+    auto tp = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>(std::chrono::milliseconds(timestamp));
+    auto metric = o2::monitoring::Metric{name, Metric::DefaultVerbosity, tp};
+    metric.addValue((int)value, name);
+    metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
+    monitoring.send(std::move(metric));
+  });
   relayer.sendContextState();
   monitoring.flushBuffer();
-  stats.lastMetricFlushedTimestamp.store(stats.beginIterationTimestamp.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
 };
 } // namespace
@@ -716,22 +639,56 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
     .name = "data-processing-stats",
-    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      auto* stats = new DataProcessingStats();
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+      timespec now;
+      clock_gettime(CLOCK_REALTIME, &now);
+      uv_update_time(state.loop);
+      uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
+      auto* stats = new DataProcessingStats(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
+                                            DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+      auto& runningWorkflow = services.get<RunningWorkflowInfo const>();
+
+      // It makes no sense to update the stats more often than every 5s
+      int quickUpdateInterval = 5000;
+      uint64_t quickRefreshInterval = 7000;
+      stats->registerMetric({.name = "errors", .metricId = (int)ProcessingStatsId::ERROR_COUNT, .defaultValue = 0, .minPublishInterval = quickUpdateInterval, .maxRefreshLatency = quickRefreshInterval});
+      stats->registerMetric({"exceptions", (int)ProcessingStatsId::EXCEPTION_COUNT, 0, quickUpdateInterval});
+      stats->registerMetric({"inputs/relayed/pending", (int)ProcessingStatsId::PENDING_INPUTS, 0, quickUpdateInterval});
+      stats->registerMetric({"inputs/relayed/incomplete", (int)ProcessingStatsId::INCOMPLETE_INPUTS, 0, quickUpdateInterval});
+      stats->registerMetric({"inputs/relayed/total", (int)ProcessingStatsId::TOTAL_INPUTS, 0, quickUpdateInterval});
+      stats->registerMetric({"elapsed_time_ms", (int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, 0, quickUpdateInterval});
+      stats->registerMetric({"last_processed_input_size_byte", (int)ProcessingStatsId::LAST_PROCESSED_SIZE, 0, quickUpdateInterval});
+      stats->registerMetric({"total_processed_input_size_byte", (int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, 0, quickUpdateInterval});
+      stats->registerMetric({"total_sigusr1", (int)ProcessingStatsId::TOTAL_SIGUSR1, 0, quickUpdateInterval});
+      stats->registerMetric({"processing_rate_mb_s", (int)ProcessingStatsId::PROCESSING_RATE_MB_S, 0, quickUpdateInterval});
+      stats->registerMetric({"min_input_latency_ms", (int)ProcessingStatsId::LAST_MIN_LATENCY, 0, quickUpdateInterval});
+      stats->registerMetric({"max_input_latency_ms", (int)ProcessingStatsId::LAST_MAX_LATENCY, 0, quickUpdateInterval});
+      stats->registerMetric({"input_rate_mb_s", (int)ProcessingStatsId::INPUT_RATE_MB_S, 0, quickUpdateInterval});
+      stats->registerMetric({"processing_rate_hz", (int)ProcessingStatsId::PROCESSING_RATE_HZ, 0, quickUpdateInterval});
+      stats->registerMetric({"performed_computations", (int)ProcessingStatsId::PERFORMED_COMPUTATIONS, 0, quickUpdateInterval});
+      stats->registerMetric({"total_bytes_in", (int)ProcessingStatsId::TOTAL_BYTES_IN, 0, quickUpdateInterval});
+      stats->registerMetric({"total_bytes_out", (int)ProcessingStatsId::TOTAL_BYTES_OUT, 0, quickUpdateInterval});
+      stats->registerMetric({fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId), (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + runningWorkflow.shmSegmentId, 500});
+
+      stats->registerMetric({"malformed_inputs", static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), 0, quickUpdateInterval});
+      stats->registerMetric({"dropped_computations", static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), 0, quickUpdateInterval});
+      stats->registerMetric({"dropped_incoming_messages", static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), 0, quickUpdateInterval});
+      stats->registerMetric({"relayed_messages", static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), 0, quickUpdateInterval});
+
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      stats->performedComputations++; },
+      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
     .preDangling = [](DanglingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
+       auto* stats = (DataProcessingStats*)service;
+       sendRelayerMetrics(context.services(), *stats);
+       flushMetrics(context.services(), *stats); },
     .postDangling = [](DanglingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
+       auto* stats = (DataProcessingStats*)service;
+       sendRelayerMetrics(context.services(), *stats);
+       flushMetrics(context.services(), *stats); },
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
@@ -842,10 +799,10 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     rootFileSpec(),
     parallelSpec(),
     callbacksSpec(),
+    dataProcessingStats(),
     dataRelayer(),
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
-    dataProcessingStats(),
     objectCache(),
     ccdbSupportSpec(),
     CommonMessageBackends::fairMQBackendSpec(),

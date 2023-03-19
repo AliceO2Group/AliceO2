@@ -57,11 +57,19 @@ CcdbApi::CcdbApi()
 {
   std::string host = boost::asio::ip::host_name();
   mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+
+  mIsCCDBDownloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  if (mIsCCDBDownloaderEnabled) {
+    mDownloader = new CCDBDownloader();
+  }
 }
 
 CcdbApi::~CcdbApi()
 {
   curl_global_cleanup();
+  if (mDownloader) {
+    delete mDownloader;
+  }
 }
 
 bool CcdbApi::checkAlienToken()
@@ -90,6 +98,17 @@ void CcdbApi::curlInit()
   CcdbApi::mJAlienCredentials = std::make_unique<TJAlienCredentials>();
   CcdbApi::mJAlienCredentials->loadCredentials();
   CcdbApi::mJAlienCredentials->selectPreferedCredentials();
+
+  // allow to configure the socket timeout of CCDBDownloader, if activated (for some tuning studies)
+  if (mIsCCDBDownloaderEnabled) {
+    if (getenv("ALICEO2_CCDB_SOCKET_TIMEOUT")) {
+      auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
+      if (timeoutMS >= 0) {
+        LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
+        mDownloader->setSocketTimoutTime(timeoutMS);
+      }
+    }
+  }
 }
 
 void CcdbApi::init(std::string const& host)
@@ -286,7 +305,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
 
       /* Perform the request, res will get the return code */
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK) {
         LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
@@ -566,7 +585,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
       curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
 
-      curlResultCode = curl_easy_perform(curlHandle);
+      curlResultCode = CURL_perform(curlHandle);
 
       if (curlResultCode != CURLE_OK) {
         LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
@@ -854,7 +873,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
 
   curlSetSSLOptions(curl_handle);
 
-  auto res = curl_easy_perform(curl_handle);
+  auto res = CURL_perform(curl_handle);
   long response_code = -1;
   void* content = nullptr;
   bool errorflag = false;
@@ -1051,9 +1070,9 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
       fullUrl += path;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
 
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       if (res != CURLE_OK) {
-        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
     }
     curl_slist_free_all(headers);
@@ -1087,9 +1106,9 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
       // Perform the request, res will get the return code
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       if (res != CURLE_OK) {
-        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1112,9 +1131,9 @@ void CcdbApi::truncate(std::string const& path) const
       curlSetSSLOptions(curl);
 
       // Perform the request, res will get the return code
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       if (res != CURLE_OK) {
-        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1138,7 +1157,7 @@ bool CcdbApi::isHostReachable() const
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
       curlSetSSLOptions(curl);
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       result = (res == CURLE_OK);
     }
 
@@ -1212,12 +1231,12 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     CURLcode getCodeRes = CURL_LAST;
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
-      res = curl_easy_perform(curl);
+      res = CURL_perform(curl);
       if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
         // We take out the unsupported protocol error because we are only querying
         // header info which is returned in any case. Unsupported protocol error
         // occurs sometimes because of redirection to alien for blobs.
-        LOG(error) << "curl_easy_perform() failed: " << curl_easy_strerror(res);
+        LOG(error) << "CURL_perform() failed: " << curl_easy_strerror(res);
       }
 
       getCodeRes = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
@@ -1372,9 +1391,9 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
-        res = curl_easy_perform(curl);
+        res = CURL_perform(curl);
         if (res != CURLE_OK) {
-          LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
+          LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
         }
         curl_easy_cleanup(curl);
       }
@@ -1553,7 +1572,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
   curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
   curlSetSSLOptions(curl_handle);
 
-  auto res = curl_easy_perform(curl_handle);
+  auto res = CURL_perform(curl_handle);
   long response_code = -1;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
@@ -1724,6 +1743,14 @@ void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::s
   }
   upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
   LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
+}
+
+CURLcode CcdbApi::CURL_perform(CURL* handle) const
+{
+  if (mIsCCDBDownloaderEnabled) {
+    return mDownloader->perform(handle);
+  }
+  return curl_easy_perform(handle);
 }
 
 } // namespace o2

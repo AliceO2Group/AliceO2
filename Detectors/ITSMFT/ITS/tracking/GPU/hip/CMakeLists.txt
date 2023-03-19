@@ -51,8 +51,8 @@ if(HIP_ENABLED)
   target_compile_definitions(
     ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
 
-  if(HIP_AMDGPUTARGET)
+  if(O2_HIP_CMAKE_LINK_FLAGS)
     # Need to add gpu target also to link flags due to gpu-rdc option
-    target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+    target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})
   endif()
 endif()

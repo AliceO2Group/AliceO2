@@ -23,7 +23,8 @@ class IndexExceptionEvent : public std::exception
     PAD_LAYER,
     PAD_NHALVES,
     PAD_CHANNEL,
-    PIXEL_LAYER
+    PIXEL_LAYER,
+    TRIGGER_WINDOW
   };
   IndexExceptionEvent(unsigned int index, unsigned int maxindex, IndexType_t source);
   ~IndexExceptionEvent() noexcept final = default;

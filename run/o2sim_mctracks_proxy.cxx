@@ -65,7 +65,7 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
 
-  return [timesliceId, specs, step](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, specs, step](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
     for (int i = 0; i < parts.Size(); ++i) {
@@ -80,7 +80,10 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       } else if (i == 1) {
         dh.payloadSerializationMethod = gSerializationMethodROOT;
       }
-      DataProcessingHeader dph{*timesliceId, 0};
+      if (*timesliceId != newTimesliceId) {
+        LOG(fatal) << "Time slice ID provided from oldestPossible mechanism " << newTimesliceId << " is out of sync with expected value " << *timesliceId;
+      }
+      DataProcessingHeader dph{newTimesliceId, 0};
       // we have to move the incoming data
       o2::header::Stack headerStack{dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), specs[i], channelRetriever);

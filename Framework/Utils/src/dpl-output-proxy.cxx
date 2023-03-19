@@ -71,10 +71,10 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  std::string processorName = config.options().get<std::string>("proxy-name");
-  std::string inputConfig = config.options().get<std::string>("dataspec");
+  auto processorName = config.options().get<std::string>("proxy-name");
+  auto inputConfig = config.options().get<std::string>("dataspec");
   int defaultPort = config.options().get<int>("default-port");
-  std::string defaultTransportConfig = config.options().get<std::string>("default-transport");
+  auto defaultTransportConfig = config.options().get<std::string>("default-transport");
   if (defaultTransportConfig == "zeromq") {
     // nothing to do for the moment
   } else if (defaultTransportConfig == "shmem") {

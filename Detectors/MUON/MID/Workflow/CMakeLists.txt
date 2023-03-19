@@ -17,7 +17,6 @@ o2_add_library(
           src/ColumnDataSpecsUtils.cxx
           src/DecodedDataAggregatorSpec.cxx
           src/DigitReaderSpec.cxx
-          src/EfficiencySpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
           src/FilteringSpec.cxx
@@ -48,7 +47,6 @@ o2_add_library(
     O2::MIDCalibration
     O2::MIDClustering
     O2::MIDCTF
-    O2::MIDEfficiency
     O2::MIDFiltering
     O2::MIDQC
     O2::MIDRaw
@@ -114,13 +112,6 @@ o2_add_executable(
   COMPONENT_NAME mid
   SOURCES src/calibration-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-o2_add_executable(
-  efficiency-workflow
-  COMPONENT_NAME mid
-  SOURCES src/EfficiencySpec.cxx src/efficiency-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
 
 o2_add_executable(
   raw-dump-workflow
