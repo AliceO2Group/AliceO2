@@ -45,7 +45,7 @@ class BuildTopologyDictionary
 
  private:
   TopologyDictionary mDictionary;                                          ///< Dictionary of topologies
-  std::map<unsigned long, itsmft::TopoStat> mTopologyMap;                  //! Temporary map of type <hash,TopStat>
+  std::map<unsigned long, itsmft::TopoStat> mTopologyMap;                  //! Temporary map of type <hash, TopStat>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold
   int mTotClusters;
   int mNCommonTopologies;
