@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file TimeFrame.h
-/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_TIMEFRAME_H_
