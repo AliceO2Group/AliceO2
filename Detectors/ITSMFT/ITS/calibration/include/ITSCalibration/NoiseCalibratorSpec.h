@@ -72,6 +72,7 @@ class NoiseCalibratorSpec : public Task
   int mNPartsDone = 0; // number of accumalated parts in Normalization mode
   bool mUseClusters = false;
   bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
+  bool mRunStopRequested = false; // flag that run was stopped (ant the last output is sent)
   TStopwatch mTimer{};
   float mNoiseCutIB = -1.;
   o2::dcs::DCSconfigObject_t mNoiseMapDCS; // noisy pixels to be sent to DCS CCDB
