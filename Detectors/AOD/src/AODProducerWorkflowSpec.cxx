@@ -463,7 +463,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           addToTracksTable(tracksCursor, tracksCovCursor, data.getTrackParam(trackIndex), collisionID);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
-          if (extraInfoHolder.bcSlice[0] >= 0) {
+          if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
             ambigTracksCursor(0, mTableTrID, extraInfoHolder.bcSlice);
           }
           mGIDToTableID.emplace(trackIndex, mTableTrID);
@@ -700,12 +700,12 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   }
 
   std::uint64_t bcOfTimeRef;
-  bool needBCSlice = trackID.isAmbiguous() || collisionID < 0;
+  bool needBCSlice = collisionID < 0;
   if (needBCSlice) { // need to store BC slice
     float err = mTimeMarginTrackTime + fwdInfo.trackTimeRes;
     bcOfTimeRef = fillBCSlice(bcSlice, fwdInfo.trackTime - err, fwdInfo.trackTime + err, bcsMap);
   } else {
-    bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default (unambiguous) track time is wrt collision BC
+    bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default track time is wrt collision BC (unless no collision assigned)
   }
   fwdInfo.trackTime -= bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
 
@@ -2079,8 +2079,8 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   if (collisionID < 0) {
     extraInfoHolder.flags |= o2::aod::track::OrphanTrack;
   }
-  bool needBCSlice = collisionID < 0 || trackIndex.isAmbiguous(); // track is associated to multiple vertices
-  uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong();         // by default (unambiguous) track time is wrt collision BC
+  bool needBCSlice = collisionID < 0; // track is associated to multiple vertices
+  uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong();         // by default track time is wrt collision BC (unless no collision assigned)
 
   auto setTrackTime = [&](double t, double terr, bool gaussian) {
     // set track time and error, for ambiguous tracks define the bcSlice as it was used in vertex-track association
