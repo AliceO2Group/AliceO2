@@ -2079,8 +2079,8 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   if (collisionID < 0) {
     extraInfoHolder.flags |= o2::aod::track::OrphanTrack;
   }
-  bool needBCSlice = collisionID < 0; // track is associated to multiple vertices
-  uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong();         // by default track time is wrt collision BC (unless no collision assigned)
+  bool needBCSlice = collisionID < 0;                     // track is associated to multiple vertices
+  uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default track time is wrt collision BC (unless no collision assigned)
 
   auto setTrackTime = [&](double t, double terr, bool gaussian) {
     // set track time and error, for ambiguous tracks define the bcSlice as it was used in vertex-track association
