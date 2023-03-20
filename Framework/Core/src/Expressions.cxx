@@ -58,6 +58,7 @@ static std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
   "acosf",
   "atanf",
   "absf",
+  "round",
   "bitwise_not",
   "if"};
 
