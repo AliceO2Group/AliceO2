@@ -521,30 +521,30 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
 }
 } // namespace
 
-void CcdbApi::initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
-                                     const std::string& createdNotAfter, const std::string& createdNotBefore) const
+void CcdbApi::initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                                                   const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
-  struct curl_slist* list = nullptr;
+  // struct curl_slist* list = nullptr;
   if (!etag.empty()) {
-    list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+    option_list = curl_slist_append(option_list, ("If-None-Match: " + etag).c_str());
   }
 
   if (!createdNotAfter.empty()) {
-    list = curl_slist_append(list, ("If-Not-After: " + createdNotAfter).c_str());
+    option_list = curl_slist_append(option_list, ("If-Not-After: " + createdNotAfter).c_str());
   }
 
   if (!createdNotBefore.empty()) {
-    list = curl_slist_append(list, ("If-Not-Before: " + createdNotBefore).c_str());
+    option_list = curl_slist_append(option_list, ("If-Not-Before: " + createdNotBefore).c_str());
   }
 
   if (headers != nullptr) {
-    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
+    option_list = curl_slist_append(option_list, ("If-None-Match: " + to_string(timestamp)).c_str());
     curl_easy_setopt(curlHandle, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curlHandle, CURLOPT_HEADERDATA, headers);
   }
 
-  if (list) {
-    curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, list);
+  if (option_list) {
+    curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, option_list);
   }
 
   curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
@@ -576,7 +576,8 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
 
     curlSetSSLOptions(curlHandle);
     initCurlOptionsForRetrieve(curlHandle, dataHolder, writeCallback, followRedirect);
-    initHeadersForRetrieve(curlHandle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+    curl_slist* option_list = nullptr;
+    initCurlHTTPHeaderOptionsForRetrieve(curlHandle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
 
     long responseCode = 0;
     CURLcode curlResultCode = CURL_LAST;
@@ -592,6 +593,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       } else {
         curlResultCode = curl_easy_getinfo(curlHandle, CURLINFO_RESPONSE_CODE, &responseCode);
         if ((curlResultCode == CURLE_OK) && (responseCode < 300)) {
+          curl_slist_free_all(option_list);
           curl_easy_cleanup(curlHandle);
           return true;
         } else {
@@ -604,6 +606,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       }
     }
 
+    curl_slist_free_all(option_list);
     curl_easy_cleanup(curlHandle);
   }
   return false;
@@ -1015,7 +1018,8 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     logReading(path, timestamp, headers, "retrieve from snapshot");
   }
 
-  initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+  curl_slist* option_list = nullptr;
+  initCurlHTTPHeaderOptionsForRetrieve(curl_handle, option_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
   auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
 
   for (size_t hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
@@ -1025,6 +1029,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   if (content) {
     logReading(path, timestamp, headers, "retrieve");
   }
+  curl_slist_free_all(option_list);
   curl_easy_cleanup(curl_handle);
   return content;
 }
@@ -1480,7 +1485,8 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     CURL* curl_handle = curl_easy_init();
     string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
-    initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+    curl_slist* options_list = nullptr;
+    initCurlHTTPHeaderOptionsForRetrieve(curl_handle, options_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
 
     navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
 
@@ -1488,6 +1494,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
       fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
       loadFileToMemory(dest, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
     }
+    curl_slist_free_all(options_list);
     curl_easy_cleanup(curl_handle);
   }
 
