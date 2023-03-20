@@ -113,7 +113,7 @@ class CCDBDownloader
    *
    * @param handles Handles to be performed on.
    */
-  std::vector<CURLcode>* asynchBatchPerformWithCallback(std::vector<CURL*> const& handles, bool* completionFlag, void (*cbFun)(void*), void* cbData);
+  std::vector<CURLcode> asynchBatchPerformWithCallback(std::vector<CURL*> const& handles, bool* completionFlag, void (*cbFun)(void*), void* cbData);
 
   /**
    * Perform on a batch of handles in a blocking manner. Has the same effect as calling curl_easy_perform() on all handles in the vector.
@@ -126,7 +126,7 @@ class CCDBDownloader
    * @param handleVector Handles to be performed on.
    * @param completionFlag Should be set to false before passing it to this function. Will be set to true after all transfers finish.
    */
-  std::vector<CURLcode>* batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag);
+  std::vector<CURLcode> batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag);
 
   /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
@@ -210,6 +210,8 @@ class CCDBDownloader
     CCDBDownloader* CD;
     CURLM* curlm;
   } DataForSocket;
+
+  DataForSocket mSocketData;
 
   /**
    * Structure which is stored in a easy_handle. It carries information about the request which the easy_handle is part of.

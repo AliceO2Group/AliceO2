@@ -65,7 +65,7 @@ void CCDBDownloader::initializeMultiHandle()
 {
   mCurlMultiHandle = curl_multi_init();
   curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETFUNCTION, handleSocket);
-  auto socketData = new DataForSocket();
+  auto socketData = &mSocketData;
   socketData->curlm = mCurlMultiHandle;
   socketData->CD = this;
   curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETDATA, socketData);
@@ -76,8 +76,12 @@ void CCDBDownloader::initializeMultiHandle()
 
 CCDBDownloader::~CCDBDownloader()
 {
-  // Close all socket timers (curl_multi_cleanup will take care of the sockets)
+  // Cleanup and close all socket timers (curl_multi_cleanup will take care of the sockets)
   for (auto socketTimerPair : mSocketTimerMap) {
+    auto timer = socketTimerPair.second;
+    if (timer->data) {
+      delete (DataForClosingSocket*)timer->data;
+    }
     uv_timer_stop(socketTimerPair.second);
     uv_close((uv_handle_t*)socketTimerPair.second, onUVClose);
   }
@@ -100,7 +104,12 @@ CCDBDownloader::~CCDBDownloader()
       uv_walk(mUVLoop, closeHandles, this);
       uv_run(mUVLoop, UV_RUN_ONCE);
     }
+    delete mUVLoop;
   }
+
+  // delete timer
+  // delete mTimeoutTimer; ---> not necessay (done elsewhere??)
+
   curl_multi_cleanup(mCurlMultiHandle);
 }
 
@@ -135,7 +144,13 @@ void CCDBDownloader::closesocketCallback(void* clientp, curl_socket_t item)
 {
   auto CD = (CCDBDownloader*)clientp;
   if (CD->mSocketTimerMap.find(item) != CD->mSocketTimerMap.end()) {
-    uv_timer_stop(CD->mSocketTimerMap[item]);
+    auto timer = CD->mSocketTimerMap[item];
+    uv_timer_stop(timer);
+    // we are getting rid of the uv_timer_t pointer ... so we need
+    // to free possibly attached user data pointers as well. Counteracts action of opensocketCallback
+    if (timer->data) {
+      delete (DataForClosingSocket*)timer->data;
+    }
     CD->mSocketTimerMap.erase(item);
     close(item);
   }
@@ -175,6 +190,8 @@ void CCDBDownloader::closeSocketByTimer(uv_timer_t* handle)
     uv_timer_stop(CD->mSocketTimerMap[sock]);
     CD->mSocketTimerMap.erase(sock);
     close(sock);
+
+    delete data;
   }
 }
 
@@ -412,9 +429,9 @@ CURLcode CCDBDownloader::perform(CURL* handle)
   return batchBlockingPerform(handleVector).back();
 }
 
-std::vector<CURLcode>* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag)
+std::vector<CURLcode> CCDBDownloader::batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag)
 {
-  auto codeVector = new std::vector<CURLcode>(handleVector.size());
+  std::vector<CURLcode> codeVector(handleVector.size());
   size_t* requestsLeft = new size_t();
   *requestsLeft = handleVector.size();
 
@@ -422,8 +439,8 @@ std::vector<CURLcode>* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> con
   for (int i = 0; i < handleVector.size(); i++) {
     auto* data = new CCDBDownloader::PerformData();
 
-    data->codeDestination = &(*codeVector)[i];
-    (*codeVector)[i] = CURLE_FAILED_INIT;
+    data->codeDestination = &(codeVector)[i];
+    (codeVector)[i] = CURLE_FAILED_INIT;
 
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;
@@ -465,9 +482,9 @@ std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> co
   return codeVector;
 }
 
-std::vector<CURLcode>* CCDBDownloader::asynchBatchPerformWithCallback(std::vector<CURL*> const& handleVector, bool* completionFlag, void (*cbFun)(void*), void* cbData)
+std::vector<CURLcode> CCDBDownloader::asynchBatchPerformWithCallback(std::vector<CURL*> const& handleVector, bool* completionFlag, void (*cbFun)(void*), void* cbData)
 {
-  auto codeVector = new std::vector<CURLcode>(handleVector.size());
+  std::vector<CURLcode> codeVector(handleVector.size());
   size_t* requestsLeft = new size_t();
   *requestsLeft = handleVector.size();
 
@@ -475,8 +492,8 @@ std::vector<CURLcode>* CCDBDownloader::asynchBatchPerformWithCallback(std::vecto
   for (int i = 0; i < handleVector.size(); i++) {
     auto* data = new CCDBDownloader::PerformData();
 
-    data->codeDestination = &(*codeVector)[i];
-    (*codeVector)[i] = CURLE_FAILED_INIT;
+    data->codeDestination = &(codeVector)[i];
+    (codeVector)[i] = CURLE_FAILED_INIT;
 
     data->requestsLeft = requestsLeft;
     data->completionFlag = completionFlag;

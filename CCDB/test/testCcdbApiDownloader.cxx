@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(asynch_batch_test)
     sleep(1);
   }
 
-  for (CURLcode code : (*curlCodes)) {
+  for (CURLcode code : curlCodes) {
     BOOST_CHECK(code == CURLE_OK);
     if (code != CURLE_OK) {
       std::cout << "CURL Code: " << code << "\n";
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(asynch_batch_callback)
 
   BOOST_CHECK(testValue == 46);
 
-  for (CURLcode code : (*curlCodes)) {
+  for (CURLcode code : curlCodes) {
     BOOST_CHECK(code == CURLE_OK);
     if (code != CURLE_OK) {
       std::cout << "CURL Code: " << code << "\n";
