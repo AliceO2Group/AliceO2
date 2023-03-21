@@ -14,6 +14,7 @@ o2_add_library(ITS3Reconstruction
                SOURCES src/Clusterer.cxx
                        src/TopologyDictionary.cxx
                        src/BuildTopologyDictionary.cxx
+                       src/LookUp.cxx
                        src/IOUtils.cxx
                 #        src/FastMultEst.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
@@ -34,6 +35,7 @@ o2_target_root_dictionary(
   HEADERS include/ITS3Reconstruction/Clusterer.h
           include/ITS3Reconstruction/TopologyDictionary.h
           include/ITS3Reconstruction/BuildTopologyDictionary.h
+          include/ITS3Reconstruction/LookUp.h
 )
 
 if (OpenMP_CXX_FOUND)
