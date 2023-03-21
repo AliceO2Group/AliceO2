@@ -161,5 +161,13 @@ void NoiseCalibrator::finalize(float cutIB)
   mNoiseMap.print();
 }
 
+void NoiseCalibrator::reset()
+{
+  for (int i = 0; i < NChips; i++) {
+    mNoiseMap.resetChip(i);
+    mChipHits[i].clear();
+  }
+}
+
 } // namespace its
 } // namespace o2

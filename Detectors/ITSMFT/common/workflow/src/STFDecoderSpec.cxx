@@ -113,6 +113,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
   static bool firstCall = true;
+  if (!firstCall && pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // reset at the beginning of the new run
+    reset();
+  }
   if (firstCall) {
     firstCall = false;
     mDecoder->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
@@ -120,6 +123,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mDecoder->setVerbosity(mDecoder->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
     mAllowReporting &= (mDecoder->getInstanceID() == 0) || mUnmutExtraLanes;
   }
+
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
@@ -240,9 +244,7 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only in the beginning of the run
     pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
     if (mDoClusters) {
       mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(Mapping::getDetID()));
@@ -299,6 +301,22 @@ void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
     LOG(info) << "Alpide param updated";
     return;
+  }
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::reset()
+{
+  // reset for the new run
+  mFinalizeDone = false;
+  mTFCounter = 0;
+  mTimer.Reset();
+  if (mDecoder) {
+    mDecoder->reset();
+  }
+  if (mClusterer) {
+    mClusterer->reset();
   }
 }
 

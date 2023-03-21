@@ -411,12 +411,14 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
 
 ///______________________________________________________________________
 template <class Mapping>
-void RawPixelDecoder<Mapping>::clearStat()
+void RawPixelDecoder<Mapping>::clearStat(bool resetRaw)
 {
   // clear statistics
   for (auto& lnk : mGBTLinks) {
-    lnk.clear(true, false);
+    lnk.clear(true, resetRaw);
   }
+  mNChipsFiredROF = mNPixelsFiredROF = 0;
+  mNChipsFired = mNPixelsFired = mNExtTriggers = 0;
 }
 
 ///______________________________________________________________________
@@ -480,6 +482,16 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
     LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
     break;
   }
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::reset()
+{
+  mTimerTFStart.Reset();
+  mTimerDecode.Reset();
+  mTimerFetchData.Reset();
+  clearStat(true);
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;
