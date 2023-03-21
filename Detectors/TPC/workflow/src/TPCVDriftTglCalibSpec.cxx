@@ -43,6 +43,11 @@ class TPCVDriftTglCalibSpec : public Task
 
   void run(ProcessingContext& pc) final
   {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    if (tinfo.globalRunNumberChanged) { // new run is starting
+      mRunStopRequested = false;
+      mCalibrator->reset();
+    }
     if (mRunStopRequested) {
       return;
     }

@@ -47,6 +47,9 @@ void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    mTimer.Reset();
+  }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
@@ -87,11 +90,13 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 
 void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  if (mMaskNoise) {
-    pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get();
-  }
-  if (mGetDigits || mMaskNoise) {
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
+    if (mMaskNoise) {
+      pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get();
+    }
+    if (mGetDigits || mMaskNoise) {
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+    }
   }
   mCTFCoder.updateTimeDependentParams(pc);
 }

@@ -91,7 +91,7 @@ class RawPixelDecoder final : public PixelReader
   void printReport(bool decstat = true, bool skipNoErr = true) const;
   void produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
 
-  void clearStat();
+  void clearStat(bool resetRaw = false);
 
   TStopwatch& getTimerTFStart() { return mTimerTFStart; }
   TStopwatch& getTimerDecode() { return mTimerDecode; }
@@ -117,6 +117,8 @@ class RawPixelDecoder final : public PixelReader
   };
 
   uint16_t getSquashingDepth() { return 0; }
+
+  void reset();
 
  private:
   void setupLinks(o2::framework::InputRecord& inputs);

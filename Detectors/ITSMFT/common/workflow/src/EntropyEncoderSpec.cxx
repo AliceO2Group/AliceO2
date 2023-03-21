@@ -43,6 +43,9 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    mTimer.Reset();
+  }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
@@ -72,9 +75,7 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 void EntropyEncoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   mCTFCoder.updateTimeDependentParams(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
     if (mSelIR) {
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
       if (mOrigin == o2::header::gDataOriginITS) {

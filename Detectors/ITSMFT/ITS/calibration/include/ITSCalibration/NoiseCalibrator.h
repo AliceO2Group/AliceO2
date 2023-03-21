@@ -73,6 +73,8 @@ class NoiseCalibrator
   auto getNStrobes() const { return mNumberOfStrobes; }
   auto setNStrobes(unsigned int s) { mNumberOfStrobes = s; }
 
+  void reset();
+
  private:
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{NChips};

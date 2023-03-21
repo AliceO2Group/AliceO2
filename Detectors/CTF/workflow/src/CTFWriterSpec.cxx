@@ -267,15 +267,13 @@ void CTFWriterSpec::init(InitContext& ic)
 //___________________________________________________________________
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
   namespace GRPECS = o2::parameters::GRPECS;
-  if (!initOnceDone) {
-    initOnceDone = true;
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
+  if (mTimingInfo.globalRunNumberChanged) {
     mDataTakingContext = pc.services().get<DataTakingContext>();
     // determine the output type for the CTF metadata
     mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
-  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
 
 //___________________________________________________________________
@@ -408,6 +406,9 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
   const std::string NAStr = "NA";
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    mTimer.Reset();
+  }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
@@ -489,6 +490,8 @@ void CTFWriterSpec::finalize()
   LOGF(info, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mFinalized = true;
+  mNCTF = 0;
+  mNCTFFiles = 0;
 }
 
 //___________________________________________________________________

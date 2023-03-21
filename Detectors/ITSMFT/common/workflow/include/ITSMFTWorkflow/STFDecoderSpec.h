@@ -67,6 +67,7 @@ class STFDecoder : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
   void finalize();
+  void reset();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
   TStopwatch mTimer;
   bool mDoClusters = false;
