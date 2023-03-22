@@ -87,6 +87,10 @@ void DescriptorInnerBarrelITS3::configure()
   IBtdr5dat.emplace_back(std::array<double, 10>{3.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
   IBtdr5dat.emplace_back(std::array<double, 10>{6.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022, 0.05});
 
+  // cylinder inner diameter, cylinder outer diameter, cylinder fabric thickness, cone inner diameter, cone outer diameter, cone fabric thickness, flangeC external diameter
+  std::array<double, 7> IBtdr5datCYSSForThreeLayers{9.56, 10., 0.01, 10., 10.12, 0.03, 10.};
+  std::array<double, 7> IBtdr5datCYSSForFourLayers{12.56, 13., 0.01, 13., 13.12, 0.03, 13.};
+
   if (mVersion == "ThreeLayersNoDeadZones") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -105,6 +109,18 @@ void DescriptorInnerBarrelITS3::configure()
            idLayer, mLayerRadii[idLayer], mChipThickness[idLayer], mGap[idLayer],
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
+
+    mCyssCylInnerD = IBtdr5datCYSSForThreeLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForThreeLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForThreeLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForThreeLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForThreeLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForThreeLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForThreeLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} OuterD:{} CylFabricThick:{} IntSectDmin:{} IntSectDmax:{} FabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "ThreeLayers") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -127,6 +143,18 @@ void DescriptorInnerBarrelITS3::configure()
            mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
+
+    mCyssCylInnerD = IBtdr5datCYSSForThreeLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForThreeLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForThreeLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForThreeLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForThreeLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForThreeLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForThreeLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} CylOuterD:{} CylFabricThick:{} ConeIntSectDmin:{} ConeIntSectDmax:{} ConeFabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "FourLayers") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -157,6 +185,17 @@ void DescriptorInnerBarrelITS3::configure()
              mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
       }
     }
+    mCyssCylInnerD = IBtdr5datCYSSForFourLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForFourLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForFourLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForFourLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForFourLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForFourLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForFourLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} CylOuterD:{} CylFabricThick:{} ConeIntSectDmin:{} ConeIntSectDmax:{} ConeFabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "FiveLayers") {
     LOGP(fatal, "ITS3 version FiveLayers not yet implemented.");
   } else {
@@ -212,6 +251,13 @@ void DescriptorInnerBarrelITS3::createServices(TGeoVolume* dest)
   //
 
   std::unique_ptr<ITS3Services> mServicesGeometry(new ITS3Services());
+  mServicesGeometry.get()->setCyssCylInnerD(mCyssCylInnerD);
+  mServicesGeometry.get()->setCyssCylOuterD(mCyssCylOuterD);
+  mServicesGeometry.get()->setCyssCylFabricThick(mCyssCylFabricThick);
+  mServicesGeometry.get()->setCyssConeIntSectDmin(mCyssConeIntSectDmin);
+  mServicesGeometry.get()->setCyssConeIntSectDmax(mCyssConeIntSectDmax);
+  mServicesGeometry.get()->setCyssConeFabricThick(mCyssConeFabricThick);
+  mServicesGeometry.get()->setCyssFlangeCDExt(mCyssFlangeCDExt);
   TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
   dest->AddNode(cyss, 1, nullptr);
 }
