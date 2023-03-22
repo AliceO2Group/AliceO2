@@ -44,7 +44,7 @@ struct ErrorReader {
       fileName.c_str(),
       -1,
       RootTreeReader::PublishingMode::Single,
-      RootTreeReader::BranchDefinition<std::vector<Error>>{Output{"MCH", "ERRORS", 0}, "errors"});
+      RootTreeReader::BranchDefinition<std::vector<Error>>{Output{"MCH", "PROCERRORS", 0}, "errors"});
   }
 
   void run(ProcessingContext& pc)
@@ -62,7 +62,7 @@ DataProcessorSpec getErrorReaderSpec(const char* specName)
   return DataProcessorSpec{
     specName,
     Inputs{},
-    Outputs{OutputSpec{{"errors"}, "MCH", "ERRORS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"errors"}, "MCH", "PROCERRORS", 0, Lifetime::Timeframe}},
     adaptFromTask<ErrorReader>(),
     Options{{"infile", VariantType::String, "mcherrors.root", {"name of the input error file"}},
             {"input-dir", VariantType::String, "none", {"Input directory"}}}};

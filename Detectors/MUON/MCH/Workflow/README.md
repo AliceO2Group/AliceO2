@@ -226,7 +226,7 @@ binary format(s). [more...](/Detectors/MUON/MCH/DevIO/README.md)
 o2-mch-errors-reader-workflow --infile mcherrors.root
 ```
 
-Send the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS".
+Send the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PROCERRORS".
 
 Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
 
@@ -253,4 +253,4 @@ If no binary file is provided, the vertex is always set to (0,0,0).
 o2-mch-errors-writer-workflow
 ```
 
-Take as input the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "ERRORS", and write it in the root file "mcherrors.root".
+Take as input the list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PROCERRORS", and write it in the root file "mcherrors.root".
