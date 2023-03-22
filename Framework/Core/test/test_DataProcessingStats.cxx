@@ -20,7 +20,8 @@ using namespace o2::framework;
 enum TestMetricsId {
   DummyMetric = 0,
   DummyMetric2 = 1,
-  Missing = 2
+  Missing = 2,
+  ZeroSize = 3,
 };
 
 using namespace o2::framework;
@@ -36,8 +37,11 @@ TEST_CASE("DataProcessingStats")
   REQUIRE_THROWS(stats.registerMetric({"dummy_metric", DummyMetric2}));
   /// Registering with a different name should throw.
   REQUIRE_THROWS(stats.registerMetric({"dummy_metric2", DummyMetric}));
+  /// Registering with a different name should throw.
+  REQUIRE_THROWS(stats.registerMetric({"", ZeroSize}));
 
   stats.registerMetric({"dummy_metric2", DummyMetric2});
+  REQUIRE(stats.metricsNames[DummyMetric] == "dummy_metric");
   stats.updateStats({DummyMetric, DataProcessingStats::Op::Add, 1});
   REQUIRE_THROWS(stats.updateStats({Missing, DataProcessingStats::Op::Add, 1}));
   REQUIRE(stats.nextCmd.load() == 1);
@@ -71,7 +75,7 @@ TEST_CASE("DataProcessingStats")
   REQUIRE(stats.updated[DummyMetric2] == false);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
+  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind kind) {
     updated.emplace_back(name);
   };
 
@@ -315,7 +319,7 @@ TEST_CASE("DataProcessingStatsPublishing")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
+  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind) {
     updated.emplace_back(name);
   };
 
@@ -359,7 +363,7 @@ TEST_CASE("DataProcessingStatsPublishingRepeated")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
+  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind) {
     updated.emplace_back(name);
   };
 

@@ -84,6 +84,14 @@ struct DataProcessingStats {
     Min                /// Set the value to the minimum of the current value and the specified value
   };
 
+  // Kind of the metric. This is used to know how to interpret the value
+  enum struct Kind : char {
+    Int,
+    UInt64,
+    Double,
+    Unknown
+  };
+
   // This is what the user passes. Notice that there is no
   // need to specify the timestamp, because we calculate it for them
   // using the delta between the last update and the current time.
@@ -120,6 +128,8 @@ struct DataProcessingStats {
     // Name of the metric
     std::string name = "";
     int metricId = -1;
+    /// The kind of the metric
+    Kind kind = Kind::Int;
     /// The default value for the metric
     int64_t defaultValue = 0;
     /// How many milliseconds must have passed since the last publishing
@@ -140,7 +150,7 @@ struct DataProcessingStats {
   /// It is meant to be called periodically by a single thread.
   void processCommandQueue();
 
-  void flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t)> const& callback);
+  void flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t, DataProcessingStats::Kind)> const& callback);
 
   std::atomic<size_t> statesSize;
 
