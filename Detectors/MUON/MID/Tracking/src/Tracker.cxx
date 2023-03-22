@@ -148,7 +148,7 @@ void Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
 }
 
 //______________________________________________________________________________
-bool Tracker::processSide(bool isRight, bool isInward)
+void Tracker::processSide(bool isRight, bool isInward)
 {
   /// Make tracks on one side of the detector
   int firstCh = (isInward) ? 3 : 0;
@@ -185,13 +185,17 @@ bool Tracker::processSide(bool isRight, bool isInward)
       }   // loop on RPCs in second plane
     }     // loop on clusters in first plane
   }       // loop on RPCs in first plane
-  return true;
 }
 
 //______________________________________________________________________________
 bool Tracker::makeTrackSeed(Track& track, const Cluster& cl1, const Cluster& cl2) const
 {
   /// Make a track seed from two clusters
+
+  // Check that the 3/4 requirement on both cathodes could be satisfied with this cluster combination
+  if (!(cl1.isFired(0) || cl2.isFired(0)) || !(cl1.isFired(1) || cl2.isFired(1))) {
+    return false;
+  }
 
   // First check if the delta_x between the two clusters is not too large
   double dZ = cl2.zCoor - cl1.zCoor;
@@ -216,11 +220,19 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster& cl1, const Cluster& cl2
   track.setChi2(0.);
   track.setNDF(0);
 
+  // Flag missing cathode information
+  track.resetIncomplete();
+  for (int cathode = 0; cathode < 2; ++cathode) {
+    if (!cl1.isFired(cathode) || !cl2.isFired(cathode)) {
+      track.setIncomplete(cathode);
+    }
+  }
+
   return true;
 }
 
 //______________________________________________________________________________
-bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward)
+void Tracker::followTrackKeepAll(Track& track, bool isRight, bool isInward)
 {
   /// Follows the track segment in the other station and adds all possible matches
   /// It assumes that the inward tracking is performed before the outward tracking
@@ -239,22 +251,22 @@ bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward
     // look for clusters in both chambers or in first chamber only
     findAllClusters(track, isRight, 1, 0, 8, 0, excludedClusters, true);
 
-    // look for clusters in the second chamber only
-    findAllClusters(track, isRight, 0, 0, 8, -1, excludedClusters, true);
+    // if the first chamber can be skipped, look for clusters in the second chamber only
+    if (skipOneChamber(track)) {
+      findAllClusters(track, isRight, 0, 0, 8, -1, excludedClusters, true);
+    }
 
-  } else {
+  } else if (skipOneChamber(track)) {
 
     // exclude clusters from tracks already found by inward tracking (with 4/4 clusters)
     excludeUsedClusters(track, 1, 0, excludedClusters);
 
-    // look for clusters in first chamber only
+    // if the second chamber can be skipped, look for clusters in first chamber only
     findAllClusters(track, isRight, 2, 0, 8, -1, excludedClusters, true);
 
-    // look for clusters in the second chamber only
+    // if the first chamber can be skipped, look for clusters in the second chamber only
     findAllClusters(track, isRight, 3, 0, 8, -1, excludedClusters, true);
   }
-
-  return true;
 }
 
 //______________________________________________________________________________
@@ -290,9 +302,11 @@ bool Tracker::findAllClusters(const Track& track, bool isRight, int chamber, int
         excludedClusters.emplace(clIdx);
       }
 
-      // store this track extrapolated to MT11 unless compatible clusters are found in the next chamber (if any)
-      if (nextChamber < 0 || !findAllClusters(newTrack, isRight, nextChamber, getFirstNeighbourRPC(irpc),
-                                              getLastNeighbourRPC(irpc), -1, excludedClusters, false)) {
+      // store this track extrapolated to MT11 if it reached the last chamber,
+      // or if no compatible clusters are found in the next chamber and it can be skipped
+      if (nextChamber < 0 || (!findAllClusters(newTrack, isRight, nextChamber, getFirstNeighbourRPC(irpc),
+                                               getLastNeighbourRPC(irpc), -1, excludedClusters, false) &&
+                              skipOneChamber(newTrack))) {
         if (mTracks.size() - mFirstTrackOffset >= TrackerParam::Instance().maxCandidates) {
           throw std::length_error(std::string("Too many track candidates (") +
                                   (mTracks.size() - mFirstTrackOffset) + ")");
@@ -307,7 +321,7 @@ bool Tracker::findAllClusters(const Track& track, bool isRight, int chamber, int
 }
 
 //______________________________________________________________________________
-bool Tracker::followTrackKeepBest(const Track& track, bool isRight, bool isInward)
+void Tracker::followTrackKeepBest(Track& track, bool isRight, bool isInward)
 {
   /// Follows the track segment in the other station
   /// Adds only the best track
@@ -327,14 +341,12 @@ bool Tracker::followTrackKeepBest(const Track& track, bool isRight, bool isInwar
 
   Track bestTrack;
 
-  // loop on next two chambers
-  for (int ich = 0; ich < 2; ++ich) {
-    findNextCluster(track, isRight, isInward, chamberOrder[ich], 0, 8, bestTrack);
-    if (bestTrack.getNDF() == 4) {
-      // We already have a track with 4 clusters: no need to search for a track with only one cluster
-      // in the next chamber
-      break;
-    }
+  // Look for clusters in both chambers or in first chamber only
+  findNextCluster(track, isRight, isInward, chamberOrder[0], 0, 8, bestTrack);
+
+  // If no track with 4 clusters was found and first chamber can be skipped, look for clusters in second chamber only
+  if (bestTrack.getNDF() != 4 && skipOneChamber(track)) {
+    findNextCluster(track, isRight, isInward, chamberOrder[1], 0, 8, bestTrack);
   }
 
   if (bestTrack.getNDF() > 0) {
@@ -342,16 +354,12 @@ bool Tracker::followTrackKeepBest(const Track& track, bool isRight, bool isInwar
     bestTrack.propagateToZ(SMT11Z);
 
     // Add the track if it is not compatible or better than the ones we already have
-    if (tryAddTrack(bestTrack)) {
-      return true;
-    }
+    tryAddTrack(bestTrack);
   }
-
-  return false;
 }
 
 //______________________________________________________________________________
-bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC,
+void Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC,
                               Track& bestTrack) const
 {
   /// Find next best cluster
@@ -369,6 +377,11 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
         // We search for a cluster in the last chamber, this time limiting to the RPC above and below this one
         findNextCluster(newTrack, isRight, isInward, nextChamber,
                         getFirstNeighbourRPC(irpc), getLastNeighbourRPC(irpc), bestTrack);
+
+        // Don't go further with this track if the last chamber cannot be skipped
+        if (!skipOneChamber(newTrack)) {
+          continue;
+        }
       }
       if (newTrack.getNDF() > bestTrack.getNDF() ||
           (newTrack.getNDF() == bestTrack.getNDF() && newTrack.getChi2() < bestTrack.getChi2())) {
@@ -377,18 +390,21 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       }
     } // loop on clusters
   }   // loop on RPC
-
-  return (bestTrack.getNDF() > 0);
 }
 
 //______________________________________________________________________________
 bool Tracker::tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const
 {
   /// Tests the compatibility between the track and the cluster given the track and cluster resolutions
+  /// Also check that the 3/4 requirement on both cathodes can still be satisfied after adding this cluster
   /// If the cluster is compatible, it propagates a copy of the track to the z of the cluster and runs the kalman filter
 
-  newTrack = track;
   auto& cl = mClusters[clIdx];
+  if ((track.isIncomplete(0) && !cl.isFired(0)) || (track.isIncomplete(1) && !cl.isFired(1))) {
+    return false;
+  }
+
+  newTrack = track;
   newTrack.propagateToZ(cl.zCoor);
 
   double diff[2] = {cl.xCoor - newTrack.getPositionX(), cl.yCoor - newTrack.getPositionY()};
@@ -404,6 +420,13 @@ bool Tracker::tryOneCluster(const Track& track, int chamber, int clIdx, Track& n
   newTrack.setNDF(track.getNDF() + 2);
   newTrack.setClusterMatchedUnchecked(chamber, clIdx);
 
+  // Flag missing cathode information
+  for (int cathode = 0; cathode < 2; ++cathode) {
+    if (!cl.isFired(cathode)) {
+      newTrack.setIncomplete(cathode);
+    }
+  }
+
   return true;
 }
 
@@ -411,7 +434,6 @@ bool Tracker::tryOneCluster(const Track& track, int chamber, int clIdx, Track& n
 void Tracker::runKalmanFilter(Track& track, const Cluster& cluster) const
 {
   /// Computes new track parameters and their covariances including new cluster using kalman filter.
-  /// Returns the additional track chi2
 
   double pos[2] = {track.getPositionX(), track.getPositionY()};
   double dir[2] = {track.getDirectionX(), track.getDirectionY()};
@@ -458,7 +480,7 @@ void Tracker::runKalmanFilter(Track& track, const Cluster& cluster) const
 }
 
 //______________________________________________________________________________
-bool Tracker::tryAddTrack(const Track& track)
+void Tracker::tryAddTrack(const Track& track)
 {
   /// Checks if the track is duplicated.
   /// If it is identical to another track (same clusters), reject it.
@@ -479,7 +501,7 @@ bool Tracker::tryAddTrack(const Track& track)
       }
     }
     if (nCommonClusters == 4) {
-      return false;
+      return;
     }
     if (nCommonClusters == 3 && track.isCompatible(*checkTrack, chi2Cut)) {
       // The new track is compatible with an existing one
@@ -488,17 +510,16 @@ bool Tracker::tryAddTrack(const Track& track)
         // The new track has more cluster or is more precise than the old one: replace it!
         *checkTrack = track;
       }
-      return false;
+      return;
     }
   }
 
   // The new track is not compatible with the previous ones: keep it
   mTracks.emplace_back(track);
-  return true;
 }
 
 //______________________________________________________________________________
-void Tracker::excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters)
+void Tracker::excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters) const
 {
   /// Find tracks that contain the same clusters as this track in chambers ch1 and ch2,
   /// and add the clusters that these tracks have on the other chambers in the excludedClusters list
@@ -512,6 +533,23 @@ void Tracker::excludeUsedClusters(const Track& track, int ch1, int ch2, std::uno
       excludedClusters.emplace(tr.getClusterMatchedUnchecked(3 - ch2));
     }
   }
+}
+
+//______________________________________________________________________________
+bool Tracker::skipOneChamber(Track& track) const
+{
+  /// Try to skip a chamber while still fulfilling the 3/4 condition on both cathodes
+  /// Return false if it cannot, i.e. the track already misses information on a cathode
+  /// Return true if it can, and set the track as incomplete on both cathodes
+
+  if (track.isIncomplete(0) || track.isIncomplete(1)) {
+    return false;
+  }
+
+  track.setIncomplete(0);
+  track.setIncomplete(1);
+
+  return true;
 }
 
 } // namespace mid
