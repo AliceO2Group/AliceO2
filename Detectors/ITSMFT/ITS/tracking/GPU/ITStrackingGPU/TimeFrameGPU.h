@@ -185,7 +185,7 @@ class TimeFrameGPU : public TimeFrame
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
-  gsl::span<int> getHostNTracklets(const int chunkId);  
+  gsl::span<int> getHostNTracklets(const int chunkId);
 
  private:
   bool mHostRegistered = false;

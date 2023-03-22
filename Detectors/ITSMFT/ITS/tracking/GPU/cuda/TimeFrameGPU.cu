@@ -228,7 +228,7 @@ size_t GpuTimeFrameChunk<nLayers>::loadDataOnDevice(const size_t startRof, const
     mHostClusters[i] = mTimeFramePtr->getClustersPerROFrange(startRof, nRofs, i);
     mHostIndexTables[i] = mTimeFramePtr->getIndexTablePerROFrange(startRof, nRofs, i);
     if (mHostClusters[i].size() > mTFGPUParams->clustersPerROfCapacity * nRofs) {
-      LOGP(warning, "Clusters on layer {} excess the expected value, resizing to config value: {}, will lose information!", i, mTFGPUParams->clustersPerROfCapacity * nRofs);
+      LOGP(warning, "Clusters on layer {} exceed the expected value, resizing to config value: {}, will lose information!", i, mTFGPUParams->clustersPerROfCapacity * nRofs);
     }
     checkGPUError(cudaMemcpyAsync(mClustersDevice[i],
                                   mHostClusters[i].data(),
