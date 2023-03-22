@@ -32,6 +32,7 @@
 #include <TH2.h>
 #include <TF1.h>
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -172,11 +173,16 @@ void staticMapCreator(std::string fileInput = "files.txt",
 
   // Input
   auto fileList = getInputFileList(fileInput);
+  std::string tmpFileName = "residualsCache.root";
+  TFile* fTmp = nullptr;
+  if (!params.writeBinnedResiduals) {
+    fTmp = TFile::Open(tmpFileName.c_str(), "recreate"); // temporary file for binned residuals, so that they are not all kept in memory
+  }
 
-  std::array<std::vector<TrackResiduals::LocalResid>, nSectors> binnedResidualsSec;                   // binned residuals generated on-the-fly
-  std::array<std::vector<TrackResiduals::LocalResid>*, nSectors> binnedResidualsSecPtr;               // for setting branch addresses
-  std::array<std::vector<TrackResiduals::VoxStats>, nSectors> voxStatsSec;                            // voxel statistics generated on-the-fly
-  std::vector<TrackResiduals::LocalResid> binnedResiduals, *binnedResidualsPtr = &binnedResiduals;    // binned residuals
+  std::array<std::vector<TrackResiduals::LocalResid>, nSectors> binnedResidualsSec;                // binned residuals generated on-the-fly
+  std::array<std::vector<TrackResiduals::LocalResid>*, nSectors> binnedResidualsSecPtr;            // for setting branch addresses
+  std::array<std::vector<TrackResiduals::VoxStats>, nSectors> voxStatsSec;                         // voxel statistics generated on-the-fly
+  std::vector<TrackResiduals::LocalResid> binnedResiduals, *binnedResidualsPtr = &binnedResiduals; // binned residuals
 
   TrackResiduals trackResiduals;
   trackResiduals.init();
@@ -202,7 +208,7 @@ void staticMapCreator(std::string fileInput = "files.txt",
   trackResiduals.createOutputFile(fileOutput.c_str());
   std::unique_ptr<TTree> treeBinnedResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
   if (!params.writeBinnedResiduals) {
-    treeBinnedResiduals->SetDirectory(nullptr);
+    treeBinnedResiduals->SetDirectory(fTmp);
   }
   for (int iSec = 0; iSec < nSectors; ++iSec) {
     binnedResidualsSecPtr[iSec] = &binnedResidualsSec[iSec];
@@ -440,6 +446,17 @@ void staticMapCreator(std::string fileInput = "files.txt",
   treeTrackData.reset();
   treeRecords.reset();
   inputFile.reset();
+
+  if (!params.writeBinnedResiduals) {
+    // delete the buffer file
+    fTmp->Close();
+    delete fTmp;
+    if (std::filesystem::remove("./" + tmpFileName)) {
+      LOGP(info, "Successfully removed temporary file {}", tmpFileName.c_str());
+    } else {
+      LOGP(warn, "Failed to removed temporary file {}", tmpFileName.c_str());
+    }
+  }
 
   LOG(info) << "Done processing";
 }

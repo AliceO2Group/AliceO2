@@ -39,6 +39,7 @@ ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> cl
   setClustersContainer(clustersContainer);
   setCellsContainer(inputsContainer);
   setCellsIndicesContainer(cellsIndices);
+  setLookUpTable();
 }
 
 template <class InputType>
@@ -73,13 +74,19 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   // First calculate the index of input with maximum amplitude and get
   // the supermodule number where it sits.
 
-  auto [inputIndMax, inputEnergyMax, cellAmp] = getMaximalEnergyIndex(inputsIndices);
+  auto [inputIndMax, inputEnergyMax, cellAmp, shared] = getMaximalEnergyIndex(inputsIndices);
+
+  short towerId = mInputsContainer[inputIndMax].getTower();
+
+  float exoticTime = mInputsContainer[inputIndMax].getTimeStamp();
+
+  clusterAnalysis.setIsExotic(isExoticCell(towerId, inputEnergyMax, exoticTime));
 
   clusterAnalysis.setIndMaxInput(inputIndMax);
 
   clusterAnalysis.setE(cellAmp);
 
-  mSuperModuleNumber = mGeomPtr->GetSuperModuleNumber(mInputsContainer[inputIndMax].getTower());
+  mSuperModuleNumber = mGeomPtr->GetSuperModuleNumber(towerId);
 
   clusterAnalysis.setNCells(inputsIndices.size());
 
@@ -103,13 +110,13 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   evalTime(inputsIndices, clusterAnalysis);
 
   // TODO to be added at a later stage
-  //evalPrimaries(inputsIndices, clusterAnalysis);
-  //evalParents(inputsIndices, clusterAnalysis);
+  // evalPrimaries(inputsIndices, clusterAnalysis);
+  // evalParents(inputsIndices, clusterAnalysis);
 
   // TODO to be added at a later stage
   // Called last because it sets the global position of the cluster?
   // Do not call it when recalculating clusters out of standard reconstruction
-  //if (!mJustCluster)
+  // if (!mJustCluster)
   //  evalLocal2TrackingCSTransform();
 
   return clusterAnalysis;
@@ -215,7 +222,7 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsInd
       continue;
     }
 
-    //Temporal patch, due to mapping problem, need to swap "y" in one of the 2 SM, although no effect in position calculation. GCB 05/2010
+    // Temporal patch, due to mapping problem, need to swap "y" in one of the 2 SM, although no effect in position calculation. GCB 05/2010
     if (mSharedCluster && mSuperModuleNumber != mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower())) {
       xyzi[1] *= -1;
     }
@@ -372,7 +379,7 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
         clRmsXYZ[i] += (w * xyzi[i] * xyzi[i]);
       }
     }
-  } //loop
+  } // loop
 
   //  cout << " wtot " << wtot << endl;
 
@@ -407,7 +414,7 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
     // May be put to global level or seperate method
     double ycorr = clXYZ[1] * (1. + phiSlope);
 
-    //printf(" y %f : ycorr %f : slope %f \n", clXYZ[1], ycorr, phiSlope);
+    // printf(" y %f : ycorr %f : slope %f \n", clXYZ[1], ycorr, phiSlope);
     clXYZ[1] = ycorr;
   }
 
@@ -533,7 +540,7 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
 
     lambda[1] = 0.5 * (dxx + dzz) - TMath::Sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
 
-    if (lambda[1] > 0) { //To avoid exception if numerical errors lead to negative lambda.
+    if (lambda[1] > 0) { // To avoid exception if numerical errors lead to negative lambda.
       lambda[1] = TMath::Sqrt(lambda[1]);
     } else {
       lambda[1] = 0.;
@@ -551,24 +558,152 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
 /// Finds the maximum energy in the cluster and computes the Summed amplitude of digits/cells
 //____________________________________________________________________________
 template <class InputType>
-std::tuple<int, float, float> ClusterFactory<InputType>::getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const
+std::tuple<int, float, float, bool> ClusterFactory<InputType>::getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const
 {
 
   float energy = 0.;
   int mid = 0;
   float cellAmp = 0;
+  int iSupMod0 = -1;
+  bool shared = false;
   for (auto iInput : inputsIndices) {
     if (iInput >= mInputsContainer.size()) {
       throw CellIndexRangeException(iInput, mInputsContainer.size());
     }
     cellAmp += mInputsContainer[iInput].getEnergy();
+    if (iSupMod0 == -1) {
+      iSupMod0 = mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower());
+    } else if (iSupMod0 != mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower())) {
+      shared = true;
+    }
     if (mInputsContainer[iInput].getEnergy() > energy) {
       energy = mInputsContainer[iInput].getEnergy();
       mid = iInput;
     }
   } // loop on cluster inputs
 
-  return std::make_tuple(mid, energy, cellAmp);
+  return std::make_tuple(mid, energy, cellAmp, shared);
+}
+
+///
+/// Look to cell neighbourhood and reject if it seems exotic
+//____________________________________________________________________________
+template <class InputType>
+bool ClusterFactory<InputType>::isExoticCell(short towerId, float ecell, float const exoticTime) const
+{
+  if (ecell < mExoticCellMinAmplitude) {
+    return false; // do not reject low energy cells
+  }
+
+  float eCross = getECross(towerId, ecell, exoticTime);
+
+  if (1 - eCross / ecell > mExoticCellFraction) {
+    LOG(debug) << "EXOTIC CELL id " << towerId << ", eCell " << ecell << ", eCross " << eCross << ", 1-eCross/eCell " << 1 - eCross / ecell;
+    return true;
+  }
+
+  return false;
+}
+
+///
+///  Calculate the energy in the cross around the energy of a given cell.
+//____________________________________________________________________________
+template <class InputType>
+float ClusterFactory<InputType>::getECross(short towerId, float energy, float const exoticTime) const
+{
+  auto [iSM, iMod, iIphi, iIeta] = mGeomPtr->GetCellIndex(towerId);
+  auto [iphi, ieta] = mGeomPtr->GetCellPhiEtaIndexInSModule(iSM, iMod, iIphi, iIeta);
+
+  // Get close cells index, energy and time, not in corners
+
+  short towerId1 = -1;
+  short towerId2 = -1;
+
+  if (iphi < o2::emcal::EMCAL_ROWS - 1) {
+    towerId1 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi + 1, ieta);
+  }
+  if (iphi > 0) {
+    towerId2 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi - 1, ieta);
+  }
+
+  // In case of cell in eta = 0 border, depending on SM shift the cross cell index
+
+  short towerId3 = -1;
+  short towerId4 = -1;
+
+  if (ieta == o2::emcal::EMCAL_COLS - 1 && !(iSM % 2)) {
+    towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM + 1, iphi, 0);
+    towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+  } else if (ieta == 0 && iSM % 2) {
+    towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
+    towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM - 1, iphi, o2::emcal::EMCAL_COLS - 1);
+  } else {
+    if (ieta < o2::emcal::EMCAL_COLS - 1) {
+      towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
+    }
+    if (ieta > 0) {
+      towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+    }
+  }
+
+  LOG(debug) << "iSM " << iSM << ", towerId " << towerId << ", a " << towerId1 << ", b " << towerId2 << ", c " << towerId3 << ", e " << towerId3;
+
+  short index1 = (towerId1 > -1) ? mLoolUpTowerToIndex.at(towerId1) : -1;
+  short index2 = (towerId2 > -1) ? mLoolUpTowerToIndex.at(towerId2) : -1;
+  short index3 = (towerId3 > -1) ? mLoolUpTowerToIndex.at(towerId3) : -1;
+  short index4 = (towerId4 > -1) ? mLoolUpTowerToIndex.at(towerId4) : -1;
+
+  std::array<std::pair<float, float>, 4> cellData = {
+    {{(index1 > -1) ? mInputsContainer[index1].getEnergy() : 0., (index1 > -1) ? mInputsContainer[index1].getTimeStamp() : 0.},
+     {(index2 > -1) ? mInputsContainer[index2].getEnergy() : 0., (index2 > -1) ? mInputsContainer[index2].getTimeStamp() : 0.},
+     {(index3 > -1) ? mInputsContainer[index3].getEnergy() : 0., (index3 > -1) ? mInputsContainer[index3].getTimeStamp() : 0.},
+     {(index4 > -1) ? mInputsContainer[index4].getEnergy() : 0., (index4 > -1) ? mInputsContainer[index4].getTimeStamp() : 0.}}};
+
+  for (auto& cell : cellData) {
+    if (std::abs(exoticTime - cell.second) > mExoticCellDiffTime) {
+      cell.first = 0;
+    }
+  }
+
+  float w1 = 1, w2 = 1, w3 = 1, w4 = 1;
+  if (mUseWeightExotic) {
+    w1 = GetCellWeight(cellData[0].first, energy);
+    w2 = GetCellWeight(cellData[1].first, energy);
+    w3 = GetCellWeight(cellData[2].first, energy);
+    w4 = GetCellWeight(cellData[3].first, energy);
+  }
+
+  if (cellData[0].first < mExoticCellInCrossMinAmplitude || w1 <= 0) {
+    cellData[0].first = 0;
+  }
+  if (cellData[1].first < mExoticCellInCrossMinAmplitude || w2 <= 0) {
+    cellData[1].first = 0;
+  }
+  if (cellData[2].first < mExoticCellInCrossMinAmplitude || w3 <= 0) {
+    cellData[2].first = 0;
+  }
+  if (cellData[3].first < mExoticCellInCrossMinAmplitude || w4 <= 0) {
+    cellData[3].first = 0;
+  }
+
+  return cellData[0].first + cellData[1].first + cellData[2].first + cellData[3].first;
+}
+
+///
+/// return weight of cell for shower shape calculation
+//____________________________________________________________________________
+template <class InputType>
+float ClusterFactory<InputType>::GetCellWeight(float eCell, float eCluster) const
+{
+  if (eCell > 0 && eCluster > 0) {
+    if (mLogWeight > 0) {
+      return std::max(0.f, mLogWeight + std::log(eCell / eCluster));
+    } else {
+      return std::log(eCluster / eCell);
+    }
+  } else {
+    return 0.;
+  }
 }
 
 ///

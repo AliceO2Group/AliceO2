@@ -72,6 +72,7 @@ class TopologyDictionary
   /// Constructor
   TopologyDictionary(const std::string& fileName);
   TopologyDictionary& operator=(const TopologyDictionary& dict) = default;
+
   /// constexpr for the definition of the groups of rare topologies.
   /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
   static constexpr int RowClassSpan = 4;                                                            ///< Row span of the classes of rare topologies

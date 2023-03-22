@@ -12,7 +12,6 @@
 o2_add_library(EMCALReconstruction
         SOURCES src/RawReaderMemory.cxx
         src/RawBuffer.cxx
-        src/RawHeaderStream.cxx
         src/RawPayload.cxx
         src/AltroDecoder.cxx
         src/Bunch.cxx

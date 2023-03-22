@@ -46,6 +46,54 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     if (waitMessage) {
       LOG(important) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
     }
+
+    bool doSmothThrottling = getenv("DPL_SMOOTH_RATE_LIMITING") && atoi(getenv("DPL_SMOOTH_RATE_LIMITING"));
+    if (doSmothThrottling) {
+      constexpr float factorStart = 0.5f;
+      constexpr float factorFinal = 0.9f;
+      constexpr float factorOfAverage = 0.7f;
+      constexpr int64_t iterationsFinal = 2;
+      auto curTime = std::chrono::system_clock::now();
+      if (mTfTimes.size() != maxInFlight) {
+        mTfTimes.resize(maxInFlight);
+        mTimeCountingSince = mSentTimeframes;
+        mFirstTime = curTime;
+      }
+      if (mSentTimeframes >= mTimeCountingSince + maxInFlight) {
+        float iterationDuration = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mTfTimes[mSentTimeframes % maxInFlight]).count();
+        float totalAverage = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mFirstTime).count() / (mSentTimeframes - mTimeCountingSince);
+        if (mSmothDelay == 0.f) {
+          mSmothDelay = iterationDuration / maxInFlight * factorStart;
+          LOG(debug) << "TF Throttling delay initialized to " << mSmothDelay;
+        } else {
+          float factor;
+          if (mSentTimeframes < maxInFlight) {
+            factor = factorStart;
+          } else if (mSentTimeframes >= (iterationsFinal + 1) * maxInFlight) {
+            factor = factorFinal;
+          } else {
+            factor = factorStart + (factorFinal - factorStart) * (float)(mSentTimeframes - maxInFlight) / (float)(iterationsFinal * maxInFlight);
+          }
+          float newDelay = iterationDuration / maxInFlight * factor;
+          if (newDelay > totalAverage) {
+            LOG(debug) << "TF Throttling: Correcting delay down to average " << newDelay << " --> " << totalAverage;
+            newDelay = totalAverage;
+          } else if (newDelay < factorOfAverage * totalAverage) {
+            LOG(debug) << "TF Throttling: Correcting delay up to " << factorOfAverage << " * average " << newDelay << " --> " << factorOfAverage * totalAverage;
+            newDelay = factorOfAverage * totalAverage;
+          }
+          mSmothDelay = (float)(maxInFlight - 1) / (float)maxInFlight * mSmothDelay + newDelay / (float)maxInFlight;
+          LOG(debug) << "TF Throttling delay updated to " << mSmothDelay << " (factor " << factor << " Duration " << iterationDuration / maxInFlight << " = " << iterationDuration << " / " << maxInFlight << " --> " << newDelay << ")";
+        }
+        float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mLastTime).count();
+        if (elapsed < mSmothDelay) {
+          LOG(debug) << "TF Throttling: Elapsed " << elapsed << " --> Waiting for " << mSmothDelay - elapsed;
+          usleep((mSmothDelay - elapsed) * 1e6);
+        }
+      }
+      mLastTime = std::chrono::system_clock::now();
+      mTfTimes[mSentTimeframes % maxInFlight] = curTime;
+    }
   }
   if (minSHM) {
     int waitMessage = 0;

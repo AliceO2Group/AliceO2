@@ -27,9 +27,11 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-#include "TPCSpaceCharge/SpaceCharge.h"
-#endif
+namespace o2::tpc
+{
+template <class T>
+class SpaceCharge;
+}
 
 namespace GPUCA_NAMESPACE
 {
@@ -40,15 +42,16 @@ namespace gpu
 struct TPCSlowSpaceChargeCorrection {
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-  /// getting the corrections for global coordinates
-  void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
-  {
-    const o2::tpc::Side side = (slice < o2::tpc::SECTORSPERSIDE) ? o2::tpc::Side::A : o2::tpc::Side::C;
-    mCorr.getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
-  }
+  /// destructor
+  ~TPCSlowSpaceChargeCorrection();
 
-  o2::tpc::SpaceCharge<float> mCorr; ///< reference space charge corrections
+  /// getting the corrections for global coordinates
+  void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const;
+
+  o2::tpc::SpaceCharge<float>* mCorr{nullptr}; ///< reference space charge corrections
 #else
+  ~TPCSlowSpaceChargeCorrection() CON_DEFAULT;
+
   /// setting dummy corrections for GPU
   GPUd() void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
   {
@@ -59,7 +62,7 @@ struct TPCSlowSpaceChargeCorrection {
 #endif
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCSlowSpaceChargeCorrection, 1);
+  ClassDefNV(TPCSlowSpaceChargeCorrection, 2);
 #endif
 };
 
@@ -115,9 +118,6 @@ class TPCFastTransform : public FlatObject
 #else
   ~TPCFastTransform() CON_DEFAULT;
 #endif
-
-  /// write output of streamer to file
-  GPUd() void flushStreamer() { mStreamer.flush(); }
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -268,14 +268,7 @@ class TPCFastTransform : public FlatObject
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
   /// setting the reference corrections
-  /// \tparam DataTIn data type of the corrections on the root file (float or double)
-  template <typename DataTIn = double>
-  void setSlowTPCSCCorrection(TFile& inpf)
-  {
-    mCorrectionSlow = new TPCSlowSpaceChargeCorrection;
-    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::A);
-    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::C);
-  }
+  void setSlowTPCSCCorrection(TFile& inpf);
 
   /// \return returns the space charge object which is used for the slow correction
   const auto& getCorrectionSlow() const { return *mCorrectionSlow; }
@@ -336,7 +329,6 @@ class TPCFastTransform : public FlatObject
 
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
-  o2::utils::DebugStreamer mStreamer;                     ///<! debug streamer for fast transform
 
   GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const;
 
@@ -477,11 +469,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
       }
     }
 
-    using Streamer = o2::utils::DebugStreamer;
-    if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-      auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
-      streamer.setStreamer("debug_fasttransform", "UPDATE");
-
+    GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
 
@@ -500,34 +488,33 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
       float YZtoNominalY;
       float YZtoNominalZ;
       InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
-
-      streamer.getStreamer() << streamer.getUniqueTreeName("tree_Transform").data()
-                             // corrections in x, u, v
-                             << "dx=" << dx
-                             << "du=" << du
-                             << "dv=" << dv
-                             << "v=" << v
-                             << "u=" << u
-                             << "row=" << row
-                             << "slice=" << slice
-                             // original local coordinates
-                             << "ly=" << ly
-                             << "lz=" << lz
-                             << "lx=" << x
-                             // corrected local coordinated
-                             << "lxT=" << lxT
-                             << "lyT=" << lyT
-                             << "lzT=" << lzT
-                             // global uncorrected coordinates
-                             << "gx=" << gx
-                             << "gy=" << gy
-                             << "gz=" << gz
-                             // some transformations which are applied
-                             << "invYZtoX=" << invYZtoX
-                             << "YZtoNominalY=" << YZtoNominalY
-                             << "YZtoNominalZ=" << YZtoNominalZ
-                             << "\n";
-    }
+      o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
+                                                                                         // corrections in x, u, v
+                                                                                         << "dx=" << dx
+                                                                                         << "du=" << du
+                                                                                         << "dv=" << dv
+                                                                                         << "v=" << v
+                                                                                         << "u=" << u
+                                                                                         << "row=" << row
+                                                                                         << "slice=" << slice
+                                                                                         // original local coordinates
+                                                                                         << "ly=" << ly
+                                                                                         << "lz=" << lz
+                                                                                         << "lx=" << x
+                                                                                         // corrected local coordinated
+                                                                                         << "lxT=" << lxT
+                                                                                         << "lyT=" << lyT
+                                                                                         << "lzT=" << lzT
+                                                                                         // global uncorrected coordinates
+                                                                                         << "gx=" << gx
+                                                                                         << "gy=" << gy
+                                                                                         << "gz=" << gz
+                                                                                         // some transformations which are applied
+                                                                                         << "invYZtoX=" << invYZtoX
+                                                                                         << "YZtoNominalY=" << YZtoNominalY
+                                                                                         << "YZtoNominalZ=" << YZtoNominalZ
+                                                                                         << "\n";
+    })
 
     x += dx;
     u += du;
@@ -739,21 +726,18 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
     x = (x - xr) * scale + xr;
   }
 
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
-    streamer.setStreamer("debug_fasttransform", "UPDATE");
-    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoX").data()
-                           << "slice=" << slice
-                           << "row=" << row
-                           << "scale=" << scale
-                           << "y=" << y
-                           << "z=" << z
-                           << "x=" << x
-                           << "v=" << v
-                           << "u=" << u
-                           << "\n";
-  }
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
+                                                                                       << "slice=" << slice
+                                                                                       << "row=" << row
+                                                                                       << "scale=" << scale
+                                                                                       << "y=" << y
+                                                                                       << "z=" << z
+                                                                                       << "x=" << x
+                                                                                       << "v=" << v
+                                                                                       << "u=" << u
+                                                                                       << "\n";
+  })
 }
 
 GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
@@ -770,24 +754,21 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
 
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    auto& streamer = (const_cast<GPUCA_NAMESPACE::gpu::TPCFastTransform*>(this))->mStreamer;
-    streamer.setStreamer("debug_fasttransform", "UPDATE");
-    streamer.getStreamer() << streamer.getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
-                           << "slice=" << slice
-                           << "row=" << row
-                           << "scale=" << scale
-                           << "y=" << y
-                           << "z=" << z
-                           << "ny=" << ny
-                           << "nz=" << nz
-                           << "u=" << u
-                           << "v=" << v
-                           << "un=" << un
-                           << "vn=" << vn
-                           << "\n";
-  }
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoNominalYZ").data()
+                                                                                       << "slice=" << slice
+                                                                                       << "row=" << row
+                                                                                       << "scale=" << scale
+                                                                                       << "y=" << y
+                                                                                       << "z=" << z
+                                                                                       << "ny=" << ny
+                                                                                       << "nz=" << nz
+                                                                                       << "u=" << u
+                                                                                       << "v=" << v
+                                                                                       << "un=" << un
+                                                                                       << "vn=" << vn
+                                                                                       << "\n";
+  })
 }
 
 } // namespace gpu

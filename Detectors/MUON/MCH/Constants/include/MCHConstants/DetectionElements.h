@@ -12,8 +12,10 @@
 #ifndef O2_MCH_CONSTANTS_DETECTION_ELEMENTS_H
 #define O2_MCH_CONSTANTS_DETECTION_ELEMENTS_H
 
-#include <array>
 #include <algorithm>
+#include <array>
+#include <optional>
+#include <unordered_map>
 
 namespace o2::mch::constants
 {
@@ -34,6 +36,31 @@ inline bool isValidDetElemId(int deId)
 {
   return std::find(begin(deIdsForAllMCH), end(deIdsForAllMCH), deId) != deIdsForAllMCH.end();
 }
+
+/** deIndex returns an index (in the range 0..155) corresponding the deId. */
+inline std::optional<int> deId2DeIndex(int deId)
+{
+  if (!o2::mch::constants::isValidDetElemId(deId)) {
+    return std::nullopt;
+  }
+  static const std::unordered_map<int, int> id2ix = {
+    {100, 0},
+    {200, 4},
+    {300, 8},
+    {400, 12},
+    {500, 16},
+    {600, 34},
+    {700, 52},
+    {800, 78},
+    {900, 104},
+    {1000, 130},
+    {1025, 155}};
+
+  int firstDeOfChamber = 100 * (deId / 100);
+  auto firstIndexOfChamber = id2ix.find(firstDeOfChamber);
+  return firstIndexOfChamber->second + (deId - firstDeOfChamber);
+}
+
 } // namespace o2::mch::constants
 
 #endif

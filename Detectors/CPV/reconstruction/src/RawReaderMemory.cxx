@@ -17,7 +17,7 @@
 
 using namespace o2::cpv;
 
-using RDHDecoder = o2::raw::RDHUtils;
+using RDHUtils = o2::raw::RDHUtils;
 
 RawReaderMemory::RawReaderMemory(gsl::span<const char> rawmemory) : mRawMemoryBuffer(rawmemory)
 {
@@ -32,8 +32,8 @@ void RawReaderMemory::setRawMemory(const gsl::span<const char> rawmemory)
 
 o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
 {
-  auto headerversion = RDHDecoder::getVersion(payloadwords);
-  if (headerversion < RDHDecoder::getVersion<o2::header::RDHLowest>() || headerversion > RDHDecoder::getVersion<o2::header::RDHHighest>()) {
+  auto headerversion = RDHUtils::getVersion(payloadwords);
+  if (headerversion < RDHUtils::getVersion<o2::header::RDHLowest>() || headerversion > RDHUtils::getVersion<o2::header::RDHHighest>()) {
     LOG(error) << "Wrong header version " << headerversion;
     throw RawErrorType_t::kRDH_DECODING;
   }
@@ -66,7 +66,7 @@ RawErrorType_t RawReaderMemory::next()
         e == RawErrorType_t::kOFFSET_TO_NEXT_IS_0) { // offset to next package is 0 -> do not know how to read next
       throw e;                                       // some principal error occured -> stop reading.
     }
-    isStopBitFound = RDHDecoder::getStop(mRawHeader);
+    isStopBitFound = RDHUtils::getStop(mRawHeader);
   } while (!isStopBitFound);
 
   return RawErrorType_t::kOK;
@@ -86,25 +86,32 @@ RawErrorType_t RawReaderMemory::nextPage()
   o2::header::RDHAny rawHeader;
   try {
     rawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
-    if (RDHDecoder::getOffsetToNext(rawHeader) == 0) { // dont' know how to read next -> skip to next HBF
+    if (RDHUtils::getOffsetToNext(rawHeader) == 0) { // dont' know how to read next -> skip to next HBF
       return RawErrorType_t::kOFFSET_TO_NEXT_IS_0;
     }
-    if (RDHDecoder::getSourceID(rawHeader) != 0x8) {
+    if (RDHUtils::getSourceID(rawHeader) != 0x8) {
       // Not a CPV RDH
-      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); // not cpv rdh -> skip to next HBF
+      mCurrentPosition += RDHUtils::getOffsetToNext(rawHeader); // not cpv rdh -> skip to next HBF
       return RawErrorType_t::kNOT_CPV_RDH;
     }
+    // Check validity of data format
+    auto dataFormat = RDHUtils::getDataFormat(rawHeader);
+    if (dataFormat != 0x0 && dataFormat != 0x2) { // invalid data format
+      return RawErrorType_t::kRDH_INVALID;
+    }
+    // save first RDH of the HBF
     if (mIsJustInited || mStopBitWasNotFound) { // reading first time after init() or stopbit was not found
-      mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
-      mRawHeader = rawHeader; // save RDH of first page as mRawHeader
+      mCurrentHBFOrbit = RDHUtils::getHeartBeatOrbit(rawHeader);
+      mDataFormat = dataFormat; // save data format
+      mRawHeader = rawHeader;   // save RDH of first page as mRawHeader
       mRawHeaderInitialized = true;
       mStopBitWasNotFound = false; // reset this flag as we start to read again
       mIsJustInited = false;
-    } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
+    } else if (mCurrentHBFOrbit != RDHUtils::getHeartBeatOrbit(rawHeader)) {
       // next HBF started but we didn't find stop bit.
       mStopBitWasNotFound = true;
-      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); // moving on
-      return RawErrorType_t::kSTOPBIT_NOTFOUND;                   // Stop bit was not found -> skip to next HBF
+      mCurrentPosition += RDHUtils::getOffsetToNext(rawHeader); // moving on
+      return RawErrorType_t::kSTOPBIT_NOTFOUND;                 // Stop bit was not found -> skip to next HBF
     }
   } catch (...) {
     return RawErrorType_t::kRDH_DECODING; // this is fatal error -> skip whole TF
@@ -113,10 +120,14 @@ RawErrorType_t RawReaderMemory::nextPage()
   mRawHeaderInitialized = true;
 
   auto tmp = mRawMemoryBuffer.data();
-  int start = (mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader));
-  int end = (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader));
+  int start = (mCurrentPosition + RDHUtils::getHeaderSize(mRawHeader));
+  int end = (mCurrentPosition + RDHUtils::getMemorySize(mRawHeader));
+  if (mDataFormat == 0x2) { // remove padding
+    int padding = (end - start) % 10;
+    end -= padding;
+  }
   bool isPayloadIncomplete = false;
-  if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
+  if (mCurrentPosition + RDHUtils::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
     isPayloadIncomplete = true;
     end = mRawMemoryBuffer.size(); // OK, lets read it anyway. Maybe there still are some completed events...
@@ -126,7 +137,7 @@ RawErrorType_t RawReaderMemory::nextPage()
   }
   mPayloadInitialized = true;
 
-  mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); /// Assume fixed 8 kB page size
+  mCurrentPosition += RDHUtils::getOffsetToNext(mRawHeader); // Assume fixed 8 kB page size
   if (isPayloadIncomplete) {
     return RawErrorType_t::kPAYLOAD_INCOMPLETE; // skip to next HBF
   }

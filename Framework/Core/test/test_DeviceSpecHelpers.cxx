@@ -284,4 +284,69 @@ TEST_CASE("CheckIntegerReworking")
     REQUIRE(infos[1].cmdLineArgs[1] == "3");
   }
 }
+
+TEST_CASE("Check validity of the workflow")
+{
+  WorkflowSpec workflow1{
+    {
+      .name = "processor0",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+    },
+    {
+      .name = "processor1",
+      .inputs = {InputSpec{"input", "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+    },
+  };
+  REQUIRE_NOTHROW(DeviceSpecHelpers::validate(workflow1));
+
+  WorkflowSpec workflow2{
+    {
+      .name = "processor0",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe},
+                  OutputSpec{{"output2"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+    },
+    {
+      .name = "processor1",
+      .inputs = {InputSpec{"input", "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+    },
+  };
+  REQUIRE_THROWS(DeviceSpecHelpers::validate(workflow2));
+
+  WorkflowSpec workflow3{
+    {
+      .name = "processor0",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe},
+                  OutputSpec{{"output2"}, "TST", "DUMMYDATA", 2, Lifetime::Sporadic}},
+    },
+    {
+      .name = "processor1",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 1, Lifetime::Timeframe},
+                  OutputSpec{{"output2"}, "TST", "DUMMYDATA", 2, Lifetime::Sporadic}},
+    },
+    {
+      .name = "processor2",
+      .inputs = {InputSpec{"input", "TST", "DUMMYDATA", 2, Lifetime::Timeframe}},
+    },
+  };
+  REQUIRE_NOTHROW(DeviceSpecHelpers::validate(workflow3));
+
+  WorkflowSpec workflow4{
+    {
+      .name = "processor0",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe},
+                  OutputSpec{{"output2"}, "TST", "DUMMYDATA", 2, Lifetime::Sporadic}},
+    },
+    {
+      .name = "processor1",
+      .outputs = {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe},
+                  OutputSpec{{"output2"}, "TST", "DUMMYDATA", 2, Lifetime::Sporadic}},
+    },
+    {
+      .name = "processor2",
+      .inputs = {InputSpec{"input", "TST", "DUMMYDATA", 2, Lifetime::Timeframe}},
+    },
+  };
+  REQUIRE_THROWS(DeviceSpecHelpers::validate(workflow4));
+}
+
 } // namespace o2::framework

@@ -1771,15 +1771,14 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-  }
 
-  static auto trkdump = GPUROOTDump<unsigned int, GPUTPCGMMergedTrack>::getNew("nEv", "tracks");
-  for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
-    if (mTracking->mIOPtrs.mergedTracks[i].OK()) {
-      trkdump.Fill(mNEvents - 1, mTracking->mIOPtrs.mergedTracks[i]);
+    static auto trkdump = GPUROOTDump<unsigned int, GPUTPCGMMergedTrack>::getNew("nEv", "tracks");
+    for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+      if (mTracking->mIOPtrs.mergedTracks[i].OK()) {
+        trkdump.Fill(mNEvents - 1, mTracking->mIOPtrs.mergedTracks[i]);
+      }
     }
   }
-
   mTrackingScratchBuffer.clear();
 }
 

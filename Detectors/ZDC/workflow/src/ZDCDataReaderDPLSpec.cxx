@@ -15,6 +15,7 @@
 #include "CommonUtils/VerbosityConfig.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -29,19 +30,36 @@ ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRaw
 
 void ZDCDataReaderDPLSpec::init(InitContext& ic)
 {
-  mccdbHost = ic.options().get<std::string>("ccdb-url");
   mVerbosity = ic.options().get<int>("log-level");
   // 0: minimal output
   // 1: event summary per channel
   // 2: debug inconsistencies
   // 3: dump of associated input data
   // 4: dump of raw input data
-  o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
+}
+
+void ZDCDataReaderDPLSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // we call these methods just to trigger finaliseCCDB callback
+  pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
+}
+
+void ZDCDataReaderDPLSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
+    mRawReader.setModuleConfig((const o2::zdc::ModuleConfig*)obj);
+    mRawReader.setTriggerMask();
+  }
 }
 
 void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 {
   mRawReader.clear();
+  if (!mInitialized) {
+    mInitialized = true;
+    updateTimeDependentParams(pc);
+    mRawReader.setVerbosity(mVerbosity);
+  }
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
@@ -66,23 +84,6 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   }
 
   DPLRawParser parser(pc.inputs(), o2::framework::select("zdc:ZDC/RAWDATA"));
-
-  //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
-  if (!mRawReader.getModuleConfig()) {
-    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
-    mgr.setTimestamp(timeStamp);*/
-    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
-    if (!moduleConfig) {
-      LOG(fatal) << "Cannot retrieve module configuration from " << o2::zdc::CCDBPathConfigModule << " for timestamp " << mgr.getTimestamp();
-      return;
-    } else {
-      LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
-    }
-    mRawReader.setModuleConfig(moduleConfig);
-    mRawReader.setTriggerMask();
-    mRawReader.setVerbosity(mVerbosity);
-  }
 
   uint64_t count = 0;
   static uint64_t nErr[3] = {0};
@@ -136,6 +137,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
   std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};
+  inputSpec.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
   if (askSTFDist) {
     inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }

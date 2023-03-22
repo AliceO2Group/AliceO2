@@ -40,15 +40,16 @@ struct PadASICWord {
 struct TriggerWord {
   union {
     struct {
-      uint64_t mHeader : 8;
-      uint64_t mTrigger0 : 7;
-      uint64_t mTrigger1 : 7;
-      uint64_t mTrigger2 : 7;
-      uint64_t mTrigger3 : 7;
-      uint64_t mTrigger4 : 7;
-      uint64_t mTrigger5 : 7;
-      uint64_t mTrigger6 : 7;
       uint64_t mTrigger7 : 7;
+      uint64_t mTrigger6 : 7;
+      uint64_t mTrigger5 : 7;
+      uint64_t mTrigger4 : 7;
+      uint64_t mTrigger3 : 7;
+      uint64_t mTrigger2 : 7;
+      uint64_t mTrigger1 : 7;
+      uint64_t mTrigger0 : 7;
+      uint64_t mHeader1 : 4;
+      uint64_t mHeader0 : 4;
     };
     uint64_t mData = 0;
   };
@@ -105,6 +106,7 @@ struct PadGBTWord {
   };
 
   const TriggerWord& getTriggerData() const { return reinterpret_cast<const TriggerWord&>(mTriggerWords[0]); }
+  const TriggerWord& getTriggerPadding() const { return reinterpret_cast<const TriggerWord&>(mTriggerWords[1]); }
 
   template <typename T>
   gsl::span<const T> getASICData() const

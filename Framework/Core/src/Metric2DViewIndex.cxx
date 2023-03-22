@@ -18,14 +18,12 @@
 #include <algorithm>
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater(std::vector<Metric2DViewIndex*> views)
+Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater()
 {
-  return [views](std::string const& name, MetricInfo const& metric, int value, int metricsIndex) -> void {
+  return [](std::array<Metric2DViewIndex*, 6> const& views, std::string const& name, MetricInfo const& metric, int value, int metricsIndex) -> void {
     for (auto viewPtr : views) {
       auto& view = *viewPtr;
       if (view.prefix.size() > name.size()) {
@@ -66,5 +64,4 @@ Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater(std::vector<Metric2DVie
   };
 }
 
-} // namespace framework
 } // namespace o2

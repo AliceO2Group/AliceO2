@@ -64,19 +64,19 @@ class AnalyticalFields
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Er for given coordinate
-  DataT evalEr(DataT z, DataT r, DataT phi) const { return mErFunc(z, r, phi); }
+  DataT evalFieldR(DataT z, DataT r, DataT phi) const { return mErFunc(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ez for given coordinate
-  DataT evalEz(DataT z, DataT r, DataT phi) const { return mEzFunc(z, r, phi); }
+  DataT evalFieldZ(DataT z, DataT r, DataT phi) const { return mEzFunc(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ephi for given coordinate
-  DataT evalEphi(DataT z, DataT r, DataT phi) const { return mEphiFunc(z, r, phi); }
+  DataT evalFieldPhi(DataT z, DataT r, DataT phi) const { return mEphiFunc(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
@@ -218,40 +218,120 @@ class NumericalFields
   /// \param dataEphi container for the data of the electrical field Ephi
   /// \param gridProperties properties of the grid
   /// \param side side of the tpc
-  NumericalFields(const DataContainer& dataEr, const DataContainer& dataEz, const DataContainer& dataEphi, const RegularGrid& gridProperties, const o2::tpc::Side side) : mDataEr{dataEr}, mDataEz{dataEz}, mDataEphi{dataEphi}, mGridProperties{gridProperties}, mSide{side} {};
+  NumericalFields(const DataContainer& dataEr, const DataContainer& dataEz, const DataContainer& dataEphi, const RegularGrid& gridProperties, const o2::tpc::Side side)
+    : mInterpolatorEr{dataEr, gridProperties}, mInterpolatorEz{dataEz, gridProperties}, mInterpolatorEphi{dataEphi, gridProperties}, mSide{side} {};
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Er for given coordinate
-  DataT evalEr(DataT z, DataT r, DataT phi) const { return mInterpolatorEr(z, r, phi); }
+  DataT evalFieldR(DataT z, DataT r, DataT phi) const { return mInterpolatorEr(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ez for given coordinate
-  DataT evalEz(DataT z, DataT r, DataT phi) const { return mInterpolatorEz(z, r, phi); }
+  DataT evalFieldZ(DataT z, DataT r, DataT phi) const { return mInterpolatorEz(z, r, phi); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for electric field Ephi for given coordinate
-  DataT evalEphi(DataT z, DataT r, DataT phi) const { return mInterpolatorEphi(z, r, phi); }
+  DataT evalFieldPhi(DataT z, DataT r, DataT phi) const { return mInterpolatorEphi(z, r, phi); }
 
   o2::tpc::Side getSide() const { return mSide; }
 
   static constexpr unsigned int getID() { return ID; }
 
  private:
-  const DataContainer& mDataEr{};                         ///< adress to the data container of the grid
-  const DataContainer& mDataEz{};                         ///< adress to the data container of the grid
-  const DataContainer& mDataEphi{};                       ///< adress to the data container of the grid
-  const RegularGrid& mGridProperties{};                   ///< properties of the regular grid
-  const o2::tpc::Side mSide{};                            ///< side of the TPC
-  TriCubic mInterpolatorEr{mDataEr, mGridProperties};     ///< TriCubic interpolator of the electric field Er
-  TriCubic mInterpolatorEz{mDataEz, mGridProperties};     ///< TriCubic interpolator of the electric field Ez
-  TriCubic mInterpolatorEphi{mDataEphi, mGridProperties}; ///< TriCubic interpolator of the electric field Ephi
-  static constexpr unsigned int ID = 1;                   ///< needed to distinguish between the different classes
+  o2::tpc::Side mSide{};                ///< side of the TPC
+  TriCubic mInterpolatorEr{};           ///< TriCubic interpolator of the electric field Er
+  TriCubic mInterpolatorEz{};           ///< TriCubic interpolator of the electric field Ez
+  TriCubic mInterpolatorEphi{};         ///< TriCubic interpolator of the electric field Ephi
+  static constexpr unsigned int ID = 1; ///< needed to distinguish between the different classes
+};
+
+///
+/// B Field obtained from fit to chebychev polynomials (ToDo: add other BField settings)
+///
+class BField
+{
+  using DataT = double;
+
+ public:
+  /// setting which field is used +5,+2,-2,-5
+  void setBField(const int field) { mBField = field; }
+
+  /// \return returns which field is used
+  int getBField() const { return mBField; }
+
+  /// \param r r coordinate
+  /// \param phi phi coordinate
+  /// \param z z coordinate
+  /// \return returns the function value for B field Br for given coordinate
+  DataT evalFieldR(DataT z, DataT r, DataT phi) const
+  {
+    const double rphiz[]{r, phi, z};
+    return getBR(rphiz);
+  }
+
+  /// \param r r coordinate
+  /// \param phi phi coordinate
+  /// \param z z coordinate
+  /// \return returns the function value for B field Bz for given coordinate
+  DataT evalFieldZ(DataT z, DataT r, DataT phi) const
+  {
+    const double rphiz[]{r, phi, z};
+    return getBZ(rphiz);
+  }
+
+  /// \param r r coordinate
+  /// \param phi phi coordinate
+  /// \param z z coordinate
+  /// \return returns the function value for B field Bphi for given coordinate
+  DataT evalFieldPhi(DataT z, DataT r, DataT phi) const
+  {
+    const double rphiz[]{r, phi, z};
+    return getBPhi(rphiz);
+  }
+
+  double getBR(const double rphiz[]) const { return (rphiz[2] >= 0) ? getBR_A(rphiz) : getBR_C(rphiz); }
+  double getBPhi(const double rphiz[]) const { return (rphiz[2] >= 0) ? getBPhi_A(rphiz) : getBPhi_C(rphiz); }
+  double getBZ(const double rphiz[]) const { return (rphiz[2] >= 0) ? getBZ_A(rphiz) : getBZ_C(rphiz); }
+
+ private:
+  double getBR_A(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBR_A_5 : mParamsBR_A_2)); }
+  double getBR_C(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBR_C_5 : mParamsBR_C_2)); }
+  double getBPhi_A(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBPhi_A_5 : mParamsBPhi_A_2)); }
+  double getBPhi_C(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBPhi_C_5 : mParamsBPhi_C_2)); }
+  double getBZ_A(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBZ_A_5 : mParamsBZ_A_2)); }
+  double getBZ_C(const double rphiz[]) const { return evalField(rphiz, ((std::abs(mBField) == 5) ? mParamsBZ_C_5 : mParamsBZ_C_2)); }
+
+  /// \return returns BField for given r,phi,z coordinates and given parameters
+  double evalField(const double rphiz[], const double params[]) const
+  {
+    if (mBField == 0) {
+      return 0;
+    }
+    double field = params[13] + params[0] * rphiz[0] + params[1] * rphiz[2] + params[2] * rphiz[0] * rphiz[2] + params[3] * rphiz[2] * rphiz[2] + params[4] * rphiz[0] * rphiz[2] * rphiz[2] + params[5] * rphiz[0] * std::cos(rphiz[1]) + params[6] * rphiz[0] * std::sin(rphiz[1]) + params[7] * rphiz[2] * rphiz[2] * std::cos(rphiz[1]) + params[8] * rphiz[2] * rphiz[2] * std::sin(rphiz[1]) + params[9] * rphiz[0] * rphiz[2] * rphiz[2] * std::cos(rphiz[1]) + params[10] * rphiz[0] * rphiz[2] * rphiz[2] * std::sin(rphiz[1]) + params[11] * rphiz[0] * rphiz[2] * std::cos(rphiz[1]) + params[12] * rphiz[0] * rphiz[2] * std::sin(rphiz[1]);
+    return (mBField < 0) ? field : -field;
+  }
+
+  static constexpr double mParamsBR_A_5[]{-2.735308458415022e-06, 3.332307825230892e-05, -1.6122043674923547e-06, -3.651355880554624e-07, 1.279249264081895e-09, 8.022905486012087e-06, -9.860444359905876e-07, 3.731008518454023e-08, -1.621170030862478e-07, -2.993099518447553e-10, 9.188552543587662e-10, 3.694763794980658e-08, -2.4521918555825965e-07, -0.0011251001320472243};            ///< parameters for B_r A side for -0.5T
+  static constexpr double mParamsBR_C_5[]{-9.56934067157109e-06, 2.925896354411999e-05, -1.590504175365935e-06, 3.2678506747823123e-07, -1.155443633847809e-09, 8.047221940176635e-06, -1.524233769981198e-06, -2.058042110382768e-07, 1.7666032683026417e-07, 8.66636087440012e-10, -9.704495551802566e-10, 3.212813408161466e-08, -2.4861803070141444e-07, 0.0008591129655999633};              ///< parameters for B_r C side for -0.5T
+  static constexpr double mParamsBPhi_A_5[]{2.4816698646856386e-07, -3.3769029760269716e-07, -1.2683802228879448e-09, 2.3512494546822587e-09, -4.424558185666922e-13, -7.894179812888077e-07, -3.839830209758884e-06, -1.7904399279931762e-07, -4.412987384727642e-08, 1.0387899089797522e-09, 3.3464750104626054e-10, -2.2404404898678082e-07, -5.148774856850897e-08, -1.1983526589792469e-05}; ///< parameters for B_phi A side for -0.5T
+  static constexpr double mParamsBPhi_C_5[]{5.043186514423357e-07, 1.8108880196737116e-07, -1.3759428693116512e-09, 3.5765707078538657e-09, -2.0523476064320596e-11, -6.579691696988604e-07, -3.0122693118808835e-06, 1.9271170150103e-07, 1.753682204150865e-07, -1.0480263051890858e-09, -4.509685788998614e-10, -2.2662983377275664e-07, -3.321254466726585e-08, -9.824193801152964e-05};      ///< parameters for B_phi C side for -0.5T
+  static constexpr double mParamsBZ_A_5[]{-0.0002710086087545181, -2.1716228180298688e-05, 2.0372445401312772e-07, 1.8722308100484602e-06, -2.184781835301027e-09, 1.1586501653487085e-05, -4.268530121709302e-05, 9.25125318435847e-09, 2.398075170465161e-08, 7.368413789410149e-11, 1.2684909376558765e-10, -7.455600427582419e-08, -2.19047372958347e-09, -4.984857763975774};                ///< parameters for B_z A side for -0.5T
+  static constexpr double mParamsBZ_C_5[]{-0.0002723781566852378, 5.164000621778293e-05, -2.2868848177132177e-07, 1.8429368682919507e-06, -2.0819995566310643e-09, 1.2659874053279326e-05, -4.2485470595171776e-05, 7.907702641796776e-08, 1.1566407457667763e-08, 1.20481275676271e-10, 1.4095293784579698e-10, -4.2575645454742085e-08, 1.8684623199200014e-08, -4.984728649660976};            ///< parameters for B_z A side for -0.5T
+
+  static constexpr double mParamsBR_A_2[]{4.176074764332572e-06, 9.055914278134961e-06, -5.018416467867267e-07, -1.334112691200317e-07, 3.104684385268349e-10, 4.3467816417566e-06, 1.2383828260857916e-06, 3.245197706524141e-08, -2.7930271763323774e-08, -1.9389331133261495e-10, 1.8314327254678544e-10, 2.0992501166573428e-08, -6.838744905841678e-08, -0.0005026374423244065};          ///< parameters for B_r A side for -0.2T
+  static constexpr double mParamsBR_C_2[]{2.690810821222458e-07, 1.2512131073684395e-05, -5.270492878334909e-07, 1.4210051171669685e-07, -3.946184087795713e-10, 4.187396601807555e-06, 1.162486029025627e-06, -1.2885764676209642e-07, 5.0522405233618384e-08, 5.900898778393363e-10, -2.915328846694103e-10, 2.4884633611361987e-08, -7.230731252566365e-08, 0.0005786278689104887};         ///< parameters for B_r C side for -0.2T
+  static constexpr double mParamsBPhi_A_2[]{5.523848397353052e-08, 3.928363557886265e-08, -4.4009701371053715e-10, -2.8641955389237296e-10, 1.821081797238636e-12, 1.4198619669167656e-06, -2.1764346689602207e-06, -3.231428657825349e-08, -3.192441937822271e-08, 2.0184985572664266e-10, 1.7364041924357946e-10, -5.558710928425412e-08, -2.4643189915496604e-08, -2.6078267611810743e-06}; ///< parameters for B_phi A side for -0.2T
+  static constexpr double mParamsBPhi_C_2[]{-3.2242292530589877e-07, 1.1034613295516684e-06, -5.352565006650699e-09, 2.6303325895048014e-09, -9.486096582613865e-12, 1.8505011431972595e-06, -1.584504697659336e-06, 5.447856545739479e-08, 1.1315654356038177e-07, -3.117270801091489e-10, -3.0711252324817763e-10, -6.133216833370231e-08, -2.255068131685042e-08, 5.3482425868711736e-05};  ///< parameters for B_phi C side for -0.2T
+  static constexpr double mParamsBZ_A_2[]{-9.167411332145822e-05, -2.4851522162035357e-05, 9.960757300624437e-08, 6.958010167256768e-07, -1.11183224670895e-09, 7.308228736481047e-06, -1.128405537856272e-05, 4.579914498063969e-09, 5.585937769498876e-09, 3.5099429237282976e-11, 6.979487504868819e-11, -3.307311247864971e-08, -8.782573530964495e-12, -2.037296213759382};               ///< parameters for B_z A side for -0.2T
+  static constexpr double mParamsBZ_C_2[]{-9.159942524484742e-05, 1.4000105385364768e-05, -9.633834279744808e-08, 6.855806309034758e-07, -1.050924705926724e-09, 8.251185343615922e-06, -1.1702442409153027e-05, 5.8284517139534474e-08, 2.5765382472118957e-09, 3.927518861675029e-11, 6.531928502157076e-11, -1.7543419637429038e-08, 3.3098794349832556e-09, -2.037320607507206};           ///< parameters for B_z A side for -0.2T
+
+  int mBField{5}; ///< BField
 };
 
 ///
@@ -272,7 +352,8 @@ class DistCorrInterpolator
   /// \param dataDistCorrdRPhi container for the data of the distortions dPhi
   /// \param gridProperties properties of the grid
   /// \param side side of the tpc
-  DistCorrInterpolator(const DataContainer& dataDistCorrdR, const DataContainer& dataDistCorrdZ, const DataContainer& dataDistCorrdRPhi, const RegularGrid& gridProperties, const o2::tpc::Side side) : mDataDistCorrdR{dataDistCorrdR}, mDataDistCorrdZ{dataDistCorrdZ}, mDataDistCorrdRPhi{dataDistCorrdRPhi}, mGridProperties{gridProperties}, mSide{side} {};
+  DistCorrInterpolator(const DataContainer& dataDistCorrdR, const DataContainer& dataDistCorrdZ, const DataContainer& dataDistCorrdRPhi, const RegularGrid& gridProperties, const o2::tpc::Side side)
+    : interpolatorDistCorrdR{dataDistCorrdR, gridProperties}, interpolatorDistCorrdZ{dataDistCorrdZ, gridProperties}, interpolatorDistCorrdRPhi{dataDistCorrdRPhi, gridProperties}, mSide{side} {};
 
   /// \param r r coordinate
   /// \param phi phi coordinate
@@ -297,15 +378,11 @@ class DistCorrInterpolator
   static constexpr unsigned int getID() { return ID; }
 
  private:
-  const DataContainer& mDataDistCorrdR{};                                  ///< adress to the data container of the grid
-  const DataContainer& mDataDistCorrdZ{};                                  ///< adress to the data container of the grid
-  const DataContainer& mDataDistCorrdRPhi{};                               ///< adress to the data container of the grid
-  const RegularGrid& mGridProperties{};                                    ///< properties of the regular grid
-  const o2::tpc::Side mSide{};                                             ///< side of the TPC.
-  TriCubic interpolatorDistCorrdR{mDataDistCorrdR, mGridProperties};       ///< TriCubic interpolator of distortion or correction dR
-  TriCubic interpolatorDistCorrdZ{mDataDistCorrdZ, mGridProperties};       ///< TriCubic interpolator of distortion or correction dZ
-  TriCubic interpolatorDistCorrdRPhi{mDataDistCorrdRPhi, mGridProperties}; ///< TriCubic interpolator of distortion or correction dRPhi
-  static constexpr unsigned int ID = 2;                                    ///< needed to distinguish between the different classes
+  o2::tpc::Side mSide{};                ///< side of the TPC.
+  TriCubic interpolatorDistCorrdR{};    ///< TriCubic interpolator of distortion or correction dR
+  TriCubic interpolatorDistCorrdZ{};    ///< TriCubic interpolator of distortion or correction dZ
+  TriCubic interpolatorDistCorrdRPhi{}; ///< TriCubic interpolator of distortion or correction dRPhi
+  static constexpr unsigned int ID = 2; ///< needed to distinguish between the different classes
 };
 
 } // namespace tpc

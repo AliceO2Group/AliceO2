@@ -69,6 +69,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/DebugStreamer.h"
 #include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
@@ -629,15 +630,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
   // flushing debug output to file
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    if (mFastTransform) {
-      mFastTransform->flushStreamer();
-    }
-    if (mFastTransformNew) {
-      mFastTransformNew->flushStreamer();
-    }
-  }
+  o2::utils::DebugStreamer::instance()->flush();
 
   // setting TPC calibration objects
   storeUpdatedCalibsTPCPtrs();
@@ -941,7 +934,6 @@ Outputs GPURecoWorkflowSpec::outputs()
     for (auto const& sector : mTPCSectors) {
       mClusterOutputIds.emplace_back(sector);
     }
-    outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", mSpecConfig.sendClustersPerSector ? 0 : NSectors, Lifetime::Timeframe);
     if (mSpecConfig.sendClustersPerSector) {
       outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVETMP", NSectors, Lifetime::Timeframe); // Dummy buffer the TPC tracker writes the inital linear clusters to
       for (const auto sector : mTPCSectors) {

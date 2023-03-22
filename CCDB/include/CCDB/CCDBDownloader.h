@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -8,10 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_CCDBDOWNLOADER_H_
+#define O2_CCDBDOWNLOADER_H_
 
 #include <cstdio>
 #include <cstdlib>
-#include <uv.h>
 #include <curl/curl.h>
 #include <string>
 #include <vector>
@@ -21,14 +22,16 @@
 #include <condition_variable>
 #include <unordered_map>
 
-#ifndef ALICEO2_CCDBDOWNLOADER_H
-#define ALICEO2_CCDBDOWNLOADER_H
+typedef struct uv_loop_s uv_loop_t;
+typedef struct uv_timer_s uv_timer_t;
+typedef struct uv_poll_s uv_poll_t;
+typedef struct uv_signal_s uv_signal_t;
+typedef struct uv_async_s uv_async_t;
+typedef struct uv_handle_s uv_handle_t;
 
 using namespace std;
 
-namespace o2
-{
-namespace ccdb
+namespace o2::ccdb
 {
 
 /*
@@ -60,6 +63,13 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
  */
 void onUVClose(uv_handle_t* handle);
 
+/// A class encapsulating and performing simple CURL requests in terms of a so-called CURL multi-handle.
+/// A multi-handle allows to use a connection pool (connection cache) in the CURL layer even
+/// with short-lived CURL easy-handles. Thereby the overhead of connection to servers can be
+/// significantly reduced. For more info, see for instance https://everything.curl.dev/libcurl/connectionreuse.
+///
+/// Further, this class adds functionality on top
+/// of simple CURL (aysync requests, timeout handling, event loop, etc).
 class CCDBDownloader
 {
  public:
@@ -67,25 +77,25 @@ class CCDBDownloader
    * Timer starts for each socket when its respective transfer finishes, and is stopped when another transfer starts for that handle.
    * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimoutMS.
    */
-  std::unordered_map<curl_socket_t, uv_timer_t*> socketTimerMap;
+  std::unordered_map<curl_socket_t, uv_timer_t*> mSocketTimerMap;
 
   /**
    * The UV loop which handles transfers.
    */
-  uv_loop_t* loop;
+  uv_loop_t* mUVLoop;
 
-  std::unordered_map<uv_handle_t*, bool> handleMap;
+  std::unordered_map<uv_handle_t*, bool> mHandleMap;
   // ADD COMMENT
 
   /**
    * Time for which sockets will stay open after last download finishes
    */
-  int socketTimoutMS = 4000;
+  int mSocketTimeoutMS = 4000;
 
   /**
    * Max number of handles that can be used at the same time
    */
-  int maxHandlesInUse = 3;
+  int mMaxHandlesInUse = 3;
 
   // CCDBDownloader(uv_loop_t uv_loop);
   CCDBDownloader(uv_loop_t* uv_loop = nullptr);
@@ -103,20 +113,20 @@ class CCDBDownloader
    *
    * @param handles Handles to be performed on.
    */
-  std::vector<CURLcode>* asynchBatchPerformWithCallback(std::vector<CURL*> handles, bool* completionFlag, void (*cbFun)(void*), void* cbData);
+  std::vector<CURLcode> asynchBatchPerformWithCallback(std::vector<CURL*> const& handles, bool* completionFlag, void (*cbFun)(void*), void* cbData);
 
   /**
    * Perform on a batch of handles in a blocking manner. Has the same effect as calling curl_easy_perform() on all handles in the vector.
    * @param handleVector Handles to be performed on.
    */
-  std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> handleVector);
+  std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> const& handleVector);
 
   /**
    * Perform on a batch of handles. Completion flag will be set to true when all handles finish their transfers.
    * @param handleVector Handles to be performed on.
    * @param completionFlag Should be set to false before passing it to this function. Will be set to true after all transfers finish.
    */
-  std::vector<CURLcode>* batchAsynchPerform(std::vector<CURL*> handleVector, bool* completionFlag);
+  std::vector<CURLcode> batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag);
 
   /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
@@ -133,47 +143,47 @@ class CCDBDownloader
    * Indicates whether the loop that the downloader is running on has been created by it or provided externally.
    * In case of external loop, the loop will not be closed after downloader is deleted.
    */
-  bool externalLoop;
+  bool mIsExternalLoop;
 
   /**
    * Current amount of handles which are performed on.
    */
-  int handlesInUse = 0;
+  int mHandlesInUse = 0;
 
   /**
    * Multi handle which controlls all network flow.
    */
-  CURLM* curlMultiHandle = nullptr;
+  CURLM* mCurlMultiHandle = nullptr;
 
   /**
    * The timeout clock that is be used by CURL.
    */
-  uv_timer_t* timeout;
+  uv_timer_t* mTimeoutTimer;
 
   /**
    * Queue of handles awaiting their transfers to start.
    */
-  std::vector<CURL*> handlesToBeAdded;
+  std::vector<CURL*> mHandlesToBeAdded;
 
   /**
-   * Lock protecting the handleToBeAdded queue.
+   * Lock protecting the mHandlesToBeAdded container
    */
-  std::mutex handlesQueueLock;
+  std::mutex mHandlesQueueLock;
 
   /**
    * Thread on which the thread with uv_loop runs.
    */
-  std::thread* loopThread;
+  std::thread* mLoopThread;
 
   /**
    * Vector with reference to callback threads with a flag marking whether they finished running.
    */
-  std::vector<std::pair<std::thread*, bool*>> threadFlagPairVector;
+  std::vector<std::pair<std::thread*, bool*>> mThreadFlagPairVector;
 
   /**
    * Flag used to signall the loop to close.
    */
-  bool closeLoop = false;
+  bool mCloseLoop = false;
 
   /**
    * Types of requests.
@@ -188,7 +198,7 @@ class CCDBDownloader
    * Information about a socket.
    */
   typedef struct curl_context_s {
-    uv_poll_t poll_handle;
+    uv_poll_t* poll_handle;
     curl_socket_t sockfd = -1;
     CCDBDownloader* CD = nullptr;
   } curl_context_t;
@@ -200,6 +210,8 @@ class CCDBDownloader
     CCDBDownloader* CD;
     CURLM* curlm;
   } DataForSocket;
+
+  DataForSocket mSocketData;
 
   /**
    * Structure which is stored in a easy_handle. It carries information about the request which the easy_handle is part of.
@@ -348,7 +360,6 @@ typedef struct DataForClosingSocket {
   curl_socket_t socket;
 } DataForClosingSocket;
 
-} // namespace ccdb
 } // namespace o2
 
-#endif
+#endif // O2_CCDB_CCDBDOWNLOADER_H

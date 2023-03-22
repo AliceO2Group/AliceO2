@@ -10,13 +10,13 @@
 // or submit itself to any jurisdiction.
 
 /// \file RawHeaderStream.h
-/// \brief Input stream operators for raw header 4 and 5 from binary file
+/// \brief Input stream operators for raw header 4 to 7 from binary file
 ///
-/// Helpers to define input stream operator for raw headers v4 and v5 from
+/// Helpers to define input stream operator for raw headers v4 and v7 from
 /// binary file input stream, used in RawReaderFile
 
-#ifndef ALICEO2_EMCAL_RAWHEADERSTREAM_H
-#define ALICEO2_EMCAL_RAWHEADERSTREAM_H
+#ifndef DETECTOR_RAW_RAWHEADERSTREAM_H
+#define DETECTOR_RAW_RAWHEADERSTREAM_H
 
 #include <iosfwd>
 #include "Headers/RAWDataHeader.h"
@@ -24,16 +24,20 @@
 namespace o2
 {
 
-namespace emcal
+namespace raw
 {
 
 std::istream& operator>>(std::istream& stream, o2::header::RAWDataHeaderV4& header);
 std::istream& operator>>(std::istream& stream, o2::header::RAWDataHeaderV5& header);
+std::istream& operator>>(std::istream& stream, o2::header::RAWDataHeaderV6& header);
+std::istream& operator>>(std::istream& stream, o2::header::RAWDataHeaderV7& header);
 
 std::ostream& operator<<(std::ostream& stream, const o2::header::RAWDataHeaderV4& header);
 std::ostream& operator<<(std::ostream& stream, const o2::header::RAWDataHeaderV5& header);
+std::ostream& operator<<(std::ostream& stream, const o2::header::RAWDataHeaderV6& header);
+std::ostream& operator<<(std::ostream& stream, const o2::header::RAWDataHeaderV7& header);
 
-} // namespace emcal
+} // namespace raw
 
 } // namespace o2
-#endif
+#endif // DETECTOR_RAW_RAWHEADERSTREAM_H

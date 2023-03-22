@@ -39,6 +39,7 @@ o2_add_library(Framework
                        src/ControlWebSocketHandler.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
+                       src/DataProcessingStats.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
@@ -102,6 +103,7 @@ o2_add_library(Framework
                        src/OutputSpec.cxx
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
+                       src/ProcessingContext.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
                        src/ReadoutAdapter.cxx
@@ -189,6 +191,7 @@ add_executable(o2-test-framework-core
               test/test_ConfigParamRegistry.cxx
               test/test_DataDescriptorMatcher.cxx
               test/test_DataDescriptorQueryBuilder.cxx
+              test/test_DataProcessingStats.cxx
               test/test_DataProcessorSpec.cxx
               test/test_DataRefUtils.cxx
               test/test_DataRelayer.cxx

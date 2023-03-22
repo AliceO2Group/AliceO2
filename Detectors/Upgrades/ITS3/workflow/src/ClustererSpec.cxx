@@ -15,10 +15,12 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ITS3Workflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "ITS3Reconstruction/TopologyDictionary.h"
 #include "DataFormatsITS3/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -39,44 +41,16 @@ namespace its3
 void ClustererDPL::init(InitContext& ic)
 {
   mClusterer = std::make_unique<o2::its3::Clusterer>();
-  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); /// Fix MEEEE
-
-  auto filenameGRP = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
-
-  if (grp) {
-    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("IT3"));
-  } else {
-    LOG(error) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-
-  mPatterns = !ic.options().get<bool>("no-patterns");
-  mNThreads = std::max(1, ic.options().get<int>("nthreads"));
-
-  // settings for the fired pixel overflow masking
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
-  auto nbc = clParams.maxBCDiffToMaskBias;
-  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-  mClusterer->setMaxBCSeparationToMask(nbc);
-  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mClusterer->loadDictionary(dictFile);
-    LOG(info) << "ITS3Clusterer running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
-  }
+  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); // FIXME
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mState = 1;
   mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -88,11 +62,14 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
 
-  LOG(info) << "ITSClusterer pulled " << digits.size() << " digits, in "
+  LOG(info) << "ITS3Clusterer pulled " << digits.size() << " digits, in "
             << rofs.size() << " RO frames";
-  LOG(info) << "ITSClusterer pulled " << labels.getNElements() << " labels ";
+  LOG(info) << "ITS3Clusterer pulled " << labels.getNElements() << " labels ";
 
   o2::itsmft::DigitPixelReader reader;
+  reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+  reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+  reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
   reader.setDigits(digits);
   reader.setROFRecords(rofs);
   if (mUseMC) {
@@ -128,12 +105,84 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
+///_______________________________________
+void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+    pc.inputs().get<o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>*>("cluspar");
+    mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
+    // settings for the fired pixel overflow masking
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+    if (clParams.maxBCDiffToMaskBias > 0 && clParams.maxBCDiffToSquashBias > 0) {
+      LOGP(fatal, "maxBCDiffToMaskBias = {} and maxBCDiffToMaskBias = {} cannot be set at the same time. Either set masking or squashing with a BCDiff > 0", clParams.maxBCDiffToMaskBias, clParams.maxBCDiffToSquashBias);
+    }
+    auto nbc = clParams.maxBCDiffToMaskBias;
+    nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+    mClusterer->setMaxBCSeparationToMask(nbc);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+    // Squasher
+    int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
+    mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
+    int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
+    if (clParams.maxSOTMUS > 0 && rofBC > 0) {
+      nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
+    }
+    mClusterer->setMaxROFDepthToSquash(clParams.maxBCDiffToSquashBias > 0 ? nROFsToSquash : 0);
+    mClusterer->print();
+  }
+  // we may have other params which need to be queried regularly
+}
+
+///_______________________________________
+void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
+    if (mUseClusterDictionary) {
+      mClusterer->setDictionary((const o2::its3::TopologyDictionary*)obj);
+    }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSPARAM", 0)) {
+    LOG(info) << "Cluster param updated";
+    const auto& par = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
+}
+
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "IT3", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "IT3", "DIGITSROF", 0, Lifetime::Timeframe);
-
+  inputs.emplace_back("cldict", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary"));
+  inputs.emplace_back("cluspar", "ITS", "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/ClustererParam"));
+  inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              false,                          // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("IT3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("IT3", "PATTERNS", 0, Lifetime::Timeframe);
@@ -150,12 +199,15 @@ DataProcessorSpec getClustererSpec(bool useMC)
     "its3-clusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
     Options{
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
-      {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
+}
+
+///_______________________________________
+void ClustererDPL::endOfStream(o2::framework::EndOfStreamContext& ec)
+{
+  mClusterer->print();
 }
 
 } // namespace its3

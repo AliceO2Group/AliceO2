@@ -42,8 +42,8 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   double rmin = mRadius;
-  double rmax = rmin + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double rmax = rmin + mChipThickness;
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard-coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -109,11 +109,11 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   double rmin = mRadius;
-  double rmax = rmin + mSensorThickness;
+  double rmax = rmin + mChipThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -199,7 +199,7 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   double rmin = mRadius;
-  double rmax = rmin + mSensorThickness;
+  double rmax = rmin + mChipThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (0.5 * TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
@@ -291,8 +291,8 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   TGeoMedium* medCarbonFoam = (mBuildLevel < 1) ? gGeoManager->GetMedium("IT3_ERGDUOCEL$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 1 we do not put carbon foam but air
   TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$");   // if build level >= 2 we do not put glue but air
 
-  double rmax = mRadius + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double rmax = mRadius + mChipThickness;
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
   double rmedFoam = rmax + radiusBetweenLayer / 2;
 
   TGeoTranslation* transSemicircle[2];

@@ -164,7 +164,7 @@ double NonlinearityHandler::getCorrectedClusterEnergy(double energy) const
       throw UninitException();
   }
   if (mApplyScaleCorrection) {
-    correctedEnergy *= 1.0505;
+    correctedEnergy /= 1.0505;
   }
   return correctedEnergy;
 }

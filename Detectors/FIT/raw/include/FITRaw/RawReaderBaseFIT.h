@@ -41,11 +41,11 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
   typedef DigitBlockFITtype DigitBlockFIT_t;
   typedef typename DigitBlockFIT_t::LookupTable_t LookupTable_t;
 
-  typedef std::conditional_t<!DataBlockPMtype::sIsPadded, DataBlockPMtype, typename DataBlockPMtype::DataBlockInvertedPadding_t> DataBlockPM_t;
-  typedef std::conditional_t<!DataBlockTCMtype::sIsPadded, DataBlockTCMtype, typename DataBlockTCMtype::DataBlockInvertedPadding_t> DataBlockTCM_t;
+  typedef std::conditional_t<DataBlockPMtype::sIsPadded, typename DataBlockPMtype::DataBlockInvertedPadding_t, DataBlockPMtype> DataBlockPM_t;
+  typedef std::conditional_t<DataBlockTCMtype::sIsPadded, typename DataBlockTCMtype::DataBlockInvertedPadding_t, DataBlockTCMtype> DataBlockTCM_t;
 
-  typedef std::conditional_t<DataBlockPMtype::sIsPadded, typename DataBlockPMtype::DataBlockInvertedPadding_t, DataBlockPMtype> DataBlockPMpadded_t;
-  typedef std::conditional_t<DataBlockTCMtype::sIsPadded, typename DataBlockTCMtype::DataBlockInvertedPadding_t, DataBlockTCMtype> DataBlockTCMpadded_t;
+  typedef std::conditional_t<DataBlockPMtype::sIsPadded, DataBlockPMtype, typename DataBlockPMtype::DataBlockInvertedPadding_t> DataBlockPMpadded_t;
+  typedef std::conditional_t<DataBlockTCMtype::sIsPadded, DataBlockTCMtype, typename DataBlockTCMtype::DataBlockInvertedPadding_t> DataBlockTCMpadded_t;
 
   typedef RawReaderBase<DigitBlockFITtype, DataBlockPMtype, DataBlockTCMtype> RawReaderBase_t;
   RawReaderBaseFIT() = default;

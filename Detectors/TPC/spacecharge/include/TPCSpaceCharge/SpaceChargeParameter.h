@@ -17,7 +17,6 @@
 #define ALICEO2_TPC_SPACECHARGEPARAMETER_H_
 
 #include <array>
-#include "CommonUtils/ConfigurableParamHelper.h"
 #include "Rtypes.h" // for ClassDefNV
 
 namespace o2
@@ -25,13 +24,11 @@ namespace o2
 namespace tpc
 {
 
-/// struct for setting the parameters for the grouping of IDCs
-struct ParameterSpaceCharge : public o2::conf::ConfigurableParamHelper<ParameterSpaceCharge> {
+struct ParamSpaceCharge {
   unsigned short NRVertices = 129;   /// NRVertices number of vertices in z direction
   unsigned short NZVertices = 129;   /// NZVertices number of vertices in r direction
   unsigned short NPhiVertices = 180; /// NRPhiVertices number of vertices in phi direction
-
-  O2ParamDef(ParameterSpaceCharge, "TPCSpaceChargeParam");
+  ClassDefNV(ParamSpaceCharge, 1)
 };
 
 } // namespace tpc

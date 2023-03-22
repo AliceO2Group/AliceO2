@@ -26,11 +26,12 @@ SignalContainer PileupTool::addSignals(std::deque<std::array<SignalContainer, co
       for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
         const int& key = signal.first;
         const SignalArray& signalArray = signal.second;
+        bool signalContributed = false;
         // check if the signal is from a previous event
         if (signalArray.firstTBtime < triggerTime) {
           pileupSignalBecomesObsolete = true;
           if ((triggerTime - signalArray.firstTBtime) > TRDSimParams::Instance().readoutTimeNS) { // OS: READOUT_TIME should actually be drift time (we want to ignore signals which don't contribute signal anymore at triggerTime)
-            continue;                                                              // ignore the signal if it  is too old.
+            continue;                                                                             // ignore the signal if it  is too old.
           }
           // add only what's leftover from this signal
           // 0.01 = samplingRate/1000, 1/1000 to go from ns to micro-s, the sampling rate is in 1/micro-s
@@ -41,6 +42,7 @@ SignalContainer PileupTool::addSignals(std::deque<std::array<SignalContainer, co
             *it1 += *it0;
             it0++;
             it1++;
+            signalContributed = true;
           }
         } else {
           // the signal is from a subsequent event
@@ -51,12 +53,14 @@ SignalContainer PileupTool::addSignals(std::deque<std::array<SignalContainer, co
             *it1 += *it0;
             it0++;
             it1++;
+            signalContributed = true;
           }
         }
         // keep the labels
-        for (const auto& label : signalArray.labels) {
-          // do we want to keep all labels? what about e.g. a TR signal which does not contribute to the pileup of a previous event since the signal arrives too late, but then we will have its label?
-          (addedSignalsMap[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
+        if (signalContributed) {
+          for (const auto& label : signalArray.labels) {
+            (addedSignalsMap[key].labels).push_back(label);
+          }
         }
       } // loop over active pads in detector
     }   // loop over detectors

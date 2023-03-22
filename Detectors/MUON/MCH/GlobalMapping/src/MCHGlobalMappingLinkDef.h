@@ -9,24 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/EfficiencySpec.h
-/// \brief  Device that computes the MID chamber efficiency
-/// \author Livia Terlizzi <Livia.Terlizzi at cern.ch>
-/// \date   20 September 2022
+#ifdef __CLING__
 
-#ifndef O2_MID_EFFICIENCYSPEC_H
-#define O2_MID_EFFICIENCYSPEC_H
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-#include "Framework/DataProcessorSpec.h"
+#pragma link C++ class o2::mch::ChannelCode + ;
+#pragma link C++ class std::vector < o2::mch::ChannelCode> + ;
 
-namespace o2
-{
-namespace mid
-{
-
-framework::DataProcessorSpec getEfficiencySpec();
-
-} // namespace mid
-} // namespace o2
-
-#endif // O2_MID_EfficiencySpec_H
+#endif

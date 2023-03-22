@@ -28,6 +28,8 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
 #include "MathUtils/Utils.h"
+#include "DataFormatsParameters/GRPMagField.h"
+#include "GPUDebugStreamer.h"
 
 #include <numeric>
 #include <chrono>
@@ -37,6 +39,10 @@
 #include "TGraph.h"
 #include "TCanvas.h"
 #include "TROOT.h"
+#include "TStopwatch.h"
+#include "ROOT/RDataFrame.hxx"
+
+#include <random>
 
 #if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
@@ -50,24 +56,53 @@ templateClassImp(o2::tpc::SpaceCharge);
 using namespace o2::tpc;
 
 template <typename DataT>
-SpaceCharge<DataT>::SpaceCharge(const DataT omegaTau, const DataT t1, const DataT t2)
+SpaceCharge<DataT>::SpaceCharge(const int bfield, const unsigned short nZVertices, const unsigned short nRVertices, const unsigned short nPhiVertices, const bool initBuffers) : mParamGrid{nRVertices, nZVertices, nPhiVertices}
 {
   ROOT::EnableThreadSafety();
-  setOmegaTauT1T2(omegaTau, t1, t2);
+  initBField(bfield);
+  if (initBuffers) {
+    initAllBuffers();
+  }
 };
 
 template <typename DataT>
-void SpaceCharge<DataT>::setGrid(const unsigned short nZVertices, const unsigned short nRVertices, const unsigned short nPhiVertices)
+SpaceCharge<DataT>::SpaceCharge()
 {
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", nZVertices);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", nRVertices);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", nPhiVertices);
+  ROOT::EnableThreadSafety();
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initAllBuffers()
+{
+  for (int iside = 0; iside < SIDES; ++iside) {
+    const Side side = (iside == 0) ? Side::A : Side::C;
+    initContainer(mLocalDistdR[side], true);
+    initContainer(mLocalDistdZ[side], true);
+    initContainer(mLocalDistdRPhi[side], true);
+    initContainer(mLocalVecDistdR[side], true);
+    initContainer(mLocalVecDistdZ[side], true);
+    initContainer(mLocalVecDistdRPhi[side], true);
+    initContainer(mLocalCorrdR[side], true);
+    initContainer(mLocalCorrdZ[side], true);
+    initContainer(mLocalCorrdRPhi[side], true);
+    initContainer(mGlobalDistdR[side], true);
+    initContainer(mGlobalDistdZ[side], true);
+    initContainer(mGlobalDistdRPhi[side], true);
+    initContainer(mGlobalCorrdR[side], true);
+    initContainer(mGlobalCorrdZ[side], true);
+    initContainer(mGlobalCorrdRPhi[side], true);
+    initContainer(mDensity[side], true);
+    initContainer(mPotential[side], true);
+    initContainer(mElectricFieldEr[side], true);
+    initContainer(mElectricFieldEz[side], true);
+    initContainer(mElectricFieldEphi[side], true);
+  }
 }
 
 template <typename DataT>
 int SpaceCharge<DataT>::getOMPMaxThreads()
 {
-  return omp_get_max_threads();
+  return std::clamp(omp_get_max_threads(), 1, 16);
 }
 
 template <typename DataT>
@@ -75,8 +110,8 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
 {
   using timer = std::chrono::high_resolution_clock;
   using SC = o2::tpc::SpaceCharge<DataT>;
-  if (!mIsChargeSet[side]) {
-    LOGP(error, "the charge is not set!");
+  if (!mDensity[side].getNDataPoints()) {
+    LOGP(info, "the charge is not set!");
   }
 
   const std::array<std::string, 2> sglobalType{"local distortion/correction interpolator", "Electric fields"};
@@ -102,35 +137,26 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
 
   auto startTotal = timer::now();
 
-  auto start = timer::now();
   poissonSolver(side);
-  auto stop = timer::now();
-  std::chrono::duration<float> time = stop - start;
-  LOGP(info, "Poisson Solver time: {}", time.count());
-
-  start = timer::now();
   calcEField(side);
-  stop = timer::now();
-  time = stop - start;
-  LOGP(info, "electric field calculation time: {}", time.count());
 
   const auto numEFields = getElectricFieldsInterpolator(side);
   if (getGlobalDistType() == SC::GlobalDistType::Standard) {
-    start = timer::now();
+    auto start = timer::now();
     const auto dist = o2::tpc::SpaceCharge<DataT>::Type::Distortions;
     calcLocalDistortionsCorrections(dist, numEFields); // local distortion calculation
-    stop = timer::now();
-    time = stop - start;
+    auto stop = timer::now();
+    std::chrono::duration<float> time = stop - start;
     LOGP(info, "local distortions time: {}", time.count());
   } else {
     LOGP(info, "skipping local distortions (not needed)");
   }
 
-  start = timer::now();
+  auto start = timer::now();
   const auto corr = o2::tpc::SpaceCharge<DataT>::Type::Corrections;
   calcLocalDistortionsCorrections(corr, numEFields); // local correction calculation
-  stop = timer::now();
-  time = stop - start;
+  auto stop = timer::now();
+  std::chrono::duration<float> time = stop - start;
   LOGP(info, "local corrections time: {}", time.count());
 
   if (calcVectors) {
@@ -153,7 +179,7 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
     calcGlobalDistWithGlobalCorrIterative(globalCorrInterpolator);
   } else if (getGlobalDistType() == SC::GlobalDistType::Standard) {
     const auto lDistInterpolator = getLocalDistInterpolator(side);
-    (getGlobalDistCorrMethod() == SC::GlobalDistCorrMethod::LocalDistCorr) ? calcGlobalDistortions(lDistInterpolator) : calcGlobalDistortions(numEFields);
+    (getGlobalDistCorrMethod() == SC::GlobalDistCorrMethod::LocalDistCorr) ? calcGlobalDistortions(lDistInterpolator, 3 * sSteps * getNZVertices()) : calcGlobalDistortions(numEFields, 3 * sSteps * getNZVertices());
   } else {
   }
 
@@ -184,6 +210,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setChargeDensityFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mDensity[side], true);
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
     for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
@@ -194,7 +221,6 @@ void SpaceCharge<DataT>::setChargeDensityFromFormula(const AnalyticalFields<Data
       }
     }
   }
-  mIsChargeSet[side] = true;
 }
 
 template <typename DataT>
@@ -234,9 +260,11 @@ size_t SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<DataT(DataT)>& potentialFunc, const Side side)
 {
+  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
+  initContainer(mPotential[side], true);
   const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
   const auto rStart = getNearestRVertex(radiusStart, side);
-  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
 
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
   const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
@@ -272,7 +300,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
         break;
       }
 
-      for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
+      for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
         const size_t iPhiLeft = sector * verticesPerSector + iPhiTmp;
         const size_t iZ = mParamGrid.NZVertices - 1;
         mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(radius);
@@ -288,6 +316,8 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame)
 {
+  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
+  initContainer(mPotential[side], true);
   int region = 0;
   if (bottom) {
     if (stack == GEMstack::IROCgem) {
@@ -319,28 +349,28 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
   }
   const auto radiusMax = bottom ? radiusFirstRow : GEMFrameParameters<DataT>::POSTOP[stack];
 
-  if (outerFrame) {
-    radiusStart = radiusMax - 0.5;
+  if (outerFrame && (stack == GEMstack::OROC3gem)) {
+    radiusStart = radiusMax - 1;
   }
 
-  auto nVerticesR = std::round((radiusMax - radiusStart) / getGridSpacingR(side));
+  int nVerticesR = (radiusMax - radiusStart) / getGridSpacingR(side);
   if (nVerticesR == 0) {
     nVerticesR = 1;
   }
 
-  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
-  const auto nBinsPhi = getPhiBinsGapFrame(side);
-  for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
+  const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const auto nBinsPhi = outerFrame ? 0 : (simOneSectorOnly ? 0 : getPhiBinsGapFrame(side));
+  for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
     const auto offsetPhi = sector * verticesPerSector + verticesPerSector / 2;
-    for (size_t iPhiLocal = 0; iPhiLocal <= verticesPerSector / 2 - nBinsPhi; ++iPhiLocal) {
+    for (size_t iPhiLocal = 0; iPhiLocal <= (verticesPerSector / 2 - nBinsPhi); ++iPhiLocal) {
       const auto iPhiLeft = offsetPhi + iPhiLocal;
       const auto iPhiRight = offsetPhi - iPhiLocal;
       const DataT phiLeft = getPhiVertex(iPhiLeft, side);
       const DataT phiRight = getPhiVertex(iPhiRight, side);
       const DataT localphi = getPhiVertex(iPhiLocal, side);
       const DataT radiusBottom = radiusStart / std::cos(localphi);
-      auto rStart = getNearestRVertex(radiusBottom, side);
-      const auto nREnd = outerFrame ? mParamGrid.NRVertices - 1 : rStart + nVerticesR;
+      auto rStart = (outerFrame && (stack == GEMstack::IROCgem)) ? 1 : std::round((radiusBottom - getRMin(side)) / getGridSpacingR(side) + 0.5); // round up to use only bins whihc are fully covered
+      const auto nREnd = (outerFrame && (stack == GEMstack::OROC3gem)) ? mParamGrid.NRVertices - 1 : rStart + nVerticesR;
 
       if (rStart == 0) {
         rStart = 1;
@@ -349,12 +379,17 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
       for (size_t iR = rStart; iR < nREnd; ++iR) {
         const size_t iZ = mParamGrid.NZVertices - 1;
         if (!outerFrame) {
-          mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
+          if (iPhiLeft < getNPhiVertices()) {
+            mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
+          }
           mPotential[side](iZ, iR, iPhiRight) = potentialFunc(phiRight);
         } else {
           const DataT r = getRVertex(iR, side);
-          mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(r);
-          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(r);
+          const DataT pot = potentialFunc(r);
+          if (iPhiLeft < getNPhiVertices()) {
+            mPotential[side](iZ, iR, iPhiLeft) = pot;
+          }
+          mPotential[side](iZ, iR, iPhiRight) = pot;
         }
       }
     }
@@ -364,6 +399,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryInnerRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side)
 {
+  initContainer(mPotential[side], true);
   for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
     const DataT z = getZVertex(iZ, side);
     const auto pot = potentialFunc(z);
@@ -377,6 +413,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryInnerRadius(const std::function<Dat
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side)
 {
+  initContainer(mPotential[side], true);
   for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
     const DataT z = getZVertex(iZ, side);
     const auto pot = potentialFunc(z);
@@ -391,6 +428,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mPotential[side], true);
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
     for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
@@ -407,6 +445,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mPotential[side], true);
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
     for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
@@ -451,6 +490,8 @@ void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<
 template <typename DataT>
 void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence, const int symmetry)
 {
+  initContainer(mDensity[side], true);
+  initContainer(mPotential[side], true);
   PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
   PoissonSolver<DataT> poissonSolver(mGrid3D[0]);
   poissonSolver.poissonSolver3D(mPotential[side], mDensity[side], symmetry);
@@ -460,24 +501,32 @@ template <typename DataT>
 void SpaceCharge<DataT>::setEFieldFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mElectricFieldEr[side], true);
+  initContainer(mElectricFieldEz[side], true);
+  initContainer(mElectricFieldEphi[side], true);
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
       for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
         const DataT radius = getRVertex(iR, side);
         const DataT z = getZVertex(iZ, side);
         const DataT phi = getPhiVertex(iPhi, side);
-        mElectricFieldEr[side](iZ, iR, iPhi) = formulaStruct.evalEr(z, radius, phi);
-        mElectricFieldEz[side](iZ, iR, iPhi) = formulaStruct.evalEz(z, radius, phi);
-        mElectricFieldEphi[side](iZ, iR, iPhi) = formulaStruct.evalEphi(z, radius, phi);
+        mElectricFieldEr[side](iZ, iR, iPhi) = formulaStruct.evalFieldR(z, radius, phi);
+        mElectricFieldEz[side](iZ, iR, iPhi) = formulaStruct.evalFieldZ(z, radius, phi);
+        mElectricFieldEphi[side](iZ, iR, iPhi) = formulaStruct.evalFieldPhi(z, radius, phi);
       }
     }
   }
-  mIsEfieldSet[side] = true;
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::calcEField(const Side side)
 {
+  using timer = std::chrono::high_resolution_clock;
+  auto start = timer::now();
+  initContainer(mPotential[side], true);
+  initContainer(mElectricFieldEr[side], true);
+  initContainer(mElectricFieldEz[side], true);
+  initContainer(mElectricFieldEphi[side], true);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const int symmetry = 0;
@@ -553,14 +602,19 @@ void SpaceCharge<DataT>::calcEField(const Side side)
       }
     }
   }
-  mIsEfieldSet[side] = true;
+  auto stop = timer::now();
+  std::chrono::duration<float> time = stop - start;
+  const float totalTime = time.count();
+  LOGP(info, "electric field calculation took {}s", totalTime);
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
 {
   const Side side = globCorr.getSide();
-
+  initContainer(mGlobalDistdR[side], true);
+  initContainer(mGlobalDistdZ[side], true);
+  initContainer(mGlobalDistdRPhi[side], true);
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
@@ -647,15 +701,13 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
       }
     }
   }
-  // set flag that global distortions are set to true
-  mIsGlobalDistSet[side] = true;
 }
 
 template <typename DataT>
 NumericalFields<DataT> SpaceCharge<DataT>::getElectricFieldsInterpolator(const Side side) const
 {
-  if (!mIsEfieldSet[side]) {
-    LOGP(warning, "============== E-Fields are not set! ==============\n");
+  if (!mElectricFieldEr[side].getNDataPoints()) {
+    LOGP(warning, "============== E-Fields are not set! ==============");
   }
   NumericalFields<DataT> numFields(mElectricFieldEr[side], mElectricFieldEz[side], mElectricFieldEphi[side], mGrid3D[side], side);
   return numFields;
@@ -664,8 +716,8 @@ NumericalFields<DataT> SpaceCharge<DataT>::getElectricFieldsInterpolator(const S
 template <typename DataT>
 DistCorrInterpolator<DataT> SpaceCharge<DataT>::getLocalDistInterpolator(const Side side) const
 {
-  if (!mIsLocalDistSet[side]) {
-    LOGP(warning, "============== local distortions not set! ==============\n");
+  if (!mLocalDistdR[side].getNDataPoints()) {
+    LOGP(warning, "============== local distortions not set! ==============");
   }
   DistCorrInterpolator<DataT> numFields(mLocalDistdR[side], mLocalDistdZ[side], mLocalDistdRPhi[side], mGrid3D[side], side);
   return numFields;
@@ -674,8 +726,8 @@ DistCorrInterpolator<DataT> SpaceCharge<DataT>::getLocalDistInterpolator(const S
 template <typename DataT>
 DistCorrInterpolator<DataT> SpaceCharge<DataT>::getLocalCorrInterpolator(const Side side) const
 {
-  if (!mIsLocalCorrSet[side]) {
-    LOGP(warning, "============== local corrections not set!  ==============\n");
+  if (!mLocalCorrdR[side].getNDataPoints()) {
+    LOGP(warning, "============== local corrections not set!  ==============");
   }
   DistCorrInterpolator<DataT> numFields(mLocalCorrdR[side], mLocalCorrdZ[side], mLocalCorrdRPhi[side], mGrid3D[side], side);
   return numFields;
@@ -684,8 +736,8 @@ DistCorrInterpolator<DataT> SpaceCharge<DataT>::getLocalCorrInterpolator(const S
 template <typename DataT>
 DistCorrInterpolator<DataT> SpaceCharge<DataT>::getGlobalDistInterpolator(const Side side) const
 {
-  if (!mIsGlobalDistSet[side]) {
-    LOGP(warning, "============== global distortions not set ==============\n");
+  if (!mGlobalDistdR[side].getNDataPoints()) {
+    LOGP(warning, "============== global distortions not set ==============");
   }
   DistCorrInterpolator<DataT> numFields(mGlobalDistdR[side], mGlobalDistdZ[side], mGlobalDistdRPhi[side], mGrid3D[side], side);
   return numFields;
@@ -694,8 +746,8 @@ DistCorrInterpolator<DataT> SpaceCharge<DataT>::getGlobalDistInterpolator(const 
 template <typename DataT>
 DistCorrInterpolator<DataT> SpaceCharge<DataT>::getGlobalCorrInterpolator(const Side side) const
 {
-  if (!mIsGlobalCorrSet[side]) {
-    LOGP(warning, "============== global corrections not set ==============\n");
+  if (!mGlobalCorrdR[side].getNDataPoints()) {
+    LOGP(warning, "============== global corrections not set ==============");
   }
   DistCorrInterpolator<DataT> numFields(mGlobalCorrdR[side], mGlobalCorrdZ[side], mGlobalCorrdRPhi[side], mGrid3D[side], side);
   return numFields;
@@ -714,6 +766,7 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
 {
   TH3DataT hRebin = rebinDensityHisto(hisSCDensity3D, mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
   for (int side = Side::A; side < SIDES; ++side) {
+    initContainer(mDensity[side], true);
     for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
       for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
         for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
@@ -722,7 +775,6 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
         }
       }
     }
-    mIsChargeSet[side] = true;
   }
 }
 
@@ -879,6 +931,16 @@ template <typename ElectricFields>
 void SpaceCharge<DataT>::calcLocalDistortionsCorrections(const SpaceCharge<DataT>::Type type, const ElectricFields& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  if (type == Type::Distortions) {
+    initContainer(mLocalDistdR[side], true);
+    initContainer(mLocalDistdZ[side], true);
+    initContainer(mLocalDistdRPhi[side], true);
+  } else {
+    initContainer(mLocalCorrdR[side], true);
+    initContainer(mLocalCorrdZ[side], true);
+    initContainer(mLocalCorrdRPhi[side], true);
+  }
+
   // calculate local distortions/corrections for each vertex in the tpc
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -907,7 +969,7 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrections(const SpaceCharge<DataT
           const DataT phiTmp = regulatePhi(phi + dPhiTmp, side);   // current phi position
 
           // calculate distortions/corrections
-          calcDistCorr(radiusTmp, phiTmp, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, true);
+          calcDistCorr(radiusTmp, phiTmp, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, true, side);
 
           // add temp distortions to local distortions
           drTmp += ddR;
@@ -946,14 +1008,6 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrections(const SpaceCharge<DataT
       }
     }
   }
-  switch (type) {
-    case Type::Corrections:
-      mIsLocalCorrSet[side] = true;
-      break;
-    case Type::Distortions:
-      mIsLocalDistSet[side] = true;
-      break;
-  }
 }
 
 template <typename DataT>
@@ -961,6 +1015,12 @@ template <typename ElectricFields>
 void SpaceCharge<DataT>::calcLocalDistortionCorrectionVector(const ElectricFields& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mLocalVecDistdR[side], true);
+  initContainer(mLocalVecDistdZ[side], true);
+  initContainer(mLocalVecDistdRPhi[side], true);
+  initContainer(mElectricFieldEr[side], true);
+  initContainer(mElectricFieldEz[side], true);
+  initContainer(mElectricFieldEphi[side], true);
   // calculate local distortion/correction vector for each vertex in the tpc
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -984,13 +1044,21 @@ void SpaceCharge<DataT>::calcLocalDistortionCorrectionVector(const ElectricField
       }
     }
   }
-  mIsLocalVecDistSet[side] = true;
 }
 
 template <typename DataT>
 template <typename ElectricFields>
 void SpaceCharge<DataT>::calcLocalDistortionsCorrectionsRK4(const SpaceCharge<DataT>::Type type, const Side side)
 {
+  if (type == Type::Distortions) {
+    initContainer(mLocalDistdR[side], true);
+    initContainer(mLocalDistdZ[side], true);
+    initContainer(mLocalDistdRPhi[side], true);
+  } else {
+    initContainer(mLocalCorrdR[side], true);
+    initContainer(mLocalCorrdZ[side], true);
+    initContainer(mLocalCorrdRPhi[side], true);
+  }
   // see: https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
   // calculate local distortions/corrections for each vertex in the tpc using Runge Kutta 4 method
 #pragma omp parallel for num_threads(sNThreads)
@@ -1107,14 +1175,6 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrectionsRK4(const SpaceCharge<Da
       }
     }
   }
-  switch (type) {
-    case Type::Corrections:
-      mIsLocalCorrSet[side] = true;
-      break;
-    case Type::Distortions:
-      mIsLocalDistSet[side] = true;
-      break;
-  }
 }
 
 template <typename DataT>
@@ -1122,6 +1182,9 @@ template <typename Fields>
 void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, const int maxIterations)
 {
   const Side side = formulaStruct.getSide();
+  initContainer(mGlobalDistdR[side], true);
+  initContainer(mGlobalDistdZ[side], true);
+  initContainer(mGlobalDistdRPhi[side], true);
   const DataT stepSize = formulaStruct.getID() == 2 ? getGridSpacingZ(side) : getGridSpacingZ(side) / sSteps; // if one used local distortions then no smaller stepsize is needed. if electric fields are used then smaller stepsize can be used
   // loop over tpc volume and let the electron drift from each vertex to the readout of the tpc
 #pragma omp parallel for num_threads(sNThreads)
@@ -1195,15 +1258,19 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
       }
     }
   }
-  // set flag that global distortions are set to true
-  mIsGlobalDistSet[side] = true;
 }
 
 template <typename DataT>
 template <typename Formulas>
 void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
 {
+  using timer = std::chrono::high_resolution_clock;
+  auto start = timer::now();
   const Side side = formulaStruct.getSide();
+  initContainer(mGlobalCorrdR[side], true);
+  initContainer(mGlobalCorrdZ[side], true);
+  initContainer(mGlobalCorrdRPhi[side], true);
+
   const int iSteps = formulaStruct.getID() == 2 ? 1 : sSteps; // if one used local corrections no step width is needed. since it is already used for calculation of the local corrections
   const DataT stepSize = -getGridSpacingZ(side) / iSteps;
 // loop over tpc volume and let the electron drift from each vertex to the readout of the tpc
@@ -1284,7 +1351,10 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
     }
   }
   // set flag that global corrections are set to true
-  mIsGlobalCorrSet[side] = true;
+  auto stop = timer::now();
+  std::chrono::duration<float> time = stop - start;
+  const float totalTime = time.count();
+  LOGP(info, "calcGlobalCorrections took {}s", totalTime);
 }
 
 template <typename DataT>
@@ -1312,11 +1382,7 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
   // get the distortions for input coordinate
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
 
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    auto& streamer = (const_cast<SpaceCharge<DataT>*>(this))->mStreamer;
-    streamer.setStreamer("debug_distortions", "UPDATE");
-
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
     GlobalPosition3D pos(point);
     float phi = std::atan2(pos.Y(), pos.X());
     if (phi < 0.) {
@@ -1326,16 +1392,16 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
     const Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
     LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sector);
 
-    streamer.getStreamer() << streamer.getUniqueTreeName("tree").data()
-                           << "pos=" << pos
-                           << "lPos=" << lPos
-                           << "phi=" << phi
-                           << "secNum=" << secNum
-                           << "distX=" << distX
-                           << "distY=" << distY
-                           << "distZ=" << distZ
-                           << "\n";
-  }
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_distortElectron", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortElectron").data()
+                                                                                         << "pos=" << pos
+                                                                                         << "lPos=" << lPos
+                                                                                         << "phi=" << phi
+                                                                                         << "secNum=" << secNum
+                                                                                         << "distX=" << distX
+                                                                                         << "distY=" << distY
+                                                                                         << "distZ=" << distZ
+                                                                                         << "\n";
+  })
 
   // set distorted coordinates
   point.SetXYZ(point.X() + distX, point.Y() + distY, point.Z() + distZ);
@@ -1356,9 +1422,9 @@ DataT SpaceCharge<DataT>::getPotentialCyl(const DataT z, const DataT r, const Da
 template <typename DataT>
 void SpaceCharge<DataT>::getElectricFieldsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& eZ, DataT& eR, DataT& ePhi) const
 {
-  eZ = mInterpolatorEField[side].evalEz(z, r, phi);
-  eR = mInterpolatorEField[side].evalEr(z, r, phi);
-  ePhi = mInterpolatorEField[side].evalEphi(z, r, phi);
+  eZ = mInterpolatorEField[side].evalFieldZ(z, r, phi);
+  eR = mInterpolatorEField[side].evalFieldR(z, r, phi);
+  ePhi = mInterpolatorEField[side].evalFieldPhi(z, r, phi);
 }
 
 template <typename DataT>
@@ -1378,9 +1444,7 @@ void SpaceCharge<DataT>::getLocalCorrectionsCyl(const std::vector<DataT>& z, con
   lcorrRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    lcorrZ[i] = mInterpolatorLocalCorr[side].evaldZ(z[i], r[i], phi[i]);
-    lcorrR[i] = mInterpolatorLocalCorr[side].evaldR(z[i], r[i], phi[i]);
-    lcorrRPhi[i] = mInterpolatorLocalCorr[side].evaldRPhi(z[i], r[i], phi[i]);
+    getLocalCorrectionsCyl(z[i], r[i], phi[i], side, lcorrZ[i], lcorrR[i], lcorrRPhi[i]);
   }
 }
 
@@ -1401,9 +1465,7 @@ void SpaceCharge<DataT>::getCorrectionsCyl(const std::vector<DataT>& z, const st
   corrRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    corrZ[i] = mInterpolatorGlobalCorr[side].evaldZ(z[i], r[i], phi[i]);
-    corrR[i] = mInterpolatorGlobalCorr[side].evaldR(z[i], r[i], phi[i]);
-    corrRPhi[i] = mInterpolatorGlobalCorr[side].evaldRPhi(z[i], r[i], phi[i]);
+    getLocalCorrectionsCyl(z[i], r[i], phi[i], side, corrZ[i], corrR[i], corrRPhi[i]);
   }
 }
 
@@ -1447,9 +1509,7 @@ void SpaceCharge<DataT>::getLocalDistortionsCyl(const std::vector<DataT>& z, con
   ldistRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    ldistZ[i] = mInterpolatorLocalDist[side].evaldZ(z[i], r[i], phi[i]);
-    ldistR[i] = mInterpolatorLocalDist[side].evaldR(z[i], r[i], phi[i]);
-    ldistRPhi[i] = mInterpolatorLocalDist[side].evaldRPhi(z[i], r[i], phi[i]);
+    getLocalDistortionsCyl(z[i], r[i], phi[i], side, ldistZ[i], ldistR[i], ldistRPhi[i]);
   }
 }
 
@@ -1470,9 +1530,7 @@ void SpaceCharge<DataT>::getLocalDistortionVectorCyl(const std::vector<DataT>& z
   lvecdistRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    lvecdistZ[i] = mInterpolatorLocalVecDist[side].evaldZ(z[i], r[i], phi[i]);
-    lvecdistR[i] = mInterpolatorLocalVecDist[side].evaldR(z[i], r[i], phi[i]);
-    lvecdistRPhi[i] = mInterpolatorLocalVecDist[side].evaldRPhi(z[i], r[i], phi[i]);
+    getLocalDistortionVectorCyl(z[i], r[i], phi[i], side, lvecdistZ[i], lvecdistR[i], lvecdistRPhi[i]);
   }
 }
 
@@ -1493,9 +1551,7 @@ void SpaceCharge<DataT>::getLocalCorrectionVectorCyl(const std::vector<DataT>& z
   lveccorrRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    lveccorrZ[i] = -mInterpolatorLocalVecDist[side].evaldZ(z[i], r[i], phi[i]);
-    lveccorrR[i] = -mInterpolatorLocalVecDist[side].evaldR(z[i], r[i], phi[i]);
-    lveccorrRPhi[i] = -mInterpolatorLocalVecDist[side].evaldRPhi(z[i], r[i], phi[i]);
+    getLocalCorrectionVectorCyl(z[i], r[i], phi[i], side, lveccorrZ[i], lveccorrR[i], lveccorrRPhi[i]);
   }
 }
 
@@ -1516,9 +1572,7 @@ void SpaceCharge<DataT>::getDistortionsCyl(const std::vector<DataT>& z, const st
   distRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    distZ[i] = mInterpolatorGlobalDist[side].evaldZ(z[i], r[i], phi[i]);
-    distR[i] = mInterpolatorGlobalDist[side].evaldR(z[i], r[i], phi[i]);
-    distRPhi[i] = mInterpolatorGlobalDist[side].evaldRPhi(z[i], r[i], phi[i]);
+    getDistortionsCyl(z[i], r[i], phi[i], side, distZ[i], distR[i], distRPhi[i]);
   }
 }
 
@@ -1572,26 +1626,18 @@ void SpaceCharge<DataT>::getDistortionsCorrectionsAnalytical(const DataT x, cons
   distY = globalPosDist.Y() - y;
   distZ = globalPosDist.Z() - z;
 
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
-    auto& streamer = (const_cast<SpaceCharge<DataT>*>(this))->mStreamer;
-    streamer.setStreamer("debug_distortions_analytical", "UPDATE");
-    float dlXTmp = dlX;
-    float dlYTmp = dlY;
-    float dlZTmp = dlZ;
-    auto posTmp = pos;
-    auto lPosTmp = lPos;
-    streamer.getStreamer() << streamer.getUniqueTreeName("tree_ana").data()
-                           << "pos=" << posTmp
-                           << "lPos=" << lPosTmp
-                           << "dlX=" << dlXTmp
-                           << "dlY=" << dlYTmp
-                           << "dlZ=" << dlZTmp
-                           << "distX=" << distX
-                           << "distY=" << distY
-                           << "distZ=" << distZ
-                           << "\n";
-  }
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_distortions_analytical", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_distortions_analytical").data()
+                                                                                                << "pos=" << (*const_cast<GlobalPosition3D*>(&pos))
+                                                                                                << "lPos=" << (*const_cast<LocalPosition3D*>(&lPos))
+                                                                                                << "dlX=" << (*const_cast<DataT*>(&dlX))
+                                                                                                << "dlY=" << (*const_cast<DataT*>(&dlY))
+                                                                                                << "dlZ=" << (*const_cast<DataT*>(&dlZ))
+                                                                                                << "distX=" << distX
+                                                                                                << "distY=" << distY
+                                                                                                << "distZ=" << distZ
+                                                                                                << "\n";
+  })
 }
 
 template <typename DataT>
@@ -1629,25 +1675,109 @@ void SpaceCharge<DataT>::setDistortionLookupTables(const DataContainer& distdZ, 
   mGlobalDistdR[side] = distdR;
   mGlobalDistdZ[side] = distdZ;
   mGlobalDistdRPhi[side] = distdRPhi;
-  mIsGlobalDistSet[side] = true;
 }
 
 template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
+void SpaceCharge<DataT>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
 {
-  const DataT ezField = getEzField(formulaStruct.getSide());
   TF1 fErOverEz(
-    "fErOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEr(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
+    "fErOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalFieldR(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalFieldZ(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
   localIntErOverEz = static_cast<DataT>(fErOverEz.Integral(p1z, p2z));
 
   TF1 fEphiOverEz(
-    "fEPhiOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEphi(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
+    "fEPhiOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalFieldPhi(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalFieldZ(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
   localIntEPhiOverEz = static_cast<DataT>(fEphiOverEz.Integral(p1z, p2z));
 
   TF1 fEz(
-    "fEZOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) - ezField); }, p1z, p2z, 1);
-  localIntDeltaEz = getSign(formulaStruct.getSide()) * static_cast<DataT>(fEz.Integral(p1z, p2z));
+    "fEZOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalFieldZ(static_cast<DataT>(x[0]), p1r, p1phi) - ezField); }, p1z, p2z, 1);
+  localIntDeltaEz = getSign(side) * static_cast<DataT>(fEz.Integral(p1z, p2z));
+}
+
+template <typename DataT>
+template <typename Fields>
+void SpaceCharge<DataT>::integrateEFieldsTrapezoidal(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
+{
+  //========trapezoidal rule see: https://en.wikipedia.org/wiki/Trapezoidal_rule ==============
+  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
+  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
+  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+
+  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p1r, p1phi);
+  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p1r, p1phi);
+  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p1r, p1phi);
+
+  const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
+
+  const DataT deltaX = 0.5 * (p2z - p1z);
+  localIntErOverEz = deltaX * (fielder0 * eZ0 + fielder1 * eZ1);
+  localIntEPhiOverEz = deltaX * (fieldephi0 * eZ0 + fieldephi1 * eZ1);
+  localIntDeltaEz = getSign(side) * deltaX * (fieldez0 + fieldez1);
+}
+
+template <typename DataT>
+template <typename Fields>
+void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
+{
+  //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
+  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
+  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
+  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+
+  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p1r, p1phi);
+  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p1r, p1phi);
+  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p1r, p1phi);
+
+  const DataT deltaX = p2z - p1z;
+  const DataT xk2N = (p2z - static_cast<DataT>(0.5) * deltaX);
+  const DataT ezField2 = formulaStruct.evalFieldZ(xk2N, p1r, p1phi);
+  const DataT ezField2Denominator = isCloseToZero(ezField, ezField2) ? 0 : 1. / (ezField + ezField2);
+  const DataT fieldSum2ErOverEz = formulaStruct.evalFieldR(xk2N, p1r, p1phi) * ezField2Denominator;
+  const DataT fieldSum2EphiOverEz = formulaStruct.evalFieldPhi(xk2N, p1r, p1phi) * ezField2Denominator;
+
+  const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
+
+  const DataT deltaXSimpsonSixth = deltaX / 6.;
+  localIntErOverEz = deltaXSimpsonSixth * (4. * fieldSum2ErOverEz + fielder0 * eZ0 + fielder1 * eZ1);
+  localIntEPhiOverEz = deltaXSimpsonSixth * (4. * fieldSum2EphiOverEz + fieldephi0 * eZ0 + fieldephi1 * eZ1);
+  localIntDeltaEz = getSign(side) * deltaXSimpsonSixth * (4. * ezField2 + fieldez0 + fieldez1);
+}
+
+template <typename DataT>
+template <typename Fields>
+void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct, const DataT ezField, const Side side) const
+{
+  //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
+  // const Side side = formulaStruct.getSide();
+  // const DataT ezField = getEzField(side);
+  const DataT p2phiSave = regulatePhi(p2phi, side);
+
+  const DataT fielder0 = formulaStruct.evalFieldR(p1z, p1r, p1phi);
+  const DataT fieldez0 = formulaStruct.evalFieldZ(p1z, p1r, p1phi);
+  const DataT fieldephi0 = formulaStruct.evalFieldPhi(p1z, p1r, p1phi);
+
+  const DataT fielder1 = formulaStruct.evalFieldR(p2z, p2r, p2phiSave);
+  const DataT fieldez1 = formulaStruct.evalFieldZ(p2z, p2r, p2phiSave);
+  const DataT fieldephi1 = formulaStruct.evalFieldPhi(p2z, p2r, p2phiSave);
+
+  const DataT eZ0Inv = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1Inv = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
+
+  const DataT pHalfZ = 0.5 * (p1z + p2z);                              // dont needs to be regulated since p1z and p2z are already regulated
+  const DataT pHalfPhiSave = regulatePhi(0.5 * (p1phi + p2phi), side); // needs to be regulated since p2phi is not regulated
+  const DataT pHalfR = 0.5 * (p1r + p2r);
+
+  const DataT ezField2 = formulaStruct.evalFieldZ(pHalfZ, pHalfR, pHalfPhiSave);
+  const DataT eZHalfInv = (isCloseToZero(ezField, ezField2) | isCloseToZero(ezField, fieldez0) | isCloseToZero(ezField, fieldez1)) ? 0 : 1. / (ezField + ezField2);
+  const DataT fieldSum2ErOverEz = formulaStruct.evalFieldR(pHalfZ, pHalfR, pHalfPhiSave);
+  const DataT fieldSum2EphiOverEz = formulaStruct.evalFieldPhi(pHalfZ, pHalfR, pHalfPhiSave);
+
+  const DataT deltaXSimpsonSixth = (p2z - p1z) / 6;
+  localIntErOverEz = deltaXSimpsonSixth * (4 * fieldSum2ErOverEz * eZHalfInv + fielder0 * eZ0Inv + fielder1 * eZ1Inv);
+  localIntEPhiOverEz = deltaXSimpsonSixth * (4 * fieldSum2EphiOverEz * eZHalfInv + fieldephi0 * eZ0Inv + fieldephi1 * eZ1Inv);
+  localIntDeltaEz = getSign(side) * deltaXSimpsonSixth * (4 * ezField2 + fieldez0 + fieldez1);
 }
 
 template <typename DataT>
@@ -1665,8 +1795,8 @@ std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<Da
     const DataT r0 = elePos[i].Rho();
     const DataT phi0 = elePos[i].Phi();
     const Side side = getSide(z0);
-    if (!mIsEfieldSet[side]) {
-      LOGP(warning, "E-Fields are not set! Calculation of drift path is not possible\n");
+    if (!mElectricFieldEr[side].getNDataPoints()) {
+      LOGP(warning, "E-Fields are not set! Calculation of drift path is not possible");
       continue;
     }
     const NumericalFields<DataT> numEFields{getElectricFieldsInterpolator(side)};
@@ -1878,20 +2008,94 @@ void SpaceCharge<DataT>::makeElectronDriftPathGif(const char* inpFile, TH2F& hDu
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, const int nZPoints, const int nRPoints, const int nPhiPoints) const
+void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, const int nZPoints, const int nRPoints, const int nPhiPoints, const bool randomize) const
 {
-  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints);
+  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints) / (MGParameters::normalizeGridToOneSector ? SECTORSPERSIDE : 1);
   const DataT rSpacing = GridProp::getGridSpacingR(nRPoints);
   const DataT zSpacing = side == Side::A ? GridProp::getGridSpacingZ(nZPoints) : -GridProp::getGridSpacingZ(nZPoints);
 
-  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
-  pcstream.GetFile()->cd();
+  std::uniform_real_distribution<DataT> uniR(-rSpacing / 2, rSpacing / 2);
+  std::uniform_real_distribution<DataT> uniPhi(-phiSpacing / 2, phiSpacing / 2);
+
+  std::vector<std::vector<float>> phiPosOut(nPhiPoints);
+  std::vector<std::vector<float>> rPosOut(nPhiPoints);
+  std::vector<std::vector<float>> zPosOut(nPhiPoints);
+  std::vector<std::vector<int>> iPhiOut(nPhiPoints);
+  std::vector<std::vector<int>> iROut(nPhiPoints);
+  std::vector<std::vector<int>> iZOut(nPhiPoints);
+  std::vector<std::vector<float>> densityOut(nPhiPoints);
+  std::vector<std::vector<float>> potentialOut(nPhiPoints);
+  std::vector<std::vector<float>> eZOut(nPhiPoints);
+  std::vector<std::vector<float>> eROut(nPhiPoints);
+  std::vector<std::vector<float>> ePhiOut(nPhiPoints);
+  std::vector<std::vector<float>> distZOut(nPhiPoints);
+  std::vector<std::vector<float>> distROut(nPhiPoints);
+  std::vector<std::vector<float>> distRPhiOut(nPhiPoints);
+  std::vector<std::vector<float>> corrZOut(nPhiPoints);
+  std::vector<std::vector<float>> corrROut(nPhiPoints);
+  std::vector<std::vector<float>> corrRPhiOut(nPhiPoints);
+  std::vector<std::vector<float>> lcorrZOut(nPhiPoints);
+  std::vector<std::vector<float>> lcorrROut(nPhiPoints);
+  std::vector<std::vector<float>> lcorrRPhiOut(nPhiPoints);
+  std::vector<std::vector<float>> ldistZOut(nPhiPoints);
+  std::vector<std::vector<float>> ldistROut(nPhiPoints);
+  std::vector<std::vector<float>> ldistRPhiOut(nPhiPoints);
+  std::vector<std::vector<float>> xOut(nPhiPoints);
+  std::vector<std::vector<float>> yOut(nPhiPoints);
+  std::vector<std::vector<float>> bROut(nPhiPoints);
+  std::vector<std::vector<float>> bZOut(nPhiPoints);
+  std::vector<std::vector<float>> bPhiOut(nPhiPoints);
+  std::vector<std::vector<LocalPosition3D>> lPosOut(nPhiPoints);
+  std::vector<std::vector<int>> sectorOut(nPhiPoints);
+  std::vector<std::vector<size_t>> globalIdxOut(nPhiPoints);
+
+#pragma omp parallel for num_threads(sNThreads)
   for (int iPhi = 0; iPhi < nPhiPoints; ++iPhi) {
+    const int nPoints = nZPoints * nRPoints;
+    phiPosOut[iPhi].reserve(nPoints);
+    rPosOut[iPhi].reserve(nPoints);
+    zPosOut[iPhi].reserve(nPoints);
+    iPhiOut[iPhi].reserve(nPoints);
+    iROut[iPhi].reserve(nPoints);
+    iZOut[iPhi].reserve(nPoints);
+    densityOut[iPhi].reserve(nPoints);
+    potentialOut[iPhi].reserve(nPoints);
+    eZOut[iPhi].reserve(nPoints);
+    eROut[iPhi].reserve(nPoints);
+    ePhiOut[iPhi].reserve(nPoints);
+    distZOut[iPhi].reserve(nPoints);
+    distROut[iPhi].reserve(nPoints);
+    distRPhiOut[iPhi].reserve(nPoints);
+    corrZOut[iPhi].reserve(nPoints);
+    corrROut[iPhi].reserve(nPoints);
+    corrRPhiOut[iPhi].reserve(nPoints);
+    lcorrZOut[iPhi].reserve(nPoints);
+    lcorrROut[iPhi].reserve(nPoints);
+    lcorrRPhiOut[iPhi].reserve(nPoints);
+    ldistZOut[iPhi].reserve(nPoints);
+    ldistROut[iPhi].reserve(nPoints);
+    ldistRPhiOut[iPhi].reserve(nPoints);
+    xOut[iPhi].reserve(nPoints);
+    yOut[iPhi].reserve(nPoints);
+    bROut[iPhi].reserve(nPoints);
+    bZOut[iPhi].reserve(nPoints);
+    bPhiOut[iPhi].reserve(nPoints);
+    lPosOut[iPhi].reserve(nPoints);
+    sectorOut[iPhi].reserve(nPoints);
+    globalIdxOut[iPhi].reserve(nPoints);
+
+    std::mt19937 rng(std::random_device{}());
     DataT phiPos = iPhi * phiSpacing;
     for (int iR = 0; iR < nRPoints; ++iR) {
       DataT rPos = getRMin(side) + iR * rSpacing;
       for (int iZ = 0; iZ < nZPoints; ++iZ) {
         DataT zPos = getZMin(side) + iZ * zSpacing;
+        if (randomize) {
+          phiPos += uniPhi(rng);
+          o2::math_utils::detail::bringTo02PiGen<DataT>(phiPos);
+          rPos += uniR(rng);
+        }
+
         DataT density = getDensityCyl(zPos, rPos, phiPos, side);
         DataT potential = getPotentialCyl(zPos, rPos, phiPos, side);
 
@@ -1899,6 +2103,11 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
         DataT distR{};
         DataT distRPhi{};
         getDistortionsCyl(zPos, rPos, phiPos, side, distZ, distR, distRPhi);
+
+        DataT ldistZ{};
+        DataT ldistR{};
+        DataT ldistRPhi{};
+        getLocalDistortionsCyl(zPos, rPos, phiPos, side, ldistZ, ldistR, ldistRPhi);
 
         // get average distortions
         DataT corrZ{};
@@ -1911,43 +2120,238 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
         DataT lcorrRPhi{};
         getLocalCorrectionsCyl(zPos, rPos, phiPos, side, lcorrZ, lcorrR, lcorrRPhi);
 
-        DataT ldistZ{};
-        DataT ldistR{};
-        DataT ldistRPhi{};
-        getLocalDistortionsCyl(zPos, rPos, phiPos, side, ldistZ, ldistR, ldistRPhi);
-
         // get average distortions
         DataT eZ{};
         DataT eR{};
         DataT ePhi{};
         getElectricFieldsCyl(zPos, rPos, phiPos, side, eZ, eR, ePhi);
 
-        pcstream << "sc"
-                 << "phi=" << phiPos
-                 << "r=" << rPos
-                 << "z=" << zPos
-                 << "scdensity=" << density
-                 << "potential=" << potential
-                 << "eZ=" << eZ
-                 << "eR=" << eR
-                 << "ePhi=" << ePhi
-                 << "distZ=" << distZ
-                 << "distR=" << distR
-                 << "distRPhi=" << distRPhi
-                 << "corrZ=" << corrZ
-                 << "corrR=" << corrR
-                 << "corrRPhi=" << corrRPhi
-                 << "lcorrZ=" << lcorrZ
-                 << "lcorrR=" << lcorrR
-                 << "lcorrRPhi=" << lcorrRPhi
-                 << "ldistZ=" << ldistZ
-                 << "ldistR=" << ldistR
-                 << "ldistRPhi=" << ldistRPhi
-                 << "\n";
+        // global coordinates
+        const float x = getXFromPolar(rPos, phiPos);
+        const float y = getYFromPolar(rPos, phiPos);
+
+        // b field
+        const float bR = mBField.evalFieldR(zPos, rPos, phiPos);
+        const float bZ = mBField.evalFieldZ(zPos, rPos, phiPos);
+        const float bPhi = mBField.evalFieldPhi(zPos, rPos, phiPos);
+
+        const LocalPosition3D pos(x, y, zPos);
+        unsigned char secNum = std::floor(phiPos / SECPHIWIDTH);
+        Sector sector(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
+        LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sector);
+
+        phiPosOut[iPhi].emplace_back(phiPos);
+        rPosOut[iPhi].emplace_back(rPos);
+        zPosOut[iPhi].emplace_back(zPos);
+        iPhiOut[iPhi].emplace_back(iPhi);
+        iROut[iPhi].emplace_back(iR);
+        iZOut[iPhi].emplace_back(iZ);
+        if (mDensity[side].getNDataPoints()) {
+          densityOut[iPhi].emplace_back(density);
+        }
+        if (mPotential[side].getNDataPoints()) {
+          potentialOut[iPhi].emplace_back(potential);
+        }
+        if (mElectricFieldEr[side].getNDataPoints()) {
+          eZOut[iPhi].emplace_back(eZ);
+          eROut[iPhi].emplace_back(eR);
+          ePhiOut[iPhi].emplace_back(ePhi);
+        }
+        if (mGlobalDistdR[side].getNDataPoints()) {
+          distZOut[iPhi].emplace_back(distZ);
+          distROut[iPhi].emplace_back(distR);
+          distRPhiOut[iPhi].emplace_back(distRPhi);
+        }
+        if (mGlobalCorrdR[side].getNDataPoints()) {
+          corrZOut[iPhi].emplace_back(corrZ);
+          corrROut[iPhi].emplace_back(corrR);
+          corrRPhiOut[iPhi].emplace_back(corrRPhi);
+        }
+        if (mLocalCorrdR[side].getNDataPoints()) {
+          lcorrZOut[iPhi].emplace_back(lcorrZ);
+          lcorrROut[iPhi].emplace_back(lcorrR);
+          lcorrRPhiOut[iPhi].emplace_back(lcorrRPhi);
+        }
+        if (mLocalDistdR[side].getNDataPoints()) {
+          ldistZOut[iPhi].emplace_back(ldistZ);
+          ldistROut[iPhi].emplace_back(ldistR);
+          ldistRPhiOut[iPhi].emplace_back(ldistRPhi);
+        }
+        xOut[iPhi].emplace_back(x);
+        yOut[iPhi].emplace_back(y);
+        bROut[iPhi].emplace_back(bR);
+        bZOut[iPhi].emplace_back(bZ);
+        bPhiOut[iPhi].emplace_back(bPhi);
+        lPosOut[iPhi].emplace_back(lPos);
+        sectorOut[iPhi].emplace_back(sector);
+        const size_t idx = (iZ + nZPoints * (iR + iPhi * nRPoints));
+        globalIdxOut[iPhi].emplace_back(idx);
       }
     }
   }
-  pcstream.Close();
+
+  if (ROOT::IsImplicitMTEnabled() && (ROOT::GetThreadPoolSize() != sNThreads)) {
+    ROOT::DisableImplicitMT();
+  }
+  ROOT::EnableImplicitMT(sNThreads);
+  ROOT::RDataFrame dFrame(nPhiPoints);
+
+  TStopwatch timer;
+  auto dfStore = dFrame.DefineSlotEntry("x", [&xOut = xOut](unsigned int, ULong64_t entry) { return xOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("y", [&yOut = yOut](unsigned int, ULong64_t entry) { return yOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("phi", [&phiPosOut = phiPosOut](unsigned int, ULong64_t entry) { return phiPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("r", [&rPosOut = rPosOut](unsigned int, ULong64_t entry) { return rPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("z", [&zPosOut = zPosOut](unsigned int, ULong64_t entry) { return zPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("iPhi", [&iPhiOut = iPhiOut](unsigned int, ULong64_t entry) { return iPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("iR", [&iROut = iROut](unsigned int, ULong64_t entry) { return iROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("iZ", [&iZOut = iZOut](unsigned int, ULong64_t entry) { return iZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("lPos", [&lPosOut = lPosOut](unsigned int, ULong64_t entry) { return lPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("sector", [&sectorOut = sectorOut](unsigned int, ULong64_t entry) { return sectorOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("scdensity", [&densityOut = densityOut](unsigned int, ULong64_t entry) { return densityOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("potential", [&potentialOut = potentialOut](unsigned int, ULong64_t entry) { return potentialOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("eZ", [&eZOut = eZOut](unsigned int, ULong64_t entry) { return eZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("eR", [&eROut = eROut](unsigned int, ULong64_t entry) { return eROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ePhi", [&ePhiOut = ePhiOut](unsigned int, ULong64_t entry) { return ePhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("distZ", [&distZOut = distZOut](unsigned int, ULong64_t entry) { return distZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("distR", [&distROut = distROut](unsigned int, ULong64_t entry) { return distROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("distRPhi", [&distRPhiOut = distRPhiOut](unsigned int, ULong64_t entry) { return distRPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrZ", [&corrZOut = corrZOut](unsigned int, ULong64_t entry) { return corrZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrR", [&corrROut = corrROut](unsigned int, ULong64_t entry) { return corrROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrRPhi", [&corrRPhiOut = corrRPhiOut](unsigned int, ULong64_t entry) { return corrRPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("lcorrZ", [&lcorrZOut = lcorrZOut](unsigned int, ULong64_t entry) { return lcorrZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("lcorrR", [&lcorrROut = lcorrROut](unsigned int, ULong64_t entry) { return lcorrROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("lcorrRPhi", [&lcorrRPhiOut = lcorrRPhiOut](unsigned int, ULong64_t entry) { return lcorrRPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ldistZ", [&ldistZOut = ldistZOut](unsigned int, ULong64_t entry) { return ldistZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ldistR", [&ldistROut = ldistROut](unsigned int, ULong64_t entry) { return ldistROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ldistRPhi", [&ldistRPhiOut = ldistRPhiOut](unsigned int, ULong64_t entry) { return ldistRPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("bR", [&bROut = bROut](unsigned int, ULong64_t entry) { return bROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("bZ", [&bZOut = bZOut](unsigned int, ULong64_t entry) { return bZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("bPhi", [&bPhiOut = bPhiOut](unsigned int, ULong64_t entry) { return bPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("globalIndex", [&globalIdxOut = globalIdxOut](unsigned int, ULong64_t entry) { return globalIdxOut[entry]; });
+  dfStore.Snapshot("tree", outFileName);
+  timer.Print("u");
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Sector& sector, const int nZPoints) const
+{
+  const Side side = sector.side();
+  const DataT zSpacing = (side == Side::A) ? GridProp::getGridSpacingZ(nZPoints) : -GridProp::getGridSpacingZ(nZPoints);
+  const Mapper& mapper = Mapper::instance();
+
+  const int nPads = Mapper::getPadsInSector();
+  std::vector<std::vector<float>> phiPosOut(nZPoints);
+  std::vector<std::vector<float>> rPosOut(nZPoints);
+  std::vector<std::vector<float>> zPosOut(nZPoints);
+  std::vector<std::vector<int>> rowOut(nZPoints);
+  std::vector<std::vector<float>> lxOut(nZPoints);
+  std::vector<std::vector<float>> lyOut(nZPoints);
+  std::vector<std::vector<float>> xOut(nZPoints);
+  std::vector<std::vector<float>> yOut(nZPoints);
+  std::vector<std::vector<float>> corrZOut(nZPoints);
+  std::vector<std::vector<float>> corrROut(nZPoints);
+  std::vector<std::vector<float>> corrRPhiOut(nZPoints);
+  std::vector<std::vector<float>> erOut(nZPoints);
+  std::vector<std::vector<float>> ezOut(nZPoints);
+  std::vector<std::vector<float>> ephiOut(nZPoints);
+  std::vector<std::vector<float>> potentialOut(nZPoints);
+  std::vector<std::vector<int>> izOut(nZPoints);
+  std::vector<std::vector<size_t>> globalIdxOut(nZPoints);
+
+#pragma omp parallel for num_threads(sNThreads)
+  for (int iZ = 0; iZ < nZPoints; ++iZ) {
+    phiPosOut[iZ].reserve(nPads);
+    rPosOut[iZ].reserve(nPads);
+    zPosOut[iZ].reserve(nPads);
+    corrZOut[iZ].reserve(nPads);
+    corrROut[iZ].reserve(nPads);
+    corrRPhiOut[iZ].reserve(nPads);
+    rowOut[iZ].reserve(nPads);
+    lxOut[iZ].reserve(nPads);
+    lyOut[iZ].reserve(nPads);
+    xOut[iZ].reserve(nPads);
+    yOut[iZ].reserve(nPads);
+    erOut[iZ].reserve(nPads);
+    ezOut[iZ].reserve(nPads);
+    ephiOut[iZ].reserve(nPads);
+    izOut[iZ].reserve(nPads);
+    potentialOut[iZ].reserve(nPads);
+    globalIdxOut[iZ].reserve(nPads);
+
+    DataT zPos = getZMin(side) + iZ * zSpacing;
+    for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
+      for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
+        for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
+          GlobalPadNumber globalpad = Mapper::getGlobalPadNumber(irow, ipad, region);
+          const PadCentre& padcentre = mapper.padCentre(globalpad);
+          auto lx = padcentre.X();
+          auto ly = padcentre.Y();
+          // local to global
+          auto globalPos = Mapper::LocalToGlobal(padcentre, sector);
+          auto x = globalPos.X();
+          auto y = globalPos.Y();
+
+          auto r = getRadiusFromCartesian(x, y);
+          auto phi = getPhiFromCartesian(x, y);
+          DataT corrZ{};
+          DataT corrR{};
+          DataT corrRPhi{};
+          getCorrectionsCyl(zPos, r, phi, side, corrZ, corrR, corrRPhi);
+
+          DataT eZ{};
+          DataT eR{};
+          DataT ePhi{};
+          getElectricFieldsCyl(zPos, r, phi, side, eZ, eR, ePhi);
+
+          potentialOut[iZ].emplace_back(getPotentialCyl(zPos, r, phi, side));
+          erOut[iZ].emplace_back(eR);
+          ezOut[iZ].emplace_back(eZ);
+          ephiOut[iZ].emplace_back(ePhi);
+          phiPosOut[iZ].emplace_back(phi);
+          rPosOut[iZ].emplace_back(r);
+          zPosOut[iZ].emplace_back(zPos);
+          corrZOut[iZ].emplace_back(corrZ);
+          corrROut[iZ].emplace_back(corrR);
+          corrRPhiOut[iZ].emplace_back(corrRPhi);
+          rowOut[iZ].emplace_back(irow + Mapper::ROWOFFSET[region]);
+          lxOut[iZ].emplace_back(lx);
+          lyOut[iZ].emplace_back(ly);
+          xOut[iZ].emplace_back(x);
+          yOut[iZ].emplace_back(y);
+          izOut[iZ].emplace_back(iZ);
+          const size_t idx = globalpad + Mapper::getPadsInSector() * iZ;
+          globalIdxOut[iZ].emplace_back(idx);
+        }
+      }
+    }
+  }
+
+  if (ROOT::IsImplicitMTEnabled() && (ROOT::GetThreadPoolSize() != sNThreads)) {
+    ROOT::DisableImplicitMT();
+  }
+  ROOT::EnableImplicitMT(sNThreads);
+  ROOT::RDataFrame dFrame(nZPoints);
+
+  TStopwatch timer;
+  auto dfStore = dFrame.DefineSlotEntry("phi", [&phiPosOut = phiPosOut](unsigned int, ULong64_t entry) { return phiPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("r", [&rPosOut = rPosOut](unsigned int, ULong64_t entry) { return rPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("z", [&zPosOut = zPosOut](unsigned int, ULong64_t entry) { return zPosOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("iz", [&izOut = izOut](unsigned int, ULong64_t entry) { return izOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrZ", [&corrZOut = corrZOut](unsigned int, ULong64_t entry) { return corrZOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrR", [&corrROut = corrROut](unsigned int, ULong64_t entry) { return corrROut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("corrRPhi", [&corrRPhiOut = corrRPhiOut](unsigned int, ULong64_t entry) { return corrRPhiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("row", [&rowOut = rowOut](unsigned int, ULong64_t entry) { return rowOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("lx", [&lxOut = lxOut](unsigned int, ULong64_t entry) { return lxOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ly", [&lyOut = lyOut](unsigned int, ULong64_t entry) { return lyOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("x", [&xOut = xOut](unsigned int, ULong64_t entry) { return xOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("y", [&yOut = yOut](unsigned int, ULong64_t entry) { return yOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("er", [&erOut = erOut](unsigned int, ULong64_t entry) { return erOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ez", [&ezOut = ezOut](unsigned int, ULong64_t entry) { return ezOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("ephi", [&ephiOut = ephiOut](unsigned int, ULong64_t entry) { return ephiOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("potential", [&potentialOut = potentialOut](unsigned int, ULong64_t entry) { return potentialOut[entry]; });
+  dfStore = dfStore.DefineSlotEntry("globalIndex", [&globalIdxOut = globalIdxOut](unsigned int, ULong64_t entry) { return globalIdxOut[entry]; });
+  dfStore.Snapshot("tree", outFileName);
+  timer.Print("u");
 }
 
 template <typename DataT>
@@ -1973,7 +2377,7 @@ template <typename DataT>
 int SpaceCharge<DataT>::dumpAnalyticalCorrectionsDistortions(TFile& outf) const
 {
   if (!mAnaDistCorr.isValid()) {
-    LOGP(info, "============== analytical functions are not set! returning ==============\n");
+    LOGP(info, "============== analytical functions are not set! returning ==============");
     return 0;
   }
   bool isOK = outf.WriteObject(&mAnaDistCorr, "analyticalDistCorr");
@@ -1981,18 +2385,603 @@ int SpaceCharge<DataT>::dumpAnalyticalCorrectionsDistortions(TFile& outf) const
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::setAnalyticalCorrectionsDistortionsFromFile(TFile& inpf)
+void SpaceCharge<DataT>::setAnalyticalCorrectionsDistortionsFromFile(std::string_view inpf)
 {
-  const bool containsFormulas = inpf.GetListOfKeys()->Contains("analyticalDistCorr");
+  TFile fIn(inpf.data(), "READ");
+  const bool containsFormulas = fIn.GetListOfKeys()->Contains("analyticalDistCorr");
   if (!containsFormulas) {
-    LOGP(info, "============== analytical functions are not stored! returning ==============\n");
+    LOGP(info, "============== analytical functions are not stored! returning ==============");
     return;
   }
   LOGP(info, "Using analytical corrections and distortions");
   setUseAnalyticalDistCorr(true);
-  AnalyticalDistCorr<DataT>* form = (AnalyticalDistCorr<DataT>*)inpf.Get("analyticalDistCorr");
+  AnalyticalDistCorr<DataT>* form = (AnalyticalDistCorr<DataT>*)fIn.Get("analyticalDistCorr");
   mAnaDistCorr = *form;
   delete form;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::langevinCylindricalE(DataT& ddR, DataT& ddPhi, DataT& ddZ, const DataT radius, const DataT localIntErOverEz, const DataT localIntEPhiOverEz, const DataT localIntDeltaEz) const
+{
+  // calculated distortions/correction with the formula described in https://edms.cern.ch/ui/file/1108138/1/ALICE-INT-2010-016.pdf page 7.
+  ddR = mC0 * localIntErOverEz + mC1 * localIntEPhiOverEz;
+  ddPhi = (mC0 * localIntEPhiOverEz - mC1 * localIntErOverEz) / radius;
+  ddZ = -localIntDeltaEz * TPCParameters<DataT>::DVDE;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::langevinCylindricalB(DataT& ddR, DataT& ddPhi, const DataT radius, const DataT localIntBrOverBz, const DataT localIntBPhiOverBz) const
+{
+  // calculated distortions/correction with the formula described in https://edms.cern.ch/ui/file/1108138/1/ALICE-INT-2010-016.pdf page 7.
+  ddR = mC2 * localIntBrOverBz - mC1 * localIntBPhiOverBz;
+  ddPhi = (mC2 * localIntBPhiOverBz + mC1 * localIntBrOverBz) / radius;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initBField(const int field)
+{
+  const std::unordered_map<int, std::pair<int, int>> field_to_current = {{2, {12000, 6000}},
+                                                                         {5, {30000, 6000}},
+                                                                         {-2, {-12000, -6000}},
+                                                                         {-5, {-30000, -6000}},
+                                                                         {0, {0, 0}}};
+  auto currents_iter = field_to_current.find(field);
+  if (currents_iter == field_to_current.end()) {
+    LOG(error) << " Could not lookup currents for fieldvalue " << field;
+    return;
+  }
+  mBField.setBField(field);
+  o2::parameters::GRPMagField magField;
+  magField.setL3Current((*currents_iter).second.first);
+  magField.setDipoleCurrent((*currents_iter).second.second);
+  setBFields(magField);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setBFields(o2::parameters::GRPMagField& magField)
+{
+  const float bzField = int(magField.getNominalL3Field());
+  auto& gasParam = ParameterGas::Instance();
+  float vDrift = gasParam.DriftV; // drift velocity in cm/us
+  const float omegaTau = -10. * bzField * vDrift / std::abs(getEzField(Side::A));
+  LOGP(info, "Setting omegaTau to {} for {}kG", omegaTau, bzField);
+  const float t1 = 1.;
+  const float t2 = 1.;
+  setOmegaTauT1T2(omegaTau, t1, t2);
+}
+
+template <typename DataT>
+template <typename Fields>
+void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& ddR, DataT& ddPhi, DataT& ddZ, const Fields& formulaStruct, const bool localDistCorr, const Side side) const
+{
+  // see: https://edms.cern.ch/ui/file/1108138/1/ALICE-INT-2010-016.pdf
+  // needed for calculation of distortions/corrections
+  DataT localIntErOverEz = 0;   // integral_p1z^p2z Er/Ez dz
+  DataT localIntEPhiOverEz = 0; // integral_p1z^p2z Ephi/Ez dz
+  DataT localIntDeltaEz = 0;    // integral_p1z^p2z Ez dz
+
+  DataT localIntBrOverBz = 0;   // integral_p1z^p2z Br/Bz dz
+  DataT localIntBPhiOverBz = 0; // integral_p1z^p2z Bphi/Bz dz
+  DataT localIntDeltaBz = 0;    // integral_p1z^p2z Bz dz
+  DataT ddRExB = 0;
+  DataT ddPhiExB = 0;
+
+  // there are differentnumerical integration strategys implements. for details see each function.
+  switch (sNumericalIntegrationStrategy) {
+    case IntegrationStrategy::SimpsonIterative:                                                         // iterative simpson integration (should be more precise at least for the analytical E-Field case but takes alot more time than normal simpson integration)
+      for (int i = 0; i < sSimpsonNIteratives; ++i) {                                                   // TODO define a convergence criterion to abort the algorithm earlier for speed up.
+        const DataT tmpZ = localDistCorr ? (p2z + ddZ) : regulateZ(p2z + ddZ, formulaStruct.getSide()); // dont regulate for local distortions/corrections! (to get same result as using electric field at last/first bin)
+        if (mSimEDistortions) {
+          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+          langevinCylindricalE(ddR, ddPhi, ddZ, (p1r + 0.5 * (ddR + ddRExB)), localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz); // using the mean radius '(p1r + 0.5 * ddR)' for calculation of distortions/corections
+        }
+        if (mSimExBMisalignment) {
+          integrateEFieldsSimpsonIterative(p1r, p1r + ddR + ddRExB, p1phi, p1phi + ddPhi + ddPhiExB, p1z, tmpZ, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+          langevinCylindricalB(ddRExB, ddPhiExB, (p1r + 0.5 * (ddR + ddRExB)), localIntBrOverBz, localIntBPhiOverBz);
+        }
+      }
+      break;
+    case IntegrationStrategy::Simpson: // simpson integration
+      if (mSimEDistortions) {
+        integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+        langevinCylindricalE(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
+      }
+      if (mSimExBMisalignment) {
+        integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+        langevinCylindricalB(ddRExB, ddPhiExB, p1r, localIntBrOverBz, localIntBPhiOverBz);
+      }
+      break;
+    case IntegrationStrategy::Trapezoidal: // trapezoidal integration (fastest)
+      if (mSimEDistortions) {
+        integrateEFieldsTrapezoidal(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+        langevinCylindricalE(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
+      }
+      if (mSimExBMisalignment) {
+        integrateEFieldsTrapezoidal(p1r, p1phi, p1z, p2z, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+        langevinCylindricalB(ddRExB, ddPhiExB, p1r, localIntBrOverBz, localIntBPhiOverBz);
+      }
+      break;
+    case IntegrationStrategy::Root: // using integration implemented in ROOT (slow)
+      if (mSimEDistortions) {
+        integrateEFieldsRoot(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+        langevinCylindricalE(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
+      }
+      if (mSimExBMisalignment) {
+        integrateEFieldsRoot(p1r, p1phi, p1z, p2z, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+        langevinCylindricalB(ddRExB, ddPhiExB, p1r, localIntBrOverBz, localIntBPhiOverBz);
+      }
+      break;
+    default:
+      if (mSimEDistortions) {
+        integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct, getEzField(side), side);
+        langevinCylindricalE(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
+      }
+      if (mSimExBMisalignment) {
+        integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntBrOverBz, localIntBPhiOverBz, localIntDeltaBz, mBField, 0, side);
+        langevinCylindricalB(ddRExB, ddPhiExB, p1r, localIntBrOverBz, localIntBPhiOverBz);
+      }
+  }
+
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_calcDistCorr", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_calcDistCorr").data()
+                                                                                      << "p1r=" << (*const_cast<DataT*>(&p1r))
+                                                                                      << "p1phi=" << (*const_cast<DataT*>(&p1phi))
+                                                                                      << "p1z=" << (*const_cast<DataT*>(&p1z))
+                                                                                      << "p2z=" << (*const_cast<DataT*>(&p2z))
+                                                                                      << "localIntErOverEz=" << localIntErOverEz
+                                                                                      << "localIntEPhiOverEz=" << localIntEPhiOverEz
+                                                                                      << "localIntDeltaEz=" << localIntDeltaEz
+                                                                                      << "ddR=" << ddR
+                                                                                      << "ddPhi=" << ddPhi
+                                                                                      << "ddZ=" << ddZ
+                                                                                      << "localIntBrOverBz=" << localIntBrOverBz
+                                                                                      << "localIntBPhiOverBz=" << localIntBPhiOverBz
+                                                                                      << "localIntDeltaBz=" << localIntDeltaBz
+                                                                                      << "ddRExB=" << ddRExB
+                                                                                      << "ddPhiExB=" << ddPhiExB
+                                                                                      << "\n";
+  })
+
+  ddR += ddRExB;
+  ddPhi += ddPhiExB;
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpElectricFields(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mElectricFieldEr[side].getNDataPoints()) {
+    LOGP(info, "============== E-Fields are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mElectricFieldEr[side].writeToFile(file, option, fmt::format("fieldEr_side{}", sideName), sNThreads);
+  const int ez = mElectricFieldEz[side].writeToFile(file, "UPDATE", fmt::format("fieldEz_side{}", sideName), sNThreads);
+  const int ephi = mElectricFieldEphi[side].writeToFile(file, "UPDATE", fmt::format("fieldEphi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setElectricFieldsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  std::string_view treeEr{fmt::format("fieldEr_side{}", sideName)};
+  if (!checkGridFromFile(file, treeEr)) {
+    return;
+  }
+  initContainer(mElectricFieldEr[side], true);
+  initContainer(mElectricFieldEz[side], true);
+  initContainer(mElectricFieldEphi[side], true);
+  mElectricFieldEr[side].initFromFile(file, treeEr, sNThreads);
+  mElectricFieldEz[side].initFromFile(file, fmt::format("fieldEz_side{}", sideName), sNThreads);
+  mElectricFieldEphi[side].initFromFile(file, fmt::format("fieldEphi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpGlobalDistortions(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mGlobalDistdR[side].getNDataPoints()) {
+    LOGP(info, "============== global distortions are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mGlobalDistdR[side].writeToFile(file, option, fmt::format("distR_side{}", sideName), sNThreads);
+  const int ez = mGlobalDistdZ[side].writeToFile(file, "UPDATE", fmt::format("distZ_side{}", sideName), sNThreads);
+  const int ephi = mGlobalDistdRPhi[side].writeToFile(file, "UPDATE", fmt::format("distRphi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setGlobalDistortionsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  std::string_view tree{fmt::format("distR_side{}", sideName)};
+  if (!checkGridFromFile(file, tree)) {
+    return;
+  }
+  initContainer(mGlobalDistdR[side], true);
+  initContainer(mGlobalDistdZ[side], true);
+  initContainer(mGlobalDistdRPhi[side], true);
+  mGlobalDistdR[side].initFromFile(file, tree, sNThreads);
+  mGlobalDistdZ[side].initFromFile(file, fmt::format("distZ_side{}", sideName), sNThreads);
+  mGlobalDistdRPhi[side].initFromFile(file, fmt::format("distRphi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setGlobalDistortionsFromFile(TFile& inpf, const Side side)
+{
+  initContainer(mGlobalDistdR[side], false);
+  initContainer(mGlobalDistdZ[side], false);
+  initContainer(mGlobalDistdRPhi[side], false);
+  const std::string sideName = getSideName(side);
+  mGlobalDistdR[side].template initFromFile<DataTIn>(inpf, fmt::format("distR_side{}", sideName).data());
+  mGlobalDistdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("distZ_side{}", sideName).data());
+  mGlobalDistdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("distRphi_side{}", sideName).data());
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpGlobalCorrections(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mGlobalCorrdR[side].getNDataPoints()) {
+    LOGP(info, "============== global corrections are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mGlobalCorrdR[side].writeToFile(file, option, fmt::format("corrR_side{}", sideName), sNThreads);
+  const int ez = mGlobalCorrdZ[side].writeToFile(file, "UPDATE", fmt::format("corrZ_side{}", sideName), sNThreads);
+  const int ephi = mGlobalCorrdRPhi[side].writeToFile(file, "UPDATE", fmt::format("corrRPhi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setGlobalCorrectionsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const std::string_view treename{fmt::format("corrR_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+
+  initContainer(mGlobalCorrdR[side], true);
+  initContainer(mGlobalCorrdZ[side], true);
+  initContainer(mGlobalCorrdRPhi[side], true);
+  mGlobalCorrdR[side].initFromFile(file, treename, sNThreads);
+  mGlobalCorrdZ[side].initFromFile(file, fmt::format("corrZ_side{}", sideName), sNThreads);
+  mGlobalCorrdRPhi[side].initFromFile(file, fmt::format("corrRPhi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setGlobalCorrectionsFromFile(TFile& inpf, const Side side)
+{
+  initContainer(mGlobalCorrdR[side], false);
+  initContainer(mGlobalCorrdZ[side], false);
+  initContainer(mGlobalCorrdRPhi[side], false);
+  const std::string sideName = getSideName(side);
+  mGlobalCorrdR[side].template initFromFile<DataTIn>(inpf, fmt::format("corrR_side{}", sideName).data());
+  mGlobalCorrdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("corrZ_side{}", sideName).data());
+  mGlobalCorrdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("corrRPhi_side{}", sideName).data());
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpLocalCorrections(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mLocalCorrdR[side].getNDataPoints()) {
+    LOGP(info, "============== local corrections are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lCorrdR = mLocalCorrdR[side].writeToFile(file, option, fmt::format("lcorrR_side{}", sideName), sNThreads);
+  const int lCorrdZ = mLocalCorrdZ[side].writeToFile(file, "UPDATE", fmt::format("lcorrZ_side{}", sideName), sNThreads);
+  const int lCorrdRPhi = mLocalCorrdRPhi[side].writeToFile(file, "UPDATE", fmt::format("lcorrRPhi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return lCorrdR + lCorrdZ + lCorrdRPhi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setLocalCorrectionsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const std::string_view treename{fmt::format("lcorrR_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+  initContainer(mLocalCorrdR[side], true);
+  initContainer(mLocalCorrdZ[side], true);
+  initContainer(mLocalCorrdRPhi[side], true);
+  const bool lCorrdR = mLocalCorrdR[side].initFromFile(file, treename, sNThreads);
+  const bool lCorrdZ = mLocalCorrdZ[side].initFromFile(file, fmt::format("lcorrZ_side{}", sideName), sNThreads);
+  const bool lCorrdRPhi = mLocalCorrdRPhi[side].initFromFile(file, fmt::format("lcorrRPhi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpLocalDistortions(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mLocalDistdR[side].getNDataPoints()) {
+    LOGP(info, "============== local distortions are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lDistdR = mLocalDistdR[side].writeToFile(file, option, fmt::format("ldistR_side{}", sideName), sNThreads);
+  const int lDistdZ = mLocalDistdZ[side].writeToFile(file, "UPDATE", fmt::format("ldistZ_side{}", sideName), sNThreads);
+  const int lDistdRPhi = mLocalDistdRPhi[side].writeToFile(file, "UPDATE", fmt::format("ldistRPhi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return lDistdR + lDistdZ + lDistdRPhi;
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpLocalDistCorrVectors(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mLocalVecDistdR[side].getNDataPoints()) {
+    LOGP(info, "============== local distortion vectors are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lVecDistdR = mLocalVecDistdR[side].writeToFile(file, option, fmt::format("lvecdistR_side{}", sideName), sNThreads);
+  const int lVecDistdZ = mLocalVecDistdZ[side].writeToFile(file, "UPDATE", fmt::format("lvecdistZ_side{}", sideName), sNThreads);
+  const int lVecDistdRPhi = mLocalVecDistdRPhi[side].writeToFile(file, "UPDATE", fmt::format("lvecdistRPhi_side{}", sideName), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return lVecDistdR + lVecDistdZ + lVecDistdRPhi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setLocalDistortionsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const std::string_view treename{fmt::format("ldistR_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+  initContainer(mLocalDistdR[side], true);
+  initContainer(mLocalDistdZ[side], true);
+  initContainer(mLocalDistdRPhi[side], true);
+  const bool lDistdR = mLocalDistdR[side].initFromFile(file, treename, sNThreads);
+  const bool lDistdZ = mLocalDistdZ[side].initFromFile(file, fmt::format("ldistZ_side{}", sideName), sNThreads);
+  const bool lDistdRPhi = mLocalDistdRPhi[side].initFromFile(file, fmt::format("ldistRPhi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setLocalDistCorrVectorsFromFile(std::string_view file, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const std::string_view treename{fmt::format("lvecdistR_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+  initContainer(mLocalVecDistdR[side], true);
+  initContainer(mLocalVecDistdZ[side], true);
+  initContainer(mLocalVecDistdRPhi[side], true);
+  const bool lVecDistdR = mLocalVecDistdR[side].initFromFile(file, treename, sNThreads);
+  const bool lVecDistdZ = mLocalVecDistdZ[side].initFromFile(file, fmt::format("lvecdistZ_side{}", sideName), sNThreads);
+  const bool lVecDistdRPhi = mLocalVecDistdRPhi[side].initFromFile(file, fmt::format("lvecdistRPhi_side{}", sideName), sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpPotential(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mPotential[side].getNDataPoints()) {
+    LOGP(info, "============== potential not set! returning ==============");
+    return 0;
+  }
+  int status = mPotential[side].writeToFile(file, option, fmt::format("potential_side{}", getSideName(side)), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return status;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotentialFromFile(std::string_view file, const Side side)
+{
+  const std::string_view treename{fmt::format("potential_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+  initContainer(mPotential[side], true);
+  mPotential[side].initFromFile(file, treename, sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpDensity(std::string_view file, const Side side, std::string_view option) const
+{
+  if (!mDensity[side].getNDataPoints()) {
+    LOGP(info, "============== space charge density are not set! returning ==============");
+    return 0;
+  }
+  int status = mDensity[side].writeToFile(file, option, fmt::format("density_side{}", getSideName(side)), sNThreads);
+  dumpMetaData(file, "UPDATE", false);
+  return status;
+}
+
+template <typename DataT>
+bool SpaceCharge<DataT>::checkGridFromFile(std::string_view file, std::string_view tree)
+{
+  unsigned short nr, nz, nphi;
+  if (!DataContainer::getVertices(tree, file, nr, nz, nphi)) {
+    return false;
+  }
+
+  // check if stored grid definition and current grid definition is the same
+  if ((mParamGrid.NRVertices != nr) || (mParamGrid.NZVertices != nz) || (mParamGrid.NPhiVertices != nphi)) {
+    LOGP(info, "Different number of vertices found in input file. Initializing new space charge object with nR {} nZ {} nPhi {} vertices", nr, nz, nphi);
+    SpaceCharge<DataT> scTmp(0, nz, nr, nphi, false); // or true?
+    scTmp.mC0 = mC0;
+    scTmp.mC1 = mC1;
+    scTmp.mC2 = mC2;
+    *this = std::move(scTmp);
+  }
+  return true;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setDensityFromFile(std::string_view file, const Side side)
+{
+  const std::string_view treename{fmt::format("density_side{}", getSideName(side))};
+  if (!checkGridFromFile(file, treename)) {
+    return;
+  }
+  initContainer(mDensity[side], true);
+  mDensity[side].initFromFile(file, treename, sNThreads);
+  readMetaData(file);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::dumpGlobalCorrections(TFile& outf, const Side side) const
+{
+  if (!mGlobalCorrdR[side].getNDataPoints()) {
+    LOGP(info, "============== global corrections are not set! returning ==============");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mGlobalCorrdR[side].template writeToFile<float>(outf, fmt::format("corrR_side{}", sideName).data());
+  const int ez = mGlobalCorrdZ[side].template writeToFile<float>(outf, fmt::format("corrZ_side{}", sideName).data());
+  const int ephi = mGlobalCorrdRPhi[side].template writeToFile<float>(outf, fmt::format("corrRPhi_side{}", sideName).data());
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpToFile(std::string_view file, const Side side, std::string_view option) const
+{
+  if (option == "RECREATE") {
+    // delete the file
+    gSystem->Unlink(file.data());
+  }
+  dumpElectricFields(file, side, "UPDATE");
+  dumpPotential(file, side, "UPDATE");
+  dumpDensity(file, side, "UPDATE");
+  dumpGlobalDistortions(file, side, "UPDATE");
+  dumpGlobalCorrections(file, side, "UPDATE");
+  dumpLocalCorrections(file, side, "UPDATE");
+  dumpLocalDistortions(file, side, "UPDATE");
+  dumpLocalDistCorrVectors(file, side, "UPDATE");
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpToFile(std::string_view file) const
+{
+  dumpToFile(file, Side::A, "RECREATE");
+  dumpToFile(file, Side::A, "UPDATE");
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpMetaData(std::string_view file, std::string_view option, const bool overwriteExisting) const
+{
+  TFile f(file.data(), option.data());
+  if (!overwriteExisting && f.GetListOfKeys()->Contains("meta")) {
+    return;
+  }
+  f.Close();
+
+  // create meta objects
+  std::vector<float> params{static_cast<float>(mC0), static_cast<float>(mC1), static_cast<float>(mC2)};
+  auto helperA = mGrid3D[Side::A].getHelper();
+  auto helperC = mGrid3D[Side::C].getHelper();
+
+  // define dataframe
+  ROOT::RDataFrame dFrame(1);
+  auto dfStore = dFrame.DefineSlotEntry("paramsC", [&params = params](unsigned int, ULong64_t entry) { return params; });
+  dfStore = dfStore.DefineSlotEntry("grid_A", [&helperA = helperA](unsigned int, ULong64_t entry) { return helperA; });
+  dfStore = dfStore.DefineSlotEntry("grid_C", [&helperC = helperC](unsigned int, ULong64_t entry) { return helperC; });
+  dfStore = dfStore.DefineSlotEntry("BField", [field = mBField.getBField()](unsigned int, ULong64_t entry) { return field; });
+
+  // write to TTree
+  ROOT::RDF::RSnapshotOptions opt;
+  opt.fMode = option;
+  opt.fOverwriteIfExists = true; // overwrite if already exists
+  dfStore.Snapshot("meta", file, {"paramsC", "grid_A", "grid_C", "BField"}, opt);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::readMetaData(std::string_view file)
+{
+  if (mReadMetaData) {
+    return;
+  }
+
+  // check if TTree exists
+  TFile f(file.data(), "READ");
+  if (!f.GetListOfKeys()->Contains("meta")) {
+    return;
+  }
+  f.Close();
+
+  auto readMeta = [&mC0 = mC0, &mC1 = mC1, &mC2 = mC2, &mGrid3D = mGrid3D, &mBField = mBField](const std::vector<float>& paramsC, const RegularGridHelper<double>& gridA, const RegularGridHelper<double>& gridC, int field) {
+    mC0 = paramsC[0];
+    mC1 = paramsC[1];
+    mC2 = paramsC[2];
+    mGrid3D[Side::A] = RegularGrid3D<DataT>(gridA.zmin, gridA.rmin, gridA.phimin, gridA.spacingZ, gridA.spacingR, gridA.spacingPhi, gridA.params);
+    mGrid3D[Side::C] = RegularGrid3D<DataT>(gridC.zmin, gridC.rmin, gridC.phimin, gridC.spacingZ, gridC.spacingR, gridC.spacingPhi, gridC.params);
+    mBField.setBField(field);
+  };
+
+  ROOT::RDataFrame dFrame("meta", file);
+  dFrame.Foreach(readMeta, {"paramsC", "grid_A", "grid_C", "BField"});
+  LOGP(info, "Setting meta data: mC0={}  mC1={}  mC2={}", mC0, mC1, mC2);
+  mReadMetaData = true;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setSimOneSector()
+{
+  LOGP(warning, "Use this feature only if you know what you are doing!");
+  o2::tpc::MGParameters::normalizeGridToOneSector = true;
+  RegularGrid gridTmp[FNSIDES]{{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE, mParamGrid},
+                               {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices) / SECTORSPERSIDE, mParamGrid}};
+  mGrid3D[0] = gridTmp[0];
+  mGrid3D[1] = gridTmp[1];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::unsetSimOneSector()
+{
+  o2::tpc::MGParameters::normalizeGridToOneSector = false;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setFromFile(std::string_view file, const Side side)
+{
+  setDensityFromFile(file, side);
+  setPotentialFromFile(file, side);
+  setElectricFieldsFromFile(file, side);
+  setLocalDistortionsFromFile(file, side);
+  setLocalCorrectionsFromFile(file, side);
+  setGlobalDistortionsFromFile(file, side);
+  setGlobalCorrectionsFromFile(file, side);
+  setLocalDistCorrVectorsFromFile(file, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setFromFile(std::string_view file)
+{
+  setFromFile(file, Side::A);
+  setFromFile(file, Side::C);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initContainer(DataContainer& data, const bool initMem)
+{
+  if (!data.getNDataPoints()) {
+    data.setGrid(getNZVertices(), getNRVertices(), getNPhiVertices(), initMem);
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setOmegaTauT1T2(const DataT omegaTau, const DataT t1, const DataT t2)
+{
+  const DataT wt0 = t2 * omegaTau;
+  const DataT wt02 = wt0 * wt0;
+  mC0 = 1 / (1 + wt02);
+  const DataT wt1 = t1 * omegaTau;
+  mC1 = wt1 / (1 + wt1 * wt1);
+  mC2 = wt02 / (1 + wt02);
 }
 
 using DataTD = double;
@@ -2003,8 +2992,6 @@ using AnaFieldsD = AnalyticalFields<DataTD>;
 using DistCorrInterpD = DistCorrInterpolator<DataTD>;
 using O2TPCSpaceCharge3DCalcD = SpaceCharge<DataTD>;
 
-template void O2TPCSpaceCharge3DCalcD::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const NumFieldsD&) const;
-template void O2TPCSpaceCharge3DCalcD::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const AnaFieldsD&) const;
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcD::Type, const NumFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcD::Type, const AnaFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const NumFieldsD&);
@@ -2015,6 +3002,10 @@ template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const DistCorrInter
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const NumFieldsD&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const AnaFieldsD&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const DistCorrInterpD&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcD::setGlobalCorrectionsFromFile<double>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcD::setGlobalCorrectionsFromFile<float>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcD::setGlobalDistortionsFromFile<double>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcD::setGlobalDistortionsFromFile<float>(TFile&, const Side);
 
 using DataTF = float;
 template class o2::tpc::SpaceCharge<DataTF>;
@@ -2024,8 +3015,6 @@ using AnaFieldsF = AnalyticalFields<DataTF>;
 using DistCorrInterpF = DistCorrInterpolator<DataTF>;
 using O2TPCSpaceCharge3DCalcF = SpaceCharge<DataTF>;
 
-template void O2TPCSpaceCharge3DCalcF::integrateEFieldsRoot(const DataTF, const DataTF, const DataTF, const DataTF, DataTF&, DataTF&, DataTF&, const NumFieldsF&) const;
-template void O2TPCSpaceCharge3DCalcF::integrateEFieldsRoot(const DataTF, const DataTF, const DataTF, const DataTF, DataTF&, DataTF&, DataTF&, const AnaFieldsF&) const;
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcF::Type, const NumFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcF::Type, const AnaFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const NumFieldsF&);
@@ -2036,3 +3025,7 @@ template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const DistCorrInter
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const NumFieldsF&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const AnaFieldsF&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const DistCorrInterpF&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcF::setGlobalCorrectionsFromFile<double>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcF::setGlobalCorrectionsFromFile<float>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcF::setGlobalDistortionsFromFile<double>(TFile&, const Side);
+template void O2TPCSpaceCharge3DCalcF::setGlobalDistortionsFromFile<float>(TFile&, const Side);

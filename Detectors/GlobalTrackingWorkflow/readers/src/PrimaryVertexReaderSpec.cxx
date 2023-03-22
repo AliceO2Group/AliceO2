@@ -116,17 +116,21 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
             nambig++;
           }
         }
-        LOGP(info, "{} : total attached: {}, contributors: {}, ambiguous: {}", GIndex::getSourceName(is), mPV2MatchIdxRef[cnt].getEntriesOfSource(is), ncontrib, nambig);
+        if (mPV2MatchIdxRef[cnt].getEntriesOfSource(is)) {
+          LOGP(info, "{} : total attached: {}, contributors: {}, ambiguous: {}", GIndex::getSourceName(is), mPV2MatchIdxRef[cnt].getEntriesOfSource(is), ncontrib, nambig);
+        }
         if (mVerbose < 2) {
           continue;
         }
         std::string trIDs;
         int cntT = 0;
         for (int i = idMin; i < idMax; i++) {
-          trIDs += mPV2MatchIdx[i].asString() + " ";
-          if (!((++cntT) % 15)) {
-            LOG(info) << trIDs;
-            trIDs = "";
+          if (mVerbose > 2 || mPV2MatchIdx[i].isPVContributor()) {
+            trIDs += mPV2MatchIdx[i].asString() + " ";
+            if (!((++cntT) % 15)) {
+              LOG(info) << trIDs;
+              trIDs = "";
+            }
           }
         }
         if (!trIDs.empty()) {
@@ -185,7 +189,7 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
       {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}},
       {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
-      {"vertex-verbosity", VariantType::Int, 0, {"Print vertex/tracks info: 1) number of contributor and attached, 2) full dump"}}}};
+      {"vertex-verbosity", VariantType::Int, 0, {"Print vertex/tracks info: 1) number of contributor and attached, 2) dump contributors 3) full dump"}}}};
 }
 
 } // namespace vertexing

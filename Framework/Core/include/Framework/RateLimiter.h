@@ -15,6 +15,8 @@
 #include "Framework/ProcessingContext.h"
 #include <cstddef>
 #include <cstdint>
+#include <chrono>
+#include <vector>
 
 namespace o2::framework
 {
@@ -26,6 +28,11 @@ class RateLimiter
  private:
   int64_t mConsumedTimeframes = 0;
   int64_t mSentTimeframes = 0;
+
+  std::vector<std::chrono::time_point<std::chrono::system_clock>> mTfTimes;
+  std::chrono::time_point<std::chrono::system_clock> mLastTime, mFirstTime;
+  int64_t mTimeCountingSince = 0;
+  float mSmothDelay = 0.f;
 };
 } // namespace o2::framework
 
