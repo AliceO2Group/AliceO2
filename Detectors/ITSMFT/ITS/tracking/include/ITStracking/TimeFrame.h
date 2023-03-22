@@ -9,8 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TimeFrame.h
-///
 
 #ifndef TRACKINGITSU_INCLUDE_TIMEFRAME_H_
 #define TRACKINGITSU_INCLUDE_TIMEFRAME_H_
