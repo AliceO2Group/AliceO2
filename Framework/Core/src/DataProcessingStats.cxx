@@ -210,7 +210,7 @@ void DataProcessingStats::processCommandQueue()
   insertedCmds.store(0, std::memory_order_relaxed);
 }
 
-void DataProcessingStats::flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t)> const& callback)
+void DataProcessingStats::flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t, DataProcessingStats::Kind)> const& callback)
 {
   publishingInvokedTotal++;
   bool publish = false;
@@ -218,6 +218,9 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
   for (size_t mi = 0; mi < updated.size(); ++mi) {
     auto& update = updateInfos[mi];
     auto& spec = metricSpecs[mi];
+    if (spec.name.empty()) {
+      continue;
+    }
     if (currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
       updated[mi] = true;
       update.timestamp = currentTimestamp;
@@ -229,7 +232,10 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
       continue;
     }
     publish = true;
-    callback(spec.name.data(), update.timestamp, metrics[mi]);
+    if (spec.kind == Kind::Unknown) {
+      LOGP(fatal, "Metric {} has unknown kind", spec.name);
+    }
+    callback(spec.name.data(), update.timestamp, metrics[mi], spec.kind);
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;
@@ -247,6 +253,9 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
 
 void DataProcessingStats::registerMetric(MetricSpec const& spec)
 {
+  if (spec.name.size() == 0) {
+    throw runtime_error("Metric name cannot be empty.");
+  }
   if (spec.metricId >= metricSpecs.size()) {
     throw runtime_error_f("Metric id %d is out of range. Max is %d", spec.metricId, metricSpecs.size());
   }

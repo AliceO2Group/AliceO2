@@ -76,7 +76,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
       .outputs = outputSpecs,
       .algorithm = AlgorithmSpec{adaptStateless(
         [outputSpecs](DataAllocator& outputs) {
-          LOGP(info, "Processing callback invoked");
           for (auto const& output : outputSpecs) {
             auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
             outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 1);
