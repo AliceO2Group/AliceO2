@@ -287,7 +287,7 @@ void MatchTPCITS::selectBestMatches()
   } while (nValidated);
 
   mTimer[SWSelectBest].Stop();
-  LOGP(info, "Validated {} matches for {} TPC tracks in {} iterations", nValidatedTotal, mTPCWork.size(), iter);
+  LOGP(info, "Validated {} matches for {} TPC and {} ITS tracks in {} iterations", nValidatedTotal, mTPCWork.size(), mITSWork.size(), iter);
 }
 
 //______________________________________________
