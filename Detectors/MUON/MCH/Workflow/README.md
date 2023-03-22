@@ -204,7 +204,7 @@ Refit the tracks to their associated clusters. [more...](/Detectors/MUON/MCH/Tra
 o2-mch-errors-merger-workflow
 ```
 
-Take as input the list of all MCH preclustering, clustering and tracking errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PRECLUSTERERRORS", "CLUSTERERRORS" and "TRACKERRORS", respectively. Send the merged list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the time frame, with the data description "ERRORS".
+Take as input the list of all MCH preclustering, clustering and tracking errors ([Error](../Base/include/MCHBase/Error.h)) in the current time frame, with the data description "PRECLUSTERERRORS", "CLUSTERERRORS" and "TRACKERRORS", respectively. Send the merged list of all MCH processing errors ([Error](../Base/include/MCHBase/Error.h)) in the time frame, with the data description "PROCERRORS".
 
 Options `--disable-preclustering-errors` allows to skip the preclustering errors.
 
