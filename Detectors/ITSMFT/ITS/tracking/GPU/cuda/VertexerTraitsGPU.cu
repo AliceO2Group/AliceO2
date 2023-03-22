@@ -668,7 +668,7 @@ void VertexerTraitsGPU::computeTracklets()
         discardResult(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),
                                                     mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize,
                                                     mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundLines(),
-                                                    mTimeFrameGPU->getChunk(chunkId).getDeviceNExclusiveFoundLines() /*+ 1*/,
+                                                    mTimeFrameGPU->getChunk(chunkId).getDeviceNExclusiveFoundLines(),
                                                     mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1),
                                                     mTimeFrameGPU->getStream(chunkId).get()));
 
