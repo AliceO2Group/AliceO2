@@ -11,5 +11,5 @@
 
 /// \author R+Preghenella - October 2018
 
-#include "Generators/InteractionDiamondParam.h"
+#include "SimConfig/InteractionDiamondParam.h"
 O2ParamImpl(o2::eventgen::InteractionDiamondParam);

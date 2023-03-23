@@ -32,9 +32,9 @@ void CCDBManagerInstance::reportFatal(std::string_view err)
   LOG(fatal) << err;
 }
 
-std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal) const
+std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal)
 {
-  auto response = mCCDBAccessor.retrieveHeaders("RCT/Info/RunInformation", std::map<std::string, std::string>(), runnumber);
+  auto response = api.retrieveHeaders("RCT/Info/RunInformation", std::map<std::string, std::string>(), runnumber);
   if (response.size() == 0 || response.find("SOR") == response.end() || response.find("EOR") == response.end()) {
     if (fatal) {
       LOG(fatal) << "Empty or missing response from query to RCT/Info/RunInformation for run " << runnumber;
@@ -45,6 +45,11 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, b
   auto sor = boost::lexical_cast<int64_t>(response["SOR"]);
   auto eor = boost::lexical_cast<int64_t>(response["EOR"]);
   return std::make_pair(sor, eor);
+}
+
+std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal) const
+{
+  return CCDBManagerInstance::getRunDuration(mCCDBAccessor, runnumber, fatal);
 }
 
 std::string CCDBManagerInstance::getSummaryString() const
