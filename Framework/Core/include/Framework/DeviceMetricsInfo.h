@@ -215,6 +215,36 @@ struct DeviceMetricsInfoHelpers {
       info.changed.clear();
     }
   }
+  static size_t metricsStorageSize(std::vector<DeviceMetricsInfo> const& infos)
+  {
+    // Count the size of the metrics storage
+    size_t totalSize = 0;
+    for (auto& info : infos) {
+      totalSize += info.intMetrics.size() * sizeof(MetricsStorage<int>);
+      totalSize += info.uint64Metrics.size() * sizeof(MetricsStorage<uint64_t>);
+      totalSize += info.stringMetrics.size() * sizeof(MetricsStorage<StringMetric>);
+      totalSize += info.floatMetrics.size() * sizeof(MetricsStorage<float>);
+      totalSize += info.enumMetrics.size() * sizeof(MetricsStorage<int8_t>);
+      totalSize += info.intTimestamps.size() * sizeof(TimestampsStorage<int>);
+      totalSize += info.uint64Timestamps.size() * sizeof(TimestampsStorage<uint64_t>);
+      totalSize += info.floatTimestamps.size() * sizeof(TimestampsStorage<float>);
+      totalSize += info.stringTimestamps.size() * sizeof(TimestampsStorage<StringMetric>);
+      totalSize += info.enumTimestamps.size() * sizeof(TimestampsStorage<int8_t>);
+      totalSize += info.max.size() * sizeof(float);
+      totalSize += info.min.size() * sizeof(float);
+      totalSize += info.average.size() * sizeof(float);
+      totalSize += info.minDomain.size() * sizeof(size_t);
+      totalSize += info.maxDomain.size() * sizeof(size_t);
+      totalSize += info.metricLabels.size() * sizeof(MetricLabel);
+      totalSize += info.metricPrefixes.size() * sizeof(MetricPrefix);
+      totalSize += info.metricLabelsAlphabeticallySortedIdx.size() * sizeof(MetricLabelIndex);
+      totalSize += info.metricLabelsPrefixesSortedIdx.size() * sizeof(MetricPrefixIndex);
+      totalSize += info.metrics.size() * sizeof(MetricInfo);
+      totalSize += info.changed.size() * sizeof(bool);
+    }
+
+    return totalSize;
+  }
 };
 
 } // namespace o2::framework

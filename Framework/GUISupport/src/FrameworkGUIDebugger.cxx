@@ -720,6 +720,11 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::Text(ICON_FA_FILTER);
     ImGui::SameLine();
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
+    size_t metricSize = 0;
+    for (auto deviceMetrics : metricsStore.metrics) {
+      metricSize += DeviceMetricsInfoHelpers::metricsStorageSize(*deviceMetrics);
+    }
+    // ImGui::Text("Total memory used %zu MB", metricSize / 1000000);
     ImGui::Text("%zu/%zu matching", selectedMetricIndex.size(), totalMetrics);
 
     static const char* possibleAxis[] = {
