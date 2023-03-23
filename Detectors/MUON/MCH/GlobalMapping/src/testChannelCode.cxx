@@ -42,11 +42,13 @@ BOOST_AUTO_TEST_CASE(Ctor1)
     o2::mch::ChannelCode(557, 7, 60)};
 
   for (const auto& id : ids) {
+    BOOST_CHECK_EQUAL(id.isValid(), true);
     BOOST_CHECK_EQUAL(id.getDeId(), 1002);
     BOOST_CHECK_EQUAL(id.getDsId(), 1361);
     BOOST_CHECK_EQUAL(id.getChannel(), 60);
     BOOST_CHECK_EQUAL(id.getSolarId(), 557);
     BOOST_CHECK_EQUAL(id.getElinkId(), 7);
+    BOOST_CHECK_EQUAL(id.getDePadIndex(), 7615);
   }
 }
 
@@ -58,11 +60,13 @@ BOOST_AUTO_TEST_CASE(Ctor2)
     o2::mch::ChannelCode(325, 39, 63)};
 
   for (const auto& id : ids) {
+    BOOST_CHECK_EQUAL(id.isValid(), true);
     BOOST_CHECK_EQUAL(id.getDeId(), 100);
     BOOST_CHECK_EQUAL(id.getDsId(), 1267);
     BOOST_CHECK_EQUAL(id.getChannel(), 63);
     BOOST_CHECK_EQUAL(id.getSolarId(), 325);
     BOOST_CHECK_EQUAL(id.getElinkId(), 39);
+    BOOST_CHECK_EQUAL(id.getDePadIndex(), 28626);
   }
 }
 
@@ -72,4 +76,10 @@ BOOST_AUTO_TEST_CASE(ChannelCodeCanBeUsedAsMapKey)
   o2::mch::ChannelCode cc(1002, 7615);
   maptest[cc] = 42;
   BOOST_CHECK_EQUAL(maptest[cc], 42);
+}
+
+BOOST_AUTO_TEST_CASE(DefaultConstructorYieldInvalidValue)
+{
+  o2::mch::ChannelCode cc;
+  BOOST_CHECK_EQUAL(cc.isValid(), false);
 }

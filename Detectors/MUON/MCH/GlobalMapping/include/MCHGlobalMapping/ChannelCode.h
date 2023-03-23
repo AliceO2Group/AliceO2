@@ -12,6 +12,7 @@
 #ifndef O2_DATAFORMATS_MCH_CHANNEL_CODE_H_
 #define O2_DATAFORMATS_MCH_CHANNEL_CODE_H_
 
+#include <RtypesCore.h>
 #include <cstdint>
 #include <string>
 #include "Rtypes.h"
@@ -89,6 +90,14 @@ class ChannelCode
   /** return the elink index = identifier (0..39) */
   uint8_t getElinkIndex() const { return getElinkId(); }
 
+  /* whether the code is valid.
+   *
+   * Note that the only way to build an invalid ChannelCode is by using
+   * the default constructor, that we cannot suppress
+   * (needed e.g. by Root or by some vector functions)
+   */
+  bool isValid() const { return mValue != sInvalidValue; }
+
   /* get the actual code */
   uint64_t value() const { return mValue; }
 
@@ -101,6 +110,9 @@ class ChannelCode
            uint8_t channel);
 
  private:
+  /* marker for an invalid value. */
+  static const uint64_t sInvalidValue{0xFFFFFFFF};
+
   /** mValue content :
    *
    * - deIndex (0..155) -----------  8 bits
@@ -110,13 +122,13 @@ class ChannelCode
    * - elinkIndex (0..39) ---------  6 bits
    * - channel number (0..63) -----  6 bits
    */
-  uint64_t mValue{0};
+  uint64_t mValue{sInvalidValue};
 
   ClassDefNV(ChannelCode, 1); // An identifier for a MCH channel
 };
 
 /** return a string representation */
-inline std::string asString(const ChannelCode& cc);
+std::string asString(const ChannelCode& cc);
 
 inline bool operator==(const ChannelCode& a, const ChannelCode& b) { return a.value() == b.value(); }
 inline bool operator!=(const ChannelCode& a, const ChannelCode& b) { return a.value() != b.value(); }
