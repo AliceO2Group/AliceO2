@@ -55,11 +55,11 @@ void ArrowTableSlicingCache::setCaches(std::vector<std::pair<std::string, std::s
   counts.resize(bindingsKeys.size());
 }
 
-arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> table)
+arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table)
 {
   if (table->num_rows() == 0) {
-    values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>();
-    counts[pos] = std::make_shared<arrow::NumericArray<arrow::Int64Type>>();
+    values[pos].reset();
+    counts[pos].reset();
     return arrow::Status::OK();
   }
   arrow::Datum value_counts;
@@ -80,6 +80,13 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheFor(std::pair<std::string, std::str
     throw runtime_error_f("Slicing cache miss for %s/%s", bindingKey.first.c_str(), bindingKey.second.c_str());
   }
   auto i = std::distance(bindingsKeys.begin(), locate);
+
+  if (values[i] == nullptr && counts[i] == nullptr) {
+    return {
+      {},
+      {} //
+    };
+  }
 
   return {
     {reinterpret_cast<int const*>(values[i]->values()->data()), static_cast<size_t>(values[i]->length())},
