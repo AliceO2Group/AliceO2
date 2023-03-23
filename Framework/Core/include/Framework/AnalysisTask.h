@@ -685,7 +685,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
       homogeneous_apply_refs([&pc, &slices](auto& x) {
-        return PresliceManager<std::decay_t<decltype(x)>>::updateSliceInfo(x, slices.getCacheFor(x.getBindingKey()));
+        return PresliceManager<std::decay_t<decltype(x)>>::updateSliceInfo(x, slices);
       },
                              *(task.get()));
       // initialize local caches
