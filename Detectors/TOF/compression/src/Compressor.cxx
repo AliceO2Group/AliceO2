@@ -1043,7 +1043,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
   /** check DRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
   auto drmEventWords = mDecoderSummary.drmDataTrailer - mDecoderSummary.drmDataHeader + 1;
-  if (!mDecoderCONET) {
+  if (mDecoderNextWordStep) {
     drmEventWords -= (drmEventWords / 4) * 2;
   }
   drmEventWords -= 6;
@@ -1204,7 +1204,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
     /** check TRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
     auto trmEventWords = mDecoderSummary.trmDataTrailer[itrm] - mDecoderSummary.trmDataHeader[itrm] + 1;
-    if (!mDecoderCONET) {
+    if (mDecoderNextWordStep) {
       trmEventWords -= (trmEventWords / 4) * 2;
     }
     if (verbose && mCheckerVerbose) {
