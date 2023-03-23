@@ -18,7 +18,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
-#include "Generators/InteractionDiamondParam.h"
+#include "SimConfig/InteractionDiamondParam.h"
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
@@ -132,6 +132,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
       collisionsavail = mcreader.getNEvents(0);
     }
   }
+  LOG(info) << "Collisions avail for " << name << " " << collisionsavail;
 
   // extract interaction rate ... or locking
   auto& interactionToken = tokens[1];
@@ -425,6 +426,7 @@ int main(int argc, char* argv[])
   }
   digicontext.setSimPrefixes(prefixes);
 
+  digicontext.printCollisionSummary(options.qedInteraction.size() > 0);
   // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
   digicontext.applyMaxCollisionFilter(options.tfid * options.orbitsPerTF, options.orbitsPerTF, options.maxCollsPerTF);
 

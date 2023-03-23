@@ -15,6 +15,8 @@
 #define ALICEO2_EVENTGEN_PRIMARYGENERATOR_H_
 
 #include "FairPrimaryGenerator.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
+#include "SimConfig/SimConfig.h"
 
 class TFile;
 class TTree;
@@ -80,6 +82,9 @@ class PrimaryGenerator : public FairPrimaryGenerator
 
   void setExternalVertexForNextEvent(double x, double y, double z);
 
+  // sets the vertex mode; if mode is kCCDB, a valid MeanVertexObject pointer must be given at the same time
+  void setVertexMode(o2::conf::VertexMode const& mode, o2::dataformats::MeanVertexObject const* obj = nullptr);
+
  protected:
   /** copy constructor **/
   PrimaryGenerator(const PrimaryGenerator&) = default;
@@ -104,6 +109,9 @@ class PrimaryGenerator : public FairPrimaryGenerator
   Int_t mEmbedEntries = 0;
   Int_t mEmbedIndex = 0;
   o2::dataformats::MCEventHeader* mEmbedEvent = nullptr;
+
+  o2::conf::VertexMode mVertexMode = o2::conf::VertexMode::kDiamondParam; // !vertex mode
+  std::unique_ptr<o2::dataformats::MeanVertexObject> mMeanVertex;
 
   ClassDefOverride(PrimaryGenerator, 2);
 

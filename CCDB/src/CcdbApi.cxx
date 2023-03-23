@@ -711,8 +711,12 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     TFile snapshotfile(targetpath.c_str(), "UPDATE");
     // The assumption is that the blob is a ROOT file
     if (!snapshotfile.IsZombie()) {
-      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+      if (!snapshotfile.Get(CCDBQUERY_ENTRY)) {
+        snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+      }
+      if (!snapshotfile.Get(CCDBMETA_ENTRY)) {
+        snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+      }
       snapshotfile.Close();
     }
     gErrorIgnoreLevel = oldlevel;
