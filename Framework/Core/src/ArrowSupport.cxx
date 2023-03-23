@@ -530,6 +530,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
     .name = "arrow-slicing-cache",
     .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCache>(),
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) { return ServiceHandle{TypeIdHelpers::uniqueId<ArrowTableSlicingCache>(), new ArrowTableSlicingCache(std::vector<std::pair<std::string, std::string>>{services.get<ArrowTableSlicingCacheDef>().bindingsKeys}), ServiceKind::Stream, typeid(ArrowTableSlicingCache).name()}; },
+    .configure = CommonServices::noConfiguration(),
     .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
       auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
       auto& caches = service->bindingsKeys;
@@ -541,7 +542,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
           }
         }
       } },
-    .configure = CommonServices::noConfiguration(),
     .kind = ServiceKind::Stream};
 }
 
