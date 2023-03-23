@@ -130,11 +130,11 @@ o2_add_executable(
             O2::MCHGeometryTransformer
             O2::MCHIO
             O2::MCHMappingImpl4
+            O2::MCHStatus
             O2::MCHTimeClustering
-            O2::MCHTriggering
             O2::MCHTracking
+            O2::MCHTriggering
             O2::MCHWorkflow
-            O2::MCHIO
             O2::SimulationDataFormat
             O2::Steer
         TARGETVARNAME mch-reco-workflow)
