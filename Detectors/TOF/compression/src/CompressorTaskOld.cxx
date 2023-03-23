@@ -153,7 +153,8 @@ void CompressorTaskOld<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
     /** initialise output message **/
     auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);
-    auto payloadMessage = device->NewMessage(bufferSize);
+    auto bufferSizeDouble = bufferSize * 2;
+    auto payloadMessage = device->NewMessage(bufferSizeDouble); // start with double size since later resized (but resize cannot resize more than original one)
     auto bufferPointer = (char*)payloadMessage->GetData();
 
     /** loop over subspec parts **/
@@ -180,6 +181,9 @@ void CompressorTaskOld<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     }
 
     /** finalise output message **/
+    if (headerOut.payloadSize > bufferSizeDouble) {
+      headerOut.payloadSize = 0; // put payload to zero, otherwise it will trigger a crash
+    }
     payloadMessage->SetUsedSize(headerOut.payloadSize);
     o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
     auto headerMessage = device->NewMessage(headerStack.size());
