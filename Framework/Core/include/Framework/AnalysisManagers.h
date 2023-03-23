@@ -492,6 +492,35 @@ struct ServiceManager<Service<T>> {
 };
 
 template <typename T>
+struct CacheManager {
+  template <typename ANY>
+  static bool initialize(InitContext&, ANY&)
+  {
+    return false;
+  }
+  template <typename ANY>
+  static bool initialize(ProcessingContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <>
+struct CacheManager<SliceCache> {
+  static bool initialize(InitContext&, SliceCache&)
+  {
+    return false;
+  }
+  static bool initialize(ProcessingContext& pc, SliceCache& cache)
+  {
+    if (cache.ptr == nullptr) {
+      cache.ptr = &pc.services().get<ArrowTableSlicingCache>();
+    }
+    return true;
+  }
+};
+
+template <typename T>
 struct OptionManager {
   template <typename ANY>
   static bool appendOption(std::vector<ConfigParamSpec>& options, ANY& x)
@@ -617,7 +646,10 @@ struct PresliceManager {
     return false;
   }
 
-  static bool updateSliceInfo(T&, SliceInfoPtr&&);
+  static bool updateSliceInfo(T&, SliceInfoPtr&&)
+  {
+    return false;
+  }
 };
 
 template <typename T>

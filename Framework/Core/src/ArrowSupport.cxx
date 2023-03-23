@@ -13,6 +13,7 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/SliceCache.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
