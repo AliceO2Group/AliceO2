@@ -374,12 +374,20 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   auto& trkWork = (*mSeeds)[iSeed];
   float clusterTimeBinOffset = (*mTrackTimes)[iSeed] / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
-  unsigned short rowPrev = 0;
+  unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
   unsigned short nMeasurements = 0;
+  uint8_t clRowPrev = -1; // used to identify and skip split clusters on the same pad row
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
     const auto& cl = trkTPC.getCluster(mTPCTracksClusIdx, iCl, *mTPCClusterIdxStruct, sector, row);
+    if (clRowPrev == row) {
+      // if there are split clusters we only take the first one on the pad row
+      continue;
+    } else {
+      // this is the first cluster we see on this pad row
+      clRowPrev = row;
+    }
     float x = 0, y = 0, z = 0;
     mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trkWork.rotate(o2::math_utils::sector2Angle(sector))) {
