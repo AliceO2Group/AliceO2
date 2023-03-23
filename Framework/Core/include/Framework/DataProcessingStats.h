@@ -46,7 +46,8 @@ enum struct ProcessingStatsId : short {
   TOTAL_BYTES_OUT,
   LAST_MIN_LATENCY,
   LAST_MAX_LATENCY,
-  INPUT_RATE_MB_S,
+  TOTAL_RATE_IN_MB_S,
+  TOTAL_RATE_OUT_MB_S,
   PROCESSING_RATE_HZ,
   MALFORMED_INPUTS,
   DROPPED_COMPUTATIONS,
@@ -83,6 +84,13 @@ struct DataProcessingStats {
     UInt64,
     Double,
     Unknown
+  };
+
+  // The scope for a given metric. DPL is used for the DPL Monitoring GUI,
+  // Online is used for the online monitoring.
+  enum struct Scope : char {
+    DPL,
+    Online
   };
 
   // This is what the user passes. Notice that there is no
@@ -123,6 +131,8 @@ struct DataProcessingStats {
     int metricId = -1;
     /// The kind of the metric
     Kind kind = Kind::Int;
+    /// The scope of the metric
+    Scope scope = Scope::DPL;
     /// The default value for the metric
     int64_t defaultValue = 0;
     /// How many milliseconds must have passed since the last publishing
@@ -143,7 +153,7 @@ struct DataProcessingStats {
   /// It is meant to be called periodically by a single thread.
   void processCommandQueue();
 
-  void flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t, DataProcessingStats::Kind)> const& callback);
+  void flushChangedMetrics(std::function<void(MetricSpec const&, int64_t, int64_t)> const& callback);
 
   std::atomic<size_t> statesSize;
 

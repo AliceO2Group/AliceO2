@@ -611,6 +611,9 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
 
   stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_IN), DataProcessingStats::Op::Set, totalBytesIn});
   stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_OUT), DataProcessingStats::Op::Set, totalBytesOut});
+
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_IN_MB_S), DataProcessingStats::Op::CumulativeRate, totalBytesIn});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_OUT_MB_S), DataProcessingStats::Op::CumulativeRate, totalBytesOut});
 };
 
 /// This will flush metrics only once every second.
@@ -622,28 +625,30 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
 
   O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   // Send all the relevant metrics for the relayer to update the GUI
-  stats.flushChangedMetrics([&monitoring](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind kind) mutable -> void {
+  stats.flushChangedMetrics([&monitoring](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) mutable -> void {
     // convert timestamp to a time_point
     auto tp = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>(std::chrono::milliseconds(timestamp));
-    auto metric = o2::monitoring::Metric{name, Metric::DefaultVerbosity, tp};
-    if (kind == DataProcessingStats::Kind::UInt64) {
+    auto metric = o2::monitoring::Metric{spec.name, Metric::DefaultVerbosity, tp};
+    if (spec.kind == DataProcessingStats::Kind::UInt64) {
       if (value < 0) {
-        LOG(warning) << "Value for " << name << " is negative, setting to 0";
+        LOG(warning) << "Value for " << spec.name << " is negative, setting to 0";
         value = 0;
       }
-      metric.addValue((uint64_t)value, name);
+      metric.addValue((uint64_t)value, spec.name);
     } else {
       if (value > (int64_t)std::numeric_limits<int>::max()) {
-        LOG(warning) << "Value for " << name << " is too large, setting to INT_MAX";
+        LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MAX";
         value = (int64_t)std::numeric_limits<int>::max();
       }
       if (value < (int64_t)std::numeric_limits<int>::min()) {
         value = (int64_t)std::numeric_limits<int>::min();
-        LOG(warning) << "Value for " << name << " is too large, setting to INT_MIN";
+        LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MIN";
       }
-      metric.addValue((int)value, name);
+      metric.addValue((int)value, spec.name);
     }
-    metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
+    if (spec.scope == DataProcessingStats::Scope::DPL) {
+      metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
+    }
     monitoring.send(std::move(metric));
   });
   relayer.sendContextState();
@@ -668,28 +673,116 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       // It makes no sense to update the stats more often than every 5s
       int quickUpdateInterval = 5000;
       uint64_t quickRefreshInterval = 7000;
+      uint64_t onlineRefreshLatency = 60000; // For metrics which are reported online, we flush them every 60s regardless of their state.
       using MetricSpec = DataProcessingStats::MetricSpec;
       using Kind = DataProcessingStats::Kind;
+      using Scope = DataProcessingStats::Scope;
 
       std::vector<DataProcessingStats::MetricSpec> metrics = {
-        MetricSpec{.name = "errors", .metricId = (int)ProcessingStatsId::ERROR_COUNT, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval, .maxRefreshLatency = quickRefreshInterval},
-        MetricSpec{.name = "exceptions", .metricId = (int)ProcessingStatsId::EXCEPTION_COUNT, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "inputs/relayed/pending", .metricId = (int)ProcessingStatsId::PENDING_INPUTS, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "inputs/relayed/incomplete", .metricId = (int)ProcessingStatsId::INCOMPLETE_INPUTS, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "inputs/relayed/total", .metricId = (int)ProcessingStatsId::TOTAL_INPUTS, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "elapsed_time_ms", .metricId = (int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "last_processed_input_size_byte", .metricId = (int)ProcessingStatsId::LAST_PROCESSED_SIZE, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "total_processed_input_size_byte", .metricId = (int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "total_sigusr1", .metricId = (int)ProcessingStatsId::TOTAL_SIGUSR1, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "processing_rate_mb_s", .metricId = (int)ProcessingStatsId::PROCESSING_RATE_MB_S, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "min_input_latency_ms", .metricId = (int)ProcessingStatsId::LAST_MIN_LATENCY, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "max_input_latency_ms", .metricId = (int)ProcessingStatsId::LAST_MAX_LATENCY, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "input_rate_mb_s", .metricId = (int)ProcessingStatsId::INPUT_RATE_MB_S, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "processing_rate_hz", .metricId = (int)ProcessingStatsId::PROCESSING_RATE_HZ, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "performed_computations", .metricId = (int)ProcessingStatsId::PERFORMED_COMPUTATIONS, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "total_bytes_in", .metricId = (int)ProcessingStatsId::TOTAL_BYTES_IN, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "total_bytes_out", .metricId = (int)ProcessingStatsId::TOTAL_BYTES_OUT, .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId), .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + runningWorkflow.shmSegmentId, .minPublishInterval = 500},
+        MetricSpec{.name = "errors",
+                   .metricId = (int)ProcessingStatsId::ERROR_COUNT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = quickRefreshInterval},
+        MetricSpec{.name = "exceptions",
+                   .metricId = (int)ProcessingStatsId::EXCEPTION_COUNT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/pending",
+                   .metricId = (int)ProcessingStatsId::PENDING_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/incomplete",
+                   .metricId = (int)ProcessingStatsId::INCOMPLETE_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/total",
+                   .metricId = (int)ProcessingStatsId::TOTAL_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "elapsed_time_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_ELAPSED_TIME_MS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "last_processed_input_size_byte",
+                   .metricId = (int)ProcessingStatsId::LAST_PROCESSED_SIZE,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_processed_input_size_byte",
+                   .metricId = (int)ProcessingStatsId::TOTAL_PROCESSED_SIZE,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_sigusr1",
+                   .metricId = (int)ProcessingStatsId::TOTAL_SIGUSR1,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "processing_rate_mb_s",
+                   .metricId = (int)ProcessingStatsId::PROCESSING_RATE_MB_S,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "min_input_latency_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_MIN_LATENCY,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "max_input_latency_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_MAX_LATENCY,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_rate_in_mb_s",
+                   .metricId = (int)ProcessingStatsId::TOTAL_RATE_IN_MB_S,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_rate_out_mb_s",
+                   .metricId = (int)ProcessingStatsId::TOTAL_RATE_OUT_MB_S,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "processing_rate_hz",
+                   .metricId = (int)ProcessingStatsId::PROCESSING_RATE_HZ,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "performed_computations",
+                   .metricId = (int)ProcessingStatsId::PERFORMED_COMPUTATIONS,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_bytes_in",
+                   .metricId = (int)ProcessingStatsId::TOTAL_BYTES_IN,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_bytes_out",
+                   .metricId = (int)ProcessingStatsId::TOTAL_BYTES_OUT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId),
+                   .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + runningWorkflow.shmSegmentId,
+                   .scope = Scope::Online,
+                   .minPublishInterval = 500,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
         MetricSpec{.name = "malformed_inputs", .metricId = static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "dropped_computations", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "dropped_incoming_messages", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
