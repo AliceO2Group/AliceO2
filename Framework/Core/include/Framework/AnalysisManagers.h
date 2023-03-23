@@ -646,7 +646,7 @@ struct PresliceManager {
     return false;
   }
 
-  static bool updateSliceInfo(T&, SliceInfoPtr&&)
+  static bool updateSliceInfo(T&, ArrowTableSlicingCache&)
   {
     return false;
   }
@@ -663,9 +663,9 @@ struct PresliceManager<Preslice<T>> {
     return true;
   }
 
-  static bool updateSliceInfo(Preslice<T>& container, SliceInfoPtr&& si)
+  static bool updateSliceInfo(Preslice<T>& container, ArrowTableSlicingCache& cache)
   {
-    container.updateSliceInfo(std::forward<SliceInfoPtr>(si));
+    container.updateSliceInfo(cache.getCacheFor(container.getBindingKey()));
     return true;
   }
 };
