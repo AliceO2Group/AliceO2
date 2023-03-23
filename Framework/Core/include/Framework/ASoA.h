@@ -23,6 +23,7 @@
 #include "Framework/RuntimeError.h"
 #include "Framework/Kernels.h"
 #include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/SliceCache.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/config.h>
@@ -1387,6 +1388,15 @@ class Table
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     auto t = table_t({result}, offset);
+    copyIndexBindings(t);
+    return t;
+  }
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     copyIndexBindings(t);
     return t;
   }

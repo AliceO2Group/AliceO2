@@ -667,6 +667,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
+    // initialize global caches
+    homogeneous_apply_refs([&ic](auto& x) {
+      return CacheManager<std::decay_t<decltype(x)>>::initialize(ic, x);
+    },
+                           *(task.get()));
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
@@ -680,11 +685,13 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // reset pre-slice for the next dataframe
       auto slices = pc.services().get<ArrowTableSlicingCache>();
       homogeneous_apply_refs([&pc, &slices](auto& x) {
-        if constexpr (framework::is_base_of_template_v<Preslice, std::decay_t<decltype(x)>>) {
-          return PresliceManager<std::decay_t<decltype(x)>>::updateSliceInfo(x, slices.getCacheFor(x.getBindingKey()));
-        }
-        return false;
-      }, //
+        return PresliceManager<std::decay_t<decltype(x)>>::updateSliceInfo(x, slices.getCacheFor(x.getBindingKey()));
+      },
+                             *(task.get()));
+      // initialize local caches
+      homogeneous_apply_refs([&pc](auto& x) {
+        return CacheManager<std::decay_t<decltype(x)>>::initialize(pc, x);
+      },
                              *(task.get()));
       // prepare outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
