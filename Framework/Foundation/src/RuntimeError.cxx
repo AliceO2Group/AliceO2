@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cxxabi.h>
+#include <stdexcept>
 
 namespace o2::framework
 {
@@ -62,6 +63,9 @@ RuntimeErrorRef runtime_error_f(const char* format, ...)
   bool expected = false;
   while (gErrorBooking[i].compare_exchange_strong(expected, true) == false) {
     ++i;
+    if (i >= RuntimeError::MAX_RUNTIME_ERRORS) {
+      throw std::runtime_error("Too many o2::framework::runtime_error thrown without proper cleanup.");
+    }
   }
   va_list args;
   va_start(args, format);

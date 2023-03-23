@@ -11,6 +11,7 @@
 
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceState.h"
+#include "Framework/RuntimeError.h"
 #include <catch_amalgamated.hpp>
 #include <uv.h>
 
@@ -29,6 +30,7 @@ TEST_CASE("DataProcessingStats")
   DataProcessingStats stats(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
                             DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
 
+  o2::framework::clean_all_runtime_errors();
   stats.registerMetric({"dummy_metric", DummyMetric});
   /// Registering twice should throw.
   REQUIRE_THROWS(stats.registerMetric({"dummy_metric", DummyMetric2}));
