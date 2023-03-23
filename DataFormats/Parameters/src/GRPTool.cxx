@@ -23,6 +23,9 @@
 #include <SimConfig/SimConfig.h>
 #include <unordered_map>
 #include <filesystem>
+#include "CommonUtils/ConfigurableParam.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
+#include "SimConfig/InteractionDiamondParam.h"
 
 //
 // Created by Sandro Wenzel on 20.06.22.
@@ -59,7 +62,30 @@ struct Options {
   std::string publishto = "";
   std::string ccdbhost = "http://alice-ccdb.cern.ch";
   bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
+  std::string vertex = "ccdb";
+  std::string configKeyValues = "";
 };
+
+namespace
+{
+class CCDBHelper
+{
+ public:
+  CCDBHelper(Options const& opts)
+  {
+    api.init(opts.ccdbhost);
+    auto soreor = o2::ccdb::BasicCCDBManager::getRunDuration(api, opts.run);
+    runStart = soreor.first;
+    runEnd = soreor.second;
+  }
+  o2::ccdb::CcdbApi api;
+  uint64_t runStart = -1;
+  uint64_t runEnd = -1;
+};
+} // namespace
+
+// a simple reusable CCDB wrapper; caching some info across functions
+std::unique_ptr<CCDBHelper> gCCDBWrapper;
 
 void print_globalHelp(int argc, char* argv[])
 {
@@ -188,13 +214,11 @@ bool publish(std::string const& filename, std::string const& path, std::string C
 // download a set of basic GRP files based on run number/time
 bool anchor_GRPs(Options const& opts, std::vector<std::string> const& paths = {"GLO/Config/GRPECS", "GLO/Config/GRPMagField", "GLO/Config/GRPLHCIF"})
 {
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  auto soreor = ccdbmgr.getRunDuration(opts.run);
+  if (!gCCDBWrapper) {
+    gCCDBWrapper = std::move(std::make_unique<CCDBHelper>(opts));
+  }
   // fix the timestamp early
-  uint64_t runStart = soreor.first;
-
-  o2::ccdb::CcdbApi api;
-  api.init(opts.ccdbhost);
+  uint64_t runStart = gCCDBWrapper->runStart;
 
   const bool preserve_path = true;
   const std::string filename("snapshot.root");
@@ -202,9 +226,59 @@ bool anchor_GRPs(Options const& opts, std::vector<std::string> const& paths = {"
   bool success = true;
   for (auto& p : paths) {
     LOG(info) << "Fetching " << p << " from CCDB";
-    success &= api.retrieveBlob(p, opts.publishto, filter, runStart, preserve_path, filename);
+    success &= gCCDBWrapper->api.retrieveBlob(p, opts.publishto, filter, runStart, preserve_path, filename);
   }
   return success;
+}
+
+// creates a mean vertex object for further use (CCDB queries) in the CCDB cache
+bool create_MeanVertexObject(Options const& opts)
+{
+  // either
+  const char* CCDBPATH = "/GLO/Calib/MeanVertex";
+  if (opts.vertex == "ccdb") {
+    anchor_GRPs(opts, {CCDBPATH});
+  } else {
+    LOG(info) << "Creating MeanVertex object on the fly using the InteractionDiamond params";
+    auto const& param = o2::eventgen::InteractionDiamondParam::Instance();
+    const auto& xyz = param.position;
+    const auto& sigma = param.width;
+    std::unique_ptr<o2::dataformats::MeanVertexObject> meanv(new o2::dataformats::MeanVertexObject(xyz[0], xyz[1], xyz[2], sigma[0], sigma[1], sigma[2], param.slopeX, param.slopeY));
+    o2::ccdb::CcdbApi api;
+    api.init("file://" + opts.publishto);
+    std::map<std::string, std::string> meta;
+    meta["Created-by"] = "Monte Carlo GRPTool";
+    if (!gCCDBWrapper) {
+      gCCDBWrapper = std::move(std::make_unique<CCDBHelper>(opts));
+    }
+    api.storeAsTFileAny(meanv.get(), CCDBPATH, meta, gCCDBWrapper->runStart, gCCDBWrapper->runEnd);
+
+    // we created a file not called snapshot.root ---> still need to do this ... so that this object get's picked up later on
+    // we pick up the latest produced file and will rename it to snapshot.root (thanks ChatGPT)
+    std::filesystem::path directory_path = opts.publishto + CCDBPATH;
+    // Timepoint to hold the latest modification time
+    std::filesystem::file_time_type latest_time = std::filesystem::file_time_type::min();
+    // Path to hold the latest modified file
+    std::filesystem::path latest_file;
+    // Iterate over all files in the directory
+    for (const auto& file : std::filesystem::directory_iterator(directory_path)) {
+      // Check if the file is a regular file
+      if (file.is_regular_file()) {
+        // Get the last modification time of the file
+        std::filesystem::file_time_type mod_time = std::filesystem::last_write_time(file.path());
+        // Check if the modification time is later than the latest time found so far
+        if (mod_time > latest_time) {
+          latest_time = mod_time;
+          latest_file = file.path();
+        }
+      }
+    }
+    auto oldpath = latest_file;
+    auto newpath = latest_file.parent_path();
+    newpath.append(std::string("snapshot.root"));
+    std::filesystem::rename(oldpath, newpath);
+  }
+  return true;
 }
 
 // creates a set of basic GRP files (for simulation)
@@ -213,6 +287,12 @@ bool create_GRPs(Options const& opts)
   // some code duplication from o2-sim --> remove it
 
   uint64_t runStart = -1; // used in multiple GRPs
+
+  // MeanVertexObject
+  {
+    LOG(info) << "---- creating MeanVertex ----";
+    create_MeanVertexObject(opts);
+  }
 
   // GRPECS
   {
@@ -484,6 +564,8 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("print", "print resulting GRPs");
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
     desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration.");
+    desc.add_options()("vertex", bpo::value<std::string>(&optvalues.vertex)->default_value("ccdb"), "How the vertex is to be initialized. Default is CCDB. Alternative is \"Diamond\" which is constructing the mean vertex from the Diamond param via the configKeyValues path");
+    desc.add_options()("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
     if (!subparse(desc, vm, "createGRPs")) {
       return false;
     }
@@ -493,6 +575,13 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     if (vm.count("lhcif-CCDB") > 0) {
       optvalues.lhciffromccdb = true;
     }
+    auto vertexmode = vm["vertex"].as<std::string>();
+    if (!(vertexmode == "ccdb" || vertexmode == "Diamond")) {
+      return false;
+    }
+    // init params
+    o2::conf::ConfigurableParam::updateFromString(optvalues.configKeyValues);
+
   } else if (cmd == "setROMode") {
     // set/modify the ROMode
     optvalues.command = GRPCommand::kSETROMODE;

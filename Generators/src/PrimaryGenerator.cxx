@@ -13,7 +13,7 @@
 
 #include "Generators/PrimaryGenerator.h"
 #include "Generators/Generator.h"
-#include "Generators/InteractionDiamondParam.h"
+#include "SimConfig/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DetectorsBase/Stack.h"
@@ -241,6 +241,21 @@ void PrimaryGenerator::setExternalVertexForNextEvent(double x, double y, double 
 
 /*****************************************************************/
 
+void PrimaryGenerator::setVertexMode(o2::conf::VertexMode const& mode, o2::dataformats::MeanVertexObject const* v)
+{
+  mVertexMode = mode;
+  if (mode == o2::conf::VertexMode::kCCDB) {
+    if (!v) {
+      LOG(fatal) << "A valid MeanVertexObject needs to be passed with option o2::conf::VertexMode::kCCDB";
+    }
+    mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(*v)));
+    LOG(info) << "The mean vertex is set to :";
+    mMeanVertex->print();
+  }
+}
+
+/*****************************************************************/
+
 void PrimaryGenerator::fixInteractionVertex()
 {
   // if someone gave vertex from outside; we will take it
@@ -258,11 +273,23 @@ void PrimaryGenerator::fixInteractionVertex()
   SmearGausVertexXY(false);
   SmearGausVertexZ(false);
 
-  auto const& param = InteractionDiamondParam::Instance();
-  const auto& xyz = param.position;
-  const auto& sigma = param.width;
-  o2::dataformats::MeanVertexObject meanv(xyz[0], xyz[1], xyz[2], sigma[0], sigma[1], sigma[2], param.slopeX, param.slopeY);
-  auto sampledvertex = meanv.sample();
+  // we use the mMeanVertexObject if initialized (initialize first)
+  if (!mMeanVertex) {
+    if (mVertexMode == o2::conf::VertexMode::kDiamondParam) {
+      auto const& param = InteractionDiamondParam::Instance();
+      const auto& xyz = param.position;
+      const auto& sigma = param.width;
+      mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(xyz[0], xyz[1], xyz[2], sigma[0], sigma[1], sigma[2], param.slopeX, param.slopeY)));
+    }
+    if (mVertexMode == o2::conf::VertexMode::kNoVertex) {
+      mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(0, 0, 0, 0, 0, 0, 0, 0)));
+    }
+    if (mVertexMode == o2::conf::VertexMode::kCCDB) {
+      // fatal.. then the object should have been passed with setting
+      LOG(fatal) << "MeanVertexObject is null ... but mode is kCCDB. Please inject the valid CCDB object via setVertexMode";
+    }
+  }
+  auto sampledvertex = mMeanVertex->sample();
 
   LOG(info) << "Sampled interacting vertex " << sampledvertex;
   SetBeam(sampledvertex.X(), sampledvertex.Y(), 0., 0.);

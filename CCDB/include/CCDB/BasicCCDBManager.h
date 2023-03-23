@@ -169,6 +169,11 @@ class CCDBManagerInstance
   /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
   std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true) const;
 
+  /// A convenience function for MC to fetch
+  /// valid start and end timestamps given an ALICE run number.
+  /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
+  static std::pair<int64_t, int64_t> getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal = true);
+
   std::string getSummaryString() const;
 
   void endOfStream();

@@ -30,7 +30,6 @@ o2_add_library(Generators
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
                        src/PrimaryGenerator.cxx
-                       src/InteractionDiamondParam.cxx
                        src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
@@ -72,7 +71,6 @@ set(headers
     include/Generators/GeneratorFromFile.h
     include/Generators/GeneratorFromO2KineParam.h
     include/Generators/PrimaryGenerator.h
-    include/Generators/InteractionDiamondParam.h
     include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h
