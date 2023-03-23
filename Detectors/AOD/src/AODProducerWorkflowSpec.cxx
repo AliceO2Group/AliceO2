@@ -1237,8 +1237,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
                                                                                                                               sTrk.mMasses[1],
                                                                                                                               sTrk.mMatchChi2,
                                                                                                                               sTrk.mTopoChi2,
-                                                                                                                              sTrk.mITSClusSize
-                                                                                                                              );
+                                                                                                                              sTrk.mITSClusSize);
   }
 }
 

@@ -862,7 +862,7 @@ using Decay3Body = Decay3Bodys::iterator;
 
 namespace strangenesstracking
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track); //! Strange track index
+DECLARE_SOA_INDEX_COLUMN(Track, track);                             //! Strange track index
 DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, ""); //! ITS index
 DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                         //! Cascade index
 DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index

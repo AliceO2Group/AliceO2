@@ -487,7 +487,7 @@ class AODProducerWorkflowDPL : public Task
   template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
-template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
+  template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
   void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& decay3bodyCursor, TC& tracksCursor, TCC& tracksCovCursor, TEC& tracksExtraCursor);
 
   template <typename MCParticlesCursorType>
