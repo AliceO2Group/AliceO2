@@ -76,8 +76,8 @@ TEST_CASE("DataProcessingStats")
   REQUIRE(stats.updated[DummyMetric2] == false);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind kind) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   stats.flushChangedMetrics(simpleFlush);
@@ -320,8 +320,8 @@ TEST_CASE("DataProcessingStatsPublishing")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](o2::framework::DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   // Fake to be after 1 second
@@ -364,8 +364,8 @@ TEST_CASE("DataProcessingStatsPublishingRepeated")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value, DataProcessingStats::Kind) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](o2::framework::DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   // Fake to be after 1 second

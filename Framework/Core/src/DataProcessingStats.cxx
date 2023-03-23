@@ -193,7 +193,7 @@ void DataProcessingStats::processCommandQueue()
   insertedCmds.store(0, std::memory_order_relaxed);
 }
 
-void DataProcessingStats::flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t, DataProcessingStats::Kind)> const& callback)
+void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingStats::MetricSpec const&, int64_t, int64_t)> const& callback)
 {
   publishingInvokedTotal++;
   bool publish = false;
@@ -218,7 +218,7 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
     if (spec.kind == Kind::Unknown) {
       LOGP(fatal, "Metric {} has unknown kind", spec.name);
     }
-    callback(spec.name.data(), update.timestamp, metrics[mi], spec.kind);
+    callback(spec, update.timestamp, metrics[mi]);
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;
