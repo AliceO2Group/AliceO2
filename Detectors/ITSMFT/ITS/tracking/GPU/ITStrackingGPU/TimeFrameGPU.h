@@ -107,7 +107,7 @@ class GpuTimeFrameChunk
 
   int* getDeviceCUBTmpBuffer() { return mCUBTmpBufferDevice; }
   int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
-  int* getDeviceFoundCells() { return mFoundCellsDevice; }
+  int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
 
   /// Vertexer only
   int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }
@@ -135,7 +135,7 @@ class GpuTimeFrameChunk
 
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
-  int* mFoundCellsDevice;
+  int* mNFoundCellsDevice;
 
   /// Vertexer only
   Line* mLinesDevice;

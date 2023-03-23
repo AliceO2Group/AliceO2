@@ -562,6 +562,34 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             checkGPUError(cudaHostUnregister(tracklets.data()));
           }
         }
+        for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
+          // Compute layer cells.
+          gpu::computeLayerCellsKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer + 1),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTrackletsLookupTables(iLayer + 1),
+            mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],
+            nullptr,
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),
+            mTimeFrameGPU->getDeviceTrackingParameters());
+
+          // Compute number of found Cells
+          checkGPUError(cub::DeviceReduce::Sum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
+                                               mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
+                                               mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),            // d_in
+                                               mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells() + iLayer,               // d_out
+                                               mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],                              // num_items
+                                               mTimeFrameGPU->getStream(chunkId).get()));
+
+          // Compute LUT
+          discardResult(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
+                                                      mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
+                                                      mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),            // d_in
+                                                      mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),            // d_out
+                                                      mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],                              // num_items
+                                                      mTimeFrameGPU->getStream(chunkId).get()));
+          discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(chunkId).get()));
+        }
         offset += rofs;
       }
     };
