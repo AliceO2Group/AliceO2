@@ -863,6 +863,7 @@ using Decay3Body = Decay3Bodys::iterator;
 
 namespace strangenesstracking
 {
+DECLARE_SOA_INDEX_COLUMN(Track, track);                             //! Strange track index
 DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, ""); //! ITS index
 DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                         //! Cascade index
 DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index
@@ -885,6 +886,7 @@ DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster s
 /// Strangeness tracks
 DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
+                       strangenesstracking::TrackId,
                        strangenesstracking::ITSTrackId,
                        strangenesstracking::CascadeId,
                        strangenesstracking::DecayX,
@@ -894,22 +896,11 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
                        strangenesstracking::OmegaMass,
                        strangenesstracking::MatchingChi2,
                        strangenesstracking::TopologyChi2,
-                       strangenesstracking::ITSclsSize,
-                       track::X, track::Alpha,
-                       track::Y, track::Z, track::Snp, track::Tgl, track::Signed1Pt,
-                       track::CYY,
-                       track::CZY, track::CZZ,
-                       track::CSnpY, track::CSnpZ, track::CSnpSnp,
-                       track::CTglY, track::CTglZ, track::CTglSnp, track::CTglTgl,
-                       track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl, track::C1Pt21Pt2,
-                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Pz<track::Signed1Pt, track::Tgl>,
-                       track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       strangenesstracking::ITSclsSize);
 
 DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
+                       strangenesstracking::TrackId,
                        strangenesstracking::ITSTrackId,
                        strangenesstracking::V0Id,
                        strangenesstracking::DecayX,
@@ -919,22 +910,11 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        strangenesstracking::H4Lmass,
                        strangenesstracking::MatchingChi2,
                        strangenesstracking::TopologyChi2,
-                       strangenesstracking::ITSclsSize,
-                       track::X, track::Alpha,
-                       track::Y, track::Z, track::Snp, track::Tgl, track::Signed1Pt,
-                       track::CYY,
-                       track::CZY, track::CZZ,
-                       track::CSnpY, track::CSnpZ, track::CSnpSnp,
-                       track::CTglY, track::CTglZ, track::CTglSnp, track::CTglTgl,
-                       track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl, track::C1Pt21Pt2,
-                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Pz<track::Signed1Pt, track::Tgl>,
-                       track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       strangenesstracking::ITSclsSize);
 
 DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
                        o2::soa::Index<>,
+                       strangenesstracking::TrackId,
                        strangenesstracking::ITSTrackId,
                        strangenesstracking::Decay3BodyId,
                        strangenesstracking::DecayX,
@@ -944,19 +924,7 @@ DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //!
                        strangenesstracking::He4Lmass,
                        strangenesstracking::MatchingChi2,
                        strangenesstracking::TopologyChi2,
-                       strangenesstracking::ITSclsSize,
-                       track::X, track::Alpha,
-                       track::Y, track::Z, track::Snp, track::Tgl, track::Signed1Pt,
-                       track::CYY,
-                       track::CZY, track::CZZ,
-                       track::CSnpY, track::CSnpZ, track::CSnpSnp,
-                       track::CTglY, track::CTglZ, track::CTglSnp, track::CTglTgl,
-                       track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl, track::C1Pt21Pt2,
-                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
-                       track::Pz<track::Signed1Pt, track::Tgl>,
-                       track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       strangenesstracking::ITSclsSize);
 
 using TrackedCascades = TrackedCascades;
 using TrackedCascade = TrackedCascades::iterator;

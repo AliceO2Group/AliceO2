@@ -310,11 +310,11 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
 
 template <typename TracksCursorType, typename TracksCovCursorType>
 void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
-                                              const o2::track::TrackParCov& track, int collisionID)
+                                              const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type)
 {
   tracksCursor(0,
                collisionID,
-               o2::aod::track::TrackIU,
+               type,
                truncateFloatFraction(track.getX(), mTrackX),
                truncateFloatFraction(track.getAlpha(), mTrackAlpha),
                track.getY(),
@@ -1192,9 +1192,13 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
-template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
-void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Curs, CascadeCursorType& cascCurs, Decay3BodyCursorType& d3BodyCurs)
+template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
+void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0C& v0Curs, CC& cascCurs, D3BC& d3BodyCurs, TC& tracksCursor, TCC& tracksCovCursor, TEC& tracksExtraCursor)
 {
+  auto v0s = recoData.getV0s();
+  auto cascades = recoData.getCascades();
+  auto decays3Body = recoData.getDecays3Body();
+
   int itsTableIdx = -1;
   for (auto& sTrk : recoData.getStrangeTracks()) {
     auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
@@ -1206,9 +1210,24 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
       continue;
     }
     auto& mtr = sTrk.mMother;
-    float sY = std::sqrt(mtr.getSigmaY2()), sZ = std::sqrt(mtr.getSigmaZ2()), sSnp = std::sqrt(mtr.getSigmaSnp2()),
-          sTgl = std::sqrt(mtr.getSigmaTgl2()), sQ2Pt = std::sqrt(mtr.getSigma1Pt2());
+    int vtxId{0};
+    if (sTrk.mPartType == dataformats::kStrkV0) {
+      vtxId = v0s[sTrk.mDecayRef].getVertexID();
+    } else if (sTrk.mPartType == dataformats::kStrkCascade) {
+      vtxId = cascades[sTrk.mDecayRef].getVertexID();
+    } else {
+      vtxId = decays3Body[sTrk.mDecayRef].getVertexID();
+    }
+    auto itemV = mVtxToTableCollID.find(vtxId);
+    int collisionId = itemV != mVtxToTableCollID.end() ? itemV->second : -1;
+
+    TrackExtraInfo extraInfo;
+    // extraInfo.itsClusterMap = sTrk.mITSClusterMap; // TODO: add this to the AOD
+    extraInfo.itsChi2NCl = sTrk.mTopoChi2; // TODO: this is the total chi2 of adding the ITS clusters, the topology chi2 meaning might change in the future
+    addToTracksTable(tracksCursor, tracksCovCursor, sTrk.mMother, collisionId, aod::track::StrangeTrack);
+    addToTracksExtraTable(tracksExtraCursor, extraInfo);
     (sTrk.mPartType == dataformats::kStrkV0 ? v0Curs : (sTrk.mPartType == dataformats::kStrkCascade ? cascCurs : d3BodyCurs))(0,
+                                                                                                                              mTableTrID++,
                                                                                                                               itsTableIdx,
                                                                                                                               sTrk.mDecayRef,
                                                                                                                               sTrk.mDecayVtx[0],
@@ -1218,29 +1237,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
                                                                                                                               sTrk.mMasses[1],
                                                                                                                               sTrk.mMatchChi2,
                                                                                                                               sTrk.mTopoChi2,
-                                                                                                                              sTrk.mITSClusSize,
-                                                                                                                              mtr.getX(),
-                                                                                                                              mtr.getAlpha(),
-                                                                                                                              mtr.getY(),
-                                                                                                                              mtr.getZ(),
-                                                                                                                              mtr.getSnp(),
-                                                                                                                              mtr.getTgl(),
-                                                                                                                              mtr.getQ2Pt(),
-                                                                                                                              truncateFloatFraction(sY, mTrackCovDiag),
-                                                                                                                              truncateFloatFraction(sZ, mTrackCovDiag),
-                                                                                                                              truncateFloatFraction(sSnp, mTrackCovDiag),
-                                                                                                                              truncateFloatFraction(sTgl, mTrackCovDiag),
-                                                                                                                              truncateFloatFraction(sQ2Pt, mTrackCovDiag),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaZY() / (sZ * sY)),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaSnpY() / (sSnp * sY)),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaSnpZ() / (sSnp * sZ)),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaTglY() / (sTgl * sY)),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaTglZ() / (sTgl * sZ)),
-                                                                                                                              (Char_t)(128. * mtr.getSigmaTglSnp() / (sTgl * sSnp)),
-                                                                                                                              (Char_t)(128. * mtr.getSigma1PtY() / (sQ2Pt * sY)),
-                                                                                                                              (Char_t)(128. * mtr.getSigma1PtZ() / (sQ2Pt * sZ)),
-                                                                                                                              (Char_t)(128. * mtr.getSigma1PtSnp() / (sQ2Pt * sSnp)),
-                                                                                                                              (Char_t)(128. * mtr.getSigma1PtTgl() / (sQ2Pt * sTgl)));
+                                                                                                                              sTrk.mITSClusSize);
   }
 }
 
@@ -1938,7 +1935,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
-  fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
+  fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs, tracksCursor, tracksCovCursor, tracksExtraCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
