@@ -282,7 +282,6 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const int* indexTablesNext,                 // input data rof0-delta <rof0< rof0+delta (up to 3 rofs)
   const unsigned char* usedClustersLayer,     // input data rof0
   const unsigned char* usedClustersNextLayer, // input data rof1
-  int* trackletsLookUpTable,                  // output data
   Tracklet* tracklets,                        // output data
   const Vertex* vertices,
   const int* nVertices,
@@ -341,7 +340,8 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
         }
         const int tableSize{phiBins * zBins + 1};
         for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
-          if (!(roFrameClustersNextLayer[rof1 + 1] - roFrameClustersNextLayer[rof1])) { // number of clusters on next layer > 0
+          auto nClustersNext{roFrameClustersNextLayer[rof1 + 1] - roFrameClustersNextLayer[rof1]};
+          if (!nClustersNext) { // number of clusters on next layer > 0
             continue;
           }
           for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
@@ -351,10 +351,11 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
             const int firstRowClusterIndex = indexTablesNext[(rof1 - startRofId) * tableSize + firstBinIndex];
             const int maxRowClusterIndex = indexTablesNext[(rof1 - startRofId) * tableSize + maxBinIndex];
             for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
-              if (iNextCluster >= (roFrameClustersNextLayer[rof1 + 1] - roFrameClustersNextLayer[rof1])) {
+              if (iNextCluster >= nClustersNext) {
                 break;
               }
-              const Cluster& nextCluster{clustersNextLayer[roFrameClustersNextLayer[rof1] - roFrameClustersNextLayer[startRofId] + iNextCluster]};
+              auto nextClusterIndex{roFrameClustersNextLayer[rof1] - roFrameClustersNextLayer[startRofId] + iNextCluster};
+              const Cluster& nextCluster{clustersNextLayer[nextClusterIndex]};
               if (usedClustersNextLayer[nextCluster.clusterId]) {
                 continue;
               }
@@ -362,12 +363,11 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
               const float deltaZ{o2::gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
 
               if ((deltaZ / sigmaZ < trkPars->NSigmaCut && (deltaPhi < phiCut || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < phiCut))) {
-                // trackletsLookUpTable[currentSortedIndexChunk]++;
                 const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                 const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
                 const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
                 if (storedTracklets < maxTrackletsPerCluster) {
-                  new (trackletsRof0 + stride + storedTracklets) Tracklet{currentSortedIndexChunk, roFrameClustersNextLayer[rof1] - roFrameClustersNextLayer[startRofId] + iNextCluster, tanL, phi, static_cast<ushort>(rof0), static_cast<ushort>(rof1)};
+                  new (trackletsRof0 + stride + storedTracklets) Tracklet{currentSortedIndexChunk, nextClusterIndex, tanL, phi, static_cast<ushort>(rof0), static_cast<ushort>(rof1)};
                 }
                 // else {
                 // printf("its-gpu-tracklet-finder: on rof %d layer: %d: found more tracklets (%d) than maximum allowed per cluster. This is lossy!\n", rof0, layerIndex, storedTracklets);
@@ -446,6 +446,34 @@ GPUg() void computeLayerCellsKernel(
     }
   }
 }
+
+template <bool initRun, int nLayers = 7>
+GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
+                                             Cell* cellsNextLayer,
+                                             const int layerIndex,
+                                             const int* cellsNextLayerLUT,
+                                             int* neighboursLUT,
+                                             int* cellNeighbours,
+                                             const int* nCells)
+{
+  for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
+    const Cell& currentCell = cellsCurrentLayer[iCurrentCellIndex];
+    const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
+    const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
+    const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
+    for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
+      Cell& nextCell = cellsNextLayer[iNextCell];
+      if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
+        break;
+      }
+      if constexpr (initRun) {
+        atomicAdd(neighboursLUT + iNextCell, 1);
+      } else {
+      }
+    }
+  }
+}
+
 } // namespace gpu
 
 template <int nLayers>
@@ -491,7 +519,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             mTimeFrameGPU->getChunk(chunkId).getDeviceIndexTables(iLayer + 1),                     // const int* indexTableNextLayer,
             mTimeFrameGPU->getDeviceUsedClusters(iLayer),                                          // const int* usedClustersCurrentLayer,
             mTimeFrameGPU->getDeviceUsedClusters(iLayer + 1),                                      // const int* usedClustersNextLayer,
-            mTimeFrameGPU->getChunk(chunkId).getDeviceTrackletsLookupTables(iLayer),               // int* trackletsLookUpTable, // output data
             mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer),                           // Tracklet* tracklets,       // output data
             mTimeFrameGPU->getDeviceVertices(),                                                    // const Vertex* vertices,
             mTimeFrameGPU->getDeviceROframesPV(),                                                  // const int* pvROFrame,
@@ -543,8 +570,8 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             checkGPUError(cudaMemcpyAsync(tracklets.data(), mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer), tracklets.size() * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost, mTimeFrameGPU->getStream(chunkId).get()));
             for (auto& trk : tracklets) {
               MCCompLabel label;
-              int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
-              int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId};
+              int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};   // This is not yet offsetted to the index of the first cluster of the chunk
+              int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId}; // This is not yet offsetted to the index of the first cluster of the chunk
               for (auto& lab1 : mTimeFrameGPU->getClusterLabels(iLayer, currentId)) {
                 for (auto& lab2 : mTimeFrameGPU->getClusterLabels(iLayer + 1, nextId)) {
                   if (lab1 == lab2 && lab1.isValid()) {
@@ -580,7 +607,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
                                                mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells() + iLayer,               // d_out
                                                mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],                              // num_items
                                                mTimeFrameGPU->getStream(chunkId).get()));
-
           // Compute LUT
           discardResult(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
@@ -588,8 +614,55 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),            // d_out
                                                       mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],                              // num_items
                                                       mTimeFrameGPU->getStream(chunkId).get()));
-          discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(chunkId).get()));
+
+          gpu::computeLayerCellsKernel<false><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(iLayer + 1),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceTrackletsLookupTables(iLayer + 1),
+            mTimeFrameGPU->getHostNTracklets(chunkId)[iLayer],
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer),
+            mTimeFrameGPU->getDeviceTrackingParameters());
         }
+        checkGPUError(cudaMemcpyAsync(mTimeFrameGPU->getHostNCells(chunkId).data(),
+                                      mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),
+                                      (nLayers - 2) * sizeof(int),
+                                      cudaMemcpyDeviceToHost,
+                                      mTimeFrameGPU->getStream(chunkId).get()));
+        // Create cells labels TODO: make it work after fixing the tracklets labels
+        if (mTimeFrameGPU->hasMCinformation()) {
+          for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
+            std::vector<o2::its::Cell> cells(mTimeFrameGPU->getHostNCells(chunkId)[iLayer]);
+            // Async with not registered memory?
+            checkGPUError(cudaMemcpyAsync(cells.data(), mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer), mTimeFrameGPU->getHostNCells(chunkId)[iLayer] * sizeof(o2::its::Cell), cudaMemcpyDeviceToHost));
+            for (auto& cell : cells) {
+              MCCompLabel currentLab{mTimeFrameGPU->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
+              MCCompLabel nextLab{mTimeFrameGPU->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
+              mTimeFrameGPU->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+            }
+          }
+        }
+
+        for (int iLayer{0}; iLayer < nLayers - 3; ++iLayer) {
+          gpu::computeLayerCellNeighboursKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer + 1),
+            iLayer,
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer + 1),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),
+            nullptr,
+            mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells());
+
+          // Compute number of found Cell Neighbours
+          checkGPUError(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
+                                                      mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
+                                                      mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_in
+                                                      mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_out
+                                                      mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1],                              // num_items
+                                                      mTimeFrameGPU->getStream(chunkId).get()));
+        }
+
+        // End of tracking for this chunk
         offset += rofs;
       }
     };
@@ -605,63 +678,6 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
 {
-  // size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
-  // for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
-  //   if (!mTimeFrameGPU->getTrackletSizeHost()[iLayer + 1] ||
-  //       !mTimeFrameGPU->getTrackletSizeHost()[iLayer]) {
-  //     continue;
-  //   }
-  //   const dim3 threadsPerBlock{gpu::utils::getBlockSize(mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
-  //   const dim3 blocksGrid{gpu::utils::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getTrackletSizeHost()[iLayer])};
-  //   gpu::computeLayerCellsKernel<true><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
-  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
-  //     mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
-  //     mTimeFrameGPU->getTrackletSizeHost()[iLayer],
-  //     nullptr,
-  //     mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
-  //     mTimeFrameGPU->getDeviceTrackingParameters());
-
-  //   // Compute number of found Cells
-  //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-  //                                        bufferSize,                                                         // temp_storage_bytes
-  //                                        mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
-  //                                        mTimeFrameGPU->getDeviceNFoundCells() + iLayer,                     // d_out
-  //                                        mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
-  //                                        mTimeFrameGPU->getStream(iLayer).get()));
-
-  //   // Compute LUT
-  //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-  //                                               bufferSize,                                                         // temp_storage_bytes
-  //                                               mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_in
-  //                                               mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_out
-  //                                               mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
-  //                                               mTimeFrameGPU->getStream(iLayer).get()));
-  //   discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(iLayer).get()));
-
-  //   gpu::computeLayerCellsKernel<false><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
-  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
-  //     mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
-  //     mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer + 1),
-  //     mTimeFrameGPU->getTrackletSizeHost()[iLayer],
-  //     mTimeFrameGPU->getDeviceCells(iLayer),
-  //     mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),
-  //     mTimeFrameGPU->getDeviceTrackingParameters());
-  // }
-
-  // checkGPUError(cudaMemcpy(mTimeFrameGPU->getCellSizeHost().data(), mTimeFrameGPU->getDeviceNFoundCells(), (nLayers - 2) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  // /// Create cells labels
-  // if (mTimeFrameGPU->hasMCinformation()) {
-  //   for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
-  //     std::vector<o2::its::Cell> cells(mTimeFrameGPU->getCellSizeHost()[iLayer]);
-  //     checkGPUError(cudaMemcpy(cells.data(), mTimeFrameGPU->getDeviceCells(iLayer), mTimeFrameGPU->getCellSizeHost()[iLayer] * sizeof(o2::its::Cell), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  //     for (auto& cell : cells) {
-  //       MCCompLabel currentLab{mTimeFrameGPU->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
-  //       MCCompLabel nextLab{mTimeFrameGPU->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
-  //       mTimeFrameGPU->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-  //     }
-  //   }
-  // }
 }
 
 // void TrackerTraitsGPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
