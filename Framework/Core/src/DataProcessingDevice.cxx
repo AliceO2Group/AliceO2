@@ -1902,7 +1902,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     timingInfo.firstTForbit = relayer.getFirstTFOrbitForSlot(i);
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
-    timingInfo.globalRunNumberChanged = dataProcessorContext.lastRunNumberProcessed <= timingInfo.runNumber;
+    timingInfo.globalRunNumberChanged = dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
     // We report wether or not this timing info refers to a new Run.
     if (timingInfo.globalRunNumberChanged) {
       dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
