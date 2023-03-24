@@ -1135,7 +1135,10 @@ class Table
 
   static constexpr auto hashes()
   {
-    return std::set{{typeid(C).hash_code()...}};
+    auto res = std::vector{{typeid(C).hash_code()...}};
+    std::sort(res.begin(), res.end());
+    res.erase(std::unique(res.begin(), res.end()), res.end());
+    return res;
   }
 
   template <typename IP, typename Parent, typename... T>

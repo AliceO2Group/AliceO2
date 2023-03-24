@@ -42,7 +42,6 @@ class Filter;
 #include <string>
 #include <memory>
 #include <typeinfo>
-#include <set>
 namespace gandiva
 {
 using Selection = std::shared_ptr<gandiva::SelectionVector>;
@@ -53,7 +52,7 @@ using atype = arrow::Type;
 struct ExpressionInfo {
   int argumentIndex;
   size_t processHash;
-  std::set<size_t> hashes;
+  std::vector<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
   gandiva::FilterPtr filter;

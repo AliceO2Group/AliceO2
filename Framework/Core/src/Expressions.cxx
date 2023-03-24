@@ -703,15 +703,15 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::vector<size_t> const& hashes, Operations const& specs)
 {
-  std::set<size_t> opHashes;
+  std::vector<size_t> opHashes;
   for (auto& spec : specs) {
     if (spec.left.datum.index() == 3) {
-      opHashes.insert(spec.left.hash);
+      opHashes.emplace_back(spec.left.hash);
     }
     if (spec.right.datum.index() == 3) {
-      opHashes.insert(spec.right.hash);
+      opHashes.emplace_back(spec.right.hash);
     }
   }
 
@@ -721,20 +721,26 @@ bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
 
 bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
-  std::set<std::string> opFieldNames;
+  std::vector<std::string> opFieldNames;
   for (auto& spec : opSpecs) {
     if (spec.left.datum.index() == 3) {
-      opFieldNames.insert(std::get<std::string>(spec.left.datum));
+      opFieldNames.push_back(std::get<std::string>(spec.left.datum));
     }
     if (spec.right.datum.index() == 3) {
-      opFieldNames.insert(std::get<std::string>(spec.right.datum));
+      opFieldNames.push_back(std::get<std::string>(spec.right.datum));
     }
   }
+  // Sort and remove duplicates
+  std::sort(opFieldNames.begin(), opFieldNames.end());
+  opFieldNames.erase(std::unique(opFieldNames.begin(), opFieldNames.end()), opFieldNames.end());
 
-  std::set<std::string> schemaFieldNames;
+  std::vector<std::string> schemaFieldNames;
   for (auto& field : Schema->fields()) {
-    schemaFieldNames.insert(field->name());
+    schemaFieldNames.push_back(field->name());
   }
+  // Sort and remove duplicates
+  std::sort(schemaFieldNames.begin(), schemaFieldNames.end());
+  schemaFieldNames.erase(std::unique(schemaFieldNames.begin(), schemaFieldNames.end()), schemaFieldNames.end());
 
   return std::includes(schemaFieldNames.begin(), schemaFieldNames.end(),
                        opFieldNames.begin(), opFieldNames.end());

@@ -148,11 +148,11 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (is_enumeration_v<dT> == false) {
       if constexpr (soa::is_soa_filtered_v<dT>) {
         auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
-        eInfos.push_back({ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+        eInfos.emplace_back(ExpressionInfo{ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
       } else if constexpr (soa::is_soa_iterator_v<dT>) {
         auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
         if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-          eInfos.push_back({ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+          eInfos.emplace_back(ExpressionInfo{ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
         }
       }
       doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), name, value, inputs);
