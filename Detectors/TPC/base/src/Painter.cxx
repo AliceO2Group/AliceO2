@@ -607,22 +607,20 @@ void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
 void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
 {
   TLine l;
-  l.SetLineColor(sectorLineColor);
-
-  TLine l2;
-  l2.SetLineColor(sectorLineColor);
-  l2.SetLineStyle(kDotted);
+  l.SetLineColor(std::abs(sectorLineColor));
 
   TLatex latSide;
   latSide.SetTextColor(sectorTextColor);
   latSide.SetTextAlign(22);
   latSide.SetTextSize(0.08);
-  latSide.DrawLatex(0, 0, (side == Side::C) ? "C" : "A");
+  if (sectorTextColor >= 0) {
+    latSide.DrawLatex(0, 0, (side == Side::C) ? "C" : "A");
+  }
 
   TLatex lat;
   lat.SetTextAlign(22);
   lat.SetTextSize(0.03);
-  lat.SetTextColor(sectorLineColor);
+  lat.SetTextColor(std::abs(sectorLineColor));
 
   constexpr float phiWidth = float(SECPHIWIDTH);
   const float rFactor = std::cos(phiWidth / 2.);
@@ -699,7 +697,9 @@ void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
     l.DrawLine(xR2, yR2, xL2, yL2);
 
     // sector numbers
-    lat.DrawLatex(xText, yText, fmt::format("{}", isector).data());
+    if (sectorLineColor >= 0) {
+      lat.DrawLatex(xText, yText, fmt::format("{}", isector).data());
+    }
   }
 }
 
