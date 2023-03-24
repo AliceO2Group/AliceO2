@@ -199,6 +199,7 @@ AddOption(calibObjectsExtraMemorySize, unsigned int, 10u * 1024 * 1024, "", 0, "
 AddOption(lateO2PropagatorProvisioning, bool, false, "", 0, "The user will provide the o2 propagator at runtime before processing the first event, it will not be available at init")
 AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
 AddOption(throttleAlarms, bool, false, "", 0, "Throttle rate at which alarms are sent to the InfoLogger in online runs")
+AddOption(outputSanityCheck, bool, false, "", 0, "Run some simple sanity checks finding errors in the output")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')

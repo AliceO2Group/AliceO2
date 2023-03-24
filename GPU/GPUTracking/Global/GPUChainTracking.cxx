@@ -754,6 +754,10 @@ int GPUChainTracking::RunChainFinalize()
   }
 #endif
 
+  if (GetProcessingSettings().outputSanityCheck) {
+    SanityCheck();
+  }
+
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mFractionalQAEnabled) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
