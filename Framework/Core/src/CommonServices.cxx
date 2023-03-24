@@ -631,7 +631,7 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
     auto metric = o2::monitoring::Metric{spec.name, Metric::DefaultVerbosity, tp};
     if (spec.kind == DataProcessingStats::Kind::UInt64) {
       if (value < 0) {
-        LOG(warning) << "Value for " << spec.name << " is negative, setting to 0";
+        LOG(debug) << "Value for " << spec.name << " is negative, setting to 0";
         value = 0;
       }
       metric.addValue((uint64_t)value, spec.name);
