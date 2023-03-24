@@ -16,6 +16,8 @@
 #include <DataFormatsITSMFT/ROFRecord.h>
 #include <ITS3Reconstruction/TopologyDictionary.h>
 #include <ITSBase/GeometryTGeo.h>
+#include <ITSMFTBase/SegmentationAlpide.h>
+#include <ITS3Base/SegmentationSuperAlpide.h>
 #include <Framework/Logger.h>
 
 namespace o2
@@ -34,6 +36,11 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
   its::GeometryTGeo* geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
+  std::vector<o2::its3::SegmentationSuperAlpide> segITS3;
+  for (int iLayer{0}; iLayer < geom->getNumberOfLayers() - 4; ++iLayer) {
+    segITS3.push_back(SegmentationSuperAlpide(iLayer));
+  }
+
   tf->mNrof = 0;
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
@@ -45,17 +52,23 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
-      if (pattID != itsmft::CompCluster::InvalidPatternID) {
-        sigmaY2 = dict->getErr2X(pattID);
-        sigmaZ2 = dict->getErr2Z(pattID);
+      float pitchRow = ((layer < geom->getNumberOfLayers() - 4) ? segITS3[layer].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow);
+      float pitchCol = ((layer < geom->getNumberOfLayers() - 4) ? segITS3[layer].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol);
+      if (pattID != its3::CompCluster::InvalidPatternID) {
+        sigmaY2 = dict->getErr2X(pattID) * pitchRow * pitchRow;
+        sigmaZ2 = dict->getErr2Z(pattID) * pitchCol * pitchCol;
         if (!dict->isGroup(pattID)) {
           locXYZ = dict->getClusterCoordinates(c);
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
           locXYZ = dict->getClusterCoordinates(c, patt);
+          sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
+          sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
         }
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
+        sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
+        sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
         locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
 

@@ -245,10 +245,10 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
-  canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id < 6", "colz");
-  canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.025, 0.025, 1000, -0.025, 0.025)", "id >= 6", "colz");
+  canvdXdZ->cd(1)->SetLogz();
+  nt->Draw("dx:dz>>h_dx_vs_dz_IB(260, -0.026, 0.026, 260, -0.026, 0.026)", "id < 6", "colz");
+  canvdXdZ->cd(2)->SetLogz();
+  nt->Draw("dx:dz>>h_dx_vs_dz_OB(260, -0.026, 0.026, 260, -0.026, 0.026)", "id >= 6", "colz");
   canvdXdZ->SaveAs("it3digits_dx_vs_dz.pdf");
 
   f->Write();
