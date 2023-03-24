@@ -13,6 +13,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/DataTakingContext.h"
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
@@ -28,9 +29,10 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
   if (maxInFlight && device->fChannels.count("metric-feedback")) {
     int waitMessage = 0;
     int recvTimeot = 0;
+    auto& dtc = ctx.services().get<DataTakingContext>();
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
       if (recvTimeot == -1 && waitMessage == 0) {
-        if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+        if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS) {
           LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
         } else {
           LOG(info) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
