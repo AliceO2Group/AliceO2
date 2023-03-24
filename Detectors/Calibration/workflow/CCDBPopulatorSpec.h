@@ -49,6 +49,7 @@ class CCDBPopulator : public o2::framework::Task
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
     mFatalOnFailure = ic.options().get<bool>("fatal-on-failure");
+    mValidateUpload = ic.options().get<bool>("validate-upload");
     mThrottlingDelayMS = ic.options().get<std::int64_t>("throttling-delay");
     mAPI.init(mCCDBpath);
   }
@@ -113,15 +114,38 @@ class CCDBPopulator : public o2::framework::Task
         lastLog.second++;
         LOG(info) << msg;
       }
+
+      auto uploadTS = o2::ccdb::getCurrentTimestamp();
+
       int res = mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
                                        *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
-      if (res && mFatalOnFailure) {
-        LOGP(fatal, "failed on uploading to {} / {}", mAPI.getURL(), wrp->getPath());
+      if (res) {
+        if (mFatalOnFailure) {
+          LOGP(fatal, "failed on uploading to {} / {} for [{}:{}]", mAPI.getURL(), wrp->getPath(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+        } else {
+          LOGP(error, "failed on uploading to {} / {} for [{}:{}]", mAPI.getURL(), wrp->getPath(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+        }
       }
-
       // do we need to override previous object?
       if (wrp->isAdjustableEOV() && !mAPI.isSnapshotMode()) {
         o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
+      }
+      // if requested, make sure that the new object can be queried
+      if (mValidateUpload || wrp->getValidateUpload()) {
+        constexpr long MAXDESYNC = 3;
+        auto headers = mAPI.retrieveHeaders(wrp->getPath(), {}, wrp->getStartValidityTimestamp() + (wrp->getEndValidityTimestamp() - wrp->getStartValidityTimestamp()) / 2);
+        if (headers.empty() ||
+            std::atol(headers["Created"].c_str()) < uploadTS - MAXDESYNC ||
+            std::atol(headers["Valid-From"].c_str()) != wrp->getStartValidityTimestamp() ||
+            std::atol(headers["Valid-Until"].c_str()) != wrp->getEndValidityTimestamp()) {
+          if (mFatalOnFailure) {
+            LOGP(fatal, "Failed to validate upload to {} / {} for [{}:{}]", mAPI.getURL(), wrp->getPath(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+          } else {
+            LOGP(error, "Failed to validate upload to {} / {} for [{}:{}]", mAPI.getURL(), wrp->getPath(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+          }
+        } else {
+          LOGP(important, "Validated upload to {} / {} for [{}:{}]", mAPI.getURL(), wrp->getPath(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+        }
       }
     }
   }
@@ -135,6 +159,7 @@ class CCDBPopulator : public o2::framework::Task
   CcdbApi mAPI;
   long mThrottlingDelayMS = 0;                             // LOG(important) at most once per this period for given path
   bool mFatalOnFailure = true;                             // produce fatal on failed upload
+  bool mValidateUpload = false;                            // validate upload by querying its headers
   std::unordered_map<std::string, std::pair<long, int>> mThrottling;
   std::int64_t mSSpecMin = -1;                             // min subspec to accept
   std::int64_t mSSpecMax = -1;                             // max subspec to accept
@@ -162,6 +187,7 @@ DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const s
       {"sspec-min", VariantType::Int64, -1L, {"min subspec to accept"}},
       {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}},
       {"throttling-delay", VariantType::Int64, 300000L, {"produce important type log at most once per this period in ms for each CCDB path"}},
+      {"validate-upload", VariantType::Bool, false, {"valider upload by querying its headers"}},
       {"fatal-on-failure", VariantType::Bool, false, {"do not produce fatal on failed upload"}}}};
 }
 

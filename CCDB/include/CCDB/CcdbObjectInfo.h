@@ -44,8 +44,8 @@ class CcdbObjectInfo
   }
   CcdbObjectInfo(std::string path, std::string objType, std::string flName,
                  std::map<std::string, std::string> metadata,
-                 long startValidityTimestamp, long endValidityTimestamp, bool adjustableEOV = true)
-    : mObjType(std::move(objType)), mFileName(std::move(flName)), mPath(std::move(path)), mMD(std::move(metadata)), mStart(startValidityTimestamp), mEnd(endValidityTimestamp)
+                 long startValidityTimestamp, long endValidityTimestamp, bool adjustableEOV = true, bool validateUpload = false)
+    : mObjType(std::move(objType)), mFileName(std::move(flName)), mPath(std::move(path)), mMD(std::move(metadata)), mStart(startValidityTimestamp), mEnd(endValidityTimestamp), mValidateUpload(validateUpload)
   {
     if (adjustableEOV) {
       setAdjustableEOV();
@@ -82,7 +82,10 @@ class CcdbObjectInfo
     }
   }
 
+  void setValidateUpload(bool v) { mValidateUpload = v; }
+
   bool isAdjustableEOV() const { return mAdjustableEOV; }
+  bool getValidateUpload() const { return mValidateUpload; }
 
   [[nodiscard]] long getStartValidityTimestamp() const { return mStart; }
   void setStartValidityTimestamp(long start) { mStart = start; }
@@ -98,7 +101,8 @@ class CcdbObjectInfo
   long mStart = 0;                        // start of the validity of the object
   long mEnd = 0;                          // end of the validity of the object
   bool mAdjustableEOV = false;            // each new object may override EOV of object it overrides to its own SOV
-  ClassDefNV(CcdbObjectInfo, 2);
+  bool mValidateUpload = false;           // request to validate the upload by querying its header
+  ClassDefNV(CcdbObjectInfo, 3);
 };
 
 } // namespace o2::ccdb
