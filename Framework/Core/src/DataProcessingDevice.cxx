@@ -35,6 +35,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #include "Framework/Signpost.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/DriverClient.h"
@@ -1772,8 +1773,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
 namespace
 {
 struct InputLatency {
-  int minLatency = -1;
-  int maxLatency = 0;
+  uint64_t minLatency = std::numeric_limits<uint64_t>::max();
+  uint64_t maxLatency = std::numeric_limits<uint64_t>::min();
 };
 
 auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> InputLatency
@@ -1785,9 +1786,12 @@ auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime
     if (header == nullptr) {
       continue;
     }
-    int partLatency = currentTime - header->creation;
-    result.minLatency = std::min(result.minLatency, partLatency);
-    result.maxLatency = std::max(result.maxLatency, partLatency);
+    int64_t partLatency = (0x7fffffffffffffff & currentTime) - (0x7fffffffffffffff & header->creation);
+    if (partLatency < 0) {
+      partLatency = 0;
+    }
+    result.minLatency = std::min(result.minLatency, (uint64_t)partLatency);
+    result.maxLatency = std::max(result.maxLatency, (uint64_t)partLatency);
   }
   return result;
 };
@@ -1971,7 +1975,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     return false;
   }
 
-  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
     auto& stats = ref.get<DataProcessingStats>();
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
@@ -1981,10 +1985,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       stats.updateStats({static_cast<short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
     }
     uint64_t tEnd = uv_hrtime();
-    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int)(tEnd - tStart)});
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
     stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
-    auto latency = calculateInputRecordLatency(record, tStart);
+    auto latency = calculateInputRecordLatency(record, tStartMilli);
     stats.updateStats({(int)ProcessingStatsId::LAST_MIN_LATENCY, DataProcessingStats::Op::Set, (int)latency.minLatency});
     stats.updateStats({(int)ProcessingStatsId::LAST_MAX_LATENCY, DataProcessingStats::Op::Set, (int)latency.maxLatency});
   };
@@ -2063,6 +2067,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
+    uint64_t tStartMilli = TimingHelpers::getRealtimeSinceEpochStandalone();
     preUpdateStats(action, record, tStart);
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
@@ -2138,7 +2143,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       state.severityStack.pop_back();
     }
 
-    postUpdateStats(action, record, tStart);
+    postUpdateStats(action, record, tStart, tStartMilli);
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {

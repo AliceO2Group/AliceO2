@@ -56,13 +56,6 @@ enum struct ProcessingStatsId : short {
   RELAYER_METRIC_BASE = 1024,
 };
 
-struct DataProcessingStatsHelpers {
-  /// Return a function which can be used to retrieve the base timestamp and the
-  /// associated fast offset for the realtime clock.
-  static std::function<void(int64_t& base, int64_t& offset)> defaultRealtimeBaseConfigurator(uint64_t offset, uv_loop_t* loop);
-  static std::function<int64_t(int64_t base, int64_t offset)> defaultCPUTimeConfigurator();
-};
-
 /// Helper struct to hold statistics about the data processing happening.
 struct DataProcessingStats {
   DataProcessingStats(std::function<void(int64_t& base, int64_t& offset)> getRealtimeBase,

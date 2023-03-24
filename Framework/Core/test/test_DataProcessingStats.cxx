@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/DeviceState.h"
 #include "Framework/RuntimeError.h"
 #include <catch_amalgamated.hpp>
@@ -28,8 +29,8 @@ using namespace o2::framework;
 
 TEST_CASE("DataProcessingStats")
 {
-  DataProcessingStats stats(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                            DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+  DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+                            TimingHelpers::defaultCPUTimeConfigurator());
 
   o2::framework::clean_all_runtime_errors();
   stats.registerMetric({"dummy_metric", DummyMetric});

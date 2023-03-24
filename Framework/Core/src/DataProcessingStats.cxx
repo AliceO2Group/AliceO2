@@ -30,23 +30,6 @@ DataProcessingStats::DataProcessingStats(std::function<void(int64_t& base, int64
   getRealtimeBase(realTimeBase, initialTimeOffset);
 }
 
-std::function<void(int64_t&, int64_t&)> DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(uint64_t startTimeOffset, uv_loop_t* loop)
-{
-  return [startTimeOffset, loop](int64_t& base, int64_t& offset) {
-    uv_update_time(loop);
-    base = startTimeOffset + uv_now(loop);
-    offset = uv_hrtime();
-  };
-}
-
-// Implement getTimestampConfigurator based on getRealtimeBaseConfigurator
-std::function<int64_t(int64_t, int64_t)> DataProcessingStatsHelpers::defaultCPUTimeConfigurator()
-{
-  return [](int64_t base, int64_t offset) -> int64_t {
-    return base + (uv_hrtime() - offset) / 1000000;
-  };
-}
-
 void DataProcessingStats::updateStats(CommandSpec cmd)
 {
   if (metricSpecs[cmd.id].name.empty()) {

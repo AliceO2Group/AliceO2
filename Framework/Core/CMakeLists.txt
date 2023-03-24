@@ -125,6 +125,7 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
+                       src/TimingHelpers.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx

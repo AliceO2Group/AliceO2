@@ -24,6 +24,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/Signpost.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/DataProcessingHelpers.h"
@@ -660,8 +661,8 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       clock_gettime(CLOCK_REALTIME, &now);
       uv_update_time(state.loop);
       uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
-      auto* stats = new DataProcessingStats(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
-                                            DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+      auto* stats = new DataProcessingStats(TimingHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
+                                            TimingHelpers::defaultCPUTimeConfigurator());
       auto& runningWorkflow = services.get<RunningWorkflowInfo const>();
 
       // It makes no sense to update the stats more often than every 5s

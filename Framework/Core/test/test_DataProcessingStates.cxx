@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessingStates.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/DeviceState.h"
 #include <catch_amalgamated.hpp>
 #include <uv.h>
@@ -26,8 +27,8 @@ using namespace o2::framework;
 
 TEST_CASE("DataProcessingStates")
 {
-  DataProcessingStates states(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                              DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+  DataProcessingStates states(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+                              TimingHelpers::defaultCPUTimeConfigurator());
 
   states.registerState({"dummy_metric", DummyMetric});
   /// Registering twice should throw.

@@ -16,6 +16,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
@@ -37,8 +38,8 @@ TEST_CASE("DataRelayer")
   ServiceRegistryRef ref{registry};
   Monitoring monitoring;
   DataProcessingStats stats(
-    DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-    DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+    TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+    TimingHelpers::defaultCPUTimeConfigurator());
   int quickUpdateInterval = 1;
   using MetricSpec = DataProcessingStats::MetricSpec;
   std::vector<MetricSpec> specs{
