@@ -101,7 +101,7 @@ void DigitizerTRU::init()
   mAmplitudeInTimeBins.push_back(sf);
 
   if (mEnableDebugStreaming) {
-    mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root", "RECREATE");
+    mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugTRU.root", "RECREATE");
   }
 }
 
@@ -144,7 +144,7 @@ void DigitizerTRU::clear()
 void DigitizerTRU::process(const gsl::span<const Digit> labeledSDigits)
 {
   LOG(info) << "DIG SIMONE process in digitizer ";
-  int i = 0;
+  // int i = 0;
 
   auto processedSDigits = makeAnaloguesFastorSums(labeledSDigits);
 
@@ -167,12 +167,12 @@ void DigitizerTRU::process(const gsl::span<const Digit> labeledSDigits)
       // LOG(info) << "DIG SIMONE process in digitizer: continue ";
     }
 
-    LOG(info) << "DIG SIMONE process in digitizer: before addDigits ";
+    // LOG(info) << "DIG SIMONE process in digitizer: before addDigits ";
     mDigits.addDigits(fastorID, mTempDigitVector);
     // mDigits.addDigits(tower, mTempDigitVector);
-    LOG(info) << "DIG SIMONE process in digitizer: after addDigits ";
-    ++i;
-    LOG(info) << "DIG SIMONE process in digitizer: after addDigits processed   " << i;
+    // LOG(info) << "DIG SIMONE process in digitizer: after addDigits ";
+    // ++i;
+    // LOG(info) << "DIG SIMONE process in digitizer: after addDigits processed   " << i;
   }
 }
 //_______________________________________________________________________
@@ -303,6 +303,52 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
   //   mPhase = 0;
   //   mEventTimeOffset++;
   // }
+
+  // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
+  // if (mEnableDebugStreaming) {
+  //   auto TriggerInputs = LZERO.getTriggerInputs();
+  //   // TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
+  //   // for loop patches
+  //   // in the loop for each trigger input fill :
+  //   //  - fastorID [0]
+  //   //  - fastortimesum [0]
+  //   // ...
+  //   //  - until [3]
+  //   //  - patch ADC as well
+  //   //  - and then close it and finish loop
+  //   (*mDebugStream).GetFile()->cd();
+  //   (*mDebugStream) << "L1Timesums" 
+  //       << "trigger=" << TriggerInputs 
+  //       << "\n";
+
+  //   LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
+  // }
+
+
+  if (mEnableDebugStreaming) {
+    LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
+    auto TriggerInputs = LZERO.getTriggerInputs();
+    for (auto trigger : TriggerInputs)
+    {
+      auto WhichPatch  = std::get<0>(trigger);
+      auto WhichTRU    = std::get<1>(trigger);
+      auto WhichFastOr = std::get<2>(trigger);
+      auto FastOrAmp   = std::get<3>(trigger);
+      auto PatchAmp    = std::get<4>(trigger);
+      (*mDebugStream).GetFile()->cd();
+      (*mDebugStream) << "L0Timesums" 
+        << "Patch=" << WhichPatch 
+        << "PatchAmp=" << PatchAmp 
+        << "WhichTRU=" << WhichTRU
+        << "WhichFastOr=" << WhichFastOr
+        << "FastOrAmp=" << FastOrAmp
+        << "\n";
+      LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
+  
+
+    }
+    
+  }
 }
 //_______________________________________________________________________
 void DigitizerTRU::setPatches()

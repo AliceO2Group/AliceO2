@@ -66,14 +66,16 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   void run(framework::ProcessingContext& ctx) override;
 
  private:
-  Bool_t mFinished = false;             ///< Flag for digitization finished
-  Bool_t mLoadSimParamFromCCDB = false; ///< Flag to load the the SimParams from CCDB
-  bool mIsConfigured = false;           ///< Initialization status of the digitizer
-  Digitizer mDigitizer;                 ///< Digitizer object
-  DigitizerTRU mDigitizerTRU;                 ///< Digitizer object TRU
-  o2::emcal::SDigitizer mSumDigitizer;  ///< Summed digitizer
-  o2::emcal::SDigitizer mSumDigitizerTRU;  ///< Summed digitizer TRU
-  std::vector<Hit> mHits;               ///< Vector with input hits
+  Bool_t mFinished = false;               ///< Flag for digitization finished
+  Bool_t mLoadSimParamFromCCDB = false;   ///< Flag to load the the SimParams from CCDB
+  bool mIsConfigured = false;             ///< Initialization status of the digitizer
+  Digitizer mDigitizer;                   ///< Digitizer object
+  DigitizerTRU mDigitizerTRU;             ///< Digitizer object TRU
+  o2::emcal::SDigitizer mSumDigitizer;    ///< Summed digitizer
+  o2::emcal::SDigitizer mSumDigitizerTRU; ///< Summed digitizer TRU
+  std::vector<Hit> mHits;                 ///< Vector with input hits
+  bool mRunDigitizer = true; ///< Run Digitizer FEE?
+  bool mRunDigitizerTRU = true;  ///< Run Digitizer TRU?
   std::vector<TChain*> mSimChains;
 };
 

@@ -104,8 +104,8 @@ void LZEROElectronics::addNoiseDigits(Digit& d1)
 void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs)
 {
   // std::map<unsigned int, std::list<Digit>> outputList;
-  LOG(info) << "DIG SIMONE fill in LZEROElectronics: beginning";
-  int counterDigitTimeBin = 0;
+  // LOG(info) << "DIG SIMONE fill in LZEROElectronics: beginning";
+  // int counterDigitTimeBin = 0;
   int sizemDigitMap = -999;
 
   for (auto& digitsTimeBin : digitlist) {
@@ -114,8 +114,8 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     // At the end of the loop run the peak finder
     // Ship to LONEElectronics in case a peak is found
 
-    LOG(info) << "DIG SIMONE fill in LZEROElectronics: beginning, counterDigitTimeBin = " << counterDigitTimeBin;
-    counterDigitTimeBin++;
+    // LOG(info) << "DIG SIMONE fill in LZEROElectronics: beginning, counterDigitTimeBin = " << counterDigitTimeBin;
+    // counterDigitTimeBin++;
 
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
       int counterhelp = 0;
@@ -138,12 +138,12 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       }
 
       sizemDigitMap = (*digitsTimeBin.mDigitMap).size();
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before mSimulateNoiseDigits, sizemDigitMap = " << sizemDigitMap;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before mSimulateNoiseDigits, sizemDigitMap = " << sizemDigitMap;
       if (mSimulateNoiseDigits) {
         addNoiseDigits(summedDigit);
       }
 
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before summedDigit.getAmplitude, fastor  =  " << fastor;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before summedDigit.getAmplitude, fastor  =  " << fastor;
 
       if (summedDigit.getAmplitude() < 0) {
         continue;
@@ -152,13 +152,18 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto whichFastOr = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
-      patchTRU.init();
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRwhichFastOrU = " << whichFastOr;
+      if (patchTRU.mFastOrs.size() < 96) {
+        // LOG(info) << "DIG SIMONE fill in LZEROElectronics: patchTRU.mFastOrs.resize, size = " << patchTRU.mFastOrs.size();
+        patchTRU.mFastOrs.resize(96);
+      }
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
 
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRwhichFastOrU = " << whichFastOr;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRwhichFastOrU = " << whichFastOr;
 
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before fastOrPatchTRU.updateADC, counterhelp = " << counterhelp;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before fastOrPatchTRU.updateADC, counterhelp = " << counterhelp;
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
       digIndex++;
     }
@@ -177,7 +182,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
     bool foundPeak = false;
     for (auto& patches : patchesFromAllTRUs) {
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       if (foundPeakCurrentTRU)
@@ -199,5 +204,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         whichTRU++;
       }
     }
+
+    mTriggers.push_back(TriggerInputsForL1);
   }
 }

@@ -108,13 +108,20 @@ class LZEROElectronics
   // Getter for the threshold used for the integral of the ADC values in the LZERO algorithm
   const double getLZEROThreshold() const { return mThreshold; }
 
+  /// Getter for the trigger inputs found by the LZERO algorithm
+  const std::vector<EMCALTriggerInputs>& getTriggerInputs() const
+  {
+    return mTriggers;
+  }
+
  private:
   double mThreshold = 0;
-  TRandom3* mRandomGenerator = nullptr;    ///< random number generator
-  const SimParam* mSimParam = nullptr;     ///< SimParam object
-  bool mSimulateNoiseDigits = true;        ///< simulate noise digits
-  TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
-  Geometry* mGeometry = nullptr;           ///< EMCAL geometry
+  TRandom3* mRandomGenerator = nullptr;      ///< random number generator
+  const SimParam* mSimParam = nullptr;       ///< SimParam object
+  std::vector<EMCALTriggerInputs> mTriggers; ///< Triggers to be sent out
+  bool mSimulateNoiseDigits = true;          ///< simulate noise digits
+  TriggerMappingV2* mTriggerMap = nullptr;   ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
+  Geometry* mGeometry = nullptr;             ///< EMCAL geometry
 
   ClassDefNV(LZEROElectronics, 2);
 };

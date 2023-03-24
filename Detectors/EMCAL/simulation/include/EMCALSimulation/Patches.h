@@ -22,9 +22,7 @@
 #include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
 
-
 #include <fairlogger/Logger.h> // for LOG
-
 
 namespace o2
 {
@@ -56,23 +54,23 @@ struct FastOrStruct {
   void updateADC(double ADCvalue)
   {
 
-    if (mADCvalues.size() == 0) LOG(info) << "DIG SIMONE no ADC ";
-    if (mADCvalues.size() == 1) LOG(info) << "DIG SIMONE  ADC = 1";
-    if (mADCvalues.size() == 2) LOG(info) << "DIG SIMONE  ADC = 2";
-    if (mADCvalues.size() == 3) LOG(info) << "DIG SIMONE  ADC = 3";
-    if (mADCvalues.size() == 4) LOG(info) << "DIG SIMONE  ADC = 4";
-    if (mADCvalues.size() == 5) LOG(info) << "DIG SIMONE  ADC = 5";
-    if (mADCvalues.size() == 6) LOG(info) << "DIG SIMONE  ADC = 6";
-    if (mADCvalues.size() == 7) LOG(info) << "DIG SIMONE  ADC = 7";
-    if (mADCvalues.size() == 8) LOG(info) << "DIG SIMONE  ADC = 8";
+    // if (mADCvalues.size() == 0) LOG(info) << "DIG SIMONE no ADC ";
+    // if (mADCvalues.size() == 1) LOG(info) << "DIG SIMONE  ADC = 1";
+    // if (mADCvalues.size() == 2) LOG(info) << "DIG SIMONE  ADC = 2";
+    // if (mADCvalues.size() == 3) LOG(info) << "DIG SIMONE  ADC = 3";
+    // if (mADCvalues.size() == 4) LOG(info) << "DIG SIMONE  ADC = 4";
+    // if (mADCvalues.size() == 5) LOG(info) << "DIG SIMONE  ADC = 5";
+    // if (mADCvalues.size() == 6) LOG(info) << "DIG SIMONE  ADC = 6";
+    // if (mADCvalues.size() == 7) LOG(info) << "DIG SIMONE  ADC = 7";
+    // if (mADCvalues.size() == 8) LOG(info) << "DIG SIMONE  ADC = 8";
 
-    LOG(info) << "DIG SIMONE updateADC in FastOrStruct: beginning";
+    // LOG(info) << "DIG SIMONE updateADC in FastOrStruct: beginning";
     if (mADCvalues.size() == 4) {
-      LOG(info) << "DIG SIMONE updateADC in FastOrStruct: before mADCvalues.front";
+      // LOG(info) << "DIG SIMONE updateADC in FastOrStruct: before mADCvalues.front";
       mPreviousTimebinADCvalue = mADCvalues.front();
       mADCvalues.erase(mADCvalues.begin());
     }
-    LOG(info) << "DIG SIMONE updateADC in FastOrStruct: before mADCvalues.push_back";
+    // LOG(info) << "DIG SIMONE updateADC in FastOrStruct: before mADCvalues.push_back";
     mADCvalues.push_back(ADCvalue);
   }
 };

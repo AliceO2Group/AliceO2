@@ -23,11 +23,13 @@ using namespace o2::emcal;
 Patches::Patches() : mPatchSize(2), mWhichSide(0), mWhichSuperModuleSize(0)
 {
   // DEFAULT CONSTRUCTOR
+  mFastOrs.resize(96);
 }
 //____________________________________________________________________________
 Patches::Patches(int patchSize, int whichSide, int whichSuperModuleSize) : mPatchSize(patchSize), mWhichSide(whichSide), mWhichSuperModuleSize(whichSuperModuleSize)
 {
   // CONSTRUCTOR
+  mFastOrs.resize(96);
 }
 //____________________________________________________________________________
 void Patches::init()

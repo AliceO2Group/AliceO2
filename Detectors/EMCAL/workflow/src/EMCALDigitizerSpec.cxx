@@ -55,6 +55,13 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   }
   // mDigitizer.init();
 
+  if (ctx.options().get<bool>("no-dig-tru")) {
+    mRunDigitizerTRU = false;
+  }
+  if (ctx.options().get<bool>("no-dig-fee")) {
+    mRunDigitizer = false;
+  }
+
   mFinished = false;
 }
 
@@ -110,6 +117,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   int collisionN = 0;
   for (int collID = 0; collID < timesview.size(); ++collID) {
 
+    if (mRunDigitizerTRU == false)
+      break;
+
     LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime  collN = " << collisionN;
     collisionN++;
 
@@ -156,6 +166,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
+
+    if (mRunDigitizer == false)
+      break;
 
     mDigitizer.setEventTime(timesview[collID]);
 
@@ -245,7 +258,11 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(useccdb)},
     Options{
       {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
-      {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}
+      {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}},
+      {"no-dig-tru", VariantType::Bool, false, {"Disable TRU Digitisation"}},
+      {"no-dig-fee", VariantType::Bool, false, {"Disable FEE Digitisation"}}
+
+    }
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }
