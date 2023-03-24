@@ -9,9 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TimeFrame.h
-/// \brief
-///
 
 #ifndef TRACKINGITSU_INCLUDE_TIMEFRAME_H_
 #define TRACKINGITSU_INCLUDE_TIMEFRAME_H_
@@ -138,6 +135,11 @@ class TimeFrame
 
   bool hasMCinformation() const;
   void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
+  void resetRofPV()
+  {
+    mPrimaryVertices.clear();
+    mROframesPV.resize(1, 0);
+  };
 
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);

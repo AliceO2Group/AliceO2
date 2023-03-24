@@ -213,6 +213,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mRunVertexer) {
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+  } else { // cosmics
+    mTimeFrame->resetRofPV();
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
