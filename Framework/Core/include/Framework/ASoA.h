@@ -2619,7 +2619,7 @@ class FilteredBase : public T
                      return idx - static_cast<int64_t>(start);
                    });
     self_t fresult{{result}, std::move(slicedSelection), start};
-    copyIndexBindings(fresult);
+    this->copyIndexBindings(fresult);
     return fresult;
   }
 
@@ -2643,7 +2643,7 @@ class FilteredBase : public T
                      return idx - static_cast<int64_t>(start);
                    });
     self_t fresult{{slice}, std::move(slicedSelection), start};
-    copyIndexBindings(fresult);
+    this->copyIndexBindings(fresult);
     return fresult;
   }
 
@@ -2669,7 +2669,7 @@ class FilteredBase : public T
                        return idx - static_cast<int64_t>(start);
                      });
       self_t fresult{{result}, std::move(slicedSelection), start};
-      copyIndexBindings(fresult);
+      this->copyIndexBindings(fresult);
       return fresult;
     } else {
       static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
@@ -2892,7 +2892,7 @@ class Filtered : public FilteredBase<T>
                      return idx - static_cast<int64_t>(start);
                    });
     self_t fresult{{slice}, std::move(slicedSelection), start};
-    copyIndexBindings(fresult);
+    this->copyIndexBindings(fresult);
     return fresult;
   }
 };
@@ -3048,7 +3048,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     Filtered<T> filteredTable{{slice}, std::move(slicedSelection), start};
     std::vector<Filtered<T>> filtered{filteredTable};
     self_t fresult{std::move(filtered), std::move(copy), start};
-    copyIndexBindings(fresult);
+    this->copyIndexBindings(fresult);
     return fresult;
   }
 
