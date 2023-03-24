@@ -106,7 +106,7 @@ inline constexpr size_t metricStorageSize()
   } else if constexpr (std::is_same_v<T, uint64_t>) {
     return 1024;
   } else if constexpr (std::is_same_v<T, StringMetric>) {
-    return 32;
+    return 2;
   } else if constexpr (std::is_same_v<T, float>) {
     return 1024;
   } else if constexpr (std::is_same_v<T, int8_t>) {
@@ -126,7 +126,7 @@ static inline constexpr size_t metricStorageSize(enum MetricType type)
     case MetricType::Float:
       return 1024;
     case MetricType::String:
-      return 32;
+      return 2;
     case MetricType::Enum:
       return 8;
     case MetricType::Unknown:
