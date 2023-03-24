@@ -30,7 +30,11 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     int recvTimeot = 0;
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
       if (recvTimeot == -1 && waitMessage == 0) {
-        LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+          LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        } else {
+          LOG(info) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        }
         waitMessage = 1;
       }
       auto msg = device->NewMessageFor("metric-feedback", 0, 0);
