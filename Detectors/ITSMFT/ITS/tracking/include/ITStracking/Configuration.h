@@ -129,9 +129,11 @@ struct TimeFrameGPUParameters {
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
   size_t clustersPerROfCapacity = 1.5e3;
-  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  size_t validatedTrackletsCapacity = 1e5;
+  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerROfCapacity;
+  size_t validatedTrackletsCapacity = 1e3;
   size_t cellsLUTsize = validatedTrackletsCapacity;
+  size_t maxNeighboursSize = 1e2;
+  size_t neighboursLUTsize = maxNeighboursSize;
   size_t maxLinesCapacity = 1e2;
   size_t maxVerticesCapacity = 5e4;
   size_t nMaxROFs = 1e3;

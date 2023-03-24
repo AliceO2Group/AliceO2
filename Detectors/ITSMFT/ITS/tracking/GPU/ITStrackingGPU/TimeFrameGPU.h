@@ -108,6 +108,7 @@ class GpuTimeFrameChunk
   int* getDeviceCUBTmpBuffer() { return mCUBTmpBufferDevice; }
   int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
   int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
+  int* getDeviceCellNeigboursLookupTables(const int);
 
   /// Vertexer only
   int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }
@@ -132,6 +133,8 @@ class GpuTimeFrameChunk
   std::array<int*, nLayers - 1> mTrackletsLookupTablesDevice;
   std::array<Cell*, nLayers - 2> mCellsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
+  std::array<int*, nLayers - 3> mNeighboursCellDevice;
+  std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;
 
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
@@ -185,7 +188,10 @@ class TimeFrameGPU : public TimeFrame
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
+
+  // Host-specific getters
   gsl::span<int> getHostNTracklets(const int chunkId);
+  gsl::span<int> getHostNCells(const int chunkId);
 
  private:
   bool mHostRegistered = false;
@@ -213,6 +219,7 @@ class TimeFrameGPU : public TimeFrame
 
   // Host memeory used only in GPU tracking
   std::vector<int> mHostNTracklets;
+  std::vector<int> mHostNCells;
 };
 
 template <int nLayers>

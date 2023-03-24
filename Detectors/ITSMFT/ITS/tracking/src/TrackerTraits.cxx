@@ -378,7 +378,6 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
         if (currentCellLevel >= nextCell.getLevel()) {
           nextCell.setLevel(currentCellLevel + 1);
         }
-        // }
       }
     }
   }
