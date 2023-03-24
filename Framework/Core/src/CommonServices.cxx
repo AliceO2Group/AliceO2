@@ -180,6 +180,17 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     // Notice this will be executed only once, because the service is declared upfront.
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
+
+      if (getenv("DDS_SESSION_ID") != nullptr) {
+        context.deploymentMode = DeploymentMode::OnlineDDS;
+      } else if (getenv("OCC_CONTROL_PORT") != nullptr) {
+        context.deploymentMode = DeploymentMode::OnlineECS;
+      } else if (getenv("ALIEN_JOB_ID") != nullptr) {
+        context.deploymentMode = DeploymentMode::Grid;
+      } else {
+        context.deploymentMode = DeploymentMode::Local;
+      }
+
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
         context.runNumber = extRunNumber;
