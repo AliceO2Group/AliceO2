@@ -30,6 +30,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TRD/base/macros/PrintTrapConfig.C
             Detectors/TRD/base/macros/TestTrapSim.C
             Detectors/TRD/macros/convertRun2ToRun3Digits.C
+            Detectors/TRD/macros/CheckConfigEvent.C
             Detectors/TRD/simulation/macros/CheckTRDFST.C
             Detectors/TRD/reconstruction/macros/checkTrackletCharges.C
             Detectors/TRD/reconstruction/macros/CompareDigitsAndTracklets.C

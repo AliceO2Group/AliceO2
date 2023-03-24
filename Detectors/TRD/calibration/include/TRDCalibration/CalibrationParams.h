@@ -28,10 +28,12 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   unsigned int chi2RedMax = 6;     ///< maximum reduced chi2 acceptable for track quality
   size_t minEntriesChamber = 75;   ///< minimum number of entries per chamber to fit single time slot
   size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
-
   // parameters related to noise calibration
   size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
-
+  // parameters for config events.
+  uint32_t configEventAccumulationTime = 15; ///< time to accumulate config events before comparison to 
+  bool takeAllConfigEvents = 0; ///< do we save all the intermediary config events
+  
   // boilerplate
   O2ParamDef(TRDCalibParams, "TRDCalibParams");
 };

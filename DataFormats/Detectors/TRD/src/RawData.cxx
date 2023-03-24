@@ -372,17 +372,17 @@ void printDigitHCHeaders(o2::trd::DigitHCHeader& header, uint32_t headers[3], in
            header.word, header.res, header.side, header.stack, header.layer, header.supermodule,
            header.numberHCW, header.minor, header.major, header.version);
       break;
-    case 0:
+    case 1:
       o2::trd::DigitHCHeader1 header1;
       header1.word = headers[offset];
       LOGF(info, "%s Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", (good) ? "" : "*Corrupt*", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
       break;
-    case 1:
+    case 2:
       o2::trd::DigitHCHeader2 header2;
       header2.word = headers[offset];
       LOGF(info, "%s Digit HalfChamber Header2 Raw:0x%08x reserve:0x%08x PedestalFilter:0x%01x GainFilter:0x%01x TailFilter:0x%01x CrosstalkFilter:0x%01x Non-linFilter:0x%01x RawDataBypassFilter:0x%01x DigitFilterCommonAdditive:0x%02x ", (good) ? "" : "*Corrupt*", header2.word, header2.res, header2.dfilter, header2.rfilter, header2.nlfilter, header2.xtfilter, header2.tfilter, header2.gfilter, header2.pfilter);
       break;
-    case 2:
+    case 3:
       o2::trd::DigitHCHeader3 header3;
       header3.word = headers[offset];
       LOGF(info, "%s Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", (good) ? "" : "*Corrupt*", header3.word, header3.res, header3.svnrver, header3.svnver);

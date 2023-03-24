@@ -72,7 +72,7 @@
 //#include "TRDBase/ChamberNoise.h"
 //#include "TRDBase/CalOnlineGainTables.h"
 //#include "TRDBase/FeeParam.h"
-#include "TRDSimulation/TrapConfig.h"
+#include "DataFormatsTRD/TrapConfig.h"
 
 using namespace std;
 using namespace o2::ccdb;

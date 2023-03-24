@@ -20,6 +20,7 @@
 #include <map>
 #include <cstdint>
 #include <ostream>
+#include <bitset>
 #include "DataFormatsTRD/Constants.h"
 #include "Rtypes.h"
 
@@ -427,6 +428,55 @@ struct LinkToHCIDMapping {
   std::map<int, int> linkIDToHCID;
   std::map<int, int> hcIDToLinkID;
   ClassDefNV(LinkToHCIDMapping, 1);
+};
+
+struct DigitHCHeaderAll {
+  // store all the digit hcheaders for carrying them around all together.
+  // all 4 of them are 32 bit integers and its simpler to just store them like that.
+  std::array<uint32_t, 4> mHeaders;
+  std::bitset<4> mHasHeader;
+  bool isSet(int header) { return mHasHeader.test(header); }
+  void setHeader(uint32_t header, uint32_t value)
+  {
+    mHasHeader.set(header);
+    mHeaders[header] = value;
+  }
+  uint32_t getHeader(uint32_t header)
+  {
+    if (isSet(header))
+      return mHeaders[header];
+    else
+      return 0;
+  }
+  uint32_t getHeader()
+  {
+    if (isSet(0)) {
+      return mHeaders[0];
+    } else
+      return 0;
+  }
+  uint32_t getHeader1()
+  {
+    if (isSet(1)) {
+      return mHeaders[1];
+    } else
+      return 0;
+  }
+  uint32_t getHeader2()
+  {
+    if (isSet(2)) {
+      return mHeaders[2];
+    } else
+      return 0;
+  }
+  uint32_t getHeader3()
+  {
+    if (isSet(3)) {
+      return mHeaders[3];
+    } else
+      return 0;
+  }
+  void reset() { mHeaders.fill(0); } ///< reset the headers to zero
 };
 
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);

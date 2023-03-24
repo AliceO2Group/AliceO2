@@ -12,8 +12,10 @@
 #include "Framework/DataProcessorSpec.h"
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDConfigEventReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
+#include "TRDWorkflow/ConfigEventDevice.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -54,6 +56,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
     }
     specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
+  }
+  if (configcontext.options().get<bool>("configevent")) {
+    if (enableRootInp) {
+      specs.emplace_back(o2::trd::getTRDConfigEventReaderSpec());
+    }
+    specs.emplace_back(o2::trd::getTRDConfigEventCalibSpec());
   }
 
   return specs;

@@ -49,6 +49,7 @@ void CruRawReader::configure(int tracklethcheader, int halfchamberwords, int hal
   if (mOptions[TRDVerboseErrorsBit] && (ParsingErrorsString.size() - 1) != TRDLastParsingError) {
     LOG(error) << "Verbose error reporting requested, but the mapping of error code to error string is not complete";
   }
+  mTotalConfigTime = (std::chrono::duration<double, std::micro>)0;
 }
 
 void CruRawReader::incrementErrors(int error, int hcid, std::string message)
@@ -242,6 +243,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
   // mHBFoffset32 is the current offset into the current buffer,
   //
   mDigitHCHeader.word = mHBFPayload[mHBFoffset32++];
+  mDigitHCHeaderAll.setHeader(0, mDigitHCHeader.word);
 
   // in case DigitHCHeader1 is not available for providing the phase, flag with invalid one
   mPreTriggerPhase = INVALIDPRETRIGGERPHASE;
@@ -311,6 +313,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
           return false;
         }
         mTimeBins = header1.numtimebins;
+        mDigitHCHeaderAll.setHeader(1, header1.word);
         break;
 
       case 2: // header header2;
@@ -323,18 +326,21 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
           incrementErrors(DigitHCHeader2Problem, hcid);
           return false;
         }
+        DigitHCHeader2 header2;
+        header2.word = headers[headerwordcount];
         /* Currently we don't do anything with the information stored in DigitHCHeader2
         DigitHCHeader2 header2;
         header2.word = headers[headerwordcount];
         */
         headersfound.set(1);
+        mDigitHCHeaderAll.setHeader(2, header2.word);
         break;
 
       case 3: // header header3;
         if (headersfound.test(2)) {
           // we have a problem, we already have a Digit HC Header3, we are hereby lost.
           if (mOptions[TRDVerboseErrorsBit]) {
-            LOG(info) << "We have a >1 Digit HC Header 2  : " << std::hex << " raw: 0x" << headers[headerwordcount];
+            LOG(error) << "We have a >1 Digit HC Header 2  : " << std::hex << " raw: 0x" << headers[headerwordcount];
             printDigitHCHeader(mDigitHCHeader, headers.data());
           }
           incrementErrors(DigitHCHeader3Problem, hcid);
@@ -349,6 +355,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
               LOG(warning) << "Conflicting SVN in DigitHCHeader3";
               printDigitHCHeader(mDigitHCHeader, headers.data());
             }
+            LOGP(info, "SVN MisMatch: svnver {}=?{} and svnrver {}=?{} ", (unsigned int)header3.svnver, mPreviousDigitHCHeadersvnver, (unsigned int)header3.svnrver, mPreviousDigitHCHeadersvnrver);
             incrementErrors(DigitHCHeaderSVNMismatch, hcid);
             return false;
           }
@@ -356,6 +363,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
           mPreviousDigitHCHeadersvnver = header3.svnver;
           mPreviousDigitHCHeadersvnrver = header3.svnrver;
           mHaveSeenDigitHCHeader3 = true;
+          mDigitHCHeaderAll.setHeader(3, header3.word);
         }
         break;
 
@@ -479,6 +487,7 @@ bool CruRawReader::processHalfCRU(int iteration)
     // apply CTP offset shift
     mIR.bc -= o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
   }
+
   mEventRecords.setCurrentEventRecord(mIR);
 
   //loop over links
@@ -501,12 +510,12 @@ bool CruRawReader::processHalfCRU(int iteration)
     }
     if (mOptions[TRDVerboseBit]) {
       if (currentlinksize32 > 0) {
-        LOGF(info, "Half-CRU link %i raw dump before parsing starts:", currentlinkindex);
+        LOGP(info, "Half-CRU link {}(hcid:{}) LME : {} raw dump before parsing starts:", currentlinkindex, halfChamberId, mCurrentHalfCRULinkErrorFlags[currentlinkindex]);
         for (uint32_t dumpoffset = mHBFoffset32; dumpoffset < mHBFoffset32 + currentlinksize32; dumpoffset += 8) {
           LOGF(info, "0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x", mHBFPayload[dumpoffset], mHBFPayload[dumpoffset + 1], mHBFPayload[dumpoffset + 2], mHBFPayload[dumpoffset + 3], mHBFPayload[dumpoffset + 4], mHBFPayload[dumpoffset + 5], mHBFPayload[dumpoffset + 6], mHBFPayload[dumpoffset + 7]);
         }
       } else {
-        LOGF(info, "Half-CRU link %i has zero link size", currentlinkindex);
+        LOGP(info, "Half-CRU link {}(hcid:{}) LMR : {} has zero link size", currentlinkindex, halfChamberId, mCurrentHalfCRULinkErrorFlags[currentlinkindex]);
       }
     }
     if (currentlinksize32 > 0) { // if link is not empty
@@ -517,6 +526,7 @@ bool CruRawReader::processHalfCRU(int iteration)
       int trackletWordsRejected = 0;
       int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected);
       std::chrono::duration<double, std::micro> trackletparsingtime = std::chrono::high_resolution_clock::now() - trackletparsingstart;
+      // LOGP(info,"Tracklet parsing took {}",(double)std::chrono::duration_cast<std::chrono::microseconds>(trackletparsingtime).count());
       if (trackletWordsRead == -1) {
         // something went wrong bailout of here.
         mHBFoffset32 = hbfOffsetTmp + linksizeAccum32;
@@ -525,6 +535,8 @@ bool CruRawReader::processHalfCRU(int iteration)
       }
       if (trackletWordsRejected > 0) {
         linkOK = false;
+      } else {
+        mTrackletsHCID.set(halfChamberId); // flip the bit to say we have tracklets on this hcid.
       }
       mHBFoffset32 += trackletWordsRead;
       if (mCurrentHalfCRUHeader.EventType == ETYPEPHYSICSTRIGGER &&
@@ -576,16 +588,24 @@ bool CruRawReader::processHalfCRU(int iteration)
         }
 
         mEventRecords.incMajorVersion(mDigitHCHeader.major); // 127 is max histogram goes to 256
-
-        if (mDigitHCHeader.major == 0x47) {
+        if (mDigitHCHeader.major == constants::CONFIGEVENTNUMBER) {
           // config event so ignore for now and bail out of parsing.
           //advance data pointers to the end;
+          auto configeventlength = mCurrentHalfCRULinkLengths[currentlinkindex];
+          // config event so ignore for now and bail out of parsing.
+          // advance data pointers to the end;
+          int counter = 0;
+          mTimeFrameHasConfigEvent = true;
+          //LOGP(debug, "New Config event for : on hcid : {}  link: {} -- for IR  bc: {} orbit:{}  Trackletwords : {}", halfChamberId, currentlinkindex, mIR.bc, mIR.orbit, trackletWordsRead);
+          if (mOptions[TRDEnableConfigEvents]) {
+            // avoid filing the events unless we enable it.
+            mEventRecords.addConfigEvent(mHBFPayload, mHBFoffset32, endOfCurrentLink, configeventlength * 8, mDigitHCHeaderAll, mIR);
+          }
           mHBFoffset32 = hbfOffsetTmp + currentlinksize32;
-          mDigitWordsRejected += hbfOffsetTmp + currentlinksize32; // count full link as rejected
-          LOG(info) << "Configuration event  ";
         } else {
           auto digitsparsingstart = std::chrono::high_resolution_clock::now();
           int digitWordsRejected = 0;
+          // TODO remove this before comitting, its to speed up the parsing to get to the config events.
           int digitWordsRead = parseDigitLinkData(endOfCurrentLink - mHBFoffset32, halfChamberId, digitWordsRejected);
           std::chrono::duration<double, std::micro> digitsparsingtime = std::chrono::high_resolution_clock::now() - digitsparsingstart;
           if (digitWordsRead == -1) {
@@ -595,7 +615,7 @@ bool CruRawReader::processHalfCRU(int iteration)
           }
           mHBFoffset32 += digitWordsRead;
           if (endOfCurrentLink - mHBFoffset32 >= 8) {
-            // check if some data is lost (probably due to bug in CRU user logic)
+            // check if some data is lost (probably due to bug in CRU user logic, or does the)
             // we should have max 7 padding words to align the link to 256 bits
             /*
             // due to the current CRU bug this is almost always the case
@@ -1052,14 +1072,14 @@ Tracklet64 CruRawReader::assembleTracklet64(int format, TrackletMCMHeader& mcmHe
 void CruRawReader::dumpInputPayload() const
 {
   // we print 8 32-bit words per line
-  LOG(info) << "Dumping full input payload ----->";
+  LOG(error) << "Dumping full input payload ----->";
   for (int iWord = 0; iWord < (mDataBufferSize / 4); iWord += 8) {
     LOGF(info, "Word %4i/%4i: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x",
          iWord, mDataBufferSize / 4,
          *((uint32_t*)mDataBufferPtr + iWord), *((uint32_t*)mDataBufferPtr + iWord + 1), *((uint32_t*)mDataBufferPtr + iWord + 2), *((uint32_t*)mDataBufferPtr + iWord + 3),
          *((uint32_t*)mDataBufferPtr + iWord + 4), *((uint32_t*)mDataBufferPtr + iWord + 5), *((uint32_t*)mDataBufferPtr + iWord + 6), *((uint32_t*)mDataBufferPtr + iWord + 7));
   }
-  LOG(info) << "<------ Done dumping full input payload";
+  LOG(error) << "<------ Done dumping full input payload";
 }
 
 void CruRawReader::run()
@@ -1071,6 +1091,7 @@ void CruRawReader::run()
   if (mOptions[TRDVerboseBit]) {
     dumpInputPayload();
   }
+  mTimeFrameHasConfigEvent = false;
 
   mCurrRdhPtr = mDataBufferPtr; // set the pointer to the current RDH to the beginning of the payload
   while ((mCurrRdhPtr - mDataBufferPtr) < mDataBufferSize) {
@@ -1138,6 +1159,7 @@ void CruRawReader::reset()
   mTrackletWordsRead = 0;
   mTrackletWordsRejected = 0;
   mWordsRejected = 0;
+  mTimeFrameHasConfigEvent = false;
 }
 
 void CruRawReader::checkNoWarn(bool silently)

@@ -72,6 +72,7 @@ class Digit
   void setMCM(int row, int col) { mMCM = HelperMethods::getMCMfromPad(row, col); } // set MCM from pad row, column
   void setChannel(int channel) { mChannel = channel; }
   void setDetector(int det) { mDetector = ((mDetector & 0xf000) | (det & 0xfff)); }
+  void setPhase(unsigned int phase) { mDetector &= phase << 12; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
   void setADC(const gsl::span<ADC_t>& adc) { std::copy(adc.begin(), adc.end(), mADC.begin()); }
   void setPreTrigPhase(int phase) { mDetector = (((phase & 0xf) << 12) | (mDetector & 0xfff)); }

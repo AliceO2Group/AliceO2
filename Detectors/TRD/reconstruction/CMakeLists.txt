@@ -8,6 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+#add_compile_options(-O0 -g -fPIC) 
 
 o2_add_library(TRDReconstruction
                SOURCES src/CTFCoder.cxx
@@ -15,6 +16,7 @@ o2_add_library(TRDReconstruction
                        src/CruRawReader.cxx
                        src/DataReaderTask.cxx
                        src/EventRecord.cxx
+                       src/TrapConfigEventParser.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsTPC

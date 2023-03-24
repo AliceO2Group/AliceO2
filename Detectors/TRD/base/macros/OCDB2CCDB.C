@@ -72,7 +72,7 @@
 #include "TRDBase/ChamberStatus.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDSimulation/TrapConfig.h"
+#include "DataFormatsTRD/TrapConfig.h"
 #include "DataFormatsTRD/Constants.h"
 #endif
 

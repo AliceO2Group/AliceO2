@@ -22,9 +22,12 @@ o2_add_library(TRDWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/TrackBasedCalibSpec.cxx
                        src/KrClustererSpec.cxx
+                       src/TrapConfigEventSpec.cxx
                        include/TRDWorkflow/VdAndExBCalibSpec.h
                        include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                        include/TRDWorkflow/NoiseCalibSpec.h
+                       include/TRDWorkflow/TrapConfigEventSpec.h
+                       include/TRDWorkflow/CalibratorConfigEvents.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils
                                      O2::Steer
                                      O2::Algorithm
@@ -86,6 +89,11 @@ o2_add_executable(kr-clusterer
                   COMPONENT_NAME trd
                   SOURCES src/trd-kr-clusterer.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+o2_add_executable(configevent-workflow
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-configevent-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow O2::DataFormatsTRD O2::TRDReconstruction)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

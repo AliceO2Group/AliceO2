@@ -17,6 +17,7 @@ o2_add_library(TRDCalibration
                        src/CalibratorNoise.cxx
                        src/PadCalibCCDBBuilder.cxx
                        src/KrClusterFinder.cxx
+                       src/CalibratorConfigEvents.cxx
                        src/DCSProcessor.cxx
                        src/CalibrationParams.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
@@ -35,6 +36,7 @@ o2_add_library(TRDCalibration
                                    include/TRDCalibration/CalibrationParams.h
                                    include/TRDCalibration/PadCalibCCDBBuilder.h
                                    include/TRDCalibration/KrClusterFinder.h
+                                   include/TRDCalibration/CalibratorConfigEvents.h
                                    include/TRDCalibration/DCSProcessor.h)
 
 o2_add_executable(trd-dcs-sim-workflow
