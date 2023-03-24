@@ -366,6 +366,9 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
+  // internal helper function to update a CCDB file with meta information
+  static void updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary = nullptr);
+
   // report what file is read and for which purpose
   void logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const;
 
