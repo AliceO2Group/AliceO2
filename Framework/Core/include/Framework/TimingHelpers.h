@@ -13,7 +13,8 @@
 #define O2_FRAMEWORK_TIMINGHELPERS_H_
 #include <functional>
 #include <cstdint>
-#include <uv.h>
+
+using uv_loop_t = struct uv_loop_s;
 
 namespace o2::framework
 {
@@ -22,6 +23,11 @@ struct TimingHelpers {
   /// associated fast offset for the realtime clock.
   static std::function<void(int64_t& base, int64_t& offset)> defaultRealtimeBaseConfigurator(uint64_t offset, uv_loop_t* loop);
   static std::function<int64_t(int64_t base, int64_t offset)> defaultCPUTimeConfigurator();
+
+  /// Milliseconds since epoch, using the standard C++ clock.
+  /// This will do a system call every minute or so to synchronize the clock
+  /// and minimise drift.
+  static int64_t getRealtimeSinceEpochStandalone();
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_TIMINGHELPERS_H_
