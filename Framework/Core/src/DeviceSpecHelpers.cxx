@@ -428,6 +428,53 @@ std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& cha
                      channel.sendBufferSize);
 }
 
+void DeviceSpecHelpers::validate(std::vector<DataProcessorSpec> const& workflow)
+{
+  // Iterate on all the DataProcessorSpecs in the altered_workflow
+  // and check for duplicates outputs among those who have lifetime == Timeframe
+  // Do so by:
+  //
+  // * Get the list of all Lifetime::Timeframe outputs for the workflow.
+  //   Only those who are concrete matchers are considered for now, because
+  //   it becomes to complicate to check for the wildcard case.
+  // * Sort the associated matchers by origin, description, subSpec
+  // * Check that the next element is not the same
+  std::vector<std::pair<int, std::string>> timeframeOutputs;
+  for (size_t i = 0; i < workflow.size(); ++i) {
+    auto& spec = workflow[i];
+    // We do not want to check for pipelining
+    if (spec.inputTimeSliceId != 0) {
+      continue;
+    }
+    for (auto& output : spec.outputs) {
+      if (output.lifetime != Lifetime::Timeframe) {
+        continue;
+      }
+      std::optional<ConcreteDataMatcher> matcher = DataSpecUtils::asOptionalConcreteDataMatcher(output);
+      if (!matcher) {
+        continue;
+      }
+      timeframeOutputs.emplace_back(i, DataSpecUtils::describe(*matcher));
+    }
+  }
+  std::stable_sort(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second < b.second;
+  });
+
+  auto it = std::adjacent_find(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second == b.second;
+  });
+  if (it != timeframeOutputs.end()) {
+    // Tell which are the two duplicates
+    auto device1 = workflow[it->first].name;
+    auto device2 = workflow[(it + 1)->first].name;
+    auto output1 = it->second;
+    auto output2 = (it + 1)->second;
+    throw std::runtime_error(fmt::format("Found duplicate outputs {} in device {} ({}) and {} in {} ({})",
+                                         output1, device1, it->first, output2, device2, (it + 1)->first));
+  }
+}
+
 void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               std::vector<DeviceId>& deviceIndex,
                                               std::vector<DeviceConnectionId>& connections,
@@ -989,6 +1036,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::string const& channelPrefix,
                                                        OverrideServiceSpecs const& overrideServices)
 {
+  // Always check for validity of the workflow before instanciating it
+  DeviceSpecHelpers::validate(workflow);
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;

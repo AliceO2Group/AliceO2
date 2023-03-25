@@ -213,6 +213,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mRunVertexer) {
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+  } else { // cosmics
+    mTimeFrame->resetRofPV();
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
@@ -407,7 +409,6 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
     outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

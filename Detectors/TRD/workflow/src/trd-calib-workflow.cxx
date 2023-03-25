@@ -52,9 +52,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (configcontext.options().get<bool>("noise")) {
     if (enableRootInp) {
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
-      specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
     }
-    // specs.emplace_back(o2::trd::getTRDNoiseCalibAggregatorSpec());
+    specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
   }
 
   return specs;

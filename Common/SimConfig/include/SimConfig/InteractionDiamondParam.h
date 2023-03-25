@@ -30,8 +30,8 @@ enum class EVertexDistribution {
 
 /**
  ** a parameter class/struct to keep the settings of
- ** the interaction diamond (position and width) and 
- ** allow the user to modify them 
+ ** the interaction diamond (position and width) and
+ ** allow the user to modify them
  **/
 struct InteractionDiamondParam : public o2::conf::ConfigurableParamHelper<InteractionDiamondParam> {
   double position[3] = {0., 0., 0.};

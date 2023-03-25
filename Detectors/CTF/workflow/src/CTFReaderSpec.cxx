@@ -226,7 +226,6 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
-
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -241,8 +240,6 @@ bool CTFReaderSpec::processTF(ProcessingContext& pc)
   mTimer.Start(false);
 
   static RateLimiter limiter;
-  limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
-
   CTFHeader ctfHeader;
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
@@ -275,9 +272,12 @@ bool CTFReaderSpec::processTF(ProcessingContext& pc)
       LOGP(info, "Skimming did not define any selection for TF [{}] : [{}]", ir0.asString(), ir1.asString());
       return false;
     } else {
+      limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
       LOGP(info, "{} IR-Frames are selected for TF [{}] : [{}]", irSpan.size(), ir0.asString(), ir1.asString());
     }
     auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
+  } else {
+    limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
   }
 
   // send CTF Header

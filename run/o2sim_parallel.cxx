@@ -369,12 +369,12 @@ std::vector<char*> checkArgs(int argc, char* argv[])
       auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
       auto soreor = ccdbmgr.getRunDuration(conf.getRunNumber());
       auto timestamp = conf.getTimestamp();
-      if (conf.getConfigData().mTimestampMode == o2::conf::kNow) {
+      if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kNow) {
         timestamp = soreor.first;
         LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
         modifiedArgs.push_back("--timestamp");
         modifiedArgs.push_back(std::to_string(timestamp));
-      } else if (conf.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+      } else if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
         LOG(fatal) << "The given timestamp is incompatible with the given run number";
       }
     }

@@ -61,7 +61,7 @@
 #define CHAMBER 200
 #define NTRACKLETS 3
 #define FIT_MIN 1000
-#define TRACK_TYPE 0 // 0 = TPC-TRD, 1- ITS-TPC-TRD
+#define TRACK_TYPE 15 // 1 = TPC-TRD, 15- ITS-TPC-TRD
 
 using timePoint = o2::parameters::GRPECSObject::timePoint;
 static std::vector<std::tuple<double, double, int>> vmap[540];
@@ -102,14 +102,6 @@ static void find_good()
 inline bool cmpf(float A, float B, float epsilon = 0.0001f)
 {
   return (fabs(A - B) < epsilon);
-}
-
-// Taken from Tracklet64.cxx
-inline float getUncalibratedDy(int slope, int det, float nTbDrift = 19.4)
-{
-  float padWidth = 0.635f + 0.03f * (det % o2::trd::constants::NLAYER);
-  return slope * o2::trd::constants::GRANULARITYTRKLSLOPE * padWidth *
-         nTbDrift / o2::trd::constants::ADDBITSHIFTSLOPE;
 }
 
 void makeDeflectionCorrelation(unsigned int runNumber = 523677, std::string ccdb = "http://ccdb-test.cern.ch:8080", timePoint queryInterval = 900000)
@@ -186,15 +178,16 @@ void makeDeflectionCorrelation(unsigned int runNumber = 523677, std::string ccdb
       // Cuts
       //----------------------------------------------------
       good.set();
-      if (q.type != TRACK_TYPE)
-        continue; // type 0 = TPC-TRD, type 1 = ITS-TPC-TRD
-      if (q.nTracklets < NTRACKLETS)
+      if (q.refGlobalTrackId.getSource() != TRACK_TYPE) {
         continue;
+      }
+      if (q.trackTRD.getNtracklets() < NTRACKLETS) {
+        continue;
+      }
       for (auto i = 0; i < 6; ++i) {
-        if (abs(q.trackX[i]) < 10.0 ||
-            noiseMap.getIsNoisy(q.trackletHCId[i], q.trackletRob[i],
-                                q.trackletMcm[i]))
+        if (q.trackTRD.getTrackletIndex(i) < 0 || noiseMap.isTrackletFromNoisyMCM(q.trklt64[i])) {
           good.reset(i);
+        }
       }
 
       //----------------------------------------------------
@@ -203,18 +196,17 @@ void makeDeflectionCorrelation(unsigned int runNumber = 523677, std::string ccdb
       for (Int_t j = 0; j < 6; ++j) {
         if (good[j]) {
           // calc chamber
-          chamber = q.trackletHCId[j] / 2;
+          chamber = q.trklt64[j].getDetector();
 
           // only do this for chambers which have ccdb data
           if (!good_ccdb_chambers[chamber])
             continue;
 
-          float dy_cal = q.trackletDy[j];
+          float dy_cal = q.trkltCalib[j].getDy();
           float psi_cal = atan(dy_cal / DY_CHAMBER_LEN);
-          float dy_un =
-            getUncalibratedDy(q.trackletSlopeSigned[j], q.trackletDet[j]);
+          float dy_un = q.trklt64[j].getUncalibratedDy();
           float psi_un = atan(dy_un / DY_CHAMBER_LEN);
-          float snp = q.trackSnp[j];
+          float snp = q.trackProp[j].getSnp();
           float phi = asin(snp);
           hcorrelation_cal->Fill(phi, psi_cal);
           hcorrelation_uncal->Fill(phi, psi_un);

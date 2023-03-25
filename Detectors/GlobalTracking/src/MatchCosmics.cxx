@@ -165,7 +165,12 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (mSeeds[poolEntryID[btm]].origID.getSource() == GTrackID::TPC) {
       const auto& tpcTrOrig = data.getTPCTrack(mSeeds[poolEntryID[btm]].origID);
       trCosm = outerLegs[btm];
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, false, true); // inward refit, reset
+      trCosm.resetCovariance();
+      // in case of cosmics, constrain the momentum
+      if (!mFieldON) {
+        trCosm.setQ2Pt(-o2::track::kMostProbablePt);
+      }
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, false, false); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Inward refit of btm TPC track failed.";
         continue;
@@ -173,6 +178,10 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       nclTot += retVal;
       LOG(debug) << "chi2 after btm TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
     } else { // just collect NClusters and chi2
+      // since we did not refit bottom track, we just invert its conventional q/pT in case of B=0, so that after the inversion it gets correct sign
+      if (!mFieldON) {
+        trCosm.setQ2Pt(-trCosm.getQ2Pt());
+      }
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
         const auto& tpcTrOrig = data.getTPCTrack(gidxListBtm[GTrackID::TPC]);

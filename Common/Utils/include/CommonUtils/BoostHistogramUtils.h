@@ -407,17 +407,25 @@ boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D);
 boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D);
 
 /// \brief Get the mean of a 1D boost histogram
+/// \param inHist1D input boost histogram
+/// \param rangeLow minimum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \param rangeHigh maximum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \return mean value of boost histogram in specified range
 template <typename... axes>
-double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
+double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D, const double rangeLow = 0, const double rangeHigh = 0)
 {
   // LOG(info) << "Entering the mean function for hist with rank " << inHist1D.rank() << " with " << inHist1D.axis(0).size() << " bins";
   o2::math_utils::detail::StatAccumulator stats;
-  int mynbins = 0;
+  bool restrictRange = rangeLow < rangeHigh ? true : false;
   auto histiter = inHist1D.begin() + 1;
   const auto& axis = inHist1D.axis(0);
   for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
     // std::cout << "bin center bin " << mynbins << ": " << *bincenter << " <-> value: " << *histiter << std::endl;
-    ++mynbins;
+    if (restrictRange) {
+      if (*bincenter < rangeLow || *bincenter > rangeHigh) {
+        continue;
+      }
+    }
     stats.add(*bincenter, *histiter);
   }
   return stats.getMean();
@@ -427,18 +435,27 @@ double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
 /// \param inHist1D input boost histogram
 /// \param mean mean mean of the histogram, if set to -999999, mean will be caluclated
 /// \param weight weight of the entries in the histogram. Per default set to 1
+/// \param rangeLow minimum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \param rangeHigh maximum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
 /// \return variance of the distribution with respect to the mean
 template <typename... axes>
-double getVarianceBoost1D(boost::histogram::histogram<axes...>& inHist1D, double mean = -999999, const double weight = 1)
+double getVarianceBoost1D(boost::histogram::histogram<axes...>& inHist1D, double mean = -999999, const double rangeLow = 0, const double rangeHigh = 0, const double weight = 1)
 {
   if (std::abs(mean + 999999) < 0.00001) {
-    mean = getMeanBoost1D(inHist1D);
+    mean = getMeanBoost1D(inHist1D, rangeLow, rangeHigh);
   }
+  bool restrictRange = rangeLow < rangeHigh ? true : false;
   unsigned int nMeas = 0; // counter for the number of data points
   auto histiter = inHist1D.begin() + 1;
   const auto& axis = inHist1D.axis(0);
   double variance = 0;
   for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
+    if (restrictRange) {
+      LOG(debug) << " *bincenter " << *bincenter << "  rangeLow " << rangeLow << " rangeHigh " << rangeHigh;
+      if (*bincenter < rangeLow || *bincenter > rangeHigh) {
+        continue;
+      }
+    }
     nMeas += *histiter / weight; // to get the number of entries, for weighted histograms we need to divide by the weight to get back to the number of entries
     variance += *histiter * (*bincenter - mean) * (*bincenter - mean);
   }
