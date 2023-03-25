@@ -653,13 +653,20 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             nullptr,
             mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells());
 
-          // Compute number of found Cell Neighbours
+          // Compute Cell Neighbours LUT
           checkGPUError(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_in
                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_out
                                                       mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1],                              // num_items
                                                       mTimeFrameGPU->getStream(chunkId).get()));
+
+          // Print index table per layer
+          if (!chunkId) {
+            gpu::printBufferLayerOnThread<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLayer,
+                                                                                                mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),
+                                                                                                mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1]);
+          }
         }
 
         // End of tracking for this chunk
