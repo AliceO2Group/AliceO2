@@ -33,19 +33,19 @@ class SegmentationSuperAlpide
   SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow} { print(); }
   SegmentationSuperAlpide(int layer = 0) : SegmentationSuperAlpide(layer, SuperAlpideParams::Instance().pitchCol, SuperAlpideParams::Instance().pitchRow) {}
 
-  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 6.0f};                                                                          ///< radii for different layers
-  static constexpr float mLength = 27.15f;                                                                                                           ///< chip length
-  const int mLayer;                                                                                                                                  ///< chip layer
-  const float mPitchCol;                                                                                                                             ///< pixel column size
-  const float mPitchRow;                                                                                                                             ///< pixel row size
-  const int mNCols{static_cast<int>(std::ceil(mLength / mPitchCol))};                                                                                ///< number of columns
+  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 6.0f};                                                                               ///< radii for different layers
+  static constexpr float mLength = 27.15f;                                                                                                                ///< chip length
+  const int mLayer;                                                                                                                                       ///< chip layer
+  const float mPitchCol;                                                                                                                                  ///< pixel column size
+  const float mPitchRow;                                                                                                                                  ///< pixel row size
+  const int mNCols{static_cast<int>(std::ceil(mLength / mPitchCol))};                                                                                     ///< number of columns
   const int mNRows{static_cast<int>(std::ceil(double(mRadii[mLayer] + mDetectorLayerThickness / 2.) * double(constants::math::PI) / double(mPitchRow)))}; ///< number of rows
-  const int mNPixels{mNRows * mNCols};                                                                                                               ///< total number of pixels
-  static constexpr float mPassiveEdgeReadOut = 0.;                                                                                                   ///< width of the readout edge (Passive bottom)
-  static constexpr float mPassiveEdgeTop = 0.;                                                                                                       ///< Passive area on top
-  static constexpr float mPassiveEdgeSide = 0.;                                                                                                      ///< width of Passive area on left/right of the sensor
-  const float mActiveMatrixSizeCols{mPitchCol * mNCols};                                                                                             ///< Active size along columns
-  const float mActiveMatrixSizeRows{mPitchRow * mNRows};                                                                                             ///< Active size along rows
+  const int mNPixels{mNRows * mNCols};                                                                                                                    ///< total number of pixels
+  static constexpr float mPassiveEdgeReadOut = 0.;                                                                                                        ///< width of the readout edge (Passive bottom)
+  static constexpr float mPassiveEdgeTop = 0.;                                                                                                            ///< Passive area on top
+  static constexpr float mPassiveEdgeSide = 0.;                                                                                                           ///< width of Passive area on left/right of the sensor
+  const float mActiveMatrixSizeCols{mPitchCol * mNCols};                                                                                                  ///< Active size along columns
+  const float mActiveMatrixSizeRows{mPitchRow * mNRows};                                                                                                  ///< Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-uniformity, https://alice.its.cern.ch/jira/browse/AOC-46
   static constexpr float mSensorLayerThicknessEff = 28.e-4;                                   ///< effective thickness of sensitive part
