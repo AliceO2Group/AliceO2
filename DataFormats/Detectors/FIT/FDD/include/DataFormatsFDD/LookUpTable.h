@@ -40,6 +40,7 @@ template <typename LUT>
 class SingleLUT : public LUT
 {
  private:
+  SingleLUT() = default;
   SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
   SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
   SingleLUT(const SingleLUT&) = delete;
@@ -54,12 +55,22 @@ class SingleLUT : public LUT
   // Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
-  static SingleLUT& Instance()
+
+  using Table_t = typename LUT::Table_t;
+  bool mFirstUpdate{true}; // option in case if LUT should be updated during workflow initialization
+  static SingleLUT& Instance(const Table_t* table = nullptr)
   {
     if (sCurrentCCDBpath == "") {
       sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
     }
-    static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
+    static SingleLUT instanceLUT;
+    if (table != nullptr) {
+      instanceLUT.initFromTable(table);
+      instanceLUT.mFirstUpdate = false;
+    } else if (instanceLUT.mFirstUpdate) {
+      instanceLUT.initCCDB(sCurrentCCDBpath, sCurrentLUTpath);
+      instanceLUT.mFirstUpdate = false;
+    }
     return instanceLUT;
   }
 };
