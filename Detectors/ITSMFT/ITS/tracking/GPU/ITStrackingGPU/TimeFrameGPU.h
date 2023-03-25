@@ -109,6 +109,7 @@ class GpuTimeFrameChunk
   int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
   int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
   int* getDeviceCellNeigboursLookupTables(const int);
+  int* getDeviceCellNeighbours(const int);
 
   /// Vertexer only
   int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }

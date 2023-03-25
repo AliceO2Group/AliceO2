@@ -57,6 +57,7 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
           checkGPUError(cudaFree(mCellsLookupTablesDevice[i]));
           if (i < nLayers - 3) {
             checkGPUError(cudaFree(mNeighboursCellLookupTablesDevice[i]));
+            checkGPUError(cudaFree(mNeighboursCellDevice[i]));
           }
         }
       }
@@ -85,6 +86,7 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
         checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mCellsDevice[i])), sizeof(Cell) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
         if (i < nLayers - 3) {
           checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNeighboursCellLookupTablesDevice[i])), sizeof(int) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
+          checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNeighboursCellDevice[i])), sizeof(int) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
         }
         if (i < 2) {
           checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNTrackletsPerClusterDevice[i])), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
@@ -153,6 +155,7 @@ size_t GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(const int nrof, const
   rofsize += (nLayers - 2) * sizeof(int) * config.validatedTrackletsCapacity;                                  // cells lookup tables
   rofsize += (nLayers - 2) * sizeof(Cell) * config.maxNeighboursSize;                                          // cells
   rofsize += (nLayers - 3) * sizeof(int) * config.maxNeighboursSize;                                           // cell neighbours lookup tables
+  rofsize += (nLayers - 3) * sizeof(int) * config.maxNeighboursSize;                                           // cell neighbours
   rofsize += sizeof(Line) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity;                     // lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines exclusive sum
@@ -231,6 +234,12 @@ template <int nLayers>
 int* GpuTimeFrameChunk<nLayers>::getDeviceCellNeigboursLookupTables(const int layer)
 {
   return mNeighboursCellLookupTablesDevice[layer];
+}
+
+template <int nLayers>
+int* GpuTimeFrameChunk<nLayers>::getDeviceCellNeighbours(const int layer)
+{
+  return mNeighboursCellDevice[layer];
 }
 
 // Load data
