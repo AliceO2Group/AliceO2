@@ -73,7 +73,7 @@ void CheckTracksITS3(std::string tracfile = "o2trac_its3.root",
                      std::string clusfile = "o2clus_it3.root",
                      std::string kinefile = "o2sim_Kine.root",
                      std::string magfile = "o2sim_grp.root",
-                     bool batch=true)
+                     bool batch = true)
 {
 
   bool isITS3 = true;
@@ -253,7 +253,7 @@ void CheckTracksITS3(std::string tracfile = "o2trac_its3.root",
   h_pt_num->Sumw2();
   TH1D* h_eta_num = new TH1D("h_eta_num", ";#it{#eta};Number of tracks", 60, -3, 3);
   h_eta_num->Sumw2();
-  TH1D* h_phi_num = new TH1D("h_phi_num", ";#varphi;Number of tracks", 360, 0., 2*TMath::Pi());
+  TH1D* h_phi_num = new TH1D("h_phi_num", ";#varphi;Number of tracks", 360, 0., 2 * TMath::Pi());
   h_phi_num->Sumw2();
 
   TH1D* h_pt_fake = new TH1D("h_pt_fake", ";#it{p}_{T} (GeV/#it{c});Number of fake tracks", nb, xbins);
@@ -268,16 +268,16 @@ void CheckTracksITS3(std::string tracfile = "o2trac_its3.root",
   h_pt_den->Sumw2();
   TH1D* h_eta_den = new TH1D("h_eta_den", ";#it{#eta};Number of generated particles", 60, -3, 3);
   h_eta_num->Sumw2();
-  TH1D* h_phi_den = new TH1D("h_phi_den", ";#varphi;Number of generated particles", 360, 0., 2*TMath::Pi());
+  TH1D* h_phi_den = new TH1D("h_phi_den", ";#varphi;Number of generated particles", 360, 0., 2 * TMath::Pi());
   h_phi_num->Sumw2();
 
   TH2D* h_dcaxy_vs_pt = new TH2D("h_dcaxy_vs_pt", ";#it{p}_{T} (GeV/#it{c});DCA_{xy} (#mum)", nb, xbins, 2000, -500., 500.);
   TH2D* h_dcaxy_vs_eta = new TH2D("h_dcaxy_vs_eta", ";#it{#eta};DCA_{xy} (#mum)", 60, -3, 3, 2000, -500., 500.);
-  TH2D* h_dcaxy_vs_phi = new TH2D("h_dcaxy_vs_phi", ";#varphi;DCA_{xy} (#mum)", 360, 0., 2*TMath::Pi(), 2000, -500., 500.);
+  TH2D* h_dcaxy_vs_phi = new TH2D("h_dcaxy_vs_phi", ";#varphi;DCA_{xy} (#mum)", 360, 0., 2 * TMath::Pi(), 2000, -500., 500.);
 
   TH2D* h_dcaz_vs_pt = new TH2D("h_dcaz_vs_pt", ";#it{p}_{T} (GeV/#it{c});DCA_{z} (#mum)", nb, xbins, 2000, -500., 500.);
   TH2D* h_dcaz_vs_eta = new TH2D("h_dcaz_vs_eta", ";#it{#eta};DCA_{z} (#mum)", 60, -3, 3, 2000, -500., 500.);
-  TH2D* h_dcaz_vs_phi = new TH2D("h_dcaz_vs_phi", ";#varphi;DCA_{z} (#mum)", 360, 0., 2*TMath::Pi(), 2000, -500., 500.);
+  TH2D* h_dcaz_vs_phi = new TH2D("h_dcaz_vs_phi", ";#varphi;DCA_{z} (#mum)", 360, 0., 2 * TMath::Pi(), 2000, -500., 500.);
 
   TH1D* h_chi2 = new TH1D("h_chi2", ";#chi^{2};Number of tracks", 200, 0., 100.);
 
