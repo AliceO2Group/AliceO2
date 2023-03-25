@@ -146,7 +146,7 @@ class FITDataReaderDPLSpec : public Task
     }
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    LOG(info) << "TF delay: " << duration.count();
+    LOG(debug) << "TF delay: " << duration.count();
   }
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
   {
