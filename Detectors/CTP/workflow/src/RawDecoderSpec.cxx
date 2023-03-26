@@ -147,15 +147,24 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     if (payload.size()) {
       LOG(info) << "payload size:" << payload.size();
-      LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+      //LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+      //LOGP(info, "RDH FEEid: {} CRU link: {}, Orbit: {}", feeID, linkCRU, triggerOrbit);
+      std::cout << std::hex << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << std::endl;
+
     }
+    gbtword80_t bcmask = std::bitset<80>("111111111111");
     for (auto payloadWord : payload) {
       int wc = wordCount % wordSize;
       // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
       if ((wc == 0) && (wordCount != 0)) {
         if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
-          LOG(debug) << "w80:" << gbtWord80;
+          uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
+          if(bcid < 279) bcid += 3564-279;
+          else bcid += -279;
+          std::string ss = fmt::format("{:x}",bcid);
+          LOG(info) << "w80:" << gbtWord80 << " " << ss;
+          //LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid);
         }
         gbtWord80.set();
       }
@@ -168,10 +177,9 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
-      LOG(debug) << "w80l:" << gbtWord80;
+      LOG(info) << "w80l:" << gbtWord80;
     }
     // decode 80 bits payload
-    gbtword80_t bcmask = std::bitset<80>("111111111111");
     for (auto word : gbtwords80) {
       std::vector<gbtword80_t> diglets;
       gbtword80_t gbtWord = word;
