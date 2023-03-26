@@ -82,8 +82,9 @@ class BarrelAlignmentSpec : public Task
                   CheckConstaints = 0x1 << 1,
                   GenPedeFiles = 0x1 << 2,
                   LabelPedeResults = 0x1 << 3 };
-  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t detmask, int postprocess, bool useMC)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mPostProcessing(postprocess), mUseMC(useMC) {}
+  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec,
+                      DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC)
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC) {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -96,6 +97,7 @@ class BarrelAlignmentSpec : public Task
   bool mUseIniParErrors = true;
   bool mUseMC = false;
   bool mIgnoreCCDBAlignment = false;
+  bool mCosmic = false;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -116,7 +118,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
   int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
-  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mUseMC, inst);
+  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, inst);
   if (dbg) {
     mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}.root", inst).c_str(), "recreate");
     mController->setDebugOutputLevel(dbg);
@@ -268,7 +270,11 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
     recoData.collectData(pc, *mDataRequest.get());
     mController->setRecoContainer(&recoData);
     mController->setTimingInfo(pc.services().get<o2::framework::TimingInfo>());
-    mController->process();
+    if (mCosmic) {
+      mController->processCosmic();
+    } else {
+      mController->process();
+    }
   }
   mTimer.Stop();
 }
@@ -298,7 +304,7 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
   mDBGOut.reset();
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, int postprocess, bool useMC)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -308,6 +314,9 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     dataRequest->requestPrimaryVertertices(useMC);
     if (GTrackID::includesDet(DetID::TRD, srcMP)) {
       dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
+    }
+    if (enableCosmic) {
+      dataRequest->requestCoscmicTracks(useMC);
     }
   }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
@@ -323,7 +332,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, postprocess, useMC)},
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC)},
     Options{
       ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
       ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},

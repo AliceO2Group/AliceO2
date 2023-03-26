@@ -84,9 +84,10 @@ const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC"
 const int Controller::sSkipLayers[Controller::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
 //________________________________________________________________
-Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC, int instID)
+Controller::Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool cosmic, bool useMC, int instID)
   : mDetMask(detmask), mMPsrc(trcmask), mUseMC(useMC), mInstanceID(instID)
 {
+  setCosmic(cosmic);
   init();
 }
 
@@ -131,7 +132,6 @@ void Controller::init()
 //________________________________________________________________
 void Controller::process()
 {
-  static int nTF = 0;
   o2::steer::MCKinematicsReader mcReader;
   if (mUseMC) {
     if (!mcReader.initFromDigitContext("collisioncontext.root")) {
@@ -371,8 +371,34 @@ void Controller::process()
   }
   auto timerEnd = std::chrono::system_clock::now();
   std::chrono::duration<float, std::milli> duration = timerEnd - timerStart;
-  LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", nTF, nVtx, nVtxAcc, nTrc, nTrcAcc, duration.count());
-  nTF++;
+  LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", mNTF, nVtx, nVtxAcc, nTrc, nTrcAcc, duration.count());
+  mNTF++;
+}
+
+//________________________________________________________________
+void Controller::processCosmic()
+{
+  auto timerStart = std::chrono::system_clock::now();
+  int nTrc = 0, nTrcAcc = 0;
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    auto* det = getDetector(id);
+    if (det) {
+      det->prepareDetectorData(); // in case the detector needs to preprocess the RecoContainer data
+    }
+  }
+
+  const auto& algConf = AlignConfig::Instance();
+  // process vertices with contributor tracks
+  bool fieldON = std::abs(PropagatorD::Instance()->getNominalBz()) > 0.1;
+  const auto tracks = mRecoData->getCosmicTracks();
+  for (const auto& track : tracks) {
+    nTrc++;
+    mStat.data[ProcStat::kInput][ProcStat::kCosmic]++;
+  }
+  auto timerEnd = std::chrono::system_clock::now();
+  std::chrono::duration<float, std::milli> duration = timerEnd - timerStart;
+  LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", mNTF, nTrc, nTrcAcc, duration.count());
+  mNTF++;
 }
 
 //________________________________________________________________

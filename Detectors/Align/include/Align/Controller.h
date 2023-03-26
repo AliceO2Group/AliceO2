@@ -27,7 +27,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "Align/AlignmentTrack.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
-// #include "AliSymMatrix.h" FIXME(milettri): needs AliSymMatrix
+#include "ReconstructionDataFormats/TrackCosmics.h"
 
 #include "Align/Millepede2Record.h"
 #include "Align/ResidualsController.h"
@@ -90,6 +90,7 @@ class Controller : public TObject
       kVertices,
       kTracks,
       kTracksWithVertex,
+      kCosmic,
       kMaxStat
     };
     std::array<std::array<size_t, kMaxStat>, kNStatCl> data{};
@@ -115,11 +116,12 @@ class Controller : public TObject
          kMPAlignDone = BIT(16) };
 
   Controller() = default;
-  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool useMC = false, int instID = 0);
+  Controller(DetID::mask_t detmask, GTrackID::mask_t trcmask, bool cosmic = false, bool useMC = false, int instID = 0);
   ~Controller() final;
 
   void expandGlobalsBy(int n);
   void process();
+  void processCosmic();
 
   bool getUseRecoOCDB() const { return mUseRecoOCDB; }
   void setUseRecoOCDB(bool v = true) { mUseRecoOCDB = v; }
@@ -188,12 +190,6 @@ class Controller : public TObject
   const o2::globaltracking::RecoContainer* getRecoContainer() const { return mRecoData; }
   void setRecoContainer(const o2::globaltracking::RecoContainer* cont) { mRecoData = cont; }
 
-  //  bool ProcessEvent(const AliESDEvent* esdEv); FIXME(milettri): needs AliESDEvent
-  //  bool ProcessTrack(const AliESDtrack* esdTr); FIXME(milettri): needs AliESDtrack
-  //  bool ProcessTrack(const AliESDCosmicTrack* esdCTr); FIXME(milettri): needs AliESDCosmicTrack
-  //  uint32_t AcceptTrack(const AliESDtrack* esdTr, bool strict = true) const; FIXME(milettri): needs AliESDtrack
-  //  uint32_t AcceptTrackCosmic(const AliESDtrack* esdPairCosm[kNCosmLegs]) const; FIXME(milettri): needs AliESDtrack
-  //  bool CheckSetVertex(const AliESDVertex* vtx); FIXME(milettri): needs AliESDVertex
   bool addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx);
   int getNDetectors() const { return mNDet; }
   AlignableDetector* getDetector(DetID id) const { return mDetectors[id].get(); }
@@ -317,6 +313,7 @@ class Controller : public TObject
 
   // statistics
   ProcStat mStat{}; // processing statistics
+  int mNTF = 0;
   //
   // output related
   float mControlFrac = 1.0;                    //  fraction of tracks to process control residuals
