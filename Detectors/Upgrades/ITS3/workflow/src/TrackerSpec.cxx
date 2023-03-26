@@ -380,7 +380,6 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
     outputs.emplace_back("IT3", "VERTICESMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("IT3", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("IT3", "IT3TrackMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "VERTICES", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
