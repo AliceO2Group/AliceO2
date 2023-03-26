@@ -48,9 +48,13 @@ int GPUChainTracking::RunTPCCompression()
   WriteToConstantMemory(myStep, (char*)&processors()->tpcCompressor - (char*)processors(), &CompressorShadow, sizeof(CompressorShadow), 0);
   TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
   runKernel<GPUMemClean16>(GetGridAutoStep(0, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone, CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
+  // SynchronizeGPU(); // A: Does not work alone, and not together with D
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step0attached>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
+  // SynchronizeGPU(); // B: This synchronization alone fixes the issue
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
+  SynchronizeGPU(); // C: This synchronization alone fixes the issue
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
+  // SynchronizeGPU(); // D: Does not work alone, and not together with A
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
     SynchronizeEventAndRelease(&mEvents->single);

@@ -231,6 +231,8 @@ has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching
 
 [[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
 
+GPU_CONFIG_KEY+="GPU_proc.outputSanityCheck=1;"
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Temporary extra options
 
