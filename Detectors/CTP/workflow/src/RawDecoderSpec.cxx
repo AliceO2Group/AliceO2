@@ -96,7 +96,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
     static bool prt = true;
-    if(prt) {
+    if (prt) {
       LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
       prt = false;
     }
@@ -145,7 +145,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     if (mPadding == 1) {
       wordSize = 16;
     }
-    if(payload.size()) {
+    if (payload.size()) {
       LOG(info) << "payload size:" << payload.size();
       LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
     }
