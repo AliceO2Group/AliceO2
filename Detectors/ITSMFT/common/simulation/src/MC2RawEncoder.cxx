@@ -164,7 +164,6 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
 {
   // fill data of the RU to links buffer, return the number of pages in the link with smallest amount of pages
   constexpr uint8_t zero16[GBTPaddedWordLength] = {0}; // to speedup padding
-  ru.nCables = ru.ruInfo->nCables;
 
   // trigger word
   GBTTrigger gbtTrigger;
@@ -180,7 +179,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     }
     // estimate real payload size in GBT words
     int nPayLoadWordsNeeded = 0;           // number of payload words filled to link buffer (RDH not included) for current IR
-    for (int icab = ru.nCables; icab--;) { // calculate number of GBT words per link
+    for (int icab = ru.ruInfo->nCables; icab--;) { // calculate number of GBT words per link
       if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
         int nb = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)].getSize();
         nPayLoadWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0; // single GBT word carries at most 9 payload bytes
@@ -195,7 +194,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     bool hasData = true;
     while (hasData) {
       hasData = false;
-      for (int icab = 0; icab < ru.nCables; icab++) {
+      for (int icab = 0; icab < ru.ruInfo->nCables; icab++) {
         if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
           auto& cableData = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)];
           int nb = cableData.getUnusedSize();

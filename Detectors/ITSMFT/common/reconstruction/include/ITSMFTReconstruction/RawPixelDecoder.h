@@ -29,6 +29,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/GBTWord.h"
+#include <unordered_map>
 
 namespace o2
 {
@@ -56,9 +57,8 @@ class RawPixelDecoder final : public PixelReader
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
   void ensureChipOrdering() {}
   void startNewTF(o2::framework::InputRecord& inputs);
-
+  void collectROFCableData(int iru);
   int decodeNextTrigger() final;
-  int decodeNextTrigger(int il);
 
   template <class DigitContainer, class ROFContainer>
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
@@ -117,7 +117,7 @@ class RawPixelDecoder final : public PixelReader
   };
 
   uint16_t getSquashingDepth() { return 0; }
-
+  bool doIRMajorityPoll();
   void reset();
 
  private:
@@ -135,6 +135,7 @@ class RawPixelDecoder final : public PixelReader
   std::array<short, Mapping::getNRUs()> mRUEntry;                                     // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;                                       // special ordering helper used for the MFT (its chipID is not contiguous in RU)
   std::vector<PhysTrigger> mExtTriggers;                                              // external triggers
+  GBTLink* mLinkForTriggers = nullptr;                                                // link assigned to collect the triggers
   std::string mSelfName{};                                                            // self name
   std::string mRawDumpDirectory;                                                      // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid;                // alternative user-provided data origin to pick
@@ -142,6 +143,7 @@ class RawPixelDecoder final : public PixelReader
   uint16_t mCurRUDecodeID = NORUDECODED;                                              // index of currently processed RUDecode container
   int mLastReadChipID = -1;                                                           // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                                                       // chip mapping
+  std::unordered_map<o2::InteractionRecord, int> mIRPoll;                             // poll for links IR used for synchronization
   bool mFillCalibData = false;                                                        // request to fill calib data from GBT
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
