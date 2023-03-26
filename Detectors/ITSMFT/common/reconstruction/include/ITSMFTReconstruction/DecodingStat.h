@@ -210,6 +210,7 @@ struct GBTLinkDecodingStat {
     ErrGBTWordNotRecognized,     // GBT word not recognized
     ErrWrongeCableID,            // Invalid cable ID
     ErrWrongAlignmentWord,       // unexpected alignment word
+    ErrMissingROF,               // missing ROF (desync?)
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
@@ -234,6 +235,7 @@ struct GBTLinkDecodingStat {
     "GBT word not recognized",                                           // ErrGBTWordNotRecognized
     "Wrong cable ID",                                                    // ErrWrongeCableID
     "Unexpected CRU page alignment padding word",                        // ErrWrongAlignmentWord
+    "Missig ROF"                                                         // ErrMissingROF
   };
 
   uint16_t feeID = 0; // FeeID
