@@ -95,7 +95,11 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
     uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
-    // LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+    static bool prt = true;
+    if(prt) {
+      LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+      prt = false;
+    }
     //  std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
     if (first) {
       orbit0 = triggerOrbit;
@@ -141,7 +145,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     if (mPadding == 1) {
       wordSize = 16;
     }
-    // LOG(info) << "payload size:" << payload.size();
+    if(payload.size()) {
+      LOG(info) << "payload size:" << payload.size();
+      LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+    }
     for (auto payloadWord : payload) {
       int wc = wordCount % wordSize;
       // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
