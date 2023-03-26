@@ -223,9 +223,9 @@ fi
 # TPC IDCs and SAC
 crus="0-359"  # to be used with $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC or ALL
 lanesFactorize=10
-nTFs=1000
-nTFs_SAC=1000
-nBuffer=100
+nTFs=$((1000 * 128 / ${NHBPERTF}))
+nTFs_SAC=$((1000 * 128 / ${NHBPERTF}))
+nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "0$DISABLE_IDC_DELTA" == "01" ]]; then IDC_DELTA=""; fi
