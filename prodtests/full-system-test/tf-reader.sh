@@ -24,4 +24,4 @@ TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
 [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
 if [[ -z $TFName && $WORKFLOWMODE != "print" ]]; then echo "No raw file given!"; exit 1; fi
 
-o2-raw-tf-reader-workflow $ARGS_ALL --loop $NTIMEFRAMES --delay $TFDELAY --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --raw-channel-config "name=dpl-chan,type=push,method=bind,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=0" $GLOBALDPLOPT --run
+o2-raw-tf-reader-workflow $ARGS_ALL --loop $NTIMEFRAMES --delay $TFDELAY --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS --raw-channel-config "name=dpl-chan,type=push,method=bind,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=0" $GLOBALDPLOPT --run
