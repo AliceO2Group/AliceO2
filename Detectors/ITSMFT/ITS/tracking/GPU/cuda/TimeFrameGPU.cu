@@ -132,6 +132,7 @@ void GpuTimeFrameChunk<nLayers>::reset(const Task task, Stream& stream)
           checkGPUError(cudaMemsetAsync(mCellsLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->cellsLUTsize * mNRof, stream.get()));
           if (i < nLayers - 3) {
             checkGPUError(cudaMemsetAsync(mNeighboursCellLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->maxNeighboursSize * mNRof, stream.get()));
+            checkGPUError(cudaMemsetAsync(mNeighboursCellDevice[i], 0, sizeof(int) * mTFGPUParams->maxNeighboursSize * mNRof, stream.get()));
           }
         }
       }
