@@ -454,13 +454,15 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
                                              const int* cellsNextLayerLUT,
                                              int* neighboursLUT,
                                              int* cellNeighbours,
-                                             const int* nCells)
+                                             const int* nCells,
+                                             const int maxCellNeighbours = 1e2)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
     const Cell& currentCell = cellsCurrentLayer[iCurrentCellIndex];
     const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
     const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
     const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
+    int foundNeighbours{0};
     for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
       Cell& nextCell = cellsNextLayer[iNextCell];
       if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
@@ -469,6 +471,16 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
       if constexpr (initRun) {
         atomicAdd(neighboursLUT + iNextCell, 1);
       } else {
+        if (foundNeighbours >= maxCellNeighbours) {
+          printf("its-gpu-neighbours-finder: on layer: %d: found more neighbours (%d) than maximum allowed per cell, skipping writing. This is lossy!\n", layerIndex, neighboursLUT[iNextCell]);
+          continue;
+        }
+        cellNeighbours[neighboursLUT[iNextCell] + foundNeighbours++] = iCurrentCellIndex;
+
+        const int currentCellLevel{currentCell.getLevel()};
+        if (currentCellLevel >= nextCell.getLevel()) {
+          atomicExch(nextCell.getLevelPtr(), currentCellLevel + 1);
+        }
       }
     }
   }
@@ -651,7 +663,8 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer + 1),
             mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),
             nullptr,
-            mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells());
+            mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),
+            mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize);
 
           // Compute Cell Neighbours LUT
           checkGPUError(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
@@ -661,12 +674,20 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
                                                       mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1],                              // num_items
                                                       mTimeFrameGPU->getStream(chunkId).get()));
 
-          // Print index table per layer
-          if (!chunkId) {
-            gpu::printBufferLayerOnThread<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLayer,
-                                                                                                mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),
-                                                                                                mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1]);
-          }
+          gpu::computeLayerCellNeighboursKernel<false><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer + 1),
+            iLayer,
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellsLookupTables(iLayer + 1),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
+            mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),
+            mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize);
+          // if (!chunkId) {
+          //   gpu::printBufferLayerOnThread<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLayer,
+          //                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
+          //                                                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize * rofs);
+          // }
         }
 
         // End of tracking for this chunk

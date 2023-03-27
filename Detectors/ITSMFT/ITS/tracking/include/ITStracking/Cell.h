@@ -42,6 +42,7 @@ class Cell final
   GPUhd() float getTanLambda() const { return mTanLambda; };
   GPUhd() int getLevel() const { return mLevel; };
   GPUhd() void setLevel(const int level) { mLevel = level; };
+  GPUhd() int* getLevelPtr() { return &mLevel; }
 
  private:
   const int mFirstClusterIndex;
