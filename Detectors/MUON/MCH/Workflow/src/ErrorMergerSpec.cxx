@@ -97,7 +97,7 @@ DataProcessorSpec getErrorMergerSpec(const char* specName, bool preclustering, b
   return DataProcessorSpec{
     specName,
     inputSpecs,
-    Outputs{OutputSpec{{"errors"}, "MCH", "ERRORS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"errors"}, "MCH", "PROCERRORS", 0, Lifetime::Timeframe}},
     adaptFromTask<ErrorMergerTask>(preclustering, clustering, tracking),
     Options{}};
 }
