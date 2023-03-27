@@ -48,11 +48,17 @@ class FITDCSConfigProcessor : public o2::framework::Task
   {
     initDCSConfigReader();
     mDCSConfigReader->setFileNameDChM(ic.options().get<string>("filename-dchm"));
+    mDCSConfigReader->setValidDaysDChM(ic.options().get<uint>("valid-days-dchm"));
     mDCSConfigReader->setCcdbPathDChM(mDetectorName + "/Calib/DeadChannelMap");
     mVerbose = ic.options().get<bool>("use-verbose-mode");
     mDCSConfigReader->setVerboseMode(mVerbose);
+    mValidateUpload = !ic.options().get<bool>("no-validate");
+    mDCSConfigReader->setValidateUploadMode(mValidateUpload);
+
     LOG(info) << "Verbose mode: " << mVerbose;
+    LOG(info) << "Validate upload: " << mValidateUpload;
     LOG(info) << "Expected dead channel map file name: " << mDCSConfigReader->getFileNameDChM();
+    LOG(info) << "Dead channel maps will be valid for " << mDCSConfigReader->getValidDaysDChM() << " days";
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -123,6 +129,7 @@ class FITDCSConfigProcessor : public o2::framework::Task
   std::string mDetectorName;                        ///< Detector name
   o2::header::DataDescription mDataDescriptionDChM; ///< DataDescription for the dead channel map
   bool mVerbose = false;                            ///< Verbose mode
+  bool mValidateUpload = true;                      ///< Validate upload
 };
 
 } // namespace fit

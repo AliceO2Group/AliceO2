@@ -52,8 +52,14 @@ class FITDCSConfigReader
   const std::string& getFileNameDChM() const;
   void setFileNameDChM(const std::string& fileName);
 
+  const uint getValidDaysDChM() const;
+  void setValidDaysDChM(const uint validDays);
+
   const bool getVerboseMode() const;
   void setVerboseMode(const bool verboseMode);
+
+  const bool getValidateUploadMode() const;
+  void setValidateUploadMode(const bool validateUpload);
 
  protected:
   o2::fit::DeadChannelMap mDChM; ///< The dead channel map CCDB object
@@ -61,9 +67,11 @@ class FITDCSConfigReader
 
  private:
   std::string mFileNameDChM;                                              ///< The expected file name of the dead channel map
+  uint mValidDaysDChM = 180u;                                             ///< The dead channel map validity in days
   std::string mCcdbPathDChM;                                              ///< The dead channel map CCDB path
   long mStartValidityDChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; ///< Start validity of the dead channel map CCDB object
   o2::ccdb::CcdbObjectInfo mCcdbObjectInfoDChM;                           ///< CCDB object info for the dead channel map
+  bool mValidateUpload = true;                                            ///< Validate upload mode
 
   ClassDefNV(FITDCSConfigReader, 1);
 };
