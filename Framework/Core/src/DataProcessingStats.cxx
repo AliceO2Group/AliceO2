@@ -151,40 +151,34 @@ void DataProcessingStats::processCommandQueue()
           pushedMetricsLapse++;
         }
         break;
-      case Op::InstantaneousRate:
-        if (cmd.value > 0) {
-          auto delta = cmd.timestamp - update.timestamp;
-          if (delta > 0) {
-            metrics[cmd.id] = cmd.value / delta;
-            updated[cmd.id] = true;
-            update.timestamp = cmd.timestamp;
-            pushedMetricsLapse++;
-          }
+      case Op::InstantaneousRate: {
+        if (metricSpecs[cmd.id].kind != Kind::Rate) {
+          throw runtime_error_f("MetricID %d is not a rate", (int)cmd.id);
         }
-        break;
-      case Op::CumulativeRate:
-        if (cmd.value > 0) {
-          auto delta = cmd.timestamp - update.timestamp;
-          auto deltaLastPublished = update.timestamp - update.lastPublished;
-          // Too close, skip.
-          if (delta == 0) {
-            break;
-          }
-          // The sum since last publication is the period of time since last
-          // publication multiplied by the rate since last publication.
-          auto CAn = metrics[cmd.id];
-          auto newV = cmd.value;
-          auto totalInt = delta + deltaLastPublished; // This is in milliseconds
-          if (totalInt == 0) {
-            break;
-          }
-          auto newRate = ((CAn) + ((newV - CAn) * 1000) / totalInt);
-          metrics[cmd.id] = newRate;
-          updated[cmd.id] = true;
+        // We keep setting the value to the time average of the previous
+        // update period. so that we can compute the average over time
+        // at the moment of publishing.
+        metrics[cmd.id] = cmd.value;
+        updated[cmd.id] = true;
+        if (update.timestamp == 0) {
           update.timestamp = cmd.timestamp;
-          pushedMetricsLapse++;
         }
-        break;
+        pushedMetricsLapse++;
+      } break;
+      case Op::CumulativeRate: {
+        if (metricSpecs[cmd.id].kind != Kind::Rate) {
+          throw runtime_error_f("MetricID %d is not a rate", (int)cmd.id);
+        }
+        // We keep setting the value to the time average of the previous
+        // update period. so that we can compute the average over time
+        // at the moment of publishing.
+        metrics[cmd.id] += cmd.value;
+        updated[cmd.id] = true;
+        if (update.timestamp == 0) {
+          update.timestamp = cmd.timestamp;
+        }
+        pushedMetricsLapse++;
+      } break;
     }
   }
   // No one should have tried to insert more commands while processing.
@@ -200,11 +194,11 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingS
   auto currentTimestamp = getTimestamp(realTimeBase, initialTimeOffset);
   for (size_t mi = 0; mi < updated.size(); ++mi) {
     auto& update = updateInfos[mi];
-    auto& spec = metricSpecs[mi];
+    MetricSpec& spec = metricSpecs[mi];
     if (spec.name.empty()) {
       continue;
     }
-    if (currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
+    if (updated[mi] == false && currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
       updated[mi] = true;
       update.timestamp = currentTimestamp;
     }
@@ -218,7 +212,18 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingS
     if (spec.kind == Kind::Unknown) {
       LOGP(fatal, "Metric {} has unknown kind", spec.name);
     }
-    callback(spec, update.timestamp, metrics[mi]);
+    if (spec.kind == Kind::Rate) {
+      if (currentTimestamp - update.timestamp == 0) {
+        callback(spec, update.timestamp, 0);
+      } else {
+        // Timestamp is in milliseconds, we want to convert to seconds.
+        callback(spec, update.timestamp, (1000 * (metrics[mi] - lastPublishedMetrics[mi])) / (currentTimestamp - update.timestamp));
+      }
+      update.timestamp = currentTimestamp; // We reset the timestamp to the current time.
+    } else {
+      callback(spec, update.timestamp, metrics[mi]);
+    }
+    lastPublishedMetrics[mi] = metrics[mi];
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;

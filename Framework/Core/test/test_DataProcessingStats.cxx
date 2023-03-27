@@ -173,8 +173,6 @@ TEST_CASE("DataProcessingStats")
     stats.updateStats({DummyMetric, DataProcessingStats::Op::SetIfPositive, -10});
     stats.processCommandQueue();
     REQUIRE(stats.metrics[DummyMetric] == 11);
-    stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 10});
-    stats.processCommandQueue();
   }
 }
 
@@ -225,7 +223,7 @@ TEST_CASE("DataProcessingStatsInstantaneousRate")
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
   DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 0);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
   // Fake to be after 1 second
@@ -236,20 +234,20 @@ TEST_CASE("DataProcessingStatsInstantaneousRate")
   // Faked to be after 2 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 2000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
   // Faked to be after 5 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 6000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 5000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
-  REQUIRE(stats.metrics[DummyMetric] == 2);
+  REQUIRE(stats.metrics[DummyMetric] == 6000);
 
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 5000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 10000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
-  REQUIRE(stats.metrics[DummyMetric] == 1);
+  REQUIRE(stats.metrics[DummyMetric] == 5000);
 }
 
 /// We verify that the running average is correctly computed.
@@ -268,34 +266,34 @@ TEST_CASE("DataProcessingStatsCumulativeRate")
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
   DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
   REQUIRE(stats.metrics[DummyMetric] == 0);
   // Fake to be after 1 second
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 2000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
   REQUIRE(stats.metrics[DummyMetric] == 2000);
   // Faked to be after 2 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 3000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2000 + (2000 - 2000) / 2);
+  REQUIRE(stats.metrics[DummyMetric] == 4000);
   // Faked to be after 5 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 6000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 6000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2000 + (6000 - 2000) / 5);
+  REQUIRE(stats.metrics[DummyMetric] == 10000);
 
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 1000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 11000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2800 + (1000 - 2800) / 10);
+  REQUIRE(stats.metrics[DummyMetric] == 11000);
 }
 
 TEST_CASE("DataProcessingStatsPublishing")

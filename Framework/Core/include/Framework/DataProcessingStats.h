@@ -33,7 +33,6 @@ enum struct ProcessingStatsId : short {
   LAST_PROCESSED_SIZE,
   TOTAL_PROCESSED_SIZE,
   TOTAL_SIGUSR1,
-  PROCESSING_RATE_MB_S,
   CONSUMED_TIMEFRAMES,
   AVAILABLE_MANAGED_SHM,
   LAST_SLOW_METRIC_SENT_TIMESTAMP,
@@ -83,7 +82,10 @@ struct DataProcessingStats {
     Int,
     UInt64,
     Double,
-    Unknown
+    Rate, /// A rate metric is sent out as a float and reset to 0 after each update
+          /// Use the InstantaneousRate operation to update it. Most likely you also
+          /// want that the minPublishInterval is as large as the maxRefreshLatency.
+    Unknown,
   };
 
   // The scope for a given metric. DPL is used for the DPL Monitoring GUI,
@@ -163,6 +165,7 @@ struct DataProcessingStats {
   std::array<std::string, MAX_METRICS> metricsNames;
   std::array<UpdateInfo, MAX_METRICS> updateInfos;
   std::array<MetricSpec, MAX_METRICS> metricSpecs;
+  std::array<int64_t, MAX_METRICS> lastPublishedMetrics;
   // How many commands have been committed to the queue.
   std::atomic<int> insertedCmds = 0;
   // The insertion point for the next command.
