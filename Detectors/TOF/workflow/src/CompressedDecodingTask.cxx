@@ -30,6 +30,7 @@
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::framework;
 
@@ -85,7 +86,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   }
 
   /*
-  int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * 3;
+  int nwindowperTF = o2::tof::Utils::getNOrbitInTF() * 3;
   while (row->size() < nwindowperTF) {
     // complete timeframe with empty readout windows
     auto& dummy = row->emplace_back(lastval, 0);
@@ -385,7 +386,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   mCurrentOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
 
   // rdh close
-  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
+  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::tof::Utils::getNOrbitInTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
     return;
   }

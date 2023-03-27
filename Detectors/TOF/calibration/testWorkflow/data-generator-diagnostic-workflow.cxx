@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/CallbacksPolicy.h"
 #include "DataGeneratorSpec.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 

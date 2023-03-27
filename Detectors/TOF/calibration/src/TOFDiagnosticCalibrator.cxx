@@ -14,7 +14,6 @@
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
-#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {

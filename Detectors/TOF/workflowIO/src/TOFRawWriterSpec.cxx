@@ -15,7 +15,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
 #include "CommonUtils/StringUtils.h"
 #include <filesystem>
@@ -24,6 +23,7 @@
 #include <iomanip>
 #include <cstring>
 #include "DetectorsRaw/RDHUtils.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::framework;
 
@@ -71,7 +71,7 @@ void RawWriter::run(ProcessingContext& pc)
   encoder.alloc(cache);
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
-  int nwindowintimeframe = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * nwindowperorbit;
+  int nwindowintimeframe = o2::tof::Utils::getNOrbitInTF() * nwindowperorbit;
   int nwindowFilled = nwindow;
   if (nwindowFilled % nwindowintimeframe) {
     nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;

@@ -23,6 +23,7 @@
 #include <cassert>
 #include <fairlogger/Logger.h>
 #include "DataFormatsTOF/CompressedDataFormat.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::tof;
 
@@ -302,7 +303,7 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
       checkIfReuseFutureDigitsRO();
     }
 
-    int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * Geo::NWINDOW_IN_ORBIT;
+    int nwindowperTF = o2::tof::Utils::getNOrbitInTF() * Geo::NWINDOW_IN_ORBIT;
 
     for (Int_t i = 0; i < MAXWINDOWS; i++) {
       if (mReadoutWindowData.size() < nwindowperTF) {
