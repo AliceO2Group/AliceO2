@@ -623,8 +623,8 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
   stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_IN), DataProcessingStats::Op::Set, totalBytesIn});
   stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_OUT), DataProcessingStats::Op::Set, totalBytesOut});
 
-  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_IN_MB_S), DataProcessingStats::Op::CumulativeRate, totalBytesIn});
-  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_OUT_MB_S), DataProcessingStats::Op::CumulativeRate, totalBytesOut});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_IN_MB_S), DataProcessingStats::Op::InstantaneousRate, totalBytesIn});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_OUT_MB_S), DataProcessingStats::Op::InstantaneousRate, totalBytesOut});
 };
 
 /// This will flush metrics only once every second.
@@ -730,13 +730,6 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .metricId = (int)ProcessingStatsId::TOTAL_SIGUSR1,
                    .kind = Kind::UInt64,
                    .minPublishInterval = quickUpdateInterval},
-        MetricSpec{.name = "processing_rate_mb_s",
-                   .metricId = (int)ProcessingStatsId::PROCESSING_RATE_MB_S,
-                   .kind = Kind::UInt64,
-                   .scope = Scope::Online,
-                   .minPublishInterval = quickUpdateInterval,
-                   .maxRefreshLatency = onlineRefreshLatency,
-                   .sendInitialValue = true},
         MetricSpec{.name = "min_input_latency_ms",
                    .metricId = (int)ProcessingStatsId::LAST_MIN_LATENCY,
                    .kind = Kind::UInt64,
@@ -748,21 +741,21 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "total_rate_in_mb_s",
                    .metricId = (int)ProcessingStatsId::TOTAL_RATE_IN_MB_S,
-                   .kind = Kind::UInt64,
+                   .kind = Kind::Rate,
                    .scope = Scope::Online,
                    .minPublishInterval = quickUpdateInterval,
                    .maxRefreshLatency = onlineRefreshLatency,
                    .sendInitialValue = true},
         MetricSpec{.name = "total_rate_out_mb_s",
                    .metricId = (int)ProcessingStatsId::TOTAL_RATE_OUT_MB_S,
-                   .kind = Kind::UInt64,
+                   .kind = Kind::Rate,
                    .scope = Scope::Online,
                    .minPublishInterval = quickUpdateInterval,
                    .maxRefreshLatency = onlineRefreshLatency,
                    .sendInitialValue = true},
         MetricSpec{.name = "processing_rate_hz",
                    .metricId = (int)ProcessingStatsId::PROCESSING_RATE_HZ,
-                   .kind = Kind::UInt64,
+                   .kind = Kind::Rate,
                    .scope = Scope::Online,
                    .minPublishInterval = quickUpdateInterval,
                    .maxRefreshLatency = onlineRefreshLatency,

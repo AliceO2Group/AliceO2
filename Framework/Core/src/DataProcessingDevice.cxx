@@ -1991,6 +1991,9 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     auto latency = calculateInputRecordLatency(record, tStartMilli);
     stats.updateStats({(int)ProcessingStatsId::LAST_MIN_LATENCY, DataProcessingStats::Op::Set, (int)latency.minLatency});
     stats.updateStats({(int)ProcessingStatsId::LAST_MAX_LATENCY, DataProcessingStats::Op::Set, (int)latency.maxLatency});
+    static int count = 0;
+    stats.updateStats({(int)ProcessingStatsId::PROCESSING_RATE_HZ, DataProcessingStats::Op::CumulativeRate, 1});
+    count++;
   };
 
   auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
