@@ -790,6 +790,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .sendInitialValue = true},
         MetricSpec{.name = fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId),
                    .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + runningWorkflow.shmSegmentId,
+                   .kind = Kind::UInt64,
                    .scope = Scope::Online,
                    .minPublishInterval = 500,
                    .maxRefreshLatency = onlineRefreshLatency,
