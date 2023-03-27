@@ -36,6 +36,7 @@ o2_target_root_dictionary(
           include/ITS3Reconstruction/TopologyDictionary.h
           include/ITS3Reconstruction/BuildTopologyDictionary.h
           include/ITS3Reconstruction/LookUp.h
+          include/ITS3Reconstruction/IOUtils.h
 )
 
 if (OpenMP_CXX_FOUND)

@@ -97,7 +97,7 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
     pattBranch->SetAddress(&patternsPtr);
   }
   if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", ".bin");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", "root");
   }
   o2::its3::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
@@ -168,6 +168,7 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
         }
       }
     }
+
     // << cache MC events contributing to this ROF
     for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
       int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
@@ -183,6 +184,7 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         locC = dict.getClusterCoordinates(cluster, patt, false);
+        LOGP(info, "I am invalid and I am on chip {}", chipID);
       } else {
         locC = dict.getClusterCoordinates(cluster);
         errX = dict.getErrX(pattID);
@@ -195,7 +197,6 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
           errZ *= segs[chipID].mPitchCol;
         }
         npix = dict.getNpixels(pattID);
-        LOGP(info, "I am invalid and I am on chip {}", chipID);
       }
 
       // Transformation to the local --> global
@@ -262,10 +263,10 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
-  canvdXdZ->cd(1);
-  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id < 6", "colz");
-  canvdXdZ->cd(2);
-  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id >= 6", "colz");
+  canvdXdZ->cd(1)->SetLogz();
+  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.026, 0.026, 1000, -0.026, 0.026)", "id < 6", "colz");
+  canvdXdZ->cd(2)->SetLogz();
+  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.026, 0.026, 1000, -0.026, 0.026)", "id >= 6", "colz");
   canvdXdZ->SaveAs("it3clusters_dx_vs_dz.pdf");
 
   // auto c1 = new TCanvas("p1", "pullX");
