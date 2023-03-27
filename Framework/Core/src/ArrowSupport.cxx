@@ -12,6 +12,8 @@
 
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ArrowContext.h"
+#include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/SliceCache.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
@@ -127,7 +129,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        auto &allDeviceMetrics = sm.deviceMetricsInfos;
                        auto &specs = sm.deviceSpecs;
                        auto &infos = sm.deviceInfos;
-                       
+
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
@@ -390,10 +392,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        } },
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
-      auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
-      auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
-      auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
-      auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
+      auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-spawner"; });
+      auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
+      auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
+      auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
       std::vector<InputSpec> requestedAODs;
       std::vector<InputSpec> requestedDYNs;
       std::vector<OutputSpec> providedDYNs;
@@ -506,11 +508,41 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // file sink for any AOD output
         if (!outputsInputsAOD.empty()) {
           // add TFNumber and TFFilename as input to the writer
-          outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
-          outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
+          outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
+          outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
           workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
         } },
     .kind = ServiceKind::Global};
+}
+
+o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheDefSpec()
+{
+  return ServiceSpec{
+    .name = "arrow-slicing-cache-def",
+    .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCacheDef>(),
+    .init = CommonServices::simpleServiceInit<ArrowTableSlicingCacheDef, ArrowTableSlicingCacheDef, ServiceKind::Global>(),
+    .kind = ServiceKind::Global};
+}
+
+o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
+{
+  return ServiceSpec{
+    .name = "arrow-slicing-cache",
+    .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCache>(),
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) { return ServiceHandle{TypeIdHelpers::uniqueId<ArrowTableSlicingCache>(), new ArrowTableSlicingCache(std::vector<std::pair<std::string, std::string>>{services.get<ArrowTableSlicingCacheDef>().bindingsKeys}), ServiceKind::Stream, typeid(ArrowTableSlicingCache).name()}; },
+    .configure = CommonServices::noConfiguration(),
+    .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
+      auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
+      auto& caches = service->bindingsKeys;
+      for (auto i = 0; i < caches.size(); ++i) {
+        if (pc.inputs().getPos(caches[i].first.c_str()) >= 0) {
+          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].first.c_str())->asArrowTable());
+          if (!status.ok()) {
+            throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].first.c_str(), caches[i].second.c_str());
+          }
+        }
+      } },
+    .kind = ServiceKind::Stream};
 }
 
 } // namespace o2::framework

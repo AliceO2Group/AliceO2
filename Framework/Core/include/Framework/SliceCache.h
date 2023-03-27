@@ -8,23 +8,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_ARROWSUPPORT_H_
-#define O2_FRAMEWORK_ARROWSUPPORT_H_
 
-#include "Framework/ServiceSpec.h"
-#include "Framework/TypeIdHelpers.h"
+#ifndef SLICECACHE_H
+#define SLICECACHE_H
+
+#include "Framework/ServiceHandle.h"
+#include "Framework/ArrowTableSlicingCache.h"
+#include <arrow/array.h>
+#include <string_view>
+#include <gsl/span>
 
 namespace o2::framework
 {
-
-/// A few ServiceSpecs data sending backends
-struct ArrowSupport {
-  // Create spec for backend used to send Arrow messages
-  static ServiceSpec arrowBackendSpec();
-  static ServiceSpec arrowTableSlicingCacheDefSpec();
-  static ServiceSpec arrowTableSlicingCacheSpec();
+struct SliceCache {
+  ArrowTableSlicingCache* ptr = nullptr;
 };
-
 } // namespace o2::framework
 
-#endif // O2_FRAMEWORK_ARROWSUPPORT_H_
+#endif // SLICECACHE_H
