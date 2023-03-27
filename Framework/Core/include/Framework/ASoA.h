@@ -3030,11 +3030,6 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-    if (offset >= this->tableSize()) {
-      self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
-      this->copyIndexBindings(fresult);
-      return fresult;
-    }
     auto start = offset;
     auto end = start + slice->num_rows();
     auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
