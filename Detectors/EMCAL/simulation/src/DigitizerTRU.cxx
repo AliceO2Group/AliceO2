@@ -389,3 +389,10 @@ void DigitizerTRU::setPatches()
   patchesFromAllTRUs.push_back(ThirdAside);
   patchesFromAllTRUs.push_back(ThirdCside);
 }
+//______________________________________________________________________
+void DigitizerTRU::finish() { 
+  mDigits.finish(); 
+  if ( isDebugMode() == true ){
+    endDebugStream();
+  }
+}

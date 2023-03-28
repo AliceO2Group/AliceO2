@@ -65,7 +65,8 @@ class DigitizerTRU : public TObject
   void flush() { mDigits.flush(); }
 
   /// This is for the readout window that was interrupted by the end of the run
-  void finish() { mDigits.finish(); }
+  void finish();
+  // void finish() { mDigits.finish(); }
 
   /// Steer conversion of hits to digits
   void process(const gsl::span<const Digit> labeledDigit);
@@ -98,6 +99,12 @@ class DigitizerTRU : public TObject
   bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
 
   void sampleSDigit(const Digit& sdigit);
+
+  /// Close the TreeStreamer to make the file readable
+  void endDebugStream() { mDebugStream->Close(); }
+
+  /// Getter for debug mode
+  bool isDebugMode() { return mEnableDebugStreaming; }
 
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
