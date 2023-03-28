@@ -179,7 +179,6 @@ size_t InputRecord::countValidInputs() const
       ss << ", ";
     }
     ss << route.matcher.binding;
-    first = false;
   }
   return ss.str();
 }

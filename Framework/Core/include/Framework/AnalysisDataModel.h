@@ -28,8 +28,7 @@ namespace aod
 {
 // This is required to register SOA_TABLEs inside
 // the o2::aod namespace.
-// DECLARE_SOA_METADATA();
-DECLARE_SOA_VERSIONING();
+DECLARE_SOA_STORE();
 
 namespace bc
 {
