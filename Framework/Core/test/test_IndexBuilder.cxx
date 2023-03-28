@@ -17,8 +17,7 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
-DECLARE_SOA_METADATA();
-DECLARE_SOA_VERSIONING();
+DECLARE_SOA_STORE();
 namespace coords
 {
 DECLARE_SOA_COLUMN_FULL(X, x, float, "x");

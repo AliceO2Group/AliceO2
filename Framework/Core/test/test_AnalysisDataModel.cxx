@@ -20,8 +20,7 @@
 using namespace o2::framework;
 using namespace arrow;
 
-DECLARE_SOA_METADATA();
-DECLARE_SOA_VERSIONING();
+DECLARE_SOA_STORE();
 
 namespace col
 {

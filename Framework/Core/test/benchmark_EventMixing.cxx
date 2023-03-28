@@ -78,10 +78,6 @@ static void BM_EventMixingTraditional(benchmark::State& state)
   auto tableTrack = trackBuilder.finalize();
   o2::aod::StoredTracks tracks{tableTrack};
 
-  ArrowTableSlicingCache atscache({{getLabelFromType<o2::aod::StoredTracks>(), "fIndex" + cutString(getLabelFromType<o2::aod::Collisions>())}});
-  auto s = atscache.updateCacheEntry(0, tableTrack);
-  SliceCache cache{&atscache};
-
   int64_t count = 0;
   int64_t colCount = 0;
   int nBinsTot = (xBins.size() - 2) * (yBins.size() - 2);
@@ -103,9 +99,9 @@ static void BM_EventMixingTraditional(benchmark::State& state)
       auto& mixingBuffer = mixingBufferVector[bin];
 
       if (mixingBuffer.size() > 0) {
-        auto tracks1 = tracks.sliceByCached(o2::aod::track::collisionId, col1.globalIndex(), cache);
+        auto tracks1 = tracks.sliceByCached(o2::aod::track::collisionId, col1.globalIndex());
         for (auto& col2 : mixingBuffer) {
-          auto tracks2 = tracks.sliceByCached(o2::aod::track::collisionId, col2.globalIndex(), cache);
+          auto tracks2 = tracks.sliceByCached(o2::aod::track::collisionId, col2.globalIndex());
           for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
             count++;
           }

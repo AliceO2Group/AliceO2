@@ -935,8 +935,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataSender(),
     objectCache(),
     ccdbSupportSpec(),
-    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::fairMQBackendSpec(),
+    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     decongestionSpec()};
 
@@ -965,14 +965,6 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     specs.push_back(threadPool(numThreads));
   }
   return specs;
-}
-
-std::vector<ServiceSpec> CommonServices::arrowServices()
-{
-  return {
-    ArrowSupport::arrowTableSlicingCacheDefSpec(),
-    ArrowSupport::arrowTableSlicingCacheSpec() //
-  };
 }
 
 } // namespace o2::framework
