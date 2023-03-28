@@ -167,7 +167,8 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
   ConcreteDataMatcher matcherChMapCCDB{rawReader.mDataOrigin, RawReaderType::LookupTable_t::sObjectName, 0};
   rawReader.configureOutputSpec(outputSpec);
   if (isSubSampled) {
-    inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "SUB_RAWDATA"}, Lifetime::Optional}); // in case if one need to use DataSampler
+    inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "SUB_RAWDATA"}, Lifetime::Sporadic}); // in case if one need to use DataSampler
+    askSTFDist = false;
   } else {
     inputSpec.push_back({"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "RAWDATA"}, Lifetime::Optional});
   }
