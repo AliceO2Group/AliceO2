@@ -330,19 +330,19 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
     auto TriggerInputs = LZERO.getTriggerInputs();
     for (auto trigger : TriggerInputs)
     {
-      auto WhichPatch  = std::get<0>(trigger);
-      auto WhichTRU    = std::get<1>(trigger);
-      auto WhichFastOr = std::get<2>(trigger);
-      auto FastOrAmp   = std::get<3>(trigger);
-      auto PatchAmp    = std::get<4>(trigger);
-      (*mDebugStream).GetFile()->cd();
-      (*mDebugStream) << "L0Timesums" 
-        << "Patch=" << WhichPatch 
-        << "PatchAmp=" << PatchAmp 
-        << "WhichTRU=" << WhichTRU
-        << "WhichFastOr=" << WhichFastOr
-        << "FastOrAmp=" << FastOrAmp
-        << "\n";
+      // auto WhichPatch  = std::get<0>(trigger);
+      // auto WhichTRU    = std::get<1>(trigger);
+      // auto WhichFastOr = std::get<2>(trigger);
+      // auto FastOrAmp   = std::get<3>(trigger);
+      // auto PatchAmp    = std::get<4>(trigger);
+      // (*mDebugStream).GetFile()->cd();
+      // (*mDebugStream) << "L0Timesums" 
+      //   << "Patch=" << WhichPatch 
+      //   << "PatchAmp=" << PatchAmp 
+      //   << "WhichTRU=" << WhichTRU
+      //   << "WhichFastOr=" << WhichFastOr
+      //   << "FastOrAmp=" << FastOrAmp
+      //   << "\n";
       LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
   
 
