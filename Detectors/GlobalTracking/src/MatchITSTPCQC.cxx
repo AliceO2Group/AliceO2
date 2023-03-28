@@ -19,6 +19,7 @@
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
 #include "GlobalTracking/TrackCuts.h"
+#include <DetectorsBase/GRPGeomHelper.h>
 
 using namespace o2::globaltracking;
 using namespace o2::mcutils;
