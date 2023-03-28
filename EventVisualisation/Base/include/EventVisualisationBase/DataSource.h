@@ -66,7 +66,7 @@ class DataSource
 
   virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) = 0;
   virtual void rollToNext(){};
-  virtual void changeDataFolder(std::string /*newFolder*/){};
+  virtual void changeDataFolder(const std::vector<std::string>& /*newFolder*/){};
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}

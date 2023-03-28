@@ -78,7 +78,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
   return res;
 }
 
-DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path, sourceFilextensions)
+DataSourceOnline::DataSourceOnline(const std::vector<std::string>& path) : mFileWatcher(path, sourceFilextensions)
 {
 }
 

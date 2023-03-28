@@ -33,6 +33,7 @@ class DirectoryLoader
 
  public:
   static std::deque<std::string> load(const std::string& path, const std::string& marker, const std::vector<std::string>& ext);
+  static std::deque<std::string> load(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext);
   static void reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder);
   static void removeOldestFiles(std::string& path, std::vector<std::string>& ext, int remaining);
 };
