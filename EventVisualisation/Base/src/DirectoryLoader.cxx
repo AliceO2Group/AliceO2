@@ -39,6 +39,25 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
   return result;
 }
 
+deque<string> DirectoryLoader::load(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext)
+{
+  deque<string> result;
+  for (const auto& path : paths) {
+    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+      if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
+        result.push_back(entry.path().filename());
+      }
+    }
+  }
+  // comparison with safety if marker not in the filename (-1+1 gives 0)
+  std::sort(result.begin(), result.end(),
+            [marker](std::string a, std::string b) {
+              return a.substr(a.find_first_of(marker) + 1) < b.substr(b.find_first_of(marker) + 1);
+            });
+
+  return result;
+}
+
 void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder)
 {
   if (filesInFolder == -1) {
