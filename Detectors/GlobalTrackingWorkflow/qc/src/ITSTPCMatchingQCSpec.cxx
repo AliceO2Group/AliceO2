@@ -42,8 +42,6 @@ void ITSTPCMatchingQCDevice::init(InitContext& ic)
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);
   }
-  mMatchITSTPCQC->setGRPFileName(o2::base::NameConf::getGRPFileName());
-  mMatchITSTPCQC->setGeomFileName(o2::base::NameConf::getGeomFileName());
 }
 
 //_____________________________________________________________
