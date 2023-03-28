@@ -104,8 +104,10 @@ struct VertexingParameters {
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
-  float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
-  float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
+  float tanLambdaCut = 0.002f;     // tanLambda = deltaZ/deltaR
+  float lowMultBeamDistCut = 0.1f; // XY cut for low-multiplicity pile up
+  int vertRadiusNsigmaCut = 4;     // N sigma cut for vertex XY
+  float vertRadiusSigma = 0.495f;  // sigma of vertex XY
   float maxZPositionAllowed = 25.f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;
