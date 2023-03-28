@@ -165,7 +165,7 @@ struct AnalysisDataProcessorBuilder {
   static void appendGroupingCandidate(std::vector<std::pair<std::string, std::string>>& bk, std::string& key)
   {
     if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>() && !o2::soa::is_smallgroups_v<std::decay_t<Arg>>) {
-      auto binding = soa::getLabelFromType<std::decay_t<Arg>>();
+      auto binding = soa::getLabelFromTypeForKey<std::decay_t<Arg>>(key);
       if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
         bk.emplace_back(binding, key);
       }

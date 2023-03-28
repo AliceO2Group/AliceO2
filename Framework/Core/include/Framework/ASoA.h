@@ -1032,6 +1032,37 @@ static std::string getLabelFromType()
   }
 }
 
+template <typename... C>
+static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+{
+  return ((C::inherited_t::mLabel == key) || ...);
+}
+
+template <typename T>
+static std::pair<bool, std::string> hasKey(std::string const& key)
+{
+  return{hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
+}
+
+template <typename... C>
+static auto haveKey(framework::pack<C...>, std::string const& key)
+{
+  return std::vector{hasKey<C>(key)...};
+}
+
+template <typename T>
+static std::string getLabelFromTypeForKey(std::string const& key)
+{
+  if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
+    using Os = typename std::decay_t<T>::originals;
+    auto locate = haveKey(Os{}, key);
+    return std::find_if(locate.begin(), locate.end(), [](auto const& x){ return x.first; })->second;
+  } else {
+    auto locate = hasKey<std::decay_t<T>>(key);
+    return locate.second;
+  }
+}
+
 template <typename B, typename... C>
 constexpr static bool hasIndexTo(framework::pack<C...>&&)
 {
@@ -1062,9 +1093,11 @@ namespace o2::framework
 template <typename T>
 struct Preslice {
   using target_t = T;
-  const std::string binding = o2::soa::getLabelFromType<T>();
+  const std::string binding;
 
-  Preslice(expressions::BindingNode index_) : bindingKey{binding, index_.name} {}
+  Preslice(expressions::BindingNode index_)
+    : binding{o2::soa::getLabelFromTypeForKey<T>(index_.name)},
+      bindingKey{binding, index_.name} {}
 
   void updateSliceInfo(SliceInfoPtr&& si)
   {
@@ -1394,7 +1427,7 @@ class Table
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     copyIndexBindings(t);
@@ -2370,7 +2403,7 @@ struct Join : JoinBase<Ts...> {
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto t = Join<Ts...>({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     this->copyIndexBindings(t);
@@ -2625,7 +2658,7 @@ class FilteredBase : public T
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     if (offset >= this->tableSize()) {
@@ -2874,7 +2907,7 @@ class Filtered : public FilteredBase<T>
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     if (offset >= this->tableSize()) {
@@ -3027,7 +3060,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromType<decltype(*this)>(), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     auto start = offset;

@@ -718,8 +718,10 @@ DECLARE_SOA_TABLE(Origints, "TST", "ORIG", o2::soa::Index<>, test::X, test::Some
 namespace test
 {
 DECLARE_SOA_INDEX_COLUMN(Origint, origint);
-}
+DECLARE_SOA_INDEX_COLUMN_FULL(AltOrigint, altOrigint, int, Origints, "_alt");
+} // namespace test
 DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OrigintId);
+DECLARE_SOA_TABLE(OtherReferences, "TST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
 } // namespace o2::aod
 TEST_CASE("TestIndexToFiltered")
 {
@@ -977,6 +979,57 @@ TEST_CASE("TestSliceByCached")
     REQUIRE(cachedSlice.size() == 5);
     for (auto& ri : cachedSlice) {
       REQUIRE(ri.origintId() == oi.globalIndex());
+    }
+  }
+}
+
+TEST_CASE("TestSliceByCachedMismatched")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::Origints>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  o2::aod::Origints o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<o2::aod::References>();
+  auto step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 5 == 0) {
+      ++step;
+    }
+    writer_w(0, step);
+  }
+  auto refs = w.finalize();
+  o2::aod::References r{refs};
+
+  TableBuilder w2;
+  auto writer_w2 = w2.cursor<o2::aod::OtherReferences>();
+  step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 3 == 0) {
+      ++step;
+    }
+    writer_w2(0, step);
+  }
+  auto refs2 = w2.finalize();
+  o2::aod::OtherReferences r2{refs2};
+
+  using J = o2::soa::Join<o2::aod::References, o2::aod::OtherReferences>;
+  J rr{{refs, refs2}};
+
+  auto key = "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>()) + "_alt";
+  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromTypeForKey<J>(key), key}});
+  auto s = atscache.updateCacheEntry(0, refs2);
+  SliceCache cache{&atscache};
+
+  for (auto& oi : o) {
+    auto cachedSlice = rr.sliceByCached(o2::aod::test::altOrigintId, oi.globalIndex(), cache);
+    REQUIRE(cachedSlice.size() == 3);
+    for (auto& ri : cachedSlice) {
+      REQUIRE(ri.altOrigintId() == oi.globalIndex());
     }
   }
 }
