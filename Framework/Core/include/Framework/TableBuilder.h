@@ -891,20 +891,6 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
   return spawnerHelper(fullTable, new_schema, sizeof...(C), projectors.data(), fields, name);
 }
 
-/// Helper to get a tuple tail
-template <typename Head, typename... Tail>
-std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
-{
-  return apply([](auto const&, auto&... tail) { return std::tie(tail...); }, t);
-}
-
-/// Helpers to get type pack from tuple
-template <typename... T>
-constexpr auto pack_from_tuple(std::tuple<T...> const&)
-{
-  return framework::pack<T...>{};
-}
-
 /// Binary search for an index column
 template <typename Key, typename T>
 void lowerBound(int32_t value, T& start)
