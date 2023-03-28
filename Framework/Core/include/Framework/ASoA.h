@@ -1041,7 +1041,7 @@ static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
 template <typename T>
 static std::pair<bool, std::string> hasKey(std::string const& key)
 {
-  return{hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
+  return {hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
 }
 
 template <typename... C>
@@ -1056,7 +1056,7 @@ static std::string getLabelFromTypeForKey(std::string const& key)
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
     using Os = typename std::decay_t<T>::originals;
     auto locate = haveKey(Os{}, key);
-    return std::find_if(locate.begin(), locate.end(), [](auto const& x){ return x.first; })->second;
+    return std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; })->second;
   } else {
     auto locate = hasKey<std::decay_t<T>>(key);
     return locate.second;
