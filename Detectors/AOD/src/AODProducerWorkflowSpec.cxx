@@ -1098,7 +1098,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
 }
 
 template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
-void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Curs, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
+void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
   auto v0s = recoData.getV0s();
@@ -1130,7 +1130,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
       collID = itemV->second;
     }
     if (posTableIdx != -1 and negTableIdx != -1 and collID != -1) {
-      v0Curs(0, collID, posTableIdx, negTableIdx);
+      v0Cursor(0, collID, posTableIdx, negTableIdx);
       mV0ToTableID[int(iv0)] = mTableV0ID++;
     }
   }

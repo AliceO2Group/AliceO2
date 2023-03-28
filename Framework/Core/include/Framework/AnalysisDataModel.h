@@ -863,11 +863,11 @@ using Decay3Body = Decay3Bodys::iterator;
 
 namespace strangenesstracking
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track);                             //! Strange track index
-DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, ""); //! ITS index
-DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                         //! Cascade index
-DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index
-DECLARE_SOA_INDEX_COLUMN(Decay3Body, decay3Body);                   //! Decay 3 body index
+DECLARE_SOA_INDEX_COLUMN(Track, track);                                 //! Strange track index
+DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, "_ITS"); //! ITS index
+DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                             //! Cascade index
+DECLARE_SOA_INDEX_COLUMN(V0, v0);                                       //! V0 index
+DECLARE_SOA_INDEX_COLUMN(Decay3Body, decay3Body);                       //! Decay 3 body index
 
 DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
 DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
@@ -880,7 +880,6 @@ DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);         //! He4L mass
 DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
 DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
 DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size
-
 } // namespace strangenesstracking
 
 /// Strangeness tracks
