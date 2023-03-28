@@ -62,7 +62,7 @@ struct DataProcessingStats {
                       std::function<int64_t(int64_t base, int64_t offset)> getTimestamp);
 
   constexpr static ServiceKind service_kind = ServiceKind::Global;
-  constexpr static short MAX_METRICS = 1 << 14;
+  constexpr static unsigned short MAX_METRICS = 1 << 15;
   constexpr static short MAX_CMDS = 64;
 
   enum struct Op : char {
@@ -99,7 +99,7 @@ struct DataProcessingStats {
   // need to specify the timestamp, because we calculate it for them
   // using the delta between the last update and the current time.
   struct CommandSpec {
-    short id = 0;
+    unsigned short id = 0;
     Op op = Op::Nop;
     int64_t value = 0;
   };
@@ -109,7 +109,7 @@ struct DataProcessingStats {
   // global stats either when the buffer is full (after MAX_CMDS commands)
   // or when the queue is flushed explicitly via the processQueue() method.
   struct Command {
-    short id = 0;          // StatsId of the metric to update
+    unsigned short id = 0; // StatsId of the metric to update
     int64_t value = 0;     // Value to update the metric with
     int64_t timestamp = 0; // Timestamp of the update
     Op op = Op::Nop;       // Operation to perform to do the update

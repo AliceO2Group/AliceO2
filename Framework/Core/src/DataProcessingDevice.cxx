@@ -1982,7 +1982,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 3 : 0;
       update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
     }
     uint64_t tEnd = uv_hrtime();
     stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
@@ -2003,7 +2003,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 2 : 0;
       update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
     }
   };
 

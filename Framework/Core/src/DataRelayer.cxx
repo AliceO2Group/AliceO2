@@ -956,7 +956,7 @@ void DataRelayer::sendContextState()
   auto& stats = mContext.get<DataProcessingStats>();
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
     int value = static_cast<int>(mCachedStateMetrics[si]);
-    stats.updateStats({static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
+    stats.updateStats({static_cast<unsigned short>((int)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
     // Anything which is done is actually already empty,
     // so after we report it we mark it as such.
     if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
