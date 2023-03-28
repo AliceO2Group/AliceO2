@@ -525,7 +525,8 @@ void displayDeviceMetrics(const char* label,
       }
     } break;
     case MetricsDisplayStyle::Stems:
-      if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
+      if (ImPlot::BeginPlot("##Some plot")) {
+        ImPlot::SetupAxes("time", "value");
         for (size_t pi = 0; pi < userData.size(); ++pi) {
           auto data = reinterpret_cast<const MultiplotData*>(metricsToDisplay[pi]);
           // FIXME: display a message for other metrics
