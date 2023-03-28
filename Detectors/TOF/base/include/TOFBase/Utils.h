@@ -69,8 +69,8 @@ class Utils
   static void fitChannelsTS(int chStart, const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
   static int fitSingleChannel(int ch, TH2F* h, const dataformats::CalibTimeSlewingParamTOF* oldTS, dataformats::CalibTimeSlewingParamTOF* newTS);
 
-  static int getNOrbitInTF() { return mNOrbitInTF; }
-  static void setNOrbitInTF(int norb) { mNOrbitInTF = norb; }
+  static uint32_t getNOrbitInTF() { return mNOrbitInTF; }
+  static void setNOrbitInTF(uint32_t norb) { mNOrbitInTF = norb; }
 
  private:
   static std::vector<int> mFillScheme;
@@ -98,7 +98,7 @@ class Utils
   static const int NMINTOFIT = 300;
   static int mNfits;
 
-  static int mNOrbitInTF;
+  static uint32_t mNOrbitInTF;
 
   ClassDefNV(Utils, 1);
 };

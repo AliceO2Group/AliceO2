@@ -45,6 +45,8 @@ void CompressedDecodingTask::init(InitContext& ic)
 {
   LOG(debug) << "CompressedDecoding init";
 
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
   mRowFilter = ic.options().get<bool>("row-filter");
@@ -138,6 +140,19 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  const uint32_t norbits = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+  Utils::setNOrbitInTF(norbits);
+  mDecoder.setNOrbitInTF(norbits);
+
+  static bool isFirstCall = true;
+  if (isFirstCall) {
+    isFirstCall = false;
+    LOG(info) << "N orbits per TF set to " << norbits;
+  } else {
+    LOG(debug) << "N orbits per TF set to " << norbits;
+  }
 
   mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
@@ -417,6 +432,14 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
 
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                true,                           // GRPECS=true for nHBF per TF
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
+
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
   dataDesc.runtimeInit(inputDesc.c_str());
@@ -435,7 +458,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs,
     //    select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc)},
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc, ccdbRequest)},
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},

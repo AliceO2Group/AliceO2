@@ -23,7 +23,6 @@
 #include <cassert>
 #include <fairlogger/Logger.h>
 #include "DataFormatsTOF/CompressedDataFormat.h"
-#include "TOFBase/Utils.h"
 
 using namespace o2::tof;
 
