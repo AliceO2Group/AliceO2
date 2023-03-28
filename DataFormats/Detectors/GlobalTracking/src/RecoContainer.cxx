@@ -809,9 +809,7 @@ void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
 //____________________________________________________________
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
   }
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
@@ -831,9 +829,7 @@ void RecoContainer::addIRFramesITS(ProcessingContext& pc)
 //____________________________________________________________
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
   }
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
@@ -999,9 +995,7 @@ void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
   }
@@ -1016,9 +1010,7 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
   }
