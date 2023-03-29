@@ -388,19 +388,13 @@ void TrackerTraits::findRoads(const int iteration)
   for (int iLevel{mTrkParams[iteration].CellsPerRoad()}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
     CA_DEBUGGER(int nRoads = -mTimeFrame->getRoads().size());
     const int minimumLevel{iLevel - 1};
-
     for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
-
       const int levelCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
-
       for (int iCell{0}; iCell < levelCellsNum; ++iCell) {
-
         Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
-
         if (currentCell.getLevel() != iLevel) {
           continue;
         }
-
         mTimeFrame->getRoads().emplace_back(iLayer, iCell);
 
         /// For 3 clusters roads (useful for cascades and hypertriton) we just store the single cell
@@ -408,32 +402,22 @@ void TrackerTraits::findRoads(const int iteration)
         if (iLevel == 1) {
           continue;
         }
-
         const int cellNeighboursNum{static_cast<int>(
           mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell].size())};
         bool isFirstValidNeighbour = true;
-
         for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-
           const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell][iNeighbourCell];
           const Cell& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
-
           if (iLevel - 1 != neighbourCell.getLevel()) {
             continue;
           }
-
           if (isFirstValidNeighbour) {
-
             isFirstValidNeighbour = false;
-
           } else {
-
             mTimeFrame->getRoads().emplace_back(iLayer, iCell);
           }
-
           traverseCellsTree(neighbourCellId, iLayer - 1);
         }
-
         // TODO: crosscheck for short track iterations
         // currentCell.setLevel(0);
       }

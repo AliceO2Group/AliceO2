@@ -133,6 +133,7 @@ class GpuTimeFrameChunk
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
   std::array<int*, nLayers - 1> mTrackletsLookupTablesDevice;
   std::array<Cell*, nLayers - 2> mCellsDevice;
+  Road* mRoadsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
   std::array<int*, nLayers - 3> mNeighboursCellDevice;
   std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;

@@ -486,6 +486,51 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
   }
 }
 
+template <bool dryRun, int nLayers = 7>
+GPUg() void computeLayerRoadsKernel(
+  const int level,
+  const int layerIndex,
+  const Cell** cells,
+  const int* nCells,
+  const int** neighbours,
+  const int** neighboursLUT,
+  Road* roads,
+  int* roadLUT)
+{
+  for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
+    auto& currentCell{cells[layerIndex][iCurrentCellIndex]};
+    if (currentCell.getLevel() != level) {
+      continue;
+    }
+    int nRoads{0};
+    if constexpr (dryRun) {
+      roadLUT[iCurrentCellIndex]++;
+    } else {
+      roads[roadLUT[iCurrentCellIndex] + nRoads++] = Road{layerIndex, iCurrentCellIndex};
+    }
+    if (level == 1) {
+      continue;
+    }
+    // **** check! I'm tired
+    const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
+    bool isFirstValidNeighbour{true};
+    for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
+      const int neighbourCellId = neighbours[layerIndex - 1][neighboursLUT[layerIndex - 1][iCurrentCellIndex + iNeighbourCell]];
+      const Cell& neighbourCell = cells[layerIndex - 1][neighbourCellId];
+      if (level - 1 != neighbourCell.getLevel()) {
+        continue;
+      }
+      if (isFirstValidNeighbour) {
+        isFirstValidNeighbour = false;
+      } else {
+        roads[roadLUT[iCurrentCellIndex] + nRoads++] = Road{layerIndex, iCurrentCellIndex};
+      }
+      // traverseCellsTree(neighbourCellId, layerIndex - 1);
+    }
+    /*   ------------------------ */
+  }
+}
+
 } // namespace gpu
 
 template <int nLayers>
@@ -655,6 +700,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           }
         }
 
+        // Find Cell neighbours.
         for (int iLayer{0}; iLayer < nLayers - 3; ++iLayer) {
           gpu::computeLayerCellNeighboursKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
             mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
@@ -688,6 +734,14 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize * rofs);
           // }
+          for (int iLevel{nLayers - 2}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
+            const int minimumLevel{iLevel - 1};
+            for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
+              // gpu::computeLayerRoadsKernel<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
+              //   iLevel,
+              //   iLayer, );
+            }
+          }
         }
 
         // End of tracking for this chunk
