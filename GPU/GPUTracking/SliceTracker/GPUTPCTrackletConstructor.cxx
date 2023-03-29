@@ -60,6 +60,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
 {
   // reconstruction of tracklets, tracklet store step
   if (r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
+    CADEBUG(printf("    Rejected: nHits %d QPt %f MinHits %d MaxQPt %f CheckCov %d\n", r.mNHits, tParam.QPt(), GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler), tracker.Param().rec.maxTrackQPtB5, (int)CheckCov(tParam)));
     return;
   }
 
@@ -70,7 +71,6 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   const unsigned int nHits = r.mLastRow + 1 - r.mFirstRow;
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
   if (hitout + nHits > tracker.NMaxRowHits()) {
-
     tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, tracker.ISlice(), hitout + nHits, tracker.NMaxRowHits());
     CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
     return;
@@ -85,7 +85,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) & GPUrestrict() tracklet = tracker.Tracklets()[itrout];
 
   tracklet.SetNHits(r.mNHits);
-  CADEBUG(printf("    DONE %d hits\n", r.mNHits));
+  CADEBUG(printf("    Storing tracklet: %d hits\n", r.mNHits));
 
   tracklet.SetFirstRow(r.mFirstRow);
   tracklet.SetLastRow(r.mLastRow);
@@ -401,6 +401,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLO
   }
   r.mStage = 0;
   r.mNHits = 0;
+  CADEBUG(printf("Start tracklet\n"));
 
 #ifdef __HIPCC__ // Todo: fixme!
   for (int iStage = -1; ++iStage < 2; /*iStage++*/) {
@@ -452,6 +453,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLO
       }
     }
   }
+  CADEBUG(printf("End tracklet\n"));
 }
 
 template <>
