@@ -112,6 +112,7 @@ std::string xmlEncode(std::string const& source)
 }
 
 void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
+                                          DriverMode driverMode,
                                           std::string const& workflowSuffix,
                                           std::vector<DataProcessorSpec> const& workflow,
                                           std::vector<DataProcessorInfo> const& dataProcessorInfos,
@@ -167,6 +168,19 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
       out << "   "
           << fmt::format("<property name=\"fmqchan_{}\" />\n", rewriter.properties[rewriter.names[ci]].value);
     }
+  }
+
+  if (driverMode == DriverMode::EMBEDDED) {
+    out << "   "
+        << fmt::format("<decltask name=\"{}{}\">\n", "dplDriver", workflowSuffix);
+    out << "       "
+        << fmt::format(R"(<assets><name>dpl_json{}</name></assets>)", workflowSuffix) << "\n";
+    out << "       "
+        << R"(<exe reachable="true">)";
+    out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | o2-dpl-run --driver-mode embedded", workflowSuffix);
+    out << R"(</exe>)"
+        << "\n";
+    out << "</decltask>";
   }
 
   for (size_t di = 0; di < specs.size(); ++di) {

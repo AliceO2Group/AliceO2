@@ -34,6 +34,16 @@ struct ProcessingPolicies {
   enum EarlyForwardPolicy earlyForward;
 };
 
+/// The mode in which the driver is running. Should be MASTER when running locally,
+/// EMBEDDED when running under a control system.
+enum struct DriverMode {
+  /// Default mode. The master is responsible for spawning and controlling the devices.
+  STANDALONE,
+  /// The master is also running under a control system, so it does not control the devices, however, it does
+  /// receive metrics and information from them and displays it via the RemoteGUI.
+  EMBEDDED
+};
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_PROCESSING_POLICIES_H_

@@ -1735,7 +1735,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto& context = childFds[di];
           createPipes(context.childstdin);
           createPipes(context.childstdout);
-          if (runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
+          if (driverInfo.mode == DriverMode::EMBEDDED || runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
                               runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
           } else {
@@ -2131,6 +2131,7 @@ void overrideLabels(ConfigContext& ctx, WorkflowSpec& workflow)
 
 /// Helper function to initialise the controller from the command line options.
 void initialiseDriverControl(bpo::variables_map const& varmap,
+                             DriverInfo& driverInfo,
                              DriverControl& control)
 {
   // Control is initialised outside the main loop because
@@ -2166,16 +2167,17 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
     control.callbacks = {[filename = varmap["dds"].as<std::string>(),
-                          workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
-                                                                          DeviceSpecs const& specs,
-                                                                          DeviceExecutions const& executions,
-                                                                          DataProcessorInfos& dataProcessorInfos,
-                                                                          CommandInfo const& commandInfo) {
+                          workflowSuffix = varmap["dds-workflow-suffix"],
+                          driverMode = driverInfo.mode](WorkflowSpec const& workflow,
+                                                        DeviceSpecs const& specs,
+                                                        DeviceExecutions const& executions,
+                                                        DataProcessorInfos& dataProcessorInfos,
+                                                        CommandInfo const& commandInfo) {
       if (filename == "-") {
-        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, driverMode, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
       } else {
         std::ofstream out(filename);
-        DDSConfigHelpers::dumpDeviceSpec2DDS(out, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(out, driverMode, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
       }
     }};
     control.forcedTransitions = {
@@ -2358,6 +2360,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   enum LogParsingHelpers::LogLevel minFailureLevel;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
+  enum DriverMode driverMode;
   executorOptions.add_options()                                                                                                                                        //
     ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                                                    //                                                                                                       //
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                                            //                                                                                                         //
@@ -2383,6 +2386,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                                    //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                                           //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                                 //                                                                                                                                      //
+    ("driver-mode", bpo::value<DriverMode>(&driverMode)->default_value(DriverMode::STANDALONE), R"(how to run the driver. default: "standalone". Valid: "embedded")")  //                                                                                                                                      //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far. It implies --batch. Use --no-batch to see the GUI")                  //                                                                                                                                        //
     ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                                           //                                                                                                                                        //
     ("o2-control,o2", bpo::value<std::string>()->default_value(""), "dump O2 Control workflow configuration under the specified name")                                 //
@@ -2631,8 +2635,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       exit(1);
     }
   }
-  DriverControl driverControl;
-  initialiseDriverControl(varmap, driverControl);
 
   auto evaluateBatchOption = [&varmap]() -> bool {
     if (varmap.count("no-batch") > 0) {
@@ -2665,6 +2667,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
+  driverInfo.mode = varmap["driver-mode"].as<DriverMode>();
+
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
     driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
@@ -2681,6 +2685,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // FIXME: should use the whole dataProcessorInfos, actually...
   driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
+
+  DriverControl driverControl;
+  initialiseDriverControl(varmap, driverInfo, driverControl);
 
   commandInfo.merge(CommandInfo(argc, argv));
 

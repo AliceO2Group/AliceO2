@@ -151,7 +151,7 @@ TEST_CASE("TestDDS")
                                       devices, executions, controls,
                                       "workflow-id");
   CommandInfo command{"foo"};
-  DDSConfigHelpers::dumpDeviceSpec2DDS(ss, "", workflow, dataProcessorInfos, devices, executions, command);
+  DDSConfigHelpers::dumpDeviceSpec2DDS(ss, DriverMode::STANDALONE, "", workflow, dataProcessorInfos, devices, executions, command);
   auto expected = R"EXPECTED(<topology name="o2-dataflow">
 <asset name="dpl_json" type="inline" visibility="global" value="{
     &quot;workflow&quot;: [
@@ -406,7 +406,7 @@ TEST_CASE("TestDDSExpendable")
                                       devices, executions, controls,
                                       "workflow-id");
   CommandInfo command{"foo"};
-  DDSConfigHelpers::dumpDeviceSpec2DDS(ss, "", workflow, dataProcessorInfos, devices, executions, command);
+  DDSConfigHelpers::dumpDeviceSpec2DDS(ss, DriverMode::STANDALONE, "", workflow, dataProcessorInfos, devices, executions, command);
   auto expected = R"EXPECTED(<topology name="o2-dataflow">
 <declrequirement name="odc_expendable_task" type="custom" value="true" />
 <asset name="dpl_json" type="inline" visibility="global" value="{
