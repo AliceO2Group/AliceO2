@@ -143,9 +143,6 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 #endif
       }
       if (iRow == r.mStartRow) {
-        tParam.SetX(x);
-        tParam.SetY(y);
-        r.mLastY = y;
         if (tracker.Param().par.continuousTracking) {
           float refZ = ((z > 0) ? tracker.Param().rec.tpc.defaultZOffsetOverR : -tracker.Param().rec.tpc.defaultZOffsetOverR) * x;
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
@@ -161,6 +158,9 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
           r.mLastZ = z;
           tParam.SetZOffset(0.f);
         }
+        tParam.SetX(x);
+        tParam.SetY(y);
+        r.mLastY = y;
         CADEBUG(printf("Tracklet %5d: FIT INIT  ROW %3d X %8.3f -", r.mISH, iRow, tParam.X()); for (int i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
       } else {
         float err2Y, err2Z;
