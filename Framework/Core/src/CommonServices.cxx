@@ -653,7 +653,7 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
       }
       if (value < (int64_t)std::numeric_limits<int>::min()) {
         value = (int64_t)std::numeric_limits<int>::min();
-        LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MIN";
+        LOG(warning) << "Value for " << spec.name << " is too small, setting to INT_MIN";
       }
       metric.addValue((int)value, spec.name);
     }
