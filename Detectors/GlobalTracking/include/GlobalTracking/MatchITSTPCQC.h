@@ -16,6 +16,7 @@
 #ifndef ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 #define ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 
+#include <TH1D.h>
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TEfficiency.h>
@@ -54,7 +55,7 @@ class MatchITSTPCQC
   void setDataRequest(std::shared_ptr<o2::globaltracking::DataRequest> dr) { mDataRequest = dr; }
   void finalize();
   void reset();
-  // TH1F is limited
+
   TH1D* getHistoPt() const { return mPt; }
   TH1D* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
