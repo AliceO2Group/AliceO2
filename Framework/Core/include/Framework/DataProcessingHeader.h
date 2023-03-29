@@ -14,9 +14,6 @@
 #include "Headers/DataHeader.h"
 
 #include <cstdint>
-#include <memory>
-#include <cassert>
-#include <chrono>
 
 namespace o2::framework
 {
@@ -48,11 +45,8 @@ struct DataProcessingHeader : public header::BaseHeader {
   /// This creation time is not meant to be used for anything but to understand the relative
   /// creation of messages in the flow. Notice that for the case DataProcessingHeader::creation
   /// has some particular meaning, we expect this function not to be used.
-  static uint64_t getCreationTime()
-  {
-    auto now = std::chrono::steady_clock::now();
-    return ((uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count()) | DUMMY_CREATION_TIME_OFFSET;
-  }
+  static inline uint64_t getCreationTime();
+
   // Required to do the lookup
   constexpr static const o2::header::HeaderType sHeaderType = "DataFlow";
   static const uint32_t sVersion = 1;
@@ -74,43 +68,17 @@ struct DataProcessingHeader : public header::BaseHeader {
 
   CreationTime creation;
 
-  //___NEVER MODIFY THE ABOVE
-  //___NEW STUFF GOES BELOW
+  inline DataProcessingHeader();
+  inline DataProcessingHeader(StartTime s);
+  inline DataProcessingHeader(StartTime s, Duration d);
+  inline DataProcessingHeader(StartTime s, Duration d, CreationTime t);
 
-  //___the functions:
-  DataProcessingHeader()
-    : DataProcessingHeader(0, 0)
-  {
-  }
-
-  DataProcessingHeader(StartTime s)
-    : DataProcessingHeader(s, 0)
-  {
-  }
-
-  DataProcessingHeader(StartTime s, Duration d)
-    : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone, sVersion),
-      startTime(s),
-      duration(d),
-      creation(getCreationTime())
-  {
-  }
-
-  DataProcessingHeader(StartTime s, Duration d, CreationTime t)
-    : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone, sVersion),
-      startTime(s),
-      duration(d),
-      creation(t)
-  {
-  }
-
-  DataProcessingHeader(const DataProcessingHeader&) = default;
-  static const DataProcessingHeader* Get(const BaseHeader* baseHeader)
-  {
-    return (baseHeader->description == DataProcessingHeader::sHeaderType) ? static_cast<const DataProcessingHeader*>(baseHeader) : nullptr;
-  }
+  inline DataProcessingHeader(const DataProcessingHeader&) noexcept = default;
+  static inline const DataProcessingHeader* Get(const BaseHeader* baseHeader);
 };
 
 } // namespace o2::framework
+
+#include "Framework/DataProcessingHeader.inc"
 
 #endif // O2_FRAMEWORK_DATAPROCESSINGHEADER_H_
