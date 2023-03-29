@@ -31,6 +31,11 @@ struct DataProcessingStatsHelpers {
   static std::function<int64_t(int64_t base, int64_t offset)> defaultCPUTimeConfigurator();
 };
 
+/// Helper struct to define some known states
+enum struct ProcessingStateId : int {
+  DUMMY_STATE = 0,
+};
+
 /// Helper struct to hold state of the data processing while it is running.
 /// This is meant to then be used to report the state of the data processing
 /// to the driver.
@@ -121,8 +126,11 @@ struct DataProcessingStates {
   std::array<std::string, MAX_STATES> stateNames = {};
   std::array<UpdateInfo, MAX_STATES> updateInfos;
   std::array<StateSpec, MAX_STATES> stateSpecs;
-  // How many commands have been committed to the queue.
-  std::atomic<int> insertedStates = 0;
+  // The last insertion point for the next state.
+  // We use this to actually process the command buffer
+  // because nextState is already pointing to the next
+  // insertion point.
+  std::atomic<int> lastInsertedState = 0;
   // The insertion point for the next state. Notice we
   // insert in the buffer backwards, so that on flush we iterate
   // from the last insertion point forward.
