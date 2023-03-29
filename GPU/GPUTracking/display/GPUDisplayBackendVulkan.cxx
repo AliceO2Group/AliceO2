@@ -50,7 +50,7 @@ GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
 // ---------------------------- VULKAN HELPERS ----------------------------
 
-static int checkValidationLayerSupport(const std::vector<const char*>& validationLayers)
+static int checkVulkanLayersSupported(const std::vector<const char*>& validationLayers)
 {
   std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
   for (const char* layerName : validationLayers) {
@@ -355,9 +355,12 @@ void GPUDisplayBackendVulkan::createDevice()
     "VK_LAYER_KHRONOS_validation"};
   auto debugCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
     static bool throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") && atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW"));
+    static bool showVulkanValidationInfo = getenv("GPUCA_VULKAN_VALIDATION_INFO") && atoi(getenv("GPUCA_VULKAN_VALIDATION_INFO"));
     switch (messageSeverity) {
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        // GPUInfo("%s", pCallbackData->pMessage);
+        if (showVulkanValidationInfo) {
+          GPUInfo("%s", pCallbackData->pMessage);
+        }
         break;
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
         GPUWarning("%s", pCallbackData->pMessage);
@@ -380,7 +383,7 @@ void GPUDisplayBackendVulkan::createDevice()
   };
   vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
   if (mEnableValidationLayers) {
-    if (checkValidationLayerSupport(reqValidationLayers)) {
+    if (checkVulkanLayersSupported(reqValidationLayers)) {
       throw std::runtime_error("Requested validation layer support not available");
     }
     reqInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
