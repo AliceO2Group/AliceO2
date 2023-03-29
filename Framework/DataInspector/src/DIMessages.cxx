@@ -26,12 +26,15 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Input& input)
   doc.AddMember("sourceChannel", Value(input.sourceChannel.c_str(), alloc), alloc);
   doc.AddMember("timeslice", Value(input.timeslice), alloc);
 
-  if (input.origin.has_value())
+  if (input.origin.has_value()) {
     doc.AddMember("origin", Value(input.origin.value().c_str(), alloc), alloc);
-  if (input.description.has_value())
+  }
+  if (input.description.has_value()) {
     doc.AddMember("description", Value(input.description.value().c_str(), alloc), alloc);
-  if (input.subSpec.has_value())
+  }
+  if (input.subSpec.has_value()) {
     doc.AddMember("subSpec", Value(input.subSpec.value()), alloc);
+  }
 
   return doc;
 }
@@ -49,8 +52,9 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Output& output)
 
   doc.AddMember("origin", Value(output.origin.c_str(), alloc), alloc);
   doc.AddMember("description", Value(output.description.c_str(), alloc), alloc);
-  if (output.subSpec.has_value())
+  if (output.subSpec.has_value()) {
     doc.AddMember("subSpec", Value(output.subSpec.value()), alloc);
+  }
 
   return doc;
 }
@@ -66,12 +70,15 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Forward& forward)
   doc.AddMember("timeslice", Value(forward.timeslice), alloc);
   doc.AddMember("maxTimeslices", Value(forward.maxTimeslices), alloc);
 
-  if (forward.origin.has_value())
+  if (forward.origin.has_value()) {
     doc.AddMember("origin", Value(forward.origin.value().c_str(), alloc), alloc);
-  if (forward.description.has_value())
+  }
+  if (forward.description.has_value()) {
     doc.AddMember("description", Value(forward.description.value().c_str(), alloc), alloc);
-  if (forward.subSpec.has_value())
+  }
+  if (forward.subSpec.has_value()) {
     doc.AddMember("subSpec", Value(forward.subSpec.value()), alloc);
+  }
 
   return doc;
 }

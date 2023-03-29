@@ -37,8 +37,9 @@ DIMessage::DIMessage(const DIMessage& other) noexcept : header(other.header)
 
 DIMessage& DIMessage::operator=(const DIMessage& other) noexcept
 {
-  if (&other == this)
+  if (&other == this) {
     return *this;
+  }
 
   this->header = Header{other.header};
 
