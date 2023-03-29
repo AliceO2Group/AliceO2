@@ -29,6 +29,32 @@ std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
   return in;
 }
 
+std::ostream& operator<<(std::ostream& out, const enum DriverMode& mode)
+{
+  if (mode == DriverMode::STANDALONE) {
+    out << "standalone";
+  } else if (mode == DriverMode::EMBEDDED) {
+    out << "embedded";
+  } else {
+    out.setstate(std::ios_base::failbit);
+  }
+  return out;
+}
+
+std::istream& operator>>(std::istream& in, enum DriverMode& mode)
+{
+  std::string token;
+  in >> token;
+  if (token == "standalone") {
+    mode = DriverMode::STANDALONE;
+  } else if (token == "embedded") {
+    mode = DriverMode::EMBEDDED;
+  } else {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
 std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy)
 {
   if (policy == TerminationPolicy::QUIT) {
