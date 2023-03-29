@@ -77,6 +77,7 @@ struct CommonServices {
   static ServiceSpec summaryServiceSpec();
   static ServiceSpec threadPool(int numWorkers);
   static ServiceSpec dataProcessingStats();
+  static ServiceSpec dataProcessingStates();
   static ServiceSpec objectCache();
   static ServiceSpec timingInfoSpec();
   static ServiceSpec ccdbSupportSpec();
