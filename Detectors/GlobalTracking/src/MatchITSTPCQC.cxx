@@ -441,9 +441,9 @@ void MatchITSTPCQC::finalize()
   // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
   setEfficiency(mFractionITSTPCmatch, mPt, mPtTPC);
   setEfficiency(mFractionITSTPCmatchPhi, mPhi, mPhiTPC);
-  setEfficiency(mFractionITSTPCmatchPhiVsPt, mPhiVsPt, mPhiVsPtTPC);
-  setEfficiency(mFractionITSTPCmatchEtaVsPt, mEtaVsPt, mEtaVsPtTPC);
   setEfficiency(mFractionITSTPCmatchEta, mEta, mEtaTPC);
+  setEfficiency(mFractionITSTPCmatchPhiVsPt, mPhiVsPt, mPhiVsPtTPC, true);
+  setEfficiency(mFractionITSTPCmatchEtaVsPt, mEtaVsPt, mEtaVsPtTPC, true);
   if (mUseMC) {
     setEfficiency(mFractionITSTPCmatchPhysPrim, mPtPhysPrim, mPtTPCPhysPrim);
     setEfficiency(mFractionITSTPCmatchPhiPhysPrim, mPhiPhysPrim, mPhiTPCPhysPrim);
@@ -484,7 +484,7 @@ void MatchITSTPCQC::setEfficiency(TEfficiency* eff, TH1* hnum, TH1* hden, bool i
   LOG(info) << "Setting efficiency " << eff->GetName() << " from " << hnum->GetName() << " and " << hden->GetName();
 
   // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
-  if constexpr (1) { // checking
+  if constexpr (0) { // checking
     LOG(info) << "Num " << hnum->GetName() << " " << hnum->GetNbinsX() << " " << hnum->GetNbinsY();
     LOG(info) << "Den " << hden->GetName() << " " << hden->GetNbinsX() << " " << hden->GetNbinsY();
     for (int i = 1; i <= hden->GetNbinsX(); i++) {
@@ -497,7 +497,7 @@ void MatchITSTPCQC::setEfficiency(TEfficiency* eff, TH1* hnum, TH1* hden, bool i
     LOG(fatal) << "Something went wrong when defining the efficiency denominator " << eff->GetName() << " from " << hnum->GetName();
   }
   if (!eff->SetPassedHistogram(*hnum, "")) {
-    LOG(fatal) << "Something went wrong when defining the efficiency numerator " << eff->GetName() << " from " << hden->GetName();
+    LOG(fatal) << "Something went wrong when defining the efficiency numerator " << eff->GetName() << " from " << hnum->GetName();
   }
   if (is2D) {
     eff->SetTitle(Form("%s;%s;%s;%s", eff->GetTitle(), hnum->GetXaxis()->GetTitle(), hnum->GetYaxis()->GetTitle(), "Efficiency"));
