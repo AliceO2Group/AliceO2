@@ -28,8 +28,12 @@ bool ControlServiceHelpers::parseControl(std::string_view const& s, std::match_r
   const static std::regex controlRE1("^READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
   const static std::regex controlRE2("^(NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
   const static std::regex controlRE3("^(NOTIFY_DEVICE_STATE) ([A-Z ]*)", std::regex::optimize);
+  const static std::regex controlRE4("^(PUT) (.*)", std::regex::optimize);
   std::string_view sv = s.substr(pos + strlen("CONTROL_ACTION: "));
-  return std::regex_search(sv.begin(), sv.end(), match, controlRE1) || std::regex_search(sv.begin(), sv.end(), match, controlRE2) || std::regex_search(sv.begin(), sv.end(), match, controlRE3);
+  return std::regex_search(sv.begin(), sv.end(), match, controlRE1) ||
+         std::regex_search(sv.begin(), sv.end(), match, controlRE2) ||
+         std::regex_search(sv.begin(), sv.end(), match, controlRE3) ||
+         std::regex_search(sv.begin(), sv.end(), match, controlRE4);
 }
 
 void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
@@ -63,6 +67,39 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
     doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
   } else if (command == "NOTIFY_DEVICE_STATE") {
     doToMatchingPid(infos, pid, [arg](DeviceInfo& info) { info.deviceState = arg; info.providedState++; });
+  } else if (command == "PUT") {
+    doToMatchingPid(infos, pid, [&arg](DeviceInfo& info) {
+      // Tokenize arg for the first two empty space using strtok_r
+      // and create string_views associated to it.
+      char* brk;
+      char* beginKey = strtok_r((char*)arg.data(), " ", &brk);
+      char* endKey = strtok_r(nullptr, " ", &brk);
+      char* beginTimestamp = endKey;
+      char* endTimestamp = strtok_r(nullptr, " ", &brk);
+      char* beginValue = endTimestamp;
+      char* endValue = (char*)arg.data() + arg.size();
+      std::string_view key(beginKey, endKey - beginKey);
+      std::string_view timestamp(beginTimestamp, endTimestamp - beginTimestamp);
+      std::string_view value(beginValue, endValue - beginValue);
+      int timestampInt = std::stoll(timestamp.data());
+
+      // Find the StateInfo in the dataProcessingStateManager with the same key. Insert a new one if not found.
+      auto& infos = info.dataProcessingStateManager.infos;
+      auto& states = info.dataProcessingStateManager.states;
+      auto it = std::lower_bound(infos.begin(), infos.end(), key, [](DataProcessingStateManager::StateInfo const& stateInfo, std::string_view const& key) { return stateInfo.name < key; });
+      if (it == infos.end() || it->name != key) {
+        it = infos.insert(it, DataProcessingStateManager::StateInfo{std::string{key}, timestampInt, (int)states.size()});
+        states.resize(states.size() + 1);
+        memcpy(states.back().data(), value.data(), value.size());
+        states.back()[value.size()] = '\0';
+        LOG(debug) << "New state" << key << " with timestamp " << timestamp << " and value " << value;
+      } else {
+        it->lastUpdate = timestampInt;
+        memcpy(states[it->index].data(), value.data(), value.size());
+        states[it->index][value.size()] = '\0';
+        LOG(debug) << "Updated state" << key << " with timestamp " << timestamp << " and value " << value;
+      }
+    });
   } else {
     LOGP(error, "Unknown command {} with argument {}", command, arg);
   }

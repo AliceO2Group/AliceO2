@@ -248,7 +248,7 @@ target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
 set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
-add_test(NAME framework:core COMMAND o2-test-framework-core)
+add_test(NAME framework:core COMMAND o2-test-framework-core --skip-benchmarks)
 
 o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
             SOURCES test/test_AlgorithmWrapper.cxx

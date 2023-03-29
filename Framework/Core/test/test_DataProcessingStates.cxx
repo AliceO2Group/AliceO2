@@ -13,6 +13,7 @@
 #include "Framework/TimingHelpers.h"
 #include "Framework/DeviceState.h"
 #include <catch_amalgamated.hpp>
+#include <fmt/format.h>
 #include <uv.h>
 
 using namespace o2::framework;
@@ -161,4 +162,34 @@ TEST_CASE("DataProcessingStates")
     CHECK(states.statesViews[1].size == 68);
     CHECK(states.statesViews[1].capacity == 68);
   }
+
+  SECTION("Test inserting many states")
+  {
+    for (size_t i = 0; i < 5000; i++) {
+      INFO("Inserting state " << i);
+      auto foo = fmt::format("foo{}", i);
+      states.updateState({DummyMetric, (int)foo.size(), foo.data()});
+    }
+    auto foo = fmt::format("foo{}", 2897);
+    states.updateState({DummyMetric, (int)foo.size(), foo.data()});
+    foo = fmt::format("foo{}", 2898);
+    states.updateState({DummyMetric, (int)foo.size(), foo.data()});
+  }
+
+  BENCHMARK("Inserting many states")
+  {
+    for (size_t i = 0; i < 5000; i++) {
+      auto foo = fmt::format("foo{}", i);
+      states.updateState({DummyMetric, (int)foo.size(), foo.data()});
+    }
+  };
+  states.processCommandQueue();
+
+  BENCHMARK("Inserting few states")
+  {
+    for (size_t i = 0; i < 50; i++) {
+      auto foo = fmt::format("foo{}", i);
+      states.updateState({DummyMetric, (int)foo.size(), foo.data()});
+    }
+  };
 }
