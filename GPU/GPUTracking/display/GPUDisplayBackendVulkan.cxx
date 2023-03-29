@@ -378,6 +378,7 @@ void GPUDisplayBackendVulkan::createDevice()
     }
     return false;
   };
+  vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
   if (mEnableValidationLayers) {
     if (checkValidationLayerSupport(reqValidationLayers)) {
       throw std::runtime_error("Requested validation layer support not available");
@@ -385,7 +386,12 @@ void GPUDisplayBackendVulkan::createDevice()
     reqInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(reqValidationLayers.size());
     instanceCreateInfo.ppEnabledLayerNames = reqValidationLayers.data();
+    instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 
+    debugCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+    debugCreateInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
+    debugCreateInfo.pfnUserCallback = debugCallback;
+    debugCreateInfo.pUserData = nullptr;
   } else {
     instanceCreateInfo.enabledLayerCount = 0;
   }
@@ -397,12 +403,7 @@ void GPUDisplayBackendVulkan::createDevice()
   mDLD = {mInstance, mDL.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr")};
 
   if (mEnableValidationLayers) {
-    vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
-    createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-    createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-    createInfo.pfnUserCallback = debugCallback;
-    createInfo.pUserData = nullptr;
-    mDebugMessenger = mInstance.createDebugUtilsMessengerEXT(createInfo, nullptr, mDLD);
+    mDebugMessenger = mInstance.createDebugUtilsMessengerEXT(debugCreateInfo, nullptr, mDLD);
   }
   std::vector<vk::ExtensionProperties> extensions = vk::enumerateInstanceExtensionProperties(nullptr);
   if (mDisplay->param()->par.debugLevel >= 3) {
