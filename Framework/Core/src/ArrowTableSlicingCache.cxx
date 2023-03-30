@@ -68,6 +68,8 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
                         arrow::compute::CallFunction("value_counts", {table->GetColumnByName(bindingsKeys[pos].second)},
                                                      &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  values[pos].reset();
+  counts[pos].reset();
   values[pos] = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
   counts[pos] = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
   return arrow::Status::OK();

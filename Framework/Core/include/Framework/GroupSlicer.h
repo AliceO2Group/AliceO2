@@ -180,11 +180,10 @@ struct GroupSlicer {
           uint64_t offset = oc.first;
           auto count = oc.second;
           if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
-            if (count == 0) {
-              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
-            }
-
             auto groupedElementsTable = originalTable.asArrowTable()->Slice(offset, count);
+            if (count == 0) {
+              return std::decay_t<A1>{{groupedElementsTable}, soa::SelectionVector{}};
+            }
 
             // for each grouping element we need to slice the selection vector
             auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), offset);
@@ -201,10 +200,6 @@ struct GroupSlicer {
             return typedTable;
 
           } else {
-            if (count == 0) {
-              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}};
-            }
-
             auto groupedElementsTable = originalTable.asArrowTable()->Slice(offset, count);
             std::decay_t<A1> typedTable{{groupedElementsTable}, offset};
             typedTable.bindInternalIndicesTo(&originalTable);
