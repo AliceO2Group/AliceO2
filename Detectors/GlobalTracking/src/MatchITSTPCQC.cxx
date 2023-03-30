@@ -15,11 +15,11 @@
 #include "Framework/InputSpec.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
 #include "GlobalTracking/TrackCuts.h"
+#include <DetectorsBase/GRPGeomHelper.h>
 
 using namespace o2::globaltracking;
 using namespace o2::mcutils;
@@ -167,10 +167,6 @@ bool MatchITSTPCQC::init()
   mChi2Refit->GetYaxis()->SetTitleOffset(1.4);
   mTimeResVsPt->GetYaxis()->SetTitleOffset(1.4);
 
-  o2::base::GeometryManager::loadGeometry(mGeomFileName);
-  o2::base::Propagator::initFieldFromGRP(mGRPFileName);
-  mBz = o2::base::Propagator::Instance()->getNominalBz();
-
   if (mUseMC) {
     mcReader.initFromDigitContext("collisioncontext.root");
   }
@@ -199,6 +195,10 @@ void MatchITSTPCQC::initDataRequest()
 
 void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 {
+
+  // Getting the B field
+  mBz = o2::base::Propagator::Instance()->getNominalBz();
+
   static int evCount = 0;
   mRecoCont.collectData(ctx, *mDataRequest.get());
   mTPCTracks = mRecoCont.getTPCTracks();
