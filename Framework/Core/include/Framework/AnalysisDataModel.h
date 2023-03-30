@@ -897,7 +897,7 @@ DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE
                        strangenesstracking::TopologyChi2,
                        strangenesstracking::ITSclsSize);
 
-DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking cascade table
+DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking V0 table
                        o2::soa::Index<>,
                        strangenesstracking::TrackId,
                        strangenesstracking::ITSTrackId,
@@ -911,7 +911,7 @@ DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangen
                        strangenesstracking::TopologyChi2,
                        strangenesstracking::ITSclsSize);
 
-DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking cascade table
+DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking 3-body decay table
                        o2::soa::Index<>,
                        strangenesstracking::TrackId,
                        strangenesstracking::ITSTrackId,
