@@ -108,7 +108,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       }
     }
 
-    if (mNChipsFiredROF) { // fill some statistics
+    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mGBTLinks.size())) { // fill some statistics
       mTrigger = mLinkForTriggers ? mLinkForTriggers->trigger : 0;
       mROFCounter++;
       mNChipsFired += mNChipsFiredROF;
@@ -122,7 +122,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNExtTriggers += mExtTriggers.size() - prevNTrig;
   ensureChipOrdering();
   mTimerDecode.Stop();
-  return mNChipsFiredROF > 0;
+  return (mNLinksDone < mGBTLinks.size()) ? mNChipsFiredROF : -1;
 }
 
 ///______________________________________________________________

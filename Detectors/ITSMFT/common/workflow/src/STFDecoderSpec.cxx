@@ -91,6 +91,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && (!dumpDir.empty() && !o2::utils::Str::pathIsDirectory(dumpDir))) {
       throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
+    mDecoder->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
   } catch (const std::exception& e) {
@@ -151,7 +152,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
 
   mDecoder->setDecodeNextAuto(false);
-  while (mDecoder->decodeNextTrigger()) {
+  while (mDecoder->decodeNextTrigger() >= 0) {
     if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
       mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
       if (mDoCalibData) {
@@ -380,6 +381,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
+      {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
