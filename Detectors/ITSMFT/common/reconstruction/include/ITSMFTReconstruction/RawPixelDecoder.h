@@ -101,6 +101,9 @@ class RawPixelDecoder final : public PixelReader
   size_t getNChipsFired() const { return mNChipsFired; }
   size_t getNPixelsFired() const { return mNPixelsFired; }
 
+  void setAllowEmptyROFs(bool v) { mAlloEmptyROFs = v; }
+  bool getAllowEmptyROFs() const { return mAlloEmptyROFs; }
+
   void setInstanceID(size_t i) { mInstanceID = i; }
   void setNInstances(size_t n) { mNInstances = n; }
   auto getInstanceID() const { return mInstanceID; }
@@ -145,6 +148,7 @@ class RawPixelDecoder final : public PixelReader
   Mapping mMAP;                                                                       // chip mapping
   std::unordered_map<o2::InteractionRecord, int> mIRPoll;                             // poll for links IR used for synchronization
   bool mFillCalibData = false;                                                        // request to fill calib data from GBT
+  bool mAlloEmptyROFs = false;                                                        // do not skip empty ROFs
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   // statistics
