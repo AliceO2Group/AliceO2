@@ -296,7 +296,12 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
     [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
     if [[ -z $TFName && $WORKFLOWMODE != "print" ]]; then echo "No raw file given!"; exit 1; fi
     if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
-    add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT"
+    if [[ -z $WORKFLOW_DETECTORS_FLP_PROCESSING || $WORKFLOW_DETECTORS_FLP_PROCESSING == "NONE" ]]; then
+      TFRAWOPT="--raw-only-det all"
+    else
+      TFRAWOPT="--non-raw-only-det $WORKFLOW_DETECTORS_FLP_PROCESSING"
+    fi
+    add_W o2-raw-tf-reader-workflow "--delay $TFDELAY $TFRAWOPT --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT"
   elif [[ $EXTINPUT == 1 ]]; then
     PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=$EPNSYNCMODE"
     PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
