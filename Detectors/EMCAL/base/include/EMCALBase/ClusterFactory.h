@@ -312,7 +312,6 @@ class ClusterFactory
   Double_t tMaxInCm(const Double_t e = 0.0, const int key = 0) const;
 
   bool getLookUpInit() const { return mLookUpInit; }
-  void setLookUpInit(bool lookUpInit) { mLookUpInit = lookUpInit; }
 
   bool getCoreRadius() const { return mCoreRadius; }
   void setCoreRadius(float radius) { mCoreRadius = radius; }
@@ -363,7 +362,7 @@ class ClusterFactory
     for (auto iCellIndex : mCellsIndices) {
       mLoolUpTowerToIndex[mInputsContainer[iCellIndex].getTower()] = iCellIndex;
     }
-    setLookUpInit(true);
+    mLookUpInit = true;
   }
 
   int getNumberOfClusters() const
