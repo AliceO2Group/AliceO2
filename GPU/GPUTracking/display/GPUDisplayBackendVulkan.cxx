@@ -861,28 +861,6 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
   renderPassInfo.pDependencies = &dependency;
   mRenderPass = mDevice.createRenderPass(renderPassInfo, nullptr);
 
-  // Text overlay goes as extra rendering path
-  renderPassInfo.attachmentCount = 1; // Remove depth and MSAA attachments
-  renderPassInfo.pAttachments = &colorAttachment;
-  subpass.pDepthStencilAttachment = nullptr;
-  subpass.pResolveAttachments = nullptr;
-  dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Remove depth/stencil dependencies
-  dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-  colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;            // Don't clear the frame buffer
-  colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR; // Initial layout is not undefined after 1st pass
-  colorAttachment.samples = vk::SampleCountFlagBits::e1;           // No MSAA for Text
-  colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;   // Might have been overwritten above for 1st pass in case of MSAA
-  mRenderPassText = mDevice.createRenderPass(renderPassInfo, nullptr);
-
-  if (mMixingSupported) {
-    if (mDownsampleFSAA) {
-      colorAttachment.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-      colorAttachment.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
-    }
-    mRenderPassTexture = mDevice.createRenderPass(renderPassInfo, nullptr);
-  }
-
   const unsigned int imageCountWithMixImages = mImageCount * (mMixingSupported ? 2 : 1);
   mRenderTargetView.resize(imageCountWithMixImages);
   mFramebuffers.resize(imageCountWithMixImages);
@@ -906,6 +884,36 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       mMixImages.resize(mImageCount);
     }
   }
+
+  // Text overlay goes as extra rendering path
+  renderPassInfo.attachmentCount = 1; // Remove depth and MSAA attachments
+  renderPassInfo.pAttachments = &colorAttachment;
+  subpass.pDepthStencilAttachment = nullptr;
+  subpass.pResolveAttachments = nullptr;
+  if (mFramebuffersText.size()) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Remove early fragment test
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite; // Remove depth/stencil dependencies
+  }
+  colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;            // Don't clear the frame buffer
+  colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR; // Initial layout is not undefined after 1st pass
+  colorAttachment.samples = vk::SampleCountFlagBits::e1;           // No MSAA for Text
+  colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;   // Might have been overwritten above for 1st pass in case of MSAA
+  mRenderPassText = mDevice.createRenderPass(renderPassInfo, nullptr);
+
+  if (mMixingSupported) {
+    if (mDownsampleFSAA) {
+      colorAttachment.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+      colorAttachment.finalLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
+    }
+    if (mFramebuffersTexture.size()) {
+      dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Remove early fragment test
+      dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+      dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite; // Remove depth/stencil dependencies
+    }
+    mRenderPassTexture = mDevice.createRenderPass(renderPassInfo, nullptr);
+  }
+
   for (unsigned int i = 0; i < imageCountWithMixImages; i++) {
     if (i < mImageCount) { // Main render chain
       // primary buffer mSwapChainImageViews[i] created as part of createSwapChain, not here
