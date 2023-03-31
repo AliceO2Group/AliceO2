@@ -36,6 +36,9 @@ struct TimingInfo {
   /// from a new run, as being processed by the current stream.
   /// FIXME: for now this is the same as the above.
   bool streamRunNumberChanged = false;
+
+  static bool timesliceIsTimer(size_t timeslice) { return timeslice > 1652945069870351; }
+  bool isTimer() { return timesliceIsTimer(timeslice); }
 };
 
 } // namespace o2::framework
