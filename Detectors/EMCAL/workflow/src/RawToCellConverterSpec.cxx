@@ -131,14 +131,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     return;
   }
 
+  mCellHandler.reset();
+
   // Get the first orbit of the timeframe later used to check whether the corrected
   // BC is within the timeframe
   const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
   auto lml0delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
-
-  // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<RecCellInfo>>> cellBuffer; // Internal cell buffer
-  std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
 
   std::vector<framework::InputSpec> filter{{"filter", framework::ConcreteDataTypeMatcher(originEMC, descRaw)}};
   int firstEntry = 0;
@@ -208,15 +206,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       LOG(debug) << "Applying correction for LM delay: " << correctionShiftBCmod4;
       LOG(debug) << "BC mod original: " << triggerBC % 4 << ", corrected " << bcmod4;
       LOG(debug) << "Applying time correction: " << -1 * 25 * bcmod4;
-      std::shared_ptr<std::vector<RecCellInfo>> currentCellContainer;
-      auto found = cellBuffer.find(currentIR);
-      if (found == cellBuffer.end()) {
-        currentCellContainer = std::make_shared<std::vector<RecCellInfo>>();
-        cellBuffer[currentIR] = currentCellContainer;
-        // also add trigger bits
-        triggerBuffer[currentIR] = triggerbits;
-      } else {
-        currentCellContainer = found->second;
+      auto& currentEvent = mCellHandler.getEventContainer(currentIR);
+      if (!currentEvent.getTriggerBits()) {
+        currentEvent.setTriggerBits(triggerbits);
       }
 
       if (feeID >= 40) {
@@ -432,77 +424,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             // apply correction for bc mod 4
             double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
             double amp = fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY;
-            if (mMergeLGHG) {
-              // Handling of HG/LG for ceratin cells
-              // Keep the high gain if it is below the threshold, otherwise
-              // change to the low gain
-              auto res = std::find_if(currentCellContainer->begin(), currentCellContainer->end(), [CellID](const RecCellInfo& test) { return test.mCellData.getTower() == CellID; });
-              if (res != currentCellContainer->end()) {
-                // Cell already existing, store LG if HG is larger then the overflow cut
-                if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-                  res->mHWAddressLG = chan.getHardwareAddress();
-                  res->mHGOutOfRange = false; // LG is found so it can replace the HG if the HG is out of range
-                  if (res->mCellData.getHighGain()) {
-                    double ampOld = res->mCellData.getEnergy() / o2::emcal::constants::EMCAL_ADCENERGY; // cut applied on ADC and not on energy
-                    if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
-                      // High gain digit has energy above overflow cut, use low gain instead
-                      res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
-                      res->mCellData.setTimeStamp(celltime);
-                      res->mCellData.setLowGain();
-                    }
-                    res->mIsLGnoHG = false;
-                  }
-                } else {
-                  // new channel would be HG use that if it is belpw ADC cut
-                  // as the channel existed before it must have been a LG channel,
-                  /// whixh would be used in case the HG is out-of-range
-                  res->mIsLGnoHG = false;
-                  res->mHGOutOfRange = false;
-                  res->mHWAddressHG = chan.getHardwareAddress();
-                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY <= o2::emcal::constants::OVERFLOWCUT) {
-                    res->mCellData.setEnergy(amp);
-                    res->mCellData.setTimeStamp(celltime);
-                    res->mCellData.setHighGain();
-                  }
-                }
-              } else {
-                // New cell
-                bool lgNoHG = false;       // Flag for filter of cells which have only low gain but no high gain
-                bool hgOutOfRange = false; // Flag if only a HG is present which is out-of-range
-                int hwAddressLG = -1,      // Hardware address of the LG of the tower (for monitoring)
-                  hwAddressHG = -1;        // Hardware address of the HG of the tower (for monitoring)
-                if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-                  lgNoHG = true;
-                  amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
-                  hwAddressLG = chan.getHardwareAddress();
-                } else {
-                  // High gain cell: Flag as low gain if above threshold
-                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY > o2::emcal::constants::OVERFLOWCUT) {
-                    hgOutOfRange = true;
-                  }
-                  hwAddressHG = chan.getHardwareAddress();
-                }
-                int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
-                                                 lgNoHG,
-                                                 hgOutOfRange,
-                                                 fecID, feeID, hwAddressLG, hwAddressHG});
-              }
-            } else {
-              // No merge of HG/LG cells (usually MC where either
-              // of the two is simulated)
-              int hwAddressLG = chantype == ChannelType_t::LOW_GAIN ? chan.getHardwareAddress() : -1,
-                  hwAddressHG = chantype == ChannelType_t::HIGH_GAIN ? chan.getHardwareAddress() : -1;
-              // New cell
-              if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-                amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
-              }
-              int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
-                                               false,
-                                               false,
-                                               fecID, feeID, hwAddressLG, hwAddressHG});
+            if (chantype == ChannelType_t::LOW_GAIN) {
+              amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
             }
+            int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
+            currentEvent.setCell(CellID, amp, celltime, chantype, chan.getHardwareAddress(), fecID, feeID, mMergeLGHG);
           } catch (CaloRawFitter::RawFitterError_t& fiterror) {
             if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
               // Display
@@ -542,14 +468,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
-  for (const auto& [bc, cells] : cellBuffer) {
+  RecoContainerReader eventIterator(mCellHandler);
+  while (eventIterator.hasNext()) {
     int ncellsEvent = 0;
     int eventstart = mOutputCells.size();
-    if (cells->size()) {
-      LOG(debug) << "Event has " << cells->size() << " cells";
-      // Sort cells according to cell ID
-      std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
-      for (const auto& cell : *cells) {
+    auto& currentevent = eventIterator.nextEvent();
+    if (currentevent.getNumberOfCells()) {
+      LOG(debug) << "Event has " << currentevent.getNumberOfCells() << " cells";
+      currentevent.sortCells(false);
+      for (const auto& cell : currentevent.getCells()) {
         if (cell.mIsLGnoHG) {
           // Treat error only in case the LG is above the noise threshold
           // no HG cell found, we can assume the cell amplitude is the LG amplitude
@@ -589,9 +516,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         ncellsEvent++;
         mOutputCells.push_back(cell.mCellData);
       }
-      LOG(debug) << "Next event [Orbit " << bc.orbit << ", BC (" << bc.bc << "]: Accepted " << ncellsEvent << " cells";
+
+      const auto interaction = currentevent.getInteractionRecord();
+      LOG(debug) << "Next event [Orbit " << interaction.orbit << ", BC (" << interaction.bc << "]: Accepted " << ncellsEvent << " cells";
+      mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent);
     }
-    mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], eventstart, ncellsEvent);
   }
 
   LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
