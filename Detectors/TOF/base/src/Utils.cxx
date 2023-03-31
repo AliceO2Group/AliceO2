@@ -47,6 +47,7 @@ TChain* Utils::mTreeFit = nullptr;
 std::vector<o2::dataformats::CalibInfoTOF> Utils::mVectC;
 std::vector<o2::dataformats::CalibInfoTOF>* Utils::mPvectC = &mVectC;
 int Utils::mNfits = 0;
+uint32_t Utils::mNOrbitInTF = 128;
 
 void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
 {
