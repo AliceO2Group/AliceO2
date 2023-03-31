@@ -31,6 +31,8 @@
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/CommonServices.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -55,9 +57,22 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 128 is just some reasonable numer
-// The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 128;
+unsigned int DataRelayer::getPipelineLength()
+{
+  static bool override = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+  if (override) {
+    static unsigned int retval = atoi(getenv("DPL_DEFAULT_PIPELINE_LENGTH"));
+    return retval;
+  }
+  DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
+  // just some reasonable numers
+  // The number should really be tuned at runtime for each processor.
+  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
+    return 256;
+  } else {
+    return 64;
+  }
+}
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
@@ -73,9 +88,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    static char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
-    static int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
-    setPipelineLength(defaultPipelineLength);
+    static int pipelineLength = getPipelineLength();
+    setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
