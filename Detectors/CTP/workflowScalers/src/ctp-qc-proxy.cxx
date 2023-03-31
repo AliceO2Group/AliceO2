@@ -45,7 +45,7 @@ using DetID = o2::detectors::DetID;
 InjectorFunction dcs2dpl()
 // InjectorFunction dcs2dpl()
 {
-  return [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
+  return [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
