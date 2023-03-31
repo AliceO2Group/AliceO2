@@ -86,7 +86,7 @@ monitorlog() {
              -e \"arrow.*Check failed\"                    \
              -e \"terminate called after\"                 \
              -e \"terminate called without an active\"     \
-             -e \"\[FATAL\]\"                              \
+             -e \"\]\[FATAL\]\"                            \
              -e \"TASK-EXIT-CODE\"                         \
              -e \"\*\*\* Error in\"" # <--- LIBC fatal error messages
 
