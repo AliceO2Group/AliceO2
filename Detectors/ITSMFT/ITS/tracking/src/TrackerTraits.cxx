@@ -330,11 +330,11 @@ void TrackerTraits::computeLayerCells(const int iteration)
     }
   }
 
-  // if constexpr (debugLevel) {
-  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
-    std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
+  if constexpr (debugLevel) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
+      std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
+    }
   }
-  // }
 }
 
 void TrackerTraits::findCellsNeighbours(const int iteration)
