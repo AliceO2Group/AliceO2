@@ -7,6 +7,8 @@ fi
 
 if [[ -f local_env.sh ]]; then source ./local_env.sh; fi
 
+export ALICE_O2_FST=1
+
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
   export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY,CALIB_LOCAL_AGGREGATOR"
   if [[ "0$FST_TMUX_INTEGRATED_AGGREGATOR" == "01" ]]; then

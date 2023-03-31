@@ -32,7 +32,7 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     auto& dtc = ctx.services().get<DataTakingContext>();
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
       if (recvTimeot == -1 && waitMessage == 0) {
-        if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS) {
+        if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
           LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
         } else {
           LOG(info) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
