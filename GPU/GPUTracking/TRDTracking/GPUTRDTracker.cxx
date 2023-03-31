@@ -821,9 +821,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       trkWork->setChi2(mHypothesis[iUpdate + hypothesisIdxOffset].mChi2);
       trkWork->setIsFindable(iLayer);
       trkWork->setCollisionId(collisionId);
-      if (iUpdate == 0 && mNCandidates > 1) {
-        *t = mCandidates[2 * iUpdate + nextIdx];
-      }
       // check if track crosses padrows
       float projZEntry, projYEntry;
       // Get Z for Entry of Track
@@ -852,6 +849,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           trkWork->setHasNeighbor();
           break;
         }
+      }
+      if (iUpdate == 0 && mNCandidates > 1) {
+        *t = mCandidates[2 * iUpdate + nextIdx];
       }
     } // end update loop
 
