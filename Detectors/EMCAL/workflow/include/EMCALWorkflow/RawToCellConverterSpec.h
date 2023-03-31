@@ -21,6 +21,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/RecoContainer.h"
 
 namespace o2
 {
@@ -136,6 +137,7 @@ class RawToCellConverterSpec : public framework::Task
   bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
+  RecoContainer mCellHandler;                                        ///< Manager for reconstructed cells
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
   std::vector<Cell> mOutputCells;                                    ///< Container with output cells
