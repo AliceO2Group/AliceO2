@@ -84,18 +84,17 @@ void sendOnChannel(fair::mq::Device& device, fair::mq::Parts& messages, std::str
     } else if (timeout < maxTimeout) {
       timeout *= 10;
     } else {
-      LOG(error) << "failed to dispatch messages on channel " << channel << ", downstream queue might be full\n"
-                 << "or unconnected. No data is dropped, keep on trying, but this will hold the reading from\n"
-                 << "the input and expose back-pressure upstream. RESOLVE DOWNSTREAM CONGESTION to continue";
+      LOG(alarm) << "Cannot dispatch to channel " << channel << " due to DOWNSTREAM BACKPRESSURE. NO DATA IS DROPPED,"
+                 << " will keep retrying. This is only a problem if downstream congestion does not resolve by itself.";
       if (timeout == maxTimeout) {
         // we add 1ms to disable the warning below
         timeout += 1;
       }
     }
     if (device.NewStatePending()) {
-      LOG(error) << "device state change is requested, dropping " << messages.Size() << " pending message(s)\n"
-                 << "on channel " << channel << "\n"
-                 << "ATTENTION: DATA IS LOST! Could not dispatch data to downstream consumer(s), check if\n"
+      LOG(alarm) << "Device state change is requested, dropping " << messages.Size() << " pending message(s) "
+                 << "on channel " << channel << ". "
+                 << "ATTENTION: DATA IS LOST! Could not dispatch data to downstream consumer(s), check if "
                  << "consumers have been terminated too early";
       // make sure we disable the warning below
       timeout = maxTimeout + 1;
