@@ -139,6 +139,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
 
   o2::zdc::Digits2Raw d2r;
   d2r.setFileFor(fileFor);
+  d2r.setRDHVersion(rdhV);
   d2r.setVerbosity(verbosity);
   auto& wr = d2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
