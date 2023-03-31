@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsVertexing Detectors Vertexing
+\page refDetectorsVertexing DCAFitter
 /doxy -->
 
 ## DCAFitterN
@@ -76,5 +76,5 @@ but the final V0 position will be calculated using weighted average. One can als
 
 The covariance matrix of the V0 position is calculated as an inversed sum of tracks inversed covariances at respective `X_dca` points.
 
-See ``O2/Detectors/Base/test/testDCAFitterN.cxx`` for more extended example.
+See ``O2/Common/DCAFitter/test/testDCAFitterN.cxx`` for more extended example.
 Currently only 2 and 3 prongs permitted, thought this can be changed by modifying ``DCAFitterN::NMax`` constant.
