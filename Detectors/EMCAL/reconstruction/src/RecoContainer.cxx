@@ -10,10 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include <algorithm>
+#include <iostream>
 #include <DataFormatsEMCAL/Constants.h>
 #include <EMCALReconstruction/RecoContainer.h>
 
 using namespace o2::emcal;
+
+EventContainer::EventContainer(const o2::InteractionRecord& currentIR) : mInteractionRecord(currentIR) {}
 
 void EventContainer::setCellCommon(int tower, double energy, double time, ChannelType_t celltype, bool isLEDmon, int hwaddress, int fecID, int ddlID, bool doMergeHGLG)
 {
@@ -82,8 +85,8 @@ void EventContainer::setCellCommon(int tower, double energy, double time, Channe
 
 void EventContainer::sortCells(bool isLEDmon)
 {
-  auto dataContainer = isLEDmon ? mLEDMons : mCells;
-  std::sort(dataContainer.begin(), dataContainer.end(), [](RecCellInfo& lhs, RecCellInfo& rhs) -> bool { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
+  auto& dataContainer = isLEDmon ? mLEDMons : mCells;
+  std::sort(dataContainer.begin(), dataContainer.end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) -> bool { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
 }
 
 bool EventContainer::isCellSaturated(double energy) const
@@ -98,7 +101,7 @@ EventContainer& RecoContainer::getEventContainer(const o2::InteractionRecord& cu
     return found->second;
   }
   // interaction not found, create new container
-  auto res = mEvents.insert({currentIR, EventContainer()});
+  auto res = mEvents.insert({currentIR, EventContainer(currentIR)});
   return res.first->second;
 }
 
@@ -121,12 +124,12 @@ std::vector<o2::InteractionRecord> RecoContainer::getOrderedInteractions() const
   return result;
 }
 
-RecoContainerReader::RecoContainerReader(const RecoContainer& container) : mDataContainer(container)
+RecoContainerReader::RecoContainerReader(RecoContainer& container) : mDataContainer(container)
 {
   mOrderedInteractions = mDataContainer.getOrderedInteractions();
 }
 
-const EventContainer& RecoContainerReader::nextEvent()
+EventContainer& RecoContainerReader::nextEvent()
 {
   if (!hasNext()) {
     throw InvalidAccessException();
