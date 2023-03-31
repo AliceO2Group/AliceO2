@@ -22,7 +22,8 @@ enum struct DeploymentMode {
   Local,
   OnlineECS,
   OnlineDDS,
-  Grid
+  Grid,
+  FST
 };
 
 struct DataTakingContext {
