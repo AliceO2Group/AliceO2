@@ -36,7 +36,7 @@ CallbacksPolicy epnProcessReporting()
       callbacks.set<CallbackService::Id::PreProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
-          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
         }
@@ -45,7 +45,7 @@ CallbacksPolicy epnProcessReporting()
       callbacks.set<CallbackService::Id::PostProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
-          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}, wall:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op, uv_hrtime() - info.lapse);
         }
