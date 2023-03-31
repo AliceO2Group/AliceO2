@@ -61,6 +61,8 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mFLPID = uint16_t(0);
   mEndPointID = uint32_t(0);
   // TODO: assign FeeID from configuration object
+  // N.B. Now the electronics has the possibility to reconfigure FEE ID in order to match
+  // what is expected from simulation. The FEE ID should never change in the future
   for (int ilink = 0; ilink < NLinks; ilink++) {
     uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = o2::utils::Str::concat_string(outDir, "/", "ZDC");
@@ -134,7 +136,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     for (int ibc = 0; ibc < mNbc; ibc++) {
       mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
-      writeDigits();
+        writeDigits();
       // Detect last event or orbit change and insert last bunch
       if (ibc == (mNbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
@@ -495,8 +497,15 @@ void Digits2Raw::writeDigits()
         uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
-            mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            if(mRDHVersion == 0){
+              gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
+              mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            }else{
+              for (int32_t ig = 0; ig < NWPerGBTW; ig++ ){
+                gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][ig]), PayloadPerGBTW};
+                mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+              }
+            }
           }
           addedChData[ic] = true;
         }

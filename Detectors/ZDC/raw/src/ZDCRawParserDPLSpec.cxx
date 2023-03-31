@@ -33,6 +33,7 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/RawEventData.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -105,11 +106,27 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
         // offset of payload in the raw page
         size_t offset = it.offset();
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << o2::raw::RDHUtils::getLinkID(rdhPtr);
+        LOG(info) << count << " ZDCRawParserDPLSpec::run: size=" << it.size() << " link=" << o2::raw::RDHUtils::getLinkID(rdhPtr);
 #endif
-        for (int32_t ip = 0; ip < payloadSize; ip += 16) {
-          // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-          mWorker.processWord((const uint32_t*)&payload[ip]);
+        auto dataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
+        if(dataFormat==2){
+          for (int32_t ip = 0; ip < payloadSize; ip += PayloadPerGBTW) {
+            // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+            // Assign only the actual payload
+            uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
+            memcpy((void *)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
+            // PADDING CHECK is NOT NEEDED if(gbtw[0]!=0xffffffff && gbtw[1]!=0xffffffff && gbtw[2]!=0xffff)
+            for(int iw=0; iw<4; iw++){
+              mWorker.processWord(&gbtw[iw]);
+            }
+          }
+        }else if(dataFormat==0){
+          for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
+            // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+            mWorker.processWord((const uint32_t*)&payload[ip]);
+          }
+        }else{
+          LOG(error) << "ZDCDataReaderDPLSpec::run - Unsupported DataFormat " << dataFormat;
         }
       }
     }

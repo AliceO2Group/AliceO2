@@ -65,7 +65,7 @@ class Digits2Raw
     if(v==0 || v==2){
       mRDHVersion = v;
     }else{
-      LOG(fatal) << __FILE__ << " @ " << __LINE__ << " Unsupported RDH version = " << v;
+      LOG(fatal) << __FILE__ << " @ " << __LINE__ << " " << __func__ << " Unsupported RDH version = " << v;
     }
   }
   int getRDHVersion() const { return mRDHVersion; }
@@ -89,7 +89,7 @@ class Digits2Raw
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
   bool mOutputPerLink = false;                                          /// Split output
-  int mRDHVersion = 2;                                                  /// CDH version
+  int mRDHVersion = 2;                                                  /// RDH version
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
   uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers

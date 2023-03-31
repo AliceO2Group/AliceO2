@@ -32,19 +32,39 @@ void RawReaderZDC::clear()
   mOrbitData.clear();
 }
 
-void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID)
+void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat)
 {
   if (0 <= linkID && linkID < 16) {
     size_t payloadSize = payload.size();
-    for (int32_t ip = 0; ip < payloadSize; ip += 16) {
+    if (dataFormat == 2) {
+      for (int32_t ip = 0; ip < payloadSize; ip += PayloadPerGBTW) {
+        // Assign only the actual payload
+        uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
+        memcpy((void*)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
 #ifndef O2_ZDC_DEBUG
-      if (mVerbosity >= DbgExtra) {
-        o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-      }
+        if (mVerbosity >= DbgExtra) {
+          o2::zdc::Digits2Raw::print_gbt_word(&gbtw[0]);
+        }
 #else
-      o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+        o2::zdc::Digits2Raw::print_gbt_word(&gbtw[0]);
 #endif
-      processWord((const uint32_t*)&payload[ip]);
+        for (int iw = 0; iw < 4; iw++) {
+          processWord(&gbtw[iw]);
+        }
+      }
+    } else if (dataFormat == 0) {
+      for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
+#ifndef O2_ZDC_DEBUG
+        if (mVerbosity >= DbgExtra) {
+          o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+        }
+#else
+        o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+#endif
+        processWord((const uint32_t*)&payload[ip]);
+      }
+    } else {
+      LOG(error) << "RawReaderZDC::processBinaryData - Unsupported DataFormat " << dataFormat;
     }
   } else {
     // put here code in case of bad rdh.linkID value
