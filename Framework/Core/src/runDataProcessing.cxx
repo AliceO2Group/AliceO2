@@ -57,6 +57,8 @@
 #include "Framework/GuiCallbackContext.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/ServiceMetricsInfo.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/CommonServices.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -920,10 +922,11 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
     std::string defaultExitTransitionTimeout = "0";
     std::string defaultInfologgerMode = "";
-    if (getenv("DDS_SESSION_ID") != nullptr) {
+    o2::framework::DeploymentMode deploymentMode = o2::framework::CommonServices::getDeploymentMode();
+    if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS) {
       defaultExitTransitionTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
-    } else if (getenv("OCC_CONTROL_PORT") != nullptr) {
+    } else if (deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
       defaultExitTransitionTimeout = "20";
     }
     boost::program_options::options_description optsDesc;

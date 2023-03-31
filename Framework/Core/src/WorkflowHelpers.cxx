@@ -25,6 +25,7 @@
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
+#include "Framework/DataTakingContext.h"
 #include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
@@ -212,10 +213,15 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
 // get the default value for condition-backend
 std::string defaultConditionBackend()
 {
-  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
-    return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
+  static bool explicitBackend = getenv("DPL_CONDITION_BACKEND");
+  static DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
+  if (explicitBackend) {
+    return getenv("DPL_CONDITION_BACKEND");
+  } else if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
+    return "http://o2-ccdb.internal";
+  } else {
+    return "http://alice-ccdb.cern.ch";
   }
-  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
 }
 
 // get the default value for condition query rate

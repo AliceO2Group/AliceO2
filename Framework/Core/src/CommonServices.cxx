@@ -159,6 +159,12 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
     .kind = ServiceKind::Stream};
 }
 
+o2::framework::DeploymentMode o2::framework::CommonServices::getDeploymentMode()
+{
+  static DeploymentMode retVal = getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (DeploymentMode::Local)));
+  return retVal;
+}
+
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
@@ -181,15 +187,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
 
-      if (getenv("DDS_SESSION_ID") != nullptr) {
-        context.deploymentMode = DeploymentMode::OnlineDDS;
-      } else if (getenv("OCC_CONTROL_PORT") != nullptr) {
-        context.deploymentMode = DeploymentMode::OnlineECS;
-      } else if (getenv("ALIEN_JOB_ID") != nullptr) {
-        context.deploymentMode = DeploymentMode::Grid;
-      } else {
-        context.deploymentMode = DeploymentMode::Local;
-      }
+      context.deploymentMode = getDeploymentMode();
 
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
@@ -935,7 +933,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 
   std::string loadableServicesStr;
   // Do not load InfoLogger by default if we are not at P2.
-  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+  DeploymentMode deploymentMode = getDeploymentMode();
+  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }
   // Load plugins depending on the environment

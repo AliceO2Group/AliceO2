@@ -73,8 +73,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
-    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
+    static char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+    static int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
     setPipelineLength(defaultPipelineLength);
   } else {
     policy.configureRelayer(*this);

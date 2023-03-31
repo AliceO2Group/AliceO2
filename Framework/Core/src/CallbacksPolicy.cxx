@@ -14,6 +14,8 @@
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/Logger.h"
+#include "Framework/CommonServices.h"
+#include "Framework/DataTakingContext.h"
 #include <cstdlib>
 #include <uv.h>
 
@@ -28,8 +30,7 @@ CallbacksPolicy epnProcessReporting()
 {
   return {
     .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
-      /// FIXME:
-      static bool report = getenv("DDS_SESSION_ID") != nullptr || getenv("DPL_REPORT_PROCESSING") != nullptr;
+      static bool report = CommonServices::getDeploymentMode() == DeploymentMode::OnlineDDS || (getenv("DPL_REPORT_PROCESSING") != nullptr && atoi(getenv("DPL_REPORT_PROCESSING")));
       return report;
     },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
