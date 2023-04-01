@@ -348,7 +348,7 @@ int SetupReconstruction()
     procSet.eventDisplay = eventDisplay.get();
   }
 
-  if (procSet.runQA) {
+  if (procSet.runQA && !configStandalone.QA.noMC) {
     procSet.runMC = true;
   }
 
