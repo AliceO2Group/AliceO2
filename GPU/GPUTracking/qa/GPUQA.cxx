@@ -1780,6 +1780,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
   }
   mTrackingScratchBuffer.clear();
+  mTrackingScratchBuffer.shrink_to_fit();
 }
 
 void GPUQA::GetName(char* fname, int k)
