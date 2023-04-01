@@ -254,7 +254,7 @@ class RecoContainerReader
   EventContainer& nextEvent();
 
   /// \brief Check whehter there are more events in the container
-  /// \return True if the event is not the last event, false otherwise
+  /// \return True if the event is not the last event, false otherwise.
   bool hasNext() const { return mCurrentEvent < mOrderedInteractions.size(); }
 
   /// \brief Get the number of events in the container
