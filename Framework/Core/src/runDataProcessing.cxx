@@ -841,7 +841,7 @@ bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
           LOGP(error, "pid {} ({}) was forcefully terminated after being requested to quit", pid, id);
         } else {
           if (es == 128) {
-            LOGP(error, "Workflow crashed - pid {} ({}) was killed abnormally with exit code {}, possibly the workflow was consuming too much memory", pid, id, es);
+            LOGP(error, "Workflow crashed - pid {} ({}) was killed abnormally with exit code {}, could be out of memory killer, segfault, unhandled exception, SIGKILL, etc...", pid, id, es);
           } else {
             LOGP(error, "pid {} ({}) crashed with or was killed with exit code {}", pid, id, es);
           }
