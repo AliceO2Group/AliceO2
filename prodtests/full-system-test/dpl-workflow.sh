@@ -190,14 +190,16 @@ if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z $ROCR_VISIBLE_DEVICES ||
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
-  if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
-    GPU_FIRST_ID=0
-  else
-    GPU_FIRST_ID=$(echo ${ROCR_VISIBLE_DEVICES//,/ } | awk '{print $1}')
-  fi
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
-  export TIMESLICEOFFSET=$(($GPU_FIRST_ID + ($NUMAGPUIDS != 0 ? ($NGPUS * $NUMAID) : 0)))
-  GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
+  if [[ $NGPUS != 1 || $NUMAID != 0 ]]; then
+    if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
+      GPU_FIRST_ID=0
+    else
+      GPU_FIRST_ID=$(echo ${ROCR_VISIBLE_DEVICES//,/ } | awk '{print $1}')
+    fi
+    TIMESLICEOFFSET=$(($GPU_FIRST_ID + ($NUMAGPUIDS != 0 ? ($NGPUS * $NUMAID) : 0)))
+    GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
+  fi
   [[ "0$EPN_NODE_MI100" != "01" ]] && export HSA_NO_SCRATCH_RECLAIM=1
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
 else
