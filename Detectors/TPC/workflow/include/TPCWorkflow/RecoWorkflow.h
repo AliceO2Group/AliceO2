@@ -81,7 +81,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
                                     bool askDISTSTF = true,
-                                    bool selIR = false);
+                                    bool selIR = false,
+                                    bool filteredInp = false);
 
 void cleanupCallback();
 
