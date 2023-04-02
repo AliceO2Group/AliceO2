@@ -1383,6 +1383,10 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     return parent0.getTrackRef();
+  } else if (src == GTrackID::TPCTRDTOF) {
+    const auto& parent0 = getTOFMatch(gidx); // TPC/TRD : TOF
+    const auto& parent1 = getTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
+    return parent1.getRefGlobalTrackId();
   } else if (src == GTrackID::TPCTRD) {
     const auto& parent0 = getTPCTRDTrack<o2::trd::TrackTRD>(gidx);
     return parent0.getRefGlobalTrackId();
