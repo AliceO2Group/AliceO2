@@ -13,6 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include <algorithm>
+#include <map>
 #include <vector>
 #include <gsl/span>
 #include <CommonDataFormat/InteractionRecord.h>
@@ -27,6 +28,8 @@ namespace emcal
 BOOST_AUTO_TEST_CASE(RecoContainer_test)
 {
   RecoContainer testcontainer;
+
+  std::map<o2::InteractionRecord, int> truthNumberCells, truthNumberLEDMONs;
 
   // test 1: Check appending cells to existing container
   o2::InteractionRecord testIR(1023, 384128);
@@ -52,6 +55,8 @@ BOOST_AUTO_TEST_CASE(RecoContainer_test)
 
   BOOST_CHECK_EQUAL(newcurrent.getCells().size(), 8);
   BOOST_CHECK_EQUAL(testcontainer.getNumberOfEvents(), 1);
+  truthNumberCells[testIR] = 8;
+  truthNumberLEDMONs[testIR] = 0;
 
   // test 2: Adding new event to container
   o2::InteractionRecord secondIR(2021, 384130);
@@ -106,6 +111,8 @@ BOOST_AUTO_TEST_CASE(RecoContainer_test)
   }
   BOOST_CHECK_EQUAL(secondevent.getCells().size(), 4);
   BOOST_CHECK_EQUAL(secondevent.getLEDMons().size(), 3);
+  truthNumberCells[secondIR] = 4;
+  truthNumberLEDMONs[secondIR] = 3;
 
   // test 6: test sorting of collisions
   std::vector<o2::InteractionRecord> collisions{testIR, secondIR};
@@ -113,7 +120,51 @@ BOOST_AUTO_TEST_CASE(RecoContainer_test)
   auto sortedCollisions = testcontainer.getOrderedInteractions();
   BOOST_CHECK_EQUAL_COLLECTIONS(collisions.begin(), collisions.end(), sortedCollisions.begin(), sortedCollisions.end());
 
-  // test 7: reset Container
+  // test 7: read the container
+  RecoContainerReader iterator(testcontainer);
+  std::vector<o2::InteractionRecord> foundInteractions;
+  std::map<o2::InteractionRecord, int> foundNCells, foundLEDMONs;
+  while (iterator.hasNext()) {
+    auto& event = iterator.nextEvent();
+    foundInteractions.push_back(event.getInteractionRecord());
+    foundNCells[event.getInteractionRecord()] = event.getNumberOfCells();
+    foundLEDMONs[event.getInteractionRecord()] = event.getNumberOfLEDMONs();
+    if (event.getNumberOfCells()) {
+      // test sorting cells
+      event.sortCells(false);
+      int lastcell = -1;
+      for (const auto& cell : event.getCells()) {
+        if (lastcell > -1) {
+          BOOST_CHECK_LT(lastcell, cell.mCellData.getTower());
+        }
+        lastcell = cell.mCellData.getTower();
+      }
+    }
+    if (event.getNumberOfLEDMONs()) {
+      // test sorting LEDMONS
+      event.sortCells(true);
+      int lastLEDMON = -1;
+      for (const auto& ledmon : event.getLEDMons()) {
+        if (lastLEDMON > -1) {
+          BOOST_CHECK_LT(lastLEDMON, ledmon.mCellData.getTower());
+        }
+        lastLEDMON = ledmon.mCellData.getTower();
+      }
+    }
+  }
+  BOOST_CHECK_EQUAL_COLLECTIONS(collisions.begin(), collisions.end(), foundInteractions.begin(), foundInteractions.end());
+  for (auto truthCell = truthNumberCells.begin(), foundCell = foundNCells.begin(); truthCell != truthNumberCells.end(); truthCell++, foundCell++) {
+    BOOST_CHECK_EQUAL(truthCell->first.bc, foundCell->first.bc);
+    BOOST_CHECK_EQUAL(truthCell->first.orbit, foundCell->first.orbit);
+    BOOST_CHECK_EQUAL(truthCell->second, foundCell->second);
+  }
+  for (auto truthLEDMON = truthNumberLEDMONs.begin(), foundLEDMON = foundLEDMONs.begin(); truthLEDMON != truthNumberLEDMONs.end(); truthLEDMON++, foundLEDMON++) {
+    BOOST_CHECK_EQUAL(truthLEDMON->first.bc, foundLEDMON->first.bc);
+    BOOST_CHECK_EQUAL(truthLEDMON->first.orbit, foundLEDMON->first.orbit);
+    BOOST_CHECK_EQUAL(truthLEDMON->second, foundLEDMON->second);
+  }
+
+  // test 8: reset Container
   testcontainer.reset();
   BOOST_CHECK_EQUAL(testcontainer.getNumberOfEvents(), 0);
 }

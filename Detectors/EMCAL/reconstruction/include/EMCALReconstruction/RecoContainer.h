@@ -9,6 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file RecoContainer.h
+/// \brief Reconstruction container for EMCAL Cells and LEDMONs
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \since May 30, 2023
+
 #include <cstdint>
 #include <exception>
 #include <string>
@@ -43,6 +48,10 @@ class EventContainer
   /// \brief Constructor
   EventContainer() = default;
 
+  /// \brief Constructor, setting interaction record
+  /// \param currentIR Interaction record of the trigger
+  EventContainer(const o2::InteractionRecord& currentIR);
+
   /// \brief Destructor
   ~EventContainer() = default;
 
@@ -50,9 +59,17 @@ class EventContainer
   /// \param triggerbits Trigger bits
   void setTriggerBits(uint64_t triggerbits) { mTriggerBits = triggerbits; }
 
+  /// \brief Set interaction record
+  /// \param currentIR Interaction record of the trigger
+  void setInteractionRecord(const o2::InteractionRecord& currentIR) { mInteractionRecord = currentIR; }
+
   /// \brief Get trigger bits of the interaction
   /// \return Trigger bits
   uint64_t getTriggerBits() const { return mTriggerBits; }
+
+  /// \brief Get interaction record of the event
+  /// \return Interaction record connected to this event
+  const o2::InteractionRecord& getInteractionRecord() const { return mInteractionRecord; }
 
   /// \brief Get cells in container
   /// \return List of cells in container
@@ -61,6 +78,14 @@ class EventContainer
   /// \brief Get LEDMONs in container
   /// \return List of LEDMONs
   const gsl::span<const RecCellInfo> getLEDMons() const { return mLEDMons; }
+
+  /// \brief Get the number of cells in the event
+  /// \return Number of cells
+  int getNumberOfCells() const { return mCells.size(); }
+
+  /// \brief Get the number of LEDMONs in the event
+  /// \return Number of LEDMONs
+  int getNumberOfLEDMONs() const { return mLEDMons.size(); }
 
   /// \brief Add cell information to the event container
   /// \param tower Tower ID
@@ -118,6 +143,7 @@ class EventContainer
   /// \return True if the energy is in the saturation region, false otherwise
   bool isCellSaturated(double energy) const;
 
+  o2::InteractionRecord mInteractionRecord;
   uint64_t mTriggerBits;             ///< Trigger bits of the event
   std::vector<RecCellInfo> mCells;   ///< Container of cells in event
   std::vector<RecCellInfo> mLEDMons; ///< Container of LEDMONs in event
@@ -192,30 +218,53 @@ class RecoContainer
   std::unordered_map<o2::InteractionRecord, EventContainer> mEvents; ///< Containers in event
 };
 
+/// \class RecoContainerReader
+/// \brief Iterator over reco containers
+/// \ingroup EMCALReconstruction
 class RecoContainerReader
 {
  public:
+  /// \class InvalidAccessException
+  /// \brief Handling of access to objects beyond container boundary
   class InvalidAccessException : public std::exception
   {
    public:
+    /// \brief Constructor
     InvalidAccessException() = default;
+
+    /// \brief Destructor
     ~InvalidAccessException() noexcept final = default;
 
+    /// \brief Create error message
+    /// \return Error message
     const char* what() const noexcept final { return "Access to invalid element in reco container"; }
   };
-  RecoContainerReader(const RecoContainer& container);
-  RecoContainerReader(const RecoContainer&& container) = delete;
 
+  /// \brief Constructor
+  /// \param container Container to be iterated over
+  RecoContainerReader(RecoContainer& container);
+  RecoContainerReader(RecoContainer&& container) = delete;
+
+  /// \brief Destructor
   ~RecoContainerReader() = default;
 
-  const EventContainer& nextEvent();
+  /// \brief Get the next event in container
+  /// \return Next event in reco container (ordered)
+  /// \throw InvalidAccessException
+  EventContainer& nextEvent();
+
+  /// \brief Check whehter there are more events in the container
+  /// \return True if the event is not the last event, false otherwise.
   bool hasNext() const { return mCurrentEvent < mOrderedInteractions.size(); }
+
+  /// \brief Get the number of events in the container
+  /// \return Number of events
   std::size_t getNumberOfEvents() const { return mDataContainer.getNumberOfEvents(); }
 
  private:
-  const RecoContainer& mDataContainer;
-  std::vector<o2::InteractionRecord> mOrderedInteractions;
-  std::size_t mCurrentEvent = 0;
+  RecoContainer& mDataContainer;                           ///< Reference to container which is iterated over
+  std::vector<o2::InteractionRecord> mOrderedInteractions; ///< Ordered list of the interaction records
+  std::size_t mCurrentEvent = 0;                           ///< Index of the current event in the sorted event container
 };
 
 } // namespace o2::emcal
