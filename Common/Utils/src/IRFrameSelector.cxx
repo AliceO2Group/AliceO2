@@ -207,5 +207,5 @@ void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
     }
   }
   mOwnList.swap(lst);
-  setSelectedIRFrames(mOwnList);
+  mFrames = gsl::span<const o2::dataformats::IRFrame>(mOwnList.data(), mOwnList.size());
 }
