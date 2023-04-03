@@ -102,6 +102,7 @@ void DigitizerTRU::init()
 
   if (mEnableDebugStreaming) {
     mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugTRU.root", "RECREATE");
+    mDebugStreamPatch = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugPatchTRU.root", "RECREATE");
   }
 }
 
@@ -290,64 +291,73 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
   // fill the corresponding LZEROElectronics object and
   // launch the peak finder.
   // If a trigger is found the logic is set to be live.
-  // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mDigits.fillOutputContainer";
   mDigits.fillOutputContainer(false, record, patchesFromAllTRUs, LZERO);
-  // LOG(info) << "DIG SIMONE setEventTime in digitizer: after  mDigits.fillOutputContainer";
-
-  // mPhase = mSimParam->doSimulateL1Phase() ? mDigits.getPhase() : 0;
-
-  // mEventTimeOffset = 0;
-
-  // if (mPhase == 4)
-  // {
-  //   mPhase = 0;
-  //   mEventTimeOffset++;
-  // }
-
-  // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
-  // if (mEnableDebugStreaming) {
-  //   auto TriggerInputs = LZERO.getTriggerInputs();
-  //   // TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
-  //   // for loop patches
-  //   // in the loop for each trigger input fill :
-  //   //  - fastorID [0]
-  //   //  - fastortimesum [0]
-  //   // ...
-  //   //  - until [3]
-  //   //  - patch ADC as well
-  //   //  - and then close it and finish loop
-  //   (*mDebugStream).GetFile()->cd();
-  //   (*mDebugStream) << "L1Timesums" 
-  //       << "trigger=" << TriggerInputs 
-  //       << "\n";
-
-  //   LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
-  // }
 
 
   if (mEnableDebugStreaming) {
     LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
-    auto TriggerInputs = LZERO.getTriggerInputs();
+    auto TriggerInputs        = LZERO.getTriggerInputs();
+    auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
     for (auto trigger : TriggerInputs)
     {
-      // auto WhichPatch  = std::get<0>(trigger);
-      // auto WhichTRU    = std::get<1>(trigger);
-      // auto WhichFastOr = std::get<2>(trigger);
-      // auto FastOrAmp   = std::get<3>(trigger);
-      // auto PatchAmp    = std::get<4>(trigger);
-      // (*mDebugStream).GetFile()->cd();
-      // (*mDebugStream) << "L0Timesums" 
-      //   << "Patch=" << WhichPatch 
-      //   << "PatchAmp=" << PatchAmp 
-      //   << "WhichTRU=" << WhichTRU
-      //   << "WhichFastOr=" << WhichFastOr
-      //   << "FastOrAmp=" << FastOrAmp
-      //   << "\n";
+      for(auto fastor : trigger.mLastTimesumAllFastOrs){
+      auto WhichTRU    = std::get<0>(fastor);
+      auto WhichFastOr = std::get<1>(fastor);
+      auto FastOrAmp   = std::get<2>(fastor);
+      (*mDebugStream).GetFile()->cd();
+      (*mDebugStream) << "L0Timesums" 
+        << "WhichTRU=" << WhichTRU
+        << "WhichFastOr=" << WhichFastOr
+        << "FastOrAmp=" << FastOrAmp
+        << "\n";
       LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
-  
-
+      }
     }
-    
+    for (auto trigger : TriggerInputsPatches)
+    {
+      LOG(info) << "DIG SIMONE setEventTime in digitizer: before  lastTimeSum";
+      auto lastTimeSum  = trigger.mLastTimesumAllPatches.end()-1;
+      for(auto patches : trigger.mLastTimesumAllPatches){
+        auto WhichTRU     = std::get<0>(patches);
+        auto WhichPatch   = std::get<1>(patches);
+        auto PatchTimesum = std::get<2>(patches);
+        LOG(info) << "DIG SIMONE setEventTime in digitizer: before  isFired";
+        auto isFired      = std::get<3>(patches);
+        // (*mDebugStream).GetFile()->cd();
+        // (*mDebugStream) << "L0TimesumsPatch" 
+        LOG(info) << "DIG SIMONE setEventTime in digitizer: before  GetFile()";
+        (*mDebugStream).GetFile()->cd();
+        (*mDebugStream) << "L0TimesumsPatch" 
+          << "WhichTRU=" << WhichTRU
+          << "WhichPatch=" << WhichPatch
+          << "PatchTimesum=" << PatchTimesum
+          << "isFired=" << isFired
+          << "\n";
+        LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE per patch";
+      }
+    }
+    // for (auto trigger : TriggerInputsPatches)
+    // {
+    //   LOG(info) << "DIG SIMONE setEventTime in digitizer: before  lastTimeSum";
+    //   auto lastTimeSum  = trigger.mLastTimesumAllPatches.end()-1;
+    //   auto WhichTRU     = std::get<0>(*lastTimeSum);
+    //   auto WhichPatch   = std::get<1>(*lastTimeSum);
+    //   auto PatchTimesum = std::get<2>(*lastTimeSum);
+    //   LOG(info) << "DIG SIMONE setEventTime in digitizer: before  isFired";
+    //   auto isFired      = std::get<3>(*lastTimeSum);
+    //   // (*mDebugStream).GetFile()->cd();
+    //   // (*mDebugStream) << "L0TimesumsPatch" 
+    //   LOG(info) << "DIG SIMONE setEventTime in digitizer: before  GetFile()";
+    //   (*mDebugStreamPatch).GetFile()->cd();
+    //   (*mDebugStreamPatch) << "L0TimesumsPatch" 
+    //     << "WhichTRU=" << WhichTRU
+    //     << "WhichPatch=" << WhichPatch
+    //     << "PatchTimesum=" << PatchTimesum
+    //     << "isFired=" << isFired
+    //     << "\n";
+    //   LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE per patch";
+    // }
+
   }
 }
 //_______________________________________________________________________

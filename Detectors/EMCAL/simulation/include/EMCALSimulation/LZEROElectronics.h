@@ -34,17 +34,23 @@ namespace emcal
 {
 
 /// @brief Trigger Inputs object, summary of the entire information needed for the L1 algorithm
-/// \param mDelay Typical delay in BCs
-/// \param mRollback Rollback from EMCALReconstruction/RecoParam.h
 /// \param mInterRecord Last known interaction record
 /// \param mLastTimesumAllFastOrs Vector of tuples with TRU ID, FastOrID with STU indexing, and their last Timesums
 struct EMCALTriggerInputs {
-  int mDelay = 8;                                                   ///< Typical delay in BCs
-  int mRollback = 1;                                                ///< Rollback from EMCALReconstruction/RecoParam.h
   o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
   std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
   ClassDefNV(EMCALTriggerInputs, 1);
 };
+
+/// @brief Trigger Inputs object, summary of the entire information needed for the L1 algorithm
+/// \param mInterRecord Last known interaction record
+/// \param mLastTimesumAllPatches Vector of tuples with TRU ID, PatchID, and their last Timesums
+struct EMCALTriggerInputsPatch {
+  o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
+  std::vector<std::tuple<int, int, double, bool>> mLastTimesumAllPatches; ///< TRU ID, PatchID, and its last Timesum
+  ClassDefNV(EMCALTriggerInputsPatch, 1);
+};
+
 
 /// \class LZEROElectronics
 /// \brief Container class for Digits, MC lebels, and trigger records
@@ -114,14 +120,21 @@ class LZEROElectronics
     return mTriggers;
   }
 
+  /// Getter for the trigger inputs per patches found by the LZERO algorithm
+  const std::vector<EMCALTriggerInputsPatch>& getTriggerInputsPatches() const
+  {
+    return mTriggersPatch;
+  }
+
  private:
   double mThreshold = 0;
-  TRandom3* mRandomGenerator = nullptr;      ///< random number generator
-  const SimParam* mSimParam = nullptr;       ///< SimParam object
-  std::vector<EMCALTriggerInputs> mTriggers; ///< Triggers to be sent out
-  bool mSimulateNoiseDigits = true;          ///< simulate noise digits
-  TriggerMappingV2* mTriggerMap = nullptr;   ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
-  Geometry* mGeometry = nullptr;             ///< EMCAL geometry
+  TRandom3* mRandomGenerator = nullptr;                ///< random number generator
+  const SimParam* mSimParam = nullptr;                 ///< SimParam object
+  std::vector<EMCALTriggerInputs> mTriggers;           ///< Triggers to be sent out
+  std::vector<EMCALTriggerInputsPatch> mTriggersPatch; ///< Triggers to be sent out
+  bool mSimulateNoiseDigits = true;                    ///< simulate noise digits
+  TriggerMappingV2* mTriggerMap = nullptr;             ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
+  Geometry* mGeometry = nullptr;                       ///< EMCAL geometry
 
   ClassDefNV(LZEROElectronics, 2);
 };

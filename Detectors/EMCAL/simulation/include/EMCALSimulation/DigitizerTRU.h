@@ -101,7 +101,7 @@ class DigitizerTRU : public TObject
   void sampleSDigit(const Digit& sdigit);
 
   /// Close the TreeStreamer to make the file readable
-  void endDebugStream() { mDebugStream->Close(); }
+  void endDebugStream() { mDebugStream->Close(); mDebugStreamPatch->Close(); }
 
   /// Getter for debug mode
   bool isDebugMode() { return mEnableDebugStreaming; }
@@ -139,6 +139,7 @@ class DigitizerTRU : public TObject
   int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
   bool mEnableDebugStreaming = false;
 
   ClassDefOverride(DigitizerTRU, 1);

@@ -205,6 +205,29 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       }
     }
 
+
+    EMCALTriggerInputsPatch TriggerInputsPatch;
+    if (foundPeak) {
+      TriggerInputsPatch.mInterRecord = record;
+      int whichTRU = 0;
+      for (auto& patches : patchesFromAllTRUs) {
+        int whichPatch = 0;
+        bool firedpatch = false;
+        if(std::find(patches.mFiredPatches.begin(), patches.mFiredPatches.end(), whichPatch) != patches.mFiredPatches.end()){
+          firedpatch = true;
+        }  
+        for (auto& patchTimeSums : patches.mTimesum) {
+          auto& CurrentPatchTimesum = std::get<1>(patchTimeSums);
+          LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsPatch.mLastTimesumAllFastOrs";
+          TriggerInputsPatch.mLastTimesumAllPatches.push_back(std::make_tuple(whichTRU, whichPatch, CurrentPatchTimesum[3], firedpatch ));
+          whichPatch++;
+        }
+        whichTRU++;
+      }
+    }
+
+
     mTriggers.push_back(TriggerInputsForL1);
+    mTriggersPatch.push_back(TriggerInputsPatch);
   }
 }
