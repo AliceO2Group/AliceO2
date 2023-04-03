@@ -66,6 +66,7 @@ class ITS3Layer : public TObject
  private:
   int mLayerNumber{0};              //! layer number
   double mChipThickness{0.};        //! chip thickness
+  double mSensorThickness{0.};      //! sensor thickness
   double mRadius{0.};               //! radius of layer
   double mZLen{0.};                 //! length of a layer
   double mGap{0.};                  //! gap between emispheres

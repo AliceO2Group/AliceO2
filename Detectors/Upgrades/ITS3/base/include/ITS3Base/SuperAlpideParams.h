@@ -24,8 +24,9 @@ namespace its3
 
 /// Segmentation parameters for Super ALPIDE chips
 struct SuperAlpideParams : public o2::conf::ConfigurableParamHelper<SuperAlpideParams> {
-  float pitchCol = 20.e-4; ///< Pixel column size (cm)
-  float pitchRow = 20.e-4; ///< Pixel row size (cm)
+  float mPitchCol = 20.e-4;          ///< Pixel column size (cm)
+  float mPitchRow = 20.e-4;          ///< Pixel row size (cm)
+  float mDetectorThickness = 50.e-4; ///< Detector thickness (cm)
 
   // boilerplate
   O2ParamDef(SuperAlpideParams, "SuperAlpideParams");

@@ -111,8 +111,8 @@ TGeoVolume* ITS3Services::createCYSSCylinder()
   TGeoTubeSeg* cyssInnerCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phimin, phimax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = gGeoManager->GetMedium("IT3_F6151B05M$");
-  TGeoMedium* medRohacell = gGeoManager->GetMedium("IT3_ROHACELL$");
+  TGeoMedium* medPrepreg = gGeoManager->GetMedium("IT3_AS4C200$");
+  TGeoMedium* medRohacell = gGeoManager->GetMedium("IT3_RIST110$");
 
   TGeoVolume* cyssOuterCylVol = new TGeoVolume("IBCYSSCylinder", cyssOuterCylSh, medPrepreg);
   cyssOuterCylVol->SetLineColor(35);
@@ -222,8 +222,8 @@ TGeoVolume* ITS3Services::createCYSSCone()
   cyssConeFoamSh->DefineSection(4, zlen1, rmin, rmax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = gGeoManager->GetMedium("IT3_F6151B05M$");
-  TGeoMedium* medRohacell = gGeoManager->GetMedium("IT3_ROHACELL$");
+  TGeoMedium* medPrepreg = gGeoManager->GetMedium("IT3_AS4C200$");
+  TGeoMedium* medRohacell = gGeoManager->GetMedium("IT3_RIST110$");
 
   TGeoVolume* cyssConeVol = new TGeoVolume("IBCYSSCone", cyssConeSh, medPrepreg);
   cyssConeVol->SetLineColor(35);
