@@ -17,6 +17,7 @@
 #include <boost/lexical_cast.hpp>
 #include <string_view>
 #include <regex>
+#include <uv.h>
 
 template <typename T>
 std::string arrayPrinter(boost::property_tree::ptree const& tree)

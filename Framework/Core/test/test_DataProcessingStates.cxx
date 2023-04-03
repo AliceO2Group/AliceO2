@@ -48,7 +48,7 @@ TEST_CASE("DataProcessingStates")
   INFO("Timestamp is " << header.timestamp);
   REQUIRE_THROWS(states.updateState({Missing, int(strlen("foo")), "foo"}));
   INFO("Next state is " << states.nextState.load());
-  REQUIRE(states.nextState.load() == (1 << 16) - sizeof(DataProcessingStates::CommandHeader) - 3);
+  REQUIRE(states.nextState.load() == (1 << 18) - sizeof(DataProcessingStates::CommandHeader) - 3);
   REQUIRE(states.updatedMetricsLapse.load() == 1);
   REQUIRE(states.pushedMetricsLapse == 0);
   REQUIRE(states.publishedMetricsLapse == 0);
@@ -56,7 +56,7 @@ TEST_CASE("DataProcessingStates")
   INFO("Next state is " << states.nextState.load());
   states.updateState({DummyMetric, (int)strlen("barbar"), "barbar"});
   INFO("Next state is " << states.nextState.load());
-  REQUIRE(states.nextState.load() == (1 << 16) - 2 * sizeof(DataProcessingStates::CommandHeader) - 3 - 6);
+  REQUIRE(states.nextState.load() == (1 << 18) - 2 * sizeof(DataProcessingStates::CommandHeader) - 3 - 6);
   memcpy(&header, states.store.data() + states.nextState.load(), sizeof(header));
   REQUIRE(header.size == 6);
   REQUIRE(header.id == DummyMetric);
@@ -71,7 +71,7 @@ TEST_CASE("DataProcessingStates")
   REQUIRE(states.statesViews[0].size == 0);
 
   states.processCommandQueue();
-  REQUIRE(states.nextState.load() == (1 << 16));
+  REQUIRE(states.nextState.load() == (1 << 18));
 
   REQUIRE(states.statesViews[0].first == 0);
   REQUIRE(states.statesViews[0].size == 6);
@@ -101,7 +101,7 @@ TEST_CASE("DataProcessingStates")
   INFO("Timestamp is " << header.timestamp);
   states.processCommandQueue();
 
-  REQUIRE(states.nextState.load() == (1 << 16));
+  REQUIRE(states.nextState.load() == (1 << 18));
 
   REQUIRE(states.statesViews[0].first == 0);
   REQUIRE(states.statesViews[0].size == 5);
@@ -115,7 +115,7 @@ TEST_CASE("DataProcessingStates")
   INFO("Timestamp is " << header.timestamp);
   states.processCommandQueue();
 
-  REQUIRE(states.nextState.load() == (1 << 16));
+  REQUIRE(states.nextState.load() == (1 << 18));
   REQUIRE(states.statesViews[0].first == 0);
   REQUIRE(states.statesViews[0].size == 5);
   REQUIRE(states.statesViews[0].capacity == 64);
@@ -129,7 +129,7 @@ TEST_CASE("DataProcessingStates")
     states.updateState({DummyMetric2, (int)strlen("foofofoofo"), "foofofoofo"});
     states.updateState({DummyMetric, 70, "01234567890123456789012345678901234567890123456789012345678901234567890123456789"});
     states.processCommandQueue();
-    REQUIRE(states.nextState.load() == (1 << 16));
+    REQUIRE(states.nextState.load() == (1 << 18));
     CHECK(states.statesViews[0].first == 128);
     CHECK(states.statesViews[0].size == 70);
     CHECK(states.statesViews[0].capacity == 70);

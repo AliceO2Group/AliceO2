@@ -14,7 +14,6 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Metric2DViewIndex.h"
 #include "Framework/DeviceState.h"
-#include "Framework/DataProcessingStateManager.h"
 
 #include <cstddef>
 #include <string>
@@ -75,8 +74,6 @@ struct DeviceInfo {
   /// Index for the variables of a given relayer.
   Metric2DViewIndex variablesViewIndex;
   /// Index for the queries of each input route.
-  Metric2DViewIndex queriesViewIndex;
-  /// Index for the queries of each input route.
   Metric2DViewIndex outputsViewIndex;
   /// Index for the metrics to be displayed associated to
   /// each input channel of the device.
@@ -95,8 +92,6 @@ struct DeviceInfo {
   size_t lastSignal;
   /// An incremental number for the state of the device
   int providedState = 0;
-
-  DataProcessingStateManager dataProcessingStateManager;
 };
 
 } // namespace o2::framework

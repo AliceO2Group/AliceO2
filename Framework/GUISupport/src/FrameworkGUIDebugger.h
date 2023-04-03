@@ -16,6 +16,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DataProcessingStates.h"
 
 #include <functional>
 #include <vector>
@@ -31,6 +32,7 @@ namespace gui
 /// Helper to get the callback to draw the debug GUI
 std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessingStates> const& allStates,
                                          std::vector<DataProcessorInfo> const& metadata,
                                          std::vector<DeviceMetricsInfo> const& metricsInfos,
                                          DriverInfo const& driverInfo,

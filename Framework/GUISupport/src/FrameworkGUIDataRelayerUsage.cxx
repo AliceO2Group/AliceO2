@@ -99,7 +99,6 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
 {
   auto& viewIndex = info.dataRelayerViewIndex;
   auto& variablesIndex = info.variablesViewIndex;
-  auto& queriesIndex = info.queriesViewIndex;
 
   auto getNumRecords = [&viewIndex]() -> size_t {
     if (viewIndex.isComplete()) {
@@ -159,7 +158,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     }
     return SLOT_ERROR;
   };
-  auto describeCell = [&metrics, &variablesIndex, &queriesIndex](int input, int slot) -> void {
+  auto describeCell = [&metrics, &variablesIndex](int input, int slot) -> void {
     ImGui::BeginTooltip();
     ImGui::Text("Input query matched values for slot: %d", slot);
     for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
