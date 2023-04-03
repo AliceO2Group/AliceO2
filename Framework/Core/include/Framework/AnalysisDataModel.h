@@ -711,7 +711,7 @@ DECLARE_SOA_TABLE(CPVClusters, "AOD", "CPVCLUSTER", //! CPV clusters
                   cpvcluster::ModuleNumber<cpvcluster::ClusterStatus>, cpvcluster::IsUnfolded<cpvcluster::ClusterStatus>);
 using CPVCluster = CPVClusters::iterator;
 
-namespace zdclegacy // needed to have the new dynamic columns with the same name
+namespace zdc_000 // needed to have the new dynamic columns with the same name
 {
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
