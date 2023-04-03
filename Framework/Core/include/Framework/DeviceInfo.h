@@ -14,7 +14,6 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Metric2DViewIndex.h"
 #include "Framework/DeviceState.h"
-#include "Framework/DataProcessingStateManager.h"
 
 #include <cstddef>
 #include <string>
@@ -95,8 +94,6 @@ struct DeviceInfo {
   size_t lastSignal;
   /// An incremental number for the state of the device
   int providedState = 0;
-
-  DataProcessingStateManager dataProcessingStateManager;
 };
 
 } // namespace o2::framework

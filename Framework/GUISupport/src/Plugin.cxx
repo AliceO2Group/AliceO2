@@ -31,13 +31,14 @@ using namespace o2::framework;
 struct ImGUIDebugGUI : o2::framework::DebugGUI {
   std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                            std::vector<DeviceSpec> const& devices,
+                                           std::vector<DataProcessingStates> const& allStates,
                                            std::vector<DataProcessorInfo> const& metadata,
                                            std::vector<DeviceMetricsInfo> const& metricsInfos,
                                            DriverInfo const& driverInfo,
                                            std::vector<DeviceControl>& controls,
                                            DriverControl& driverControl) override
   {
-    return o2::framework::gui::getGUIDebugger(infos, devices, metadata, metricsInfos, driverInfo, controls, driverControl);
+    return o2::framework::gui::getGUIDebugger(infos, devices, allStates, metadata, metricsInfos, driverInfo, controls, driverControl);
   }
 
   void updateMousePos(float x, float y) override

@@ -159,6 +159,7 @@ using DataProcessorInfos = std::vector<DataProcessorInfo>;
 using DeviceExecutions = std::vector<DeviceExecution>;
 using DeviceSpecs = std::vector<DeviceSpec>;
 using DeviceInfos = std::vector<DeviceInfo>;
+using DataProcessingStatesInfos = std::vector<DataProcessingStates>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
 
@@ -331,31 +332,36 @@ void cleanupSHM(std::string const& uniqueWorkflowId)
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
-void spawnRemoteDevice(std::string const&,
+void spawnRemoteDevice(uv_loop_t* loop,
+                       std::string const&,
                        DeviceSpec const& spec,
                        DeviceControl&,
                        DeviceExecution&,
-                       std::vector<DeviceInfo>& deviceInfos)
+                       DeviceInfos& deviceInfos,
+                       DataProcessingStatesInfos& allStates)
 {
   LOG(info) << "Starting " << spec.id << " as remote device";
-  DeviceInfo info;
-  // FIXME: we should make sure we do not sent a kill to pid 0.
-  info.pid = 0;
-  info.active = true;
-  info.readyToQuit = false;
-  info.historySize = 1000;
-  info.historyPos = 0;
-  info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
-  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
-  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
-  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
-  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
-  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
-  // FIXME: use uv_now.
-  info.lastSignal = uv_hrtime() - 10000000;
+  DeviceInfo info{
+    .pid = 0,
+    .historyPos = 0,
+    .historySize = 1000,
+    .maxLogLevel = LogParsingHelpers::LogLevel::Debug,
+    .active = true,
+    .readyToQuit = false,
+    .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
+    .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
+    .queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}},
+    .outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}},
+    .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
+    .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
+    .lastSignal = uv_hrtime() - 10000000};
 
   deviceInfos.emplace_back(info);
+  timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  uint64_t offset = now.tv_sec * 1000 - uv_now(loop);
+  allStates.emplace_back(TimingHelpers::defaultRealtimeBaseConfigurator(offset, loop),
+                         TimingHelpers::defaultCPUTimeConfigurator());
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
@@ -606,12 +612,14 @@ void handle_crash(int sig)
 
 /// This will start a new device by forking and executing a
 /// new child
-void spawnDevice(DeviceRef ref,
+void spawnDevice(uv_loop_t* loop,
+                 DeviceRef ref,
                  std::vector<DeviceSpec> const& specs,
                  DriverInfo& driverInfo,
                  std::vector<DeviceControl>&,
                  std::vector<DeviceExecution>& executions,
                  std::vector<DeviceInfo>& deviceInfos,
+                 std::vector<DataProcessingStates>& allStates,
                  ServiceRegistryRef serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
@@ -712,24 +720,35 @@ void spawnDevice(DeviceRef ref,
   }
 
   LOG(info) << "Starting " << spec.id << " on pid " << id;
-  DeviceInfo info;
-  info.pid = id;
-  info.active = true;
-  info.readyToQuit = false;
-  info.historySize = 1000;
-  info.historyPos = 0;
-  info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.minFailureLevel = driverInfo.minFailureLevel;
-  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
-  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
-  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
-  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
-  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
-  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
-  info.tracyPort = driverInfo.tracyPort;
-  info.lastSignal = uv_hrtime() - 10000000;
+  deviceInfos.push_back({.pid = id,
+                         .historyPos = 0,
+                         .historySize = 1000,
+                         .maxLogLevel = LogParsingHelpers::LogLevel::Debug,
+                         .minFailureLevel = driverInfo.minFailureLevel,
+                         .active = true,
+                         .readyToQuit = false,
+                         .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
+                         .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
+                         .queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}},
+                         .outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}},
+                         .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
+                         .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
+                         .tracyPort = driverInfo.tracyPort,
+                         .lastSignal = uv_hrtime() - 10000000});
+  // create the offset using uv_hrtime
+  timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  uint64_t offset = now.tv_sec * 1000 - uv_now(loop);
+  allStates.emplace_back(
+    TimingHelpers::defaultRealtimeBaseConfigurator(offset, loop),
+     TimingHelpers::defaultCPUTimeConfigurator()) ;
 
-  deviceInfos.emplace_back(info);
+  allStates.back().registerState(DataProcessingStates::StateSpec{
+      .name = "data_queries",
+      .stateId = (short)ProcessingStateId::DATA_QUERIES,
+      .sendInitialValue = true,
+      });
+
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
@@ -1104,6 +1123,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .shmSegmentId = (int16_t)atoi(varmap["shm-segment-id"].as<std::string>().c_str())};
   DeviceInfos infos;
   DeviceControls controls;
+  DataProcessingStatesInfos allStates;
   auto* devicesManager = new DevicesManager{.controls = controls, .infos = infos, .specs = runningWorkflow.devices, .messages = {}};
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
@@ -1123,7 +1143,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   DebugGUI* debugGUI = nullptr;
   void* window = nullptr;
-  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   auto initDebugGUI = []() -> DebugGUI* {
@@ -1223,6 +1243,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .loop = loop,
     .controls = &controls,
     .infos = &infos,
+    .states = &allStates,
     .specs = &runningWorkflow.devices,
     .metrics = &metricsInfos,
     .metricProcessingCallbacks = &metricProcessingCallbacks,
@@ -1635,7 +1656,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             uv_timer_stop(gui_timer);
           }
 
-          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
             callback();
             for (auto& service : driverServices) {
@@ -1743,13 +1764,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           createPipes(context.childstdin);
           createPipes(context.childstdout);
           if (driverInfo.mode == DriverMode::EMBEDDED || runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
-            spawnRemoteDevice(forwardedStdin.str(),
-                              runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
+            spawnRemoteDevice(loop, forwardedStdin.str(),
+                              runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos, allStates);
           } else {
             DeviceRef ref{di};
-            spawnDevice(ref,
+            spawnDevice(loop,
+                        ref,
                         runningWorkflow.devices, driverInfo,
                         controls, deviceExecutions, infos,
+                        allStates,
                         serviceRegistry, varmap,
                         childFds, parentCPU, parentNode);
           }

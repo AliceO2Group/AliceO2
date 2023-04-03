@@ -19,6 +19,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include "Framework/DataProcessingStates.h"
 #include <DebugGUI/icons_font_awesome.h>
 
 #include "DebugGUI/imgui.h"
@@ -50,30 +51,36 @@ struct ChannelsTableHelper {
   }
 };
 
-void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMetricsInfo const& metrics)
+void deviceInfoTable(char const* label, DataProcessingStates const&states, DeviceMetricsInfo const& metrics)
 {
-  if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < index.indexes.size(); ++i) {
-      if (metrics.metrics.size() <= index.indexes.at(i)) {
-        ImGui::Text("Missing data_queries/%zu metric", i);
-        continue;
-      }
-      auto& metric = metrics.metrics.at(index.indexes.at(i));
-      if (metrics.stringMetrics.size() <= metric.storeIdx) {
-        continue;
-      }
-      if (metrics.stringMetrics.at(metric.storeIdx).empty()) {
-        continue;
-      }
-      char const* name = metrics.stringMetrics.at(metric.storeIdx).at(0).data;
-      assert(name);
-      ImGui::Text("%zu: %s", i, name);
-      if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::Text("%zu: %s", i, name);
-        ImGui::EndTooltip();
-      }
-    }
+  // Find the state spec associated to data_queries
+  auto &view = states.statesViews[(int)ProcessingStateId::DATA_QUERIES];
+  if (view.size == 0) {
+    ImGui::CollapsingHeader("No inputs");
+    return;
+  }
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    std::string_view inputs(states.statesBuffer.data() + view.first, view.size);
+    ImGui::TextUnformatted(inputs.data(), inputs.data() + inputs.size());
+    // split inputs at the ; and create an ImGui::Text for each one
+    //ImGui::Columns(2);
+    //auto labels = {"Name", "State"};
+    //for (auto& label : labels) {
+    //  ImGui::TextUnformatted(label);
+    //  ImGui::NextColumn();
+    //}
+
+
+
+    //for (size_t i = 0; i < view.size(); ++i) {
+    //  assert(name);
+    //  ImGui::Text("%zu: %s", i, name);
+    //  if (ImGui::IsItemHovered()) {
+    //    ImGui::BeginTooltip();
+    //    ImGui::Text("%zu: %s", i, name);
+    //    ImGui::EndTooltip();
+    //  }
+    //}
   }
 }
 
@@ -220,6 +227,7 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
 
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
+                            DataProcessingStates const& states,
                             DeviceMetricsInfo const& metrics,
                             DataProcessorInfo const& metadata,
                             DeviceControl& control)
@@ -320,8 +328,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
-  deviceInfoTable("Inputs:", info.queriesViewIndex, metrics);
-  deviceInfoTable("Outputs:", info.outputsViewIndex, metrics);
+  deviceInfoTable("Inputs:", states, metrics);
+  //deviceInfoTable("Outputs:", allStatas, info.outputsViewIndex, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);

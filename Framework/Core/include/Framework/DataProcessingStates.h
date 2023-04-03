@@ -32,8 +32,9 @@ struct DataProcessingStatsHelpers {
 };
 
 /// Helper struct to define some known states
-enum struct ProcessingStateId : int {
+enum struct ProcessingStateId : short {
   DUMMY_STATE = 0,
+  DATA_QUERIES = 1,
 };
 
 /// Helper struct to hold state of the data processing while it is running.
@@ -46,13 +47,33 @@ struct DataProcessingStates {
   DataProcessingStates(std::function<void(int64_t& base, int64_t& offset)> getRealtimeBase,
                        std::function<int64_t(int64_t base, int64_t offset)> getTimestamp);
 
+  DataProcessingStates(DataProcessingStates const& other)
+    : getRealtimeBase(other.getRealtimeBase),
+      getTimestamp(other.getTimestamp),
+      statesSize(other.statesSize.load()),
+      lastInsertedState(other.lastInsertedState.load()),
+      nextState(other.nextState.load()),
+      pendingStates(other.pendingStates.load()),
+      generation(other.generation.load()),
+      updatedMetricsLapse(other.updatedMetricsLapse.load()),
+      store(other.store),
+      statesIndex(other.statesIndex),
+      statesBuffer(other.statesBuffer),
+      statesViews(other.statesViews),
+      updated(other.updated),
+      stateNames(other.stateNames),
+      updateInfos(other.updateInfos),
+      stateSpecs(other.stateSpecs)
+  {
+  }
+
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   constexpr static int STATES_BUFFER_SIZE = 1 << 16;
   constexpr static int MAX_STATES = 256;
 
   // This is the structure to request the state update
   struct CommandSpec {
-    int id = -1;                // Id of the state to update.
+    short id = -1;              // Id of the state to update.
     int size = 0;               // Size of the state.
     char const* data = nullptr; // Pointer to the beginning of the state
   };
@@ -85,9 +106,7 @@ struct DataProcessingStates {
     // Id of the metric. It must match the index in the metrics array.
     // Name of the metric
     std::string name = "";
-    int stateId = -1;
-    /// The default value for the state
-    char defaultValue = 0;
+    short stateId = -1;
     /// How many milliseconds must have passed since the last publishing
     int64_t minPublishInterval = 0;
     /// After how many milliseconds we should still refresh the metric

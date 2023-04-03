@@ -31,8 +31,8 @@
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
-#include "Framework/DataTakingContext.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DataProcessingStates.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -97,18 +97,23 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
-  sQueriesMetricsNames.resize(numInputTypes * 1);
+  auto &states = services.get<DataProcessingStates>();
   metrics.send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
   metrics.send({(int)1, "data_queries/w", Verbosity::Debug});
-  for (size_t i = 0; i < numInputTypes; ++i) {
-    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
+  std::string queries = "";
+  for (short i = 0; i < numInputTypes; ++i) {
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    metrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    queries += std::string_view(buffer, strlen(buffer));
+    queries += ";";
   }
+  auto stateId = (short)ProcessingStateId::DATA_QUERIES;
+  states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true});
+  LOGP(info, "Registering state {} with value {}", stateId, queries);
+  states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
