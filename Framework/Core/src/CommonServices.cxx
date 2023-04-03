@@ -643,7 +643,7 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
         LOG(debug) << "Value for " << spec.name << " is negative, setting to 0";
         value = 0;
       }
-      metric.addValue((uint64_t)value, spec.name);
+      metric.addValue((uint64_t)value, "value");
     } else {
       if (value > (int64_t)std::numeric_limits<int>::max()) {
         LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MAX";
@@ -653,7 +653,7 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
         value = (int64_t)std::numeric_limits<int>::min();
         LOG(warning) << "Value for " << spec.name << " is too small, setting to INT_MIN";
       }
-      metric.addValue((int)value, spec.name);
+      metric.addValue((int)value, "value");
     }
     if (spec.scope == DataProcessingStats::Scope::DPL) {
       metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
