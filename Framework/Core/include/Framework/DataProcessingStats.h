@@ -166,6 +166,7 @@ struct DataProcessingStats {
   std::array<UpdateInfo, MAX_METRICS> updateInfos;
   std::array<MetricSpec, MAX_METRICS> metricSpecs;
   std::array<int64_t, MAX_METRICS> lastPublishedMetrics;
+  std::vector<int> availableMetrics;
   // How many commands have been committed to the queue.
   std::atomic<int> insertedCmds = 0;
   // The insertion point for the next command.
