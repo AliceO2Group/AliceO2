@@ -14,6 +14,7 @@
 /// \author Fabrizio Grosa <fgrosa@cern.ch>
 
 #include "ITSBase/GeometryTGeo.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITS3Simulation/ITS3Layer.h"
 
 #include <fairlogger/Logger.h> // for LOG
@@ -32,6 +33,9 @@ ITS3Layer::ITS3Layer(int lay)
   : TObject(),
     mLayerNumber(lay)
 {
+  SegmentationSuperAlpide seg(lay);
+  mChipThickness = seg.mDetectorLayerThickness;
+  mSensorThickness = seg.mSensorLayerThickness;
 }
 
 ITS3Layer::~ITS3Layer() = default;
@@ -43,6 +47,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
 
   double rmin = mRadius;
   double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
   double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard-coded distance between layers
 
   const int nElements = 7;
@@ -60,7 +65,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   TGeoTubeSeg* halfLayer[nElements - 1];
   TGeoVolume* volHalfLayer[nElements - 1];
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl == 0) ? medSi : medAir;
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
     if (iEl == 4) {
       halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
@@ -68,6 +73,11 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
       volHalfLayer[iEl]->SetVisibility(true);
       volHalfLayer[iEl]->SetLineColor(kGray + 2);
     } else if (iEl < 2) {
+      halfLayer[iEl] = new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
+      volHalfLayer[iEl]->SetVisibility(true);
+      volHalfLayer[iEl]->SetLineColor(kRed + 1);
+    } else if (iEl == 2) {
       halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       volHalfLayer[iEl]->SetVisibility(true);
@@ -110,6 +120,7 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
 
   double rmin = mRadius;
   double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
@@ -131,18 +142,20 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   TGeoVolume* volHalfLayer[nElements - 1];
 
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl <= 1) ? medSi : medAir;
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
 
     for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
       if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
         if (iObj == 0) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
         } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
         } else {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
       } else if (iEl == 1) {
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
+      } else if (iEl == 2) {
         halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
       } else { // all the others are simply half cylinders filling all the space
         halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
@@ -200,6 +213,7 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
 
   double rmin = mRadius;
   double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (0.5 * TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
@@ -220,17 +234,21 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
   TGeoVolume* volQuarterLayer[nElements - 1];
 
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl <= 1) ? medSi : medAir;
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
 
     for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
       if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
         if (iObj == 0) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
         } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * 0.5 * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * 0.5 * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
         } else {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
+      } else if (iEl == 1) {
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+      } else if (iEl == 2) {
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
       } else { // all the others are simply quarter cylinders filling all the space
         quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
       }
