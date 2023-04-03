@@ -1068,13 +1068,17 @@ using McFwdTrackLabel = McFwdTrackLabels::iterator;
 
 namespace mccalolabel
 {
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);               //! MC particle
 DECLARE_SOA_ARRAY_INDEX_COLUMN(McParticle, mcParticle);         //! Array of MC particles that deposited energy in this calo cell
 DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);                   //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 15: indicates negative label
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Energy fraction deposited by a particle inside this calo cell.
 } // namespace mccalolabel
 
-DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index
-                  mccalolabel::McParticleIds, mccalolabel::McMask, mccalolabel::AmplitudeA);
+DECLARE_SOA_TABLE(McCaloLabels_000, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index (version 000)
+                  mccalolabel::McParticleId, mccalolabel::McMask);
+DECLARE_SOA_TABLE_VERSIONED(McCaloLabels_001, "AOD", "MCCALOLABEL", 1, //! Table joined to the calo table containing multiple MC indeces and the amplitude fraction (version 001)
+                            mccalolabel::McParticleIds, mccalolabel::McMask, mccalolabel::AmplitudeA);
+using McCaloLabels = McCaloLabels_000;
 using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
