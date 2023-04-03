@@ -855,11 +855,82 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 in
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
 } // namespace decay3body
 
-DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table
+DECLARE_SOA_TABLE(Decay3Bodys, "AOD", "DECAY3BODY", //! Run 2 cascade table
                   o2::soa::Index<>, decay3body::CollisionId, decay3body::Track0Id, decay3body::Track1Id, decay3body::Track2Id);
 
-using Decays3Body = Decays3Body; //! this defines the current default version
-using Decay3Body = Decays3Body::iterator;
+using Decay3Bodys = Decay3Bodys; //! this defines the current default version
+using Decay3Body = Decay3Bodys::iterator;
+
+namespace strangenesstracking
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);                                 //! Strange track index
+DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, "_ITS"); //! ITS index
+DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                             //! Cascade index
+DECLARE_SOA_INDEX_COLUMN(V0, v0);                                       //! V0 index
+DECLARE_SOA_INDEX_COLUMN(Decay3Body, decay3Body);                       //! Decay 3 body index
+
+DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayZ, decayZ, float);             //! Z coordinate of decay vertex
+DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
+DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
+DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
+DECLARE_SOA_COLUMN(H4Lmass, h4Lmass, float);           //! H4L mass
+DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);         //! He4L mass
+DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
+DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
+DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size
+} // namespace strangenesstracking
+
+/// Strangeness tracks
+DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::CascadeId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::XiMass,
+                       strangenesstracking::OmegaMass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking V0 table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::V0Id,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::H4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking 3-body decay table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::Decay3BodyId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::He4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+using TrackedCascades = TrackedCascades;
+using TrackedCascade = TrackedCascades::iterator;
+using TrackedV0s = TrackedV0s;
+using TrackedV0 = TrackedV0s::iterator;
+using Tracked3Bodys = Tracked3Bodys;
+using Tracked3body = Tracked3Bodys::iterator;
 
 namespace origin
 {
