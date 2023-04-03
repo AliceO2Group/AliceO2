@@ -450,7 +450,7 @@ bool MatchTPCITS::prepareTPCData()
     }
     if constexpr (isTPCTrack<decltype(trk)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
-      if (!this->mSkipTPCOnly) {
+      if (!this->mSkipTPCOnly && trk.getNClusters() > 0) {
         this->addTPCSeed(trk, this->tpcTimeBin2MUS(time0) - this->mTPCDriftTimeOffset, this->tpcTimeBin2MUS(terr), gid, gid.getIndex());
       }
     }
