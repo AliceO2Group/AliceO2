@@ -1024,7 +1024,7 @@ DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
                   zdclegacy::EnergySectorZNA, zdclegacy::EnergySectorZNC, zdclegacy::EnergySectorZPA, zdclegacy::EnergySectorZPC,
                   zdclegacy::TimeZEM1, zdclegacy::TimeZEM2, zdclegacy::TimeZNA, zdclegacy::TimeZNC, zdclegacy::TimeZPA, zdclegacy::TimeZPC);
 
-DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! Full ZDC information, std::vector format
+DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, version 1, std::vector format
                             o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT,
                             zdc::EnergyZEM1<zdc::ChannelE, zdc::Energy>, zdc::EnergyZEM2<zdc::ChannelE, zdc::Energy>,
                             zdc::EnergyCommonZNA<zdc::ChannelE, zdc::Energy>, zdc::EnergyCommonZNC<zdc::ChannelE, zdc::Energy>,
