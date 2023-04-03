@@ -31,6 +31,9 @@ namespace itsmft
 /// reset RU and its links
 void RUDecodeData::clear()
 {
+  for (int i = ruInfo->nCables; i--;) {
+    cableData[i].clear();
+  }
   nChipsFired = 0;
   nNonEmptyLinks = 0;
   calibData.clear();
@@ -98,6 +101,7 @@ bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
     link->rofJumpWasSeen = true;
 #ifdef _RAW_READER_ERROR_CHECKS_
     link->statistics.errorCounts[GBTLinkDecodingStat::ErrMissingROF]++;
+    linkHBFToDump[(uint64_t(link->subSpec) << 32) + link->hbfEntry] = link->irHBF.orbit;
     if (link->needToPrintError(link->statistics.errorCounts[GBTLinkDecodingStat::ErrMissingROF])) {
       LOGP(info, "{} (cable {}) has IR={} > current majority IR={} -> {}", link->describe(),
            cableHWID[icab], link->ir.asString(), ir.asString(), link->statistics.ErrNames[GBTLinkDecodingStat::ErrMissingROF]);
@@ -106,6 +110,7 @@ bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
   } else { // link IR is behind the majority IR? In principle, this should never happen
     LOGP(error, "{} (cable {}) has IR={} for current majority IR={}, discarding", link->describe(), cableHWID[icab], link->ir.asString(), ir.asString());
     // clean data of cables of this link
+    linkHBFToDump[(uint64_t(link->subSpec) << 32) + link->hbfEntry] = link->irHBF.orbit;
     for (int i = 0; i < ruInfo->nCables; i++) {
       if (cableLinkPtr[i] == link) {
         cableData[i].clear();
