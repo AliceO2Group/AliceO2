@@ -99,8 +99,8 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheFor(std::pair<std::string, std::str
 
 void ArrowTableSlicingCache::validateOrder(const std::pair<std::string, std::string>& bindingKey, const std::shared_ptr<arrow::Table>& input)
 {
-  auto& [target, key] = bindingKey;
-  auto column = input->GetColumnByName(key.c_str());
+  auto const& [target, key] = bindingKey;
+  auto column = input->GetColumnByName(key);
   auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
   int32_t prev = 0;
   int32_t cur = array0.Value(0);
