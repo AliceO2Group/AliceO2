@@ -192,7 +192,8 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingS
   publishingInvokedTotal++;
   bool publish = false;
   auto currentTimestamp = getTimestamp(realTimeBase, initialTimeOffset);
-  for (size_t mi = 0; mi < updated.size(); ++mi) {
+  for (size_t ami = 0; ami < availableMetrics.size(); ++ami) {
+    int mi = availableMetrics[ami];
     auto& update = updateInfos[mi];
     MetricSpec& spec = metricSpecs[mi];
     if (spec.name.empty()) {
@@ -261,6 +262,7 @@ void DataProcessingStats::registerMetric(MetricSpec const& spec)
   int64_t currentTime = getTimestamp(realTimeBase, initialTimeOffset);
   updateInfos[spec.metricId] = UpdateInfo{currentTime, currentTime};
   updated[spec.metricId] = spec.sendInitialValue;
+  availableMetrics.push_back(spec.metricId);
 }
 
 } // namespace o2::framework
