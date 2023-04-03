@@ -1019,10 +1019,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(AmplitudeZPC, amplitudeZPC, //! return ZPC amplitude
 } // namespace zdc
 
 DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
-                  o2::soa::Index<>, zdc::BCId, zdclegacy::EnergyZEM1, zdclegacy::EnergyZEM2,
-                  zdclegacy::EnergyCommonZNA, zdclegacy::EnergyCommonZNC, zdclegacy::EnergyCommonZPA, zdclegacy::EnergyCommonZPC,
-                  zdclegacy::EnergySectorZNA, zdclegacy::EnergySectorZNC, zdclegacy::EnergySectorZPA, zdclegacy::EnergySectorZPC,
-                  zdclegacy::TimeZEM1, zdclegacy::TimeZEM2, zdclegacy::TimeZNA, zdclegacy::TimeZNC, zdclegacy::TimeZPA, zdclegacy::TimeZPC);
+                  o2::soa::Index<>, zdc::BCId, zdc_000::EnergyZEM1, zdc_000::EnergyZEM2,
+                  zdc_000::EnergyCommonZNA, zdc_000::EnergyCommonZNC, zdc_000::EnergyCommonZPA, zdc_000::EnergyCommonZPC,
+                  zdc_000::EnergySectorZNA, zdc_000::EnergySectorZNC, zdc_000::EnergySectorZPA, zdc_000::EnergySectorZPC,
+                  zdc_000::TimeZEM1, zdc_000::TimeZEM2, zdc_000::TimeZNA, zdc_000::TimeZNC, zdc_000::TimeZPA, zdc_000::TimeZPC);
 
 DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, version 1, std::vector format
                             o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT,
