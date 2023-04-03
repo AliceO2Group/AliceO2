@@ -29,14 +29,11 @@ using namespace o2::pmr;
 template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
 bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
-  using std::forward;
-  using std::move;
+  auto headerMessage = o2::pmr::getMessage(std::move(inputStack), targetResource);
+  auto dataMessage = o2::pmr::getMessage(std::forward<ContainerT>(inputData), targetResource);
 
-  auto headerMessage = o2::pmr::getMessage(move(inputStack), targetResource);
-  auto dataMessage = o2::pmr::getMessage(forward<ContainerT>(inputData), targetResource);
-
-  parts.AddPart(move(headerMessage));
-  parts.AddPart(move(dataMessage));
+  parts.AddPart(std::move(headerMessage));
+  parts.AddPart(std::move(dataMessage));
 
   return true;
 }
@@ -47,17 +44,15 @@ bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, Contai
 template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
 bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
-  using std::move;
-
   //make sure the payload size in DataHeader corresponds to message size
   using o2::header::DataHeader;
-  DataHeader* dataHeader = const_cast<DataHeader*>(o2::header::get<DataHeader*>(inputStack.data()));
+  auto* dataHeader = const_cast<DataHeader*>(o2::header::get<DataHeader*>(inputStack.data()));
   dataHeader->payloadSize = dataMessage->GetSize();
 
-  auto headerMessage = o2::pmr::getMessage(move(inputStack), targetResource);
+  auto headerMessage = o2::pmr::getMessage(std::move(inputStack), targetResource);
 
-  parts.AddPart(move(headerMessage));
-  parts.AddPart(move(dataMessage));
+  parts.AddPart(std::move(headerMessage));
+  parts.AddPart(std::move(dataMessage));
 
   return true;
 }
