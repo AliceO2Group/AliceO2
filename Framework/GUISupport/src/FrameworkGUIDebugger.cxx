@@ -1097,6 +1097,7 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
 ///
 std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessingStates> const& allStates,
                                          std::vector<DataProcessorInfo> const& metadata,
                                          std::vector<DeviceMetricsInfo> const& metricsInfos,
                                          DriverInfo const& driverInfo,
@@ -1132,14 +1133,14 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   std::vector<TopologyNodeInfo> driverNodesInfos;
   driverNodesInfos.push_back(TopologyNodeInfo{"driver"});
 
-  return [&infos, &devices, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, deviceNodesInfos, driverNodesInfos]() {
+  return [&infos, &devices, &allStates, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, deviceNodesInfos, driverNodesInfos]() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 0.;
     style.WindowRounding = 0.;
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
 
-    showTopologyNodeGraph(guiState, infos, devices, metadata, controls, metricsInfos);
+    showTopologyNodeGraph(guiState, infos, devices, allStates, metadata, controls, metricsInfos);
 
     AllMetricsStore metricsStore;
     static std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};

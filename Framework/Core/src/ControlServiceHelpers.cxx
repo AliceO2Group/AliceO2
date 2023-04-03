@@ -12,6 +12,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/RuntimeError.h"
+#include "Framework/DataProcessingStates.h"
 #include <string>
 #include <string_view>
 #include <regex>
@@ -37,14 +39,28 @@ bool ControlServiceHelpers::parseControl(std::string_view const& s, std::match_r
 }
 
 void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
+                                           std::vector<DataProcessingStates>& allStates,
                                            pid_t pid,
                                            std::string const& command,
                                            std::string const& arg)
 {
-  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, pid_t pid, auto lambda) {
-    for (auto& deviceInfo : infos) {
+  auto doToMatchingPid = [&](std::vector<DeviceInfo>& infos, pid_t pid, auto lambda) {
+    assert(infos.size() == allStates.size());
+    for (size_t i = 0; i < infos.size(); ++i) {
+      auto& deviceInfo = infos[i];
       if (deviceInfo.pid == pid) {
         return lambda(deviceInfo);
+      }
+    }
+    LOGP(error, "Command received for pid {} which does not exists.", pid);
+  };
+  auto doToMatchingStatePid = [&](std::vector<DeviceInfo>& infos, std::vector<DataProcessingStates>& allStates, pid_t pid, auto lambda) {
+    assert(infos.size() == allStates.size());
+    for (size_t i = 0; i < infos.size(); ++i) {
+      auto& deviceInfo = infos[i];
+      auto& states = allStates[i];
+      if (deviceInfo.pid == pid) {
+        return lambda(deviceInfo, states);
       }
     }
     LOGP(error, "Command received for pid {} which does not exists.", pid);
@@ -68,37 +84,49 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
   } else if (command == "NOTIFY_DEVICE_STATE") {
     doToMatchingPid(infos, pid, [arg](DeviceInfo& info) { info.deviceState = arg; info.providedState++; });
   } else if (command == "PUT") {
-    doToMatchingPid(infos, pid, [&arg](DeviceInfo& info) {
-      // Tokenize arg for the first two empty space using strtok_r
-      // and create string_views associated to it.
-      char* brk;
-      char* beginKey = strtok_r((char*)arg.data(), " ", &brk);
-      char* endKey = strtok_r(nullptr, " ", &brk);
-      char* beginTimestamp = endKey;
-      char* endTimestamp = strtok_r(nullptr, " ", &brk);
-      char* beginValue = endTimestamp;
-      char* endValue = (char*)arg.data() + arg.size();
-      std::string_view key(beginKey, endKey - beginKey);
-      std::string_view timestamp(beginTimestamp, endTimestamp - beginTimestamp);
-      std::string_view value(beginValue, endValue - beginValue);
-      int timestampInt = std::stoll(timestamp.data());
-
-      // Find the StateInfo in the dataProcessingStateManager with the same key. Insert a new one if not found.
-      auto& infos = info.dataProcessingStateManager.infos;
-      auto& states = info.dataProcessingStateManager.states;
-      auto it = std::lower_bound(infos.begin(), infos.end(), key, [](DataProcessingStateManager::StateInfo const& stateInfo, std::string_view const& key) { return stateInfo.name < key; });
-      if (it == infos.end() || it->name != key) {
-        it = infos.insert(it, DataProcessingStateManager::StateInfo{std::string{key}, timestampInt, (int)states.size()});
-        states.resize(states.size() + 1);
-        memcpy(states.back().data(), value.data(), value.size());
-        states.back()[value.size()] = '\0';
-        LOG(debug) << "New state" << key << " with timestamp " << timestamp << " and value " << value;
-      } else {
-        it->lastUpdate = timestampInt;
-        memcpy(states[it->index].data(), value.data(), value.size());
-        states[it->index][value.size()] = '\0';
-        LOG(debug) << "Updated state" << key << " with timestamp " << timestamp << " and value " << value;
+    doToMatchingStatePid(infos, allStates, pid, [&arg](DeviceInfo& info, DataProcessingStates& states) {
+      /// Use scanf to parse PUT <key> <timestamp>
+      // find the first space, that is the beginning of the key.
+      // Find the position of the fist space in beginKey.
+      auto beginKey = 0;
+      // If we did not find it complain and return.
+      if (beginKey == std::string::npos) {
+        LOGP(error, "Cannot parse key in PUT command with arg {} for device {}", arg, info.pid);
+        return;
       }
+      auto endKey = arg.find(' ', beginKey + 1);
+      if (endKey == std::string::npos) {
+        LOGP(error, "Cannot parse timestamp in PUT command with arg {}", arg);
+        return;
+      }
+      auto beginTimestamp = endKey + 1;
+      auto endTimestamp = arg.find(' ', beginTimestamp + 1);
+      if (endTimestamp == std::string::npos) {
+        LOGP(error, "Cannot parse value in PUT command with arg {}", arg);
+        return;
+      }
+      auto beginValue = endTimestamp + 1;
+      auto endValue = arg.size();
+
+      std::string_view key(arg.data() + beginKey, endKey - beginKey);
+      std::string_view timestamp(arg.data() + beginTimestamp, endTimestamp - beginTimestamp);
+      std::string_view value(arg.data() + beginValue, endValue - beginValue);
+      // Find the assocaiated StateSpec and get the id.
+      auto spec = std::find_if(states.stateSpecs.begin(), states.stateSpecs.end(), [&key](auto const& spec) {
+        return spec.name == key;
+      });
+      if (spec == states.stateSpecs.end()) {
+        LOGP(warn, "Cannot find state {} in the state specs for pid {}", key.data());
+        return;
+      }
+      if (value.data() == nullptr) {
+        LOGP(debug, "State {} value is null skipping", key.data());
+        return;
+      }
+      /// Notice this will remap the actual time to the time we received the command.
+      /// This should not be a problem, because we have separate states per device.
+      states.updateState(DataProcessingStates::CommandSpec{.id = spec->stateId, .size = (int)value.size(), .data = value.data()});
+      states.processCommandQueue();
     });
   } else {
     LOGP(error, "Unknown command {} with argument {}", command, arg);

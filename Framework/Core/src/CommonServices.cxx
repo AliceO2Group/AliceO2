@@ -847,7 +847,8 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStates()
     .configure = noConfiguration(),
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* states = (DataProcessingStates*)service;
-      states->updateState({(short)ProcessingStateId::DUMMY_STATE, (int) strlen("somestate"), "somestate"}); },
+      states->processCommandQueue();
+      //states->updateState({(short)ProcessingStateId::DUMMY_STATE, (int) strlen("somestate"), "somestate"}); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* states = (DataProcessingStates*)service;
        flushStates(context.services(), *states); },
@@ -857,7 +858,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStates()
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* states = (DataProcessingStates*)service;
       flushStates(context.services(), *states); },
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Global };
 }
 
 struct GUIMetrics {
@@ -964,8 +965,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataProcessingStats(),
-    dataRelayer(),
     dataProcessingStates(),
+    dataRelayer(),
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
     objectCache(),

@@ -82,6 +82,7 @@ void DataProcessingStates::processCommandQueue()
 
 void DataProcessingStates::updateState(CommandSpec cmd)
 {
+  LOGP(debug, "Updating state {} with {}", cmd.id, std::string_view(cmd.data, cmd.size));
   if (stateSpecs[cmd.id].name.empty()) {
     throw runtime_error_f("StateID %d was not registered", (int)cmd.id);
   }
@@ -160,11 +161,13 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
       continue;
     }
     if (currentTimestamp - update.lastPublished < spec.minPublishInterval) {
+      LOGP(debug, "not publishing because of minPublishInterval");
       continue;
     }
     publish = true;
     assert(view.first + view.size <= statesBuffer.size());
     assert(view.first <= statesBuffer.size());
+    LOGP(debug, "Publishing invoked {} {}", view.first, view.size);
     callback(spec.name.data(), update.timestamp, std::string_view(statesBuffer.data() + view.first, view.size));
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
