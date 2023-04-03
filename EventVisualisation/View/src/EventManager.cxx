@@ -119,14 +119,21 @@ void EventManager::displayCurrentEvent()
       restoreVisualisationSettings();
     }
 
-    if (this->mShowDate) {
-      multiView->getAnnotationTop()->SetText(
-        TString::Format("Run %d %s\n%s", dataSource->getRunNumber(), std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(), dataSource->getFileTime().c_str()));
+    if (dataSource->getRunNumber() != -1) {
+      if (this->mShowDate) {
+        multiView->getAnnotationTop()->SetText(
+          TString::Format("Run %d %s\n%s", dataSource->getRunNumber(),
+                          std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(),
+                          dataSource->getFileTime().c_str()));
+      } else {
+        multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      }
+      auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
+      multiView->getAnnotationBottom()->SetText(
+        TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
     } else {
-      multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      multiView->getAnnotationTop()->SetText("No Available Data to Display");
     }
-    auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
-    multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
   multiView->redraw3D();
 }

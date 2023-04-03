@@ -35,7 +35,8 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
 {
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> res;
   if (getEventCount() == 2) {
-    return res; // 2 means there are no real data = we have only "virtual" positions
+    this->setRunNumber(-1); // No available data to display
+    return res;             // 2 means there are no real data = we have only "virtual" positions
   }
   if (no < getEventCount()) {
     assert(no >= 0);
