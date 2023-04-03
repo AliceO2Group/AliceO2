@@ -29,6 +29,15 @@ namespace o2::emcal
 {
 /// \struct RecCellInfo
 /// \brief Container class for cell information for merging
+///
+/// In case the energy is in the overlap region between the
+/// two digitizers 2 channels exist for the same cell. In this
+/// case the low gain cells are used above a certain threshold.
+/// In certain error cases the information from the other digitizer
+/// might be missing. Such cases must be fitered out, however this
+/// can be done only after all cells are processed. The overlap information
+/// needs to be propagated for the filtering but is not part of the
+/// final cell object
 struct RecCellInfo {
   o2::emcal::Cell mCellData; ///< Cell information
   bool mIsLGnoHG;            ///< Cell has only LG digits
@@ -144,7 +153,7 @@ class EventContainer
   bool isCellSaturated(double energy) const;
 
   o2::InteractionRecord mInteractionRecord;
-  uint64_t mTriggerBits;             ///< Trigger bits of the event
+  uint64_t mTriggerBits = 0;         ///< Trigger bits of the event
   std::vector<RecCellInfo> mCells;   ///< Container of cells in event
   std::vector<RecCellInfo> mLEDMons; ///< Container of LEDMONs in event
 };
