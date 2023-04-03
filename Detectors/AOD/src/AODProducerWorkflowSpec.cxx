@@ -380,7 +380,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   const auto& rof = data.getMFTTracksROFRecords()[mMFTROFs[trackID.getIndex()]];
   float trackTime = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mMFTROFrameHalfLengthNS;
   float trackTimeRes = mMFTROFrameHalfLengthNS;
-  bool needBCSlice = collisionID < 0 || trackID.isAmbiguous();
+  bool needBCSlice = collisionID < 0;
   std::uint64_t bcOfTimeRef;
   if (needBCSlice) {
     double error = mTimeMarginTrackTime + trackTimeRes;
