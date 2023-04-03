@@ -729,7 +729,7 @@ DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
-} // namespace zdclegacy
+} // namespace zdc_000
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
