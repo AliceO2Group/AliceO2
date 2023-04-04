@@ -32,7 +32,7 @@ void RawReaderZDC::clear()
   mOrbitData.clear();
 }
 
-void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat)
+int RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat)
 {
   if (0 <= linkID && linkID < 16) {
     size_t payloadSize = payload.size();
@@ -49,7 +49,9 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
         o2::zdc::Digits2Raw::print_gbt_word(gbtw);
 #endif
         if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (gbtw[2] & 0xffff) != 0xffff) {
-          processWord(gbtw);
+          if(processWord(gbtw)){
+            return 1;
+          }
         }
       }
     } else if (dataFormat == 0) {
@@ -61,21 +63,23 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
 #else
         o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
 #endif
-        processWord((const uint32_t*)&payload[ip]);
+        if(processWord((const uint32_t*)&payload[ip])){
+          return 1;
+        }
       }
     } else {
-      LOG(error) << "RawReaderZDC::processBinaryData - Unsupported DataFormat " << dataFormat;
+      LOG(fatal) << "RawReaderZDC::processBinaryData - Unsupported DataFormat " << dataFormat;
     }
   } else {
     // put here code in case of bad rdh.linkID value
     LOG(info) << "WARNING! WRONG LINK ID! " << linkID;
-    return;
+    return 1;
   }
+  return 0;
 }
 
 int RawReaderZDC::processWord(const uint32_t* word)
 {
-  printf("%08x %08x %08x %08x\n", word[3], word[2], word[1], word[0]);
   if (word == nullptr) {
     LOG(error) << "NULL pointer";
     return 1;
@@ -108,8 +112,8 @@ int RawReaderZDC::processWord(const uint32_t* word)
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
-    // Word not present in payload
-    LOGF(fatal, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0] & 0x3);
+    // Word id not foreseen in payload
+    LOGF(error, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0] & 0x3);
     return 1;
   }
   return 0;
