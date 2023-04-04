@@ -177,6 +177,9 @@ void Patches::updateADC()
     if (ADCvalues.size() == 4) {
       std::get<1>(mPreviousTimebinADCvalue[PatchID]) = ADCvalues.front();
       ADCvalues.erase(ADCvalues.begin());
+      LOG(info) << "DIG SIMONE updateADC in Patches: size = 4";
+    } else {
+      LOG(info) << "DIG SIMONE updateADC in Patches: size != 4";
     }
     double integralADCnew = 0;
     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {

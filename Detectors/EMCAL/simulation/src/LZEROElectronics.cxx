@@ -40,11 +40,11 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
   } else if (TimeSums[0] < TimeSums[1] && TimeSums[1] < TimeSums[2] && TimeSums[2] >= TimeSums[3]) {
     trendOfDigitsInTower = true;
     LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: trendOfDigitsInTower = true";
-  } else {
-    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[0] = " << TimeSums[0];
-    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[1] = " << TimeSums[1];
-    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[2] = " << TimeSums[2];
-    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[3] = " << TimeSums[3];
+  // } else {
+  //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[0] = " << TimeSums[0];
+  //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[1] = " << TimeSums[1];
+  //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[2] = " << TimeSums[2];
+  //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[3] = " << TimeSums[3];
   }
   double integralOfADCvalues = 0;
   for (auto it = TimeSums.begin(); it != TimeSums.end(); it++) {
@@ -89,6 +89,7 @@ void LZEROElectronics::clear()
 //________________________________________________________
 void LZEROElectronics::updatePatchesADC(Patches& p)
 {
+  LOG(info) << "DIG SIMONE updatePatchesADC in LZEROElectronics";
   p.updateADC();
 }
 //_______________________________________________________________________
