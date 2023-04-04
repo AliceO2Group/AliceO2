@@ -78,9 +78,9 @@ void DumpRaw::init()
 {
   gROOT->SetBatch();
   auto& sopt = ZDCSimParam::Instance();
-  int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = 2 * NTimeBinsPerBC - 0.5;
+  int nbx = std::round(xmax-xmin);
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
