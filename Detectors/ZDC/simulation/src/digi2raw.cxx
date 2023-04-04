@@ -132,6 +132,8 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   LOG(info) << "Loaded simulation configuration for timestamp " << mgr.getTimestamp();
   simCondition->print();
 
+  LOG(info) << "RDHVersion " << rdhV << " padding: " << enablePadding;
+
   const auto* ctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
   const auto& bcfill = ctx->getBunchFilling();
   auto bf = ctx->getBunchFilling();
@@ -145,7 +147,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
 
   o2::zdc::Digits2Raw d2r;
   d2r.setFileFor(fileFor);
-  d2r.setRDHVersion(rdhV);
+  d2r.setEnablePadding(enablePadding);
   d2r.setVerbosity(verbosity);
   auto& wr = d2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();

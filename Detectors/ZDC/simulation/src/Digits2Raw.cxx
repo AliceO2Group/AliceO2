@@ -497,14 +497,13 @@ void Digits2Raw::writeDigits()
         uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            if(mRDHVersion == 0){
+            if(mEnablePadding){
               gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
               mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
             }else{
-              for (int32_t ig = 0; ig < NWPerGBTW; ig++ ){
-                gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][ig]), PayloadPerGBTW};
-                mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
-              }
+              gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), PayloadPerGBTW};
+              o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&mZDC.data[im][ic].w[iw][0]);
+              mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
             }
           }
           addedChData[ic] = true;
@@ -570,9 +569,9 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   uint32_t a = word[0];
   uint32_t b = word[1];
   uint32_t c = word[2];
-  // uint32_t d=(msb>>32)&0xffffffff;
-  // printf("\n%llx %llx ",lsb,msb);
-  // printf("\n%8x %8x %8x %8x ",d,c,b,a);
+  //uint32_t d=(msb>>32)&0xffffffff;
+  //printf("\n%016llx %016llx ",lsb,msb);
+  //printf("\nGBTW: %08x %08x %08x %08x\n",d,c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;

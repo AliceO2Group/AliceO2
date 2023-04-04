@@ -255,7 +255,7 @@ int DumpRaw::processWord(const uint32_t* word)
     mCh.f.fixed_2 = Id_wn;
   } else {
     // Word not present in payload
-    LOG(fatal) << "Event format error";
+    LOGF(fatal, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0]&0x3);
     return 1;
   }
   return 0;

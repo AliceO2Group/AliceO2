@@ -60,15 +60,11 @@ class Digits2Raw
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
 
-  void setRDHVersion(int v)
+  void setEnablePadding(bool v)
   {
-    if(v==0 || v==2){
-      mRDHVersion = v;
-    }else{
-      LOG(fatal) << __FILE__ << " @ " << __LINE__ << " " << __func__ << " Unsupported RDH version = " << v;
-    }
+    mEnablePadding = v;
   }
-  int getRDHVersion() const { return mRDHVersion; }
+  bool getEnablePadding() const { return mEnablePadding; }
 
   static void print_gbt_word(const uint32_t* word, const ModuleConfig* moduleConfig = nullptr);
 
@@ -89,7 +85,7 @@ class Digits2Raw
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
   bool mOutputPerLink = false;                                          /// Split output
-  int mRDHVersion = 2;                                                  /// RDH version
+  int mEnablePadding = 0;                                               /// Enable padding to 128 bit
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
   uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers

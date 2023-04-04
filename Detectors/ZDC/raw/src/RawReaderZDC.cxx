@@ -37,19 +37,19 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
   if (0 <= linkID && linkID < 16) {
     size_t payloadSize = payload.size();
     if (dataFormat == 2) {
-      for (int32_t ip = 0; ip < payloadSize; ip += PayloadPerGBTW) {
+      for (int32_t ip = 0; (ip+PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
         // Assign only the actual payload
         uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
         memcpy((void*)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
 #ifndef O2_ZDC_DEBUG
         if (mVerbosity >= DbgExtra) {
-          o2::zdc::Digits2Raw::print_gbt_word(&gbtw[0]);
+          o2::zdc::Digits2Raw::print_gbt_word(gbtw);
         }
 #else
-        o2::zdc::Digits2Raw::print_gbt_word(&gbtw[0]);
+        o2::zdc::Digits2Raw::print_gbt_word(gbtw);
 #endif
-        for (int iw = 0; iw < 4; iw++) {
-          processWord(&gbtw[iw]);
+        if(gbtw[0]!=0xffffffff && gbtw[1]!=0xffffffff && (gbtw[2]&0xffff)!=0xffff){
+          processWord(gbtw);
         }
       }
     } else if (dataFormat == 0) {
@@ -75,6 +75,7 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
 
 int RawReaderZDC::processWord(const uint32_t* word)
 {
+  printf("%08x %08x %08x %08x\n",word[3],word[2],word[1],word[0]);
   if (word == nullptr) {
     LOG(error) << "NULL pointer";
     return 1;
@@ -108,7 +109,7 @@ int RawReaderZDC::processWord(const uint32_t* word)
     mCh.f.fixed_2 = Id_wn;
   } else {
     // Word not present in payload
-    LOG(fatal) << "Event format error";
+    LOGF(fatal, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0]&0x3);
     return 1;
   }
   return 0;
