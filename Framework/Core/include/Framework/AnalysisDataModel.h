@@ -1013,7 +1013,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZPC, amplitudeZPC, //! return ZPC amplitud
                              }
                              return thisamplitude;
                            });
-} // namespace zdc_001
+} // namespace zdc
 
 DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
