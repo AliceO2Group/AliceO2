@@ -170,7 +170,6 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
   }
 
   if (mEnableDebugStreaming) {
-    LOG(info) << "DIG FEE fill TREE";
     double timeStamp = sDigit.getTimeStamp();
     (*mDebugStream).GetFile()->cd();
     (*mDebugStream) << "DigitsTimeSamples"
@@ -193,8 +192,6 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
                     << "Sample13=" << energies[13]
                     << "Sample14=" << energies[14]
                     << "\n";
-      LOG(info) << "DIG FEE fill TREE";
-
   }
 }
 
