@@ -116,7 +116,7 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
         return spec.name == key;
       });
       if (spec == states.stateSpecs.end()) {
-        LOGP(warn, "Cannot find state {} in the state specs for pid {}", key.data());
+        LOGP(warn, "Cannot find state {}", key.data());
         return;
       }
       if (value.data() == nullptr) {

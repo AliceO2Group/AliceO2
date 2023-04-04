@@ -35,6 +35,7 @@ struct DataProcessingStatsHelpers {
 enum struct ProcessingStateId : short {
   DUMMY_STATE = 0,
   DATA_QUERIES = 1,
+  OUTPUT_MATCHERS = 2
 };
 
 /// Helper struct to hold state of the data processing while it is running.

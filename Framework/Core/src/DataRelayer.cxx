@@ -112,6 +112,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true});
   LOGP(info, "Registering state {} with value {}", stateId, queries);
   states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
+  states.processCommandQueue();
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
