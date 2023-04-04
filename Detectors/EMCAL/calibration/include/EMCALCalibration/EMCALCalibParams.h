@@ -65,10 +65,12 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   float maxAllowedDeviationFromMax = 10; ///< maximum deviation allowed between the estimated maximum of the fit and the true maximum from the distribution. If deviation is larger then value, the fit likely failed. In this case, the true value is taken
 
   // common parameters
-  std::string calibType = "time";     ///< type of calibration to run
-  std::string localRootFilePath = ""; ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
-  bool enableFastCalib = false;       ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
-  bool enableTimeProfiling = false;   ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
+  std::string calibType = "time";         ///< type of calibration to run
+  std::string localRootFilePath = "";     ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
+  bool enableFastCalib = false;           ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
+  bool enableTimeProfiling = false;       ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
+  bool setSavedSlotAllowed_EMC = true;    ///< if true, saving and loading of calibrations from last run and for next run is enabled
+  bool setSavedSlotAllowedSOR_EMC = true; ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
