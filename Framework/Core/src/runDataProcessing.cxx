@@ -60,6 +60,7 @@
 #include "Framework/ServiceMetricsInfo.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DefaultsHelpers.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -350,7 +351,6 @@ void spawnRemoteDevice(uv_loop_t* loop,
     .active = true,
     .readyToQuit = false,
     .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
-    .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
     .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
     .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
     .lastSignal = uv_hrtime() - 10000000};
@@ -722,7 +722,6 @@ void spawnDevice(uv_loop_t* loop,
                          .active = true,
                          .readyToQuit = false,
                          .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
-                         .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
                          .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
                          .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
                          .tracyPort = driverInfo.tracyPort,
@@ -745,6 +744,15 @@ void spawnDevice(uv_loop_t* loop,
     .stateId = (short)ProcessingStateId::OUTPUT_MATCHERS,
     .sendInitialValue = true,
   });
+
+  for (size_t i = 0; i < 512; ++i) {
+    allStates.back().registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("matcher_variables/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
+      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+    });
+  }
 
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
@@ -942,7 +950,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
     std::string defaultExitTransitionTimeout = "0";
     std::string defaultInfologgerMode = "";
-    o2::framework::DeploymentMode deploymentMode = o2::framework::CommonServices::getDeploymentMode();
+    o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS) {
       defaultExitTransitionTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";

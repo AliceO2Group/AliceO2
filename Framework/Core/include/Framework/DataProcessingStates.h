@@ -35,7 +35,8 @@ struct DataProcessingStatsHelpers {
 enum struct ProcessingStateId : short {
   DUMMY_STATE = 0,
   DATA_QUERIES = 1,
-  OUTPUT_MATCHERS = 2
+  OUTPUT_MATCHERS = 2,
+  CONTEXT_VARIABLES_BASE = 1024
 };
 
 /// Helper struct to hold state of the data processing while it is running.
@@ -69,8 +70,8 @@ struct DataProcessingStates {
   }
 
   constexpr static ServiceKind service_kind = ServiceKind::Global;
-  constexpr static int STATES_BUFFER_SIZE = 1 << 16;
-  constexpr static int MAX_STATES = 256;
+  constexpr static int STATES_BUFFER_SIZE = 1 << 18;
+  constexpr static int MAX_STATES = 2048;
 
   // This is the structure to request the state update
   struct CommandSpec {
