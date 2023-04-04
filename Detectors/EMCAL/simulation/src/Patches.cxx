@@ -136,7 +136,7 @@ void Patches::assignModulesToAllPatches()
         // A side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
             IndexMapPatch.push_back(SeedID + k + l * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 8);
           }
@@ -145,7 +145,7 @@ void Patches::assignModulesToAllPatches()
         // C side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
             IndexMapPatch.push_back(SeedID - k - l * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
@@ -173,7 +173,7 @@ void Patches::assignModulesToAllPatches()
         // A side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
             IndexMapPatch.push_back(SeedID + k + l * 24);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 24);
           }
@@ -182,7 +182,7 @@ void Patches::assignModulesToAllPatches()
         // C side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
             IndexMapPatch.push_back(SeedID - k - l * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
