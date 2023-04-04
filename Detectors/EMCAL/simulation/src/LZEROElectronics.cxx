@@ -192,7 +192,8 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         foundPeak = true;
     }
 
-    LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << mFiredPatches.size();
+    auto firedPatches = getFiredPatches(patches);
+    LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << firedPatches.size();
     LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
     LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
     EMCALTriggerInputs TriggerInputsForL1;
