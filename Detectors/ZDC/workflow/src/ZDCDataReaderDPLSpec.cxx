@@ -109,7 +109,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 #ifdef O2_ZDC_DEBUG
         LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << lid;
 #endif
-        if(mRawReader.processBinaryData(payload, lid, dataFormat)){
+        if (mRawReader.processBinaryData(payload, lid, dataFormat)) {
           nErr[3]++;
           break;
         }
