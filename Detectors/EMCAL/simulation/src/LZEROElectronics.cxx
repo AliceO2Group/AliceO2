@@ -188,7 +188,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       auto firedPatches = getFiredPatches(patches);
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << firedPatches.size();
+      if(firedPatches.size() != 0) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << firedPatches.size();
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeakCurrentTRU = " << foundPeakCurrentTRU;
       if (foundPeakCurrentTRU)
         foundPeak = true;
