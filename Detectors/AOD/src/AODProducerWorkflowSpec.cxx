@@ -2023,6 +2023,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       auto& trackRef = primVer2TRefs[iref];
       fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
     }
+
+    for (auto& label : recoData.getStrangeTracksMCLabels()) {
+      MCLabels labelHolder;
+      labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
+      labelHolder.labelMask = (label.isFake() << 15) | (label.isNoise() << 14);
+      mcTrackLabelCursor(0, labelHolder.labelID, labelHolder.labelMask);
+    }
   }
   clearMCKeepStore(mToStore);
   mGIDToTableID.clear();

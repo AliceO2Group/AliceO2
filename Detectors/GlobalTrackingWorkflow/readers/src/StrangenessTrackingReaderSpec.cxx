@@ -80,7 +80,7 @@ void StrangenessTrackingReader::run(ProcessingContext& pc)
 
   if (mUseMC) {
     LOG(info) << "Pushing " << mStrangeTrackMC.size() << " strange tracks MC labels at entry " << ent;
-    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mStrangeTrack);
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mStrangeTrackMC);
   }
 
   // pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
@@ -99,10 +99,8 @@ void StrangenessTrackingReader::connectTree()
   mTree.reset((TTree*)mFile->Get(mSTrackingTreeName.c_str()));
   assert(mTree);
   assert(mTree->GetBranch(mStrackBranchName.c_str()));
-  // assert(mTree->GetBranch(mPVertex2V0RefBranchName.c_str()));
 
   mTree->SetBranchAddress(mStrackBranchName.c_str(), &mStrangeTrackPtr);
-  // mTree->SetBranchAddress(mPVertex2V0RefBranchName.c_str(), &mPV2V0RefPtr);
   if (mUseMC) {
     assert(mTree->GetBranch(mStrackMCBranchName.c_str()));
     mTree->SetBranchAddress(mStrackMCBranchName.c_str(), &mStrangeTrackMCPtr);
@@ -118,7 +116,6 @@ DataProcessorSpec getStrangenessTrackingReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe); // MC labels
   }
-  // outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
 
   return DataProcessorSpec{
     "strangeness-tracking-reader",
