@@ -207,7 +207,7 @@ void Patches::updateADC()
     }
     double integralADCnew = 0;
     auto fastorattempt = std::get<1>(mIndexMapPatch[PatchID]);
-    LOG(info) << "DIG SIMONE updateADC in Patches: fastorattempt.size() = " << fastorattempt.size();
+    if( fastorattempt.size() != 0 )LOG(info) << "DIG SIMONE updateADC in Patches: fastorattempt.size() = " << fastorattempt.size();
 
     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
       auto elem = mFastOrs[FastOrs].mADCvalues;
