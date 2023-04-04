@@ -604,7 +604,7 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
       } catch (...) {
       }
     }
-    stats.updateStats({static_cast<unsigned short>(static_cast<int>(ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE) + runningWorkflow.shmSegmentId), DataProcessingStats::Op::SetIfPositive, freeMemory});
+    stats.updateStats({static_cast<unsigned short>(static_cast<int>(ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE) + (runningWorkflow.shmSegmentId % 512)), DataProcessingStats::Op::SetIfPositive, freeMemory});
   }
 
   ZoneScopedN("send metrics");
@@ -780,7 +780,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = onlineRefreshLatency,
                    .sendInitialValue = true},
         MetricSpec{.name = fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId),
-                   .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + runningWorkflow.shmSegmentId,
+                   .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + (runningWorkflow.shmSegmentId % 512),
                    .kind = Kind::UInt64,
                    .scope = Scope::Online,
                    .minPublishInterval = 500,
