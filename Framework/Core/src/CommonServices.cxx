@@ -847,8 +847,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStates()
     .configure = noConfiguration(),
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* states = (DataProcessingStates*)service;
-      states->processCommandQueue();
-      //states->updateState({(short)ProcessingStateId::DUMMY_STATE, (int) strlen("somestate"), "somestate"}); },
+      states->processCommandQueue(); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* states = (DataProcessingStates*)service;
        flushStates(context.services(), *states); },
@@ -858,7 +857,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStates()
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* states = (DataProcessingStates*)service;
       flushStates(context.services(), *states); },
-    .kind = ServiceKind::Global };
+    .kind = ServiceKind::Global};
 }
 
 struct GUIMetrics {

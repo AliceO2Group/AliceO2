@@ -22,6 +22,7 @@
 #include "Framework/CommonServices.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/O2DataModelHelpers.h"
+#include "Framework/DataProcessingStates.h"
 
 using namespace o2::monitoring;
 
@@ -55,19 +56,22 @@ DataSender::DataSender(ServiceRegistryRef registry,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   auto numInputTypes = mDistinctRoutesIndex.size();
-  mQueriesMetricsNames.resize(numInputTypes * 1);
-  auto& monitoring = mRegistry.get<Monitoring>();
-  monitoring.send({(int)numInputTypes, "output_matchers/h", Verbosity::Debug});
-  monitoring.send({(int)1, "output_matchers/w", Verbosity::Debug});
   auto& routes = mSpec.outputs;
+  auto& states = registry.get<DataProcessingStates>();
+  std::string queries = "";
   for (size_t i = 0; i < numInputTypes; ++i) {
-    mQueriesMetricsNames[i] = fmt::format("output_matchers/{}", i);
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
     mOutputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     DataSpecUtils::describe(buffer, 127, mOutputs.back());
-    monitoring.send({fmt::format("{} ({})", buffer, (int)mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
+    queries += std::string_view(buffer, strlen(buffer));
+    queries += ";";
   }
+
+  auto stateId = (short)ProcessingStateId::OUTPUT_MATCHERS;
+  states.registerState({.name = "output_matchers", .stateId = stateId, .sendInitialValue = true});
+  states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
+  states.processCommandQueue();
   /// Fill the mPresents with the outputs which are not timeframes.
   for (size_t i = 0; i < mOutputs.size(); ++i) {
     mPresentDefaults.push_back(mOutputs[i].lifetime != Lifetime::Timeframe);

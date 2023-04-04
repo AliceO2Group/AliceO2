@@ -351,7 +351,6 @@ void spawnRemoteDevice(uv_loop_t* loop,
     .readyToQuit = false,
     .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
     .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
-    .outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}},
     .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
     .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
     .lastSignal = uv_hrtime() - 10000000};
@@ -724,7 +723,6 @@ void spawnDevice(uv_loop_t* loop,
                          .readyToQuit = false,
                          .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
                          .variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}},
-                         .outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}},
                          .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
                          .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
                          .tracyPort = driverInfo.tracyPort,
@@ -740,6 +738,11 @@ void spawnDevice(uv_loop_t* loop,
   allStates.back().registerState(DataProcessingStates::StateSpec{
     .name = "data_queries",
     .stateId = (short)ProcessingStateId::DATA_QUERIES,
+    .sendInitialValue = true,
+  });
+  allStates.back().registerState(DataProcessingStates::StateSpec{
+    .name = "output_matchers",
+    .stateId = (short)ProcessingStateId::OUTPUT_MATCHERS,
     .sendInitialValue = true,
   });
 

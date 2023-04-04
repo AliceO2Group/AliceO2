@@ -73,8 +73,6 @@ struct DeviceInfo {
   Metric2DViewIndex dataRelayerViewIndex;
   /// Index for the variables of a given relayer.
   Metric2DViewIndex variablesViewIndex;
-  /// Index for the queries of each input route.
-  Metric2DViewIndex outputsViewIndex;
   /// Index for the metrics to be displayed associated to
   /// each input channel of the device.
   Metric2DViewIndex inputChannelMetricsViewIndex;

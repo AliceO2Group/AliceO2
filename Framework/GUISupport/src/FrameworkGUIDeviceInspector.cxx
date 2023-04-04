@@ -64,14 +64,10 @@ void deviceStateTable(DataProcessingStates const& states)
   }
 }
 
-void deviceInfoTable(char const* label, DataProcessingStates const& states, DeviceMetricsInfo const& metrics)
+void deviceInfoTable(char const* label, ProcessingStateId id, DataProcessingStates const& states, DeviceMetricsInfo const& metrics)
 {
   // Find the state spec associated to data_queries
-  auto& view = states.statesViews[(int)ProcessingStateId::DATA_QUERIES];
-  if (view.size == 0) {
-    ImGui::CollapsingHeader("No inputs");
-    return;
-  }
+  auto& view = states.statesViews[(int)id];
   if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     std::string_view inputs(states.statesBuffer.data() + view.first, view.size);
     auto beginInputs = inputs.begin();
@@ -340,8 +336,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 
   deviceStateTable(states);
-  deviceInfoTable("Inputs:", states, metrics);
-  // deviceInfoTable("Outputs:", allStatas, info.outputsViewIndex, metrics);
+  deviceInfoTable("Inputs:", ProcessingStateId::DATA_QUERIES, states, metrics);
+  deviceInfoTable("Outputs:", ProcessingStateId::OUTPUT_MATCHERS, states, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);
