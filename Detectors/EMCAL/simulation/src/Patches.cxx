@@ -182,18 +182,21 @@ void Patches::updateADC()
       // LOG(info) << "DIG SIMONE updateADC in Patches: size != 4";
     }
     double integralADCnew = 0;
+    auto fastorattempt = std::get<1>(mIndexMapPatch[PatchID]);
+    LOG(info) << "DIG SIMONE updateADC in Patches: fastorattempt.size() = " << fastorattempt.size();
+
     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
       auto elem = mFastOrs[FastOrs].mADCvalues;
       if (elem.size() == 0){
-        LOG(info) << "DIG SIMONE updateADC in Patches: elem.size() == 0 ";
+        // LOG(info) << "DIG SIMONE updateADC in Patches: elem.size() == 0 ";
         continue;
       }  
       auto it = elem.end() - 1;
       auto pointedvalue = *it;
-      LOG(info) << "DIG SIMONE updateADC in Patches: pointedvalue = " << pointedvalue;
+      // LOG(info) << "DIG SIMONE updateADC in Patches: pointedvalue = " << pointedvalue;
       integralADCnew += pointedvalue;
     }
-    LOG(info) << "DIG SIMONE updateADC in Patches: integralADCnew = " << integralADCnew;
+    // LOG(info) << "DIG SIMONE updateADC in Patches: integralADCnew = " << integralADCnew;
     ADCvalues.push_back(integralADCnew);
 
     // Saving the timesum
