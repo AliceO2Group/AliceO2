@@ -184,10 +184,13 @@ void Patches::updateADC()
     double integralADCnew = 0;
     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
       auto elem = mFastOrs[FastOrs].mADCvalues;
-      if (elem.size() == 0)
+      if (elem.size() == 0){
+        LOG(info) << "DIG SIMONE updateADC in Patches: elem.size() == 0 ";
         continue;
+      }  
       auto it = elem.end() - 1;
       auto pointedvalue = *it;
+      LOG(info) << "DIG SIMONE updateADC in Patches: pointedvalue = " << pointedvalue;
       integralADCnew += pointedvalue;
     }
     LOG(info) << "DIG SIMONE updateADC in Patches: integralADCnew = " << integralADCnew;
