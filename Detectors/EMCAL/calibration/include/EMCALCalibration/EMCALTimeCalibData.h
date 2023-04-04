@@ -45,18 +45,23 @@ class EMCALTimeCalibData
 {
  public:
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
 
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
 
   EMCALTimeCalibData()
   {
-    // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    int nBins = EMCALCalibParams::Instance().nBinsTimeAxis_tc;
-    int minValTime = EMCALCalibParams::Instance().minValueTimeAxis_tc;
-    int maxValTime = EMCALCalibParams::Instance().maxValueTimeAxis_tc;
-    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, minValTime, maxValTime, "t (ns)"), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5, "CELL ID"));
+    std::vector<double> binEdgesCells;
+    for (int i = 0; i <= NCELLS; i++) {
+      binEdgesCells.push_back(i);
+    }
+    std::vector<double> binEdgesTime;
+    for (int i = 0; i <= EMCALCalibParams::Instance().nBinsTimeAxis_tc; i++) {
+      binEdgesTime.push_back(EMCALCalibParams::Instance().minValueTimeAxis_tc + (static_cast<double>(i) * std::abs(EMCALCalibParams::Instance().maxValueTimeAxis_tc - EMCALCalibParams::Instance().minValueTimeAxis_tc)) / EMCALCalibParams::Instance().nBinsTimeAxis_tc);
+    }
+    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesTime), boost::histogram::axis::variable<>(binEdgesCells));
+
     LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
@@ -89,6 +94,9 @@ class EMCALTimeCalibData
   /// \brief Get current histogram
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
+
+  /// \brief Set new calibration histogram
+  void setHisto(boostHisto hist) { mTimeHisto = hist; }
 
   void PrintStream(std::ostream& stream) const;
 

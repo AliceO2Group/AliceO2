@@ -64,13 +64,18 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams>>();
       }
       mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
-
+      mTimeCalibrator->setSavedSlotAllowed(EMCALCalibParams::Instance().setSavedSlotAllowed_EMC);
+      mTimeCalibrator->setLoadAtSOR(EMCALCalibParams::Instance().setSavedSlotAllowedSOR_EMC);
+      mTimeCalibrator->setSaveFileName("emc-time-calib.root");
     } else { // bad cell calibration
       isBadChannelCalib = true;
       if (!mBadChannelCalibrator) {
         mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>>();
       }
       mBadChannelCalibrator->SetCalibExtractor(mCalibExtractor);
+      mBadChannelCalibrator->setSavedSlotAllowed(EMCALCalibParams::Instance().setSavedSlotAllowed_EMC);
+      mBadChannelCalibrator->setLoadAtSOR(EMCALCalibParams::Instance().setSavedSlotAllowedSOR_EMC);
+      mBadChannelCalibrator->setSaveFileName("emc-channel-calib.root");
     }
   }
 
@@ -123,6 +128,15 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       mIsConfigured = true;
     }
 
+    // reset EOR behaviour
+    if (mTimeCalibrator) {
+      if (mTimeCalibrator->getSaveAtEOR())
+        mTimeCalibrator->setSaveAtEOR(false);
+    } else if (mBadChannelCalibrator) {
+      if (mBadChannelCalibrator->getSaveAtEOR())
+        mBadChannelCalibrator->setSaveAtEOR(false);
+    }
+
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
@@ -160,6 +174,28 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         }
       }
     }
+    static bool firstCall = true;
+    if (firstCall) {
+      firstCall = false;
+      if (mTimeCalibrator) {
+        mTimeCalibrator->loadSavedSlot();
+      } else if (mBadChannelCalibrator) {
+        mBadChannelCalibrator->loadSavedSlot();
+      }
+    }
+
+    if (pc.transitionState() == TransitionHandlingState::Requested) {
+      LOG(debug) << "Run stop requested, finalizing";
+      // mRunStopRequested = true;
+      if (isBadChannelCalib) {
+        mBadChannelCalibrator->setSaveAtEOR(true);
+        mBadChannelCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+      } else {
+        mTimeCalibrator->setSaveAtEOR(true);
+        mTimeCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+      }
+    }
+
     if (isBadChannelCalib) {
       sendOutput<o2::emcal::BadChannelMap>(pc.outputs());
     } else {
@@ -174,9 +210,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     if (isBadChannelCalib) {
+      mBadChannelCalibrator->setSaveAtEOR(true);
       mBadChannelCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
       sendOutput<o2::emcal::BadChannelMap>(ec.outputs());
     } else {
+      mTimeCalibrator->setSaveAtEOR(true);
       mTimeCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
       sendOutput<o2::emcal::TimeCalibrationParams>(ec.outputs());
     }
