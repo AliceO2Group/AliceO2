@@ -39,11 +39,13 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
     return false;
   } else if (TimeSums[0] < TimeSums[1] && TimeSums[1] < TimeSums[2] && TimeSums[2] >= TimeSums[3]) {
     trendOfDigitsInTower = true;
+    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: trendOfDigitsInTower = true";
   }
   double integralOfADCvalues = 0;
   for (auto it = TimeSums.begin(); it != TimeSums.end(); it++) {
     integralOfADCvalues += *it;
   }
+  LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: integralOfADCvalues = " << integralOfADCvalues;
   bool peakOverThreshold = false;
   if (integralOfADCvalues > mThreshold && trendOfDigitsInTower) {
     peakOverThreshold = true;
@@ -185,12 +187,12 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeakCurrentTRU = " << foundPeakCurrentTRU;
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeakCurrentTRU = " << foundPeakCurrentTRU;
       if (foundPeakCurrentTRU)
         foundPeak = true;
     }
 
-
+    LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << mFiredPatches.size();
     LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
     LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
     EMCALTriggerInputs TriggerInputsForL1;
