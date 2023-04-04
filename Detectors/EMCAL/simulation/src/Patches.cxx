@@ -118,24 +118,36 @@ void Patches::assignModulesToAllPatches()
   if (mWhichSuperModuleSize == 0) {
     // Full Size
     for (int i = 0; i < 77; i++) {
-      std::get<0>(mIndexMapPatch[i]) = i;
-      std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
-      std::get<0>(mADCvalues[i]) = i;
-      std::get<0>(mPreviousTimebinADCvalue[i]) = i;
+      // std::get<0>(mIndexMapPatch[i]) = i;
+      // std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
+      // std::get<0>(mADCvalues[i]) = i;
+      // std::get<0>(mPreviousTimebinADCvalue[i]) = i;
+      auto& mIndexMapPatchID            = std::get<0>(mIndexMapPatch[i]);
+      auto& mFiredFastOrIndexMapPatchID = std::get<0>(mFiredFastOrIndexMapPatch[i]);
+      auto& mADCvaluesID                = std::get<0>(mADCvalues[i]);
+      auto& mPreviousTimebinADCvalueID  = std::get<0>(mPreviousTimebinADCvalue[i]);
+      mIndexMapPatchID            = i;
+      mFiredFastOrIndexMapPatchID = i;
+      mADCvaluesID                = i;
+      mPreviousTimebinADCvalueID  = i;
       int SeedID = std::get<1>(mPatchIDSeedFastOrIDs[i]);
       // assigning a square
       if (mWhichSide == 0) {
         // A side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 8);
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            IndexMapPatch.push_back(SeedID + k + l * 8);
+            // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 8);
           }
         }
       } else if (mWhichSide == 1) {
         // C side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            IndexMapPatch.push_back(SeedID - k - l * 8);
+            // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
         }
       }
@@ -143,24 +155,36 @@ void Patches::assignModulesToAllPatches()
   } else if (mWhichSuperModuleSize == 1) {
     // One third Size
     for (int i = 0; i < 69; i++) {
-      std::get<0>(mIndexMapPatch[i]) = i;
-      std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
-      std::get<0>(mADCvalues[i]) = i;
-      std::get<0>(mPreviousTimebinADCvalue[i]) = i;
+      // std::get<0>(mIndexMapPatch[i]) = i;
+      // std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
+      // std::get<0>(mADCvalues[i]) = i;
+      // std::get<0>(mPreviousTimebinADCvalue[i]) = i;
+      auto& mIndexMapPatchID            = std::get<0>(mIndexMapPatch[i]);
+      auto& mFiredFastOrIndexMapPatchID = std::get<0>(mFiredFastOrIndexMapPatch[i]);
+      auto& mADCvaluesID                = std::get<0>(mADCvalues[i]);
+      auto& mPreviousTimebinADCvalueID  = std::get<0>(mPreviousTimebinADCvalue[i]);
+      mIndexMapPatchID            = i;
+      mFiredFastOrIndexMapPatchID = i;
+      mADCvaluesID                = i;
+      mPreviousTimebinADCvalueID  = i;
       int SeedID = std::get<1>(mPatchIDSeedFastOrIDs[i]);
       // assigning a square
       if (mWhichSide == 0) {
         // A side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 24);
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            IndexMapPatch.push_back(SeedID + k + l * 24);
+            // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 24);
           }
         }
       } else if (mWhichSide == 1) {
         // C side
         for (int k = 0; k < mPatchSize; k++) {   // row advancement
           for (int l = 0; l < mPatchSize; l++) { // column advancement
-            (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
+            auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i])
+            IndexMapPatch.push_back(SeedID - k - l * 8);
+            // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
         }
       }
