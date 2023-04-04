@@ -198,6 +198,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         int whichFastOr = 0;
         for (auto& fastor : patches.mFastOrs) {
           LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
+          LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
           TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
           whichFastOr++;
         }
