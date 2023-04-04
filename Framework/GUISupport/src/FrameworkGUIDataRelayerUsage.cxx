@@ -13,6 +13,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataProcessingStates.h"
 #include "PaletteHelpers.h"
 #include "Framework/Logger.h"
 #include <iostream>
@@ -95,10 +96,10 @@ struct HeatMapHelper {
 
 void displayDataRelayer(DeviceMetricsInfo const& metrics,
                         DeviceInfo const& info,
+                        DataProcessingStates const& states,
                         ImVec2 const& size)
 {
   auto& viewIndex = info.dataRelayerViewIndex;
-  auto& variablesIndex = info.variablesViewIndex;
 
   auto getNumRecords = [&viewIndex]() -> size_t {
     if (viewIndex.isComplete()) {
@@ -158,32 +159,35 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     }
     return SLOT_ERROR;
   };
-  auto describeCell = [&metrics, &variablesIndex](int input, int slot) -> void {
+  auto describeCell = [&states](int input, int slot) -> void {
     ImGui::BeginTooltip();
     ImGui::Text("Input query matched values for slot: %d", slot);
-    for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
-      auto idx = (slot * variablesIndex.w) + vi;
-      assert(idx < variablesIndex.indexes.size());
-      MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];
-      assert(metricInfo.storeIdx < metrics.stringMetrics.size());
-      auto& data = metrics.stringMetrics[metricInfo.storeIdx];
-      char const* value = data[(metricInfo.pos - 1) % data.size()].data;
-      if (strncmp("null", value, 4) == 0) {
+    auto& view = states.statesViews[(short)ProcessingStateId::CONTEXT_VARIABLES_BASE + (short)slot];
+    auto begin = view.first;
+    for (size_t vi = 0; vi < data_matcher::MAX_MATCHING_VARIABLE; ++vi) {
+      std::string_view state(states.statesBuffer.data() + begin, view.size);
+      // find the semi-colon, which separates entries in the variable list
+      auto pos = state.find(';');
+      std::string_view value = state.substr(0, pos);
+      // Do not display empty values.
+      if (value.empty()) {
+        begin += 1;
         continue;
       }
       switch (vi) {
         case o2::framework::data_matcher::STARTTIME_POS:
-          ImGui::Text("$%zu (startTime): %s", vi, value);
+          ImGui::Text("$%zu (startTime): %.*s", vi, (int)value.size(), value.data());
           break;
         case o2::framework::data_matcher::TFCOUNTER_POS:
-          ImGui::Text("$%zu (tfCounter): %s", vi, value);
+          ImGui::Text("$%zu (tfCounter): %.*s", vi, (int)value.size(), value.data());
           break;
         case o2::framework::data_matcher::FIRSTTFORBIT_POS:
-          ImGui::Text("$%zu (firstTForbit): %s", vi, value);
+          ImGui::Text("$%zu (firstTForbit): %.*s", vi, (int)value.size(), value.data());
           break;
         default:
-          ImGui::Text("$%zu: %s", vi, value);
+          ImGui::Text("$%zu: %.*s", vi, (int)value.size(), value.data());
       }
+      begin += pos + 1;
     }
     ImGui::EndTooltip();
   };

@@ -46,6 +46,7 @@
 #include "Framework/DeviceContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StreamContext.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -1299,7 +1300,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
-    static int pipelineLength = DataRelayer::getPipelineLength();
+    static int pipelineLength = DefaultsHelpers::pipelineLength();
     static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : std::max(8, std::min(pipelineLength - 48, pipelineLength / 2));
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;

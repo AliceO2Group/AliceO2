@@ -42,6 +42,7 @@ o2_add_library(Framework
                        src/DataSender.cxx
                        src/DataProcessingStats.cxx
                        src/DataProcessingStates.cxx
+                       src/DefaultsHelpers.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx

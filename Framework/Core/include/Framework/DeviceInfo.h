@@ -71,8 +71,6 @@ struct DeviceInfo {
   std::string deviceState;
   /// Index for a particular relayer.
   Metric2DViewIndex dataRelayerViewIndex;
-  /// Index for the variables of a given relayer.
-  Metric2DViewIndex variablesViewIndex;
   /// Index for the metrics to be displayed associated to
   /// each input channel of the device.
   Metric2DViewIndex inputChannelMetricsViewIndex;

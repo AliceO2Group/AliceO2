@@ -42,6 +42,7 @@
 #include "Framework/StreamContext.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceConfig.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
@@ -160,12 +161,6 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
     .kind = ServiceKind::Stream};
 }
 
-o2::framework::DeploymentMode o2::framework::CommonServices::getDeploymentMode()
-{
-  static DeploymentMode retVal = getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (getenv("ALICE_O2_FST") ? DeploymentMode::FST : (DeploymentMode::Local))));
-  return retVal;
-}
-
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
@@ -188,7 +183,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
 
-      context.deploymentMode = getDeploymentMode();
+      context.deploymentMode = DefaultsHelpers::deploymentMode();
 
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
@@ -977,7 +972,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 
   std::string loadableServicesStr;
   // Do not load InfoLogger by default if we are not at P2.
-  DeploymentMode deploymentMode = getDeploymentMode();
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }

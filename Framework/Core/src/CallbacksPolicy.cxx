@@ -16,6 +16,7 @@
 #include "Framework/Logger.h"
 #include "Framework/CommonServices.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 #include <cstdlib>
 #include <uv.h>
 
@@ -30,7 +31,7 @@ CallbacksPolicy epnProcessReporting()
 {
   return {
     .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
-      static bool report = CommonServices::getDeploymentMode() == DeploymentMode::OnlineDDS || (getenv("DPL_REPORT_PROCESSING") != nullptr && atoi(getenv("DPL_REPORT_PROCESSING")));
+      static bool report = DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || (getenv("DPL_REPORT_PROCESSING") != nullptr && atoi(getenv("DPL_REPORT_PROCESSING")));
       return report;
     },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
