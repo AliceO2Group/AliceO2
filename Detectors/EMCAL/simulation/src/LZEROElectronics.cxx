@@ -227,6 +227,8 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     }
 
 
+    mTriggers.clear();
+    mTriggersPatch.clear();
     mTriggers.push_back(TriggerInputsForL1);
     mTriggersPatch.push_back(TriggerInputsPatch);
   }
