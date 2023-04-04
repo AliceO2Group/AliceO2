@@ -111,24 +111,24 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
         int linkID = o2::raw::RDHUtils::getLinkID(rdhPtr);
         LOG(info) << count << " ZDCRawParserDPLSpec::run: fmt=" << dataFormat << " size=" << it.size() << " link=" << linkID;
 #endif
-        if(dataFormat==2){
-          for (int32_t ip = 0; (ip+PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
+        if (dataFormat == 2) {
+          for (int32_t ip = 0; (ip + PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
             // Assign only the actual payload
             uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
-            memcpy((void *)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
+            memcpy((void*)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
 #ifdef O2_ZDC_DEBUG
             o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)gbtw);
 #endif
-            if(gbtw[0]!=0xffffffff && gbtw[1]!=0xffffffff && (gbtw[2]&0xffff)!=0xffff){
+            if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (gbtw[2] & 0xffff) != 0xffff) {
               mWorker.processWord(gbtw);
             }
           }
-        }else if(dataFormat==0){
+        } else if (dataFormat == 0) {
           for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
             // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
             mWorker.processWord((const uint32_t*)&payload[ip]);
           }
-        }else{
+        } else {
           LOG(error) << "ZDCDataReaderDPLSpec::run - Unsupported DataFormat " << dataFormat;
         }
       }

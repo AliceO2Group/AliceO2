@@ -136,7 +136,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     for (int ibc = 0; ibc < mNbc; ibc++) {
       mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
-        writeDigits();
+      writeDigits();
       // Detect last event or orbit change and insert last bunch
       if (ibc == (mNbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
@@ -497,10 +497,10 @@ void Digits2Raw::writeDigits()
         uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            if(mEnablePadding){
+            if (mEnablePadding) {
               gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
               mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
-            }else{
+            } else {
               gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), PayloadPerGBTW};
               o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&mZDC.data[im][ic].w[iw][0]);
               mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
@@ -569,9 +569,9 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   uint32_t a = word[0];
   uint32_t b = word[1];
   uint32_t c = word[2];
-  //uint32_t d=(msb>>32)&0xffffffff;
-  //printf("\n%016llx %016llx ",lsb,msb);
-  //printf("\nGBTW: %08x %08x %08x %08x\n",d,c,b,a);
+  // uint32_t d=(msb>>32)&0xffffffff;
+  // printf("\n%016llx %016llx ",lsb,msb);
+  // printf("\nGBTW: %08x %08x %08x %08x\n",d,c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;

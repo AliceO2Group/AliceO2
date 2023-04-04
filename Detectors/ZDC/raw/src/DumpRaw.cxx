@@ -80,7 +80,7 @@ void DumpRaw::init()
   auto& sopt = ZDCSimParam::Instance();
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = 2 * NTimeBinsPerBC - 0.5;
-  int nbx = std::round(xmax-xmin);
+  int nbx = std::round(xmax - xmin);
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
@@ -255,7 +255,7 @@ int DumpRaw::processWord(const uint32_t* word)
     mCh.f.fixed_2 = Id_wn;
   } else {
     // Word not present in payload
-    LOGF(fatal, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0]&0x3);
+    LOGF(fatal, "Event format error on word %08x %08x %08x %08x id=%u", word[3], word[2], word[1], word[0], word[0] & 0x3);
     return 1;
   }
   return 0;
