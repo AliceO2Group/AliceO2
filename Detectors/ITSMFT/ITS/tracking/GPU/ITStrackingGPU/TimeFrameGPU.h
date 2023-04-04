@@ -138,6 +138,11 @@ class GpuTimeFrameChunk
   std::array<int*, nLayers - 3> mNeighboursCellDevice;
   std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;
 
+  // These are to make them accessible using layer index
+  Cell** mCellsDeviceArray;
+  int** mNeighboursCellDeviceArray;
+  int** mNeighboursCellLookupTablesDeviceDeviceArray;
+
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
   int* mNFoundCellsDevice;
