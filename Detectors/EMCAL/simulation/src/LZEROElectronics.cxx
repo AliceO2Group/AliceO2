@@ -185,15 +185,19 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before updatePatchesADC";
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeakCurrentTRU = " << foundPeakCurrentTRU;
       if (foundPeakCurrentTRU)
         foundPeak = true;
     }
 
+
+    LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
     LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;
       int whichTRU = 0;
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
       for (auto& patches : patchesFromAllTRUs) {
         int whichFastOr = 0;
         for (auto& fastor : patches.mFastOrs) {
