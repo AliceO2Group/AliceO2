@@ -711,8 +711,9 @@ DECLARE_SOA_TABLE(CPVClusters, "AOD", "CPVCLUSTER", //! CPV clusters
                   cpvcluster::ModuleNumber<cpvcluster::ClusterStatus>, cpvcluster::IsUnfolded<cpvcluster::ClusterStatus>);
 using CPVCluster = CPVClusters::iterator;
 
-namespace zdc_000 // needed to have the new dynamic columns with the same name
+namespace zdc // Original ZDC table elements (legacy/000)
 {
+DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index, to be used by both legacy and new table
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -730,9 +731,8 @@ DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
 } // namespace zdc_000
-namespace zdc
+namespace zdc_001 // Revised table, required for dynamic in-place replacements
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
 // New summarized table, minimal disk footprint, per channel like other detectors
 DECLARE_SOA_COLUMN(Energy, energy, std::vector<float>);       //! Energy of non-zero channels. The channel IDs are given in ChannelE (at the same index)
 DECLARE_SOA_COLUMN(ChannelE, channelE, std::vector<uint8_t>); //! Channel IDs which have reconstructed energy. There are at maximum 26 channels.
@@ -1019,24 +1019,24 @@ DECLARE_SOA_DYNAMIC_COLUMN(AmplitudeZPC, amplitudeZPC, //! return ZPC amplitude
 } // namespace zdc
 
 DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
-                  o2::soa::Index<>, zdc::BCId, zdc_000::EnergyZEM1, zdc_000::EnergyZEM2,
-                  zdc_000::EnergyCommonZNA, zdc_000::EnergyCommonZNC, zdc_000::EnergyCommonZPA, zdc_000::EnergyCommonZPC,
-                  zdc_000::EnergySectorZNA, zdc_000::EnergySectorZNC, zdc_000::EnergySectorZPA, zdc_000::EnergySectorZPC,
-                  zdc_000::TimeZEM1, zdc_000::TimeZEM2, zdc_000::TimeZNA, zdc_000::TimeZNC, zdc_000::TimeZPA, zdc_000::TimeZPC);
+                  o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
+                  zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
+                  zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
+                  zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
 
 DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, version 1, std::vector format
-                            o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT,
-                            zdc::EnergyZEM1<zdc::ChannelE, zdc::Energy>, zdc::EnergyZEM2<zdc::ChannelE, zdc::Energy>,
-                            zdc::EnergyCommonZNA<zdc::ChannelE, zdc::Energy>, zdc::EnergyCommonZNC<zdc::ChannelE, zdc::Energy>,
-                            zdc::EnergyCommonZPA<zdc::ChannelE, zdc::Energy>, zdc::EnergyCommonZPC<zdc::ChannelE, zdc::Energy>,
-                            zdc::EnergySectorZNA<zdc::ChannelE, zdc::Energy>, zdc::EnergySectorZNC<zdc::ChannelE, zdc::Energy>,
-                            zdc::EnergySectorZPA<zdc::ChannelE, zdc::Energy>, zdc::EnergySectorZPC<zdc::ChannelE, zdc::Energy>,
-                            zdc::TimeZEM1<zdc::ChannelT, zdc::Time>, zdc::TimeZEM2<zdc::ChannelT, zdc::Time>,
-                            zdc::TimeZNA<zdc::ChannelT, zdc::Time>, zdc::TimeZNC<zdc::ChannelT, zdc::Time>,
-                            zdc::TimeZPA<zdc::ChannelT, zdc::Time>, zdc::TimeZPC<zdc::ChannelT, zdc::Time>,
-                            zdc::AmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>,
-                            zdc::AmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZNC<zdc::ChannelT, zdc::Amplitude>,
-                            zdc::AmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::AmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
+                            o2::soa::Index<>, zdc::BCId, zdc_001::Energy, zdc_001::ChannelE, zdc_001::Amplitude, zdc_001::Time, zdc_001::ChannelT,
+                            zdc_001::EnergyZEM1<zdc_001::ChannelE, zdc_001::Energy>, zdc_001::EnergyZEM2<zdc_001::ChannelE, zdc_001::Energy>,
+                            zdc_001::EnergyCommonZNA<zdc_001::ChannelE, zdc_001::Energy>, zdc_001::EnergyCommonZNC<zdc_001::ChannelE, zdc_001::Energy>,
+                            zdc_001::EnergyCommonZPA<zdc_001::ChannelE, zdc_001::Energy>, zdc_001::EnergyCommonZPC<zdc_001::ChannelE, zdc_001::Energy>,
+                            zdc_001::EnergySectorZNA<zdc_001::ChannelE, zdc_001::Energy>, zdc_001::EnergySectorZNC<zdc_001::ChannelE, zdc_001::Energy>,
+                            zdc_001::EnergySectorZPA<zdc_001::ChannelE, zdc_001::Energy>, zdc_001::EnergySectorZPC<zdc_001::ChannelE, zdc_001::Energy>,
+                            zdc_001::TimeZEM1<zdc_001::ChannelT, zdc_001::Time>, zdc_001::TimeZEM2<zdc_001::ChannelT, zdc_001::Time>,
+                            zdc_001::TimeZNA<zdc_001::ChannelT, zdc_001::Time>, zdc_001::TimeZNC<zdc_001::ChannelT, zdc_001::Time>,
+                            zdc_001::TimeZPA<zdc_001::ChannelT, zdc_001::Time>, zdc_001::TimeZPC<zdc_001::ChannelT, zdc_001::Time>,
+                            zdc_001::AmplitudeZEM1<zdc_001::ChannelT, zdc_001::Amplitude>, zdc_001::AmplitudeZEM2<zdc_001::ChannelT, zdc_001::Amplitude>,
+                            zdc_001::AmplitudeZNA<zdc_001::ChannelT, zdc_001::Amplitude>, zdc_001::AmplitudeZNC<zdc_001::ChannelT, zdc_001::Amplitude>,
+                            zdc_001::AmplitudeZPA<zdc_001::ChannelT, zdc_001::Amplitude>, zdc_001::AmplitudeZPC<zdc_001::ChannelT, zdc_001::Amplitude>); //
 #ifdef O2_ZDC_NEWDATAMODEL
 using Zdcs = Zdcs_001; //! new version
 #else
