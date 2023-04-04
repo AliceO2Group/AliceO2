@@ -802,11 +802,8 @@ void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
 void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool mc)
 {
   strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("strangetracks"), STRACK);
-  // pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref"), PVTX_TRMTCREFS);
-
-  if (mc && !strkPool.isLoaded(STRACK_MC)) { // in case was loaded via addPVerticesTMP
-    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("strack_mc"), STRACK_MC);
-    // }
+  if (mc) {
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("strack_mc"), STRACK_MC);
   }
 }
 
