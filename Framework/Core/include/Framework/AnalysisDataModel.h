@@ -713,7 +713,7 @@ using CPVCluster = CPVClusters::iterator;
 
 namespace zdc // Original ZDC table elements (legacy/000)
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index, to be used by both legacy and new table
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index, to be used by both legacy and new table
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -730,7 +730,7 @@ DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
-} // namespace zdc_000
+} // namespace zdc
 namespace zdc_001 // Revised table, required for dynamic in-place replacements
 {
 // New summarized table, minimal disk footprint, per channel like other detectors
@@ -1016,7 +1016,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(AmplitudeZPC, amplitudeZPC, //! return ZPC amplitude
                              }
                              return thisamplitude;
                            });
-} // namespace zdc
+} // namespace zdc_001
 
 DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
