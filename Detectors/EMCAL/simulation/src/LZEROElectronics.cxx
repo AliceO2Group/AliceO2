@@ -45,7 +45,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
   for (auto it = TimeSums.begin(); it != TimeSums.end(); it++) {
     integralOfADCvalues += *it;
   }
-  LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: integralOfADCvalues = " << integralOfADCvalues;
+  if( integralOfADCvalues != 0 )LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: integralOfADCvalues = " << integralOfADCvalues;
   bool peakOverThreshold = false;
   if (integralOfADCvalues > mThreshold && trendOfDigitsInTower) {
     peakOverThreshold = true;
