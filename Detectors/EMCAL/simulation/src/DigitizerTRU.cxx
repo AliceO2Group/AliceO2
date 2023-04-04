@@ -326,8 +326,8 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
         // (*mDebugStream).GetFile()->cd();
         // (*mDebugStream) << "L0TimesumsPatch" 
         LOG(info) << "DIG SIMONE setEventTime in digitizer: before  GetFile()";
-        (*mDebugStream).GetFile()->cd();
-        (*mDebugStream) << "L0TimesumsPatch" 
+        (*mDebugStreamPatch).GetFile()->cd();
+        (*mDebugStreamPatch) << "L0TimesumsPatch" 
           << "WhichTRU=" << WhichTRU
           << "WhichPatch=" << WhichPatch
           << "PatchTimesum=" << PatchTimesum
