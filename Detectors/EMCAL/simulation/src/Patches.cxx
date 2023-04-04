@@ -177,9 +177,9 @@ void Patches::updateADC()
     if (ADCvalues.size() == 4) {
       std::get<1>(mPreviousTimebinADCvalue[PatchID]) = ADCvalues.front();
       ADCvalues.erase(ADCvalues.begin());
-      LOG(info) << "DIG SIMONE updateADC in Patches: size = 4";
+      // LOG(info) << "DIG SIMONE updateADC in Patches: size = 4";
     } else {
-      LOG(info) << "DIG SIMONE updateADC in Patches: size != 4";
+      // LOG(info) << "DIG SIMONE updateADC in Patches: size != 4";
     }
     double integralADCnew = 0;
     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
@@ -190,6 +190,7 @@ void Patches::updateADC()
       auto pointedvalue = *it;
       integralADCnew += pointedvalue;
     }
+    LOG(info) << "DIG SIMONE updateADC in Patches: integralADCnew = " << integralADCnew;
     ADCvalues.push_back(integralADCnew);
 
     // Saving the timesum
