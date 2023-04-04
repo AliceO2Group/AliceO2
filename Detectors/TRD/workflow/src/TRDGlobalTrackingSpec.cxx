@@ -122,10 +122,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     if (mWithPID) {
       mBase = getTRDPIDPolicy(mPolicy);
       mBase->init(pc);
-
-      // calibration
-      auto localGainPtr = pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors");
-      mBase->setLocalGainFactors(localGain);
+      mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
   }
 

@@ -75,7 +75,7 @@ class PIDBase
   std::array<float, constants::NCHARGES> correctCharges(const Tracklet64& trklt, const TrackTRD& trk) const noexcept;
 
   // correction factors
-  LocalGainFactor* mLocalGain; ///< local gain factors from krypton calibration
+  const LocalGainFactor* mLocalGain; ///< local gain factors from krypton calibration
 
   ClassDefNV(PIDBase, 1);
 };
