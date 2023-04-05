@@ -183,7 +183,7 @@ class AlignableVolume : public DOFSet
   void createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createAlignmenMatrix(TGeoHMatrix& alg) const;
-  void createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr) const;
+  void createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr, const TGeoHMatrix* envelopeDelta = nullptr) const;
   //
   void setSkip(bool v = true) { SetBit(kSkipBit, v); }
   bool getSkip() const { return TestBit(kSkipBit); }
@@ -196,6 +196,9 @@ class AlignableVolume : public DOFSet
   //
   bool ownsDOFID(int id) const;
   AlignableVolume* getVolOfDOFID(int id) const;
+  //
+  bool isDummyEnvelope() const { return mIsDummyEnvelope; }
+  void setDummyEnvelope(bool v = true) { mIsDummyEnvelope = v; }
   //
   bool isDummy() const { return mIsDummy; }
   void setDummy(bool v) { mIsDummy = v; }
@@ -228,6 +231,8 @@ class AlignableVolume : public DOFSet
   uint32_t mDOF = 0;        // pattern of DOFs
   uint32_t mDOFAsMeas = 0;  // consider DOF as measured with presigma error
   bool mIsDummy = false;    // placeholder (e.g. inactive), used to have the numbering corresponding to position in the container
+  bool mIsDummyEnvelope = false; // some volumes are dummy envelopes for their children
+  //
   char mNDOFGeomFree = 0;   // number of free geom degrees of freedom
   uint8_t mConstrChild = 0; // bitpattern for constraints on children corrections
   //

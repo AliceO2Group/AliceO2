@@ -22,6 +22,8 @@ o2_add_library(AlignmentWorkflow
                                      O2::DataFormatsTPC
                                      O2::DataFormatsTRD
                                      O2::DataFormatsTOF
+                                     O2::GPUTracking
+                                     O2::TPCCalibration
                                      ROOT::Core
                                      ROOT::Geom
                                      ROOT::MathCore

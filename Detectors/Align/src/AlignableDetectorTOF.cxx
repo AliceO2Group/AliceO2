@@ -47,6 +47,9 @@ void AlignableDetectorTOF::defineVolumes()
   //
   //  AddVolume( volTOF = new AlignableVolume("TOF") ); // no main volume, why?
   AlignableVolume* sect[NSect] = {};
+  AlignableVolume* volTOF = nullptr; // fictious envelope
+  addVolume(volTOF = new AlignableVolume("TOF_envelope", getDetLabel(), mController));
+  volTOF->setDummyEnvelope();
   //
   int cnt = 0;
   for (int isc = 0; isc < NSect; isc++) {
@@ -60,6 +63,7 @@ void AlignableDetectorTOF::defineVolumes()
       }
       if (!sect[isc]) {
         sect[isc] = new AlignableVolume(Form("TOF/sm%02d", isc), getNonSensLabel(isc), mController);
+        sect[isc]->setParent(volTOF);
       }
       strip->setParent(sect[isc]);
     } // strip

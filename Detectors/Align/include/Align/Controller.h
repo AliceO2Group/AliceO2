@@ -28,6 +28,8 @@
 #include "Align/AlignmentTrack.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
+#include "CorrectionMapsHelper.h"
 
 #include "Align/Millepede2Record.h"
 #include "Align/ResidualsController.h"
@@ -51,6 +53,9 @@
 #include <TTree.h>
 #include <TFile.h>
 #include "Align/Mille.h"
+#include "GPUO2Interface.h"
+#include "GPUParam.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 
 namespace o2
 {
@@ -77,7 +82,7 @@ class AlignableVolume;
 class AlignmentPoint;
 class ResidualsControllerFast;
 
-class Controller : public TObject
+class Controller final : public TObject
 {
  public:
   struct ProcStat {
@@ -260,12 +265,20 @@ class Controller : public TObject
   bool getTRDTrigRecFilterActive() const { return mTRDTrigRecFilterActive; }
   bool getAllowAfterburnerTracks() const { return mAllowAfterburnerTracks; }
 
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  o2::gpu::CorrectionMapsHelper* getTPCCorrMaps() { return mTPCCorrMapsHelper; }
+  const o2::tpc::VDriftCorrFact& getTPCVDrift() const { return mTPCDrift; }
+
   int getInstanceID() const { return mInstanceID; }
   void setInstanceID(int i) { mInstanceID = i; }
 
   int getDebugOutputLevel() const { return mDebugOutputLevel; }
   void setDebugOutputLevel(int i) { mDebugOutputLevel = i; }
   void setDebugStream(o2::utils::TreeStreamRedirector* d) { mDBGOut = d; }
+
+  void setTPCParam(const o2::gpu::GPUParam* par) { mTPCParam = par; }
+  const o2::gpu::GPUParam* getTPCParam() const { return mTPCParam; }
 
  protected:
   //
@@ -293,6 +306,9 @@ class Controller : public TObject
   const o2::trd::TrackletTransformer* mTRDTransformer = nullptr;  // TRD tracket transformer
   bool mTRDTrigRecFilterActive = false;                           // select TRD triggers processed with ITS
   bool mAllowAfterburnerTracks = false;                           // allow using ITS-TPC afterburner tracks
+
+  const o2::gpu::GPUParam* mTPCParam = nullptr;
+
   std::array<std::unique_ptr<AlignableDetector>, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
 
   std::unique_ptr<EventVertex> mVtxSens; // fake sensor for the vertex
@@ -333,6 +349,10 @@ class Controller : public TObject
   int mRefRunNumber = 0;    // optional run number used for reference
   int mRefOCDBLoaded = 0;   // flag/counter for ref.OCDB loading
   bool mUseRecoOCDB = true; // flag to preload reco-time calib objects
+
+  o2::tpc::VDriftCorrFact mTPCDrift{};
+  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+
   //
   static const int sSkipLayers[kNLrSkip];          // detector layers for which we don't need module matrices
   static const Char_t* sDetectorName[kNDetectors]; // names of detectors //RSREM
