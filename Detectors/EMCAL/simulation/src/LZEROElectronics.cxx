@@ -39,7 +39,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
     return false;
   } else if (TimeSums[0] < TimeSums[1] && TimeSums[1] < TimeSums[2] && TimeSums[2] >= TimeSums[3]) {
     trendOfDigitsInTower = true;
-    LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: trendOfDigitsInTower = true";
+    // LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: trendOfDigitsInTower = true";
   // } else {
   //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[0] = " << TimeSums[0];
   //   LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: TimeSums[1] = " << TimeSums[1];
@@ -50,7 +50,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
   for (auto it = TimeSums.begin(); it != TimeSums.end(); it++) {
     integralOfADCvalues += *it;
   }
-  if( integralOfADCvalues != 0 )LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: integralOfADCvalues = " << integralOfADCvalues;
+  // if( integralOfADCvalues != 0 )LOG(info) << "DIG SIMONE peakFinderOnPatch in LZEROElectronics: integralOfADCvalues = " << integralOfADCvalues;
   bool peakOverThreshold = false;
   if (integralOfADCvalues > mThreshold && trendOfDigitsInTower) {
     peakOverThreshold = true;
@@ -160,7 +160,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto whichFastOr = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[0] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[0]);
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[0] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[0]);
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[1] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[1]);
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[2] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[2]);
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
@@ -197,14 +197,14 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       auto firedPatches = getFiredPatches(patches);
-      if(firedPatches.size() != 0) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << firedPatches.size();
+      // if(firedPatches.size() != 0) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of mFiredPatched = " << firedPatches.size();
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeakCurrentTRU = " << foundPeakCurrentTRU;
       if (foundPeakCurrentTRU)
         foundPeak = true;
     }
 
-    LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
-    LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
+    if (foundPeak == true) LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
+    // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;
@@ -214,11 +214,11 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         if(whichTRU < 46){
         int whichFastOr = 0;
         for (auto& fastor : patches.mFastOrs) {
-          LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
+          // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
           // if ( fastor.timesum() != 0 )LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
-          LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
+          // LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
           TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
-          LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
+          // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
           whichFastOr++;
         }
         }
@@ -244,7 +244,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
           if( whichTRU == 30 || whichTRU == 31 || whichTRU == 44 || whichTRU == 45 ){
             if( whichPatch > 68) continue; 
           }
-          LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFwhichPatchastOr, CurrentPatchTimesum[3]) = " << whichTRU << ", " << whichPatch << ", " << CurrentPatchTimesum[3];
+          // LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFwhichPatchastOr, CurrentPatchTimesum[3]) = " << whichTRU << ", " << whichPatch << ", " << CurrentPatchTimesum[3];
           TriggerInputsPatch.mLastTimesumAllPatches.push_back(std::make_tuple(whichTRU, whichPatch, CurrentPatchTimesum[3], firedpatch ));
           whichPatch++;
         }
@@ -253,10 +253,17 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       }
     }
 
+    if( TriggerInputsForL1.mLastTimesumAllFastOrs.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  TriggerInputsForL1.mLastTimesumAllFastOrs = " << TriggerInputsForL1.mLastTimesumAllFastOrs.size();
+
 
     mTriggers.clear();
     mTriggersPatch.clear();
-    mTriggers.push_back(TriggerInputsForL1);
-    mTriggersPatch.push_back(TriggerInputsPatch);
+    if (foundPeak) {
+      mTriggers.push_back(TriggerInputsForL1);
+      mTriggersPatch.push_back(TriggerInputsPatch);
+    }
+
+    if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
+
   }
 }
