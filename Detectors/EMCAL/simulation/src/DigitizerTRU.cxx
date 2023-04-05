@@ -305,7 +305,7 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
     LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
     auto TriggerInputs        = (LZERO.getTriggerInputs()).back();
     auto TriggerInputsPatches = (LZERO.getTriggerInputsPatches()).back();
-    int nIter = TriggerInputs.size(); 
+    // int nIter = TriggerInputs.size(); 
     // for (int i = 0; i < nIter; i++)
     // {
     //   auto allfastOrs = TriggerInputs[i].mLastTimesumAllFastOrs;
@@ -327,14 +327,15 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
     //   LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
       
     // }
-    if(nIter != 0){
+    // if(nIter != 0){
     // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of TriggerInputs = " << nIter;
-    for (auto& trigger : TriggerInputs)
-    {
+    // for (auto& trigger : TriggerInputs)
+    // {
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  loop TriggerInputs";
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of TriggerInputs = " << TriggerInputs.size();
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of trigger.mLastTimesumAllFastOrs = " << trigger.mLastTimesumAllFastOrs.size();
-      for(auto& fastor : trigger.mLastTimesumAllFastOrs){
+      // for(auto& fastor : trigger.mLastTimesumAllFastOrs){
+      for(auto& fastor : TriggerInputs.mLastTimesumAllFastOrs){
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
         auto WhichTRU    = std::get<0>(fastor);
         auto WhichFastOr = std::get<1>(fastor);
@@ -348,14 +349,15 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
           << "\n";
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
       }
-    }
-    for (auto& trigger : TriggerInputsPatches)
-    {
+    // }
+    // for (auto& trigger : TriggerInputsPatches)
+    // {
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  lastTimeSum";
-      auto lastTimeSum  = trigger.mLastTimesumAllPatches.end()-1;
+      // auto lastTimeSum  = trigger.mLastTimesumAllPatches.end()-1;
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  loop";
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of trigger.mLastTimesumAllPatches = " << trigger.mLastTimesumAllPatches.size();
-      for(auto& patches : trigger.mLastTimesumAllPatches){
+      // for(auto& patches : trigger.mLastTimesumAllPatches){
+      for(auto& patches : TriggerInputsPatches.mLastTimesumAllPatches){
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
         auto WhichTRU     = std::get<0>(patches);
         auto WhichPatch   = std::get<1>(patches);
@@ -374,8 +376,8 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
           << "\n";
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE per patch";
       }
-    }
-    }
+    // }
+    // }
   }
 }
 //_______________________________________________________________________
