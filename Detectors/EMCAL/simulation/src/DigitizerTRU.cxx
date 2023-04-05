@@ -303,8 +303,8 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
 
   if (mEnableDebugStreaming) {
     LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
-    auto TriggerInputs        = LZERO.getTriggerInputs();
-    auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
+    auto TriggerInputs        = (LZERO.getTriggerInputs()).back();
+    auto TriggerInputsPatches = (LZERO.getTriggerInputsPatches()).back();
     int nIter = TriggerInputs.size(); 
     // for (int i = 0; i < nIter; i++)
     // {
