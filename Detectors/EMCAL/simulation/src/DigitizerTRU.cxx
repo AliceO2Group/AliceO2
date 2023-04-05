@@ -43,6 +43,13 @@ using namespace o2::emcal;
 void DigitizerTRU::init()
 {
   setPatches();
+  auto& patchTRU = patchesFromAllTRUs[10];
+  LOG(info) << "DIG SIMONE init in DigitizerTRU: mPatchIDSeedFastOrIDs[0] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[0]);
+  LOG(info) << "DIG SIMONE init in DigitizerTRU: mPatchIDSeedFastOrIDs[1] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[1]);
+  LOG(info) << "DIG SIMONE init in DigitizerTRU: mPatchIDSeedFastOrIDs[2] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[2]);
+
+
+
 
   mSimParam = &(o2::emcal::SimParam::Instance());
   mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
@@ -387,6 +394,21 @@ void DigitizerTRU::setPatches()
   FullCside.init();
   ThirdAside.init();
   ThirdCside.init();
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[0]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[1]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[2]);
+
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[0]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[1]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[2]);
+
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[0]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[1]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[2]);
+
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[0]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[1]);
+  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[2]);
 
   // EMCAL
   for (int i = 0; i < 5; i++) {

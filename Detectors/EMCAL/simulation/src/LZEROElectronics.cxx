@@ -89,7 +89,7 @@ void LZEROElectronics::clear()
 //________________________________________________________
 void LZEROElectronics::updatePatchesADC(Patches& p)
 {
-  LOG(info) << "DIG SIMONE updatePatchesADC in LZEROElectronics";
+  // LOG(info) << "DIG SIMONE updatePatchesADC in LZEROElectronics";
   p.updateADC();
 }
 //_______________________________________________________________________
@@ -160,6 +160,9 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto whichFastOr = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
+      LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[0] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[0]);
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[1] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[1]);
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: mPatchIDSeedFastOrIDs[2] = " << std::get<1>(patchTRU.mPatchIDSeedFastOrIDs[2]);
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRU = " << whichTRU;
       // LOG(info) << "DIG SIMONE fill in LZEROElectronics: whichTRwhichFastOrU = " << whichFastOr;
       if (patchTRU.mFastOrs.size() < 96) {
@@ -206,14 +209,18 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;
       int whichTRU = 0;
-      LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
+      // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
       for (auto& patches : patchesFromAllTRUs) {
+        if(whichTRU < 46){
         int whichFastOr = 0;
         for (auto& fastor : patches.mFastOrs) {
           LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
+          // if ( fastor.timesum() != 0 )LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
           LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFastOr, fastor.timesum()) = " << whichTRU << ", " << whichFastOr << ", " << fastor.timesum();
           TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
+          LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsForL1.mLastTimesumAllFastOrs";
           whichFastOr++;
+        }
         }
         whichTRU++;
       }
@@ -225,6 +232,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       TriggerInputsPatch.mInterRecord = record;
       int whichTRU = 0;
       for (auto& patches : patchesFromAllTRUs) {
+        if(whichTRU < 46){
         int whichPatch = 0;
         bool firedpatch = false;
         if(std::find(patches.mFiredPatches.begin(), patches.mFiredPatches.end(), whichPatch) != patches.mFiredPatches.end()){
@@ -232,9 +240,14 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         }  
         for (auto& patchTimeSums : patches.mTimesum) {
           auto& CurrentPatchTimesum = std::get<1>(patchTimeSums);
-          LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsPatch.mLastTimesumAllFastOrs";
+          // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before TriggerInputsPatch.mLastTimesumAllFastOrs";
+          if( whichTRU == 30 || whichTRU == 31 || whichTRU == 44 || whichTRU == 45 ){
+            if( whichPatch > 68) continue; 
+          }
+          LOG(info) << "DIG SIMONE fill in LZEROElectronics: (whichTRU, whichFwhichPatchastOr, CurrentPatchTimesum[3]) = " << whichTRU << ", " << whichPatch << ", " << CurrentPatchTimesum[3];
           TriggerInputsPatch.mLastTimesumAllPatches.push_back(std::make_tuple(whichTRU, whichPatch, CurrentPatchTimesum[3], firedpatch ));
           whichPatch++;
+        }
         }
         whichTRU++;
       }

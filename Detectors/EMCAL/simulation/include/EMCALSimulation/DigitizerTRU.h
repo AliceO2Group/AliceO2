@@ -106,6 +106,9 @@ class DigitizerTRU : public TObject
   /// Getter for debug mode
   bool isDebugMode() { return mEnableDebugStreaming; }
 
+  /// Getter for patches
+  std::vector<Patches> getPatchesVector() { return patchesFromAllTRUs; }
+
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
 
