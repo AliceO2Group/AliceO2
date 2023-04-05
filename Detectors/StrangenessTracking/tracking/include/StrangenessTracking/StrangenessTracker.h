@@ -202,14 +202,10 @@ class StrangenessTracker
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
 
-  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
+  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS& itsTrack)
   {
-    auto geom = o2::its::GeometryTGeo::Instance();
-    float alpha = geom->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
-    if (v0.rotate(alpha)) {
-      if (v0.propagateTo(x, mBz)) {
-        return v0.getPredictedChi2(ITStrack.getParamOut());
-      }
+    if (v0.rotate(itsTrack.getParamOut().getAlpha()) && v0.propagateTo(itsTrack.getX(), mBz)) {
+      return v0.getPredictedChi2(itsTrack.getParamOut());
     }
     return -100;
   };
