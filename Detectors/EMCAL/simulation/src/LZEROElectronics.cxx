@@ -256,8 +256,8 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     if( TriggerInputsForL1.mLastTimesumAllFastOrs.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  TriggerInputsForL1.mLastTimesumAllFastOrs = " << TriggerInputsForL1.mLastTimesumAllFastOrs.size();
 
 
-    mTriggers.clear();
-    mTriggersPatch.clear();
+    // mTriggers.clear();
+    // mTriggersPatch.clear();
     if (foundPeak) {
       mTriggers.push_back(TriggerInputsForL1);
       mTriggersPatch.push_back(TriggerInputsPatch);
