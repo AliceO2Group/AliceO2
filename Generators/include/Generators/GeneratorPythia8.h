@@ -77,6 +77,10 @@ class GeneratorPythia8 : public Generator
   {
     getNremn(mPythia.event, nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg);
   };
+  void getNfreeSpec(int& nFreenProj, int& nFreepProj, int& nFreenTarg, int& nFreepTarg)
+  {
+    getNfreeSpec(mPythia.info, nFreenProj, nFreepProj, nFreenTarg, nFreepTarg);
+  };
 
  protected:
   /** copy constructor **/
@@ -96,6 +100,7 @@ class GeneratorPythia8 : public Generator
   void getNpart(const Pythia8::Info& info, int& nPart);
   void getNpart(const Pythia8::Info& info, int& nProtonProj, int& nNeutronProj, int& nProtonTarg, int& nNeutronTarg);
   void getNremn(const Pythia8::Event& event, int& nProtonProj, int& nNeutronProj, int& nProtonTarg, int& nNeutronTarg);
+  void getNfreeSpec(const Pythia8::Info& info, int& nFreenProj, int& nFreepProj, int& nFreenTarg, int& nFreepTarg);
 
   /** Pythia8 **/
   Pythia8::Pythia mPythia; //!
