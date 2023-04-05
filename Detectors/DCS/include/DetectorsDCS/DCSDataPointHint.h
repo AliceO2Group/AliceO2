@@ -33,7 +33,7 @@ using HintType = std::variant<DataPointHint<double>,
                               DataPointHint<float>,
                               DataPointHint<uint32_t>,
                               DataPointHint<int32_t>,
-                              DataPointHint<char>,
+                              DataPointHint<short>,
                               DataPointHint<bool>,
                               DataPointHint<std::string>>;
 

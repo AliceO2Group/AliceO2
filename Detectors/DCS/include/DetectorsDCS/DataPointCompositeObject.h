@@ -225,7 +225,7 @@ struct alignas(128) DataPointCompositeObject final {
       double double_value;
       uint32_t uint_value;
       int32_t int_value;
-      char char_value;
+      short char_value;
       bool bool_value;
     } converter;
     converter.raw_data = dpcom.data.payload_pt1;

@@ -93,7 +93,7 @@ std::vector<o2::dcs::DataPointCompositeObject>
 // - float
 // - uint32_t
 // - int32_t
-// - char
+// - short
 // - bool
 //
 // - std::string
@@ -106,7 +106,7 @@ template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints
 
 template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<int32_t>(const std::vector<std::string>& aliases, int32_t minValue, int32_t maxValue, std::string);
 
-template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<char>(const std::vector<std::string>& aliases, char minValue, char maxValue, std::string);
+template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<short>(const std::vector<std::string>& aliases, short minValue, short maxValue, std::string);
 
 /** Need a specific specialization for bool as got into trouble compiling uniform_int_distribution<bool>
   * on some platform (e.g. CC7).

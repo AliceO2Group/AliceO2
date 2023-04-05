@@ -22,7 +22,7 @@ namespace o2::dcs
 * Generate random data points, uniformly distributed between two values.
 *
 * @tparam T the type of value of the data points to be generated. Only
-*  a few types are supported : double, float, uint32_t, int32_t, char, bool
+*  a few types are supported : double, float, uint32_t, int32_t, short, bool
 *
 * @param aliases the list of aliases to be generated. Those can use
 *   patterns that will be expanded, @see AliasExpander
