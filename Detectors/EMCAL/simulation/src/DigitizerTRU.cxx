@@ -335,18 +335,18 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of TriggerInputs = " << TriggerInputs.size();
       LOG(info) << "DIG SIMONE setEventTime in digitizer: size of trigger.mLastTimesumAllFastOrs = " << trigger.mLastTimesumAllFastOrs.size();
       for(auto& fastor : trigger.mLastTimesumAllFastOrs){
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
         auto WhichTRU    = std::get<0>(fastor);
         auto WhichFastOr = std::get<1>(fastor);
         auto FastOrAmp   = std::get<2>(fastor);
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: before filling";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: before filling";
         (*mDebugStream).GetFile()->cd();
         (*mDebugStream) << "L0Timesums" 
           << "WhichTRU=" << WhichTRU
           << "WhichFastOr=" << WhichFastOr
           << "FastOrAmp=" << FastOrAmp
           << "\n";
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE";
       }
     }
     for (auto& trigger : TriggerInputsPatches)
@@ -356,15 +356,15 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  loop";
       LOG(info) << "DIG SIMONE setEventTime in digitizer: size of trigger.mLastTimesumAllPatches = " << trigger.mLastTimesumAllPatches.size();
       for(auto& patches : trigger.mLastTimesumAllPatches){
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
         auto WhichTRU     = std::get<0>(patches);
         auto WhichPatch   = std::get<1>(patches);
         auto PatchTimesum = std::get<2>(patches);
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: before  isFired";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  isFired";
         auto isFired      = std::get<3>(patches);
         // (*mDebugStream).GetFile()->cd();
         // (*mDebugStream) << "L0TimesumsPatch" 
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: before  GetFile()";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  GetFile()";
         (*mDebugStreamPatch).GetFile()->cd();
         (*mDebugStreamPatch) << "L0TimesumsPatch" 
           << "WhichTRU=" << WhichTRU
@@ -372,7 +372,7 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
           << "PatchTimesum=" << PatchTimesum
           << "isFired=" << isFired
           << "\n";
-        LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE per patch";
+        // LOG(info) << "DIG SIMONE setEventTime in digitizer: fill TREE per patch";
       }
     }
     }
