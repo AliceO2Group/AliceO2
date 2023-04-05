@@ -264,6 +264,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
     }
 
     if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
+    // if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
 
   }
 }
