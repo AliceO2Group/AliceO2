@@ -163,10 +163,10 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     ncellsTrigger = 0;
   }
   LOG(debug) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", mSubspecification, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecification, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecification, o2::framework::Lifetime::Timeframe}, mOutputLabels);
+    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputLabels);
   }
 }
 
@@ -449,25 +449,25 @@ void CellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
   }
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC, bool useccdb, int outputSubspec)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC, bool useccdb, int inputSubspec, int outputSubspec)
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
-  inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", inputSubspec, o2::framework::Lifetime::Timeframe);
   if (useccdb) {
     inputs.emplace_back("EMC_RecoParam", o2::header::gDataOriginEMC, "RECOPARAM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("EMC/Config/RecoParam"));
   }
-  inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", inputSubspec, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "CELLS", outputSubspec, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "CELLSTRGR", outputSubspec, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
-    inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", outputSubspec, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", inputSubspec, o2::framework::Lifetime::Timeframe);
     outputs.emplace_back("EMC", "CELLSMCTR", outputSubspec, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"EMCALCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC, useccdb, outputSubspec),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC, useccdb, inputSubspec, outputSubspec),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}}}};
 }
