@@ -117,6 +117,7 @@ class LZEROElectronics
   /// Getter for the trigger inputs found by the LZERO algorithm
   const std::vector<EMCALTriggerInputs>& getTriggerInputs() const
   {
+    LOG(info) << "DIG SIMONE getTriggerInputs in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
     return mTriggers;
   }
 
