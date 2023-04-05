@@ -237,7 +237,7 @@ bool GeneratorFromO2Kine::importParticles()
       auto d2 = t.getLastDaughterTrackId();
       auto e = t.GetEnergy();
       auto vt = t.T();
-      auto weight = 1.; // p.GetWeight() ??
+      auto weight = t.getWeight();
       auto wanttracking = t.getToBeDone();
 
       if (mContinueMode) { // in case we want to continue, do only inhibited tracks
