@@ -62,6 +62,10 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
+    auto TriggerInputs        = LZERO.getTriggerInputs();
+    auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
+    int nIter = TriggerInputs.size(); 
+    LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
     //   LZERO.peakFinderOnAllPatches(patches);
@@ -91,6 +95,10 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
     // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
+    auto TriggerInputs        = LZERO.getTriggerInputs();
+    auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
+    int nIter = TriggerInputs.size(); 
+    LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
     //   LZERO.peakFinderOnAllPatches(patches);
