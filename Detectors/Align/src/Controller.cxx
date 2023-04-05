@@ -24,6 +24,7 @@
 #include "Align/AlignableDetectorITS.h"
 #include "Align/AlignableDetectorTRD.h"
 #include "Align/AlignableDetectorTOF.h"
+#include "Align/AlignableDetectorTPC.h"
 #include "Align/EventVertex.h"
 #include "Align/ResidualsControllerFast.h"
 #include "Align/GeometricalConstraint.h"
@@ -109,6 +110,9 @@ void Controller::init()
   }
   if (mDetMask[DetID::TRD]) {
     addDetector(new AlignableDetectorTRD(this));
+  }
+  if (mDetMask[DetID::TPC]) {
+    addDetector(new AlignableDetectorTPC(this));
   }
   if (mDetMask[DetID::TOF]) {
     addDetector(new AlignableDetectorTOF(this));
@@ -219,6 +223,17 @@ void Controller::process()
             continue;
           }
         }
+        if ((det = getDetector(DetID::TPC)) && contributorsGID[GIndex::TPC].isIndexSet()) {
+          float t0 = 0, t0err = 0;
+          mRecoData->getTrackTime(trackIndex, t0, t0err);
+          ((AlignableDetectorTPC*)det)->setTrackTimeStamp(t0);
+          npntDet = det->processPoints(contributorsGID[GIndex::TPC], false);
+          if (npntDet >= algConf.minTPCClusters) {
+            npnt += npntDet;
+            ndet++;
+          }
+        }
+
         if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false)) >= algConf.minTRDTracklets) {
           npnt += npntDet;
           ndet++;
@@ -1688,6 +1703,18 @@ void Controller::expandGlobalsBy(int n)
   mGloParErr.resize(snew);
   mGloParLab.resize(snew);
   mNDOFs += n;
+}
+
+//______________________________________________
+void Controller::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCDrift = v;
+}
+
+//______________________________________________
+void Controller::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+{
+  mTPCCorrMapsHelper = maph;
 }
 
 } // namespace align

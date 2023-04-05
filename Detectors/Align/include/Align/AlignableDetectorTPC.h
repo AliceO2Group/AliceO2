@@ -10,8 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   AlignableDetectorTPC.h
-/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
-/// @since  2021-02-01
+/// @author ruben.shahoyan@cern.ch
 /// @brief  TPC detector wrapper
 
 #ifndef ALIGNABLEDETECTORTPC_H
@@ -27,20 +26,22 @@ namespace align
 class AlignableDetectorTPC : public AlignableDetector
 {
  public:
-  AlignableDetectorTPC(const char* title = "");
-  virtual ~AlignableDetectorTPC();
   //
-  virtual void defineVolumes();
+  AlignableDetectorTPC() = default;
+  AlignableDetectorTPC(Controller* ctr);
+  ~AlignableDetectorTPC() final = default;
+  void defineVolumes() final;
+  void Print(const Option_t* opt = "") const final;
   //
-  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
-  //
+  int processPoints(GIndex gid, bool inv) final;
+
+  void setTrackTimeStamp(float t) { mTrackTimeStamp = t; }
+  float getTrackTimeStamp() const { return mTrackTimeStamp; }
+
  protected:
   //
-  // -------- dummies --------
-  AlignableDetectorTPC(const AlignableDetectorTPC&);
-  AlignableDetectorTPC& operator=(const AlignableDetectorTPC&);
-  //
- protected:
+  float mTrackTimeStamp = 0.f; // use track timestamp in \mus
+
   ClassDef(AlignableDetectorTPC, 1);
 };
 } // namespace align

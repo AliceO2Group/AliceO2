@@ -177,7 +177,7 @@ void AlignableDetector::defineMatrices()
   TIter next(&mVolumes);
   AlignableVolume* vol(nullptr);
   while ((vol = (AlignableVolume*)next())) {
-    if (vol->isDummy()) {
+    if (vol->isDummy() || vol->isDummyEnvelope()) {
       continue;
     }
     vol->prepareMatrixL2G();      // modified global-local matrix

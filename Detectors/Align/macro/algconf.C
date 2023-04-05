@@ -13,6 +13,7 @@
 #include "Align/Controller.h"
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableDetectorITS.h"
+#include "Align/AlignableDetectorTPC.h"
 #include "Align/AlignableDetectorTRD.h"
 #include "Align/AlignableDetectorTOF.h"
 #endif
@@ -21,6 +22,7 @@
 using namespace o2::align;
 
 void configITS(Controller* c, int par);
+void configTPC(Controller* c, int par);
 void configTRD(Controller* c, int par);
 void configTOF(Controller* c, int par);
 
@@ -30,6 +32,9 @@ int algconf(Controller* c, int par)
 
   if (c->getDetector(o2::detectors::DetID::ITS)) {
     configITS(c, par);
+  }
+  if (c->getDetector(o2::detectors::DetID::TPC)) {
+    configTPC(c, par);
   }
   if (c->getDetector(o2::detectors::DetID::TRD)) {
     configTRD(c, par);
@@ -100,6 +105,25 @@ void configITS(Controller* c, int par)
     vol->Print();
   }
   */
+}
+
+void configTPC(Controller* c, int par)
+{
+  const double kCondSig[AlignableVolume::kNDOFGeom] = {1., 1., 1., 1., 1., 1.}; // precondition sigmas
+  AlignableDetectorTPC* tpc = (AlignableDetectorTPC*)c->getDetector(o2::detectors::DetID::TPC);
+  if (!tpc) {
+    LOG(info) << "No TPC";
+    return;
+  }
+
+  tpc->setFreeDOFPattern(0, -1, "TPC/sec[0-9]+$"); // Fix sectors
+  auto tpcvol = tpc->getVolume("TPC_envelope");    // envelope
+  if (!tpcvol || !tpcvol->isDummyEnvelope()) {
+    LOG(fatal) << "Could not find TPC_envelope volume";
+  }
+  for (int idf = AlignableVolume::kNDOFGeom; idf--;) {
+    tpcvol->setParErr(idf, kCondSig[idf]); // set condition
+  }
 }
 
 void configTRD(Controller* c, int par)
