@@ -307,9 +307,9 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
     auto TriggerInputsPatchesAll = LZERO.getTriggerInputsPatches();
 
     std::vector<o2::emcal::EMCALTriggerInputs> TriggerInputs;
-    TriggerInputs.push_back(TriggerInputsAll.back());
+    if(TriggerInputsAll.size() > 0) TriggerInputs.push_back(TriggerInputsAll.back());
     std::vector<o2::emcal::EMCALTriggerInputsPatch> TriggerInputsPatches;
-    TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
+    if(TriggerInputsPatchesAll.size() > 0) TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
     int nIter = TriggerInputs.size(); 
 
     // for (int i = 0; i < nIter; i++)
