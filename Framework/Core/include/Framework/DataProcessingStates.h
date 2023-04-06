@@ -36,7 +36,8 @@ enum struct ProcessingStateId : short {
   DUMMY_STATE = 0,
   DATA_QUERIES = 1,
   OUTPUT_MATCHERS = 2,
-  CONTEXT_VARIABLES_BASE = 1024
+  CONTEXT_VARIABLES_BASE = 1024,
+  DATA_RELAYER_BASE = 1536
 };
 
 /// Helper struct to hold state of the data processing while it is running.

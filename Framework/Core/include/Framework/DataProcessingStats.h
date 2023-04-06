@@ -53,7 +53,6 @@ enum struct ProcessingStatsId : short {
   DROPPED_INCOMING_MESSAGES,
   RELAYED_MESSAGES,
   AVAILABLE_MANAGED_SHM_BASE = 512,
-  RELAYER_METRIC_BASE = 1024,
 };
 
 /// Helper struct to hold statistics about the data processing happening.

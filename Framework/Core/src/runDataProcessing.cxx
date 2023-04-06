@@ -350,7 +350,6 @@ void spawnRemoteDevice(uv_loop_t* loop,
     .maxLogLevel = LogParsingHelpers::LogLevel::Debug,
     .active = true,
     .readyToQuit = false,
-    .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
     .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
     .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
     .lastSignal = uv_hrtime() - 10000000};
@@ -721,7 +720,6 @@ void spawnDevice(uv_loop_t* loop,
                          .minFailureLevel = driverInfo.minFailureLevel,
                          .active = true,
                          .readyToQuit = false,
-                         .dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}},
                          .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
                          .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
                          .tracyPort = driverInfo.tracyPort,
@@ -745,10 +743,19 @@ void spawnDevice(uv_loop_t* loop,
     .sendInitialValue = true,
   });
 
-  for (size_t i = 0; i < 512; ++i) {
+  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
+      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+    });
+  }
+
+  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+    allStates.back().registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("data_relayer/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + i),
       .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
     });
