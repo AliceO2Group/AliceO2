@@ -108,9 +108,15 @@ bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
     }
 #endif
   } else { // link IR is behind the majority IR? In principle, this should never happen
-    LOGP(error, "{} (cable {}) has IR={} for current majority IR={}, discarding", link->describe(), cableHWID[icab], link->ir.asString(), ir.asString());
-    // clean data of cables of this link
+#ifdef _RAW_READER_ERROR_CHECKS_
+    link->statistics.errorCounts[GBTLinkDecodingStat::ErrOldROF]++;
     linkHBFToDump[(uint64_t(link->subSpec) << 32) + link->hbfEntry] = link->irHBF.orbit;
+    if (link->needToPrintError(link->statistics.errorCounts[GBTLinkDecodingStat::ErrOldROF])) {
+      LOGP(error, "{} (cable {}) has IR={} for current majority IR={} -> {}", link->describe(),
+           cableHWID[icab], link->ir.asString(), ir.asString(), link->statistics.ErrNames[GBTLinkDecodingStat::ErrOldROF]);
+    }
+#endif
+    // clean data of cables of this link
     for (int i = 0; i < ruInfo->nCables; i++) {
       if (cableLinkPtr[i] == link) {
         cableData[i].clear();
