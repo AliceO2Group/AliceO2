@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
+// #define O2_ZDC_NEWDATAMODEL -> commented for now
+
 #include "Framework/ASoA.h"
 #include <cmath>
 #include <bitset>
@@ -18,6 +20,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
+#include "CommonConstants/ZDCConstants.h"
 #include "SimulationDataFormat/MCGenStatus.h"
 
 using namespace o2::constants::math;
@@ -711,7 +714,7 @@ using CPVCluster = CPVClusters::iterator;
 
 namespace zdc
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index, to be used by both legacy and new table
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -728,13 +731,316 @@ DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
+// New summarized table, minimal disk footprint, per channel like other detectors
+DECLARE_SOA_COLUMN(Energy, energy, std::vector<float>);       //! Energy of non-zero channels. The channel IDs are given in ChannelE (at the same index)
+DECLARE_SOA_COLUMN(ChannelE, channelE, std::vector<uint8_t>); //! Channel IDs which have reconstructed energy. There are at maximum 26 channels.
+DECLARE_SOA_COLUMN(Amplitude, amplitude, std::vector<float>); //! Amplitudes of non-zero channels. The channel IDs are given in ChannelT (at the same index)
+DECLARE_SOA_COLUMN(Time, time, std::vector<float>);           //! Times of non-zero channels. The channel IDs are given in ChannelT (at the same index)
+DECLARE_SOA_COLUMN(ChannelT, channelT, std::vector<uint8_t>); //! Channel IDs which had non-zero amplitudes. There are at maximum 26 channels.
+// Dynamic columns to take into account packed information; replace old getters
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyZEM1, energyZEM1, //! return ZEM1 energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto ne = channelE.size();
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZEM1) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyZEM2, energyZEM2, //! return ZEM2 energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZEM2) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZNA, energyCommonZNA, //! return common ZNA energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNAC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZNC, energyCommonZNC, //! return common ZNC energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNCC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZPA, energyCommonZPA, //! return common ZPA energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPAC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZPC, energyCommonZPC, //! return common ZPC energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPCC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZNA, energySectorZNA, //! return sector ZNA energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNA1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZNC, energySectorZNC, //! return sector ZNC energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNC1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZPA, energySectorZPA, //! return sector ZPA energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPA1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZPC, energySectorZPC, //! return sector ZPC energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPC1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZEM1, timeZEM1, //! return ZEM1 time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM1) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZEM2, timeZEM2, //! return ZEM2 time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM2) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZNA, timeZNA, //! return ZNA time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNAC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZNC, timeZNC, //! return ZNC time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNCC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZPA, timeZPA, //! return ZPA time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPAC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZPC, timeZPC, //! return ZPC time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPCC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZEM1, amplitudeZEM1, //! return ZEM1 amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM1) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZEM2, amplitudeZEM2, //! return ZEM2 amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM2) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZNA, amplitudeZNA, //! return ZNA amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNAC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZNC, amplitudeZNC, //! return ZNC amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNCC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZPA, amplitudeZPA, //! return ZPA amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPAC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZPC, amplitudeZPC, //! return ZPC amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPCC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information
+DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
+
+// new version of tables: different names for dynamic columns, but same getters
+DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, version 1, std::vector format
+                            o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT,
+                            zdc::DyEnergyZEM1<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyZEM2<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergyCommonZNA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyCommonZNC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergyCommonZPA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyCommonZPC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergySectorZNA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergySectorZNC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergySectorZPA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergySectorZPC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyTimeZEM1<zdc::ChannelT, zdc::Time>, zdc::DyTimeZEM2<zdc::ChannelT, zdc::Time>,
+                            zdc::DyTimeZNA<zdc::ChannelT, zdc::Time>, zdc::DyTimeZNC<zdc::ChannelT, zdc::Time>,
+                            zdc::DyTimeZPA<zdc::ChannelT, zdc::Time>, zdc::DyTimeZPC<zdc::ChannelT, zdc::Time>,
+                            zdc::DyAmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>,
+                            zdc::DyAmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZNC<zdc::ChannelT, zdc::Amplitude>,
+                            zdc::DyAmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
+#ifdef O2_ZDC_NEWDATAMODEL
+using Zdcs = Zdcs_001; //! new version
+#else
+using Zdcs = Zdcs_000; //! old version
+#endif
 using Zdc = Zdcs::iterator;
 
 namespace fv0a
