@@ -194,8 +194,6 @@ class DataRelayer
   std::vector<PruneOp> mPruneOps;
   size_t mMaxLanes;
 
-  static std::vector<std::string> sMetricsNames;
-
   TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 

@@ -22,8 +22,7 @@ namespace o2::framework
 void ControlWebSocketHandler::frame(char const* frame, size_t s)
 {
   bool hasNewMetric = false;
-  std::array<Metric2DViewIndex*, 3> model = {&(*mContext.infos)[mIndex].dataRelayerViewIndex,
-                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
+  std::array<Metric2DViewIndex*, 2> model = {&(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
                                              &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex};
   auto updateMetricsViews = Metric2DViewIndex::getUpdater();
 

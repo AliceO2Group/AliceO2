@@ -48,7 +48,17 @@ void DataProcessingStates::processCommandQueue()
     // because the metrics are stored in reverse insertion order.
     if (generation > update.generation) {
       // If we have enough capacity, we reuse the buffer.
-      if (statesViews[id].capacity >= size) {
+      // If the size is the same, we  mark it as updated only if different.
+      if (statesViews[id].size == size) {
+        int diff = memcmp(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
+        if (diff) {
+          memcpy(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
+          updated[id] = true;
+          update.timestamp = timestamp;
+          update.generation = generation;
+          pushedMetricsLapse++;
+        }
+      } else if (statesViews[id].capacity >= size) {
         memcpy(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
         statesViews[id].size = size;
         updated[id] = true;
@@ -167,8 +177,9 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
     publish = true;
     assert(view.first + view.size <= statesBuffer.size());
     assert(view.first <= statesBuffer.size());
-    LOGP(debug, "Publishing invoked {} {}", view.first, view.size);
-    callback(spec.name.data(), update.timestamp, std::string_view(statesBuffer.data() + view.first, view.size));
+    auto msg = std::string_view(statesBuffer.data() + view.first, view.size);
+
+    callback(spec.name.data(), update.timestamp, msg);
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;

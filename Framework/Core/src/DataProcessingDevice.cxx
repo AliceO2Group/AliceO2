@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingStates.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
@@ -1981,13 +1982,16 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
 
   auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
     auto& stats = ref.get<DataProcessingStats>();
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    int written = snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = relayerSlotState + written;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 3 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
     uint64_t tEnd = uv_hrtime();
     stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
@@ -2001,14 +2005,16 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   };
 
   auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
-    auto& stats = ref.get<DataProcessingStats>();
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = strchr(relayerSlotState, ' ') + 1;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 2 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      buffer[ai] = record.isValid(ai) ? '2' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
   };
 
   // This is the main dispatching loop

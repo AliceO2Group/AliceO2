@@ -889,19 +889,13 @@ void DataRelayer::publishMetrics()
   // maybe misleading to have the allocation in a function primarily for
   // metrics publishing, do better in setPipelineLength?
   mCache.resize(numInputTypes * mTimesliceIndex.size());
-  auto& monitoring = mContext.get<monitoring::Monitoring>();
-  monitoring.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
-  monitoring.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
-  sMetricsNames.resize(mCache.size());
+  auto& states = mContext.get<DataProcessingStates>();
+
   mCachedStateMetrics.resize(mCache.size());
-  for (size_t i = 0; i < sMetricsNames.size(); ++i) {
-    sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
-  }
+
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
-
-  auto& states = mContext.get<DataProcessingStates>();
   for (size_t i = 0; i < mVariableContextes.size(); ++i) {
     states.registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
@@ -911,14 +905,11 @@ void DataRelayer::publishMetrics()
     });
   }
 
-  auto& stats = mContext.get<DataProcessingStats>();
-
-  for (int ci = 0; ci < mCache.size(); ci++) {
-    stats.registerMetric(DataProcessingStats::MetricSpec{
+  for (int ci = 0; ci < mTimesliceIndex.size(); ci++) {
+    states.registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("data_relayer/{}", ci),
-      .metricId = static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)ci),
-      .defaultValue = 0,
-      .minPublishInterval = 500,
+      .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + (short)ci),
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
     });
   }
@@ -957,17 +948,26 @@ void DataRelayer::sendContextState()
     sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
                                states);
   }
-  auto& stats = mContext.get<DataProcessingStats>();
-  for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    int value = static_cast<int>(mCachedStateMetrics[si]);
-    stats.updateStats({static_cast<unsigned short>((int)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
-    // Anything which is done is actually already empty,
-    // so after we report it we mark it as such.
-    if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
-      mCachedStateMetrics[si] = CacheEntryStatus::EMPTY;
+  char relayerSlotState[1024];
+  // The number of timeslices is encoded in each state
+  // We serialise the state of a Timeslot in a given state.
+  int written = snprintf(relayerSlotState, 1024, "%d ", (int)mTimesliceIndex.size());
+  char* buffer = relayerSlotState + written;
+  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+    for (size_t si = 0; si < mDistinctRoutesIndex.size(); ++si) {
+      int index = si * mTimesliceIndex.size() + ci;
+      int value = static_cast<int>(mCachedStateMetrics[index]);
+      buffer[si] = value + '0';
+      // Anything which is done is actually already empty,
+      // so after we report it we mark it as such.
+      if (mCachedStateMetrics[index] == CacheEntryStatus::DONE) {
+        mCachedStateMetrics[index] = CacheEntryStatus::EMPTY;
+      }
     }
+    buffer[mDistinctRoutesIndex.size()] = '\0';
+    auto size = (int)(buffer - relayerSlotState + mDistinctRoutesIndex.size());
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + ci), .size = size, .data = relayerSlotState});
   }
 }
 
-std::vector<std::string> DataRelayer::sMetricsNames;
 } // namespace o2::framework

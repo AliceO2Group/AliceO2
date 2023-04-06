@@ -69,8 +69,6 @@ struct DeviceInfo {
   /// Use fair::mq::GetState() to have the enum value.
   /// @return a string from one of fair::mq::GetStateName
   std::string deviceState;
-  /// Index for a particular relayer.
-  Metric2DViewIndex dataRelayerViewIndex;
   /// Index for the metrics to be displayed associated to
   /// each input channel of the device.
   Metric2DViewIndex inputChannelMetricsViewIndex;
