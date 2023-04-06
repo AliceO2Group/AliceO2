@@ -93,6 +93,8 @@ class StrangenessTracker
     mSortedITStracks.clear();
     mSortedITSindexes.clear();
     mITSvtxBrackets.clear();
+    mInputITSclusters.clear();
+    mInputClusterSizes.clear();
     if (mMCTruthON) {
       mStrangeTrackLabels.clear();
     }
