@@ -155,6 +155,7 @@ void MatchTPCITS::clear()
   mABTrackletClusterIDs.clear();
   mABTrackletLabels.clear();
   mTglITSTPC.clear();
+  mNMatchesControl = 0;
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
@@ -287,7 +288,7 @@ void MatchTPCITS::selectBestMatches()
   } while (nValidated);
 
   mTimer[SWSelectBest].Stop();
-  LOGP(info, "Validated {} matches for {} TPC and {} ITS tracks in {} iterations", nValidatedTotal, mTPCWork.size(), mITSWork.size(), iter);
+  LOGP(info, "Validated {} matches out of {} for {} TPC and {} ITS tracks in {} iterations", nValidatedTotal, mNMatchesControl, mTPCWork.size(), mITSWork.size(), iter);
 }
 
 //______________________________________________
@@ -852,6 +853,7 @@ void MatchTPCITS::doMatching(int sec)
               << " N TPC tracks checked: " << nCheckTPCControl << " (starting from " << idxMinTPC
               << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl;
   }
+  mNMatchesControl += nMatchesControl;
 }
 
 //______________________________________________
@@ -2231,11 +2233,12 @@ void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0 && mUseBCFilling) {
-    mUseBCFilling = false;
-    LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    if (mUseBCFilling) {
+      mUseBCFilling = false;
+      LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    }
     return;
   }
-  mUseBCFilling = true;
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
     if (bf.testBC(i)) {

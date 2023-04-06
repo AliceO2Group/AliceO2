@@ -601,6 +601,7 @@ class MatchTPCITS
   MCLabSpan mTPCTrkLabels;                    ///< input TPC Track MC labels
   /// <<<-----
 
+  size_t mNMatchesControl = 0;
   std::vector<InteractionCandidate> mInteractions;                     ///< possible interaction times
   std::vector<int> mInteractionMUSLUT;                                 ///< LUT for interactions in 1MUS bins
 
