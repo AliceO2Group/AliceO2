@@ -35,7 +35,8 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
   mInputITSclusters.reserve(compClus.size());
   mInputClusterSizes.resize(compClus.size());
   o2::its::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mDict);
-  getClusterSizes(mInputClusterSizes, compClus, pattIt, mDict);
+  auto pattIt2 = clusPatt.begin();
+  getClusterSizes(mInputClusterSizes, compClus, pattIt2, mDict);
 
   mITSvtxBrackets.resize(mInputITStracks.size());
   for (int i = 0; i < mInputITStracks.size(); i++) {
