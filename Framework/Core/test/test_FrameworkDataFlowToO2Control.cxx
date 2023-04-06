@@ -161,6 +161,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -250,6 +251,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -339,6 +341,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -427,6 +430,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:

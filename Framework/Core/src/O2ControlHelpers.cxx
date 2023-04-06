@@ -230,6 +230,8 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "env:\n";
   dumpOut << indLevel << indLevel << "- O2_DETECTOR={{ detector }}\n";
   dumpOut << indLevel << indLevel << "- O2_PARTITION={{ environment_id }}\n";
+  dumpOut << indLevel << indLevel << "- HOME=/tmp\n";
+
   // Dump all the environment variables
   for (auto& env : execution.environ) {
     dumpOut << indLevel << indLevel << "- " << env << "\n";
