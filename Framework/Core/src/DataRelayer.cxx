@@ -924,7 +924,7 @@ void DataRelayer::publishMetrics()
       .name = fmt::format("data_relayer/{}", ci),
       .metricId = static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)ci),
       .defaultValue = 0,
-      .minPublishInterval = 100,
+      .minPublishInterval = 500,
       .sendInitialValue = true,
     });
   }
