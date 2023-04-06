@@ -402,12 +402,12 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     // if the caClusterer is enabled, only one data set with the full TPC is produced, and the writer
     // is configured to write one single branch
     specs.push_back(makeWriterSpec(filteredInp ? "tpc-native-cluster-writer_filtered" : "tpc-native-cluster-writer",
-                                   (inputType == InputType::Clusters || inputType == InputType::PassThrough) ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
+                                   (inputType == InputType::Clusters || filteredInp) ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
-                                   BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", inputType == InputType::PassThrough ? o2::header::DataDescription("CLUSTERNATIVEF") : o2::header::DataDescription("CLUSTERNATIVE")}},
+                                   BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", filteredInp ? o2::header::DataDescription("CLUSTERNATIVEF") : o2::header::DataDescription("CLUSTERNATIVE")}},
                                                                  "TPCClusterNative",
                                                                  "databranch"},
-                                   BranchDefinition<std::vector<char>>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", inputType == InputType::PassThrough ? o2::header::DataDescription("CLNATIVEMCLBLF") : o2::header::DataDescription("CLNATIVEMCLBL")}},
+                                   BranchDefinition<std::vector<char>>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", filteredInp ? o2::header::DataDescription("CLNATIVEMCLBLF") : o2::header::DataDescription("CLNATIVEMCLBL")}},
                                                                        "TPCClusterNativeMCTruth",
                                                                        "mcbranch", fillLabels},
                                    (caClusterer || decompressTPC || inputType == InputType::PassThrough) && !isEnabled(OutputType::SendClustersPerSector)));
