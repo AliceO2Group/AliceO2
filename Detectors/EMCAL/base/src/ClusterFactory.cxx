@@ -598,7 +598,7 @@ bool ClusterFactory<InputType>::isExoticCell(short towerId, float ecell, float c
   }
 
   // if the look up table is not set yet (mostly due to a reset call) then set it up now.
-  if (getLookUpInit()) {
+  if (!getLookUpInit()) {
     throw UninitLookUpTableException();
   }
 
