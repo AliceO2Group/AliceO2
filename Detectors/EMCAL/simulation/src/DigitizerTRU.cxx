@@ -303,9 +303,15 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
 
   if (mEnableDebugStreaming) {
     LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
-    auto TriggerInputs        = LZERO.getTriggerInputs();
-    auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
+    auto TriggerInputsAll        = LZERO.getTriggerInputs();
+    auto TriggerInputsPatchesAll = LZERO.getTriggerInputsPatches();
+
+    std::vector<o2::emcal::EMCALTriggerInputs> TriggerInputs;
+    TriggerInputs.push_back(TriggerInputsAll.back());
+    std::vector<o2::emcal::EMCALTriggerInputs> TriggerInputsPatches;
+    TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
     int nIter = TriggerInputs.size(); 
+
     // for (int i = 0; i < nIter; i++)
     // {
     //   auto allfastOrs = TriggerInputs[i].mLastTimesumAllFastOrs;
