@@ -39,7 +39,7 @@ TEST_CASE("DataRelayer")
   Monitoring monitoring;
   DataProcessingStats stats(
     TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-    TimingHelpers::defaultCPUTimeConfigurator());
+    TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
   int quickUpdateInterval = 1;
   using MetricSpec = DataProcessingStats::MetricSpec;
   std::vector<MetricSpec> specs{

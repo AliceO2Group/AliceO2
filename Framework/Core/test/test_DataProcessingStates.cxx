@@ -28,7 +28,7 @@ using namespace o2::framework;
 TEST_CASE("DataProcessingStates")
 {
   DataProcessingStates states(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                              TimingHelpers::defaultCPUTimeConfigurator());
+                              TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
 
   states.registerState({"dummy_metric", DummyMetric});
   /// Registering twice should throw.

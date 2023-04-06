@@ -21,15 +21,15 @@ std::function<void(int64_t&, int64_t&)> TimingHelpers::defaultRealtimeBaseConfig
   return [startTimeOffset, loop](int64_t& base, int64_t& offset) {
     uv_update_time(loop);
     base = startTimeOffset + uv_now(loop);
-    offset = uv_hrtime();
+    offset = uv_now(loop);
   };
 }
 
 // Implement getTimestampConfigurator based on getRealtimeBaseConfigurator
-std::function<int64_t(int64_t, int64_t)> TimingHelpers::defaultCPUTimeConfigurator()
+std::function<int64_t(int64_t, int64_t)> TimingHelpers::defaultCPUTimeConfigurator(uv_loop_t* loop)
 {
-  return [](int64_t base, int64_t offset) -> int64_t {
-    return base + (uv_hrtime() - offset) / 1000000;
+  return [loop](int64_t base, int64_t offset) -> int64_t {
+    return base + (uv_now(loop) - offset);
   };
 }
 

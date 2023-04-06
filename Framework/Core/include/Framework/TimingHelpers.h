@@ -22,7 +22,7 @@ struct TimingHelpers {
   /// Return a function which can be used to retrieve the base timestamp and the
   /// associated fast offset for the realtime clock.
   static std::function<void(int64_t& base, int64_t& offset)> defaultRealtimeBaseConfigurator(uint64_t offset, uv_loop_t* loop);
-  static std::function<int64_t(int64_t base, int64_t offset)> defaultCPUTimeConfigurator();
+  static std::function<int64_t(int64_t base, int64_t offset)> defaultCPUTimeConfigurator(uv_loop_t* loop);
 
   /// Milliseconds since epoch, using the standard C++ clock.
   /// This will do a system call every minute or so to synchronize the clock

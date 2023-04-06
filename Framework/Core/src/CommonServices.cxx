@@ -585,6 +585,8 @@ namespace
 {
 auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
+  // Update the timer to make sure we have  the correct time when sending out the stats.
+  uv_update_time(registry.get<DeviceState>().loop);
   // Derive the amount of shared memory used
   auto& runningWorkflow = registry.get<RunningWorkflowInfo const>();
   using namespace fair::mq::shmem;
@@ -676,7 +678,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       uv_update_time(state.loop);
       uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
       auto* stats = new DataProcessingStats(TimingHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
-                                            TimingHelpers::defaultCPUTimeConfigurator());
+                                            TimingHelpers::defaultCPUTimeConfigurator(state.loop));
       auto& runningWorkflow = services.get<RunningWorkflowInfo const>();
 
       // It makes no sense to update the stats more often than every 5s
