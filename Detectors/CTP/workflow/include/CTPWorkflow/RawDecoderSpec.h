@@ -56,6 +56,7 @@ class RawDecoderSpec : public framework::Task
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
   gbtword80_t subbitset(int pos1, int pos2, gbtword128_t& bs, int shift = 0);
   void addIR(InteractionRecord& ir, int64_t offset);
+
  protected:
  private:
   static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;

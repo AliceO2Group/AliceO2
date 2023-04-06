@@ -246,8 +246,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     case RUN: {
       try {
         mRunNumber = std::stoul(tokens[1]);
-      }
-      catch(...) {
+      } catch (...) {
         LOG(error) << "RUN:" << tokens[1] << std::endl;
       }
       level = RUN;
