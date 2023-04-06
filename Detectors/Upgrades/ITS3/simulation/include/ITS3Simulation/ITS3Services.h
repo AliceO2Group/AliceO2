@@ -100,8 +100,8 @@ class ITS3Services : public TObject
   /// \param x The x value for which the y value is wanted.
   double yFrom2Points(double x0, double y0, double x1, double y1, double x) const;
 
-  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point
-  /// on the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
+  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point on
+  /// the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
   /// \param x0 The first x value defining the line
   /// \param y0 The first y value defining the line
   /// \param x1 The second x value defining the line
