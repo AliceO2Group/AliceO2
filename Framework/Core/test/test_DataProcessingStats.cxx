@@ -30,7 +30,7 @@ using namespace o2::framework;
 TEST_CASE("DataProcessingStats")
 {
   DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                            TimingHelpers::defaultCPUTimeConfigurator());
+                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
 
   o2::framework::clean_all_runtime_errors();
   stats.registerMetric({"dummy_metric", DummyMetric});
