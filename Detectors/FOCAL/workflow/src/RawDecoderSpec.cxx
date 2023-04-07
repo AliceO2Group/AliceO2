@@ -47,6 +47,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   int inputs = 0;
   std::vector<char> rawbuffer;
   int currentendpoint = 0;
+  uint8_t currentsource = 0;
   o2::InteractionRecord currentIR;
   std::unordered_map<int, int> numHBFFEE, numEventsFEE;
   std::unordered_map<int, std::vector<int>> numEventsHBFFEE;
@@ -74,7 +75,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             // Data ready
             if (rawbuffer.size()) {
               // Only process if we actually have payload (skip empty HBF)
-              if (currentendpoint == 1) {
+              if (currentsource == 0x2b) { // Use source ID 43 for pixels
                 // Pad data
                 if (mUsePadData) {
                   LOG(debug) << "Processing PAD data";
@@ -88,7 +89,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                   numEventsPadsTF += nEventsPads;
                   numHBFPadsTF++;
                 }
-              } else if (currentendpoint == 0) {
+              } else if (currentsource == 0x20) { // Use source ID 32 (ITS) for pixels
                 // Pixel data
                 if (mUsePixelData) {
                   auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
@@ -134,6 +135,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
             currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
             currentendpoint = o2::raw::RDHUtils::getEndPointID(rdh);
+            currentsource = o2::raw::RDHUtils::getSourceID(rdh);
+            std::cout << "Source ID: " << static_cast<int>(currentsource) << " (0x" << std::hex << static_cast<int>(currentsource) << std::dec << ")" << std::endl;
             LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", endpoint " << currentendpoint;
           }
         }
