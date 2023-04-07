@@ -35,6 +35,12 @@ namespace its
 using boost::histogram::indexed;
 using constants::math::TwoPi;
 
+float smallestAngleDifference(float a, float b)
+{
+  float diff = fmod(b - a + constants::math::Pi, constants::math::TwoPi) - constants::math::Pi;
+  return (diff < -constants::math::Pi) ? diff + constants::math::TwoPi : ((diff > constants::math::Pi) ? diff - constants::math::TwoPi : diff);
+}
+
 template <TrackletMode Mode, bool DryRun>
 void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
@@ -113,7 +119,7 @@ void trackletSelectionKernelHost(
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(tracklets01[iTracklet01].phi, tracklets12[iTracklet12].phi))};
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedTracklets[iTracklet01] = true;
           destTracklets.emplace_back(tracklets01[iTracklet01], clusters0.data(), clusters1.data());
