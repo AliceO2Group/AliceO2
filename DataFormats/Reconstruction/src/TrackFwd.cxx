@@ -450,7 +450,5 @@ bool TrackParCovFwd::propagateToVtxlinearWithMCS(double z, const std::array<floa
   return update(p, cov);
 }
 
-
-
 } // namespace track
 } // namespace o2

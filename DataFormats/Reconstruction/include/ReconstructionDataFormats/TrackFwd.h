@@ -167,19 +167,19 @@ class TrackParCovFwd : public TrackParFwd
 
   // Kalman filter/fitting
   bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov);
-  
+
   // Propagate fwd track to vertex including MCS effects
   bool propagateToVtxhelixWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double field, double x_over_X0);
   bool propagateToVtxlinearWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double x_over_X0)
 
- private:
-  /// Covariance matrix of track parameters, ordered as follows:    <pre>
-  ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
-  ///  <X,Y>         <Y,Y>           <PHI,Y>       <TANL,Y>        <INVQPT,Y>
-  /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
-  /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
-  /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  SMatrix55Sym mCovariances{}; ///< \brief Covariance matrix of track parameters
+    private :
+    /// Covariance matrix of track parameters, ordered as follows:    <pre>
+    ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
+    ///  <X,Y>         <Y,Y>           <PHI,Y>       <TANL,Y>        <INVQPT,Y>
+    /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
+    /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
+    /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
+    SMatrix55Sym mCovariances{}; ///< \brief Covariance matrix of track parameters
   ClassDefNV(TrackParCovFwd, 1);
 };
 
