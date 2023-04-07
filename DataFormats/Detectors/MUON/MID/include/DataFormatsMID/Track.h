@@ -176,6 +176,15 @@ class Track
   /// \li \c 3 track can be used to estimate local board efficiency
   int getEfficiencyFlag() const { return (mEfficiencyWord >> 24) & 0xF; }
 
+  /// record that the track misses information on that cathode
+  void setIncomplete(int cathode) { mIncomplete |= 1 << cathode; }
+
+  /// reset the flag for missing cathode information
+  void resetIncomplete() { mIncomplete = 0; }
+
+  /// return true is the track misses information on that cathode
+  bool isIncomplete(int cathode) const { return mIncomplete & (1 << cathode); }
+
   /// Overload ostream operator for MID track
   friend std::ostream& operator<<(std::ostream& stream, const Track& track);
 
@@ -192,8 +201,9 @@ class Track
   float mChi2 = 0.;                                ///< Chi2 of track
   int mNDF = 0;                                    ///< Number of chi2 degrees of freedom
   uint32_t mEfficiencyWord = 0;                    ///< Efficiency word
+  uint8_t mIncomplete = 0;                         //!< Flag for missing cathode information
 
-  ClassDefNV(Track, 1);
+  ClassDefNV(Track, 2);
 };
 } // namespace mid
 } // namespace o2

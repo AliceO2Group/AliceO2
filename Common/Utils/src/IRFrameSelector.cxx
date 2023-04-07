@@ -149,13 +149,10 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
       bcRanges->SetBranchAddress("fBCend", &maxBC);
       for (int i = 0; i < (int)bcRanges->GetEntries(); i++) {
         bcRanges->GetEntry(i);
-        if (mOwnList.size()) {
-          auto& last = mOwnList.back();
-          toBeSorted |= last.getMin() < minBC;
-        }
         mOwnList.emplace_back(InteractionRecord::long2IR(minBC), InteractionRecord::long2IR(maxBC));
       }
       done = true;
+      toBeSorted = true;
     }
   }
 
@@ -207,5 +204,5 @@ void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
     }
   }
   mOwnList.swap(lst);
-  setSelectedIRFrames(mOwnList);
+  mFrames = gsl::span<const o2::dataformats::IRFrame>(mOwnList.data(), mOwnList.size());
 }

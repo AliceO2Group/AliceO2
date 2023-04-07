@@ -66,7 +66,7 @@ auto getDataOriginFromFilename(const std::string& filename)
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
 {
-  return [acknowledge](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId) {
+  return [acknowledge](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     if (parts.Size() == 0) { // received at ^c, ignore
       LOG(info) << "ignoring empty message";
       return;

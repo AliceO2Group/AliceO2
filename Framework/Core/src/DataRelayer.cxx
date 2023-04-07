@@ -31,6 +31,8 @@
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/CommonServices.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -55,9 +57,22 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 128 is just some reasonable numer
-// The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 128;
+unsigned int DataRelayer::getPipelineLength()
+{
+  static bool override = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+  if (override) {
+    static unsigned int retval = atoi(getenv("DPL_DEFAULT_PIPELINE_LENGTH"));
+    return retval;
+  }
+  DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
+  // just some reasonable numers
+  // The number should really be tuned at runtime for each processor.
+  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
+    return 256;
+  } else {
+    return 64;
+  }
+}
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
@@ -73,9 +88,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
-    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
-    setPipelineLength(defaultPipelineLength);
+    static int pipelineLength = getPipelineLength();
+    setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
@@ -910,7 +924,7 @@ void DataRelayer::publishMetrics()
       .name = fmt::format("data_relayer/{}", ci),
       .metricId = static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)ci),
       .defaultValue = 0,
-      .minPublishInterval = 100,
+      .minPublishInterval = 500,
       .sendInitialValue = true,
     });
   }
@@ -956,7 +970,7 @@ void DataRelayer::sendContextState()
   auto& stats = mContext.get<DataProcessingStats>();
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
     int value = static_cast<int>(mCachedStateMetrics[si]);
-    stats.updateStats({static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
+    stats.updateStats({static_cast<unsigned short>((int)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
     // Anything which is done is actually already empty,
     // so after we report it we mark it as such.
     if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {

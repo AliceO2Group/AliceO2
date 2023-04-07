@@ -78,13 +78,14 @@ struct GpuRecoParamConfig : public o2::conf::ConfigurableParamHelper<GpuRecoPara
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
-  size_t clustersPerROfCapacity = 5e2;
+  size_t clustersPerROfCapacity = 1.5e3;
   size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   size_t validatedTrackletsCapacity = 1e5;
   size_t cellsLUTsize = validatedTrackletsCapacity;
+  size_t maxNeighboursSize = 1e4;
+  size_t neighboursLUTsize = maxNeighboursSize;
   size_t maxLinesCapacity = 1e2;
-  size_t maxVerticesCapacity = 10;
-  size_t nMaxROFs = 1e3;
+  size_t maxVerticesCapacity = 5e4;
   size_t nTimeFramePartitions = 3;
   int maxGPUMemoryGB = -1;
 

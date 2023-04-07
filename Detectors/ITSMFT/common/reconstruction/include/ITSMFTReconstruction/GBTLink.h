@@ -67,7 +67,8 @@ struct GBTLink {
   enum CollectedDataStatus : int8_t { None,
                                       AbortedOnError,
                                       StoppedOnEndOfData,
-                                      DataSeen }; // None is set before starting collectROFCableData
+                                      DataSeen,
+                                      CachedDataExist }; // None is set before starting collectROFCableData
 
   enum ErrorType : uint8_t { NoError = 0x0,
                              Warning = 0x1,
@@ -105,6 +106,7 @@ struct GBTLink {
   // transient data filled from current RDH
   int wordLength = o2::itsmft::GBTPaddedWordLength; // padded (16bytes) vs non-padded (10bytes) words
   bool expectPadding = true;
+  bool rofJumpWasSeen = false; // this link had jump in ROF IR
   uint32_t lanesActive = 0;   // lanes declared by the payload header
   uint32_t lanesStop = 0;     // lanes received stop in the payload trailer
   uint32_t lanesTimeOut = 0;  // lanes received timeout
@@ -138,8 +140,9 @@ struct GBTLink {
     rawData.add(reinterpret_cast<const PayLoadSG::DataType*>(ptr), sz);
   }
 
- private:
   bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity > VerboseErrors || count == 1); }
+
+ private:
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg, int offs);
   void printHeader(const GBTDataHeader* gbtH, int offs);
@@ -209,6 +212,10 @@ template <class Mapping>
 GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 {
   status = None;
+  if (rofJumpWasSeen) { // make sure this link does not have yet unused data due to the ROF/HBF jump
+    status = CachedDataExist;
+    return status;
+  }
   currRawPiece = rawData.currentPiece();
   uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
@@ -265,8 +272,6 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 
       continue;
     }
-
-    ruPtr->nCables = ruPtr->ruInfo->nCables; // RSTODO is this needed? TOREMOVE
     bool cruPageAlignmentPaddingSeen = false;
 
     // then we expect GBT trigger word

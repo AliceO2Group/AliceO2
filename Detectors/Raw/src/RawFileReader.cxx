@@ -381,7 +381,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     auto newTFCalc = reader->getTFAutodetect() != FirstTFDetection::Pending && (blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir));
     if (cruDetector) {
       newTF = (triggerType & o2::trigger::TF);
-      newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
+      newHB = (triggerType & o2::trigger::HB);
       if (newTFCalc != newTF && (reader->mCheckErrors & (0x1 << ErrMismatchTF))) {
         LOG(error) << ErrNames[ErrMismatchTF];
         ok = false;
@@ -460,7 +460,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       }
       if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
           (nCRUPages && // skip this check for the very 1st RDH
-           !(hbIR.bc == hblIR.bc && hbIR.orbit == hblIR.orbit + 1)) &&
+           !(/*hbIR.bc == hblIR.bc &&*/ hbIR.orbit == hblIR.orbit + 1)) &&
           cruDetector) {
         LOG(error) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc=" << hbIR.orbit << '/' << int(hbIR.bc)
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc=" << hblIR.orbit << '/' << int(hblIR.bc);

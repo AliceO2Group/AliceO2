@@ -74,7 +74,7 @@ void on_connect(uv_connect_t* connection, int status)
     LOG(error) << "Unable to connect to driver.";
     return;
   }
-  ConnectionContext* context = (ConnectionContext*)connection->data;
+  auto* context = (ConnectionContext*)connection->data;
   WSDriverClient* client = context->client;
   context->state->loopReason |= DeviceState::WS_CONNECTED;
   auto onHandshake = [client]() {
@@ -144,10 +144,10 @@ void on_connect(uv_connect_t* connection, int status)
 /// Helper to connect to a
 void connectToDriver(WSDriverClient* driver, DeviceState* state, char const* address, short port)
 {
-  uv_tcp_t* socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+  auto* socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(state->loop, socket);
-  uv_connect_t* connection = (uv_connect_t*)malloc(sizeof(uv_connect_t));
-  ConnectionContext* context = new ConnectionContext;
+  auto* connection = (uv_connect_t*)malloc(sizeof(uv_connect_t));
+  auto* context = new ConnectionContext;
   context->client = driver;
   context->state = state;
   connection->data = context;
@@ -160,7 +160,7 @@ void connectToDriver(WSDriverClient* driver, DeviceState* state, char const* add
 
 void on_awake_main_thread(uv_async_t* handle)
 {
-  DeviceState* state = (DeviceState*)handle->data;
+  auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 

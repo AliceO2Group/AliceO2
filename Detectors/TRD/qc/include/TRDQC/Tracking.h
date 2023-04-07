@@ -126,6 +126,16 @@ class Tracking
 };
 
 } // namespace trd
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::trd::TrackQC> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif // O2_TRD_TRACKINGQC_H

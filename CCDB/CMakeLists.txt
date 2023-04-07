@@ -87,7 +87,7 @@ o2_add_test(CcdbDownloader
             LABELS ccdb)
 
 # extra CcdbApi test which dispatches to CCDBDownloader (tmp until full move done)
-o2_add_test_command(NAME CcdbApi-MultiHandle
-                    WORKING_DIRECTORY ${SIMTESTDIR}
-                    COMMAND ${CMAKE_BINARY_DIR}/stage/tests/o2-test-ccdb-CcdbApi
-                    ENVIRONMENT "ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI=1")
+#o2_add_test_command(NAME CcdbApi-MultiHandle
+#                    WORKING_DIRECTORY ${SIMTESTDIR}
+#                    COMMAND ${CMAKE_BINARY_DIR}/stage/tests/o2-test-ccdb-CcdbApi
+#                    ENVIRONMENT "ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI=1")

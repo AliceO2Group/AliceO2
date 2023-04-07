@@ -25,6 +25,7 @@
 #include "GlobalTrackingWorkflowReaders/MatchedMCHMIDReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/StrangenessTrackingReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
@@ -42,6 +43,7 @@
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+// #include "StrangenessTrackingWorkflow/StrangenessTrackingReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -120,7 +122,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
       maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
-  if (maskMatches[GID::TPCTOF]) {
+  if (maskMatches[GID::TPCTOF] || maskTracks[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], 0, maskTracks[GID::TPCTOF], subSpecStrict));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
@@ -185,6 +187,16 @@ int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
+  return 0;
+}
+
+// attach strangeness tracking reader
+int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc));
   return 0;
 }
 

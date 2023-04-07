@@ -16,7 +16,6 @@
 #include <array>
 #include <vector>
 #include "CommonConstants/LHCConstants.h"
-//#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -28,8 +27,6 @@ namespace tof
 class Geo
 {
  public:
-  //  static void updateNSinTF() { NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::getNOrbitsPerTF(); }
-
   // FLP <-> CRU <-> LINKS mapping
   static Int_t getCRU(int link)
   {

@@ -23,7 +23,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
+  "[y] / [Y] / [X] / [M]         Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",
@@ -185,12 +185,16 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
     SetInfo("Set FOV to %f", mCfgR.fov);
   } else if (key == 39) { // character = "'"
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
-    SetInfo("OpenGL compat profile not available, using core profile", 1);
+      SetInfo("OpenGL compat profile not available, using core profile", 1);
 #else
-    mCfgR.openGLCore ^= 1;
-    SetInfo("Using renderer path for OpenGL %s profile", mCfgR.openGLCore ? "core" : "compat");
+      mCfgR.openGLCore ^= 1;
+      SetInfo("Using renderer path for OpenGL %s profile", mCfgR.openGLCore ? "core" : "compat");
 #endif
+    } else {
+      SetInfo("OpenGL options only available with OpenGL backend");
+    }
   } else if (key == 'B') {
     mCfgH.markAdjacentClusters++;
     if (mCfgH.markAdjacentClusters == 5) {

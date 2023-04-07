@@ -44,7 +44,6 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
  private:
   std::string mVersion{"ThreeLayersNoDeadZones"}; //! version of ITS3
   std::vector<double> mLayerZLen{};               //! Vector of layer length in Z coordinate
-  std::vector<double> mChipThickness{};           //! Vector of chip thicknesses
   std::vector<double> mGap{};                     //! Vector of gap between empispheres
   std::vector<int> mNumSubSensorsHalfLayer{};     //! Vector of num of subsensors in half layer
   std::vector<double> mFringeChipWidth{};         //! Vector of fringe chip width

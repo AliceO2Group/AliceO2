@@ -30,23 +30,6 @@ DataProcessingStats::DataProcessingStats(std::function<void(int64_t& base, int64
   getRealtimeBase(realTimeBase, initialTimeOffset);
 }
 
-std::function<void(int64_t&, int64_t&)> DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(uint64_t startTimeOffset, uv_loop_t* loop)
-{
-  return [startTimeOffset, loop](int64_t& base, int64_t& offset) {
-    uv_update_time(loop);
-    base = startTimeOffset + uv_now(loop);
-    offset = uv_hrtime();
-  };
-}
-
-// Implement getTimestampConfigurator based on getRealtimeBaseConfigurator
-std::function<int64_t(int64_t, int64_t)> DataProcessingStatsHelpers::defaultCPUTimeConfigurator()
-{
-  return [](int64_t base, int64_t offset) -> int64_t {
-    return base + (uv_hrtime() - offset) / 1000000;
-  };
-}
-
 void DataProcessingStats::updateStats(CommandSpec cmd)
 {
   if (metricSpecs[cmd.id].name.empty()) {
@@ -168,40 +151,34 @@ void DataProcessingStats::processCommandQueue()
           pushedMetricsLapse++;
         }
         break;
-      case Op::InstantaneousRate:
-        if (cmd.value > 0) {
-          auto delta = cmd.timestamp - update.timestamp;
-          if (delta > 0) {
-            metrics[cmd.id] = cmd.value / delta;
-            updated[cmd.id] = true;
-            update.timestamp = cmd.timestamp;
-            pushedMetricsLapse++;
-          }
+      case Op::InstantaneousRate: {
+        if (metricSpecs[cmd.id].kind != Kind::Rate) {
+          throw runtime_error_f("MetricID %d is not a rate", (int)cmd.id);
         }
-        break;
-      case Op::CumulativeRate:
-        if (cmd.value > 0) {
-          auto delta = cmd.timestamp - update.timestamp;
-          auto deltaLastPublished = update.timestamp - update.lastPublished;
-          // Too close, skip.
-          if (delta == 0) {
-            break;
-          }
-          // The sum since last publication is the period of time since last
-          // publication multiplied by the rate since last publication.
-          auto CAn = metrics[cmd.id];
-          auto newV = cmd.value;
-          auto totalInt = delta + deltaLastPublished; // This is in milliseconds
-          if (totalInt == 0) {
-            break;
-          }
-          auto newRate = ((CAn) + ((newV - CAn) * 1000) / totalInt);
-          metrics[cmd.id] = newRate;
-          updated[cmd.id] = true;
+        // We keep setting the value to the time average of the previous
+        // update period. so that we can compute the average over time
+        // at the moment of publishing.
+        metrics[cmd.id] = cmd.value;
+        updated[cmd.id] = true;
+        if (update.timestamp == 0) {
           update.timestamp = cmd.timestamp;
-          pushedMetricsLapse++;
         }
-        break;
+        pushedMetricsLapse++;
+      } break;
+      case Op::CumulativeRate: {
+        if (metricSpecs[cmd.id].kind != Kind::Rate) {
+          throw runtime_error_f("MetricID %d is not a rate", (int)cmd.id);
+        }
+        // We keep setting the value to the time average of the previous
+        // update period. so that we can compute the average over time
+        // at the moment of publishing.
+        metrics[cmd.id] += cmd.value;
+        updated[cmd.id] = true;
+        if (update.timestamp == 0) {
+          update.timestamp = cmd.timestamp;
+        }
+        pushedMetricsLapse++;
+      } break;
     }
   }
   // No one should have tried to insert more commands while processing.
@@ -210,15 +187,19 @@ void DataProcessingStats::processCommandQueue()
   insertedCmds.store(0, std::memory_order_relaxed);
 }
 
-void DataProcessingStats::flushChangedMetrics(std::function<void(std::string const&, int64_t, int64_t)> const& callback)
+void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingStats::MetricSpec const&, int64_t, int64_t)> const& callback)
 {
   publishingInvokedTotal++;
   bool publish = false;
   auto currentTimestamp = getTimestamp(realTimeBase, initialTimeOffset);
-  for (size_t mi = 0; mi < updated.size(); ++mi) {
+  for (size_t ami = 0; ami < availableMetrics.size(); ++ami) {
+    int mi = availableMetrics[ami];
     auto& update = updateInfos[mi];
-    auto& spec = metricSpecs[mi];
-    if (currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
+    MetricSpec& spec = metricSpecs[mi];
+    if (spec.name.empty()) {
+      continue;
+    }
+    if (updated[mi] == false && currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
       updated[mi] = true;
       update.timestamp = currentTimestamp;
     }
@@ -229,7 +210,21 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
       continue;
     }
     publish = true;
-    callback(spec.name.data(), update.timestamp, metrics[mi]);
+    if (spec.kind == Kind::Unknown) {
+      LOGP(fatal, "Metric {} has unknown kind", spec.name);
+    }
+    if (spec.kind == Kind::Rate) {
+      if (currentTimestamp - update.timestamp == 0) {
+        callback(spec, update.timestamp, 0);
+      } else {
+        // Timestamp is in milliseconds, we want to convert to seconds.
+        callback(spec, update.timestamp, (1000 * (metrics[mi] - lastPublishedMetrics[mi])) / (currentTimestamp - update.timestamp));
+      }
+      update.timestamp = currentTimestamp; // We reset the timestamp to the current time.
+    } else {
+      callback(spec, update.timestamp, metrics[mi]);
+    }
+    lastPublishedMetrics[mi] = metrics[mi];
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;
@@ -247,6 +242,9 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(std::string con
 
 void DataProcessingStats::registerMetric(MetricSpec const& spec)
 {
+  if (spec.name.size() == 0) {
+    throw runtime_error("Metric name cannot be empty.");
+  }
   if (spec.metricId >= metricSpecs.size()) {
     throw runtime_error_f("Metric id %d is out of range. Max is %d", spec.metricId, metricSpecs.size());
   }
@@ -264,6 +262,7 @@ void DataProcessingStats::registerMetric(MetricSpec const& spec)
   int64_t currentTime = getTimestamp(realTimeBase, initialTimeOffset);
   updateInfos[spec.metricId] = UpdateInfo{currentTime, currentTime};
   updated[spec.metricId] = spec.sendInitialValue;
+  availableMetrics.push_back(spec.metricId);
 }
 
 } // namespace o2::framework

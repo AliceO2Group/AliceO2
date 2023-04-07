@@ -21,6 +21,8 @@
 #pragma link C++ class std::vector < o2::tpc::TrackDataCompact> + ;
 #pragma link C++ class o2::tpc::TrackData + ;
 #pragma link C++ class std::vector < o2::tpc::TrackData> + ;
+#pragma link C++ class o2::tpc::TrackDataExtended + ;
+#pragma link C++ class std::vector < o2::tpc::TrackDataExtended> + ;
 #pragma link C++ class o2::tpc::TPCClusterResiduals + ;
 #pragma link C++ class std::vector < o2::tpc::TPCClusterResiduals> + ;
 #pragma link C++ class o2::tpc::TrackResiduals::LocalResid + ;

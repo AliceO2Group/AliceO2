@@ -73,6 +73,7 @@ class NoiseCalibratorSpec : public Task
   bool mUseClusters = false;
   bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
   bool mRunStopRequested = false; // flag that run was stopped (ant the last output is sent)
+  bool mInitOnceDone = false;     // flag that the CCDB objects which should be fetche once per run are loaded
   TStopwatch mTimer{};
   float mNoiseCutIB = -1.;
   o2::dcs::DCSconfigObject_t mNoiseMapDCS; // noisy pixels to be sent to DCS CCDB

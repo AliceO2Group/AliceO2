@@ -36,10 +36,7 @@ ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> cl
 {
   mGeomPtr = o2::emcal::Geometry::GetInstance();
 
-  setClustersContainer(clustersContainer);
-  setCellsContainer(inputsContainer);
-  setCellsIndicesContainer(cellsIndices);
-  setLookUpTable();
+  setContainer(clustersContainer, inputsContainer, cellsIndices);
 }
 
 template <class InputType>
@@ -48,6 +45,7 @@ void ClusterFactory<InputType>::reset()
   mClustersContainer = gsl::span<const o2::emcal::Cluster>();
   mInputsContainer = gsl::span<const InputType>();
   mCellsIndices = gsl::span<int>();
+  mLookUpInit = false;
 }
 
 ///
@@ -80,7 +78,11 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 
   float exoticTime = mInputsContainer[inputIndMax].getTimeStamp();
 
-  clusterAnalysis.setIsExotic(isExoticCell(towerId, inputEnergyMax, exoticTime));
+  try {
+    clusterAnalysis.setIsExotic(isExoticCell(towerId, inputEnergyMax, exoticTime));
+  } catch (UninitLookUpTableException& e) {
+    LOG(error) << e.what();
+  }
 
   clusterAnalysis.setIndMaxInput(inputIndMax);
 
@@ -593,6 +595,11 @@ bool ClusterFactory<InputType>::isExoticCell(short towerId, float ecell, float c
 {
   if (ecell < mExoticCellMinAmplitude) {
     return false; // do not reject low energy cells
+  }
+
+  // if the look up table is not set yet (mostly due to a reset call) then set it up now.
+  if (!getLookUpInit()) {
+    throw UninitLookUpTableException();
   }
 
   float eCross = getECross(towerId, ecell, exoticTime);

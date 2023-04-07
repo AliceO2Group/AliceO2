@@ -340,9 +340,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
     ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
   }
-  if (ImGui::CollapsingHeader("Data relayer")) {
-    ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
+  if (ImGui::CollapsingHeader("Policies")) {
+    ImGui::Text("Completion: %s", spec.completionPolicy.name.c_str());
+    ImGui::Text("Sending: %s", spec.sendingPolicy.name.c_str());
   }
+
   if (ImGui::CollapsingHeader("Signals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::Button("SIGSTOP")) {
       kill(info.pid, SIGSTOP);

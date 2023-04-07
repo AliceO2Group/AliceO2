@@ -10,7 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/DeviceState.h"
+#include "Framework/RuntimeError.h"
 #include <catch_amalgamated.hpp>
 #include <uv.h>
 
@@ -19,23 +21,28 @@ using namespace o2::framework;
 enum TestMetricsId {
   DummyMetric = 0,
   DummyMetric2 = 1,
-  Missing = 2
+  Missing = 2,
+  ZeroSize = 3,
 };
 
 using namespace o2::framework;
 
 TEST_CASE("DataProcessingStats")
 {
-  DataProcessingStats stats(DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-                            DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+  DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+                            TimingHelpers::defaultCPUTimeConfigurator());
 
+  o2::framework::clean_all_runtime_errors();
   stats.registerMetric({"dummy_metric", DummyMetric});
   /// Registering twice should throw.
   REQUIRE_THROWS(stats.registerMetric({"dummy_metric", DummyMetric2}));
   /// Registering with a different name should throw.
   REQUIRE_THROWS(stats.registerMetric({"dummy_metric2", DummyMetric}));
+  /// Registering with a different name should throw.
+  REQUIRE_THROWS(stats.registerMetric({"", ZeroSize}));
 
   stats.registerMetric({"dummy_metric2", DummyMetric2});
+  REQUIRE(stats.metricsNames[DummyMetric] == "dummy_metric");
   stats.updateStats({DummyMetric, DataProcessingStats::Op::Add, 1});
   REQUIRE_THROWS(stats.updateStats({Missing, DataProcessingStats::Op::Add, 1}));
   REQUIRE(stats.nextCmd.load() == 1);
@@ -69,8 +76,8 @@ TEST_CASE("DataProcessingStats")
   REQUIRE(stats.updated[DummyMetric2] == false);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   stats.flushChangedMetrics(simpleFlush);
@@ -166,8 +173,6 @@ TEST_CASE("DataProcessingStats")
     stats.updateStats({DummyMetric, DataProcessingStats::Op::SetIfPositive, -10});
     stats.processCommandQueue();
     REQUIRE(stats.metrics[DummyMetric] == 11);
-    stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 10});
-    stats.processCommandQueue();
   }
 }
 
@@ -218,7 +223,7 @@ TEST_CASE("DataProcessingStatsInstantaneousRate")
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
   DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 0);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
   // Fake to be after 1 second
@@ -229,20 +234,20 @@ TEST_CASE("DataProcessingStatsInstantaneousRate")
   // Faked to be after 2 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 2000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
   // Faked to be after 5 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 6000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 5000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
-  REQUIRE(stats.metrics[DummyMetric] == 2);
+  REQUIRE(stats.metrics[DummyMetric] == 6000);
 
   stats.updateStats({DummyMetric, DataProcessingStats::Op::InstantaneousRate, 5000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 10000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 0);
-  REQUIRE(stats.metrics[DummyMetric] == 1);
+  REQUIRE(stats.metrics[DummyMetric] == 5000);
 }
 
 /// We verify that the running average is correctly computed.
@@ -261,34 +266,34 @@ TEST_CASE("DataProcessingStatsCumulativeRate")
   // I want to push deltas since the last update and have the immediate time
   // averaged being stored.
   DataProcessingStats stats(realtimeConfigurator, cpuTimeConfigurator);
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric, .kind = DataProcessingStats::Kind::Rate});
   REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
   REQUIRE(stats.metrics[DummyMetric] == 0);
   // Fake to be after 1 second
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 2000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
   REQUIRE(stats.metrics[DummyMetric] == 2000);
   // Faked to be after 2 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 2000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 3000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2000 + (2000 - 2000) / 2);
+  REQUIRE(stats.metrics[DummyMetric] == 4000);
   // Faked to be after 5 seconds
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 6000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 6000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2000 + (6000 - 2000) / 5);
+  REQUIRE(stats.metrics[DummyMetric] == 10000);
 
   stats.updateStats({DummyMetric, DataProcessingStats::Op::CumulativeRate, 1000});
   stats.processCommandQueue();
-  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 11000);
+  REQUIRE(stats.updateInfos[DummyMetric].timestamp == 1000);
   REQUIRE(stats.updateInfos[DummyMetric].lastPublished == 1000);
-  REQUIRE(stats.metrics[DummyMetric] == 2800 + (1000 - 2800) / 10);
+  REQUIRE(stats.metrics[DummyMetric] == 11000);
 }
 
 TEST_CASE("DataProcessingStatsPublishing")
@@ -313,8 +318,8 @@ TEST_CASE("DataProcessingStatsPublishing")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](o2::framework::DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   // Fake to be after 1 second
@@ -357,8 +362,8 @@ TEST_CASE("DataProcessingStatsPublishingRepeated")
   REQUIRE(stats.metrics[DummyMetric] == 0);
 
   std::vector<std::string> updated;
-  auto simpleFlush = [&updated](std::string const& name, int64_t timestamp, int64_t value) {
-    updated.emplace_back(name);
+  auto simpleFlush = [&updated](o2::framework::DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) {
+    updated.emplace_back(spec.name);
   };
 
   // Fake to be after 1 second

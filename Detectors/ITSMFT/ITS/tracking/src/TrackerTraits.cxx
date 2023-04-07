@@ -95,7 +95,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
                                                   sigmaZ * mTrkParams[iteration].NSigmaCut, tf->getPhiCut(iLayer))};
-
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
           }
@@ -379,7 +378,6 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
         if (currentCellLevel >= nextCell.getLevel()) {
           nextCell.setLevel(currentCellLevel + 1);
         }
-        // }
       }
     }
   }

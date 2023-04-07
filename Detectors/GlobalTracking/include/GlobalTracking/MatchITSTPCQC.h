@@ -92,8 +92,6 @@ class MatchITSTPCQC
   void setUseMC(bool b) { mUseMC = b; }
   bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
-  void setGRPFileName(std::string fn) { mGRPFileName = fn; }
-  void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
 
   // track selection
@@ -119,8 +117,6 @@ class MatchITSTPCQC
   // ITS-TPC
   gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracks;
   bool mUseMC = false;
-  std::string mGRPFileName = "o2sim_grp.root";
-  std::string mGeomFileName = "o2sim_geometry-aligned.root";
   float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,

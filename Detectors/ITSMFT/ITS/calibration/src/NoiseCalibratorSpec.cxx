@@ -54,12 +54,23 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  static bool firstCall = true;
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mRunStopRequested = false;
+    mInitOnceDone = false;
+    mStrobeCounter = 0;
+    mDataSizeStat = 0;
+    mNClustersProc = 0;
+    if (firstCall) {
+      mCalibrator->reset();
+    }
+  }
   if (mRunStopRequested) {
     return;
   }
   updateTimeDependentParams(pc);
   mTimer.Start(false);
-  static bool firstCall = true;
   bool done = false;
   if (firstCall) {
     firstCall = false;
@@ -203,9 +214,8 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
-    initOnceDone = true;
+  if (!mInitOnceDone) {
+    mInitOnceDone = true;
     if (mUseClusters) {
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     }

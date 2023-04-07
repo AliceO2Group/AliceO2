@@ -16,6 +16,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
@@ -37,13 +38,20 @@ TEST_CASE("DataRelayer")
   ServiceRegistryRef ref{registry};
   Monitoring monitoring;
   DataProcessingStats stats(
-    DataProcessingStatsHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
-    DataProcessingStatsHelpers::defaultCPUTimeConfigurator());
+    TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+    TimingHelpers::defaultCPUTimeConfigurator());
   int quickUpdateInterval = 1;
-  stats.registerMetric({"malformed_inputs", static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), 0, quickUpdateInterval});
-  stats.registerMetric({"dropped_computations", static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), 0, quickUpdateInterval});
-  stats.registerMetric({"dropped_incoming_messages", static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), 0, quickUpdateInterval});
-  stats.registerMetric({"relayed_messages", static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), 0, quickUpdateInterval});
+  using MetricSpec = DataProcessingStats::MetricSpec;
+  std::vector<MetricSpec> specs{
+    MetricSpec{.name = "malformed_inputs", .metricId = static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), .minPublishInterval = quickUpdateInterval},
+    MetricSpec{.name = "dropped_computations", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), .minPublishInterval = quickUpdateInterval},
+    MetricSpec{.name = "dropped_incoming_messages", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), .minPublishInterval = quickUpdateInterval},
+    MetricSpec{.name = "relayed_messages", .metricId = static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), .minPublishInterval = quickUpdateInterval}};
+
+  for (auto& spec : specs) {
+    stats.registerMetric(spec);
+  }
+
   ref.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&monitoring));
   ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStats>(&stats));
   // A simple test where an input is provided

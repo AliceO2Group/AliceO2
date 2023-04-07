@@ -16,11 +16,14 @@
 #include "CommonUtils/ConfigurationMacroHelper.h"
 #include <fairlogger/Logger.h>
 #include "TParticle.h"
+#include "TF1.h"
+#include "TRandom.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCGenStatus.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "Pythia8/HIUserHooks.h"
 #include "TSystem.h"
+#include "ZDCBase/FragmentParam.h"
 
 #include <iostream>
 
@@ -215,14 +218,17 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     /** set impact parameter **/
     eventHeader->SetB(hiinfo->b());
     eventHeader->putInfo<double>("Bimpact", hiinfo->b());
+    auto bImp = hiinfo->b();
     /** set Ncoll, Npart and Nremn **/
     int nColl, nPart;
     int nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg;
     int nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg;
+    int nFreeNeutronProj, nFreeProtonProj, nFreeNeutronTarg, nFreeProtonTarg;
     getNcoll(nColl);
     getNpart(nPart);
     getNpart(nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg);
     getNremn(nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg);
+    getNfreeSpec(nFreeNeutronProj, nFreeProtonProj, nFreeNeutronTarg, nFreeProtonTarg);
     eventHeader->putInfo<int>("Ncoll", nColl);
     eventHeader->putInfo<int>("Npart", nPart);
     eventHeader->putInfo<int>("Npart_proj_p", nPartProtonProj);
@@ -233,6 +239,10 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     eventHeader->putInfo<int>("Nremn_proj_n", nRemnNeutronProj);
     eventHeader->putInfo<int>("Nremn_targ_p", nRemnProtonTarg);
     eventHeader->putInfo<int>("Nremn_targ_n", nRemnNeutronTarg);
+    eventHeader->putInfo<int>("Nfree_proj_n", nFreeNeutronProj);
+    eventHeader->putInfo<int>("Nfree_proj_p", nFreeProtonProj);
+    eventHeader->putInfo<int>("Nfree_targ_n", nFreeNeutronTarg);
+    eventHeader->putInfo<int>("Nfree_targ_p", nFreeProtonTarg);
   }
 }
 
@@ -425,9 +435,68 @@ void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, i
     LOG(warning) << " GeneratorPythia8: found more than two nuclear remnants (weird)";
   }
 }
+/*****************************************************************/
 
 /*****************************************************************/
-/*****************************************************************/
+
+void GeneratorPythia8::getNfreeSpec(const Pythia8::Info& info, int& nFreenProj, int& nFreepProj, int& nFreenTarg, int& nFreepTarg)
+{
+  /** compute number of free spectator nucleons for ZDC response **/
+
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+
+  if (!hiinfo) {
+    return;
+  }
+
+  double b = hiinfo->b();
+
+  static o2::zdc::FragmentParam frag; // data-driven model to get free spectators given impact parameter
+
+  TF1 const& fneutrons = frag.getfNeutrons();
+  TF1 const& fsigman = frag.getsigmaNeutrons();
+  TF1 const& fprotons = frag.getfProtons();
+  TF1 const& fsigmap = frag.getsigmaProtons();
+
+  // Calculating no. of free spectators from parametrization
+  int nneu[2] = {0, 0};
+  for (int i = 0; i < 2; i++) {
+    float nave = fneutrons.Eval(b);
+    float sigman = fsigman.Eval(b);
+    float nfree = gRandom->Gaus(nave, 0.68 * sigman * nave);
+    nneu[i] = (int)nfree;
+    if (nave < 0 || nneu[i] < 0) {
+      nneu[i] = 0;
+    }
+    if (nneu[i] > 126) {
+      nneu[i] = 126;
+    }
+  }
+  //
+  int npro[2] = {0, 0};
+  for (int i = 0; i < 2; i++) {
+    float pave = fprotons.Eval(b);
+    float sigmap = fsigman.Eval(b);
+    float pfree = gRandom->Gaus(pave, 0.68 * sigmap * pave) / 0.7;
+    npro[i] = (int)pfree;
+    if (pave < 0 || npro[i] < 0) {
+      npro[i] = 0;
+    }
+    if (npro[i] > 82) {
+      npro[i] = 82;
+    }
+  }
+
+  nFreenProj = nneu[0];
+  nFreenTarg = nneu[1];
+  nFreepProj = npro[0];
+  nFreepTarg = npro[1];
+  /*****************************************************************/
+}
 
 } /* namespace eventgen */
 } /* namespace o2 */

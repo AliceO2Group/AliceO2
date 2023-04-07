@@ -19,6 +19,7 @@ o2_add_library(EMCALReconstruction
         src/RecoParam.cxx
         src/RawDecodingError.cxx
         src/ReconstructionErrors.cxx
+        src/RecoContainer.cxx
         src/CaloFitResults.cxx
         src/CaloRawFitter.cxx
         src/CaloRawFitterStandard.cxx
@@ -82,6 +83,12 @@ o2_add_test(CaloRawFitterError
 
 o2_add_test(RawDecodingError
         SOURCES test/testRawDecodingError.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+        COMPONENT_NAME emcal
+        LABELS emcal)
+
+o2_add_test(RecoContainer
+        SOURCES test/testRecoContainer.cxx
         PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
         COMPONENT_NAME emcal
         LABELS emcal)

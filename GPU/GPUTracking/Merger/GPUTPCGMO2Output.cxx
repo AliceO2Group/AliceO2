@@ -61,6 +61,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
     if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
+    if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (unsigned int)merger.Param().rec.tpc.minNClustersFinalTrack) {
+      continue;
+    }
     unsigned int myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
     tmpData[i] = {nCl, CAMath::AtomicAdd(&merger.Memory()->nO2ClusRefs, nCl + (nCl + 1) / 2)};
     trackSort[myId] = {i, (merger.Param().par.earlyTpcTransform || tracks[i].CSide()) ? tracks[i].GetParam().GetTZOffset() : -tracks[i].GetParam().GetTZOffset()};

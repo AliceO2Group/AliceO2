@@ -18,6 +18,7 @@
 #include <memory>
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
+#include "ITSMFTReconstruction/RUInfo.h"
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
 
@@ -25,7 +26,6 @@ namespace o2
 {
 namespace itsmft
 {
-struct RUInfo;
 struct GBTLink;
 
 struct RUDecodeData {
@@ -41,10 +41,12 @@ struct RUDecodeData {
   std::array<uint8_t, MaxCablesPerRU> cableLinkID;         // ID of the GBT link transmitting this cable data
   std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr;       // Ptr of the GBT link transmitting this cable data
   std::unordered_map<uint64_t, uint32_t> linkHBFToDump;    // FEEID<<32+hbfEntry to dump in case of error
-  int ruSWID = -1;         // SW (stave) ID
-  int nCables = 0;         // total number of cables decoded for single trigger
+  int ruSWID = -1;                                         // SW (stave) ID
   int nChipsFired = 0;     // number of chips with data or with errors
   int lastChipChecked = 0; // last chips checked among nChipsFired
+  int nNonEmptyLinks = 0;  // number of non-empty links for current ROF
+  int nLinks = 0;          // number of links seen for this TF
+  int nLinksDone = 0;      // number of links finished for this TF
   int verbosity = 0;       // verbosity level, for -1,0 print only summary data, for 1: print once every error
   GBTCalibData calibData{}; // calibration info from GBT calibration word
   std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> chipErrorsTF; // vector of chip decoding errors seen in the given TF
@@ -54,29 +56,33 @@ struct RUDecodeData {
   {
     memset(&links[0], -1, MaxLinksPerRU * sizeof(int));
   }
-
-  int decodeROF();
   void clear();
   void setROFInfo(ChipPixelData* chipData, const GBTLink* lnk);
   template <class Mapping>
-  int decodeROF(const Mapping& mp);
+  int decodeROF(const Mapping& mp, const o2::InteractionRecord ir);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
   void dumpcabledata(int icab);
+  bool checkLinkInSync(int icab, const o2::InteractionRecord ir);
   ClassDefNV(RUDecodeData, 2);
 };
 
 ///_________________________________________________________________
 /// decode single readout frame, the cable's data must be filled in advance via GBTLink::collectROFCableData
 template <class Mapping>
-int RUDecodeData::decodeROF(const Mapping& mp)
+int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
 {
   nChipsFired = 0;
   lastChipChecked = 0;
   int ntot = 0;
+  // poll majority ROF IR to detect desynchronization between the liks
+
   std::array<bool, Mapping::getNChips()> doneChips{};
   auto* chipData = &chipsData[0];
-  for (int icab = 0; icab < nCables; icab++) { // cableData is ordered in such a way to have chipIDs in increasing order
+  for (int icab = 0; icab < ruInfo->nCables; icab++) { // cableData is ordered in such a way to have chipIDs in increasing order
     if (!cableData[icab].getSize()) {
+      continue;
+    }
+    if (!checkLinkInSync(icab, ir)) { // apparently there was desynchronization
       continue;
     }
     auto cabHW = cableHWID[icab];
@@ -119,6 +125,7 @@ int RUDecodeData::decodeROF(const Mapping& mp)
         break; // negative code was returned by decoder: abandon cable data
       }
     }
+    cableData[icab].clear();
   }
 
   return ntot;

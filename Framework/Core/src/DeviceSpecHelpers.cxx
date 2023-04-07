@@ -45,6 +45,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <fairmq/Device.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"

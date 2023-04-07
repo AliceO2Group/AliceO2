@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPCTRACK_STUDY_H
-#define O2_TPCTRACK_STUDY_H
+#ifndef O2_TPC_DATA_FILTER_H
+#define O2_TPC_DATA_FILTER_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"

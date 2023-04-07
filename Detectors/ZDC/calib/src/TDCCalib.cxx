@@ -73,7 +73,7 @@ int TDCCalib::endOfRun()
       LOGF(info, "Processed RUN3 data for ih = %d: %s", ih, TDCCalibData::CTDC[ih]);
       assign(ih, true);
     } else {
-      LOGF(info, "FAILED processing RUN3 data for ih = %d: %s: TOO FEW EVENTS: %g", ih, TDCCalibData::CTDC[ih], 5); //instead of 5 put number of events
+      LOGF(info, "FAILED processing RUN3 data for ih = %d: %s: TOO FEW EVENTS: %d", ih, TDCCalibData::CTDC[ih], 5); // instead of 5 put number of events
       assign(ih, false);
     }
   }

@@ -14,6 +14,8 @@
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/Logger.h"
+#include "Framework/CommonServices.h"
+#include "Framework/DataTakingContext.h"
 #include <cstdlib>
 #include <uv.h>
 
@@ -28,15 +30,14 @@ CallbacksPolicy epnProcessReporting()
 {
   return {
     .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
-      /// FIXME:
-      static bool report = getenv("DDS_SESSION_ID") != nullptr || getenv("DPL_REPORT_PROCESSING") != nullptr;
+      static bool report = CommonServices::getDeploymentMode() == DeploymentMode::OnlineDDS || (getenv("DPL_REPORT_PROCESSING") != nullptr && atoi(getenv("DPL_REPORT_PROCESSING")));
       return report;
     },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
       callbacks.set<CallbackService::Id::PreProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
-          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
         }
@@ -45,7 +46,7 @@ CallbacksPolicy epnProcessReporting()
       callbacks.set<CallbackService::Id::PostProcessing>([](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1) {
-          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}, wall:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op, uv_hrtime() - info.lapse);
         }

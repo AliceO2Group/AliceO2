@@ -22,6 +22,8 @@
 #include "Framework/ArrowTypes.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/Kernels.h"
+#include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/SliceCache.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/config.h>
@@ -34,55 +36,16 @@
 #include <typeinfo>
 #include <gsl/span>
 
-namespace o2::framework
-{
-template <typename T>
-struct Preslice {
-  using target_t = T;
-  Preslice(expressions::BindingNode index_) : index{index_} {}
-  arrow::Status processTable(std::shared_ptr<arrow::Table> input)
-  {
-    if (newDataframe) {
-      fullSize = input->num_rows();
-      newDataframe = false;
-      if (fullSize != 0) {
-        return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
-      }
-    }
-    return arrow::Status::OK();
+#define DECLARE_SOA_METADATA()       \
+  template <typename T>              \
+  struct MetadataTrait {             \
+    using metadata = std::void_t<T>; \
   };
 
-  void setNewDF()
-  {
-    newDataframe = true;
-  }
-
-  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
-  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
-  size_t fullSize;
-  expressions::BindingNode index;
-  bool newDataframe = false;
-
-  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
-  {
-    arrow::Status status;
-    if (fullSize == 0) {
-      offset = 0;
-      output = input->Slice(0, 0);
-      return arrow::Status::OK();
-    }
-    for (auto slice = 0; slice < mValues->length(); ++slice) {
-      if (mValues->Value(slice) == value) {
-        output = input->Slice(offset, mCounts->Value(slice));
-        return arrow::Status::OK();
-      }
-      offset += mCounts->Value(slice);
-    }
-    output = input->Slice(offset, 0);
-    return arrow::Status::OK();
-  }
-};
-} // namespace o2::framework
+namespace o2::aod
+{
+DECLARE_SOA_METADATA();
+}
 
 namespace o2::soa
 {
@@ -148,6 +111,12 @@ inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
 inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+
+template <typename, typename = void>
+inline constexpr bool is_with_base_table_v = false;
+
+template <typename T>
+inline constexpr bool is_with_base_table_v<T, std::void_t<decltype(sizeof(typename T::base_table_t))>> = true;
 
 template <typename B, typename E>
 struct EquivalentIndex {
@@ -1030,6 +999,131 @@ template <typename T, typename B>
 struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typename B::binding_t>(), std::true_type, std::false_type> {
 };
 
+template <typename T>
+static std::string getLabelFromType()
+{
+  if constexpr (soa::is_index_table_v<std::decay_t<T>>) {
+    using TT = typename std::decay_t<T>::first_t;
+    if constexpr (soa::is_type_with_originals_v<std::decay_t<TT>>) {
+      using O = typename framework::pack_head_t<typename std::decay_t<TT>::originals>;
+      using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
+      return std::string{groupingMetadata::tableLabel()};
+    } else {
+      using groupingMetadata = typename aod::MetadataTrait<TT>::metadata;
+      return std::string{groupingMetadata::tableLabel()};
+    }
+  } else if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
+    using TT = typename framework::pack_head_t<typename std::decay_t<T>::originals>;
+    if constexpr (soa::is_with_base_table_v<typename aod::MetadataTrait<TT>::metadata>) {
+      using TTT = typename aod::MetadataTrait<TT>::metadata::base_table_t;
+      return getLabelFromType<TTT>();
+    } else {
+      using groupingMetadata = typename aod::MetadataTrait<TT>::metadata;
+      return std::string{groupingMetadata::tableLabel()};
+    }
+  } else {
+    if constexpr (soa::is_with_base_table_v<typename aod::MetadataTrait<T>::metadata>) {
+      using TT = typename aod::MetadataTrait<T>::metadata::base_table_t;
+      return getLabelFromType<TT>();
+    } else {
+      using groupingMetadata = typename aod::MetadataTrait<std::decay_t<T>>::metadata;
+      return std::string{groupingMetadata::tableLabel()};
+    }
+  }
+}
+
+template <typename... C>
+static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+{
+  return ((C::inherited_t::mLabel == key) || ...);
+}
+
+template <typename T>
+static std::pair<bool, std::string> hasKey(std::string const& key)
+{
+  return {hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
+}
+
+template <typename... C>
+static auto haveKey(framework::pack<C...>, std::string const& key)
+{
+  return std::vector{hasKey<C>(key)...};
+}
+
+template <typename T>
+static std::string getLabelFromTypeForKey(std::string const& key)
+{
+  if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
+    using Os = typename std::decay_t<T>::originals;
+    auto locate = haveKey(Os{}, key);
+    return std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; })->second;
+  } else {
+    auto locate = hasKey<std::decay_t<T>>(key);
+    return locate.second;
+  }
+}
+
+template <typename B, typename... C>
+constexpr static bool hasIndexTo(framework::pack<C...>&&)
+{
+  return (o2::soa::is_binding_compatible_v<B, typename C::binding_t>() || ...);
+}
+
+template <typename B, typename... C>
+constexpr static bool hasSortedIndexTo(framework::pack<C...>&&)
+{
+  return ((C::sorted && o2::soa::is_binding_compatible_v<B, typename C::binding_t>()) || ...);
+}
+
+template <typename B, typename Z>
+constexpr static bool relatedByIndex()
+{
+  return hasIndexTo<B>(typename Z::table_t::external_index_columns_t{});
+}
+
+template <typename B, typename Z>
+constexpr static bool relatedBySortedIndex()
+{
+  return hasSortedIndexTo<B>(typename Z::table_t::external_index_columns_t{});
+}
+} // namespace o2::soa
+
+namespace o2::framework
+{
+template <typename T>
+struct Preslice {
+  using target_t = T;
+  const std::string binding;
+
+  Preslice(expressions::BindingNode index_)
+    : binding{o2::soa::getLabelFromTypeForKey<T>(index_.name)},
+      bindingKey{binding, index_.name} {}
+
+  void updateSliceInfo(SliceInfoPtr&& si)
+  {
+    sliceInfo = si;
+  }
+
+  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  {
+    auto [offset_, count] = sliceInfo.getSliceFor(value);
+    output = input->Slice(offset_, count);
+    offset = static_cast<int64_t>(offset_);
+    return arrow::Status::OK();
+  }
+
+  std::pair<std::string, std::string> const& getBindingKey() const
+  {
+    return bindingKey;
+  }
+
+  SliceInfoPtr sliceInfo;
+  std::pair<std::string, std::string> bindingKey;
+};
+} // namespace o2::framework
+
+namespace o2::soa
+{
 //! Helper to check if a type T is an iterator
 template <typename T>
 inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
@@ -1331,6 +1425,15 @@ class Table
     return t;
   }
 
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
+    copyIndexBindings(t);
+    return t;
+  }
+
   template <typename T1>
   auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
@@ -1541,12 +1644,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 
 } // namespace o2::soa
 
-#define DECLARE_SOA_STORE()                                                                         \
-  template <typename T>                                                                             \
-  struct MetadataTrait {                                                                            \
-    using metadata = std::void_t<T>;                                                                \
-  };                                                                                                \
-                                                                                                    \
+#define DECLARE_SOA_VERSIONING()                                                                    \
   template <typename T>                                                                             \
   constexpr int getVersion()                                                                        \
   {                                                                                                 \
@@ -2204,7 +2302,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
                                                                                                                                 \
   struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> {                                        \
     using table_t = _Name_##Extension;                                                                                          \
-    using base_table_t = typename _Table_::table_t;                                                                             \
+    using base_table_t = _Table_;                                                                                               \
     using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
     using sources = originals;                                                                                                  \
@@ -2299,6 +2397,15 @@ struct Join : JoinBase<Ts...> {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     auto t = Join<Ts...>({result}, offset);
+    this->copyIndexBindings(t);
+    return t;
+  }
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto t = Join<Ts...>({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     this->copyIndexBindings(t);
     return t;
   }
@@ -2545,7 +2652,31 @@ class FilteredBase : public T
                      return idx - static_cast<int64_t>(start);
                    });
     self_t fresult{{result}, std::move(slicedSelection), start};
-    copyIndexBindings(fresult);
+    this->copyIndexBindings(fresult);
+    return fresult;
+  }
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+    if (offset >= this->tableSize()) {
+      self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
+      this->copyIndexBindings(fresult);
+      return fresult;
+    }
+    auto start = offset;
+    auto end = start + slice->num_rows();
+    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
+    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
+    SelectionVector slicedSelection{start_iterator, stop_iterator};
+    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                   [&start](int64_t idx) {
+                     return idx - static_cast<int64_t>(start);
+                   });
+    self_t fresult{{slice}, std::move(slicedSelection), start};
+    this->copyIndexBindings(fresult);
     return fresult;
   }
 
@@ -2571,7 +2702,7 @@ class FilteredBase : public T
                        return idx - static_cast<int64_t>(start);
                      });
       self_t fresult{{result}, std::move(slicedSelection), start};
-      copyIndexBindings(fresult);
+      this->copyIndexBindings(fresult);
       return fresult;
     } else {
       static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
@@ -2665,6 +2796,7 @@ class Filtered : public FilteredBase<T>
  public:
   using self_t = Filtered<T>;
   using table_t = typename FilteredBase<T>::table_t;
+  using originals = originals_pack_t<T>;
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredBase<T>(std::move(tables), selection, offset) {}
@@ -2772,6 +2904,30 @@ class Filtered : public FilteredBase<T>
     this->copyIndexBindings(fresult);
     return fresult;
   }
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+    if (offset >= this->tableSize()) {
+      self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
+      this->copyIndexBindings(fresult);
+      return fresult;
+    }
+    auto start = offset;
+    auto end = start + slice->num_rows();
+    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
+    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
+    SelectionVector slicedSelection{start_iterator, stop_iterator};
+    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                   [&start](int64_t idx) {
+                     return idx - static_cast<int64_t>(start);
+                   });
+    self_t fresult{{slice}, std::move(slicedSelection), start};
+    this->copyIndexBindings(fresult);
+    return fresult;
+  }
 };
 
 template <typename T>
@@ -2780,6 +2936,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
  public:
   using self_t = Filtered<Filtered<T>>;
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
+  using originals = originals_pack_t<T>;
 
   Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
@@ -2901,6 +3058,28 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return fresult;
   }
 
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  {
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto [offset, count] = localCache.getSliceFor(value);
+    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+    auto start = offset;
+    auto end = start + slice->num_rows();
+    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
+    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
+    SelectionVector slicedSelection{start_iterator, stop_iterator};
+    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                   [&start](int64_t idx) {
+                     return idx - static_cast<int64_t>(start);
+                   });
+    SelectionVector copy = slicedSelection;
+    Filtered<T> filteredTable{{slice}, std::move(slicedSelection), start};
+    std::vector<Filtered<T>> filtered{filteredTable};
+    self_t fresult{std::move(filtered), std::move(copy), start};
+    this->copyIndexBindings(fresult);
+    return fresult;
+  }
+
  private:
   std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
   {
@@ -2978,7 +3157,11 @@ struct is_smallgroups_t<SmallGroupsBase<T, F>> {
 
 template <typename T>
 constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
-
 } // namespace o2::soa
+
+namespace o2::framework
+{
+std::string cutString(std::string&& str);
+}
 
 #endif // O2_FRAMEWORK_ASOA_H_

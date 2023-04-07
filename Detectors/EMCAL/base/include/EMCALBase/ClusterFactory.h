@@ -311,6 +311,8 @@ class ClusterFactory
   /// \param  key: = 0(gamma, default); !=  0(electron)
   Double_t tMaxInCm(const Double_t e = 0.0, const int key = 0) const;
 
+  bool getLookUpInit() const { return mLookUpInit; }
+
   bool getCoreRadius() const { return mCoreRadius; }
   void setCoreRadius(float radius) { mCoreRadius = radius; }
 
@@ -343,12 +345,24 @@ class ClusterFactory
   {
     mCellsIndices = indicesContainer;
   }
+
+  void setContainer(gsl::span<const o2::emcal::Cluster> clusterContainer, gsl::span<const InputType> cellContainer, gsl::span<const int> indicesContainer)
+  {
+    mClustersContainer = clusterContainer;
+    mInputsContainer = cellContainer;
+    mCellsIndices = indicesContainer;
+    if (!getLookUpInit()) {
+      setLookUpTable();
+    }
+  }
+
   void setLookUpTable(void)
   {
     mLoolUpTowerToIndex.fill(-1);
     for (auto iCellIndex : mCellsIndices) {
       mLoolUpTowerToIndex[mInputsContainer[iCellIndex].getTower()] = iCellIndex;
     }
+    mLookUpInit = true;
   }
 
   int getNumberOfClusters() const
@@ -359,6 +373,21 @@ class ClusterFactory
   /// \brief Initialize Cluster Factory with geometry
   /// \param geometry EMCAL geometry
   void setGeometry(o2::emcal::Geometry* geometry) { mGeomPtr = geometry; }
+
+  /// \class UninitLookUpTableException
+  /// \brief Exception handling uninitialized look up table
+  class UninitLookUpTableException final : public std::exception
+  {
+   public:
+    /// \brief constructor
+    UninitLookUpTableException() = default;
+
+    /// \brief Destructor
+    ~UninitLookUpTableException() noexcept final = default;
+
+    /// \brief Access to error message of the exception
+    const char* what() const noexcept final { return "Lookup table not initialized, exotics evaluation not possible!"; }
+  };
 
  protected:
   ///
@@ -400,6 +429,7 @@ class ClusterFactory
   float mLogWeight = 4.5; ///<  logarithmic weight for the cluster center of gravity calculation
 
   bool mJustCluster = kFALSE; ///< Flag to evaluates local to "tracking" c.s. transformation (B.P.).
+  bool mLookUpInit = false;   ///< Flag to check if the mLoolUpTowerToIndex is currently set. Will be checked when needed and created if not set!
 
   mutable int mSuperModuleNumber = 0;         ///<  number identifying supermodule containing cluster, reference is cell with maximum energy.
   float mDistToBadTower = -1;                 ///<  Distance to nearest bad tower
@@ -413,7 +443,7 @@ class ClusterFactory
   gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
   gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
   gsl::span<const int> mCellsIndices;                     ///< Container for cells indices in the event
-  std::array<short, 17664> mLoolUpTowerToIndex;           ///< Lookup table to match tower id with and cell index, needed for exotic check
+  std::array<short, 17664> mLoolUpTowerToIndex;           ///< Lookup table to match tower id with cell index, needed for exotic check
 
   ClassDefNV(ClusterFactory, 2);
 };

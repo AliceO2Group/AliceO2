@@ -225,7 +225,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   if (mcLabels) {
     mClusterLabels = mcLabels;
   }
-
   return mNrof;
 }
 
@@ -242,9 +241,8 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
 {
   if (iteration == 0) {
     if (maxLayers < trkParam.NLayers) {
-      mROframesPV.resize(1, 0);
+      resetRofPV();
     }
-    mPrimaryVertices.clear();
     mTracks.clear();
     mTracksLabel.clear();
     mLinesLabels.clear();
@@ -275,7 +273,10 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
-    mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
+    mNTrackletsPerROf.resize(2);
+    for (auto& v : mNTrackletsPerROf) {
+      v = std::vector<int>(mNrof + 1, 0);
+    }
 
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);

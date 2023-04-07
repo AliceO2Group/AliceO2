@@ -54,6 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"detectors", VariantType::String, std::string{"ITS,TRD,TOF"}, {"comma-separated list of detectors"}},
     {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
     {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
+    {"enable-cosmic", VariantType::Bool, false, {"enable cosmic tracks)"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -87,6 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   bool loadTPCClusters = configcontext.options().get<bool>("enable-tpc-clusters");
   bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
+  bool enableCosmic = configcontext.options().get<bool>("enable-cosmic");
   bool useMC = configcontext.options().get<bool>("enable-mc");
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
@@ -136,12 +138,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");
   }
 
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, postprocess, useMC));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC));
   // RS FIXME: check which clusters are really needed
   if (!postprocess) {
     GID::mask_t dummy;
     o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, src, src, useMC, dummy); // clusters MC is not needed
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+    if (enableCosmic) {
+      o2::globaltracking::InputHelper::addInputSpecsCosmics(configcontext, specs, useMC);
+    }
   } else { // add dummy driver
     specs.emplace_back(o2::globaltracking::getNoInpDummyOutSpec(0));
   }

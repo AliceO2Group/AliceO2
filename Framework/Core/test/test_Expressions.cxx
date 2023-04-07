@@ -189,6 +189,26 @@ TEST_CASE("TestGandivaTreeCreation")
   std::shared_ptr<gandiva::Filter> flt;
   auto s = gandiva::Filter::Make(schema_b, condition, &flt);
   REQUIRE(s.ok());
+
+  Filter rounding = nround(o2::aod::track::pt) > 0.1f;
+  auto rf = createOperations(rounding);
+  REQUIRE(rf[0].left == (DatumSpec{1u, atype::FLOAT}));
+  REQUIRE(rf[0].right == (DatumSpec{LiteralNode::var_t{0.1f}, atype::FLOAT}));
+  REQUIRE(rf[0].result == (DatumSpec{0u, atype::BOOL}));
+
+  REQUIRE(rf[1].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(rf[1].right == (DatumSpec{}));
+  REQUIRE(rf[1].result == (DatumSpec{1u, atype::FLOAT}));
+
+  auto infield5 = o2::aod::track::Pt::asArrowField();
+  auto resfield4 = std::make_shared<arrow::Field>("out", arrow::boolean());
+  auto schema_c = std::make_shared<arrow::Schema>(std::vector{infield5, resfield4});
+  auto gandiva_tree4 = createExpressionTree(rf, schema_c);
+  REQUIRE(gandiva_tree4->ToString() == "bool greater_than(float round((float) fPt), (const float) 0.1 raw(3dcccccd))");
+  auto condition2 = expressions::makeCondition(gandiva_tree4);
+  std::shared_ptr<gandiva::Filter> flt2;
+  auto s2 = gandiva::Filter::Make(schema_c, condition2, &flt2);
+  REQUIRE(s2.ok());
 }
 
 TEST_CASE("TestConditionalExpressions")

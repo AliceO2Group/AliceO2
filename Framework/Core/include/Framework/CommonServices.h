@@ -18,6 +18,8 @@
 namespace o2::framework
 {
 
+enum struct DeploymentMode;
+
 struct ThreadPool {
   int poolSize;
 };
@@ -56,6 +58,7 @@ struct CommonServices {
     return [](InitContext&, void* service) -> void* { return service; };
   }
 
+  static DeploymentMode getDeploymentMode();
   static ServiceSpec deviceContextSpec();
   static ServiceSpec dataProcessorContextSpec();
   static ServiceSpec driverClientSpec();
@@ -84,6 +87,7 @@ struct CommonServices {
   static ServiceSpec streamContextSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
+  static std::vector<ServiceSpec> arrowServices();
   static std::vector<ServiceSpec> requiredServices();
 };
 

@@ -30,6 +30,7 @@
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::framework;
 
@@ -43,6 +44,8 @@ using RDHUtils = o2::raw::RDHUtils;
 void CompressedDecodingTask::init(InitContext& ic)
 {
   LOG(debug) << "CompressedDecoding init";
+
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -85,7 +88,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   }
 
   /*
-  int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * 3;
+  int nwindowperTF = o2::tof::Utils::getNOrbitInTF() * 3;
   while (row->size() < nwindowperTF) {
     // complete timeframe with empty readout windows
     auto& dummy = row->emplace_back(lastval, 0);
@@ -137,6 +140,19 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  const uint32_t norbits = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+  Utils::setNOrbitInTF(norbits);
+  mDecoder.setNOrbitInTF(norbits);
+
+  static bool isFirstCall = true;
+  if (isFirstCall) {
+    isFirstCall = false;
+    LOG(info) << "N orbits per TF set to " << norbits;
+  } else {
+    LOG(debug) << "N orbits per TF set to " << norbits;
+  }
 
   mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
@@ -385,7 +401,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   mCurrentOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
 
   // rdh close
-  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
+  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::tof::Utils::getNOrbitInTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
     return;
   }
@@ -416,6 +432,14 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
 
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                true,                           // GRPECS=true for nHBF per TF
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
+
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
   dataDesc.runtimeInit(inputDesc.c_str());
@@ -434,7 +458,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs,
     //    select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc)},
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc, ccdbRequest)},
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},

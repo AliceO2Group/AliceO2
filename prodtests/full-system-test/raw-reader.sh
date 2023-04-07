@@ -19,4 +19,4 @@ if [[ $NORATELOG == 1 ]]; then
   ARGS_ALL+=" --fairmq-rate-logging 0"
 fi
 
-o2-raw-file-reader-workflow $ARGS_ALL --loop $NTIMEFRAMES --delay $TFDELAY --input-conf $RAWINPUTDIR/rawAll.cfg --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF;" --max-tf 0  --raw-channel-config "name=dpl-chan,type=push,method=bind,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=0" $GLOBALDPLOPT --run
+o2-raw-file-reader-workflow $ARGS_ALL --loop $NTIMEFRAMES --delay $TFDELAY --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $WORKFLOW_DETECTORS --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF;" --max-tf 0  --raw-channel-config "name=dpl-chan,type=push,method=bind,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=0" $GLOBALDPLOPT --run

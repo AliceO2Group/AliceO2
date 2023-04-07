@@ -12,6 +12,7 @@
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ArrowSupport.cxx
+                       src/ArrowTableSlicingCache.cxx
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
@@ -40,6 +41,7 @@ o2_add_library(Framework
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
                        src/DataProcessingStats.cxx
+                       src/DataProcessingStates.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
@@ -124,6 +126,7 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
+                       src/TimingHelpers.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
@@ -192,6 +195,7 @@ add_executable(o2-test-framework-core
               test/test_DataDescriptorMatcher.cxx
               test/test_DataDescriptorQueryBuilder.cxx
               test/test_DataProcessingStats.cxx
+              test/test_DataProcessingStates.cxx
               test/test_DataProcessorSpec.cxx
               test/test_DataRefUtils.cxx
               test/test_DataRelayer.cxx
@@ -248,7 +252,7 @@ set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${o
 
 add_test(NAME framework:core COMMAND o2-test-framework-core)
 
-o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper  
+o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
             SOURCES test/test_AlgorithmWrapper.cxx
             COMPONENT_NAME Framework
             LABELS framework

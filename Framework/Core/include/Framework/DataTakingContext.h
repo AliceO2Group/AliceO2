@@ -18,6 +18,14 @@
 namespace o2::framework
 {
 
+enum struct DeploymentMode {
+  Local,
+  OnlineECS,
+  OnlineDDS,
+  Grid,
+  FST
+};
+
 struct DataTakingContext {
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
   static constexpr const char* UNKNOWN = "unknown";
@@ -37,6 +45,9 @@ struct DataTakingContext {
   std::string detectors{UNKNOWN};
   /// ECS declared run data storage type as raw
   bool forcedRaw{false};
+
+  /// Where we thing this is running
+  DeploymentMode deploymentMode{DeploymentMode::Local};
 };
 
 } // namespace o2::framework

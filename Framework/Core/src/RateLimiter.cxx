@@ -13,6 +13,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/DataTakingContext.h"
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
@@ -28,9 +29,14 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
   if (maxInFlight && device->fChannels.count("metric-feedback")) {
     int waitMessage = 0;
     int recvTimeot = 0;
+    auto& dtc = ctx.services().get<DataTakingContext>();
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
       if (recvTimeot == -1 && waitMessage == 0) {
-        LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
+          LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        } else {
+          LOG(info) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
+        }
         waitMessage = 1;
       }
       auto msg = device->NewMessageFor("metric-feedback", 0, 0);

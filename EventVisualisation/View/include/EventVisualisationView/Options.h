@@ -30,6 +30,7 @@ class Options
   bool mJSON;                    // -j
   bool mOnline;                  // -o (must specify -d!)
   bool mRandomTracks;            // -r
+  std::string mOptionsFileName;  // -p /home/ed/.o2eve_config_v2
   std::string mFileName;         // -f 'data.root'
   std::string mDataFolder;       // -d './'
   std::string mSavedDataFolder;  // -s './'
@@ -54,6 +55,7 @@ class Options
   std::string dataFolder() { return this->mDataFolder; }
   std::string imageFolder() { return this->mImageFolder; }
   std::string savedDataFolder() { return this->mSavedDataFolder; }
+  std::string optionsFileName() { return this->mOptionsFileName; }
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
   long memoryLimit() { return this->mMemoryLimit; }

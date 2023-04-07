@@ -57,6 +57,8 @@
 #include "Framework/GuiCallbackContext.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/ServiceMetricsInfo.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/CommonServices.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -838,7 +840,11 @@ bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
         } else if (forceful_exit) {
           LOGP(error, "pid {} ({}) was forcefully terminated after being requested to quit", pid, id);
         } else {
-          LOGP(error, "pid {} ({}) crashed with {}", pid, id, es);
+          if (es == 128) {
+            LOGP(error, "Workflow crashed - pid {} ({}) was killed abnormally with exit code {}, could be out of memory killer, segfault, unhandled exception, SIGKILL, etc...", pid, id, es);
+          } else {
+            LOGP(error, "pid {} ({}) crashed with or was killed with exit code {}", pid, id, es);
+          }
         }
         hasError |= true;
       }
@@ -920,10 +926,11 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
     std::string defaultExitTransitionTimeout = "0";
     std::string defaultInfologgerMode = "";
-    if (getenv("DDS_SESSION_ID") != nullptr) {
+    o2::framework::DeploymentMode deploymentMode = o2::framework::CommonServices::getDeploymentMode();
+    if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS) {
       defaultExitTransitionTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
-    } else if (getenv("OCC_CONTROL_PORT") != nullptr) {
+    } else if (deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
       defaultExitTransitionTimeout = "20";
     }
     boost::program_options::options_description optsDesc;
@@ -1566,6 +1573,94 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
 
           // This should expand nodes so that we can build a consistent DAG.
+
+          // This updates the options in the runningWorkflow.devices
+          for (auto& device : runningWorkflow.devices) {
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& option : device.options) {
+                const char* name = option.name.c_str();
+                switch (option.type) {
+                  case VariantType::Int:
+                    option.defaultValue = reg->get<int32_t>(name);
+                    break;
+                  case VariantType::Int8:
+                    option.defaultValue = reg->get<int8_t>(name);
+                    break;
+                  case VariantType::Int16:
+                    option.defaultValue = reg->get<int16_t>(name);
+                    break;
+                  case VariantType::UInt8:
+                    option.defaultValue = reg->get<uint8_t>(name);
+                    break;
+                  case VariantType::UInt16:
+                    option.defaultValue = reg->get<uint16_t>(name);
+                    break;
+                  case VariantType::UInt32:
+                    option.defaultValue = reg->get<uint32_t>(name);
+                    break;
+                  case VariantType::UInt64:
+                    option.defaultValue = reg->get<uint64_t>(name);
+                    break;
+                  case VariantType::Int64:
+                    option.defaultValue = reg->get<int64_t>(name);
+                    break;
+                  case VariantType::Float:
+                    option.defaultValue = reg->get<float>(name);
+                    break;
+                  case VariantType::Double:
+                    option.defaultValue = reg->get<double>(name);
+                    break;
+                  case VariantType::String:
+                    option.defaultValue = reg->get<std::string>(name);
+                    break;
+                  case VariantType::Bool:
+                    option.defaultValue = reg->get<bool>(name);
+                    break;
+                  case VariantType::ArrayInt:
+                    option.defaultValue = reg->get<std::vector<int>>(name);
+                    break;
+                  case VariantType::ArrayFloat:
+                    option.defaultValue = reg->get<std::vector<float>>(name);
+                    break;
+                  case VariantType::ArrayDouble:
+                    option.defaultValue = reg->get<std::vector<double>>(name);
+                    break;
+                  case VariantType::ArrayBool:
+                    option.defaultValue = reg->get<std::vector<bool>>(name);
+                    break;
+                  case VariantType::ArrayString:
+                    option.defaultValue = reg->get<std::vector<std::string>>(name);
+                    break;
+                  case VariantType::Array2DInt:
+                    option.defaultValue = reg->get<Array2D<int>>(name);
+                    break;
+                  case VariantType::Array2DFloat:
+                    option.defaultValue = reg->get<Array2D<float>>(name);
+                    break;
+                  case VariantType::Array2DDouble:
+                    option.defaultValue = reg->get<Array2D<double>>(name);
+                    break;
+                  case VariantType::LabeledArrayInt:
+                    option.defaultValue = reg->get<LabeledArray<int>>(name);
+                    break;
+                  case VariantType::LabeledArrayFloat:
+                    option.defaultValue = reg->get<LabeledArray<float>>(name);
+                    break;
+                  case VariantType::LabeledArrayDouble:
+                    option.defaultValue = reg->get<LabeledArray<double>>(name);
+                    break;
+                  default:
+                    break;
+                }
+              }
+            }
+          }
         } catch (std::runtime_error& e) {
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
@@ -1735,7 +1830,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto& context = childFds[di];
           createPipes(context.childstdin);
           createPipes(context.childstdout);
-          if (runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
+          if (driverInfo.mode == DriverMode::EMBEDDED || runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
                               runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
           } else {
@@ -2131,6 +2226,7 @@ void overrideLabels(ConfigContext& ctx, WorkflowSpec& workflow)
 
 /// Helper function to initialise the controller from the command line options.
 void initialiseDriverControl(bpo::variables_map const& varmap,
+                             DriverInfo& driverInfo,
                              DriverControl& control)
 {
   // Control is initialised outside the main loop because
@@ -2166,16 +2262,17 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
     control.callbacks = {[filename = varmap["dds"].as<std::string>(),
-                          workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
-                                                                          DeviceSpecs const& specs,
-                                                                          DeviceExecutions const& executions,
-                                                                          DataProcessorInfos& dataProcessorInfos,
-                                                                          CommandInfo const& commandInfo) {
+                          workflowSuffix = varmap["dds-workflow-suffix"],
+                          driverMode = driverInfo.mode](WorkflowSpec const& workflow,
+                                                        DeviceSpecs const& specs,
+                                                        DeviceExecutions const& executions,
+                                                        DataProcessorInfos& dataProcessorInfos,
+                                                        CommandInfo const& commandInfo) {
       if (filename == "-") {
-        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, driverMode, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
       } else {
         std::ofstream out(filename);
-        DDSConfigHelpers::dumpDeviceSpec2DDS(out, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(out, driverMode, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
       }
     }};
     control.forcedTransitions = {
@@ -2358,6 +2455,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   enum LogParsingHelpers::LogLevel minFailureLevel;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
+  enum DriverMode driverMode;
   executorOptions.add_options()                                                                                                                                        //
     ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                                                    //                                                                                                       //
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                                            //                                                                                                         //
@@ -2383,6 +2481,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                                    //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                                           //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                                 //                                                                                                                                      //
+    ("driver-mode", bpo::value<DriverMode>(&driverMode)->default_value(DriverMode::STANDALONE), R"(how to run the driver. default: "standalone". Valid: "embedded")")  //                                                                                                                                      //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far. It implies --batch. Use --no-batch to see the GUI")                  //                                                                                                                                        //
     ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                                           //                                                                                                                                        //
     ("o2-control,o2", bpo::value<std::string>()->default_value(""), "dump O2 Control workflow configuration under the specified name")                                 //
@@ -2631,8 +2730,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       exit(1);
     }
   }
-  DriverControl driverControl;
-  initialiseDriverControl(varmap, driverControl);
 
   auto evaluateBatchOption = [&varmap]() -> bool {
     if (varmap.count("no-batch") > 0) {
@@ -2665,6 +2762,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
+  driverInfo.mode = varmap["driver-mode"].as<DriverMode>();
+
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
     driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
@@ -2681,6 +2780,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // FIXME: should use the whole dataProcessorInfos, actually...
   driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
+
+  DriverControl driverControl;
+  initialiseDriverControl(varmap, driverInfo, driverControl);
 
   commandInfo.merge(CommandInfo(argc, argv));
 

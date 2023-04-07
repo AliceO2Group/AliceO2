@@ -64,7 +64,9 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
-            {"filename-dchm", VariantType::String, "FT0-deadchannels.txt", {"Dead channel map file name"}}}};
+            {"filename-dchm", VariantType::String, "FT0-deadchannels.txt", {"Dead channel map file name"}},
+            {"valid-days-dchm", VariantType::UInt32, 180u, {"Dead channel map validity in days"}},
+            {"no-validate", VariantType::Bool, false, {"Don't validate the CCDB uploads"}}}};
 }
 
 } // namespace framework

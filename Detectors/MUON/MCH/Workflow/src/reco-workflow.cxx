@@ -12,7 +12,6 @@
 #include "ClusterFinderGEMSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "MCHIO/DigitReaderSpec.h"
 #include "ErrorMergerSpec.h"
 #include "EventFinderSpec.h"
 #include "Framework/CallbacksPolicy.h"
@@ -24,13 +23,16 @@
 #include "MCHClustering/ClusterizerParam.h"
 #include "MCHDigitFiltering/DigitFilteringSpec.h"
 #include "MCHGeometryTransformer/ClusterTransformerSpec.h"
+#include "MCHIO/ClusterWriterSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
+#include "MCHIO/TrackWriterSpec.h"
 #include "MCHPreClustering/PreClusterFinderSpec.h"
+#include "MCHStatus/StatusMapCreatorParam.h"
+#include "MCHStatus/StatusMapCreatorSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
 #include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
-#include "MCHIO/ClusterWriterSpec.h"
 #include "MCHWorkflow/ErrorWriterSpec.h"
-#include "MCHIO/TrackWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
 using namespace o2::framework;
@@ -81,6 +83,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableRootInput) {
     specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-digit-reader"));
+  }
+
+  if (o2::mch::StatusMapCreatorParam::Instance().isActive()) {
+    specs.emplace_back(o2::mch::getStatusMapCreatorSpec("mch-statusmap-creator"));
   }
 
   specs.emplace_back(o2::mch::getDigitFilteringSpec(useMC, "mch-digit-filtering",

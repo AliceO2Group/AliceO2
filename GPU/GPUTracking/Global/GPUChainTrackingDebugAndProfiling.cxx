@@ -244,5 +244,49 @@ void GPUChainTracking::PrintOutputStat()
     }
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }
-  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
+  GPUInfo("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
+}
+
+void GPUChainTracking::SanityCheck()
+{
+  size_t nErrors = 0;
+
+  for (unsigned int i = 0; i < mIOPtrs.nOutputTracksTPCO2; i++) {
+    const auto& trk = mIOPtrs.outputTracksTPCO2[i];
+    const auto& ref = trk.getClusterRef();
+    if (ref.getFirstEntry() > mIOPtrs.nOutputClusRefsTPCO2) {
+      if (nErrors++ < 1000) {
+        GPUError("Invalid getFirst() entry in cluster reference: %u > $u", ref.getFirstEntry(), mIOPtrs.nOutputClusRefsTPCO2);
+        continue;
+      }
+    }
+    if (ref.getFirstEntry() + (ref.getEntries() * 3 + 1) / 2 > mIOPtrs.nOutputClusRefsTPCO2) {
+      if (nErrors++ < 1000) {
+        GPUError("Invalid getEntries() entry in cluster reference: %u > $u", ref.getFirstEntry() + (ref.getEntries() * 3 + 1) / 2, mIOPtrs.nOutputClusRefsTPCO2);
+        continue;
+      }
+    }
+    for (int j = 0; j < trk.getNClusters(); j++) {
+      uint8_t sector, row;
+      uint32_t cl;
+      trk.getClusterReference(mIOPtrs.outputClusRefsTPCO2, j, sector, row, cl);
+      if (sector >= GPUCA_NSLICES || row >= GPUCA_ROW_COUNT) {
+        if (nErrors++ < 1000) {
+          GPUError("Invalid sector / row %d / %d", (int)sector, (int)row);
+          continue;
+        }
+      }
+      if (cl >= mIOPtrs.clustersNative->nClusters[sector][row]) {
+        if (nErrors++ < 1000) {
+          GPUError("Invalid cluster index %d >= %d", cl, mIOPtrs.clustersNative->nClusters[sector][row]);
+        }
+      }
+    }
+  }
+
+  if (nErrors == 0) {
+    GPUInfo("Sanity check passed");
+  } else {
+    GPUError("Sanity check found %lu errors", nErrors);
+  }
 }

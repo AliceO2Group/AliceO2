@@ -50,7 +50,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<ULong_t>()->default_value(0), "initial seed as ULong_t (default: 0 == random)")(
-    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
+    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")("vertexMode", bpo::value<std::string>()->default_value("kDiamondParam"), "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
@@ -219,10 +219,10 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
-    mConfigData.mTimestampMode = kManual;
+    mConfigData.mTimestampMode = TimeStampMode::kManual;
   } else {
     mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-    mConfigData.mTimestampMode = kNow;
+    mConfigData.mTimestampMode = TimeStampMode::kNow;
   }
   mConfigData.mRunNumber = vm["run"].as<int>();
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
@@ -234,6 +234,11 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
   mConfigData.mFromCollisionContext = vm["fromCollContext"].as<std::string>();
   adjustFromCollContext();
+
+  // analyse vertex options
+  if (!parseVertexModeString(vm["vertexMode"].as<std::string>(), mConfigData.mVertexMode)) {
+    return false;
+  }
 
   // analyse field options
   // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
@@ -256,6 +261,23 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
 
   return true;
+}
+
+bool SimConfig::parseVertexModeString(std::string const& vertexstring, VertexMode& mode)
+{
+  // vertexstring must be either kNoVertex, kDiamondParam, kCCDB
+  if (vertexstring == "kNoVertex") {
+    mode = VertexMode::kNoVertex;
+    return true;
+  } else if (vertexstring == "kDiamondParam") {
+    mode = VertexMode::kDiamondParam;
+    return true;
+  } else if (vertexstring == "kCCDB") {
+    mode = VertexMode::kCCDB;
+    return true;
+  }
+  LOG(error) << "Vertex mode must be one of kNoVertex, kDiamondParam, kCCDB";
+  return false;
 }
 
 bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue, SimFieldMode& mode)

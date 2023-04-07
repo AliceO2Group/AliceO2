@@ -61,7 +61,24 @@ bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
       }
     }
   }
-  return false;
+  // If we are here we do not have any data dependency,
+  // however we strill consider a dependent on b if
+  // a has the "expendable" label and b does not.
+  bool isBExpendable = false;
+  bool isAExpendable = false;
+  for (auto const& label : b.labels) {
+    if (label.value == "expendable") {
+      isBExpendable = true;
+      break;
+    }
+  }
+  for (auto const& label : a.labels) {
+    if (label.value == "expendable") {
+      isAExpendable = true;
+      break;
+    }
+  }
+  return isAExpendable && !isBExpendable;
 };
 
 TopologyPolicy::DependencyChecker TopologyPolicyHelpers::dataDependency()

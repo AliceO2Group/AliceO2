@@ -91,6 +91,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && (!dumpDir.empty() && !o2::utils::Str::pathIsDirectory(dumpDir))) {
       throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
+    mDecoder->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
   } catch (const std::exception& e) {
@@ -113,6 +114,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
   static bool firstCall = true;
+  if (!firstCall && pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // reset at the beginning of the new run
+    reset();
+  }
   if (firstCall) {
     firstCall = false;
     mDecoder->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
@@ -120,6 +124,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mDecoder->setVerbosity(mDecoder->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
     mAllowReporting &= (mDecoder->getInstanceID() == 0) || mUnmutExtraLanes;
   }
+
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
@@ -147,7 +152,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
 
   mDecoder->setDecodeNextAuto(false);
-  while (mDecoder->decodeNextTrigger()) {
+  while (mDecoder->decodeNextTrigger() >= 0) {
     if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
       mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
       if (mDoCalibData) {
@@ -240,9 +245,7 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only in the beginning of the run
     pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
     if (mDoClusters) {
       mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(Mapping::getDetID()));
@@ -299,6 +302,22 @@ void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
     LOG(info) << "Alpide param updated";
     return;
+  }
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::reset()
+{
+  // reset for the new run
+  mFinalizeDone = false;
+  mTFCounter = 0;
+  mTimer.Reset();
+  if (mDecoder) {
+    mDecoder->reset();
+  }
+  if (mClusterer) {
+    mClusterer->reset();
   }
 }
 
@@ -362,6 +381,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
+      {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }

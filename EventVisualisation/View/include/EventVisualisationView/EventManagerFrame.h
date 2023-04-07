@@ -42,7 +42,8 @@ class EventManagerFrame : public TGMainFrame
   enum DisplayMode { OnlineMode,
                      SavedMode,
                      SequentialMode };
-  enum RunMode { SyntheticRun,
+  enum RunMode { NewestRun,
+                 SyntheticRun,
                  CosmicsRun,
                  PhysicsRun };
 
@@ -54,6 +55,7 @@ class EventManagerFrame : public TGMainFrame
   TGTextButton* mOnlineModeBtn;            // needed as we would like to make it selected
   TGTextButton* mSavedModeBtn;             // needed as we would like to make it shared
   TGTextButton* mSequentialModeBtn;        // needed as we would like to make it shared
+  TGRadioButton* mNewestRunBtn;            // needed as we would like to control button state
   TGRadioButton* mSyntheticRunBtn;         // needed as we would like to control button state
   TGRadioButton* mCosmicsRunBtn;           // needed as we would like to control button state
   TGRadioButton* mPhysicsRunBtn;           // needed as we would like to control button state
@@ -62,6 +64,7 @@ class EventManagerFrame : public TGMainFrame
   TTimer* mTimer; // Timer for automatic event loading
   bool mTimerRunning;
   bool inTick = false;
+  bool mUpdateGui = true; // gui needs updatinb
   TString mDefaultDataDirectory;
   long memoryUsedInfo = 0L; // used to track memory leaks
   bool setInTick();         // try set inTick, return true if set, false if already set
@@ -92,7 +95,7 @@ class EventManagerFrame : public TGMainFrame
   float getMinTimeFrameSliderValue() const;
   float getMaxTimeFrameSliderValue() const;
 
-  void setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit = kTRUE);
+  void setRunMode(EventManagerFrame::RunMode runMode);
 
   EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
   ~EventManagerFrame() override;
@@ -114,6 +117,7 @@ class EventManagerFrame : public TGMainFrame
   void DoSavedMode();
   void DoTimeTick();
   void DoSequentialMode();
+  void DoNewestData();
   void DoSyntheticData();
   void DoCosmicsData();
   void DoPhysicsData();
@@ -123,7 +127,7 @@ class EventManagerFrame : public TGMainFrame
   void DoTimeFrameSliderChanged();
 
  public: // static functions
-  static TString getSourceDirectory(EventManagerFrame::RunMode runMode);
+  static std::vector<std::string> getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode);
   static RunMode decipherRunMode(TString name, RunMode defaultRun = SyntheticRun);
   static TString getRunTypeString(EventManagerFrame::RunMode runMode);
 };

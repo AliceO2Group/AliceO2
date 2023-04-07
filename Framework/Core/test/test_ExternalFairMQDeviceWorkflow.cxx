@@ -349,7 +349,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId) {
+  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
       return;
@@ -401,6 +401,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
     }
     o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
+    return;
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

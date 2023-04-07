@@ -18,6 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "GlobalTracking/MatchITSTPCQC.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -28,15 +29,17 @@ namespace globaltracking
 class ITSTPCMatchingQCDevice : public Task
 {
  public:
-  ITSTPCMatchingQCDevice(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC){};
+  ITSTPCMatchingQCDevice(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> req, bool useMC) : mDataRequest(dr), mCCDBRequest(req), mUseMC(useMC){};
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::globaltracking::MatchITSTPCQC> mMatchITSTPCQC;
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool mUseMC = true;
 };
 

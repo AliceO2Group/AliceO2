@@ -185,7 +185,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
   }
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              false,                             // GRPECS=true
+                                                              true,                              // GRPECS=true
                                                               false,                             // GRPLHCIF
                                                               true,                              // GRPMagField
                                                               true,                              // askMatLUT

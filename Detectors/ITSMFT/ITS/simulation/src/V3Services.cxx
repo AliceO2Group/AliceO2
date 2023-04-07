@@ -929,8 +929,8 @@ TGeoVolume* V3Services::ibCyssCylinder(const TGeoManager* mgr)
   TGeoTubeSeg* cyssInnerCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phimin, phimax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_F6151B05M$", GetDetName()));
-  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
+  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_AS4C200$", GetDetName()));
+  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_RIST110$", GetDetName()));
 
   TGeoVolume* cyssOuterCylVol = new TGeoVolume("IBCYSSCylinder", cyssOuterCylSh, medPrepreg);
   cyssOuterCylVol->SetLineColor(35);
@@ -1051,8 +1051,8 @@ TGeoVolume* V3Services::ibCyssCone(const TGeoManager* mgr)
   cyssConeFoamSh->DefineSection(4, zlen1, rmin, rmax);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_F6151B05M$", GetDetName()));
-  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_ROHACELL$", GetDetName()));
+  TGeoMedium* medPrepreg = mgr->GetMedium(Form("%s_AS4C200$", GetDetName()));
+  TGeoMedium* medRohacell = mgr->GetMedium(Form("%s_RIST110$", GetDetName()));
 
   TGeoVolume* cyssConeVol = new TGeoVolume("IBCYSSCone", cyssConeSh, medPrepreg);
   cyssConeVol->SetLineColor(35);

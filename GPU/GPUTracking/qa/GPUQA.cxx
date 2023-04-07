@@ -205,7 +205,7 @@ int GPUQA::initColors()
   }
   return 0;
 }
-static constexpr Color_t defaultColorNUms[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
+static constexpr Color_t defaultColorNums[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
 
 #define TRACK_EXPECTED_REFERENCE_X_DEFAULT 81
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -332,8 +332,6 @@ void GPUQA::clearGarbagageCollector()
 
 GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? param : &chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
-  static int initColorsInitialized = initColors();
-  (void)initColorsInitialized;
 }
 
 GPUQA::~GPUQA()
@@ -1780,6 +1778,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
   }
   mTrackingScratchBuffer.clear();
+  mTrackingScratchBuffer.shrink_to_fit();
 }
 
 void GPUQA::GetName(char* fname, int k)
@@ -1853,8 +1852,12 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   }
 
   std::vector<Color_t> colorNums(COLORCOUNT);
+  if (!qcout) {
+    static int initColorsInitialized = initColors();
+    (void)initColorsInitialized;
+  }
   for (int i = 0; i < COLORCOUNT; i++) {
-    colorNums[i] = qcout ? defaultColorNUms[i] : mColors[i]->GetNumber();
+    colorNums[i] = qcout ? defaultColorNums[i] : mColors[i]->GetNumber();
   }
 
   bool mcAvail = mcPresent();

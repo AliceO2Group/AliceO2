@@ -40,6 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-itsonly", VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
     {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"send-track-data", VariantType::Bool, false, {"Send also the track information to the aggregator"}},
+    {"debug-output", VariantType::Bool, false, {"Dump extended tracking information for debugging"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -74,12 +75,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   useMC = false; // force disabling MC as long as it is not implemented
   auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
+  auto debugOutput = configcontext.options().get<bool>("debug-output");
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
   LOG(info) << "Data sources: " << GID::getSourcesNames(src);
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, sendTrackData));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, sendTrackData, debugOutput));
   if (!configcontext.options().get<bool>("disable-root-output")) {
-    specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData));
+    specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);

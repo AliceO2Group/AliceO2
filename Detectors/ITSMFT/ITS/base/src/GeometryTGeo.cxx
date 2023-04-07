@@ -400,16 +400,44 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   double delta = 0.;
   if (mIsLayerITS3[lay]) {
 #ifdef ENABLE_UPGRADES
-    delta = SegmentationITS3::mSensorLayerThickness - SegmentationITS3::mSensorLayerThicknessEff;
+    return &matTmp;
 #endif
-  } else {
-    delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
   }
+
+  delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
   static TGeoTranslation tra(0., 0.5 * delta, 0.);
 
   matTmp *= tra;
 
   return &matTmp;
+}
+
+//__________________________________________________________________________
+float GeometryTGeo::getAlphaFromGlobalITS3(int isn, o2::math_utils::Point3D<float> gloXYZ)
+{
+  // calculate the tracking alpha of the ITS3 cluster in global coordinates
+  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  auto matG2L = matL2G->Inverse();
+  auto translation = matG2L.GetTranslation(); // we only need the translation
+  o2::math_utils::Point3D<float> gloXYZtra{gloXYZ.x() + (float)translation[0], gloXYZ.y() + (float)translation[1], gloXYZ.z() + (float)translation[2]};
+
+  float alp = ATan2(gloXYZtra.y(), gloXYZtra.x());
+  o2::math_utils::bringTo02Pi(alp);
+
+  return alp;
+}
+
+//__________________________________________________________________________
+const o2::math_utils::Transform3D GeometryTGeo::getT2LMatrixITS3(int isn, float alpha)
+{
+  // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
+  static TGeoHMatrix t2l;
+  t2l.Clear();
+  t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the tangent to the cylinder
+  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
+  return Mat3D(t2l);
 }
 
 //__________________________________________________________________________
@@ -809,8 +837,19 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
 
-  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  int iLayer = getLayer(isn);
+
+  if (mIsLayerITS3[iLayer]) {
+    // in this case we need the line tangent to the circumference
+    double radius = 0.;
+#ifdef ENABLE_UPGRADES
+    radius = SegmentationITS3::mRadii[iLayer];
+#endif
+    locA[1] = radius;
+    locB[1] = radius;
+  }
 
   matL2G->LocalToMaster(locA, gloA);
   matL2G->LocalToMaster(locB, gloB);

@@ -164,6 +164,27 @@ void CcdbApi::init(std::string const& host)
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
 
+// A helper function used in a few places. Updates a ROOT file with meta/header information.
+void CcdbApi::updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary)
+{
+  std::lock_guard<std::mutex> guard(gIOMutex);
+  auto oldlevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
+  TFile snapshotfile(filename.c_str(), "UPDATE");
+  // The assumption is that the blob is a ROOT file
+  if (!snapshotfile.IsZombie()) {
+    if (querysummary && !snapshotfile.Get(CCDBQUERY_ENTRY)) {
+      snapshotfile.WriteObjectAny(querysummary, TClass::GetClass(typeid(*querysummary)), CCDBQUERY_ENTRY);
+    }
+    if (headers && !snapshotfile.Get(CCDBMETA_ENTRY)) {
+      snapshotfile.WriteObjectAny(headers, TClass::GetClass(typeid(*headers)), CCDBMETA_ENTRY);
+    }
+    snapshotfile.Write();
+    snapshotfile.Close();
+  }
+  gErrorIgnoreLevel = oldlevel;
+}
+
 /**
  * Keep only the alphanumeric characters plus '_' plus '/' plus '.' from the string passed in argument.
  * @param objectName
@@ -255,6 +276,11 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     if (!outf.good()) {
       throw std::runtime_error(fmt::format("Failed to write local CCDB file {}", flLoc));
     } else {
+      std::map<std::string, std::string> metaheader(metadata);
+      // add time validity information
+      metaheader["Valid-From"] = std::to_string(startValidityTimestamp);
+      metaheader["Valid-Until"] = std::to_string(endValidityTimestamp);
+      updateMetaInformationInLocalFile(flLoc.c_str(), &metaheader);
       std::string metaStr{};
       for (const auto& mentry : metadata) {
         metaStr += fmt::format("{}={};", mentry.first, mentry.second);
@@ -704,19 +730,8 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     }
   }
   CCDBQuery querysummary(path, metadata, timestamp);
-  {
-    std::lock_guard<std::mutex> guard(gIOMutex);
-    auto oldlevel = gErrorIgnoreLevel;
-    gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
-    TFile snapshotfile(targetpath.c_str(), "UPDATE");
-    // The assumption is that the blob is a ROOT file
-    if (!snapshotfile.IsZombie()) {
-      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-      snapshotfile.Close();
-    }
-    gErrorIgnoreLevel = oldlevel;
-  }
+
+  updateMetaInformationInLocalFile(targetpath.c_str(), &headers, &querysummary);
   return true;
 }
 
@@ -1521,18 +1536,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
         std::copy(dest.begin(), dest.end(), std::ostreambuf_iterator<char>(objFile));
       }
       // now open the same file as root file and store metadata
-      std::lock_guard<std::mutex> guard(gIOMutex);
-      auto oldlevel = gErrorIgnoreLevel;
-      gErrorIgnoreLevel = 6001;                       // ignoring error messages here (since we catch with IsZombie)
-      TFile snapshot(snapshotpath.c_str(), "UPDATE"); // the assumption is that the blob is a ROOT file
-      if (!snapshot.IsZombie()) {
-        snapshot.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-        if (headers) {
-          snapshot.WriteObjectAny(headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-        }
-      }
-      snapshot.Close();
-      gErrorIgnoreLevel = oldlevel;
+      updateMetaInformationInLocalFile(snapshotpath, headers, &querysummary);
     }
   }
   sem_release();

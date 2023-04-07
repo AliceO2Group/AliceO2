@@ -109,6 +109,17 @@ class TimeSlotCalibration
   virtual void checkSlotsToFinalize(TFType tf = INFINITE_TF, int maxDelay = 0);
   virtual void finalizeOldestSlot();
 
+  virtual void reset()
+  { // reset to virgin state (need for start - stop - start)
+    mSlots.clear();
+    mLastClosedTF = 0;
+    mFirstTF = 0;
+    mMaxSeenTF = 0;
+    mLastCheckedTFInfiniteSlot = 0;
+    mWasCheckedInfiniteSlot = false;
+    initOutput();
+  }
+
   // Methods to be implemented by the derived user class
 
   // implement and call this method te reset the output slots once they are not needed

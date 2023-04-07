@@ -41,7 +41,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
   auto timer = ctx.options().get<std::string>("timer");
   std::vector<InputSpec> inputs;
   std::vector<TimerSpec> timers;
-
   if (timer.empty() == false) {
     // Split timer at every comma, then split each part at every colon
     // and create a TimerIntervalSpec from it.
@@ -61,6 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
     }
     inputs.emplace_back("timer", "TST", "TIMER", 0, Lifetime::Timer, timerSpecs(timers));
   }
+
   std::vector<InputSpec> matchers = select(dataspec.c_str());
   std::vector<std::string> outputRefs;
   std::vector<OutputSpec> outputSpecs;
@@ -70,17 +70,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
   }
 
   return WorkflowSpec{
-    {
-      .name = ctx.options().get<std::string>("name"),
-      .inputs = inputs,
-      .outputs = outputSpecs,
-      .algorithm = AlgorithmSpec{adaptStateless(
-        [outputSpecs](DataAllocator& outputs) {
-          LOGP(info, "Processing callback invoked");
-          for (auto const& output : outputSpecs) {
-            auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
-            outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 1);
-          }
-        })},
-    }};
+    {.name = ctx.options().get<std::string>("name"),
+     .inputs = inputs,
+     .outputs = outputSpecs,
+     .algorithm = AlgorithmSpec{adaptStateful(
+       [outputSpecs](ConfigParamRegistry const& options) {
+         // the size of the messages is also a workflow option
+         auto dataSize = options.get<int64_t>("data-size");
+         return adaptStateless(
+           [outputSpecs, dataSize](DataAllocator& outputs, ProcessingContext& ctx) {
+             for (auto const& output : outputSpecs) {
+               auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
+               outputs.make<char>(Output{concrete.origin, concrete.description, concrete.subSpec}, dataSize);
+             }
+           });
+       })},
+     .options = {ConfigParamSpec{"data-size", VariantType::Int64, 1LL, {"Size of the created messages"}}}}};
 }

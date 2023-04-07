@@ -335,7 +335,6 @@ class RawPixelReader : public PixelReader
     const int dummyNPages = 0xffffff;                                // any large number
     int minPages = dummyNPages;
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];
-    ruData.nCables = ruData.ruInfo->nCables;
     o2::header::RAWDataHeader rdh;
 
     RDHUtils::setTriggerOrbit(rdh, mInteractionRecord.orbit);
@@ -355,7 +354,7 @@ class RawPixelReader : public PixelReader
         continue;
       }
       int nGBTWordsNeeded = 0;
-      for (int icab = ruData.nCables; icab--;) { // calculate number of GBT words per link
+      for (int icab = ruData.ruInfo->nCables; icab--;) { // calculate number of GBT words per link
         if ((link->lanes & (0x1 << icab))) {
           int nb = ruData.cableData[icab].getSize();
           nGBTWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0;
@@ -387,7 +386,7 @@ class RawPixelReader : public PixelReader
       // now loop over the lanes served by this link, writing each time at most 9 bytes, untill all lanes are copied
       int nGBTWordsInPacket = 0;
       do {
-        for (int icab = 0; icab < ruData.nCables; icab++) {
+        for (int icab = 0; icab < ruData.ruInfo->nCables; icab++) {
           if ((link->lanes & (0x1 << icab))) {
             auto& cableData = ruData.cableData[icab];
             int nb = cableData.getUnusedSize();
@@ -674,7 +673,7 @@ class RawPixelReader : public PixelReader
         }
       }
     }
-    if (ruDecData.nCables) {       // there are cables with data to decode
+    if (ruDecData.ruInfo->nCables) { // there are cables with data to decode
       decodeAlpideData(ruDecData); // decode Alpide data from the compressed RU Data
     }
     return res;
@@ -773,8 +772,6 @@ class RawPixelReader : public PixelReader
       RDHUtils::printRDH(rdh);
     }
 #endif
-
-    ruDecData.nCables = ruDecData.ruInfo->nCables;
     while (1) {
       ruLink->packetCounter = RDHUtils::getPacketCounter(rdh);
 
@@ -1025,8 +1022,6 @@ class RawPixelReader : public PixelReader
 
     mTrigger = RDHUtils::getTriggerType(rdh);
 
-    mInteractionRecordHB = RDHUtils::getHeartBeatIR(rdh);
-
     auto ruLink = getGBTLink(ruDecode.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
     ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
@@ -1240,7 +1235,7 @@ class RawPixelReader : public PixelReader
 
     decData.nChipsFired = decData.lastChipChecked = 0;
     int ntot = 0;
-    for (int icab = 0; icab < decData.nCables; icab++) {
+    for (int icab = 0; icab < decData.ruInfo->nCables; icab++) {
       auto& cableData = decData.cableData[icab];
       int res = 0;
 

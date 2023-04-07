@@ -86,7 +86,6 @@ class GpuTimeFrameChunk
   {
     mTimeFramePtr = tf;
     mTFGPUParams = &conf;
-    LOGP(info, "GpuTimeFrameChunk: mTimeFramePtr = {}", (void*)mTimeFramePtr);
   }
   ~GpuTimeFrameChunk();
 
@@ -97,7 +96,6 @@ class GpuTimeFrameChunk
 
   /// Interface
   Cluster* getDeviceClusters(const int);
-  unsigned char* getDeviceUsedClusters(const int);
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   int* getDeviceClusterExternalIndices(const int);
   int* getDeviceIndexTables(const int);
@@ -107,11 +105,11 @@ class GpuTimeFrameChunk
   int* getDeviceCellsLookupTables(const int);
   TimeFrameGPUParameters* getTimeFrameGPUParameters() const { return mTFGPUParams; }
 
-  void downloadDeviceLines(std::vector<Line>&, Stream&);
-
   int* getDeviceCUBTmpBuffer() { return mCUBTmpBufferDevice; }
   int* getDeviceFoundTracklets() { return mFoundTrackletsDevice; }
-  int* getDeviceFoundCells() { return mFoundCellsDevice; }
+  int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
+  int* getDeviceCellNeigboursLookupTables(const int);
+  int* getDeviceCellNeighbours(const int);
 
   /// Vertexer only
   int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }
@@ -129,7 +127,6 @@ class GpuTimeFrameChunk
 
   /// Device
   std::array<Cluster*, nLayers> mClustersDevice;
-  std::array<unsigned char*, nLayers> mUsedClustersDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   std::array<int*, nLayers> mClusterExternalIndicesDevice;
   std::array<int*, nLayers> mIndexTablesDevice;
@@ -137,10 +134,12 @@ class GpuTimeFrameChunk
   std::array<int*, nLayers - 1> mTrackletsLookupTablesDevice;
   std::array<Cell*, nLayers - 2> mCellsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
+  std::array<int*, nLayers - 3> mNeighboursCellDevice;
+  std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;
 
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
-  int* mFoundCellsDevice;
+  int* mNFoundCellsDevice;
 
   /// Vertexer only
   Line* mLinesDevice;
@@ -168,8 +167,8 @@ class TimeFrameGPU : public TimeFrame
   /// Most relevant operations
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void initialise(const int, const TrackingParameters&, const int, const IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(const int, const IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int);
+  void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
+  void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -186,9 +185,16 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
   std::vector<std::vector<o2::MCCompLabel>>& getLabelsInChunks() { return mLabelsInChunks; }
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
+  StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
+  Vertex* getDeviceVertices() { return mVerticesDevice; }
+  int* getDeviceROframesPV() { return mROframesPVDevice; }
+  unsigned char* getDeviceUsedClusters(const int);
+
+  // Host-specific getters
+  gsl::span<int> getHostNTracklets(const int chunkId);
+  gsl::span<int> getHostNCells(const int chunkId);
 
  private:
-  bool mDeviceInitialised = false;
   bool mHostRegistered = false;
   std::vector<GpuTimeFrameChunk<nLayers>> mMemChunks;
   TimeFrameGPUParameters mGpuParams;
@@ -198,6 +204,9 @@ class TimeFrameGPU : public TimeFrame
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
   std::array<int*, nLayers> mROframesClustersDevice;
+  std::array<unsigned char*, nLayers> mUsedClustersDevice;
+  Vertex* mVerticesDevice;
+  int* mROframesPVDevice;
 
   // State
   std::vector<Stream> mGpuStreams;
@@ -208,6 +217,10 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<Vertex>> mVerticesInChunks;
   std::vector<std::vector<int>> mNVerticesInChunks;
   std::vector<std::vector<o2::MCCompLabel>> mLabelsInChunks;
+
+  // Host memeory used only in GPU tracking
+  std::vector<int> mHostNTracklets;
+  std::vector<int> mHostNCells;
 };
 
 template <int nLayers>
